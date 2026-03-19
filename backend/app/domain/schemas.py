@@ -81,6 +81,7 @@ class SourceDocumentRead(ORMModel):
     file_size: int
     ingest_status: str
     extracted_text: str | None
+    ingestion_error: str | None
     created_at: datetime
 
 

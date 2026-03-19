@@ -13,6 +13,44 @@ from app.ingestion.sources import ManualUploadConnector
 from app.services.tasks import get_loaded_task
 
 
+def _build_evidence_from_upload(
+    *,
+    task_id: str,
+    source_document_id: str,
+    source_ref: str,
+    file_name: str,
+    extracted_text: str,
+    ingest_status: str,
+    ingestion_error: str | None,
+) -> models.Evidence:
+    if ingest_status == "processed" and extracted_text:
+        evidence_type = "uploaded_file_excerpt"
+        excerpt = summarize_evidence_text(extracted_text)
+    elif ingest_status == "failed":
+        evidence_type = "uploaded_file_ingestion_issue"
+        excerpt = (
+            f"Uploaded file '{file_name}' could not be fully ingested. "
+            f"Uncertainty note: {ingestion_error or 'unknown ingestion error'}."
+        )
+    else:
+        evidence_type = "uploaded_file_unparsed"
+        excerpt = (
+            f"Uploaded file '{file_name}' is attached, but no usable text was extracted automatically. "
+            "This source should be treated as unavailable until a supported text format is provided."
+        )
+
+    return models.Evidence(
+        task_id=task_id,
+        source_document_id=source_document_id,
+        evidence_type=evidence_type,
+        source_type="manual_upload",
+        source_ref=source_ref,
+        title=file_name,
+        excerpt_or_summary=excerpt,
+        reliability_level="user_provided",
+    )
+
+
 def save_uploads_for_task(
     db: Session,
     task_id: str,
@@ -30,16 +68,24 @@ def save_uploads_for_task(
 
     for file in files:
         content = file.file.read()
-        if not content:
-            continue
-
         extension = Path(file.filename or "").suffix
         stored_name = f"{uuid4()}{extension}"
         storage_path = task_upload_dir / stored_name
         storage_path.write_bytes(content)
+        extracted_text = ""
+        ingest_status = "metadata_only"
+        ingestion_error: str | None = None
 
-        extracted_text = extract_text_from_upload(file.filename or stored_name, content)
-        ingest_status = "processed" if extracted_text else "metadata_only"
+        if not content:
+            ingest_status = "failed"
+            ingestion_error = "The uploaded file was empty."
+        else:
+            try:
+                extracted_text = extract_text_from_upload(file.filename or stored_name, content)
+                ingest_status = "processed" if extracted_text else "metadata_only"
+            except Exception as exc:
+                ingest_status = "failed"
+                ingestion_error = str(exc)
 
         source_document = models.SourceDocument(
             task_id=task.id,
@@ -50,22 +96,19 @@ def save_uploads_for_task(
             file_size=len(content),
             ingest_status=ingest_status,
             extracted_text=extracted_text or None,
+            ingestion_error=ingestion_error,
         )
         db.add(source_document)
         db.flush()
 
-        evidence_body = summarize_evidence_text(extracted_text) if extracted_text else (
-            f"Uploaded file '{file.filename or stored_name}' is attached, but no text could be extracted automatically."
-        )
-        evidence = models.Evidence(
+        evidence = _build_evidence_from_upload(
             task_id=task.id,
             source_document_id=source_document.id,
-            evidence_type="uploaded_file",
-            source_type=connector.source_type,
             source_ref=connector.build_source_ref(task.id, source_document.id),
-            title=file.filename or stored_name,
-            excerpt_or_summary=evidence_body,
-            reliability_level="user_provided",
+            file_name=file.filename or stored_name,
+            extracted_text=extracted_text,
+            ingest_status=ingest_status,
+            ingestion_error=ingestion_error,
         )
         db.add(evidence)
         db.flush()
@@ -76,6 +119,9 @@ def save_uploads_for_task(
                 evidence=schemas.EvidenceRead.model_validate(evidence),
             )
         )
+
+    if not uploaded:
+        raise HTTPException(status_code=400, detail="No files were uploaded successfully.")
 
     db.commit()
     return schemas.UploadBatchResponse(task_id=task.id, uploaded=uploaded)

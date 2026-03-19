@@ -10,10 +10,19 @@ from app.domain import schemas
 router = APIRouter(prefix="/tasks", tags=["runs"])
 
 
+@router.post("/{task_id}/run", response_model=schemas.ResearchRunResponse)
+def run_task(
+    task_id: str,
+    db: Session = Depends(get_db),
+) -> schemas.ResearchRunResponse:
+    orchestrator = HostOrchestrator(db)
+    return orchestrator.orchestrate_task(task_id)
+
+
 @router.post("/{task_id}/runs/research-synthesis", response_model=schemas.ResearchRunResponse)
 def run_research_synthesis(
     task_id: str,
     db: Session = Depends(get_db),
 ) -> schemas.ResearchRunResponse:
     orchestrator = HostOrchestrator(db)
-    return orchestrator.run_research_synthesis(task_id)
+    return orchestrator.orchestrate_task(task_id)

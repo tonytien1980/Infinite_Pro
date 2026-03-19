@@ -1,8 +1,14 @@
 from __future__ import annotations
 
 import re
+from os import getenv
 
-from app.model_router.base import ModelProvider, ResearchSynthesisOutput, ResearchSynthesisRequest
+from app.model_router.base import (
+    ModelProvider,
+    ModelProviderError,
+    ResearchSynthesisOutput,
+    ResearchSynthesisRequest,
+)
 
 
 def _clean_text(text: str) -> str:
@@ -21,6 +27,9 @@ class MockModelProvider(ModelProvider):
         self,
         request: ResearchSynthesisRequest,
     ) -> ResearchSynthesisOutput:
+        if getenv("MODEL_PROVIDER_FAILURE_MODE", "").lower() == "always_fail":
+            raise ModelProviderError("Mock model provider failure mode is enabled.")
+
         evidence_text = " ".join(
             _clean_text(str(item.get("content", ""))) for item in request.evidence if item.get("content")
         )

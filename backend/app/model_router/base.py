@@ -6,6 +6,10 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 
+class ModelProviderError(RuntimeError):
+    """Raised when the model provider cannot produce a usable result."""
+
+
 class ResearchSynthesisRequest(BaseModel):
     task_title: str
     task_description: str

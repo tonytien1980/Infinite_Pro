@@ -5,12 +5,28 @@ from datetime import datetime, timezone
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from app.agents.base import AgentInputPayload, AgentResult
+from app.agents.base import (
+    ActionItemDraft,
+    AgentInputPayload,
+    AgentResult,
+    RecommendationDraft,
+    RiskDraft,
+)
 from app.agents.registry import AgentRegistry
 from app.domain import models, schemas
 from app.domain.enums import FlowMode, RunStatus, TaskStatus
 from app.model_router.factory import get_model_provider
 from app.services.tasks import get_loaded_task
+
+REQUIRED_DELIVERABLE_KEYS = (
+    "problem_definition",
+    "background_summary",
+    "findings",
+    "risks",
+    "recommendations",
+    "action_items",
+    "missing_information",
+)
 
 
 class HostOrchestrator:
@@ -52,32 +68,101 @@ class HostOrchestrator:
             return []
         return items[-count:]
 
-    def run_research_synthesis(self, task_id: str) -> schemas.ResearchRunResponse:
+    def _normalize_result(self, payload: AgentInputPayload, agent_id: str, result: AgentResult) -> AgentResult:
+        content = dict(result.deliverable.content_structure or {})
+        missing_information = list(content.get("missing_information") or [])
+
+        for key in REQUIRED_DELIVERABLE_KEYS:
+            if key not in content:
+                content[key] = [] if key in {"findings", "risks", "recommendations", "action_items", "missing_information"} else ""
+                missing_information.append(f"The agent did not provide a '{key}' section, so Host added an explicit placeholder.")
+
+        if not content["problem_definition"]:
+            content["problem_definition"] = payload.description or payload.title
+            missing_information.append("Problem definition was inferred from the task because the specialist output omitted it.")
+        if not content["background_summary"]:
+            content["background_summary"] = payload.background_text or "No background summary was available."
+            missing_information.append("Background summary was inferred from the current task context.")
+
+        if not result.recommendations:
+            result.recommendations = [
+                RecommendationDraft(
+                    summary="Collect stronger evidence and rerun the workflow.",
+                    rationale="Host added this recommendation because the specialist output did not include one.",
+                    based_on_refs=[],
+                    priority="high",
+                    owner_suggestion="Task owner",
+                )
+            ]
+            missing_information.append("No recommendation objects were produced, so Host added a degraded fallback recommendation.")
+
+        if not result.action_items:
+            result.action_items = [
+                ActionItemDraft(
+                    description="Add usable source material or revise the task brief before the next run.",
+                    suggested_owner="Task owner",
+                    priority="high",
+                )
+            ]
+            missing_information.append("No action items were produced, so Host added a degraded fallback action item.")
+
+        if not result.risks and missing_information:
+            result.risks = [
+                RiskDraft(
+                    title="Incomplete specialist output",
+                    description="Host detected missing sections in the specialist output and converted them into explicit uncertainty.",
+                    risk_type="output_integrity",
+                    impact_level="medium",
+                    likelihood_level="high",
+                    evidence_refs=[],
+                )
+            ]
+
+        content["recommendations"] = content.get("recommendations") or [item.summary for item in result.recommendations]
+        content["action_items"] = content.get("action_items") or [item.description for item in result.action_items]
+        content["risks"] = content.get("risks") or [item.description for item in result.risks]
+        content["missing_information"] = missing_information
+        content["workflow_mode"] = payload.flow_mode.value
+        content["generated_by_agent"] = agent_id
+        result.deliverable.content_structure = content
+        return result
+
+    def orchestrate_task(self, task_id: str) -> schemas.ResearchRunResponse:
         task = get_loaded_task(self.db, task_id)
-        flow_mode = self.determine_flow_mode(task)
-        if flow_mode == FlowMode.MULTI_AGENT:
+        workflow_mode = self.determine_flow_mode(task)
+        if workflow_mode == FlowMode.MULTI_AGENT:
             raise HTTPException(
                 status_code=501,
-                detail="The full multi-agent flow is scaffolded but not implemented in this MVP slice yet.",
+                detail="The workflow mode boundary is preserved, but the full multi-agent flow is not implemented in this MVP slice yet.",
             )
 
+        return self._run_specialist_flow(task, workflow_mode)
+
+    def run_research_synthesis(self, task_id: str) -> schemas.ResearchRunResponse:
+        return self.orchestrate_task(task_id)
+
+    def _run_specialist_flow(
+        self,
+        task: models.Task,
+        workflow_mode: FlowMode,
+    ) -> schemas.ResearchRunResponse:
         agent_id = self.route_specialist(task)
         task.status = TaskStatus.RUNNING.value
         run = models.TaskRun(
             task_id=task.id,
             agent_id=agent_id,
-            flow_mode=flow_mode.value,
+            flow_mode=workflow_mode.value,
             status=RunStatus.RUNNING.value,
         )
         self.db.add(run)
         self.db.commit()
         self.db.refresh(run)
-        task = get_loaded_task(self.db, task_id)
+        task = get_loaded_task(self.db, task.id)
 
         try:
             payload = self.build_payload(task)
             agent = self.registry.get_specialist_agent(agent_id)
-            result = agent.run(payload)
+            result = self._normalize_result(payload, agent_id, agent.run(payload))
             deliverable = self.persist_result(task=task, run=run, result=result)
         except Exception as exc:
             run.status = RunStatus.FAILED.value

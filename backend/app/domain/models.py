@@ -112,6 +112,7 @@ class SourceDocument(Base):
     file_size: Mapped[int] = mapped_column(Integer, default=0)
     ingest_status: Mapped[str] = mapped_column(String(100), default="processed")
     extracted_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    ingestion_error: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
     task: Mapped["Task"] = relationship(back_populates="uploads")

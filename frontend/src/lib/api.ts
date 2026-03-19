@@ -69,7 +69,7 @@ export async function uploadTaskFiles(
 export async function runResearchSynthesis(
   taskId: string,
 ): Promise<ResearchRunResponse> {
-  const response = await fetch(`${API_BASE_URL}/tasks/${taskId}/runs/research-synthesis`, {
+  const response = await fetch(`${API_BASE_URL}/tasks/${taskId}/run`, {
     method: "POST",
   });
   return parseResponse<ResearchRunResponse>(response);
