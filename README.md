@@ -24,6 +24,9 @@ AI Advisory OS is an ontology-centered intelligent workbench for complex knowled
 - Upload ingestion that extracts text from supported files and creates usable `Evidence`
 - Host orchestration skeleton with explicit `specialist` / `multi_agent` workflow boundary
 - First specialist agent only: `Research Synthesis Agent`
+- First minimal multi-agent validation slice with 2 fixed mock-first core agents:
+  - `Strategy / Business Analysis Agent`
+  - `Risk / Challenge Agent`
 - Structured output with `deliverable`, `recommendations`, `action_items`, `risks`, and `missing_information`
 - Task history persistence and review UI
 - Pytest smoke coverage for the current slice
@@ -114,6 +117,10 @@ The current smoke suite covers:
 - file upload -> evidence creation for `.md`
 - file ingestion failure fallback
 - specialist run for `Research Synthesis Agent`
+- multi-agent happy path
+- multi-agent insufficient evidence degradation
+- multi-agent model router usage
+- Host-centered multi-agent orchestration
 - task history persistence
 - model router failure degradation
 - incomplete specialist output normalization by Host
@@ -140,8 +147,9 @@ The current smoke suite covers:
 3. Upload one or more files.
 4. Backend ingests uploads, stores metadata, extracts supported text, and creates `Evidence`.
 5. Host orchestrator preserves the workflow boundary and routes the current slice into the specialist flow.
-6. `Research Synthesis Agent` runs through the model router abstraction.
-7. The system stores structured `Deliverable`, `Recommendation`, `ActionItem`, `Risk`, and history records.
+6. For backend-verified multi-agent tasks, Host orchestrator calls a fixed pair of core agents and converges their outputs.
+7. `Research Synthesis Agent` and the current mock-first core agents both run through the model router abstraction.
+8. The system stores structured `Deliverable`, `Recommendation`, `ActionItem`, `Risk`, and history records.
 
 ## Supported file extraction
 
@@ -170,7 +178,8 @@ If a file cannot be text-extracted, the upload is still stored and the ingestion
 ## Architecture choices recorded
 
 - The model layer is abstracted behind a provider interface. The default runtime provider is a deterministic local mock so this MVP slice can run without external model credentials.
-- The Host orchestration layer is not hard-coded to specialist-only behavior. It preserves the workflow boundary between `specialist` and `multi_agent`, but the `multi_agent` path currently returns a clear `501` until the next phase.
+- The Host orchestration layer is not hard-coded to specialist-only behavior. It preserves the workflow boundary between `specialist` and `multi_agent`, and the current `multi_agent` branch is implemented as a fixed 2-agent validation slice.
+- The current `multi_agent` slice is intentionally minimal. Host is still the only orchestration center and always calls the same fixed pair of core agents rather than doing intelligent agent selection.
 - Source ingestion currently supports manual background text plus manual file upload only. Connector abstractions are present for future sources such as Google Drive or local folder ingestion.
 - Structured outputs are normalized by Host so missing sections become explicit uncertainty rather than fake completeness.
 - Schema creation currently uses SQLAlchemy metadata on startup. A real migration workflow should be added once the model stabilizes.
@@ -178,7 +187,7 @@ If a file cannot be text-extracted, the upload is still stored and the ingestion
 ## Known limitations of this MVP slice
 
 - Only one specialist agent is implemented: `Research Synthesis Agent`.
-- The full Host-driven `multi_agent` flow is scaffolded but not implemented yet.
+- The `multi_agent` path is only a minimal validation slice. It uses 2 fixed core agents and is not yet exposed through the current frontend task form.
 - The default provider is a mock synthesizer, not a production LLM integration.
 - Upload extraction is intentionally lightweight and does not yet do chunking, citation selection, OCR, or advanced parsing.
 - File storage is local filesystem storage for development.

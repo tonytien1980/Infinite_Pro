@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
-from app.agents.base import AgentDescriptor, SpecialistAgent
+from app.agents.base import AgentDescriptor, CoreAnalysisAgent, SpecialistAgent
+from app.agents.core.risk_challenge import RiskChallengeAgent
+from app.agents.core.strategy_business_analysis import StrategyBusinessAnalysisAgent
 from app.agents.specialists.research_synthesis import ResearchSynthesisAgent
 from app.domain.enums import AgentCategory, AgentStatus, FlowMode
 from app.model_router.base import ModelProvider
@@ -21,7 +23,7 @@ def build_agent_catalog() -> list[AgentDescriptor]:
             produced_objects=["Insight", "Option", "Recommendation"],
             default_model_policy="balanced",
             version="0.1.0",
-            status=AgentStatus.DISABLED,
+            status=AgentStatus.ACTIVE,
         ),
         AgentDescriptor(
             agent_id="operations",
@@ -60,7 +62,7 @@ def build_agent_catalog() -> list[AgentDescriptor]:
             produced_objects=["Risk", "Recommendation"],
             default_model_policy="balanced",
             version="0.1.0",
-            status=AgentStatus.DISABLED,
+            status=AgentStatus.ACTIVE,
         ),
         AgentDescriptor(
             agent_id="contract_review",
@@ -107,6 +109,10 @@ def build_agent_catalog() -> list[AgentDescriptor]:
 class AgentRegistry:
     def __init__(self, model_provider: ModelProvider):
         self.catalog = build_agent_catalog()
+        self._core_agents = {
+            "strategy_business_analysis": StrategyBusinessAnalysisAgent(model_provider=model_provider),
+            "risk_challenge": RiskChallengeAgent(model_provider=model_provider),
+        }
         self._specialist_agents = {
             "research_synthesis": ResearchSynthesisAgent(model_provider=model_provider),
         }
@@ -124,3 +130,11 @@ class AgentRegistry:
         if agent_id not in self._specialist_agents:
             raise ValueError(f"Agent '{agent_id}' has no runtime implementation yet.")
         return self._specialist_agents[agent_id]
+
+    def get_core_agent(self, agent_id: str) -> CoreAnalysisAgent:
+        descriptor = self.get_descriptor(agent_id)
+        if descriptor is None or descriptor.status != AgentStatus.ACTIVE:
+            raise ValueError(f"Agent '{agent_id}' is not available.")
+        if agent_id not in self._core_agents:
+            raise ValueError(f"Agent '{agent_id}' has no runtime implementation yet.")
+        return self._core_agents[agent_id]

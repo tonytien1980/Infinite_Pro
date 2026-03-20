@@ -9,6 +9,8 @@ from app.agents.base import (
     ActionItemDraft,
     AgentInputPayload,
     AgentResult,
+    CoreAgentResult,
+    DeliverableDraft,
     RecommendationDraft,
     RiskDraft,
 )
@@ -79,7 +81,7 @@ class HostOrchestrator:
 
         if not content["problem_definition"]:
             content["problem_definition"] = payload.description or payload.title
-            missing_information.append("Problem definition was inferred from the task because the specialist output omitted it.")
+            missing_information.append("Problem definition was inferred from the task because the agent output omitted it.")
         if not content["background_summary"]:
             content["background_summary"] = payload.background_text or "No background summary was available."
             missing_information.append("Background summary was inferred from the current task context.")
@@ -131,15 +133,164 @@ class HostOrchestrator:
         task = get_loaded_task(self.db, task_id)
         workflow_mode = self.determine_flow_mode(task)
         if workflow_mode == FlowMode.MULTI_AGENT:
-            raise HTTPException(
-                status_code=501,
-                detail="The workflow mode boundary is preserved, but the full multi-agent flow is not implemented in this MVP slice yet.",
-            )
+            return self._run_multi_agent_flow(task, workflow_mode)
 
         return self._run_specialist_flow(task, workflow_mode)
 
     def run_research_synthesis(self, task_id: str) -> schemas.ResearchRunResponse:
         return self.orchestrate_task(task_id)
+
+    def _run_multi_agent_flow(
+        self,
+        task: models.Task,
+        workflow_mode: FlowMode,
+    ) -> schemas.ResearchRunResponse:
+        task.status = TaskStatus.RUNNING.value
+        run = models.TaskRun(
+            task_id=task.id,
+            agent_id="host_orchestrator",
+            flow_mode=workflow_mode.value,
+            status=RunStatus.RUNNING.value,
+        )
+        self.db.add(run)
+        self.db.commit()
+        self.db.refresh(run)
+        task = get_loaded_task(self.db, task.id)
+
+        try:
+            payload = self.build_payload(task)
+            fixed_core_agents = ["strategy_business_analysis", "risk_challenge"]
+            fragments: list[tuple[str, CoreAgentResult]] = []
+            missing_information: list[str] = []
+
+            for agent_id in fixed_core_agents:
+                agent = self.registry.get_core_agent(agent_id)
+                try:
+                    fragments.append((agent_id, agent.run(payload)))
+                except Exception as exc:
+                    missing_information.append(f"{agent_id}: model router failure or core-agent error: {exc}")
+
+            converged = self._normalize_result(
+                payload,
+                run.agent_id,
+                self._build_multi_agent_result(payload, fixed_core_agents, fragments, missing_information),
+            )
+            deliverable = self.persist_result(task=task, run=run, result=converged)
+        except Exception as exc:
+            run.status = RunStatus.FAILED.value
+            run.error_message = str(exc)
+            run.completed_at = datetime.now(timezone.utc)
+            task.status = TaskStatus.FAILED.value
+            self.db.add_all([task, run])
+            self.db.commit()
+            raise
+
+        refreshed_task = get_loaded_task(self.db, task.id)
+        new_insights = [
+            schemas.InsightRead.model_validate(item)
+            for item in self._tail(refreshed_task.insights, len(converged.insights))
+        ]
+        new_risks = [
+            schemas.RiskRead.model_validate(item)
+            for item in self._tail(refreshed_task.risks, len(converged.risks))
+        ]
+        new_recommendations = [
+            schemas.RecommendationRead.model_validate(item)
+            for item in self._tail(refreshed_task.recommendations, len(converged.recommendations))
+        ]
+        new_action_items = [
+            schemas.ActionItemRead.model_validate(item)
+            for item in self._tail(refreshed_task.action_items, len(converged.action_items))
+        ]
+
+        return schemas.ResearchRunResponse(
+            task_id=refreshed_task.id,
+            run=schemas.TaskRunRead.model_validate(run),
+            deliverable=schemas.DeliverableRead.model_validate(deliverable),
+            insights=new_insights,
+            risks=new_risks,
+            recommendations=new_recommendations,
+            action_items=new_action_items,
+        )
+
+    def _build_multi_agent_result(
+        self,
+        payload: AgentInputPayload,
+        fixed_core_agents: list[str],
+        fragments: list[tuple[str, CoreAgentResult]],
+        missing_information: list[str],
+    ) -> AgentResult:
+        insights = [item for _, fragment in fragments for item in fragment.insights]
+        risks = [item for _, fragment in fragments for item in fragment.risks]
+        recommendations = [item for _, fragment in fragments for item in fragment.recommendations]
+        action_items = [item for _, fragment in fragments for item in fragment.action_items]
+
+        for agent_id, fragment in fragments:
+            for note in fragment.missing_information:
+                missing_information.append(f"{agent_id}: {note}")
+
+        findings = [item.summary for item in insights]
+        if not findings:
+            findings = [
+                "No high-confidence multi-agent findings were produced; the output should be treated as a convergence scaffold.",
+            ]
+            missing_information.append(
+                "The fixed core-agent pair could not generate stronger findings from the current evidence set."
+            )
+
+        if not risks:
+            risks = [
+                RiskDraft(
+                    title="Multi-agent evidence gap",
+                    description="The multi-agent flow ran, but evidence coverage was too thin for richer challenge and convergence.",
+                    risk_type="evidence_gap",
+                    impact_level="medium",
+                    likelihood_level="high",
+                    evidence_refs=[],
+                )
+            ]
+
+        if not recommendations:
+            recommendations = [
+                RecommendationDraft(
+                    summary="Strengthen the evidence base before treating this convergence output as decision-ready.",
+                    rationale="Host added a fallback recommendation because the fixed core agents did not produce one.",
+                    based_on_refs=[],
+                    priority="high",
+                    owner_suggestion="Task owner",
+                )
+            ]
+
+        if not action_items:
+            action_items = [
+                ActionItemDraft(
+                    description="Add more usable evidence and rerun the multi-agent flow.",
+                    suggested_owner="Task owner",
+                    priority="high",
+                )
+            ]
+
+        return AgentResult(
+            insights=insights,
+            risks=risks,
+            recommendations=recommendations,
+            action_items=action_items,
+            deliverable=DeliverableDraft(
+                deliverable_type="multi_agent_convergence",
+                title=f"{payload.title} - Multi-Agent Convergence",
+                content_structure={
+                    "problem_definition": payload.description or payload.title,
+                    "background_summary": payload.background_text or "No background summary was available.",
+                    "findings": findings,
+                    "insights": findings,
+                    "risks": [item.description for item in risks],
+                    "recommendations": [item.summary for item in recommendations],
+                    "action_items": [item.description for item in action_items],
+                    "missing_information": missing_information,
+                    "participating_agents": fixed_core_agents,
+                },
+            ),
+        )
 
     def _run_specialist_flow(
         self,

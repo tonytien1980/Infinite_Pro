@@ -91,9 +91,26 @@ class AgentResult(BaseModel):
     deliverable: DeliverableDraft
 
 
+class CoreAgentResult(BaseModel):
+    findings: list[str] = Field(default_factory=list)
+    insights: list[InsightDraft] = Field(default_factory=list)
+    risks: list[RiskDraft] = Field(default_factory=list)
+    recommendations: list[RecommendationDraft] = Field(default_factory=list)
+    action_items: list[ActionItemDraft] = Field(default_factory=list)
+    missing_information: list[str] = Field(default_factory=list)
+
+
 class SpecialistAgent(ABC):
     descriptor: AgentDescriptor
 
     @abstractmethod
     def run(self, payload: AgentInputPayload) -> AgentResult:
+        raise NotImplementedError
+
+
+class CoreAnalysisAgent(ABC):
+    descriptor: AgentDescriptor
+
+    @abstractmethod
+    def run(self, payload: AgentInputPayload) -> CoreAgentResult:
         raise NotImplementedError

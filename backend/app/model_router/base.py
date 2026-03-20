@@ -19,9 +19,27 @@ class ResearchSynthesisRequest(BaseModel):
     evidence: list[dict[str, Any]] = Field(default_factory=list)
 
 
+class CoreAnalysisRequest(BaseModel):
+    agent_id: str
+    task_title: str
+    task_description: str
+    background_text: str = ""
+    goals: list[str] = Field(default_factory=list)
+    constraints: list[str] = Field(default_factory=list)
+    evidence: list[dict[str, Any]] = Field(default_factory=list)
+
+
 class ResearchSynthesisOutput(BaseModel):
     problem_definition: str
     background_summary: str
+    findings: list[str]
+    risks: list[str]
+    recommendations: list[str]
+    action_items: list[str]
+    missing_information: list[str]
+
+
+class CoreAnalysisOutput(BaseModel):
     findings: list[str]
     risks: list[str]
     recommendations: list[str]
@@ -35,4 +53,11 @@ class ModelProvider(ABC):
         self,
         request: ResearchSynthesisRequest,
     ) -> ResearchSynthesisOutput:
+        raise NotImplementedError
+
+    @abstractmethod
+    def generate_core_analysis(
+        self,
+        request: CoreAnalysisRequest,
+    ) -> CoreAnalysisOutput:
         raise NotImplementedError

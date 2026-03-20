@@ -23,6 +23,25 @@ def create_task_payload(title: str = "Research memo synthesis") -> dict:
     }
 
 
+def create_multi_agent_payload(title: str = "Multi-agent convergence") -> dict:
+    return {
+        "title": title,
+        "description": "Converge the evidence into a cross-perspective internal recommendation.",
+        "task_type": "complex_convergence",
+        "mode": "multi_agent",
+        "background_text": "We need a quick convergence draft for internal strategy review.",
+        "subject_name": "Internal convergence memo",
+        "goal_description": "Produce a short structured recommendation with risks and next steps.",
+        "constraints": [
+            {
+                "description": "Keep it brief and evidence-backed.",
+                "constraint_type": "delivery",
+                "severity": "medium",
+            }
+        ],
+    }
+
+
 def test_health_endpoint(client: TestClient) -> None:
     response = client.get("/api/v1/health")
 
@@ -196,3 +215,100 @@ def test_host_normalizes_incomplete_specialist_output(
     assert body["recommendations"]
     assert body["action_items"]
     assert body["risks"]
+
+
+def test_multi_agent_happy_path_converges_and_saves_history(client: TestClient) -> None:
+    task = client.post("/api/v1/tasks", json=create_multi_agent_payload()).json()
+    client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[
+            (
+                "files",
+                (
+                    "convergence.txt",
+                    b"Customers care about implementation speed. Pricing complexity creates adoption friction. Competitor positioning overlaps in the mid-market tier.",
+                    "text/plain",
+                ),
+            )
+        ],
+    )
+
+    response = client.post(f"/api/v1/tasks/{task['id']}/run")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["run"]["status"] == "completed"
+    assert body["run"]["agent_id"] == "host_orchestrator"
+    assert body["deliverable"]["deliverable_type"] == "multi_agent_convergence"
+    assert body["deliverable"]["content_structure"]["participating_agents"] == [
+        "strategy_business_analysis",
+        "risk_challenge",
+    ]
+    assert body["deliverable"]["content_structure"]["findings"]
+    assert body["deliverable"]["content_structure"]["insights"]
+    assert body["recommendations"]
+    assert body["action_items"]
+
+    history = client.get(f"/api/v1/tasks/{task['id']}/history").json()
+    assert len(history["runs"]) == 1
+    assert history["runs"][0]["agent_id"] == "host_orchestrator"
+    assert len(history["deliverables"]) == 1
+
+
+def test_multi_agent_with_insufficient_evidence_returns_explicit_uncertainty(
+    client: TestClient,
+) -> None:
+    payload = create_multi_agent_payload("Multi-agent weak evidence")
+    payload["background_text"] = ""
+    task = client.post("/api/v1/tasks", json=payload).json()
+
+    response = client.post(f"/api/v1/tasks/{task['id']}/run")
+
+    assert response.status_code == 200
+    body = response.json()
+    missing_information = " ".join(body["deliverable"]["content_structure"]["missing_information"])
+    assert "could not generate stronger findings" in missing_information or "did not have enough evidence depth" in missing_information
+    assert body["risks"]
+    assert body["recommendations"]
+    assert body["action_items"]
+
+
+def test_multi_agent_still_uses_model_router(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.model_router.mock import MockModelProvider
+
+    task = client.post("/api/v1/tasks", json=create_multi_agent_payload("Router spy")).json()
+    client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("spy.txt", b"One strong evidence sentence for router spying.", "text/plain"))],
+    )
+
+    calls: list[str] = []
+    original = MockModelProvider.generate_core_analysis
+
+    def spy(self, request):  # noqa: ANN001
+        calls.append(request.agent_id)
+        return original(self, request)
+
+    monkeypatch.setattr(MockModelProvider, "generate_core_analysis", spy)
+
+    response = client.post(f"/api/v1/tasks/{task['id']}/run")
+
+    assert response.status_code == 200
+    assert calls == ["strategy_business_analysis", "risk_challenge"]
+
+
+def test_host_remains_orchestration_center_for_multi_agent(
+    client: TestClient,
+) -> None:
+    task = client.post("/api/v1/tasks", json=create_multi_agent_payload("Host-centered multi-agent")).json()
+
+    response = client.post(f"/api/v1/tasks/{task['id']}/run")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["run"]["agent_id"] == "host_orchestrator"
+    assert body["run"]["flow_mode"] == "multi_agent"
+    assert body["deliverable"]["content_structure"]["generated_by_agent"] == "host_orchestrator"

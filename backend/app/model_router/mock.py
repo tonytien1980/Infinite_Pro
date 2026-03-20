@@ -4,6 +4,8 @@ import re
 from os import getenv
 
 from app.model_router.base import (
+    CoreAnalysisOutput,
+    CoreAnalysisRequest,
     ModelProvider,
     ModelProviderError,
     ResearchSynthesisOutput,
@@ -84,6 +86,67 @@ class MockModelProvider(ModelProvider):
         return ResearchSynthesisOutput(
             problem_definition=problem_definition,
             background_summary=background_summary,
+            findings=findings,
+            risks=risks,
+            recommendations=recommendations,
+            action_items=action_items,
+            missing_information=missing_information,
+        )
+
+    def generate_core_analysis(
+        self,
+        request: CoreAnalysisRequest,
+    ) -> CoreAnalysisOutput:
+        if getenv("MODEL_PROVIDER_FAILURE_MODE", "").lower() == "always_fail":
+            raise ModelProviderError(f"Mock model provider failed for core agent '{request.agent_id}'.")
+
+        evidence_text = " ".join(
+            _clean_text(str(item.get("content", ""))) for item in request.evidence if item.get("content")
+        )
+        corpus = _clean_text(" ".join(filter(None, [request.background_text, evidence_text])))
+        sentences = _split_sentences(corpus)
+        findings = sentences[:2] if sentences else []
+
+        missing_information: list[str] = []
+        if not request.evidence:
+            missing_information.append(
+                f"{request.agent_id} received no uploaded evidence and had to rely on task context only."
+            )
+        if len(corpus) < 100:
+            missing_information.append(
+                f"{request.agent_id} did not have enough evidence depth for high-confidence analysis."
+            )
+
+        if request.agent_id == "strategy_business_analysis":
+            if not findings:
+                findings = [
+                    "The strategy view could not produce strong findings because the evidence base is still thin.",
+                ]
+            recommendations = [
+                "Prioritize the most decision-relevant themes and turn them into a short convergence brief.",
+            ]
+            action_items = [
+                "Clarify which decision the task owner needs this analysis to support.",
+            ]
+            risks = [
+                "Strategic risk: limited evidence may make prioritization unstable until more source material is added."
+            ]
+        else:
+            if not findings:
+                findings = [
+                    "The risk review could not identify strong challenge signals because evidence coverage is limited.",
+                ]
+            recommendations = [
+                "Stress-test the current conclusions against evidence gaps before presenting them as final.",
+            ]
+            action_items = [
+                "Document the main assumptions and confirm them with the task owner.",
+            ]
+            risks = [
+                "Execution risk: weak evidence could hide downstream delivery or feasibility issues."
+            ]
+
+        return CoreAnalysisOutput(
             findings=findings,
             risks=risks,
             recommendations=recommendations,
