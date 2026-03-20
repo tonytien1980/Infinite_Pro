@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import logging
+
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.domain import models, schemas
 from app.domain.enums import TaskStatus
+
+logger = logging.getLogger(__name__)
 
 
 def task_load_options():
@@ -35,6 +39,12 @@ def get_loaded_task(db: Session, task_id: str) -> models.Task:
 
 
 def create_task(db: Session, payload: schemas.TaskCreateRequest) -> models.Task:
+    logger.info(
+        "Creating task title=%s task_type=%s mode=%s",
+        payload.title,
+        payload.task_type,
+        payload.mode.value,
+    )
     task = models.Task(
         title=payload.title,
         description=payload.description,

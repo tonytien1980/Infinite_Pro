@@ -73,6 +73,7 @@ Copy [`.env.example`](/Users/tonytien/Desktop/Infinite Pro/.env.example) to `.en
 | `NEXT_PUBLIC_API_BASE_URL` | Frontend API base URL | `http://localhost:8000/api/v1` |
 
 Note: the default `DATABASE_URL` is for Docker Compose because the backend container reaches PostgreSQL at host `db`. If you run the backend directly outside Docker, override it to a reachable host such as `localhost`.
+Note: the default `UPLOAD_DIR=/app/storage/uploads` is also Docker-oriented. For direct local backend runs outside Docker, override it to a writable workspace path such as `./storage/uploads`.
 
 ## Exact local startup steps
 
@@ -104,6 +105,37 @@ If you want to run backend smoke tests without Docker:
 python3 -m venv .venv
 .venv/bin/pip install -r backend/requirements-dev.txt
 .venv/bin/pytest backend/tests -q
+```
+
+### Local backend standalone path
+
+If you want to run the backend directly without Docker Compose:
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -r backend/requirements-dev.txt
+DATABASE_URL=sqlite+pysqlite:///./local.db \
+UPLOAD_DIR=./storage/uploads \
+PYTHONPATH=backend \
+.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+### Local frontend path
+
+If `node` is available and you want to run the frontend directly:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+If you want build or typecheck verification:
+
+```bash
+cd frontend
+npm run build
+npm run typecheck
 ```
 
 ## Exact smoke test steps
@@ -138,20 +170,69 @@ The current smoke suite covers:
 - model router failure degradation
 - incomplete specialist output normalization by Host
 
+### Local HTTP acceptance smoke
+
+The following backend through-end flow has been exercised over real HTTP against a temporary local FastAPI server using sqlite and local upload storage:
+
+- `research_synthesis`
+- `contract_review`
+- `document_restructuring`
+- `multi_agent`
+
+For each of those flows, the acceptance run verified:
+
+- create task
+- attach background text
+- upload file
+- run flow through Host
+- fetch structured result
+- fetch task history
+
 ### Manual UI smoke flow
 
 1. Create a task from the frontend workbench.
-2. Add manual background text.
-3. Upload one or more `.txt` or `.md` files.
-4. Open the task workspace.
-5. Click `Run Research Synthesis`.
-6. Confirm the page shows:
+2. Choose one of the supported flows:
+   - `Research Synthesis`
+   - `Contract Review`
+   - `Document Restructuring`
+   - `Multi-Agent Convergence`
+3. Add manual background text.
+4. Upload one or more `.txt` or `.md` files.
+5. Open the task workspace.
+6. Click the run button for the selected flow.
+7. Confirm the page shows:
    - structured deliverable content
    - recommendations
    - action items
-   - risks
    - missing information or uncertainty when evidence is weak
-7. Refresh the page and verify the run is still present in task history.
+   - task history
+8. Refresh the page and verify the run is still present in task history.
+
+Note: this UI smoke path is the intended acceptance path, but it was not runtime-verified in this environment because `node` is unavailable here.
+
+## Verification status
+
+### Verified in this environment
+
+- backend import and route wiring with local sqlite override
+- database initialization path with local sqlite override
+- automated backend pytest smoke suite
+- local HTTP through-end acceptance for:
+  - `research_synthesis`
+  - `contract_review`
+  - `document_restructuring`
+  - `multi_agent`
+- Host remains the orchestration center for multi-agent runs
+- upload ingestion creates usable `Evidence`
+
+### Not verified in this environment
+
+- Docker Compose runtime
+- PostgreSQL startup and real backend connection under Docker Compose
+- frontend `next dev` runtime
+- frontend `next build`
+- frontend typecheck
+- browser-level end-to-end UI click-through
 
 ## Supported MVP workflow
 
@@ -200,7 +281,7 @@ If a file cannot be text-extracted, the upload is still stored and the ingestion
 ## Known limitations of this MVP slice
 
 - Three specialist agents are implemented: `Contract Review Agent`, `Research Synthesis Agent`, and `Document Restructuring Agent`.
-- The `multi_agent` path is only a minimal validation slice. It uses 4 fixed core agents and is not yet exposed through the current frontend task form.
+- The `multi_agent` path is only a minimal validation slice. It uses 4 fixed core agents rather than adaptive selection.
 - The default provider is a mock synthesizer, not a production LLM integration.
 - Upload extraction is intentionally lightweight and does not yet do chunking, citation selection, OCR, or advanced parsing.
 - File storage is local filesystem storage for development.
@@ -214,7 +295,7 @@ If a file cannot be text-extracted, the upload is still stored and the ingestion
 Before moving to the next implementation phase, the following are still missing relative to the planning docs:
 
 - a more adaptive Host-driven `multi_agent` workflow beyond the current fixed agent set
-- frontend exposure for the currently backend-supported `multi_agent`, `contract_review`, and `document_restructuring` flows
+- verified frontend runtime and browser-level end-to-end acceptance
 - richer structured deliverable rendering and citations
 - provider switching beyond the current mock router
 - migration tooling and stronger operational logging

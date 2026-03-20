@@ -43,7 +43,7 @@ export function TaskHistoryList({
       {error ? <p className="error-text">{error}</p> : null}
 
       {!loading && !error && tasks.length === 0 ? (
-        <p className="empty-text">No tasks yet. Create the first specialist run on the left.</p>
+        <p className="empty-text">No tasks yet. Create the first supported flow on the left.</p>
       ) : null}
 
       <div className="history-list">

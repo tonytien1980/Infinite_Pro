@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timezone
 
 from fastapi import HTTPException
@@ -29,6 +30,7 @@ REQUIRED_DELIVERABLE_KEYS = (
     "action_items",
     "missing_information",
 )
+logger = logging.getLogger(__name__)
 
 
 class HostOrchestrator:
@@ -136,6 +138,12 @@ class HostOrchestrator:
     def orchestrate_task(self, task_id: str) -> schemas.ResearchRunResponse:
         task = get_loaded_task(self.db, task_id)
         workflow_mode = self.determine_flow_mode(task)
+        logger.info(
+            "Host orchestrating task %s with task_type=%s flow_mode=%s",
+            task.id,
+            task.task_type,
+            workflow_mode.value,
+        )
         if workflow_mode == FlowMode.MULTI_AGENT:
             return self._run_multi_agent_flow(task, workflow_mode)
 
@@ -169,6 +177,11 @@ class HostOrchestrator:
                 "operations",
                 "risk_challenge",
             ]
+            logger.info(
+                "Starting multi-agent flow for task %s with agents=%s",
+                task.id,
+                ",".join(fixed_core_agents),
+            )
             fragments: list[tuple[str, CoreAgentResult]] = []
             missing_information: list[str] = []
 
@@ -177,6 +190,12 @@ class HostOrchestrator:
                 try:
                     fragments.append((agent_id, agent.run(payload)))
                 except Exception as exc:
+                    logger.warning(
+                        "Core agent %s degraded for task %s: %s",
+                        agent_id,
+                        task.id,
+                        exc,
+                    )
                     missing_information.append(f"{agent_id}: model router failure or core-agent error: {exc}")
 
             converged = self._normalize_result(
@@ -186,6 +205,7 @@ class HostOrchestrator:
             )
             deliverable = self.persist_result(task=task, run=run, result=converged)
         except Exception as exc:
+            logger.exception("Multi-agent flow failed for task %s", task.id)
             run.status = RunStatus.FAILED.value
             run.error_message = str(exc)
             run.completed_at = datetime.now(timezone.utc)
@@ -307,6 +327,11 @@ class HostOrchestrator:
         workflow_mode: FlowMode,
     ) -> schemas.ResearchRunResponse:
         agent_id = self.route_specialist(task)
+        logger.info(
+            "Starting specialist flow for task %s with specialist=%s",
+            task.id,
+            agent_id,
+        )
         task.status = TaskStatus.RUNNING.value
         run = models.TaskRun(
             task_id=task.id,
@@ -325,6 +350,7 @@ class HostOrchestrator:
             result = self._normalize_result(payload, agent_id, agent.run(payload))
             deliverable = self.persist_result(task=task, run=run, result=result)
         except Exception as exc:
+            logger.exception("Specialist flow failed for task %s", task.id)
             run.status = RunStatus.FAILED.value
             run.error_message = str(exc)
             run.completed_at = datetime.now(timezone.utc)
@@ -367,6 +393,12 @@ class HostOrchestrator:
         run: models.TaskRun,
         result: AgentResult,
     ) -> models.Deliverable:
+        logger.info(
+            "Persisting result for task %s from agent=%s deliverable_type=%s",
+            task.id,
+            run.agent_id,
+            result.deliverable.deliverable_type,
+        )
         for insight in result.insights:
             self.db.add(
                 models.Insight(

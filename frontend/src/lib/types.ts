@@ -1,6 +1,11 @@
 export type FlowMode = "multi_agent" | "specialist";
 export type TaskStatus = "draft" | "ready" | "running" | "completed" | "failed";
 export type RunStatus = "running" | "completed" | "failed";
+export type TaskType =
+  | "research_synthesis"
+  | "contract_review"
+  | "document_restructuring"
+  | "complex_convergence";
 
 export interface TaskContext {
   id: string;
@@ -136,7 +141,7 @@ export interface TaskAggregate {
   id: string;
   title: string;
   description: string;
-  task_type: string;
+  task_type: TaskType;
   mode: FlowMode;
   status: TaskStatus;
   created_at: string;
@@ -160,7 +165,7 @@ export interface TaskListItem {
   id: string;
   title: string;
   description: string;
-  task_type: string;
+  task_type: TaskType;
   mode: FlowMode;
   status: TaskStatus;
   created_at: string;
@@ -192,8 +197,8 @@ export interface ResearchRunResponse {
 export interface TaskCreatePayload {
   title: string;
   description: string;
-  task_type: "research_synthesis";
-  mode: "specialist";
+  task_type: TaskType;
+  mode: FlowMode;
   background_text: string;
   assumptions?: string;
   notes?: string;

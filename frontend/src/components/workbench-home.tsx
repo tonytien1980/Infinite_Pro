@@ -41,12 +41,12 @@ export function WorkbenchHome() {
   return (
     <main className="page-shell">
       <section className="hero-card">
-        <span className="eyebrow">AI Advisory OS · MVP specialist slice</span>
+        <span className="eyebrow">AI Advisory OS · V1 workbench slice</span>
         <h1 className="page-title">Ontology-backed research workbench.</h1>
         <p className="page-subtitle">
-          This first slice lets us create a task, add background text, upload source
-          files, turn them into Evidence, and run a Host-routed Research Synthesis Agent
-          that saves a structured Deliverable into task history.
+          This workbench lets us create a task, add background text, upload source
+          files, turn them into Evidence, and run either a supported specialist flow or
+          the fixed multi-agent convergence flow through the Host orchestration layer.
         </p>
       </section>
 

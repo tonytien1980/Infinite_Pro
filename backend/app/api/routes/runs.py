@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
@@ -8,6 +10,7 @@ from app.core.database import get_db
 from app.domain import schemas
 
 router = APIRouter(prefix="/tasks", tags=["runs"])
+logger = logging.getLogger(__name__)
 
 
 @router.post("/{task_id}/run", response_model=schemas.ResearchRunResponse)
@@ -15,6 +18,7 @@ def run_task(
     task_id: str,
     db: Session = Depends(get_db),
 ) -> schemas.ResearchRunResponse:
+    logger.info("Received run request for task %s", task_id)
     orchestrator = HostOrchestrator(db)
     return orchestrator.orchestrate_task(task_id)
 

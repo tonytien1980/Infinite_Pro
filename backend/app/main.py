@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -9,12 +10,20 @@ from app.api.router import api_router
 from app.core.config import settings
 from app.core.database import initialize_database
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
+)
+logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    logger.info("Starting AI Advisory OS backend.")
     settings.upload_path.mkdir(parents=True, exist_ok=True)
     initialize_database()
     yield
+    logger.info("Stopping AI Advisory OS backend.")
 
 
 def create_app() -> FastAPI:

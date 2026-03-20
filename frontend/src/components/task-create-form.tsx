@@ -9,7 +9,41 @@ interface TaskCreateFormProps {
   onCreated: (task: TaskAggregate) => void;
 }
 
+const FLOW_OPTIONS = [
+  {
+    value: "research_synthesis",
+    label: "Research Synthesis",
+    mode: "specialist",
+    taskType: "research_synthesis",
+    description: "Use the Host specialist path to create a structured synthesis from notes and uploads.",
+  },
+  {
+    value: "contract_review",
+    label: "Contract Review",
+    mode: "specialist",
+    taskType: "contract_review",
+    description: "Use the Host specialist path to spot key contractual risks, issues, and next actions.",
+  },
+  {
+    value: "document_restructuring",
+    label: "Document Restructuring",
+    mode: "specialist",
+    taskType: "document_restructuring",
+    description: "Use the Host specialist path to propose a cleaner outline and rewrite guidance.",
+  },
+  {
+    value: "multi_agent",
+    label: "Multi-Agent Convergence",
+    mode: "multi_agent",
+    taskType: "complex_convergence",
+    description: "Use the Host multi-agent path to run the fixed 4-agent convergence pack.",
+  },
+] as const;
+
+type FlowOption = (typeof FLOW_OPTIONS)[number];
+
 export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
+  const [selectedFlow, setSelectedFlow] = useState<FlowOption["value"]>("research_synthesis");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [backgroundText, setBackgroundText] = useState("");
@@ -20,6 +54,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const flow = FLOW_OPTIONS.find((item) => item.value === selectedFlow) ?? FLOW_OPTIONS[0];
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -30,8 +65,8 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
     const payload: TaskCreatePayload = {
       title,
       description,
-      task_type: "research_synthesis",
-      mode: "specialist",
+      task_type: flow.taskType,
+      mode: flow.mode,
       background_text: backgroundText,
       subject_name: subjectName || undefined,
       goal_description: goalDescription || undefined,
@@ -66,22 +101,38 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
     <section className="panel">
       <div className="panel-header">
         <div>
-          <h2 className="panel-title">Create a Research Synthesis task</h2>
+          <h2 className="panel-title">Create a task</h2>
           <p className="panel-copy">
-            This MVP starts with one specialist flow only. The Host orchestration layer
-            will route this task to the Research Synthesis Agent.
+            Choose one of the currently supported specialist or multi-agent flows. The
+            Host orchestration layer remains the single runtime entry point.
           </p>
         </div>
       </div>
 
       <form className="form-grid" onSubmit={handleSubmit}>
         <div className="field">
+          <label htmlFor="task-flow">Workflow</label>
+          <select
+            id="task-flow"
+            value={selectedFlow}
+            onChange={(event) => setSelectedFlow(event.target.value as FlowOption["value"])}
+          >
+            {FLOW_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <small>{flow.description}</small>
+        </div>
+
+        <div className="field">
           <label htmlFor="task-title">Task title</label>
           <input
             id="task-title"
             value={title}
             onChange={(event) => setTitle(event.target.value)}
-            placeholder="Example: Synthesize competitor research for a proposal kick-off"
+            placeholder="Example: Internal convergence draft for proposal strategy"
             required
           />
         </div>
@@ -92,7 +143,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
             id="task-description"
             value={description}
             onChange={(event) => setDescription(event.target.value)}
-            placeholder="Describe the synthesis request and desired outcome."
+            placeholder="Describe the task request, scope, and desired output."
           />
         </div>
 
@@ -123,7 +174,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
             id="goal-description"
             value={goalDescription}
             onChange={(event) => setGoalDescription(event.target.value)}
-            placeholder="Example: distill the strongest findings into a proposal-ready synthesis"
+            placeholder="Example: identify the biggest contract risks or converge the strongest evidence into an internal recommendation"
           />
         </div>
 

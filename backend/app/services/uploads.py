@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from uuid import uuid4
 
@@ -11,6 +12,8 @@ from app.domain import models, schemas
 from app.ingestion.files import extract_text_from_upload, summarize_evidence_text
 from app.ingestion.sources import ManualUploadConnector
 from app.services.tasks import get_loaded_task
+
+logger = logging.getLogger(__name__)
 
 
 def _build_evidence_from_upload(
@@ -86,6 +89,13 @@ def save_uploads_for_task(
             except Exception as exc:
                 ingest_status = "failed"
                 ingestion_error = str(exc)
+
+        logger.info(
+            "Processed upload task_id=%s file=%s ingest_status=%s",
+            task.id,
+            file.filename or stored_name,
+            ingest_status,
+        )
 
         source_document = models.SourceDocument(
             task_id=task.id,

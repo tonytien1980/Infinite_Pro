@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { getTask, runResearchSynthesis } from "@/lib/api";
+import { getTask, runTask } from "@/lib/api";
 import type { Deliverable, TaskAggregate } from "@/lib/types";
 
 function formatDate(value: string) {
@@ -11,6 +11,50 @@ function formatDate(value: string) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+function getStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter((item): item is string => typeof item === "string");
+}
+
+function buildRunMeta(task: TaskAggregate) {
+  if (task.mode === "multi_agent") {
+    return {
+      title: "Run multi-agent flow",
+      copy: "Host will orchestrate the fixed 4-agent convergence pack and save the structured result back into task history.",
+      buttonIdle: "Run Multi-Agent Flow",
+      buttonRunning: "Running multi-agent flow...",
+    };
+  }
+
+  if (task.task_type === "contract_review") {
+    return {
+      title: "Run contract review",
+      copy: "Host will route this task into the Contract Review Agent and save the structured review back into task history.",
+      buttonIdle: "Run Contract Review",
+      buttonRunning: "Running contract review...",
+    };
+  }
+
+  if (task.task_type === "document_restructuring") {
+    return {
+      title: "Run document restructuring",
+      copy: "Host will route this task into the Document Restructuring Agent and save the restructuring deliverable back into task history.",
+      buttonIdle: "Run Document Restructuring",
+      buttonRunning: "Running document restructuring...",
+    };
+  }
+
+  return {
+    title: "Run research synthesis",
+    copy: "Host will route this task into the Research Synthesis Agent and save the structured synthesis back into task history.",
+    buttonIdle: "Run Research Synthesis",
+    buttonRunning: "Running research synthesis...",
+  };
 }
 
 function renderStructuredValue(label: string, value: unknown) {
@@ -73,10 +117,10 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
     try {
       setRunning(true);
       setError(null);
-      await runResearchSynthesis(taskId);
+      await runTask(taskId);
       await refreshTask();
     } catch (runError) {
-      setError(runError instanceof Error ? runError.message : "Failed to run the specialist flow.");
+      setError(runError instanceof Error ? runError.message : "Failed to run the selected flow.");
     } finally {
       setRunning(false);
     }
@@ -85,6 +129,20 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
   const latestDeliverable: Deliverable | null = task?.deliverables
     ? [...task.deliverables].sort((a, b) => b.version - a.version)[0] ?? null
     : null;
+  const latestMissingInformation = getStringList(
+    latestDeliverable?.content_structure?.missing_information,
+  );
+  const runMeta = task ? buildRunMeta(task) : null;
+  const sortedRecommendations = task?.recommendations
+    ? [...task.recommendations].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      )
+    : [];
+  const sortedActionItems = task?.action_items
+    ? [...task.action_items].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      )
+    : [];
 
   return (
     <main className="page-shell">
@@ -114,11 +172,8 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
               <section className="panel">
                 <div className="panel-header">
                   <div>
-                    <h2 className="panel-title">Run specialist flow</h2>
-                    <p className="panel-copy">
-                      The Host skeleton routes this task into the Research Synthesis Agent
-                      and saves the structured Deliverable back into task history.
-                    </p>
+                    <h2 className="panel-title">{runMeta?.title ?? "Run task flow"}</h2>
+                    <p className="panel-copy">{runMeta?.copy}</p>
                   </div>
                   <button
                     className="button-primary"
@@ -126,9 +181,15 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     onClick={handleRun}
                     disabled={running}
                   >
-                    {running ? "Running synthesis..." : "Run Research Synthesis"}
+                    {running ? runMeta?.buttonRunning ?? "Running..." : runMeta?.buttonIdle}
                   </button>
                 </div>
+                {latestMissingInformation.length > 0 ? (
+                  <p className="error-text">
+                    This task currently has explicit uncertainty or missing information. Review
+                    those notes before treating the output as final.
+                  </p>
+                ) : null}
               </section>
 
               <section className="panel">
@@ -148,7 +209,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                   </div>
                 ) : (
                   <p className="empty-text">
-                    No deliverable yet. Run the specialist flow to generate the first one.
+                    No deliverable yet. Run the selected flow to generate the first one.
                   </p>
                 )}
               </section>
@@ -203,6 +264,66 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                   {task.evidence.length === 0 ? (
                     <p className="empty-text">No evidence attached yet.</p>
                   ) : null}
+                </div>
+              </section>
+
+              <section className="panel">
+                <h2 className="section-title">Recommendations</h2>
+                <div className="detail-list">
+                  {sortedRecommendations.length > 0 ? (
+                    sortedRecommendations.map((recommendation) => (
+                      <div className="detail-item" key={recommendation.id}>
+                        <div className="meta-row">
+                          <span className="pill">{recommendation.priority}</span>
+                          <span>{formatDate(recommendation.created_at)}</span>
+                        </div>
+                        <h3>{recommendation.summary}</h3>
+                        <p className="content-block">{recommendation.rationale}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="empty-text">No recommendations recorded yet.</p>
+                  )}
+                </div>
+              </section>
+
+              <section className="panel">
+                <h2 className="section-title">Action items</h2>
+                <div className="detail-list">
+                  {sortedActionItems.length > 0 ? (
+                    sortedActionItems.map((actionItem) => (
+                      <div className="detail-item" key={actionItem.id}>
+                        <div className="meta-row">
+                          <span className="pill">{actionItem.priority}</span>
+                          <span>{actionItem.status}</span>
+                          <span>{formatDate(actionItem.created_at)}</span>
+                        </div>
+                        <h3>{actionItem.description}</h3>
+                        <p className="muted-text">
+                          Suggested owner: {actionItem.suggested_owner || "Task owner"}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="empty-text">No action items recorded yet.</p>
+                  )}
+                </div>
+              </section>
+
+              <section className="panel">
+                <h2 className="section-title">Missing information and uncertainty</h2>
+                <div className="detail-list">
+                  {latestMissingInformation.length > 0 ? (
+                    <div className="detail-item">
+                      <ul className="list-content">
+                        {latestMissingInformation.map((item, index) => (
+                          <li key={`${index}-${item}`}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : (
+                    <p className="empty-text">No explicit missing-information notes on the latest deliverable.</p>
+                  )}
                 </div>
               </section>
 
