@@ -42,6 +42,44 @@ def create_multi_agent_payload(title: str = "Multi-agent convergence") -> dict:
     }
 
 
+def create_document_restructuring_payload(title: str = "Document restructuring") -> dict:
+    return {
+        "title": title,
+        "description": "Restructure the working draft into a clearer internal proposal outline.",
+        "task_type": "document_restructuring",
+        "mode": "specialist",
+        "background_text": "The current draft repeats itself and buries the main recommendation too late.",
+        "subject_name": "Internal proposal draft",
+        "goal_description": "Produce a cleaner outline and rewrite guidance for the next draft.",
+        "constraints": [
+            {
+                "description": "Keep the tone internal and practical.",
+                "constraint_type": "delivery",
+                "severity": "medium",
+            }
+        ],
+    }
+
+
+def create_contract_review_payload(title: str = "Contract review") -> dict:
+    return {
+        "title": title,
+        "description": "Review the draft agreement for major risk, obligation, and redline concerns.",
+        "task_type": "contract_review",
+        "mode": "specialist",
+        "background_text": "The team needs a first-pass internal contract review before legal escalation.",
+        "subject_name": "Draft services agreement",
+        "goal_description": "Identify major issues, contract risk, and next review actions.",
+        "constraints": [
+            {
+                "description": "Keep the output internal and non-final.",
+                "constraint_type": "delivery",
+                "severity": "high",
+            }
+        ],
+    }
+
+
 def test_health_endpoint(client: TestClient) -> None:
     response = client.get("/api/v1/health")
 
@@ -144,6 +182,105 @@ def test_research_synthesis_specialist_run_and_history_persistence(client: TestC
     assert len(history["evidence"]) >= 2
 
 
+def test_document_restructuring_specialist_run_and_history_persistence(
+    client: TestClient,
+) -> None:
+    task = client.post(
+        "/api/v1/tasks",
+        json=create_document_restructuring_payload("Document restructuring run"),
+    ).json()
+    client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[
+            (
+                "files",
+                (
+                    "draft.md",
+                    b"# Draft\n\nThe recommendation appears too late. Risks are mixed into the middle sections. Evidence is repeated across paragraphs.",
+                    "text/markdown",
+                ),
+            )
+        ],
+    )
+
+    run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
+
+    assert run_response.status_code == 200
+    run_body = run_response.json()
+    assert run_body["run"]["status"] == "completed"
+    assert run_body["run"]["agent_id"] == "document_restructuring"
+    assert run_body["deliverable"]["deliverable_type"] == "document_restructuring"
+    assert run_body["deliverable"]["content_structure"]["proposed_outline"]
+    assert run_body["deliverable"]["content_structure"]["rewrite_guidance"]
+    assert run_body["recommendations"]
+    assert run_body["action_items"]
+    assert "missing_information" in run_body["deliverable"]["content_structure"]
+
+    history_response = client.get(f"/api/v1/tasks/{task['id']}/history")
+
+    assert history_response.status_code == 200
+    history = history_response.json()
+    assert len(history["runs"]) == 1
+    assert history["runs"][0]["agent_id"] == "document_restructuring"
+    assert len(history["deliverables"]) == 1
+    assert history["deliverables"][0]["deliverable_type"] == "document_restructuring"
+    assert len(history["recommendations"]) >= 1
+    assert len(history["action_items"]) >= 1
+
+
+def test_contract_review_specialist_run_and_history_persistence(
+    client: TestClient,
+) -> None:
+    task = client.post(
+        "/api/v1/tasks",
+        json=create_contract_review_payload("Contract review run"),
+    ).json()
+    client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[
+            (
+                "files",
+                (
+                    "agreement.txt",
+                    b"Supplier may terminate for convenience on 10 days notice. Liability cap excludes confidentiality breaches. Acceptance criteria are not clearly defined.",
+                    "text/plain",
+                ),
+            )
+        ],
+    )
+
+    run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
+
+    assert run_response.status_code == 200
+    run_body = run_response.json()
+    assert run_body["run"]["status"] == "completed"
+    assert run_body["run"]["agent_id"] == "contract_review"
+    assert run_body["deliverable"]["deliverable_type"] == "contract_review"
+    assert run_body["deliverable"]["content_structure"]["findings"]
+    assert run_body["deliverable"]["content_structure"]["risks"]
+    assert run_body["deliverable"]["content_structure"]["recommendations"]
+    assert run_body["deliverable"]["content_structure"]["action_items"]
+    assert "missing_information" in run_body["deliverable"]["content_structure"]
+    assert run_body["risks"]
+    assert run_body["recommendations"]
+    assert run_body["action_items"]
+
+    history_response = client.get(f"/api/v1/tasks/{task['id']}/history")
+
+    assert history_response.status_code == 200
+    history = history_response.json()
+    assert len(history["runs"]) == 1
+    assert history["runs"][0]["agent_id"] == "contract_review"
+    assert len(history["deliverables"]) == 1
+    assert history["deliverables"][0]["deliverable_type"] == "contract_review"
+    assert history["deliverables"][0]["content_structure"]["risks"]
+    assert len(history["recommendations"]) >= 1
+    assert len(history["action_items"]) >= 1
+
+    aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
+    assert len(aggregate["risks"]) >= 1
+
+
 def test_specialist_run_returns_explicit_uncertainty_when_no_usable_evidence(
     client: TestClient,
 ) -> None:
@@ -242,6 +379,8 @@ def test_multi_agent_happy_path_converges_and_saves_history(client: TestClient) 
     assert body["deliverable"]["deliverable_type"] == "multi_agent_convergence"
     assert body["deliverable"]["content_structure"]["participating_agents"] == [
         "strategy_business_analysis",
+        "market_research_insight",
+        "operations",
         "risk_challenge",
     ]
     assert body["deliverable"]["content_structure"]["findings"]
@@ -253,6 +392,33 @@ def test_multi_agent_happy_path_converges_and_saves_history(client: TestClient) 
     assert len(history["runs"]) == 1
     assert history["runs"][0]["agent_id"] == "host_orchestrator"
     assert len(history["deliverables"]) == 1
+
+
+def test_operations_agent_participates_in_multi_agent_convergence(client: TestClient) -> None:
+    task = client.post("/api/v1/tasks", json=create_multi_agent_payload("Operations core agent")).json()
+    client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[
+            (
+                "files",
+                (
+                    "ops.txt",
+                    b"Delivery depends on cross-team sequencing, named owners, and acceptance criteria. Pricing approvals can delay launch if the workflow is unclear.",
+                    "text/plain",
+                ),
+            )
+        ],
+    )
+
+    response = client.post(f"/api/v1/tasks/{task['id']}/run")
+
+    assert response.status_code == 200
+    body = response.json()
+    participating_agents = body["deliverable"]["content_structure"]["participating_agents"]
+    assert "operations" in participating_agents
+    assert len(participating_agents) == 4
+    assert body["deliverable"]["content_structure"]["findings"]
+    assert body["deliverable"]["content_structure"]["action_items"]
 
 
 def test_multi_agent_with_insufficient_evidence_returns_explicit_uncertainty(
@@ -297,7 +463,90 @@ def test_multi_agent_still_uses_model_router(
     response = client.post(f"/api/v1/tasks/{task['id']}/run")
 
     assert response.status_code == 200
-    assert calls == ["strategy_business_analysis", "risk_challenge"]
+    assert calls == [
+        "strategy_business_analysis",
+        "market_research_insight",
+        "operations",
+        "risk_challenge",
+    ]
+
+
+def test_document_restructuring_still_uses_model_router(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.model_router.mock import MockModelProvider
+
+    task = client.post(
+        "/api/v1/tasks",
+        json=create_document_restructuring_payload("Document router spy"),
+    ).json()
+    client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[
+            (
+                "files",
+                (
+                    "outline.txt",
+                    b"The draft needs a clearer opener, grouped findings, and a separate risk section.",
+                    "text/plain",
+                ),
+            )
+        ],
+    )
+
+    calls: list[str] = []
+    original = MockModelProvider.generate_document_restructuring
+
+    def spy(self, request):  # noqa: ANN001
+        calls.append(request.task_title)
+        return original(self, request)
+
+    monkeypatch.setattr(MockModelProvider, "generate_document_restructuring", spy)
+
+    response = client.post(f"/api/v1/tasks/{task['id']}/run")
+
+    assert response.status_code == 200
+    assert calls == ["Document router spy"]
+
+
+def test_contract_review_still_uses_model_router(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.model_router.mock import MockModelProvider
+
+    task = client.post(
+        "/api/v1/tasks",
+        json=create_contract_review_payload("Contract router spy"),
+    ).json()
+    client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[
+            (
+                "files",
+                (
+                    "contract.txt",
+                    b"Termination rights are broad, liability language is uneven, and acceptance criteria are unclear.",
+                    "text/plain",
+                ),
+            )
+        ],
+    )
+
+    calls: list[str] = []
+    original = MockModelProvider.generate_contract_review
+
+    def spy(self, request):  # noqa: ANN001
+        calls.append(request.task_title)
+        return original(self, request)
+
+    monkeypatch.setattr(MockModelProvider, "generate_contract_review", spy)
+
+    response = client.post(f"/api/v1/tasks/{task['id']}/run")
+
+    assert response.status_code == 200
+    assert calls == ["Contract router spy"]
 
 
 def test_host_remains_orchestration_center_for_multi_agent(

@@ -3,8 +3,12 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from app.agents.base import AgentDescriptor, CoreAnalysisAgent, SpecialistAgent
+from app.agents.core.market_research_insight import MarketResearchInsightAgent
+from app.agents.core.operations import OperationsAgent
 from app.agents.core.risk_challenge import RiskChallengeAgent
 from app.agents.core.strategy_business_analysis import StrategyBusinessAnalysisAgent
+from app.agents.specialists.contract_review import ContractReviewAgent
+from app.agents.specialists.document_restructuring import DocumentRestructuringAgent
 from app.agents.specialists.research_synthesis import ResearchSynthesisAgent
 from app.domain.enums import AgentCategory, AgentStatus, FlowMode
 from app.model_router.base import ModelProvider
@@ -33,10 +37,10 @@ def build_agent_catalog() -> list[AgentDescriptor]:
             supported_task_types=["complex_convergence"],
             supported_flow_modes=[FlowMode.MULTI_AGENT],
             required_inputs=["Task", "TaskContext", "Constraint", "Evidence"],
-            produced_objects=["Insight", "Risk", "ActionItem"],
+            produced_objects=["Insight", "Risk", "Recommendation", "ActionItem"],
             default_model_policy="balanced",
             version="0.1.0",
-            status=AgentStatus.DISABLED,
+            status=AgentStatus.ACTIVE,
         ),
         AgentDescriptor(
             agent_id="market_research_insight",
@@ -46,10 +50,10 @@ def build_agent_catalog() -> list[AgentDescriptor]:
             supported_task_types=["complex_convergence"],
             supported_flow_modes=[FlowMode.MULTI_AGENT],
             required_inputs=["Task", "TaskContext", "Evidence"],
-            produced_objects=["Insight", "Option"],
+            produced_objects=["Insight", "Recommendation", "ActionItem"],
             default_model_policy="balanced",
             version="0.1.0",
-            status=AgentStatus.DISABLED,
+            status=AgentStatus.ACTIVE,
         ),
         AgentDescriptor(
             agent_id="risk_challenge",
@@ -72,10 +76,10 @@ def build_agent_catalog() -> list[AgentDescriptor]:
             supported_task_types=["contract_review"],
             supported_flow_modes=[FlowMode.SPECIALIST],
             required_inputs=["Task", "TaskContext", "Evidence"],
-            produced_objects=["Risk", "Recommendation", "Deliverable"],
+            produced_objects=["Risk", "Recommendation", "ActionItem", "Deliverable"],
             default_model_policy="precise",
             version="0.1.0",
-            status=AgentStatus.DISABLED,
+            status=AgentStatus.ACTIVE,
         ),
         AgentDescriptor(
             agent_id="research_synthesis",
@@ -98,10 +102,10 @@ def build_agent_catalog() -> list[AgentDescriptor]:
             supported_task_types=["document_restructuring"],
             supported_flow_modes=[FlowMode.SPECIALIST],
             required_inputs=["Task", "TaskContext", "Evidence", "Goal"],
-            produced_objects=["Recommendation", "Deliverable"],
+            produced_objects=["Recommendation", "ActionItem", "Deliverable"],
             default_model_policy="balanced",
             version="0.1.0",
-            status=AgentStatus.DISABLED,
+            status=AgentStatus.ACTIVE,
         ),
     ]
 
@@ -111,10 +115,14 @@ class AgentRegistry:
         self.catalog = build_agent_catalog()
         self._core_agents = {
             "strategy_business_analysis": StrategyBusinessAnalysisAgent(model_provider=model_provider),
+            "market_research_insight": MarketResearchInsightAgent(model_provider=model_provider),
+            "operations": OperationsAgent(model_provider=model_provider),
             "risk_challenge": RiskChallengeAgent(model_provider=model_provider),
         }
         self._specialist_agents = {
+            "contract_review": ContractReviewAgent(model_provider=model_provider),
             "research_synthesis": ResearchSynthesisAgent(model_provider=model_provider),
+            "document_restructuring": DocumentRestructuringAgent(model_provider=model_provider),
         }
 
     def descriptors(self) -> Iterable[AgentDescriptor]:

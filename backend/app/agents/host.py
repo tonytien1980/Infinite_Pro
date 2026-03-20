@@ -42,8 +42,12 @@ class HostOrchestrator:
         return FlowMode.SPECIALIST
 
     def route_specialist(self, task: models.Task) -> str:
+        if task.task_type == "contract_review":
+            return "contract_review"
         if task.task_type == "research_synthesis":
             return "research_synthesis"
+        if task.task_type == "document_restructuring":
+            return "document_restructuring"
         raise HTTPException(
             status_code=400,
             detail=f"Task type '{task.task_type}' does not have an implemented specialist flow yet.",
@@ -159,7 +163,12 @@ class HostOrchestrator:
 
         try:
             payload = self.build_payload(task)
-            fixed_core_agents = ["strategy_business_analysis", "risk_challenge"]
+            fixed_core_agents = [
+                "strategy_business_analysis",
+                "market_research_insight",
+                "operations",
+                "risk_challenge",
+            ]
             fragments: list[tuple[str, CoreAgentResult]] = []
             missing_information: list[str] = []
 

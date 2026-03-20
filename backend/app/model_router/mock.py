@@ -4,8 +4,12 @@ import re
 from os import getenv
 
 from app.model_router.base import (
+    ContractReviewOutput,
+    ContractReviewRequest,
     CoreAnalysisOutput,
     CoreAnalysisRequest,
+    DocumentRestructuringOutput,
+    DocumentRestructuringRequest,
     ModelProvider,
     ModelProviderError,
     ResearchSynthesisOutput,
@@ -131,6 +135,35 @@ class MockModelProvider(ModelProvider):
             risks = [
                 "Strategic risk: limited evidence may make prioritization unstable until more source material is added."
             ]
+        elif request.agent_id == "market_research_insight":
+            if not findings:
+                findings = [
+                    "The market insight view could not extract a strong external signal because the evidence set is still too thin.",
+                ]
+            recommendations = [
+                "Highlight the strongest market-facing signals and separate them from internal assumptions.",
+            ]
+            action_items = [
+                "Mark which findings are true market evidence versus internal interpretation before reuse.",
+            ]
+            risks = [
+                "Signal risk: limited evidence may blur the line between observed market behavior and internal hypothesis."
+            ]
+        elif request.agent_id == "operations":
+            if not findings:
+                findings = [
+                    "The operations view could not confirm a strong execution plan because the current evidence is too thin.",
+                ]
+            recommendations = [
+                "Translate the current recommendation into a smaller set of execution-ready workstreams with explicit owners.",
+            ]
+            action_items = [
+                "Identify the operational dependencies, owners, and sequencing before execution starts.",
+                "Check each recommendation against delivery constraints before moving it into a plan.",
+            ]
+            risks = [
+                "Operational risk: unclear sequencing or ownership could block execution even if the recommendation itself is sound."
+            ]
         else:
             if not findings:
                 findings = [
@@ -152,4 +185,139 @@ class MockModelProvider(ModelProvider):
             recommendations=recommendations,
             action_items=action_items,
             missing_information=missing_information,
+        )
+
+    def generate_document_restructuring(
+        self,
+        request: DocumentRestructuringRequest,
+    ) -> DocumentRestructuringOutput:
+        if getenv("MODEL_PROVIDER_FAILURE_MODE", "").lower() == "always_fail":
+            raise ModelProviderError("Mock model provider failure mode is enabled.")
+
+        evidence_text = " ".join(
+            _clean_text(str(item.get("content", ""))) for item in request.evidence if item.get("content")
+        )
+        corpus = _clean_text(" ".join(filter(None, [request.background_text, evidence_text])))
+        sentences = _split_sentences(corpus)
+        findings = sentences[:3] if sentences else []
+
+        if not findings:
+            findings = [
+                "The current material is not yet structured enough to infer a strong revised document flow.",
+            ]
+
+        background_summary = " ".join(sentences[:2]) if sentences else (
+            request.background_text[:240] if request.background_text else "No draft background text was available."
+        )
+        primary_goal = request.goals[0] if request.goals else "produce a cleaner internal draft"
+        missing_information: list[str] = []
+        if not request.evidence:
+            missing_information.append(
+                "No uploaded draft document was available, so the restructuring suggestion relies on manual context only."
+            )
+        if len(corpus) < 140:
+            missing_information.append(
+                "The source material is thin; the proposed structure should be treated as a working outline rather than a final rewrite."
+            )
+
+        proposed_outline = [
+            "1. Executive summary",
+            "2. Context and objective",
+            "3. Key findings",
+            "4. Risks and considerations",
+            "5. Recommended next steps",
+        ]
+        rewrite_guidance = [
+            "Lead with the decision context before detailed evidence.",
+            "Group overlapping points under a smaller set of section headers.",
+            "Move assumptions and caveats into a dedicated risks section.",
+        ]
+        risks = [
+            "Structure risk: a weak source draft may still hide gaps that should be resolved before external sharing.",
+        ]
+        recommendations = [
+            f"Use the proposed outline to {primary_goal}.",
+            "Rewrite repetitive passages into shorter evidence-backed sections.",
+        ]
+        action_items = [
+            "Reorganize the current draft to match the proposed section order.",
+            "Confirm which findings are strong enough to keep in the final version.",
+        ]
+        if missing_information:
+            recommendations.append("Add a fuller source draft before treating this restructuring pass as final.")
+            action_items.append("Upload the latest working draft so the next pass can restructure the real document content.")
+
+        return DocumentRestructuringOutput(
+            problem_definition=request.task_description or request.task_title,
+            background_summary=background_summary,
+            findings=findings,
+            risks=risks,
+            recommendations=recommendations,
+            action_items=action_items,
+            missing_information=missing_information,
+            proposed_outline=proposed_outline,
+            rewrite_guidance=rewrite_guidance,
+        )
+
+    def generate_contract_review(
+        self,
+        request: ContractReviewRequest,
+    ) -> ContractReviewOutput:
+        if getenv("MODEL_PROVIDER_FAILURE_MODE", "").lower() == "always_fail":
+            raise ModelProviderError("Mock model provider failure mode is enabled.")
+
+        evidence_text = " ".join(
+            _clean_text(str(item.get("content", ""))) for item in request.evidence if item.get("content")
+        )
+        corpus = _clean_text(" ".join(filter(None, [request.background_text, evidence_text])))
+        sentences = _split_sentences(corpus)
+        findings = sentences[:3] if sentences else []
+
+        if not findings:
+            findings = [
+                "The review did not find enough contract text to extract strong clause-level findings.",
+            ]
+
+        background_summary = " ".join(sentences[:2]) if sentences else (
+            request.background_text[:240] if request.background_text else "No contract review background was available."
+        )
+        missing_information: list[str] = []
+        if not request.evidence:
+            missing_information.append(
+                "No uploaded contract text was available, so the review relies on background context only."
+            )
+        if len(corpus) < 160:
+            missing_information.append(
+                "The available contract material is limited; this output should be treated as an issue-spotting draft, not a final legal review."
+            )
+
+        clauses_reviewed = [
+            "scope and deliverables",
+            "commercial terms",
+            "termination and liability",
+        ]
+        risks = [
+            "Contract risk: unclear obligations or missing protections could create downstream delivery or commercial exposure.",
+        ]
+        recommendations = [
+            "Review the highest-risk clauses with counsel or the deal owner before external circulation.",
+            "Clarify ambiguous obligations and acceptance criteria in the next draft.",
+        ]
+        action_items = [
+            "Extract the clauses that control scope, liability, and termination into a short review checklist.",
+            "Confirm which requested redlines are commercial versus legal before the next review pass.",
+        ]
+        if missing_information:
+            recommendations.append("Upload the latest executable draft so the next pass can review the actual clause language.")
+            action_items.append("Attach the current contract draft or key excerpts before relying on this review.")
+
+        return ContractReviewOutput(
+            problem_definition=request.task_description or request.task_title,
+            background_summary=background_summary,
+            findings=findings,
+            risks=risks,
+            recommendations=recommendations,
+            action_items=action_items,
+            missing_information=missing_information,
+            clauses_reviewed=clauses_reviewed,
         )
