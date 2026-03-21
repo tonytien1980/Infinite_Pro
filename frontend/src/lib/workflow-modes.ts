@@ -409,37 +409,50 @@ export function getModeSpecificResultSections(
   const participatingAgents = asStringList(deliverable?.content_structure?.participating_agents);
 
   if (workflowKey === "contract_review") {
-    const clausesReviewed = asStringList(deliverable?.content_structure?.clauses_reviewed);
+    const highRiskClauses =
+      asStringList(deliverable?.content_structure?.high_risk_clauses) ||
+      asStringList(deliverable?.content_structure?.clauses_reviewed);
+    const redlineRecommendations =
+      asStringList(deliverable?.content_structure?.redline_recommendations) || recommendations;
+    const missingAttachments =
+      asStringList(deliverable?.content_structure?.missing_attachments_or_clauses) ||
+      missingInformation;
     return [
       {
         title: "高風險條款",
         description: "優先檢查這些條款或高風險議題，確認是否需要升級處理。",
-        items: clausesReviewed.length > 0 ? clausesReviewed : risks,
+        items: highRiskClauses.length > 0 ? highRiskClauses : risks,
         emptyText: "目前尚未產生明確的高風險條款清單。",
       },
       {
         title: "Redline / 修改建議",
         description: "這些建議可作為下一輪 redline 或談判條件調整的起點。",
-        items: recommendations,
+        items: redlineRecommendations,
         emptyText: "目前尚未產生可供 redline 的修改建議。",
       },
       {
         title: "缺漏附件 / 缺漏條款",
         description: "這些缺口可能影響審閱完整性，應在對外使用前優先補齊。",
-        items: missingInformation,
+        items: missingAttachments,
         emptyText: "目前沒有明確標記缺漏附件或缺漏條款。",
       },
     ];
   }
 
   if (workflowKey === "document_restructuring") {
-    const proposedOutline = asStringList(deliverable?.content_structure?.proposed_outline);
-    const rewriteGuidance = asStringList(deliverable?.content_structure?.rewrite_guidance);
+    const proposedOutline =
+      asStringList(deliverable?.content_structure?.draft_outline) ||
+      asStringList(deliverable?.content_structure?.proposed_outline);
+    const rewriteGuidance =
+      asStringList(deliverable?.content_structure?.structure_adjustments) ||
+      asStringList(deliverable?.content_structure?.rewrite_guidance);
+    const restructuringStrategy =
+      asStringList(deliverable?.content_structure?.restructuring_strategy) || recommendations;
     return [
       {
         title: "重組策略",
         description: "先抓重組方向，再決定下一輪是否要直接進入改寫。",
-        items: recommendations.length > 0 ? recommendations : rewriteGuidance,
+        items: restructuringStrategy.length > 0 ? restructuringStrategy : rewriteGuidance,
         emptyText: "目前尚未產生明確的重組策略。",
       },
       {
@@ -458,20 +471,34 @@ export function getModeSpecificResultSections(
   }
 
   if (workflowKey === "multi_agent") {
-    const disagreements = missingInformation.filter((item) =>
-      item.includes(":") || item.includes("："),
-    );
+    const convergenceSummary =
+      asStringList(deliverable?.content_structure?.convergence_summary) ||
+      insights ||
+      findings;
+    const optionItems =
+      asStringList(deliverable?.content_structure?.options) ||
+      task.options.map((option, index) => formatOption(option, index));
+    const disagreements =
+      asStringList(deliverable?.content_structure?.divergent_views) ||
+      missingInformation.filter((item) => item.includes(":") || item.includes("："));
+    const orchestrationSummary =
+      asStringList(deliverable?.content_structure?.orchestration_summary) || [
+        "由 Host 協調中心統一啟動、收斂並寫回任務歷史。",
+        participatingAgents.length > 0
+          ? `本輪共協調 ${participatingAgents.length} 個核心代理。`
+          : "本輪未回傳參與代理清單。",
+      ];
     return [
       {
         title: "收斂摘要",
         description: "這裡聚焦多代理已經收斂出的主要觀點與判斷。",
-        items: insights.length > 0 ? insights : findings,
+        items: convergenceSummary,
         emptyText: "目前尚未形成可供決策的收斂摘要。",
       },
       {
         title: "方案 / Options",
         description: "若本輪有形成方案比較，會優先呈現在這裡。",
-        items: task.options.map((option, index) => formatOption(option, index)),
+        items: optionItems,
         emptyText: "目前 shared task model 尚未產生獨立的方案物件。",
       },
       {
@@ -490,34 +517,35 @@ export function getModeSpecificResultSections(
       {
         title: "協調摘要",
         description: "確認 Host 是否仍是唯一的 orchestration center。",
-        items: [
-          "由 Host 協調中心統一啟動、收斂並寫回任務歷史。",
-          participatingAgents.length > 0
-            ? `本輪共協調 ${participatingAgents.length} 個核心代理。`
-            : "本輪未回傳參與代理清單。",
-        ],
+        items: orchestrationSummary,
         emptyText: "目前尚未建立 orchestration 摘要。",
       },
     ];
   }
 
+  const keyFindings = asStringList(deliverable?.content_structure?.key_findings) || findings;
+  const implications =
+    asStringList(deliverable?.content_structure?.implications) ||
+    (insights.length > 0 ? insights : recommendations);
+  const researchGaps =
+    asStringList(deliverable?.content_structure?.research_gaps) || missingInformation;
   return [
     {
       title: "關鍵發現",
       description: "這些是目前最值得先讀的研究發現。",
-      items: findings,
+      items: keyFindings,
       emptyText: "目前尚未產生明確的關鍵發現。",
     },
     {
       title: "洞察 / 管理意涵",
       description: "這些內容更接近管理意涵與後續判斷方向。",
-      items: insights.length > 0 ? insights : recommendations,
+      items: implications,
       emptyText: "目前尚未產生可獨立閱讀的洞察。",
     },
     {
       title: "研究缺口",
       description: "這些是本輪研究綜整仍明確缺少的資訊。",
-      items: missingInformation,
+      items: researchGaps,
       emptyText: "目前沒有明確標記研究缺口。",
     },
   ];

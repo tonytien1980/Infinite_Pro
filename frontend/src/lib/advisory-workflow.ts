@@ -37,6 +37,28 @@ export interface ExternalDataUsageView {
   dependencyNote: string;
 }
 
+export interface RecommendationCardView {
+  content: string;
+  priority: string;
+  rationale: string;
+  expectedEffect: string;
+}
+
+export interface RiskCardView {
+  content: string;
+  severity: string;
+  likelihood: string;
+  impactExplanation: string;
+}
+
+export interface ActionItemCardView {
+  content: string;
+  ownerRole: string;
+  priority: string;
+  sequence: string;
+  dependencies: string[];
+}
+
 function isExternalDataStrategyConstraint(constraint: Constraint) {
   return constraint.constraint_type === "external_data_strategy";
 }
@@ -409,14 +431,144 @@ export function getStructuredStringList(deliverable: Deliverable | null, key: st
   return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
 }
 
+function getStructuredObjectList(deliverable: Deliverable | null, key: string) {
+  const value = deliverable?.content_structure?.[key];
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter(
+    (item): item is Record<string, unknown> =>
+      Boolean(item) && typeof item === "object" && !Array.isArray(item),
+  );
+}
+
+function asString(value: unknown, fallback = "") {
+  return typeof value === "string" && value.trim() ? value.trim() : fallback;
+}
+
+function asStringArray(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+}
+
+function inferRecommendationExpectedEffect(summary: string, rationale: string) {
+  const combinedText = `${summary} ${rationale}`.trim();
+
+  if (/(補|資料|證據|來源)/.test(combinedText)) {
+    return "可補齊關鍵證據，降低下一輪判斷的不確定性。";
+  }
+  if (/(對齊|確認|釐清)/.test(combinedText)) {
+    return "可降低團隊理解落差，讓後續執行與決策更一致。";
+  }
+  if (/(重組|改寫|結構)/.test(combinedText)) {
+    return "可提升交付物可讀性與採納率，減少後續重工。";
+  }
+  if (/(優先|排序|決策)/.test(combinedText)) {
+    return "可加快決策收斂，讓資源更快投入最值得處理的方向。";
+  }
+
+  return "可讓下一輪判斷與執行更具可操作性。";
+}
+
+function inferActionSequence(priority: string, dueHint: string | null | undefined) {
+  if (dueHint?.trim()) {
+    return dueHint.trim();
+  }
+  if (priority === "high") {
+    return "建議立即啟動，並在下一個工作迭代前完成。";
+  }
+  if (priority === "medium") {
+    return "建議排入本輪工作，於主要建議確認後執行。";
+  }
+  return "可在下一輪規劃或補證後再處理。";
+}
+
+export function buildRecommendationCards(
+  task: TaskAggregate,
+  deliverable: Deliverable | null,
+): RecommendationCardView[] {
+  const cards = getStructuredObjectList(deliverable, "recommendation_cards");
+  if (cards.length > 0) {
+    return cards.map((item) => ({
+      content: asString(item.content),
+      priority: asString(item.priority, "medium"),
+      rationale: asString(item.rationale),
+      expectedEffect: asString(item.expected_effect),
+    }));
+  }
+
+  return [...task.recommendations]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .map((item) => ({
+      content: item.summary,
+      priority: item.priority,
+      rationale: item.rationale,
+      expectedEffect: inferRecommendationExpectedEffect(item.summary, item.rationale),
+    }));
+}
+
+export function buildRiskCards(task: TaskAggregate, deliverable: Deliverable | null): RiskCardView[] {
+  const cards = getStructuredObjectList(deliverable, "risk_cards");
+  if (cards.length > 0) {
+    return cards.map((item) => ({
+      content: asString(item.content),
+      severity: asString(item.severity, "medium"),
+      likelihood: asString(item.likelihood, "medium"),
+      impactExplanation: asString(item.impact_explanation),
+    }));
+  }
+
+  return [...task.risks]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .map((item) => ({
+      content: item.title || item.description,
+      severity: item.impact_level,
+      likelihood: item.likelihood_level,
+      impactExplanation: item.description,
+    }));
+}
+
+export function buildActionItemCards(
+  task: TaskAggregate,
+  deliverable: Deliverable | null,
+): ActionItemCardView[] {
+  const cards = getStructuredObjectList(deliverable, "action_item_cards");
+  if (cards.length > 0) {
+    return cards.map((item) => ({
+      content: asString(item.content),
+      ownerRole: asString(item.owner_role, "任務負責人"),
+      priority: asString(item.priority, "medium"),
+      sequence: asString(item.sequence),
+      dependencies: asStringArray(item.dependencies),
+    }));
+  }
+
+  return [...task.action_items]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .map((item) => ({
+      content: item.description,
+      ownerRole: item.suggested_owner || "任務負責人",
+      priority: item.priority,
+      sequence: inferActionSequence(item.priority, item.due_hint),
+      dependencies: item.dependency_refs,
+    }));
+}
+
 export function buildExecutiveSummary(task: TaskAggregate, deliverable: Deliverable | null) {
   if (!deliverable) {
     return {
-      headline: "尚未執行分析，請先檢查資料準備度，再啟動第一輪工作流。",
+      summary: "尚未執行分析，請先檢查資料準備度，再啟動第一輪工作流。",
+      coreJudgment: "系統尚未產出可供顧問閱讀的核心判斷。",
       bullets: [task.description || task.title, "系統尚未產出可供顧問閱讀的執行摘要。"].filter(Boolean),
     };
   }
 
+  const explicitSummary = getStructuredString(deliverable, "executive_summary");
+  const explicitJudgment = getStructuredString(deliverable, "core_judgment");
   const backgroundSummary =
     getStructuredString(deliverable, "background_summary") ||
     task.contexts[0]?.summary ||
@@ -432,7 +584,15 @@ export function buildExecutiveSummary(task: TaskAggregate, deliverable: Delivera
       : getStructuredStringList(deliverable, "risks");
 
   return {
-    headline: "以下內容是目前最值得先讀的顧問式摘要，可直接用於內部討論與下一步判斷。",
+    summary:
+      explicitSummary ||
+      "以下內容是目前最值得先讀的顧問式摘要，可直接用於內部討論與下一步判斷。",
+    coreJudgment:
+      explicitJudgment ||
+      findings[0] ||
+      recommendations[0] ||
+      risks[0] ||
+      "目前證據仍不足以形成高信心判斷。",
     bullets: [
       backgroundSummary,
       findings[0] ? `主要發現：${findings[0]}` : "",

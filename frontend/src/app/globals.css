@@ -299,10 +299,56 @@ button {
   gap: 24px;
 }
 
+.disclosure-panel {
+  padding: 0;
+  overflow: hidden;
+}
+
+.disclosure-summary {
+  list-style: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px;
+  cursor: pointer;
+}
+
+.disclosure-summary::-webkit-details-marker,
+.inline-disclosure-summary::-webkit-details-marker {
+  display: none;
+}
+
+.disclosure-panel[open] .disclosure-summary {
+  border-bottom: 1px solid var(--border);
+}
+
+.disclosure-body {
+  display: grid;
+  gap: 16px;
+  padding: 20px 24px 24px;
+}
+
 .inline-list {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.expandable-copy {
+  display: grid;
+  gap: 10px;
+}
+
+.inline-disclosure {
+  display: grid;
+  gap: 10px;
+}
+
+.inline-disclosure-summary {
+  cursor: pointer;
+  color: var(--accent);
+  font-size: 0.95rem;
 }
 
 .content-block {

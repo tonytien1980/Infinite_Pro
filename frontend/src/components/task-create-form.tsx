@@ -45,6 +45,7 @@ const FLOW_OPTIONS = [
 ] as const;
 
 type FlowOption = (typeof FLOW_OPTIONS)[number];
+type WorkflowPreference = "auto" | FlowOption["value"];
 
 const EXTERNAL_DATA_STRATEGY_OPTIONS: Array<{
   value: ExternalDataStrategy;
@@ -53,17 +54,17 @@ const EXTERNAL_DATA_STRATEGY_OPTIONS: Array<{
 }> = [
   {
     value: "strict",
-    label: "僅使用我提供的資料（嚴格模式）",
+    label: "不用，我只想用我提供的資料",
     description: "Host 不會主動補外部搜尋，只使用你手動附加的內容、網址與檔案。",
   },
   {
     value: "supplemental",
-    label: "視需要補充外部資料（預設）",
+    label: "可以補充資料",
     description: "由 Host 判斷目前證據是否不足，必要時再補外部搜尋來源。",
   },
   {
     value: "latest",
-    label: "優先使用最新外部資料（研究模式）",
+    label: "幫我找最新的資訊",
     description: "Host 會優先補外部搜尋來源，適合需要最新公開資訊的研究任務。",
   },
 ];
@@ -73,6 +74,58 @@ function labelForExternalDataStrategy(value: ExternalDataStrategy) {
     EXTERNAL_DATA_STRATEGY_OPTIONS.find((item) => item.value === value)?.label ??
     EXTERNAL_DATA_STRATEGY_OPTIONS[1].label
   );
+}
+
+function deriveTaskTitle(description: string) {
+  const normalized = description.replace(/\s+/g, " ").trim();
+  if (!normalized) {
+    return "";
+  }
+
+  const headline = normalized.split(/[。！？!?]/)[0]?.trim() || normalized;
+  return headline.length <= 36 ? headline : `${headline.slice(0, 36)}...`;
+}
+
+function inferFlowValue({
+  description,
+  files,
+  urlsText,
+  pastedContent,
+}: {
+  description: string;
+  files: File[];
+  urlsText: string;
+  pastedContent: string;
+}): FlowOption["value"] {
+  const signalText = [description, urlsText, pastedContent, ...files.map((file) => file.name)]
+    .join(" ")
+    .toLowerCase();
+
+  if (
+    /(合約|契約|條款|redline|issue spotting|agreement|msa|nda|liability|termination|indemnity)/i.test(
+      signalText,
+    )
+  ) {
+    return "contract_review";
+  }
+
+  if (
+    /(重構|重寫|改寫|重組|大綱|outline|proposal|deck|簡報|提案|structure|restructure|rewrite)/i.test(
+      signalText,
+    )
+  ) {
+    return "document_restructuring";
+  }
+
+  if (
+    /(是否|值不值得|值得投入|要不要|該不該|比較|方案|決策|評估|投入|選擇|收斂|strategy|go-to-market)/i.test(
+      signalText,
+    )
+  ) {
+    return "multi_agent";
+  }
+
+  return "research_synthesis";
 }
 
 function buildConsultantBrief({
@@ -112,8 +165,7 @@ function buildConsultantBrief({
 }
 
 export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
-  const [selectedFlow, setSelectedFlow] = useState<FlowOption["value"]>("research_synthesis");
-  const [title, setTitle] = useState("");
+  const [workflowPreference, setWorkflowPreference] = useState<WorkflowPreference>("auto");
   const [description, setDescription] = useState("");
   const [subjectName, setSubjectName] = useState("");
   const [urlsText, setUrlsText] = useState("");
@@ -131,12 +183,17 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const flow = FLOW_OPTIONS.find((item) => item.value === selectedFlow) ?? FLOW_OPTIONS[0];
+  const resolvedFlowValue =
+    workflowPreference === "auto"
+      ? inferFlowValue({ description, files, urlsText, pastedContent })
+      : workflowPreference;
+  const flow = FLOW_OPTIONS.find((item) => item.value === resolvedFlowValue) ?? FLOW_OPTIONS[0];
+  const derivedTitle = useMemo(() => deriveTaskTitle(description), [description]);
   const consultantBrief = useMemo(
     () =>
       buildConsultantBrief({
         flowLabel: flow.label,
-        title,
+        title: derivedTitle,
         description,
         subjectName,
         analysisDepth,
@@ -154,7 +211,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
       scopeNotes,
       subjectName,
       targetReader,
-      title,
+      derivedTitle,
     ],
   );
 
@@ -165,7 +222,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
     setSuccess(null);
 
     const payload: TaskCreatePayload = {
-      title,
+      title: derivedTitle,
       description,
       task_type: flow.taskType,
       mode: flow.mode,
@@ -218,7 +275,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
         <div>
           <h2 className="panel-title">建立任務</h2>
           <p className="panel-copy">
-            先用最少輸入把案件開起來，讓系統先補齊顧問框架；只有在你想干預判斷邏輯時，再展開進階模式補充脈絡。
+            先把你真正想判斷的問題寫下來，Infinite Pro 會先幫你補框，再把資料整理成可分析的案件。
           </p>
         </div>
       </div>
@@ -226,35 +283,8 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
       <form className="form-grid" onSubmit={handleSubmit}>
         <section className="intake-section">
           <div className="section-heading">
-            <h3>簡化模式</h3>
-            <p>只保留最少必要輸入。任務建立後，系統才會提示缺漏資料與建議補充，不會在 intake 階段先擋住你。</p>
-          </div>
-
-          <div className="field">
-            <label htmlFor="task-flow">工作流程</label>
-            <select
-              id="task-flow"
-              value={selectedFlow}
-              onChange={(event) => setSelectedFlow(event.target.value as FlowOption["value"])}
-            >
-              {FLOW_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            <small>{flow.description}</small>
-          </div>
-
-          <div className="field">
-            <label htmlFor="task-title">任務名稱</label>
-            <input
-              id="task-title"
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              placeholder="例如：東南亞市場切入方向的內部判斷稿"
-              required
-            />
+            <h3>從問題開始</h3>
+            <p>先用一句話描述你想判斷的問題。系統會自動產生任務名稱，並預設自動判斷工作流程。</p>
           </div>
 
           <div className="field">
@@ -263,41 +293,41 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
               id="task-description"
               value={description}
               onChange={(event) => setDescription(event.target.value)}
-              placeholder="直接寫出你真正想判斷的問題、想做的決策，或你希望系統幫你整理成什麼顧問級結論。"
+              placeholder="例如：我想評估做一個幣圈數據工具是否值得投入"
               required
             />
+            <small>系統會自動用你的問題生成任務名稱，並先用最合適的分析流程啟動。</small>
           </div>
 
-          <div className="field">
-            <label htmlFor="subject-name">分析對象（選填）</label>
-            <input
-              id="subject-name"
-              value={subjectName}
-              onChange={(event) => setSubjectName(event.target.value)}
-              placeholder="例如：客戶、提案、某個市場、某份文件、某個決策主題"
-            />
+          <div className="button-row" style={{ justifyContent: "flex-start", marginTop: "12px" }}>
+            <button className="button-primary" type="submit" disabled={submitting}>
+              {submitting ? "開始分析中..." : "開始分析"}
+            </button>
           </div>
+
+          {error ? <p className="error-text">{error}</p> : null}
+          {success ? <p className="success-text">{success}</p> : null}
         </section>
 
         <section className="intake-section">
           <div className="section-heading">
-            <h3>資料來源</h3>
-            <p>把網址、檔案或原始內容都放在這裡。系統會在建立任務後把它們統一轉成可分析的 evidence。</p>
+            <h3 style={{ fontSize: "1rem", marginBottom: "6px" }}>（選填）補充資料</h3>
+            <p style={{ marginTop: 0 }}>如果你手上已有資料，可直接貼網址、上傳檔案或貼上原始內容。</p>
           </div>
 
           <div className="field">
-            <label htmlFor="source-urls">貼上網址</label>
+            <label htmlFor="source-urls">URL</label>
             <textarea
               id="source-urls"
               value={urlsText}
               onChange={(event) => setUrlsText(event.target.value)}
               placeholder={"每行一個網址，例如：\nhttps://example.com/article\nhttps://docs.google.com/document/d/..."}
             />
-            <small>支援 HTML / 新聞 / 部落格 / PDF URL / Google Docs。</small>
+            <small>支援網頁、新聞、部落格、PDF URL、Google Docs。</small>
           </div>
 
           <div className="field">
-            <label htmlFor="source-files">上傳檔案</label>
+            <label htmlFor="source-files">upload</label>
             <input
               id="source-files"
               type="file"
@@ -309,7 +339,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
           </div>
 
           <div className="field">
-            <label htmlFor="source-paste">直接貼內容</label>
+            <label htmlFor="source-paste">paste</label>
             <textarea
               id="source-paste"
               value={pastedContent}
@@ -319,7 +349,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
           </div>
 
           <div className="field">
-            <label htmlFor="external-data-strategy">外部資料使用方式</label>
+            <label htmlFor="external-data-strategy">需要系統幫你補充資料嗎？</label>
             <select
               id="external-data-strategy"
               value={externalDataStrategy}
@@ -346,20 +376,53 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
         <section className="intake-section">
           <div className="panel-header">
             <div>
-              <h3 className="panel-title">進階模式</h3>
-              <p className="panel-copy">只有在你想主動干預顧問判斷邏輯時再展開，否則系統會先自動補齊。</p>
+              <h3 className="panel-title">進階設定（選填）</h3>
+              <p className="panel-copy">只有在你想手動干預分析邏輯時再展開。預設情況下，Infinite Pro 會先自動判斷。</p>
             </div>
             <button
               className="button-secondary"
               type="button"
               onClick={() => setShowAdvanced((previous) => !previous)}
             >
-              {showAdvanced ? "收合進階模式" : "展開進階模式"}
+              {showAdvanced ? "收合進階設定" : "展開進階設定"}
             </button>
           </div>
 
           {showAdvanced ? (
             <div className="detail-list">
+              <div className="field">
+                <label htmlFor="workflow-preference">工作流程</label>
+                <select
+                  id="workflow-preference"
+                  value={workflowPreference}
+                  onChange={(event) =>
+                    setWorkflowPreference(event.target.value as WorkflowPreference)
+                  }
+                >
+                  <option value="auto">自動判斷</option>
+                  {FLOW_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <small>
+                  {workflowPreference === "auto"
+                    ? `目前會自動判斷為「${flow.label}」。${flow.description}`
+                    : flow.description}
+                </small>
+              </div>
+
+              <div className="field">
+                <label htmlFor="subject-name">分析對象（選填）</label>
+                <input
+                  id="subject-name"
+                  value={subjectName}
+                  onChange={(event) => setSubjectName(event.target.value)}
+                  placeholder="例如：客戶、提案、某個市場、某份文件、某個決策主題"
+                />
+              </div>
+
               <div className="field">
                 <label htmlFor="analysis-depth">你希望這份分析做到什麼程度？</label>
                 <textarea
@@ -412,15 +475,6 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
             </div>
           ) : null}
         </section>
-
-        <div className="button-row">
-          <button className="button-primary" type="submit" disabled={submitting}>
-            {submitting ? "建立任務中..." : "建立任務"}
-          </button>
-        </div>
-
-        {error ? <p className="error-text">{error}</p> : null}
-        {success ? <p className="success-text">{success}</p> : null}
       </form>
     </section>
   );

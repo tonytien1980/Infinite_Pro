@@ -11,6 +11,18 @@ from app.ingestion.remote import RemoteSourceContent
 from app.services.external_search import SearchResult
 
 
+def assert_consultant_output_shell(content: dict) -> None:
+    assert content["executive_summary"]
+    assert content["core_judgment"]
+    assert "recommendations" in content
+    assert "risks" in content
+    assert "action_items" in content
+    assert "missing_information" in content
+    assert content["recommendation_cards"]
+    assert content["risk_cards"]
+    assert content["action_item_cards"]
+
+
 def create_task_payload(title: str = "Research memo synthesis") -> dict:
     return {
         "title": title,
@@ -351,9 +363,12 @@ def test_research_synthesis_specialist_run_and_history_persistence(client: TestC
     assert run_body["deliverable"]["deliverable_type"] == "research_synthesis"
     assert run_body["recommendations"]
     assert run_body["action_items"]
-    assert "missing_information" in run_body["deliverable"]["content_structure"]
-    assert "risks" in run_body["deliverable"]["content_structure"]
-    assert "external_data_usage" in run_body["deliverable"]["content_structure"]
+    content = run_body["deliverable"]["content_structure"]
+    assert_consultant_output_shell(content)
+    assert content["key_findings"]
+    assert content["implications"]
+    assert "research_gaps" in content
+    assert "external_data_usage" in content
 
     history_response = client.get(f"/api/v1/tasks/{task['id']}/history")
 
@@ -394,11 +409,13 @@ def test_document_restructuring_specialist_run_and_history_persistence(
     assert run_body["run"]["status"] == "completed"
     assert run_body["run"]["agent_id"] == "document_restructuring"
     assert run_body["deliverable"]["deliverable_type"] == "document_restructuring"
-    assert run_body["deliverable"]["content_structure"]["proposed_outline"]
-    assert run_body["deliverable"]["content_structure"]["rewrite_guidance"]
+    content = run_body["deliverable"]["content_structure"]
+    assert_consultant_output_shell(content)
+    assert content["draft_outline"] or content["proposed_outline"]
+    assert content["structure_adjustments"] or content["rewrite_guidance"]
+    assert content["restructuring_strategy"]
     assert run_body["recommendations"]
     assert run_body["action_items"]
-    assert "missing_information" in run_body["deliverable"]["content_structure"]
 
     history_response = client.get(f"/api/v1/tasks/{task['id']}/history")
 
@@ -440,11 +457,12 @@ def test_contract_review_specialist_run_and_history_persistence(
     assert run_body["run"]["status"] == "completed"
     assert run_body["run"]["agent_id"] == "contract_review"
     assert run_body["deliverable"]["deliverable_type"] == "contract_review"
-    assert run_body["deliverable"]["content_structure"]["findings"]
-    assert run_body["deliverable"]["content_structure"]["risks"]
-    assert run_body["deliverable"]["content_structure"]["recommendations"]
-    assert run_body["deliverable"]["content_structure"]["action_items"]
-    assert "missing_information" in run_body["deliverable"]["content_structure"]
+    content = run_body["deliverable"]["content_structure"]
+    assert_consultant_output_shell(content)
+    assert content["findings"]
+    assert content["high_risk_clauses"]
+    assert content["redline_recommendations"]
+    assert "missing_attachments_or_clauses" in content
     assert run_body["risks"]
     assert run_body["recommendations"]
     assert run_body["action_items"]
@@ -536,6 +554,8 @@ def test_host_normalizes_incomplete_specialist_output(
     body = response.json()
     missing_information = " ".join(body["deliverable"]["content_structure"]["missing_information"])
     assert "Host 已補上一個明確占位" in missing_information
+    assert body["deliverable"]["content_structure"]["executive_summary"]
+    assert body["deliverable"]["content_structure"]["core_judgment"]
     assert body["recommendations"]
     assert body["action_items"]
     assert body["risks"]
@@ -566,17 +586,22 @@ def test_multi_agent_happy_path_converges_and_saves_history(client: TestClient) 
     assert body["run"]["status"] == "completed"
     assert body["run"]["agent_id"] == "host_orchestrator"
     assert body["deliverable"]["deliverable_type"] == "multi_agent_convergence"
-    assert body["deliverable"]["content_structure"]["participating_agents"] == [
+    content = body["deliverable"]["content_structure"]
+    assert_consultant_output_shell(content)
+    assert content["participating_agents"] == [
         "strategy_business_analysis",
         "market_research_insight",
         "operations",
         "risk_challenge",
     ]
-    assert body["deliverable"]["content_structure"]["findings"]
-    assert body["deliverable"]["content_structure"]["insights"]
+    assert content["findings"]
+    assert content["insights"]
+    assert content["convergence_summary"]
+    assert "divergent_views" in content
+    assert content["orchestration_summary"]
     assert body["recommendations"]
     assert body["action_items"]
-    assert "external_data_usage" in body["deliverable"]["content_structure"]
+    assert "external_data_usage" in content
 
     history = client.get(f"/api/v1/tasks/{task['id']}/history").json()
     assert len(history["runs"]) == 1

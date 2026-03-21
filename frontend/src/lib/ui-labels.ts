@@ -30,6 +30,18 @@ const PRIORITY_LABELS: Record<string, string> = {
   low: "低優先",
 };
 
+const IMPACT_LEVEL_LABELS: Record<string, string> = {
+  high: "高嚴重度",
+  medium: "中嚴重度",
+  low: "低嚴重度",
+};
+
+const LIKELIHOOD_LEVEL_LABELS: Record<string, string> = {
+  high: "高可能性",
+  medium: "中可能性",
+  low: "低可能性",
+};
+
 const ACTION_STATUS_LABELS: Record<string, string> = {
   open: "待處理",
   in_progress: "進行中",
@@ -81,21 +93,38 @@ const DELIVERABLE_TYPE_LABELS: Record<string, string> = {
 };
 
 const STRUCTURED_FIELD_LABELS: Record<string, string> = {
+  executive_summary: "執行摘要",
+  core_judgment: "核心判斷",
   problem_definition: "問題定義",
   background_summary: "背景摘要",
   findings: "發現",
+  key_findings: "關鍵發現",
   insights: "洞察",
+  implications: "洞察 / 管理意涵",
   risks: "風險",
+  risk_cards: "風險卡片",
   options: "選項",
   recommendations: "建議",
+  recommendation_cards: "建議卡片",
   action_items: "行動項目",
+  action_item_cards: "行動項卡片",
   missing_information: "缺漏資訊",
+  research_gaps: "研究缺口",
   workflow_mode: "工作流程",
   sources_used: "使用來源",
   clauses_reviewed: "審閱條款",
+  high_risk_clauses: "高風險條款",
+  redline_recommendations: "Redline / 修改建議",
+  missing_attachments_or_clauses: "缺漏附件 / 缺漏條款",
   proposed_outline: "建議大綱",
+  draft_outline: "產出草案 / 新版結構",
   rewrite_guidance: "改寫建議",
+  restructuring_strategy: "重組策略",
+  structure_adjustments: "結構調整重點",
+  convergence_summary: "收斂摘要",
+  divergent_views: "分歧觀點",
   participating_agents: "參與代理",
+  orchestration_summary: "協調摘要",
   generated_by_agent: "產生代理",
   external_data_usage: "外部資料使用情況",
   external_data_strategy: "外部資料使用方式",
@@ -132,6 +161,14 @@ export function labelForFlowMode(value: string) {
 
 export function labelForPriority(value: string) {
   return PRIORITY_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForImpactLevel(value: string) {
+  return IMPACT_LEVEL_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForLikelihoodLevel(value: string) {
+  return LIKELIHOOD_LEVEL_LABELS[value] ?? fallbackLabel(value);
 }
 
 export function labelForActionStatus(value: string) {

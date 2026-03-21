@@ -217,9 +217,9 @@ class OpenAIModelProvider(ModelProvider):
                 ],
             },
             system_prompt=(
-                "你是 AI Advisory OS 的研究綜整代理。"
+                "你是 Infinite Pro 的研究綜整代理。"
                 "請只使用提供的任務脈絡與證據，不要編造事實。"
-                "輸出要精簡、結構化，並明確標示不確定性。"
+                "輸出要像顧問交付草稿：先結論、後依據，建議要可執行，風險與缺漏資訊要明確。"
                 + DEFAULT_LANGUAGE_INSTRUCTION
             ),
             user_prompt=_render_request_context(
@@ -279,9 +279,9 @@ class OpenAIModelProvider(ModelProvider):
             system_prompt=(
                 role_prompt_by_agent.get(
                     request_payload.agent_id,
-                    "你是 AI Advisory OS 的核心分析代理。",
+                    "你是 Infinite Pro 的核心分析代理。",
                 )
-                + " 請只使用提供的任務脈絡。輸出要精簡且結構化。"
+                + " 請只使用提供的任務脈絡。輸出要精簡、結構化，且符合顧問式交付語氣：先判斷、後依據。"
                 + DEFAULT_LANGUAGE_INSTRUCTION
             ),
             user_prompt=_render_request_context(
@@ -328,8 +328,9 @@ class OpenAIModelProvider(ModelProvider):
                 ],
             },
             system_prompt=(
-                "你是 AI Advisory OS 的文件重構代理。"
+                "你是 Infinite Pro 的文件重構代理。"
                 "請把素材重整成更清楚的內部交付物，並明確指出缺漏資料，不要假裝草稿已完整。"
+                "建議要可執行，輸出順序要先給重組判斷，再給結構依據。"
                 + DEFAULT_LANGUAGE_INSTRUCTION
             ),
             user_prompt=_render_request_context(
@@ -374,9 +375,10 @@ class OpenAIModelProvider(ModelProvider):
                 ],
             },
             system_prompt=(
-                "你是 AI Advisory OS 的合約審閱代理。"
+                "你是 Infinite Pro 的合約審閱代理。"
                 "請提供審慎的內部議題標記結果，而不是法律意見。"
                 "只能使用提供的合約素材，並明確列出不確定性。"
+                "請先給高風險判斷，再給 redline / 修改建議與待補資料。"
                 + DEFAULT_LANGUAGE_INSTRUCTION
             ),
             user_prompt=_render_request_context(

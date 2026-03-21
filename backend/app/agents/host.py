@@ -200,6 +200,246 @@ class HostOrchestrator:
             return []
         return items[-count:]
 
+    @staticmethod
+    def _coerce_text(value: object) -> str:
+        if isinstance(value, str):
+            return value.strip()
+        return ""
+
+    @staticmethod
+    def _string_list(value: object) -> list[str]:
+        if not isinstance(value, list):
+            return []
+
+        items: list[str] = []
+        for item in value:
+            text = str(item).strip()
+            if text:
+                items.append(text)
+        return items
+
+    def _build_core_judgment(
+        self,
+        payload: AgentInputPayload,
+        content: dict[str, object],
+    ) -> str:
+        findings = self._string_list(content.get("findings")) or self._string_list(content.get("insights"))
+        recommendations = self._string_list(content.get("recommendations"))
+        risks = self._string_list(content.get("risks"))
+
+        if findings:
+            return f"依據目前證據，優先判斷應聚焦在：{findings[0]}"
+        if recommendations:
+            return f"依據目前任務脈絡，最可執行的方向是：{recommendations[0]}"
+        if risks:
+            return f"目前最需要優先管理的風險是：{risks[0]}"
+
+        return (
+            "目前證據仍不足以形成高信心判斷，建議先把這份結果視為帶有缺漏註記的工作草稿。"
+        )
+
+    def _build_executive_summary(
+        self,
+        payload: AgentInputPayload,
+        content: dict[str, object],
+    ) -> str:
+        problem_definition = self._coerce_text(content.get("problem_definition")) or payload.description or payload.title
+        core_judgment = self._coerce_text(content.get("core_judgment")) or self._build_core_judgment(payload, content)
+        recommendations = self._string_list(content.get("recommendations"))
+        risks = self._string_list(content.get("risks"))
+        missing_information = self._string_list(content.get("missing_information"))
+
+        summary_parts = [
+            f"就「{problem_definition}」這個問題，先結論：{core_judgment}",
+        ]
+        if recommendations:
+            summary_parts.append(f"建議優先執行「{recommendations[0]}」")
+        if risks:
+            summary_parts.append(f"主要風險是「{risks[0]}」")
+        if missing_information:
+            summary_parts.append(f"目前仍需補上「{missing_information[0]}」")
+
+        return "；".join(summary_parts) + "。"
+
+    @staticmethod
+    def _infer_recommendation_expected_effect(recommendation: RecommendationDraft) -> str:
+        combined_text = f"{recommendation.summary} {recommendation.rationale}".strip()
+
+        if any(keyword in combined_text for keyword in ("補", "資料", "證據", "來源")):
+            return "可補齊關鍵證據，降低下一輪判斷的不確定性。"
+        if any(keyword in combined_text for keyword in ("對齊", "確認", "釐清")):
+            return "可降低團隊理解落差，讓後續執行與決策更一致。"
+        if any(keyword in combined_text for keyword in ("重組", "改寫", "結構")):
+            return "可提升交付物的可讀性與採納率，減少後續重工。"
+        if any(keyword in combined_text for keyword in ("優先", "排序", "決策")):
+            return "可加快決策收斂，讓資源優先投入最值得處理的方向。"
+
+        return "可讓下一輪判斷與執行更具可操作性。"
+
+    @staticmethod
+    def _infer_action_timing(action_item: ActionItemDraft) -> str:
+        if action_item.due_hint:
+            return action_item.due_hint
+        if action_item.priority == "high":
+            return "建議立即啟動，並在下一個工作迭代前完成。"
+        if action_item.priority == "medium":
+            return "建議排入本輪工作，於主要建議確認後執行。"
+        return "可在下一輪規劃或補證後再處理。"
+
+    def _build_recommendation_cards(
+        self,
+        recommendations: list[RecommendationDraft],
+    ) -> list[dict[str, object]]:
+        return [
+            {
+                "content": item.summary,
+                "priority": item.priority,
+                "rationale": item.rationale,
+                "expected_effect": self._infer_recommendation_expected_effect(item),
+            }
+            for item in recommendations
+        ]
+
+    @staticmethod
+    def _build_risk_cards(risks: list[RiskDraft]) -> list[dict[str, object]]:
+        return [
+            {
+                "content": item.title or item.description,
+                "severity": item.impact_level,
+                "likelihood": item.likelihood_level,
+                "impact_explanation": item.description,
+            }
+            for item in risks
+        ]
+
+    def _build_action_item_cards(
+        self,
+        action_items: list[ActionItemDraft],
+    ) -> list[dict[str, object]]:
+        return [
+            {
+                "content": item.description,
+                "owner_role": item.suggested_owner or "任務負責人",
+                "priority": item.priority,
+                "sequence": self._infer_action_timing(item),
+                "dependencies": item.dependency_refs,
+            }
+            for item in action_items
+        ]
+
+    def _shape_mode_specific_output(
+        self,
+        payload: AgentInputPayload,
+        content: dict[str, object],
+    ) -> dict[str, object]:
+        workflow_key = "multi_agent" if payload.flow_mode == FlowMode.MULTI_AGENT else payload.task_type
+        findings = self._string_list(content.get("findings"))
+        insights = self._string_list(content.get("insights"))
+        risks = self._string_list(content.get("risks"))
+        recommendations = self._string_list(content.get("recommendations"))
+        action_items = self._string_list(content.get("action_items"))
+        missing_information = self._string_list(content.get("missing_information"))
+
+        if workflow_key == "contract_review":
+            high_risk_clauses = (
+                self._string_list(content.get("high_risk_clauses"))
+                or self._string_list(content.get("clauses_reviewed"))
+                or risks[:3]
+            )
+            contract_gaps = [
+                item
+                for item in missing_information
+                if any(keyword in item for keyword in ("附件", "條款", "草稿", "版本", "合約"))
+            ]
+            content["high_risk_clauses"] = high_risk_clauses
+            content["redline_recommendations"] = (
+                self._string_list(content.get("redline_recommendations")) or recommendations
+            )
+            content["missing_attachments_or_clauses"] = contract_gaps or missing_information
+            return content
+
+        if workflow_key == "document_restructuring":
+            content["restructuring_strategy"] = (
+                self._string_list(content.get("restructuring_strategy")) or recommendations
+            )
+            content["structure_adjustments"] = (
+                self._string_list(content.get("structure_adjustments"))
+                or self._string_list(content.get("rewrite_guidance"))
+                or findings
+            )
+            content["draft_outline"] = (
+                self._string_list(content.get("draft_outline"))
+                or self._string_list(content.get("proposed_outline"))
+            )
+            return content
+
+        if workflow_key == "multi_agent":
+            participating_agents = self._string_list(content.get("participating_agents"))
+            divergent_views = self._string_list(content.get("divergent_views"))
+            if not divergent_views:
+                divergent_views = [
+                    item for item in missing_information if ":" in item or "：" in item
+                ]
+            orchestration_summary = self._string_list(content.get("orchestration_summary"))
+            if not orchestration_summary:
+                orchestration_summary = [
+                    "由 Host 作為唯一 orchestration center 負責啟動、協調與收斂本輪分析。",
+                    (
+                        f"本輪共協調 {len(participating_agents)} 個核心代理。"
+                        if participating_agents
+                        else "本輪未回傳可用的參與代理清單。"
+                    ),
+                ]
+                if self._coerce_text(content.get("analysis_dependency_note")):
+                    orchestration_summary.append(
+                        "外部資料若被使用，也必須先經過 ingestion 與 evidence pipeline，再進入分析。"
+                    )
+
+            content["convergence_summary"] = (
+                self._string_list(content.get("convergence_summary")) or insights or findings
+            )
+            content["options"] = content.get("options") if isinstance(content.get("options"), list) else []
+            content["divergent_views"] = divergent_views
+            content["orchestration_summary"] = orchestration_summary
+            content["participating_agents"] = participating_agents
+            return content
+
+        implications = self._string_list(content.get("implications"))
+        if not implications:
+            if recommendations:
+                implications.append(f"管理意涵：{recommendations[0]}")
+            if risks:
+                implications.append(f"決策提醒：{risks[0]}")
+
+        content["key_findings"] = self._string_list(content.get("key_findings")) or findings
+        content["implications"] = implications
+        content["research_gaps"] = self._string_list(content.get("research_gaps")) or missing_information
+        return content
+
+    def _apply_consultant_output_shell(
+        self,
+        payload: AgentInputPayload,
+        result: AgentResult,
+    ) -> AgentResult:
+        content = dict(result.deliverable.content_structure or {})
+
+        content["findings"] = self._string_list(content.get("findings"))
+        content["risks"] = self._string_list(content.get("risks"))
+        content["recommendations"] = self._string_list(content.get("recommendations"))
+        content["action_items"] = self._string_list(content.get("action_items"))
+        content["missing_information"] = self._string_list(content.get("missing_information"))
+        if "insights" in content:
+            content["insights"] = self._string_list(content.get("insights"))
+
+        content["core_judgment"] = self._coerce_text(content.get("core_judgment")) or self._build_core_judgment(payload, content)
+        content["executive_summary"] = self._coerce_text(content.get("executive_summary")) or self._build_executive_summary(payload, content)
+        content["recommendation_cards"] = self._build_recommendation_cards(result.recommendations)
+        content["risk_cards"] = self._build_risk_cards(result.risks)
+        content["action_item_cards"] = self._build_action_item_cards(result.action_items)
+        content = self._shape_mode_specific_output(payload, content)
+        result.deliverable.content_structure = content
+        return result
+
     def _normalize_result(self, payload: AgentInputPayload, agent_id: str, result: AgentResult) -> AgentResult:
         content = dict(result.deliverable.content_structure or {})
         missing_information = list(content.get("missing_information") or [])
@@ -362,6 +602,7 @@ class HostOrchestrator:
                 self._build_multi_agent_result(payload, fixed_core_agents, fragments, missing_information),
             )
             converged = self._annotate_external_data_usage(converged, external_data_report)
+            converged = self._apply_consultant_output_shell(payload, converged)
             deliverable = self.persist_result(task=task, run=run, result=converged)
         except Exception as exc:
             logger.exception("Multi-agent flow failed for task %s", task.id)
@@ -509,6 +750,7 @@ class HostOrchestrator:
             agent = self.registry.get_specialist_agent(agent_id)
             result = self._normalize_result(payload, agent_id, agent.run(payload))
             result = self._annotate_external_data_usage(result, external_data_report)
+            result = self._apply_consultant_output_shell(payload, result)
             deliverable = self.persist_result(task=task, run=run, result=result)
         except Exception as exc:
             logger.exception("Specialist flow failed for task %s", task.id)
