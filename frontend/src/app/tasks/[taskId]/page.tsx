@@ -1,9 +1,11 @@
 import { TaskDetailPanel } from "@/components/task-detail-panel";
 
-export default function TaskPage({
+export default async function TaskPage({
   params,
 }: {
-  params: { taskId: string };
+  params: Promise<{ taskId: string }>;
 }) {
-  return <TaskDetailPanel taskId={params.taskId} />;
+  const { taskId } = await params;
+
+  return <TaskDetailPanel taskId={taskId} />;
 }
