@@ -11,6 +11,7 @@ __pycache__/
 frontend/node_modules/
 frontend/.next/
 frontend/.turbo/
+*.tsbuildinfo
 
 storage/uploads/*
 !storage/uploads/.gitkeep

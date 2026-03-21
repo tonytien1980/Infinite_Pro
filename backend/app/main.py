@@ -19,11 +19,11 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    logger.info("Starting AI Advisory OS backend.")
+    logger.info("Starting Infinite Pro backend.")
     settings.upload_path.mkdir(parents=True, exist_ok=True)
     initialize_database()
     yield
-    logger.info("Stopping AI Advisory OS backend.")
+    logger.info("Stopping Infinite Pro backend.")
 
 
 def create_app() -> FastAPI:

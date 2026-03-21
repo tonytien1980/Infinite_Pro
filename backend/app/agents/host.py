@@ -52,7 +52,7 @@ class HostOrchestrator:
             return "document_restructuring"
         raise HTTPException(
             status_code=400,
-            detail=f"Task type '{task.task_type}' does not have an implemented specialist flow yet.",
+            detail=f"任務類型「{task.task_type}」目前尚未實作對應的 specialist flow。",
         )
 
     def build_payload(self, task: models.Task) -> AgentInputPayload:
@@ -83,42 +83,42 @@ class HostOrchestrator:
         for key in REQUIRED_DELIVERABLE_KEYS:
             if key not in content:
                 content[key] = [] if key in {"findings", "risks", "recommendations", "action_items", "missing_information"} else ""
-                missing_information.append(f"The agent did not provide a '{key}' section, so Host added an explicit placeholder.")
+                missing_information.append(f"代理沒有提供「{key}」區段，因此 Host 已補上一個明確占位。")
 
         if not content["problem_definition"]:
             content["problem_definition"] = payload.description or payload.title
-            missing_information.append("Problem definition was inferred from the task because the agent output omitted it.")
+            missing_information.append("由於代理輸出遺漏問題定義，Host 已依據任務內容補上推定版本。")
         if not content["background_summary"]:
-            content["background_summary"] = payload.background_text or "No background summary was available."
-            missing_information.append("Background summary was inferred from the current task context.")
+            content["background_summary"] = payload.background_text or "目前尚無可用的背景摘要。"
+            missing_information.append("由於代理輸出遺漏背景摘要，Host 已依據目前任務脈絡補上推定版本。")
 
         if not result.recommendations:
             result.recommendations = [
                 RecommendationDraft(
-                    summary="Collect stronger evidence and rerun the workflow.",
-                    rationale="Host added this recommendation because the specialist output did not include one.",
+                    summary="先補強證據，再重新執行工作流。",
+                    rationale="由於 specialist 輸出沒有提供建議物件，Host 已補上一條降級建議。",
                     based_on_refs=[],
                     priority="high",
-                    owner_suggestion="Task owner",
+                    owner_suggestion="任務負責人",
                 )
             ]
-            missing_information.append("No recommendation objects were produced, so Host added a degraded fallback recommendation.")
+            missing_information.append("目前沒有產出 recommendation 物件，因此 Host 已補上一條降級建議。")
 
         if not result.action_items:
             result.action_items = [
                 ActionItemDraft(
-                    description="Add usable source material or revise the task brief before the next run.",
-                    suggested_owner="Task owner",
+                    description="在下一輪執行前，請補上可用來源資料或修正任務簡述。",
+                    suggested_owner="任務負責人",
                     priority="high",
                 )
             ]
-            missing_information.append("No action items were produced, so Host added a degraded fallback action item.")
+            missing_information.append("目前沒有產出 action item，因此 Host 已補上一條降級行動項。")
 
         if not result.risks and missing_information:
             result.risks = [
                 RiskDraft(
-                    title="Incomplete specialist output",
-                    description="Host detected missing sections in the specialist output and converted them into explicit uncertainty.",
+                    title="specialist 輸出不完整",
+                    description="Host 偵測到 specialist 輸出缺少必要區段，因此已轉成明確的不確定性提醒。",
                     risk_type="output_integrity",
                     impact_level="medium",
                     likelihood_level="high",
@@ -196,7 +196,7 @@ class HostOrchestrator:
                         task.id,
                         exc,
                     )
-                    missing_information.append(f"{agent_id}: model router failure or core-agent error: {exc}")
+                    missing_information.append(f"{agent_id}：模型路由失敗或核心代理執行異常：{exc}")
 
             converged = self._normalize_result(
                 payload,
@@ -261,17 +261,17 @@ class HostOrchestrator:
         findings = [item.summary for item in insights]
         if not findings:
             findings = [
-                "No high-confidence multi-agent findings were produced; the output should be treated as a convergence scaffold.",
+                "目前尚未形成高信心的多代理發現，這份輸出應視為收斂骨架而非定案。",
             ]
             missing_information.append(
-                "The fixed core-agent pair could not generate stronger findings from the current evidence set."
+                "固定核心代理組合目前無法從現有證據中產出更強的發現。"
             )
 
         if not risks:
             risks = [
                 RiskDraft(
-                    title="Multi-agent evidence gap",
-                    description="The multi-agent flow ran, but evidence coverage was too thin for richer challenge and convergence.",
+                    title="多代理證據缺口",
+                    description="雖然多代理流程已執行，但證據覆蓋仍不足以支撐更完整的辯證與收斂。",
                     risk_type="evidence_gap",
                     impact_level="medium",
                     likelihood_level="high",
@@ -282,19 +282,19 @@ class HostOrchestrator:
         if not recommendations:
             recommendations = [
                 RecommendationDraft(
-                    summary="Strengthen the evidence base before treating this convergence output as decision-ready.",
-                    rationale="Host added a fallback recommendation because the fixed core agents did not produce one.",
+                    summary="在把這份收斂結果視為可供決策的輸出前，請先補強證據基礎。",
+                    rationale="由於固定核心代理沒有產出建議，Host 已補上一條降級建議。",
                     based_on_refs=[],
                     priority="high",
-                    owner_suggestion="Task owner",
+                    owner_suggestion="任務負責人",
                 )
             ]
 
         if not action_items:
             action_items = [
                 ActionItemDraft(
-                    description="Add more usable evidence and rerun the multi-agent flow.",
-                    suggested_owner="Task owner",
+                    description="請補上更多可用證據後，再重新執行多代理流程。",
+                    suggested_owner="任務負責人",
                     priority="high",
                 )
             ]
@@ -306,10 +306,10 @@ class HostOrchestrator:
             action_items=action_items,
             deliverable=DeliverableDraft(
                 deliverable_type="multi_agent_convergence",
-                title=f"{payload.title} - Multi-Agent Convergence",
+                title=f"{payload.title} - 多代理收斂",
                 content_structure={
                     "problem_definition": payload.description or payload.title,
-                    "background_summary": payload.background_text or "No background summary was available.",
+                    "background_summary": payload.background_text or "目前尚無可用的背景摘要。",
                     "findings": findings,
                     "insights": findings,
                     "risks": [item.description for item in risks],

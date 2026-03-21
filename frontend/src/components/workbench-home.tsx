@@ -22,7 +22,7 @@ export function WorkbenchHome() {
       setTasks(response);
     } catch (refreshError) {
       setError(
-        refreshError instanceof Error ? refreshError.message : "Failed to load task history.",
+        refreshError instanceof Error ? refreshError.message : "載入任務歷史失敗。",
       );
     } finally {
       setLoading(false);
@@ -41,12 +41,11 @@ export function WorkbenchHome() {
   return (
     <main className="page-shell">
       <section className="hero-card">
-        <span className="eyebrow">AI Advisory OS · V1 workbench slice</span>
-        <h1 className="page-title">Ontology-backed research workbench.</h1>
+        <span className="eyebrow">Infinite Pro · V1 MVP 工作台切片</span>
+        <h1 className="page-title">以顧問案件工作流為核心的分析工作台。</h1>
         <p className="page-subtitle">
-          This workbench lets us create a task, add background text, upload source
-          files, turn them into Evidence, and run either a supported specialist flow or
-          the fixed multi-agent convergence flow through the Host orchestration layer.
+          這個工作台讓你先把案件定義講清楚，再補背景、上傳資料、檢查分析準備度，
+          最後透過 Host 協調層執行專家流程或固定編組的多代理收斂流程，產出可供顧問內部使用的結構化結果。
         </p>
       </section>
 

@@ -184,6 +184,20 @@ export interface UploadBatchResponse {
   }>;
 }
 
+export interface SourceIngestPayload {
+  urls: string[];
+  pasted_text: string;
+  pasted_title?: string;
+}
+
+export interface SourceIngestBatchResponse {
+  task_id: string;
+  ingested: Array<{
+    source_document: SourceDocument;
+    evidence: Evidence;
+  }>;
+}
+
 export interface ResearchRunResponse {
   task_id: string;
   run: TaskRun;

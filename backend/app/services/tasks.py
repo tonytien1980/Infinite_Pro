@@ -12,6 +12,73 @@ from app.domain.enums import TaskStatus
 logger = logging.getLogger(__name__)
 
 
+def _infer_background_brief(payload: schemas.TaskCreateRequest) -> str:
+    if payload.background_text.strip():
+        return payload.background_text
+
+    lines = [
+        f"工作流程：{payload.mode.value}",
+        f"任務名稱：{payload.title}",
+    ]
+    if payload.description.strip():
+        lines.append(f"核心問題：{payload.description.strip()}")
+    if payload.subject_name:
+        lines.append(f"分析對象：{payload.subject_name}")
+    if payload.assumptions:
+        lines.append(f"已確定假設：{payload.assumptions}")
+
+    return "\n".join(lines)
+
+
+def _infer_goal_description(payload: schemas.TaskCreateRequest) -> str:
+    if payload.goal_description:
+        return payload.goal_description
+
+    subject = payload.subject_name or "目前議題"
+    if payload.task_type == "contract_review":
+        return f"針對「{subject}」整理高風險條款、主要風險與下一步審閱建議。"
+    if payload.task_type == "document_restructuring":
+        return f"針對「{subject}」提出可直接使用的新版結構、重組策略與改寫重點。"
+    if payload.mode.value == "multi_agent":
+        return f"針對「{subject}」收斂主要建議、主要風險與下一步決策方向。"
+    return f"針對「{subject}」整理摘要、關鍵發現、建議與缺漏資訊。"
+
+
+def _infer_success_criteria(payload: schemas.TaskCreateRequest) -> str:
+    if payload.success_criteria:
+        return payload.success_criteria
+
+    if payload.task_type == "contract_review":
+        return "能清楚標示高風險條款、主要風險、建議處理方式與待補文件。"
+    if payload.task_type == "document_restructuring":
+        return "能提出可直接重組的新版骨架、改寫方向與後續行動。"
+    if payload.mode.value == "multi_agent":
+        return "能形成可供決策討論的收斂摘要、建議、風險、行動項目與未收斂處。"
+    return "能清楚整理摘要、關鍵發現、洞察、建議與研究缺口。"
+
+
+def _infer_constraints(payload: schemas.TaskCreateRequest) -> list[schemas.ConstraintCreate]:
+    if payload.constraints:
+        return payload.constraints
+
+    if payload.task_type == "contract_review":
+        description = "在正式法務審閱前，本結果應視為內部 issue spotting / redline 草稿。"
+    elif payload.task_type == "document_restructuring":
+        description = "若原始草稿或上下文不足，重構建議應視為工作骨架而非最終定稿。"
+    elif payload.mode.value == "multi_agent":
+        description = "若證據厚度不足，多代理結果應視為收斂骨架而非最終決策。"
+    else:
+        description = "若資料來源仍偏薄，這份分析應視為第一輪顧問草稿。"
+
+    return [
+        schemas.ConstraintCreate(
+            description=description,
+            constraint_type="system_inferred",
+            severity="medium",
+        )
+    ]
+
+
 def task_load_options():
     return (
         selectinload(models.Task.contexts),
@@ -34,7 +101,7 @@ def get_loaded_task(db: Session, task_id: str) -> models.Task:
     statement = select(models.Task).options(*task_load_options()).where(models.Task.id == task_id)
     task = db.scalars(statement).unique().one_or_none()
     if task is None:
-        raise HTTPException(status_code=404, detail="Task not found.")
+        raise HTTPException(status_code=404, detail="找不到指定任務。")
     return task
 
 
@@ -45,6 +112,7 @@ def create_task(db: Session, payload: schemas.TaskCreateRequest) -> models.Task:
         payload.task_type,
         payload.mode.value,
     )
+    background_brief = _infer_background_brief(payload)
     task = models.Task(
         title=payload.title,
         description=payload.description,
@@ -57,7 +125,7 @@ def create_task(db: Session, payload: schemas.TaskCreateRequest) -> models.Task:
 
     context = models.TaskContext(
         task_id=task.id,
-        summary=payload.background_text,
+        summary=background_brief,
         assumptions=payload.assumptions,
         notes=payload.notes,
         version=1,
@@ -76,18 +144,18 @@ def create_task(db: Session, payload: schemas.TaskCreateRequest) -> models.Task:
             )
         )
 
-    goal_description = payload.goal_description or "Create a structured research synthesis deliverable."
+    goal_description = _infer_goal_description(payload)
     db.add(
         models.Goal(
             task_id=task.id,
             goal_type=payload.goal_type,
             description=goal_description,
-            success_criteria=payload.success_criteria,
+            success_criteria=_infer_success_criteria(payload),
             priority="high",
         )
     )
 
-    for item in payload.constraints:
+    for item in _infer_constraints(payload):
         db.add(
             models.Constraint(
                 task_id=task.id,
@@ -97,15 +165,15 @@ def create_task(db: Session, payload: schemas.TaskCreateRequest) -> models.Task:
             )
         )
 
-    if payload.background_text.strip():
+    if background_brief.strip():
         db.add(
             models.Evidence(
                 task_id=task.id,
                 evidence_type="background_text",
                 source_type="manual_input",
                 source_ref=f"task_context:{context.id}",
-                title="Manual background context",
-                excerpt_or_summary=payload.background_text.strip()[:1500],
+                title="任務背景摘要",
+                excerpt_or_summary=background_brief.strip()[:1500],
                 reliability_level="user_provided",
             )
         )

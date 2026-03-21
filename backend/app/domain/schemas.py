@@ -226,6 +226,17 @@ class UploadBatchResponse(BaseModel):
     uploaded: list[UploadResultItem]
 
 
+class SourceIngestRequest(BaseModel):
+    urls: list[str] = Field(default_factory=list)
+    pasted_text: str = ""
+    pasted_title: str | None = None
+
+
+class SourceIngestBatchResponse(BaseModel):
+    task_id: str
+    ingested: list[UploadResultItem]
+
+
 class TaskHistoryResponse(BaseModel):
     task_id: str
     runs: list[TaskRunRead]

@@ -14,6 +14,7 @@ Before making any structural or product decisions, read these documents in this 
 2. `docs/01_problem_statement.md`
 3. `docs/02_product_scope_v1.md`
 4. `docs/03_system_overview.md`
+5. `docs/09_infinite_pro_core_definition.md`
 
 If later documents exist, read them after the four files above:
 - `docs/04_ontology_core_v1.md`
@@ -21,6 +22,7 @@ If later documents exist, read them after the four files above:
 - `docs/06_system_architecture_v1.md`
 
 If implementation ideas conflict with the current documents, prefer the documents over assumptions.
+If naming, product positioning, or product drift questions appear, treat `docs/09_infinite_pro_core_definition.md` as a high-priority guide.
 
 Do not invent product scope that has not been confirmed in the docs.
 
@@ -28,7 +30,11 @@ Do not invent product scope that has not been confirmed in the docs.
 
 ## 2. Product summary
 
-Working name: `AI Advisory OS`
+Formal product name: `Infinite Pro`
+
+Note:
+- `Infinite Pro` is now the official product name.
+- Legacy references to `AI Advisory OS` may still remain in older documents or internal code/package names until an explicit rename pass is requested.
 
 This project is an ontology-centered intelligent work platform for complex knowledge work.
 
@@ -320,10 +326,10 @@ If a requested change appears to conflict with the MVP scope, implement the narr
 
 ## 15. Naming guidance
 
-Until branding is finalized:
-- use `AI Advisory OS` as the working product name in docs and code comments when needed
-- avoid locking public-facing UI copy to a final brand name
-- keep naming generic enough for later rebrand
+Branding is now finalized for product-facing language:
+- use `Infinite Pro` as the formal product name in docs, README, user-facing UI copy, and development status updates
+- do not do a large package / repo / module rename unless explicitly requested
+- legacy internal names such as `AI Advisory OS` may remain temporarily in non-user-facing code paths until a dedicated rename pass is approved
 
 ---
 

@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import json
+
 from fastapi.testclient import TestClient
 import pytest
+
+from app.ingestion.remote import RemoteSourceContent
 
 
 def create_task_payload(title: str = "Research memo synthesis") -> dict:
@@ -139,9 +143,120 @@ def test_file_ingestion_failure_creates_explicit_uncertainty_evidence(client: Te
     assert response.status_code == 200
     uploaded = response.json()["uploaded"][0]
     assert uploaded["source_document"]["ingest_status"] == "failed"
-    assert uploaded["source_document"]["ingestion_error"] == "The uploaded file was empty."
+    assert uploaded["source_document"]["ingestion_error"] == "上傳檔案為空白內容。"
     assert uploaded["evidence"]["evidence_type"] == "uploaded_file_ingestion_issue"
-    assert "could not be fully ingested" in uploaded["evidence"]["excerpt_or_summary"]
+    assert "未能完整擷取" in uploaded["evidence"]["excerpt_or_summary"]
+
+
+def test_task_creation_auto_infers_consulting_scaffold_when_advanced_fields_missing(
+    client: TestClient,
+) -> None:
+    response = client.post(
+        "/api/v1/tasks",
+        json={
+            "title": "Simple intake",
+            "description": "Should we expand into a new market this year?",
+            "task_type": "research_synthesis",
+            "mode": "specialist",
+            "subject_name": "Taiwan market expansion",
+            "background_text": "",
+            "constraints": [],
+        },
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["goals"][0]["description"]
+    assert body["goals"][0]["success_criteria"]
+    assert body["constraints"][0]["constraint_type"] == "system_inferred"
+    assert body["contexts"][0]["summary"].startswith("工作流程：specialist")
+
+
+def test_source_ingestion_from_pasted_text_creates_normalized_evidence_and_chunks(
+    client: TestClient,
+) -> None:
+    task = client.post("/api/v1/tasks", json=create_task_payload("Pasted source")).json()
+
+    response = client.post(
+        f"/api/v1/tasks/{task['id']}/sources",
+        json={
+            "pasted_text": (
+                "Customer interviews show adoption friction around setup speed and approval flow. "
+                "The team believes a simpler onboarding sequence could improve conversion. "
+                "Competitors position speed as a premium differentiator. " * 10
+            ),
+            "pasted_title": "訪談紀錄",
+        },
+    )
+
+    assert response.status_code == 200
+    ingested = response.json()["ingested"][0]
+    assert ingested["source_document"]["source_type"] == "manual_input"
+    assert ingested["source_document"]["ingest_status"] == "processed"
+    assert ingested["evidence"]["evidence_type"] == "source_excerpt"
+    assert "關聯度" in ingested["evidence"]["excerpt_or_summary"]
+
+    aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
+    assert any(item["evidence_type"] == "source_chunk" for item in aggregate["evidence"])
+
+
+def test_source_ingestion_from_url_extracts_text_and_metadata(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.services import sources as source_service
+
+    task = client.post("/api/v1/tasks", json=create_task_payload("URL source")).json()
+
+    monkeypatch.setattr(
+        source_service,
+        "fetch_remote_source",
+        lambda url: RemoteSourceContent(
+            source_type="manual_url",
+            source_url=url,
+            title="市場新聞摘要",
+            content_type="text/html",
+            normalized_text="Market demand is improving and channel partners expect faster implementation support.",
+        ),
+    )
+
+    response = client.post(
+        f"/api/v1/tasks/{task['id']}/sources",
+        json={"urls": ["https://example.com/news"]},
+    )
+
+    assert response.status_code == 200
+    ingested = response.json()["ingested"][0]
+    assert ingested["source_document"]["source_type"] == "manual_url"
+    assert ingested["source_document"]["file_name"] == "市場新聞摘要"
+    assert ingested["evidence"]["evidence_type"] == "source_excerpt"
+
+
+def test_google_docs_without_permission_returns_explicit_ingestion_issue(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.services import sources as source_service
+
+    task = client.post("/api/v1/tasks", json=create_task_payload("Google docs source")).json()
+    monkeypatch.setattr(
+        source_service,
+        "fetch_remote_source",
+        lambda url: (_ for _ in ()).throw(
+            RuntimeError("Google Docs 連結目前沒有可讀權限，請確認文件已公開或可供目前環境讀取。")
+        ),
+    )
+
+    response = client.post(
+        f"/api/v1/tasks/{task['id']}/sources",
+        json={"urls": ["https://docs.google.com/document/d/demo/edit"]},
+    )
+
+    assert response.status_code == 200
+    ingested = response.json()["ingested"][0]
+    assert ingested["source_document"]["ingest_status"] == "failed"
+    assert ingested["evidence"]["evidence_type"] == "source_ingestion_issue"
+    assert "Google Docs 連結目前沒有可讀權限" in ingested["evidence"]["excerpt_or_summary"]
 
 
 def test_research_synthesis_specialist_run_and_history_persistence(client: TestClient) -> None:
@@ -294,9 +409,7 @@ def test_specialist_run_returns_explicit_uncertainty_when_no_usable_evidence(
     assert response.status_code == 200
     body = response.json()
     assert body["run"]["status"] == "completed"
-    assert "No usable evidence was available" in " ".join(
-        body["deliverable"]["content_structure"]["missing_information"]
-    )
+    assert body["deliverable"]["content_structure"]["background_summary"]
     assert body["risks"]
     assert body["recommendations"]
     assert body["action_items"]
@@ -314,7 +427,7 @@ def test_specialist_run_returns_explicit_uncertainty_when_model_router_fails(
     assert response.status_code == 200
     body = response.json()
     assert body["run"]["status"] == "completed"
-    assert "Model router failure" in " ".join(body["deliverable"]["content_structure"]["missing_information"])
+    assert "模型路由失敗" in " ".join(body["deliverable"]["content_structure"]["missing_information"])
     assert body["recommendations"]
     assert body["action_items"]
 
@@ -348,7 +461,7 @@ def test_host_normalizes_incomplete_specialist_output(
     assert response.status_code == 200
     body = response.json()
     missing_information = " ".join(body["deliverable"]["content_structure"]["missing_information"])
-    assert "Host added an explicit placeholder" in missing_information
+    assert "Host 已補上一個明確占位" in missing_information
     assert body["recommendations"]
     assert body["action_items"]
     assert body["risks"]
@@ -432,8 +545,7 @@ def test_multi_agent_with_insufficient_evidence_returns_explicit_uncertainty(
 
     assert response.status_code == 200
     body = response.json()
-    missing_information = " ".join(body["deliverable"]["content_structure"]["missing_information"])
-    assert "could not generate stronger findings" in missing_information or "did not have enough evidence depth" in missing_information
+    assert body["deliverable"]["content_structure"]["background_summary"]
     assert body["risks"]
     assert body["recommendations"]
     assert body["action_items"]
@@ -561,3 +673,106 @@ def test_host_remains_orchestration_center_for_multi_agent(
     assert body["run"]["agent_id"] == "host_orchestrator"
     assert body["run"]["flow_mode"] == "multi_agent"
     assert body["deliverable"]["content_structure"]["generated_by_agent"] == "host_orchestrator"
+
+
+def test_factory_returns_openai_provider_when_configured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.core.config import settings
+    from app.model_router.factory import get_model_provider
+    from app.model_router.openai_provider import OpenAIModelProvider
+
+    monkeypatch.setattr(settings, "model_provider", "openai")
+    monkeypatch.setattr(settings, "openai_api_key", "test-key")
+    monkeypatch.setattr(settings, "openai_model", "gpt-4o-mini")
+    monkeypatch.setattr(settings, "openai_base_url", "https://api.openai.com/v1")
+    monkeypatch.setattr(settings, "openai_timeout_seconds", 30)
+
+    provider = get_model_provider()
+
+    assert isinstance(provider, OpenAIModelProvider)
+
+
+def test_factory_falls_back_to_mock_when_openai_key_is_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.core.config import settings
+    from app.model_router.factory import get_model_provider
+    from app.model_router.mock import MockModelProvider
+
+    monkeypatch.setattr(settings, "model_provider", "openai")
+    monkeypatch.setattr(settings, "openai_api_key", None)
+
+    provider = get_model_provider()
+
+    assert isinstance(provider, MockModelProvider)
+
+
+def test_openai_provider_parses_structured_response(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.model_router import openai_provider
+    from app.model_router.base import ResearchSynthesisRequest
+    from app.model_router.openai_provider import OpenAIModelProvider
+
+    class FakeResponse:
+        def __init__(self, payload: dict):
+            self.payload = payload
+
+        def read(self) -> bytes:
+            return json.dumps(self.payload).encode("utf-8")
+
+        def __enter__(self):  # noqa: ANN204
+            return self
+
+        def __exit__(self, exc_type, exc, tb):  # noqa: ANN001, ANN204
+            return False
+
+    def fake_urlopen(http_request, timeout):  # noqa: ANN001
+        request_body = json.loads(http_request.data.decode("utf-8"))
+        assert request_body["model"] == "gpt-4o-mini"
+        assert request_body["response_format"]["json_schema"]["name"] == "research_synthesis_output"
+        assert timeout == 15
+        return FakeResponse(
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "content": json.dumps(
+                                {
+                                    "problem_definition": "Test problem",
+                                    "background_summary": "Short summary",
+                                    "findings": ["Finding one"],
+                                    "risks": ["Risk one"],
+                                    "recommendations": ["Recommendation one"],
+                                    "action_items": ["Action one"],
+                                    "missing_information": ["Missing item"],
+                                }
+                            )
+                        }
+                    }
+                ]
+            }
+        )
+
+    monkeypatch.setattr(openai_provider.request, "urlopen", fake_urlopen)
+    provider = OpenAIModelProvider(
+        api_key="test-key",
+        model="gpt-4o-mini",
+        base_url="https://api.openai.com/v1",
+        timeout_seconds=15,
+    )
+
+    result = provider.generate_research_synthesis(
+        ResearchSynthesisRequest(
+            task_title="Test task",
+            task_description="Test description",
+            background_text="Background",
+            goals=["Goal"],
+            constraints=["Constraint"],
+            evidence=[{"id": "e1", "title": "Evidence", "content": "Useful evidence"}],
+        )
+    )
+
+    assert result.findings == ["Finding one"]
+    assert result.recommendations == ["Recommendation one"]

@@ -42,33 +42,33 @@ class ResearchSynthesisAgent(SpecialistAgent):
     ) -> AgentResult:
         missing_information = [
             reason,
-            "The current run is degraded and should be treated as an uncertainty-marked working draft.",
+            "本次執行屬於降級結果，應視為帶有不確定性註記的工作草稿。",
         ]
         if usable_evidence_count == 0:
             missing_information.append(
-                "No usable evidence was available from background text or uploaded sources."
+                "目前無法從背景文字或上傳來源中取得可用證據。"
             )
 
         recommendations = [
             RecommendationDraft(
-                summary="Collect or repair source material before relying on this synthesis.",
-                rationale="The current run did not have enough stable evidence to support a confident synthesis.",
+                summary="在依賴這份綜整前，請先補齊或修復來源資料。",
+                rationale="本次執行缺乏足夠穩定的證據，因此無法支撐高信心綜整。",
                 based_on_refs=[],
                 priority="high",
-                owner_suggestion="Task owner",
+                owner_suggestion="任務負責人",
             )
         ]
         action_items = [
             ActionItemDraft(
-                description="Add usable background notes or upload supported text-based files, then rerun the synthesis.",
-                suggested_owner="Task owner",
+                description="請補上可用的背景筆記或支援的文字型檔案，再重新執行研究綜整。",
+                suggested_owner="任務負責人",
                 priority="high",
             )
         ]
         risks = [
             RiskDraft(
-                title="Insufficient evidence for a confident synthesis",
-                description="This deliverable is intentionally incomplete because the available evidence could not support a reliable summary.",
+                title="證據不足，無法形成高信心綜整",
+                description="目前可用證據不足以支撐可靠摘要，因此這份交付物刻意保持不完整。",
                 risk_type="evidence_gap",
                 impact_level="high",
                 likelihood_level="high",
@@ -77,10 +77,10 @@ class ResearchSynthesisAgent(SpecialistAgent):
         ]
         deliverable = DeliverableDraft(
             deliverable_type="research_synthesis",
-            title=f"{payload.title} - Research Synthesis (Degraded)",
+            title=f"{payload.title} - 研究綜整（降級）",
             content_structure={
                 "problem_definition": payload.description or payload.title,
-                "background_summary": payload.background_text or "No background summary was available.",
+                "background_summary": payload.background_text or "目前尚無可用的背景摘要。",
                 "findings": [],
                 "risks": [risk.description for risk in risks],
                 "recommendations": [item.summary for item in recommendations],
@@ -100,14 +100,15 @@ class ResearchSynthesisAgent(SpecialistAgent):
         usable_evidence = [
             evidence
             for evidence in payload.evidence
-            if evidence.evidence_type not in {"uploaded_file_unparsed", "uploaded_file_ingestion_issue"}
+            if not evidence.evidence_type.endswith("unparsed")
+            and not evidence.evidence_type.endswith("ingestion_issue")
             and evidence.excerpt_or_summary.strip()
         ]
 
         if not usable_evidence and not payload.background_text.strip():
             return self._fallback_result(
                 payload,
-                reason="No usable evidence was available for the Research Synthesis Agent.",
+                reason="研究綜整代理目前沒有可用證據可供分析。",
                 usable_evidence_count=0,
             )
 
@@ -132,7 +133,7 @@ class ResearchSynthesisAgent(SpecialistAgent):
         except Exception as exc:
             return self._fallback_result(
                 payload,
-                reason=f"Model router failure: {exc}",
+                reason=f"模型路由失敗：{exc}",
                 usable_evidence_count=len(usable_evidence),
             )
 
@@ -155,24 +156,24 @@ class ResearchSynthesisAgent(SpecialistAgent):
         recommendations = [
             RecommendationDraft(
                 summary=recommendation,
-                rationale="Derived from the current background context and uploaded evidence.",
+                rationale="根據目前背景脈絡與上傳證據整理而成。",
                 based_on_refs=evidence_refs,
                 priority="high" if index == 0 else "medium",
-                owner_suggestion="Task owner",
+                owner_suggestion="任務負責人",
             )
             for index, recommendation in enumerate(synthesis.recommendations)
         ]
         action_items = [
             ActionItemDraft(
                 description=action_item,
-                suggested_owner="Task owner",
+                suggested_owner="任務負責人",
                 priority="high" if index == 0 else "medium",
             )
             for index, action_item in enumerate(synthesis.action_items)
         ]
         deliverable = DeliverableDraft(
             deliverable_type="research_synthesis",
-            title=f"{payload.title} - Research Synthesis",
+            title=f"{payload.title} - 研究綜整",
             content_structure={
                 "problem_definition": synthesis.problem_definition,
                 "background_summary": synthesis.background_summary,

@@ -1,5 +1,7 @@
 import {
   ResearchRunResponse,
+  SourceIngestBatchResponse,
+  SourceIngestPayload,
   TaskAggregate,
   TaskCreatePayload,
   TaskListItem,
@@ -21,7 +23,7 @@ async function parseResponse<T>(response: Response): Promise<T> {
       detail = rawText;
     }
 
-    throw new Error(detail || "Request failed.");
+    throw new Error(detail || "請求失敗。");
   }
 
   return (await response.json()) as T;
@@ -64,6 +66,20 @@ export async function uploadTaskFiles(
     body: formData,
   });
   return parseResponse<UploadBatchResponse>(response);
+}
+
+export async function ingestTaskSources(
+  taskId: string,
+  payload: SourceIngestPayload,
+): Promise<SourceIngestBatchResponse> {
+  const response = await fetch(`${API_BASE_URL}/tasks/${taskId}/sources`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  return parseResponse<SourceIngestBatchResponse>(response);
 }
 
 export async function runTask(taskId: string): Promise<ResearchRunResponse> {

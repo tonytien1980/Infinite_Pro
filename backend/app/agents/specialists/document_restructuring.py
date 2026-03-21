@@ -41,33 +41,33 @@ class DocumentRestructuringAgent(SpecialistAgent):
     ) -> AgentResult:
         missing_information = [
             reason,
-            "The current restructuring pass is a degraded draft and should be reviewed before reuse.",
+            "本次文件重構屬於降級草稿，在重用前仍需人工檢查。",
         ]
         if usable_evidence_count == 0:
             missing_information.append(
-                "No usable evidence was available from background text or uploaded sources."
+                "目前無法從背景文字或上傳來源中取得可用證據。"
             )
 
         recommendations = [
             RecommendationDraft(
-                summary="Provide a fuller source draft before relying on the restructuring guidance.",
-                rationale="The current run did not have enough stable material to propose a confident rewrite structure.",
+                summary="在依賴這份重構建議前，請先提供更完整的來源草稿。",
+                rationale="本次執行缺乏足夠穩定的素材，因此無法提出高信心的改寫結構。",
                 based_on_refs=[],
                 priority="high",
-                owner_suggestion="Task owner",
+                owner_suggestion="任務負責人",
             )
         ]
         action_items = [
             ActionItemDraft(
-                description="Upload the latest working draft or add richer background notes, then rerun document restructuring.",
-                suggested_owner="Task owner",
+                description="請上傳最新工作草稿或補上更完整背景筆記，再重新執行文件重構。",
+                suggested_owner="任務負責人",
                 priority="high",
             )
         ]
         risks = [
             RiskDraft(
-                title="Insufficient material for document restructuring",
-                description="This restructuring deliverable is intentionally incomplete because the available source material is too thin.",
+                title="文件重構素材不足",
+                description="目前可用來源素材仍偏薄，因此這份重構交付物刻意保持不完整。",
                 risk_type="evidence_gap",
                 impact_level="high",
                 likelihood_level="high",
@@ -76,10 +76,10 @@ class DocumentRestructuringAgent(SpecialistAgent):
         ]
         deliverable = DeliverableDraft(
             deliverable_type="document_restructuring",
-            title=f"{payload.title} - Document Restructuring (Degraded)",
+            title=f"{payload.title} - 文件重構（降級）",
             content_structure={
                 "problem_definition": payload.description or payload.title,
-                "background_summary": payload.background_text or "No background summary was available.",
+                "background_summary": payload.background_text or "目前尚無可用的背景摘要。",
                 "findings": [],
                 "risks": [risk.description for risk in risks],
                 "recommendations": [item.summary for item in recommendations],
@@ -100,14 +100,15 @@ class DocumentRestructuringAgent(SpecialistAgent):
         usable_evidence = [
             evidence
             for evidence in payload.evidence
-            if evidence.evidence_type not in {"uploaded_file_unparsed", "uploaded_file_ingestion_issue"}
+            if not evidence.evidence_type.endswith("unparsed")
+            and not evidence.evidence_type.endswith("ingestion_issue")
             and evidence.excerpt_or_summary.strip()
         ]
 
         if not usable_evidence and not payload.background_text.strip():
             return self._fallback_result(
                 payload,
-                reason="No usable evidence was available for the Document Restructuring Agent.",
+                reason="文件重構代理目前沒有可用證據可供分析。",
                 usable_evidence_count=0,
             )
 
@@ -132,7 +133,7 @@ class DocumentRestructuringAgent(SpecialistAgent):
         except Exception as exc:
             return self._fallback_result(
                 payload,
-                reason=f"Model router failure: {exc}",
+                reason=f"模型路由失敗：{exc}",
                 usable_evidence_count=len(usable_evidence),
             )
 
@@ -151,24 +152,24 @@ class DocumentRestructuringAgent(SpecialistAgent):
         recommendations = [
             RecommendationDraft(
                 summary=recommendation,
-                rationale="Derived from the current draft context and uploaded evidence.",
+                rationale="根據目前草稿脈絡與上傳證據整理而成。",
                 based_on_refs=evidence_refs,
                 priority="high" if index == 0 else "medium",
-                owner_suggestion="Task owner",
+                owner_suggestion="任務負責人",
             )
             for index, recommendation in enumerate(restructuring.recommendations)
         ]
         action_items = [
             ActionItemDraft(
                 description=action_item,
-                suggested_owner="Task owner",
+                suggested_owner="任務負責人",
                 priority="high" if index == 0 else "medium",
             )
             for index, action_item in enumerate(restructuring.action_items)
         ]
         deliverable = DeliverableDraft(
             deliverable_type="document_restructuring",
-            title=f"{payload.title} - Document Restructuring",
+            title=f"{payload.title} - 文件重構",
             content_structure={
                 "problem_definition": restructuring.problem_definition,
                 "background_summary": restructuring.background_summary,

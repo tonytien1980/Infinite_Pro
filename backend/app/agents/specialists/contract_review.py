@@ -41,33 +41,33 @@ class ContractReviewAgent(SpecialistAgent):
     ) -> AgentResult:
         missing_information = [
             reason,
-            "The current contract review is a degraded issue-spotting draft and should not be treated as final legal review.",
+            "本次合約審閱屬於降級的議題標記草稿，不應視為最終法律審閱結果。",
         ]
         if usable_evidence_count == 0:
             missing_information.append(
-                "No usable evidence was available from background text or uploaded sources."
+                "目前無法從背景文字或上傳來源中取得可用證據。"
             )
 
         recommendations = [
             RecommendationDraft(
-                summary="Provide the latest contract draft before relying on this review output.",
-                rationale="The current run did not have enough stable clause-level evidence for a confident review.",
+                summary="在依賴這份審閱結果前，請先提供最新合約草稿。",
+                rationale="本次執行缺乏足夠穩定的條款層級證據，因此無法支撐高信心審閱。",
                 based_on_refs=[],
                 priority="high",
-                owner_suggestion="Task owner",
+                owner_suggestion="任務負責人",
             )
         ]
         action_items = [
             ActionItemDraft(
-                description="Upload the executable draft or key clause excerpts, then rerun contract review.",
-                suggested_owner="Task owner",
+                description="請上傳可執行草稿或關鍵條款摘錄後，再重新執行合約審閱。",
+                suggested_owner="任務負責人",
                 priority="high",
             )
         ]
         risks = [
             RiskDraft(
-                title="Insufficient material for contract review",
-                description="This deliverable is intentionally incomplete because the available source material is too thin for a reliable issue-spotting pass.",
+                title="合約審閱素材不足",
+                description="目前可用來源素材不足以支撐可靠的議題標記，因此這份交付物刻意保持不完整。",
                 risk_type="evidence_gap",
                 impact_level="high",
                 likelihood_level="high",
@@ -76,10 +76,10 @@ class ContractReviewAgent(SpecialistAgent):
         ]
         deliverable = DeliverableDraft(
             deliverable_type="contract_review",
-            title=f"{payload.title} - Contract Review (Degraded)",
+            title=f"{payload.title} - 合約審閱（降級）",
             content_structure={
                 "problem_definition": payload.description or payload.title,
-                "background_summary": payload.background_text or "No background summary was available.",
+                "background_summary": payload.background_text or "目前尚無可用的背景摘要。",
                 "findings": [],
                 "risks": [risk.description for risk in risks],
                 "recommendations": [item.summary for item in recommendations],
@@ -99,14 +99,15 @@ class ContractReviewAgent(SpecialistAgent):
         usable_evidence = [
             evidence
             for evidence in payload.evidence
-            if evidence.evidence_type not in {"uploaded_file_unparsed", "uploaded_file_ingestion_issue"}
+            if not evidence.evidence_type.endswith("unparsed")
+            and not evidence.evidence_type.endswith("ingestion_issue")
             and evidence.excerpt_or_summary.strip()
         ]
 
         if not usable_evidence and not payload.background_text.strip():
             return self._fallback_result(
                 payload,
-                reason="No usable evidence was available for the Contract Review Agent.",
+                reason="合約審閱代理目前沒有可用證據可供分析。",
                 usable_evidence_count=0,
             )
 
@@ -131,7 +132,7 @@ class ContractReviewAgent(SpecialistAgent):
         except Exception as exc:
             return self._fallback_result(
                 payload,
-                reason=f"Model router failure: {exc}",
+                reason=f"模型路由失敗：{exc}",
                 usable_evidence_count=len(usable_evidence),
             )
 
@@ -150,24 +151,24 @@ class ContractReviewAgent(SpecialistAgent):
         recommendations = [
             RecommendationDraft(
                 summary=recommendation,
-                rationale="Derived from the current contract context and uploaded source material.",
+                rationale="根據目前合約脈絡與上傳來源整理而成。",
                 based_on_refs=evidence_refs,
                 priority="high" if index == 0 else "medium",
-                owner_suggestion="Task owner",
+                owner_suggestion="任務負責人",
             )
             for index, recommendation in enumerate(review.recommendations)
         ]
         action_items = [
             ActionItemDraft(
                 description=action_item,
-                suggested_owner="Task owner",
+                suggested_owner="任務負責人",
                 priority="high" if index == 0 else "medium",
             )
             for index, action_item in enumerate(review.action_items)
         ]
         deliverable = DeliverableDraft(
             deliverable_type="contract_review",
-            title=f"{payload.title} - Contract Review",
+            title=f"{payload.title} - 合約審閱",
             content_structure={
                 "problem_definition": review.problem_definition,
                 "background_summary": review.background_summary,

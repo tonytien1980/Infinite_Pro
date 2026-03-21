@@ -1,0 +1,176 @@
+from __future__ import annotations
+
+import logging
+from uuid import uuid4
+
+from fastapi import HTTPException
+from sqlalchemy.orm import Session
+
+from app.domain import models, schemas
+from app.ingestion.preprocess import normalize_text
+from app.ingestion.remote import fetch_remote_source
+from app.ingestion.sources import GoogleDocsConnector, ManualTextConnector, ManualUrlConnector
+from app.services.source_materials import (
+    build_failed_evidence_item,
+    build_processed_evidence_items,
+)
+from app.services.tasks import get_loaded_task
+
+logger = logging.getLogger(__name__)
+
+
+def _persist_processed_source(
+    *,
+    db: Session,
+    task: models.Task,
+    connector_source_type: str,
+    connector,
+    title: str,
+    content_type: str | None,
+    storage_path: str,
+    extracted_text: str,
+) -> tuple[models.SourceDocument, models.Evidence]:
+    source_document = models.SourceDocument(
+        task_id=task.id,
+        source_type=connector_source_type,
+        file_name=title,
+        content_type=content_type,
+        storage_path=storage_path,
+        file_size=len(extracted_text.encode("utf-8")),
+        ingest_status="processed",
+        extracted_text=extracted_text,
+        ingestion_error=None,
+    )
+    db.add(source_document)
+    db.flush()
+    source_ref = connector.build_source_ref(task.id, source_document.id)
+
+    primary_evidence, chunk_items = build_processed_evidence_items(
+        task=task,
+        source_document=source_document,
+        source_ref=source_ref,
+        title=title,
+        text=extracted_text,
+        primary_evidence_type="source_excerpt",
+    )
+    db.add(primary_evidence)
+    for chunk_item in chunk_items:
+        db.add(chunk_item)
+    db.flush()
+    return source_document, primary_evidence
+
+
+def _persist_failed_source(
+    *,
+    db: Session,
+    task: models.Task,
+    connector_source_type: str,
+    connector,
+    title: str,
+    storage_path: str,
+    error_message: str,
+) -> tuple[models.SourceDocument, models.Evidence]:
+    source_document = models.SourceDocument(
+        task_id=task.id,
+        source_type=connector_source_type,
+        file_name=title,
+        content_type=None,
+        storage_path=storage_path,
+        file_size=0,
+        ingest_status="failed",
+        extracted_text=None,
+        ingestion_error=error_message,
+    )
+    db.add(source_document)
+    db.flush()
+    source_ref = connector.build_source_ref(task.id, source_document.id)
+
+    primary_evidence = build_failed_evidence_item(
+        task_id=task.id,
+        source_document_id=source_document.id,
+        source_type=connector_source_type,
+        source_ref=source_ref,
+        title=title,
+        error_message=error_message,
+    )
+    db.add(primary_evidence)
+    db.flush()
+    return source_document, primary_evidence
+
+
+def ingest_sources_for_task(
+    db: Session,
+    task_id: str,
+    payload: schemas.SourceIngestRequest,
+) -> schemas.SourceIngestBatchResponse:
+    urls = [url.strip() for url in payload.urls if url.strip()]
+    pasted_text = normalize_text(payload.pasted_text)
+    if not urls and not pasted_text:
+        raise HTTPException(status_code=400, detail="至少需要提供一個網址或一段貼上內容。")
+
+    task = get_loaded_task(db, task_id)
+    url_connector = ManualUrlConnector()
+    google_docs_connector = GoogleDocsConnector()
+    text_connector = ManualTextConnector()
+    ingested: list[schemas.UploadResultItem] = []
+
+    if pasted_text:
+        title = payload.pasted_title or "手動貼上內容"
+        source_document, evidence = _persist_processed_source(
+            db=db,
+            task=task,
+            connector_source_type=text_connector.source_type,
+            connector=text_connector,
+            title=title,
+            content_type="text/plain",
+            storage_path=f"inline://task/{task.id}/pasted/{uuid4()}",
+            extracted_text=pasted_text,
+        )
+        ingested.append(
+            schemas.UploadResultItem(
+                source_document=schemas.SourceDocumentRead.model_validate(source_document),
+                evidence=schemas.EvidenceRead.model_validate(evidence),
+            )
+        )
+
+    for url in urls:
+        connector = url_connector
+        title = url
+        error_message: str | None = None
+
+        try:
+            remote_source = fetch_remote_source(url)
+            connector = google_docs_connector if remote_source.source_type == "google_docs" else url_connector
+            title = remote_source.title
+            source_document, evidence = _persist_processed_source(
+                db=db,
+                task=task,
+                connector_source_type=connector.source_type,
+                connector=connector,
+                title=remote_source.title,
+                content_type=remote_source.content_type,
+                storage_path=url,
+                extracted_text=remote_source.normalized_text,
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Remote source ingestion degraded for task %s url=%s error=%s", task.id, url, exc)
+            error_message = str(exc)
+            source_document, evidence = _persist_failed_source(
+                db=db,
+                task=task,
+                connector_source_type=connector.source_type,
+                connector=connector,
+                title=title,
+                storage_path=url,
+                error_message=error_message,
+            )
+
+        ingested.append(
+            schemas.UploadResultItem(
+                source_document=schemas.SourceDocumentRead.model_validate(source_document),
+                evidence=schemas.EvidenceRead.model_validate(evidence),
+            )
+        )
+
+    db.commit()
+    return schemas.SourceIngestBatchResponse(task_id=task.id, ingested=ingested)

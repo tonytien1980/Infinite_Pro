@@ -2,7 +2,7 @@
 
 > 文件狀態：Baseline v1.0（可直接提供給 Codex 作為開發交接文件）
 >
-> 本文件用於把 AI Advisory OS V1 / MVP 目前已確認的產品方向、系統邊界、技術選型、施工順序與實作規則，濃縮成一份可直接交給 Codex 的 handoff 文件。
+> 本文件用於把 Infinite Pro V1 / MVP 目前已確認的產品方向、系統邊界、技術選型、施工順序與實作規則，濃縮成一份可直接交給 Codex 的 handoff 文件。
 
 ---
 
@@ -27,8 +27,9 @@
 
 ## 2. 專案目前狀態
 
-### 2.1 工作名稱
-- `AI Advisory OS`
+### 2.1 正式產品名稱
+- `Infinite Pro`
+- 若 repo 內仍看到 `AI Advisory OS`，應視為歷史工作代稱；命名與產品方向以 [`docs/09_infinite_pro_core_definition.md`](/Users/tonytien/Desktop/Infinite Pro/docs/09_infinite_pro_core_definition.md) 為準
 
 ### 2.2 目前階段
 - **MVP / V1**
@@ -58,11 +59,12 @@ Codex 在做任何重大結構決策前，應依序閱讀：
 2. `docs/01_problem_statement.md`
 3. `docs/02_product_scope_v1.md`
 4. `docs/03_system_overview.md`
-5. `docs/04_ontology_core_v1.md`
-6. `docs/05_agent_architecture_v1.md`
-7. `docs/06_system_architecture_v1.md`
-8. `docs/07_mvp_build_plan.md`
-9. `AGENTS.md`
+5. `docs/09_infinite_pro_core_definition.md`
+6. `docs/04_ontology_core_v1.md`
+7. `docs/05_agent_architecture_v1.md`
+8. `docs/06_system_architecture_v1.md`
+9. `docs/07_mvp_build_plan.md`
+10. `AGENTS.md`
 
 如果實作想法與上述文件衝突，應以文件為準，而不是以推測為準。
 

@@ -1,6 +1,8 @@
-# AI Advisory OS
+# Infinite Pro
 
-AI Advisory OS is an ontology-centered intelligent workbench for complex knowledge work. This repository currently implements a verifiable early V1 slice: create a task, attach manual background text, upload files, convert them into usable `Evidence`, route through the Host orchestration layer, run either a minimal specialist flow or a minimal multi-agent convergence flow, generate a structured `Deliverable`, and persist task history.
+Infinite Pro is an ontology-centered intelligent workbench for complex knowledge work. Its product goal is “最少輸入，透過 ontology 驅動的結構化思考流程，產出顧問級分析、建議與行動方案.” This repository currently implements a verifiable early V1 slice: create a task, attach manual background text, ingest source material, convert it into usable `Evidence`, route through the Host orchestration layer, run either a minimal specialist flow or a minimal multi-agent convergence flow, generate a structured `Deliverable`, and persist task history.
+
+The formal product definition now lives in [`docs/09_infinite_pro_core_definition.md`](/Users/tonytien/Desktop/Infinite Pro/docs/09_infinite_pro_core_definition.md). Treat that document as the highest-priority naming and product-direction reference for future work. Legacy references to `AI Advisory OS` may still remain in older docs or internal code paths until a dedicated rename pass is requested.
 
 ## What this MVP slice includes
 
@@ -8,6 +10,7 @@ AI Advisory OS is an ontology-centered intelligent workbench for complex knowled
 - FastAPI + Python backend in [`backend/`](/Users/tonytien/Desktop/Infinite Pro/backend)
 - PostgreSQL as the primary runtime database via Docker Compose
 - Canonical planning docs in [`docs/`](/Users/tonytien/Desktop/Infinite Pro/docs)
+- Formal product definition in [`docs/09_infinite_pro_core_definition.md`](/Users/tonytien/Desktop/Infinite Pro/docs/09_infinite_pro_core_definition.md)
 - Minimal ontology/domain model covering:
   - `Task`
   - `TaskContext`
@@ -37,7 +40,11 @@ AI Advisory OS is an ontology-centered intelligent workbench for complex knowled
   - `Risk / Challenge Agent`
 - Structured output with `deliverable`, `recommendations`, `action_items`, `risks`, and `missing_information`
 - Task history persistence and review UI
+- The current frontend UI defaults to Traditional Chinese and uses `Infinite Pro` as the product name in user-facing metadata/copy
 - Pytest smoke coverage for the current slice
+- Model router support for:
+  - `mock`
+  - `openai` when configured with a backend API key
 
 ## Repository structure
 
@@ -68,12 +75,37 @@ Copy [`.env.example`](/Users/tonytien/Desktop/Infinite Pro/.env.example) to `.en
 | `DATABASE_URL` | Backend SQLAlchemy connection string | `postgresql+psycopg://postgres:postgres@db:5432/ai_advisory_os` |
 | `UPLOAD_DIR` | Backend upload storage path inside the container | `/app/storage/uploads` |
 | `MODEL_PROVIDER` | Active model router provider | `mock` |
+| `OPENAI_API_KEY` | Backend-only API key for the OpenAI provider | empty |
+| `OPENAI_MODEL` | OpenAI model name used when `MODEL_PROVIDER=openai` | `gpt-4o-mini` |
+| `OPENAI_BASE_URL` | OpenAI API base URL | `https://api.openai.com/v1` |
+| `OPENAI_TIMEOUT_SECONDS` | Timeout for OpenAI API calls in seconds | `60` |
 | `MODEL_PROVIDER_FAILURE_MODE` | Optional test-only failure switch for the mock provider | empty |
 | `CORS_ORIGINS` | Allowed frontend origins | `http://localhost:3000,http://127.0.0.1:3000` |
 | `NEXT_PUBLIC_API_BASE_URL` | Frontend API base URL | `http://localhost:8000/api/v1` |
 
 Note: the default `DATABASE_URL` is for Docker Compose because the backend container reaches PostgreSQL at host `db`. If you run the backend directly outside Docker, override it to a reachable host such as `localhost`.
 Note: the default `UPLOAD_DIR=/app/storage/uploads` is also Docker-oriented. For direct local backend runs outside Docker, override it to a writable workspace path such as `./storage/uploads`.
+Note: if `MODEL_PROVIDER=openai` but `OPENAI_API_KEY` is empty, the backend logs a warning and falls back to the mock provider automatically.
+
+## Model provider switching
+
+- Default provider: `mock`
+- Optional real provider: `openai`
+- To switch to OpenAI, set these in your backend `.env`:
+
+  ```env
+  MODEL_PROVIDER=openai
+  OPENAI_API_KEY=your_real_key_here
+  OPENAI_MODEL=gpt-4o-mini
+  ```
+
+- If you want to stay on the deterministic local router:
+
+  ```env
+  MODEL_PROVIDER=mock
+  ```
+
+- If `MODEL_PROVIDER=openai` is selected but the API key is missing, the app does not crash at startup. It degrades to the mock provider and logs a warning.
 
 ## Exact local startup steps
 
@@ -271,7 +303,7 @@ If a file cannot be text-extracted, the upload is still stored and the ingestion
 
 ## Architecture choices recorded
 
-- The model layer is abstracted behind a provider interface. The default runtime provider is a deterministic local mock so this MVP slice can run without external model credentials.
+- The model layer is abstracted behind a provider interface. The default runtime provider is a deterministic local mock so this MVP slice can run without external model credentials, and a minimal OpenAI provider can be enabled through backend environment variables.
 - The Host orchestration layer is not hard-coded to specialist-only behavior. It preserves the workflow boundary between `specialist` and `multi_agent`, and the current `multi_agent` branch is implemented as a fixed 4-agent validation slice.
 - The current `multi_agent` slice is intentionally minimal. Host is still the only orchestration center and always calls the same fixed core agents rather than doing intelligent agent selection.
 - Source ingestion currently supports manual background text plus manual file upload only. Connector abstractions are present for future sources such as Google Drive or local folder ingestion.
@@ -282,7 +314,7 @@ If a file cannot be text-extracted, the upload is still stored and the ingestion
 
 - Three specialist agents are implemented: `Contract Review Agent`, `Research Synthesis Agent`, and `Document Restructuring Agent`.
 - The `multi_agent` path is only a minimal validation slice. It uses 4 fixed core agents rather than adaptive selection.
-- The default provider is a mock synthesizer, not a production LLM integration.
+- The default provider is still a mock synthesizer. Real-provider support is currently limited to a minimal OpenAI adapter.
 - Upload extraction is intentionally lightweight and does not yet do chunking, citation selection, OCR, or advanced parsing.
 - File storage is local filesystem storage for development.
 - The current runtime has no advanced auth, multi-tenant support, source sync, or external connector execution.
@@ -297,5 +329,5 @@ Before moving to the next implementation phase, the following are still missing 
 - a more adaptive Host-driven `multi_agent` workflow beyond the current fixed agent set
 - verified frontend runtime and browser-level end-to-end acceptance
 - richer structured deliverable rendering and citations
-- provider switching beyond the current mock router
+- richer provider switching beyond the current mock + OpenAI router
 - migration tooling and stronger operational logging
