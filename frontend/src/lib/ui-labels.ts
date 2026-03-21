@@ -64,6 +64,13 @@ const SOURCE_TYPE_LABELS: Record<string, string> = {
   manual_upload: "手動上傳",
   manual_url: "網址匯入",
   google_docs: "Google Docs",
+  external_search: "外部搜尋補充",
+};
+
+const EXTERNAL_DATA_STRATEGY_LABELS: Record<string, string> = {
+  strict: "僅使用我提供的資料",
+  supplemental: "視需要補充外部資料",
+  latest: "優先使用最新外部資料",
 };
 
 const DELIVERABLE_TYPE_LABELS: Record<string, string> = {
@@ -90,6 +97,10 @@ const STRUCTURED_FIELD_LABELS: Record<string, string> = {
   rewrite_guidance: "改寫建議",
   participating_agents: "參與代理",
   generated_by_agent: "產生代理",
+  external_data_usage: "外部資料使用情況",
+  external_data_strategy: "外部資料使用方式",
+  external_search_used: "是否使用外部搜尋",
+  analysis_dependency_note: "外部資料依賴說明",
 };
 
 function fallbackLabel(value: string) {
@@ -139,6 +150,10 @@ export function labelForSourceType(value: string) {
   return SOURCE_TYPE_LABELS[value] ?? fallbackLabel(value);
 }
 
+export function labelForExternalDataStrategy(value: string) {
+  return EXTERNAL_DATA_STRATEGY_LABELS[value] ?? fallbackLabel(value);
+}
+
 export function labelForDeliverableType(value: string) {
   return DELIVERABLE_TYPE_LABELS[value] ?? fallbackLabel(value);
 }
@@ -156,6 +171,14 @@ export function translateStructuredValue(label: string, value: unknown) {
 
   if (label === "generated_by_agent" && typeof value === "string") {
     return labelForAgentId(value);
+  }
+
+  if (label === "external_data_strategy" && typeof value === "string") {
+    return labelForExternalDataStrategy(value);
+  }
+
+  if (label === "external_search_used" && typeof value === "boolean") {
+    return value ? "是" : "否";
   }
 
   if (label === "deliverable_type" && typeof value === "string") {

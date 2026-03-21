@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from io import BytesIO
 import json
 
 from fastapi.testclient import TestClient
 import pytest
+from docx import Document
 
 from app.ingestion.remote import RemoteSourceContent
+from app.services.external_search import SearchResult
 
 
 def create_task_payload(title: str = "Research memo synthesis") -> dict:
@@ -14,6 +17,7 @@ def create_task_payload(title: str = "Research memo synthesis") -> dict:
         "description": "Turn the working notes into a structured internal synthesis.",
         "task_type": "research_synthesis",
         "mode": "specialist",
+        "external_data_strategy": "supplemental",
         "background_text": "The client wants a quick internal summary before proposal drafting.",
         "subject_name": "Proposal research pack",
         "goal_description": "Highlight the strongest findings and next actions.",
@@ -33,6 +37,7 @@ def create_multi_agent_payload(title: str = "Multi-agent convergence") -> dict:
         "description": "Converge the evidence into a cross-perspective internal recommendation.",
         "task_type": "complex_convergence",
         "mode": "multi_agent",
+        "external_data_strategy": "supplemental",
         "background_text": "We need a quick convergence draft for internal strategy review.",
         "subject_name": "Internal convergence memo",
         "goal_description": "Produce a short structured recommendation with risks and next steps.",
@@ -52,6 +57,7 @@ def create_document_restructuring_payload(title: str = "Document restructuring")
         "description": "Restructure the working draft into a clearer internal proposal outline.",
         "task_type": "document_restructuring",
         "mode": "specialist",
+        "external_data_strategy": "supplemental",
         "background_text": "The current draft repeats itself and buries the main recommendation too late.",
         "subject_name": "Internal proposal draft",
         "goal_description": "Produce a cleaner outline and rewrite guidance for the next draft.",
@@ -71,6 +77,7 @@ def create_contract_review_payload(title: str = "Contract review") -> dict:
         "description": "Review the draft agreement for major risk, obligation, and redline concerns.",
         "task_type": "contract_review",
         "mode": "specialist",
+        "external_data_strategy": "supplemental",
         "background_text": "The team needs a first-pass internal contract review before legal escalation.",
         "subject_name": "Draft services agreement",
         "goal_description": "Identify major issues, contract risk, and next review actions.",
@@ -97,6 +104,7 @@ def test_task_creation_attaches_background_text_as_context_and_evidence(client: 
     assert response.status_code == 201
     body = response.json()
     assert body["title"] == "Research memo synthesis"
+    assert body["external_data_strategy"] == "supplemental"
     assert body["contexts"][0]["summary"].startswith("The client wants a quick internal summary")
     assert any(item["evidence_type"] == "background_text" for item in body["evidence"])
     assert body["goals"][0]["description"] == "Highlight the strongest findings and next actions."
@@ -130,6 +138,34 @@ def test_file_upload_creates_usable_md_evidence(client: TestClient) -> None:
     assert uploaded["source_document"]["ingest_status"] == "processed"
     assert uploaded["evidence"]["evidence_type"] == "uploaded_file_excerpt"
     assert "Important market note" in uploaded["evidence"]["excerpt_or_summary"]
+
+
+def test_file_upload_creates_usable_docx_evidence(client: TestClient) -> None:
+    task = client.post("/api/v1/tasks", json=create_task_payload("DOCX upload")).json()
+    document = Document()
+    document.add_paragraph("Key operational dependency sits in the approval workflow.")
+    buffer = BytesIO()
+    document.save(buffer)
+
+    response = client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[
+            (
+                "files",
+                (
+                    "notes.docx",
+                    buffer.getvalue(),
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                ),
+            )
+        ],
+    )
+
+    assert response.status_code == 200
+    uploaded = response.json()["uploaded"][0]
+    assert uploaded["source_document"]["ingest_status"] == "processed"
+    assert uploaded["evidence"]["evidence_type"] == "uploaded_file_excerpt"
+    assert "approval workflow" in uploaded["evidence"]["excerpt_or_summary"]
 
 
 def test_file_ingestion_failure_creates_explicit_uncertainty_evidence(client: TestClient) -> None:
@@ -168,7 +204,8 @@ def test_task_creation_auto_infers_consulting_scaffold_when_advanced_fields_miss
     body = response.json()
     assert body["goals"][0]["description"]
     assert body["goals"][0]["success_criteria"]
-    assert body["constraints"][0]["constraint_type"] == "system_inferred"
+    assert any(item["constraint_type"] == "system_inferred" for item in body["constraints"])
+    assert body["external_data_strategy"] == "supplemental"
     assert body["contexts"][0]["summary"].startswith("工作流程：specialist")
 
 
@@ -259,6 +296,37 @@ def test_google_docs_without_permission_returns_explicit_ingestion_issue(
     assert "Google Docs 連結目前沒有可讀權限" in ingested["evidence"]["excerpt_or_summary"]
 
 
+def test_google_docs_public_link_creates_processed_source(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.services import sources as source_service
+
+    task = client.post("/api/v1/tasks", json=create_task_payload("Google docs public")).json()
+    monkeypatch.setattr(
+        source_service,
+        "fetch_remote_source",
+        lambda url: RemoteSourceContent(
+            source_type="google_docs",
+            source_url=url,
+            title="公開 Google Docs",
+            content_type="text/plain",
+            normalized_text="This public Google Docs note contains a usable strategy summary.",
+        ),
+    )
+
+    response = client.post(
+        f"/api/v1/tasks/{task['id']}/sources",
+        json={"urls": ["https://docs.google.com/document/d/demo-public/edit"]},
+    )
+
+    assert response.status_code == 200
+    ingested = response.json()["ingested"][0]
+    assert ingested["source_document"]["source_type"] == "google_docs"
+    assert ingested["source_document"]["ingest_status"] == "processed"
+    assert ingested["evidence"]["evidence_type"] == "source_excerpt"
+
+
 def test_research_synthesis_specialist_run_and_history_persistence(client: TestClient) -> None:
     task = client.post("/api/v1/tasks", json=create_task_payload("Specialist run")).json()
     client.post(
@@ -285,6 +353,7 @@ def test_research_synthesis_specialist_run_and_history_persistence(client: TestC
     assert run_body["action_items"]
     assert "missing_information" in run_body["deliverable"]["content_structure"]
     assert "risks" in run_body["deliverable"]["content_structure"]
+    assert "external_data_usage" in run_body["deliverable"]["content_structure"]
 
     history_response = client.get(f"/api/v1/tasks/{task['id']}/history")
 
@@ -401,6 +470,7 @@ def test_specialist_run_returns_explicit_uncertainty_when_no_usable_evidence(
 ) -> None:
     payload = create_task_payload("No usable evidence")
     payload["background_text"] = ""
+    payload["external_data_strategy"] = "strict"
     payload["goal_description"] = "Return a synthesis only if enough evidence exists."
     task = client.post("/api/v1/tasks", json=payload).json()
 
@@ -419,7 +489,9 @@ def test_specialist_run_returns_explicit_uncertainty_when_model_router_fails(
     client: TestClient,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    task = client.post("/api/v1/tasks", json=create_task_payload("Router failure")).json()
+    payload = create_task_payload("Router failure")
+    payload["external_data_strategy"] = "strict"
+    task = client.post("/api/v1/tasks", json=payload).json()
     monkeypatch.setenv("MODEL_PROVIDER_FAILURE_MODE", "always_fail")
 
     response = client.post(f"/api/v1/tasks/{task['id']}/run")
@@ -454,7 +526,9 @@ def test_host_normalizes_incomplete_specialist_output(
             )
 
     monkeypatch.setattr(AgentRegistry, "get_specialist_agent", lambda self, agent_id: IncompleteAgent())
-    task = client.post("/api/v1/tasks", json=create_task_payload("Incomplete output")).json()
+    payload = create_task_payload("Incomplete output")
+    payload["external_data_strategy"] = "strict"
+    task = client.post("/api/v1/tasks", json=payload).json()
 
     response = client.post(f"/api/v1/tasks/{task['id']}/run")
 
@@ -468,7 +542,9 @@ def test_host_normalizes_incomplete_specialist_output(
 
 
 def test_multi_agent_happy_path_converges_and_saves_history(client: TestClient) -> None:
-    task = client.post("/api/v1/tasks", json=create_multi_agent_payload()).json()
+    payload = create_multi_agent_payload()
+    payload["external_data_strategy"] = "strict"
+    task = client.post("/api/v1/tasks", json=payload).json()
     client.post(
         f"/api/v1/tasks/{task['id']}/uploads",
         files=[
@@ -500,6 +576,7 @@ def test_multi_agent_happy_path_converges_and_saves_history(client: TestClient) 
     assert body["deliverable"]["content_structure"]["insights"]
     assert body["recommendations"]
     assert body["action_items"]
+    assert "external_data_usage" in body["deliverable"]["content_structure"]
 
     history = client.get(f"/api/v1/tasks/{task['id']}/history").json()
     assert len(history["runs"]) == 1
@@ -508,7 +585,9 @@ def test_multi_agent_happy_path_converges_and_saves_history(client: TestClient) 
 
 
 def test_operations_agent_participates_in_multi_agent_convergence(client: TestClient) -> None:
-    task = client.post("/api/v1/tasks", json=create_multi_agent_payload("Operations core agent")).json()
+    payload = create_multi_agent_payload("Operations core agent")
+    payload["external_data_strategy"] = "strict"
+    task = client.post("/api/v1/tasks", json=payload).json()
     client.post(
         f"/api/v1/tasks/{task['id']}/uploads",
         files=[
@@ -534,11 +613,129 @@ def test_operations_agent_participates_in_multi_agent_convergence(client: TestCl
     assert body["deliverable"]["content_structure"]["action_items"]
 
 
+def test_strict_external_data_strategy_never_triggers_search(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.agents import host as host_module
+
+    payload = create_task_payload("Strict mode")
+    payload["external_data_strategy"] = "strict"
+    task = client.post("/api/v1/tasks", json=payload).json()
+
+    def fail_if_called(query):  # noqa: ANN001
+        raise AssertionError(f"search should not be called for strict mode: {query}")
+
+    monkeypatch.setattr(host_module, "search_external_sources", fail_if_called)
+
+    response = client.post(f"/api/v1/tasks/{task['id']}/run")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["deliverable"]["content_structure"]["external_data_strategy"] == "strict"
+    assert body["deliverable"]["content_structure"]["external_search_used"] is False
+
+
+def test_supplemental_external_data_strategy_searches_when_evidence_is_thin(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.agents import host as host_module
+    from app.services import sources as source_service
+
+    task = client.post("/api/v1/tasks", json=create_task_payload("Supplemental search")).json()
+    calls: list[str] = []
+
+    def fake_search(query):  # noqa: ANN001
+        calls.append(query)
+        return [
+            SearchResult(
+                title="Latest market signal",
+                url="https://example.com/latest-market-signal",
+                snippet="Fresh market signal",
+            )
+        ]
+
+    monkeypatch.setattr(host_module, "search_external_sources", fake_search)
+    monkeypatch.setattr(
+        source_service,
+        "fetch_remote_source",
+        lambda url: RemoteSourceContent(
+            source_type="manual_url",
+            source_url=url,
+            title="Latest market signal",
+            content_type="text/html",
+            normalized_text="External source says adoption is rising and implementation speed matters.",
+        ),
+    )
+
+    response = client.post(f"/api/v1/tasks/{task['id']}/run")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(calls) == 1
+    assert body["deliverable"]["content_structure"]["external_data_strategy"] == "supplemental"
+    assert body["deliverable"]["content_structure"]["external_search_used"] is True
+    assert body["deliverable"]["content_structure"]["sources_used"]
+
+    aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
+    assert any(item["source_type"] == "external_search" for item in aggregate["uploads"])
+
+
+def test_latest_external_data_strategy_always_triggers_search(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.agents import host as host_module
+    from app.services import sources as source_service
+
+    payload = create_task_payload("Latest mode search")
+    payload["external_data_strategy"] = "latest"
+    task = client.post("/api/v1/tasks", json=payload).json()
+    client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("enough.txt", b"One. Two. Three. Four.", "text/plain"))],
+    )
+    calls: list[str] = []
+
+    def fake_search(query):  # noqa: ANN001
+        calls.append(query)
+        return [
+            SearchResult(
+                title="Fresh news source",
+                url="https://example.com/fresh-news",
+                snippet="Latest source",
+            )
+        ]
+
+    monkeypatch.setattr(host_module, "search_external_sources", fake_search)
+    monkeypatch.setattr(
+        source_service,
+        "fetch_remote_source",
+        lambda url: RemoteSourceContent(
+            source_type="manual_url",
+            source_url=url,
+            title="Fresh news source",
+            content_type="text/html",
+            normalized_text="A fresh external source was intentionally added for latest mode.",
+        ),
+    )
+
+    response = client.post(f"/api/v1/tasks/{task['id']}/run")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(calls) == 1
+    assert body["deliverable"]["content_structure"]["external_data_strategy"] == "latest"
+    assert body["deliverable"]["content_structure"]["external_search_used"] is True
+
+
 def test_multi_agent_with_insufficient_evidence_returns_explicit_uncertainty(
     client: TestClient,
 ) -> None:
     payload = create_multi_agent_payload("Multi-agent weak evidence")
     payload["background_text"] = ""
+    payload["external_data_strategy"] = "strict"
     task = client.post("/api/v1/tasks", json=payload).json()
 
     response = client.post(f"/api/v1/tasks/{task['id']}/run")
@@ -557,7 +754,9 @@ def test_multi_agent_still_uses_model_router(
 ) -> None:
     from app.model_router.mock import MockModelProvider
 
-    task = client.post("/api/v1/tasks", json=create_multi_agent_payload("Router spy")).json()
+    payload = create_multi_agent_payload("Router spy")
+    payload["external_data_strategy"] = "strict"
+    task = client.post("/api/v1/tasks", json=payload).json()
     client.post(
         f"/api/v1/tasks/{task['id']}/uploads",
         files=[("files", ("spy.txt", b"One strong evidence sentence for router spying.", "text/plain"))],
@@ -664,7 +863,9 @@ def test_contract_review_still_uses_model_router(
 def test_host_remains_orchestration_center_for_multi_agent(
     client: TestClient,
 ) -> None:
-    task = client.post("/api/v1/tasks", json=create_multi_agent_payload("Host-centered multi-agent")).json()
+    payload = create_multi_agent_payload("Host-centered multi-agent")
+    payload["external_data_strategy"] = "strict"
+    task = client.post("/api/v1/tasks", json=payload).json()
 
     response = client.post(f"/api/v1/tasks/{task['id']}/run")
 

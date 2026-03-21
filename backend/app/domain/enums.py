@@ -8,6 +8,12 @@ class FlowMode(str, Enum):
     SPECIALIST = "specialist"
 
 
+class ExternalDataStrategy(str, Enum):
+    STRICT = "strict"
+    SUPPLEMENTAL = "supplemental"
+    LATEST = "latest"
+
+
 class TaskStatus(str, Enum):
     DRAFT = "draft"
     READY = "ready"

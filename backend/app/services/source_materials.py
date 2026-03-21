@@ -21,6 +21,7 @@ def build_processed_evidence_items(
     title: str,
     text: str,
     primary_evidence_type: str,
+    reliability_level: str = "user_provided",
 ) -> tuple[models.Evidence, list[models.Evidence]]:
     relevance = infer_relevance_label(text, _task_query_parts(task))
     summary = summarize_evidence_text(text)
@@ -35,7 +36,7 @@ def build_processed_evidence_items(
             f"關聯度：{relevance}\n"
             f"來源摘要：{summary}"
         ),
-        reliability_level="user_provided",
+        reliability_level=reliability_level,
     )
 
     chunk_items = [
@@ -50,7 +51,7 @@ def build_processed_evidence_items(
                 f"關聯度：{relevance}\n"
                 f"內容片段：{chunk}"
             ),
-            reliability_level="user_provided",
+            reliability_level=reliability_level,
         )
         for index, chunk in enumerate(build_text_chunks(text))
     ]

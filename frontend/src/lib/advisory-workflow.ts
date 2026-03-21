@@ -1,4 +1,11 @@
-import type { Deliverable, Evidence, Goal, TaskAggregate } from "@/lib/types";
+import type {
+  Constraint,
+  Deliverable,
+  Evidence,
+  Goal,
+  SourceDocument,
+  TaskAggregate,
+} from "@/lib/types";
 import {
   extractModeSpecificAppendix,
   getModeSpecificReadinessSignals,
@@ -17,6 +24,88 @@ export interface ReadinessAssessment {
   missingItems: string[];
   warnings: string[];
   degradedOutputLikely: boolean;
+}
+
+export interface ExternalDataUsageView {
+  strategy: string;
+  searchUsed: boolean;
+  sources: Array<{
+    title: string;
+    url: string;
+    sourceType: string;
+  }>;
+  dependencyNote: string;
+}
+
+function isExternalDataStrategyConstraint(constraint: Constraint) {
+  return constraint.constraint_type === "external_data_strategy";
+}
+
+export function getVisibleConstraints(constraints: Constraint[]) {
+  return constraints.filter((constraint) => !isExternalDataStrategyConstraint(constraint));
+}
+
+export function getExternalSourceDocuments(task: TaskAggregate): SourceDocument[] {
+  return task.uploads.filter((item) =>
+    ["external_search", "manual_url", "google_docs"].includes(item.source_type),
+  );
+}
+
+export function buildExternalDataUsage(
+  task: TaskAggregate,
+  deliverable: Deliverable | null,
+): ExternalDataUsageView {
+  const usage = deliverable?.content_structure?.external_data_usage;
+  const fallbackSources = getExternalSourceDocuments(task).map((item) => ({
+    title: item.file_name,
+    url: item.storage_path,
+    sourceType: item.source_type,
+  }));
+
+  if (usage && typeof usage === "object" && !Array.isArray(usage)) {
+    const usageRecord = usage as Record<string, unknown>;
+    const sourceItems = Array.isArray(usageRecord.sources)
+      ? usageRecord.sources
+          .map((item) => {
+            if (!item || typeof item !== "object") {
+              return null;
+            }
+            const sourceRecord = item as Record<string, unknown>;
+            return {
+              title: String(sourceRecord.title ?? ""),
+              url: String(sourceRecord.url ?? ""),
+              sourceType: String(sourceRecord.source_type ?? ""),
+            };
+          })
+          .filter(
+            (
+              item,
+            ): item is { title: string; url: string; sourceType: string } =>
+              Boolean(item?.title || item?.url),
+          )
+      : fallbackSources;
+
+    return {
+      strategy: String(usageRecord.strategy ?? task.external_data_strategy),
+      searchUsed: Boolean(usageRecord.search_used),
+      sources: sourceItems,
+      dependencyNote:
+        String(usageRecord.analysis_dependency_note ?? "").trim() ||
+        "本輪分析對外部資料的依賴情況尚未被明確標示。",
+    };
+  }
+
+  const searchUsed = fallbackSources.some((item) => item.sourceType === "external_search");
+  return {
+    strategy: task.external_data_strategy,
+    searchUsed,
+    sources: fallbackSources,
+    dependencyNote: searchUsed
+      ? "本輪分析已補充外部搜尋來源，背景摘要、關鍵發現與建議可能部分依賴外部資料。"
+      : fallbackSources.length > 0
+        ? "本輪沒有使用 Host 外部搜尋，但分析有引用你手動附加的外部來源。"
+        : "本輪未使用 Host 外部搜尋，分析主要依賴你提供的資料。",
+  };
 }
 
 interface DraftReadinessInput {
@@ -211,6 +300,7 @@ export function assessTaskReadiness(task: TaskAggregate): ReadinessAssessment {
   const parsedAppendix = extractModeSpecificAppendix(latestContext?.summary ?? "");
   const backgroundText = parsedAppendix.backgroundText;
   const usableEvidence = getUsableEvidence(task.evidence);
+  const visibleConstraints = getVisibleConstraints(task.constraints);
   const missingItems: string[] = [];
   const warnings: string[] = [];
   const hasCoreProblem = Boolean(task.description.trim() || task.title.trim());
@@ -249,8 +339,8 @@ export function assessTaskReadiness(task: TaskAggregate): ReadinessAssessment {
   } else {
     warnings.push("尚未明確列出待補資料，執行前較難判斷盲點是否已被補齊。");
   }
-  if (task.constraints.length > 0) {
-    warnings.push(`目前有 ${task.constraints.length} 項限制條件，建議先確認是否會影響交付深度。`);
+  if (visibleConstraints.length > 0) {
+    warnings.push(`目前有 ${visibleConstraints.length} 項限制條件，建議先確認是否會影響交付深度。`);
   }
   if (!backgroundText.includes("目標讀者：")) {
     warnings.push("尚未明確標示目標讀者，輸出語氣與摘要層次可能仍需要你再收斂。");
@@ -261,7 +351,7 @@ export function assessTaskReadiness(task: TaskAggregate): ReadinessAssessment {
   if (!backgroundText.includes("希望這份分析做到的程度：")) {
     warnings.push("這次分析深度目前由系統自動推測；若你有特定交付期待，建議回頭補充。");
   }
-  if (task.constraints.some((item) => item.constraint_type === "system_inferred")) {
+  if (visibleConstraints.some((item) => item.constraint_type === "system_inferred")) {
     warnings.push("目前限制條件包含系統自動推測內容，若有不能踩的前提，建議再手動補充。");
   }
 

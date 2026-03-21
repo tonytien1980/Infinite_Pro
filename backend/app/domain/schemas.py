@@ -5,7 +5,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.domain.enums import FlowMode, RunStatus, TaskStatus
+from app.domain.enums import ExternalDataStrategy, FlowMode, RunStatus, TaskStatus
 
 
 class ORMModel(BaseModel):
@@ -23,6 +23,7 @@ class TaskCreateRequest(BaseModel):
     description: str = ""
     task_type: str = "research_synthesis"
     mode: FlowMode = FlowMode.SPECIALIST
+    external_data_strategy: ExternalDataStrategy = ExternalDataStrategy.SUPPLEMENTAL
     background_text: str = ""
     assumptions: str | None = None
     notes: str | None = None
@@ -198,6 +199,7 @@ class TaskAggregateResponse(BaseModel):
     description: str
     task_type: str
     mode: FlowMode
+    external_data_strategy: ExternalDataStrategy
     status: TaskStatus
     created_at: datetime
     updated_at: datetime

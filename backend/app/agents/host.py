@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 import logging
 from datetime import datetime, timezone
 
@@ -17,9 +18,15 @@ from app.agents.base import (
 )
 from app.agents.registry import AgentRegistry
 from app.domain import models, schemas
-from app.domain.enums import FlowMode, RunStatus, TaskStatus
+from app.domain.enums import ExternalDataStrategy, FlowMode, RunStatus, TaskStatus
 from app.model_router.factory import get_model_provider
-from app.services.tasks import get_loaded_task
+from app.services.external_search import search_external_sources
+from app.services.sources import ingest_remote_urls_for_task
+from app.services.tasks import (
+    EXTERNAL_DATA_STRATEGY_CONSTRAINT_TYPE,
+    get_external_data_strategy_for_task,
+    get_loaded_task,
+)
 
 REQUIRED_DELIVERABLE_KEYS = (
     "problem_definition",
@@ -31,6 +38,16 @@ REQUIRED_DELIVERABLE_KEYS = (
     "missing_information",
 )
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class ExternalDataUsageReport:
+    strategy: ExternalDataStrategy
+    search_attempted: bool = False
+    search_used: bool = False
+    source_documents: list[models.SourceDocument] = field(default_factory=list)
+    dependency_note: str = ""
+    missing_information: list[str] = field(default_factory=list)
 
 
 class HostOrchestrator:
@@ -66,9 +83,116 @@ class HostOrchestrator:
             background_text=latest_context,
             subjects=[schemas.SubjectRead.model_validate(item) for item in task.subjects],
             goals=[schemas.GoalRead.model_validate(item) for item in task.goals],
-            constraints=[schemas.ConstraintRead.model_validate(item) for item in task.constraints],
+            constraints=[
+                schemas.ConstraintRead.model_validate(item)
+                for item in task.constraints
+                if item.constraint_type != EXTERNAL_DATA_STRATEGY_CONSTRAINT_TYPE
+            ],
             evidence=[schemas.EvidenceRead.model_validate(item) for item in task.evidence],
         )
+
+    def _build_search_query(self, task: models.Task) -> str:
+        query_parts = [
+            task.description.strip(),
+            *(subject.name.strip() for subject in task.subjects if subject.name.strip()),
+            *(goal.description.strip() for goal in task.goals if goal.description.strip()),
+        ]
+        query = " ".join(part for part in query_parts if part).strip()
+        return (query or task.title).strip()[:240]
+
+    def _should_search_external_sources(
+        self,
+        task: models.Task,
+        strategy: ExternalDataStrategy,
+    ) -> bool:
+        if strategy == ExternalDataStrategy.STRICT:
+            return False
+
+        if strategy == ExternalDataStrategy.LATEST:
+            return True
+
+        if task.task_type == "contract_review":
+            return False
+
+        processed_internal_sources = [
+            item
+            for item in task.uploads
+            if item.ingest_status == "processed" and item.source_type != "external_search"
+        ]
+        required_source_count = 2 if task.mode == FlowMode.MULTI_AGENT.value else 1
+        return len(processed_internal_sources) < required_source_count
+
+    def _prepare_external_data_usage(
+        self,
+        task: models.Task,
+    ) -> tuple[models.Task, ExternalDataUsageReport]:
+        strategy = get_external_data_strategy_for_task(task)
+        report = ExternalDataUsageReport(strategy=strategy)
+        existing_external_sources = [
+            item
+            for item in task.uploads
+            if item.source_type == "external_search" and item.ingest_status == "processed"
+        ]
+
+        if strategy == ExternalDataStrategy.STRICT:
+            report.dependency_note = "本輪依照嚴格模式，只使用你提供的資料，不啟用 Host 外部搜尋。"
+            return task, report
+
+        if existing_external_sources and strategy != ExternalDataStrategy.LATEST:
+            report.search_used = True
+            report.source_documents = existing_external_sources
+            report.dependency_note = (
+                "本輪沿用既有的外部搜尋來源，背景摘要、關鍵發現與建議可能部分依賴外部資料。"
+            )
+            return task, report
+
+        if not self._should_search_external_sources(task, strategy):
+            report.dependency_note = "本輪未啟用 Host 外部搜尋，分析主要依賴你提供的資料。"
+            return task, report
+
+        report.search_attempted = True
+        search_query = self._build_search_query(task)
+        logger.info(
+            "Host considering external search for task %s strategy=%s query=%s",
+            task.id,
+            strategy.value,
+            search_query,
+        )
+
+        try:
+            results = search_external_sources(search_query)
+            if results:
+                ingest_remote_urls_for_task(
+                    db=self.db,
+                    task_id=task.id,
+                    urls=[item.url for item in results],
+                    origin="external_search",
+                )
+            else:
+                report.missing_information.append("Host 已嘗試補充外部搜尋，但目前沒有找到可用的公開來源。")
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("External search degraded for task %s: %s", task.id, exc)
+            report.missing_information.append(f"外部搜尋目前不可用或擷取失敗：{exc}")
+
+        refreshed_task = get_loaded_task(self.db, task.id)
+        refreshed_external_sources = [
+            item
+            for item in refreshed_task.uploads
+            if item.source_type == "external_search" and item.ingest_status == "processed"
+        ]
+        report.search_used = len(refreshed_external_sources) > 0
+        report.source_documents = refreshed_external_sources
+
+        if refreshed_external_sources:
+            report.dependency_note = (
+                "本輪已補充外部搜尋來源，背景摘要、關鍵發現與建議可能部分依賴最新外部資料。"
+            )
+        elif report.search_attempted:
+            report.dependency_note = "本輪已嘗試補充外部搜尋，但未能取得可用來源；分析仍以既有資料為主。"
+        else:
+            report.dependency_note = "本輪未啟用 Host 外部搜尋，分析主要依賴你提供的資料。"
+
+        return refreshed_task, report
 
     @staticmethod
     def _tail(items: list[models.Insight] | list[models.Risk] | list[models.Recommendation] | list[models.ActionItem], count: int):
@@ -135,6 +259,39 @@ class HostOrchestrator:
         result.deliverable.content_structure = content
         return result
 
+    def _annotate_external_data_usage(
+        self,
+        result: AgentResult,
+        report: ExternalDataUsageReport,
+    ) -> AgentResult:
+        content = dict(result.deliverable.content_structure or {})
+        missing_information = list(content.get("missing_information") or [])
+        for item in report.missing_information:
+            if item not in missing_information:
+                missing_information.append(item)
+
+        sources = [
+            {
+                "title": item.file_name,
+                "url": item.storage_path,
+                "source_type": item.source_type,
+            }
+            for item in report.source_documents
+        ]
+        content["external_data_usage"] = {
+            "strategy": report.strategy.value,
+            "search_used": report.search_used,
+            "sources": sources,
+            "analysis_dependency_note": report.dependency_note,
+        }
+        content["external_data_strategy"] = report.strategy.value
+        content["external_search_used"] = report.search_used
+        content["sources_used"] = [f"{item.file_name} | {item.storage_path}" for item in report.source_documents]
+        content["analysis_dependency_note"] = report.dependency_note
+        content["missing_information"] = missing_information
+        result.deliverable.content_structure = content
+        return result
+
     def orchestrate_task(self, task_id: str) -> schemas.ResearchRunResponse:
         task = get_loaded_task(self.db, task_id)
         workflow_mode = self.determine_flow_mode(task)
@@ -170,6 +327,7 @@ class HostOrchestrator:
         task = get_loaded_task(self.db, task.id)
 
         try:
+            task, external_data_report = self._prepare_external_data_usage(task)
             payload = self.build_payload(task)
             fixed_core_agents = [
                 "strategy_business_analysis",
@@ -203,6 +361,7 @@ class HostOrchestrator:
                 run.agent_id,
                 self._build_multi_agent_result(payload, fixed_core_agents, fragments, missing_information),
             )
+            converged = self._annotate_external_data_usage(converged, external_data_report)
             deliverable = self.persist_result(task=task, run=run, result=converged)
         except Exception as exc:
             logger.exception("Multi-agent flow failed for task %s", task.id)
@@ -345,9 +504,11 @@ class HostOrchestrator:
         task = get_loaded_task(self.db, task.id)
 
         try:
+            task, external_data_report = self._prepare_external_data_usage(task)
             payload = self.build_payload(task)
             agent = self.registry.get_specialist_agent(agent_id)
             result = self._normalize_result(payload, agent_id, agent.run(payload))
+            result = self._annotate_external_data_usage(result, external_data_report)
             deliverable = self.persist_result(task=task, run=run, result=result)
         except Exception as exc:
             logger.exception("Specialist flow failed for task %s", task.id)

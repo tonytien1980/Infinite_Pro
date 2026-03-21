@@ -3,7 +3,11 @@
 import { FormEvent, useMemo, useState } from "react";
 
 import { createTask, ingestTaskSources, uploadTaskFiles } from "@/lib/api";
-import type { TaskAggregate, TaskCreatePayload } from "@/lib/types";
+import type {
+  ExternalDataStrategy,
+  TaskAggregate,
+  TaskCreatePayload,
+} from "@/lib/types";
 
 interface TaskCreateFormProps {
   onCreated: (task: TaskAggregate) => void;
@@ -42,6 +46,35 @@ const FLOW_OPTIONS = [
 
 type FlowOption = (typeof FLOW_OPTIONS)[number];
 
+const EXTERNAL_DATA_STRATEGY_OPTIONS: Array<{
+  value: ExternalDataStrategy;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: "strict",
+    label: "僅使用我提供的資料（嚴格模式）",
+    description: "Host 不會主動補外部搜尋，只使用你手動附加的內容、網址與檔案。",
+  },
+  {
+    value: "supplemental",
+    label: "視需要補充外部資料（預設）",
+    description: "由 Host 判斷目前證據是否不足，必要時再補外部搜尋來源。",
+  },
+  {
+    value: "latest",
+    label: "優先使用最新外部資料（研究模式）",
+    description: "Host 會優先補外部搜尋來源，適合需要最新公開資訊的研究任務。",
+  },
+];
+
+function labelForExternalDataStrategy(value: ExternalDataStrategy) {
+  return (
+    EXTERNAL_DATA_STRATEGY_OPTIONS.find((item) => item.value === value)?.label ??
+    EXTERNAL_DATA_STRATEGY_OPTIONS[1].label
+  );
+}
+
 function buildConsultantBrief({
   flowLabel,
   title,
@@ -51,6 +84,7 @@ function buildConsultantBrief({
   assumptions,
   scopeNotes,
   targetReader,
+  externalDataStrategy,
 }: {
   flowLabel: string;
   title: string;
@@ -60,12 +94,14 @@ function buildConsultantBrief({
   assumptions: string;
   scopeNotes: string;
   targetReader: string;
+  externalDataStrategy: ExternalDataStrategy;
 }) {
   return [
     `工作流程：${flowLabel}`,
     `任務名稱：${title.trim()}`,
     `核心問題：${description.trim()}`,
     subjectName.trim() ? `分析對象：${subjectName.trim()}` : "",
+    `外部資料使用方式：${labelForExternalDataStrategy(externalDataStrategy)}`,
     analysisDepth.trim() ? `希望這份分析做到的程度：${analysisDepth.trim()}` : "",
     assumptions.trim() ? `已確定的假設：${assumptions.trim()}` : "",
     scopeNotes.trim() ? `研究範圍 / 排除範圍：${scopeNotes.trim()}` : "",
@@ -83,6 +119,8 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
   const [urlsText, setUrlsText] = useState("");
   const [pastedContent, setPastedContent] = useState("");
   const [files, setFiles] = useState<File[]>([]);
+  const [externalDataStrategy, setExternalDataStrategy] =
+    useState<ExternalDataStrategy>("supplemental");
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [analysisDepth, setAnalysisDepth] = useState("");
   const [constraintInput, setConstraintInput] = useState("");
@@ -105,8 +143,19 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
         assumptions,
         scopeNotes,
         targetReader,
+        externalDataStrategy,
       }),
-    [analysisDepth, assumptions, description, flow.label, scopeNotes, subjectName, targetReader, title],
+    [
+      analysisDepth,
+      assumptions,
+      description,
+      externalDataStrategy,
+      flow.label,
+      scopeNotes,
+      subjectName,
+      targetReader,
+      title,
+    ],
   );
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -120,6 +169,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
       description,
       task_type: flow.taskType,
       mode: flow.mode,
+      external_data_strategy: externalDataStrategy,
       background_text: consultantBrief,
       assumptions: assumptions || undefined,
       subject_name: subjectName || undefined,
@@ -168,7 +218,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
         <div>
           <h2 className="panel-title">建立任務</h2>
           <p className="panel-copy">
-            預設先用最少輸入建立案件，讓系統先接手做顧問式補框；需要時再展開進階模式，補充你想干預的判斷脈絡。
+            先用最少輸入把案件開起來，讓系統先補齊顧問框架；只有在你想干預判斷邏輯時，再展開進階模式補充脈絡。
           </p>
         </div>
       </div>
@@ -177,7 +227,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
         <section className="intake-section">
           <div className="section-heading">
             <h3>簡化模式</h3>
-            <p>先用最少必要資訊建立任務，系統會在建立後再提供建議補充與 readiness 判讀。</p>
+            <p>只保留最少必要輸入。任務建立後，系統才會提示缺漏資料與建議補充，不會在 intake 階段先擋住你。</p>
           </div>
 
           <div className="field">
@@ -213,7 +263,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
               id="task-description"
               value={description}
               onChange={(event) => setDescription(event.target.value)}
-              placeholder="把你真正想判斷的問題直接寫出來，其他框架與交付深度先交給系統補齊。"
+              placeholder="直接寫出你真正想判斷的問題、想做的決策，或你希望系統幫你整理成什麼顧問級結論。"
               required
             />
           </div>
@@ -224,7 +274,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
               id="subject-name"
               value={subjectName}
               onChange={(event) => setSubjectName(event.target.value)}
-              placeholder="例如：客戶、提案、特定市場、某份文件、某項決策主題"
+              placeholder="例如：客戶、提案、某個市場、某份文件、某個決策主題"
             />
           </div>
         </section>
@@ -232,7 +282,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
         <section className="intake-section">
           <div className="section-heading">
             <h3>資料來源</h3>
-            <p>統一入口支援網址、檔案與直接貼內容。建立任務後，系統會把它們轉成 normalized text、metadata 與 evidence。</p>
+            <p>把網址、檔案或原始內容都放在這裡。系統會在建立任務後把它們統一轉成可分析的 evidence。</p>
           </div>
 
           <div className="field">
@@ -252,6 +302,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
               id="source-files"
               type="file"
               multiple
+              accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown"
               onChange={(event) => setFiles(Array.from(event.target.files ?? []))}
             />
             <small>目前支援 PDF、DOCX、TXT、MD。</small>
@@ -266,13 +317,37 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
               placeholder="直接貼上會議摘要、研究摘錄、內部筆記或任何可供分析的原始內容"
             />
           </div>
+
+          <div className="field">
+            <label htmlFor="external-data-strategy">外部資料使用方式</label>
+            <select
+              id="external-data-strategy"
+              value={externalDataStrategy}
+              onChange={(event) =>
+                setExternalDataStrategy(event.target.value as ExternalDataStrategy)
+              }
+            >
+              {EXTERNAL_DATA_STRATEGY_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <small>
+              {
+                EXTERNAL_DATA_STRATEGY_OPTIONS.find(
+                  (option) => option.value === externalDataStrategy,
+                )?.description
+              }
+            </small>
+          </div>
         </section>
 
         <section className="intake-section">
           <div className="panel-header">
             <div>
               <h3 className="panel-title">進階模式</h3>
-              <p className="panel-copy">只有在你想干預顧問框架時再展開，否則系統會先自動補齊。</p>
+              <p className="panel-copy">只有在你想主動干預顧問判斷邏輯時再展開，否則系統會先自動補齊。</p>
             </div>
             <button
               className="button-secondary"
@@ -291,7 +366,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
                   id="analysis-depth"
                   value={analysisDepth}
                   onChange={(event) => setAnalysisDepth(event.target.value)}
-                  placeholder="例如：先形成一頁內部決策摘要，並提出三個高優先建議與風險"
+                  placeholder="例如：先形成一頁決策摘要，列出三個高優先建議、主要風險與建議下一步。"
                 />
               </div>
 
@@ -306,7 +381,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
               </div>
 
               <div className="field">
-                <label htmlFor="assumptions">有沒有已確定的假設？</label>
+                <label htmlFor="assumptions">有沒有已知假設？</label>
                 <textarea
                   id="assumptions"
                   value={assumptions}
@@ -316,7 +391,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
               </div>
 
               <div className="field">
-                <label htmlFor="scope-notes">有沒有特定研究範圍或排除範圍？</label>
+                <label htmlFor="scope-notes">是否有特定研究範圍或排除範圍？</label>
                 <textarea
                   id="scope-notes"
                   value={scopeNotes}

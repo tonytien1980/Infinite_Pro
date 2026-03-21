@@ -8,8 +8,13 @@ from sqlalchemy.orm import Session
 
 from app.domain import models, schemas
 from app.ingestion.preprocess import normalize_text
-from app.ingestion.remote import fetch_remote_source
-from app.ingestion.sources import GoogleDocsConnector, ManualTextConnector, ManualUrlConnector
+from app.ingestion.remote import RemoteSourceContent, fetch_remote_source
+from app.ingestion.sources import (
+    ExternalSearchConnector,
+    GoogleDocsConnector,
+    ManualTextConnector,
+    ManualUrlConnector,
+)
 from app.services.source_materials import (
     build_failed_evidence_item,
     build_processed_evidence_items,
@@ -29,6 +34,7 @@ def _persist_processed_source(
     content_type: str | None,
     storage_path: str,
     extracted_text: str,
+    reliability_level: str = "user_provided",
 ) -> tuple[models.SourceDocument, models.Evidence]:
     source_document = models.SourceDocument(
         task_id=task.id,
@@ -52,6 +58,7 @@ def _persist_processed_source(
         title=title,
         text=extracted_text,
         primary_evidence_type="source_excerpt",
+        reliability_level=reliability_level,
     )
     db.add(primary_evidence)
     for chunk_item in chunk_items:
@@ -98,6 +105,89 @@ def _persist_failed_source(
     return source_document, primary_evidence
 
 
+def _select_connector_for_remote_source(
+    remote_source: RemoteSourceContent,
+    *,
+    origin: str,
+):
+    if origin == "external_search":
+        return ExternalSearchConnector()
+    if remote_source.source_type == "google_docs":
+        return GoogleDocsConnector()
+    return ManualUrlConnector()
+
+
+def _serialize_upload_item(
+    source_document: models.SourceDocument,
+    evidence: models.Evidence,
+) -> schemas.UploadResultItem:
+    return schemas.UploadResultItem(
+        source_document=schemas.SourceDocumentRead.model_validate(source_document),
+        evidence=schemas.EvidenceRead.model_validate(evidence),
+    )
+
+
+def ingest_remote_urls_for_task(
+    db: Session,
+    task_id: str,
+    urls: list[str],
+    *,
+    origin: str = "manual",
+) -> list[schemas.UploadResultItem]:
+    task = get_loaded_task(db, task_id)
+    existing_storage_paths = {item.storage_path for item in task.uploads}
+    ingested: list[schemas.UploadResultItem] = []
+
+    for url in urls:
+        normalized_url = url.strip()
+        if not normalized_url or normalized_url in existing_storage_paths:
+            continue
+
+        connector = ManualUrlConnector() if origin == "manual" else ExternalSearchConnector()
+        title = normalized_url
+
+        try:
+            remote_source = fetch_remote_source(normalized_url)
+            connector = _select_connector_for_remote_source(remote_source, origin=origin)
+            title = remote_source.title
+            source_document, evidence = _persist_processed_source(
+                db=db,
+                task=task,
+                connector_source_type=connector.source_type,
+                connector=connector,
+                title=remote_source.title,
+                content_type=remote_source.content_type,
+                storage_path=normalized_url,
+                extracted_text=remote_source.normalized_text,
+                reliability_level="externally_retrieved" if origin == "external_search" else "user_provided",
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "Remote source ingestion degraded for task %s origin=%s url=%s error=%s",
+                task.id,
+                origin,
+                normalized_url,
+                exc,
+            )
+            source_document, evidence = _persist_failed_source(
+                db=db,
+                task=task,
+                connector_source_type=connector.source_type,
+                connector=connector,
+                title=title,
+                storage_path=normalized_url,
+                error_message=str(exc),
+            )
+
+        existing_storage_paths.add(normalized_url)
+        ingested.append(_serialize_upload_item(source_document, evidence))
+
+    if ingested:
+        db.commit()
+
+    return ingested
+
+
 def ingest_sources_for_task(
     db: Session,
     task_id: str,
@@ -109,8 +199,6 @@ def ingest_sources_for_task(
         raise HTTPException(status_code=400, detail="至少需要提供一個網址或一段貼上內容。")
 
     task = get_loaded_task(db, task_id)
-    url_connector = ManualUrlConnector()
-    google_docs_connector = GoogleDocsConnector()
     text_connector = ManualTextConnector()
     ingested: list[schemas.UploadResultItem] = []
 
@@ -126,51 +214,9 @@ def ingest_sources_for_task(
             storage_path=f"inline://task/{task.id}/pasted/{uuid4()}",
             extracted_text=pasted_text,
         )
-        ingested.append(
-            schemas.UploadResultItem(
-                source_document=schemas.SourceDocumentRead.model_validate(source_document),
-                evidence=schemas.EvidenceRead.model_validate(evidence),
-            )
-        )
+        ingested.append(_serialize_upload_item(source_document, evidence))
+        db.commit()
 
-    for url in urls:
-        connector = url_connector
-        title = url
-        error_message: str | None = None
+    ingested.extend(ingest_remote_urls_for_task(db=db, task_id=task_id, urls=urls, origin="manual"))
 
-        try:
-            remote_source = fetch_remote_source(url)
-            connector = google_docs_connector if remote_source.source_type == "google_docs" else url_connector
-            title = remote_source.title
-            source_document, evidence = _persist_processed_source(
-                db=db,
-                task=task,
-                connector_source_type=connector.source_type,
-                connector=connector,
-                title=remote_source.title,
-                content_type=remote_source.content_type,
-                storage_path=url,
-                extracted_text=remote_source.normalized_text,
-            )
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("Remote source ingestion degraded for task %s url=%s error=%s", task.id, url, exc)
-            error_message = str(exc)
-            source_document, evidence = _persist_failed_source(
-                db=db,
-                task=task,
-                connector_source_type=connector.source_type,
-                connector=connector,
-                title=title,
-                storage_path=url,
-                error_message=error_message,
-            )
-
-        ingested.append(
-            schemas.UploadResultItem(
-                source_document=schemas.SourceDocumentRead.model_validate(source_document),
-                evidence=schemas.EvidenceRead.model_validate(evidence),
-            )
-        )
-
-    db.commit()
     return schemas.SourceIngestBatchResponse(task_id=task.id, ingested=ingested)

@@ -1,6 +1,7 @@
 export type FlowMode = "multi_agent" | "specialist";
 export type TaskStatus = "draft" | "ready" | "running" | "completed" | "failed";
 export type RunStatus = "running" | "completed" | "failed";
+export type ExternalDataStrategy = "strict" | "supplemental" | "latest";
 export type TaskType =
   | "research_synthesis"
   | "contract_review"
@@ -143,6 +144,7 @@ export interface TaskAggregate {
   description: string;
   task_type: TaskType;
   mode: FlowMode;
+  external_data_strategy: ExternalDataStrategy;
   status: TaskStatus;
   created_at: string;
   updated_at: string;
@@ -213,6 +215,7 @@ export interface TaskCreatePayload {
   description: string;
   task_type: TaskType;
   mode: FlowMode;
+  external_data_strategy: ExternalDataStrategy;
   background_text: string;
   assumptions?: string;
   notes?: string;

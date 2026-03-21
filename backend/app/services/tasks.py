@@ -7,9 +7,37 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.domain import models, schemas
-from app.domain.enums import TaskStatus
+from app.domain.enums import ExternalDataStrategy, TaskStatus
 
 logger = logging.getLogger(__name__)
+EXTERNAL_DATA_STRATEGY_CONSTRAINT_TYPE = "external_data_strategy"
+EXTERNAL_DATA_STRATEGY_LABELS = {
+    ExternalDataStrategy.STRICT: "僅使用我提供的資料（嚴格模式）",
+    ExternalDataStrategy.SUPPLEMENTAL: "視需要補充外部資料",
+    ExternalDataStrategy.LATEST: "優先使用最新外部資料（研究模式）",
+}
+
+
+def resolve_external_data_strategy_from_constraints(
+    constraints: list[models.Constraint] | list[schemas.ConstraintRead],
+) -> ExternalDataStrategy:
+    for constraint in constraints:
+        if constraint.constraint_type != EXTERNAL_DATA_STRATEGY_CONSTRAINT_TYPE:
+            continue
+
+        try:
+            return ExternalDataStrategy(constraint.description.strip())
+        except ValueError:
+            logger.warning(
+                "Unknown external data strategy in constraint payload: %s",
+                constraint.description,
+            )
+
+    return ExternalDataStrategy.SUPPLEMENTAL
+
+
+def get_external_data_strategy_for_task(task: models.Task) -> ExternalDataStrategy:
+    return resolve_external_data_strategy_from_constraints(task.constraints)
 
 
 def _infer_background_brief(payload: schemas.TaskCreateRequest) -> str:
@@ -24,6 +52,9 @@ def _infer_background_brief(payload: schemas.TaskCreateRequest) -> str:
         lines.append(f"核心問題：{payload.description.strip()}")
     if payload.subject_name:
         lines.append(f"分析對象：{payload.subject_name}")
+    lines.append(
+        f"外部資料使用方式：{EXTERNAL_DATA_STRATEGY_LABELS[payload.external_data_strategy]}"
+    )
     if payload.assumptions:
         lines.append(f"已確定假設：{payload.assumptions}")
 
@@ -77,6 +108,16 @@ def _infer_constraints(payload: schemas.TaskCreateRequest) -> list[schemas.Const
             severity="medium",
         )
     ]
+
+
+def _build_external_data_strategy_constraint(
+    strategy: ExternalDataStrategy,
+) -> schemas.ConstraintCreate:
+    return schemas.ConstraintCreate(
+        description=strategy.value,
+        constraint_type=EXTERNAL_DATA_STRATEGY_CONSTRAINT_TYPE,
+        severity="low",
+    )
 
 
 def task_load_options():
@@ -165,6 +206,16 @@ def create_task(db: Session, payload: schemas.TaskCreateRequest) -> models.Task:
             )
         )
 
+    strategy_constraint = _build_external_data_strategy_constraint(payload.external_data_strategy)
+    db.add(
+        models.Constraint(
+            task_id=task.id,
+            constraint_type=strategy_constraint.constraint_type,
+            description=strategy_constraint.description,
+            severity=strategy_constraint.severity,
+        )
+    )
+
     if background_brief.strip():
         db.add(
             models.Evidence(
@@ -219,6 +270,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         description=task.description,
         task_type=task.task_type,
         mode=task.mode,
+        external_data_strategy=get_external_data_strategy_for_task(task),
         status=task.status,
         created_at=task.created_at,
         updated_at=task.updated_at,

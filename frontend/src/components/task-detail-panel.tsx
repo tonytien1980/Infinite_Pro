@@ -6,9 +6,11 @@ import { useEffect, useState } from "react";
 import { getTask, runTask } from "@/lib/api";
 import {
   assessTaskReadiness,
+  buildExternalDataUsage,
   buildExecutiveSummary,
   getGoalSuccessCriteria,
   getLatestDeliverable,
+  getVisibleConstraints,
   getStructuredStringList,
 } from "@/lib/advisory-workflow";
 import type { TaskAggregate } from "@/lib/types";
@@ -23,6 +25,7 @@ import {
   formatDisplayDate,
   labelForActionStatus,
   labelForAgentId,
+  labelForExternalDataStrategy,
   labelForEvidenceType,
   labelForFlowMode,
   labelForPriority,
@@ -194,6 +197,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
       : [];
   const modeSpecificSections =
     task && latestDeliverable ? getModeSpecificResultSections(task, latestDeliverable) : [];
+  const visibleConstraints = task ? getVisibleConstraints(task.constraints) : [];
+  const externalDataUsage =
+    task ? buildExternalDataUsage(task, latestDeliverable) : null;
   const sortedRecommendations = task?.recommendations
     ? [...task.recommendations].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
@@ -407,6 +413,47 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                 </div>
               </section>
 
+              <section className="panel">
+                <h2 className="section-title">外部資料使用情況</h2>
+                {externalDataUsage ? (
+                  <div className="detail-list">
+                    <div className="detail-item">
+                      <h3>外部資料使用方式</h3>
+                      <p className="content-block">
+                        {labelForExternalDataStrategy(task.external_data_strategy)}
+                      </p>
+                    </div>
+                    <div className="detail-item">
+                      <h3>是否使用外部搜尋</h3>
+                      <p className="content-block">
+                        {externalDataUsage.searchUsed ? "有，Host 已補充外部搜尋來源。" : "沒有，本輪未使用 Host 外部搜尋。"}
+                      </p>
+                    </div>
+                    <div className="detail-item">
+                      <h3>使用了哪些來源</h3>
+                      {externalDataUsage.sources.length > 0 ? (
+                        <ul className="list-content">
+                          {externalDataUsage.sources.map((source) => (
+                            <li key={`${source.sourceType}-${source.url}-${source.title}`}>
+                              {source.title}
+                              {source.url ? `｜${source.url}` : ""}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="muted-text">目前沒有記錄可顯示的外部來源。</p>
+                      )}
+                    </div>
+                    <div className="detail-item">
+                      <h3>哪些分析依賴外部資料</h3>
+                      <p className="content-block">{externalDataUsage.dependencyNote}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="empty-text">目前尚未記錄外部資料使用情況。</p>
+                )}
+              </section>
+
               {modeSpecificSections.map((section) => (
                 <ModeSectionList
                   key={section.title}
@@ -474,6 +521,12 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                         )}
                       </div>
                       <div className="detail-item">
+                        <h3>外部資料使用方式</h3>
+                        <p className="content-block">
+                          {labelForExternalDataStrategy(task.external_data_strategy)}
+                        </p>
+                      </div>
+                      <div className="detail-item">
                         <h3>已有資料</h3>
                         <p className="content-block">{latestContext?.notes || "尚未整理目前已掌握資料。"}</p>
                       </div>
@@ -485,9 +538,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                       </div>
                       <div className="detail-item">
                         <h3>限制條件</h3>
-                        {task.constraints.length > 0 ? (
+                        {visibleConstraints.length > 0 ? (
                           <ul className="list-content">
-                            {task.constraints.map((constraint) => (
+                            {visibleConstraints.map((constraint) => (
                               <li key={constraint.id}>{constraint.description}</li>
                             ))}
                           </ul>
@@ -620,9 +673,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                       </div>
                       <div className="ontology-card">
                         <h3>限制條件</h3>
-                        {task.constraints.length > 0 ? (
+                        {visibleConstraints.length > 0 ? (
                           <ul className="list-content">
-                            {task.constraints.map((constraint) => (
+                            {visibleConstraints.map((constraint) => (
                               <li key={constraint.id}>{constraint.description}</li>
                             ))}
                           </ul>

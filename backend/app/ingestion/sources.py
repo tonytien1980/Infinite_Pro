@@ -42,3 +42,11 @@ class ManualTextConnector(SourceConnector):
 
     def build_source_ref(self, task_id: str, external_id: str) -> str:
         return f"{self.connector_id}:{task_id}:{external_id}"
+
+
+class ExternalSearchConnector(SourceConnector):
+    connector_id = "external_search"
+    source_type = "external_search"
+
+    def build_source_ref(self, task_id: str, external_id: str) -> str:
+        return f"{self.connector_id}:{task_id}:{external_id}"
