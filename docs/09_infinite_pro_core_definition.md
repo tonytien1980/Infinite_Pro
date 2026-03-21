@@ -75,6 +75,43 @@ Infinite Pro 的體驗原則是：
 - 進階模式可以存在，但應作為補充與干預，不應成為預設門檻
 - 所有介面與預設輸出語言以繁體中文為預設，除非使用者明確要求英文
 
+## MVP 輸出物件補充規則
+在 MVP 階段，Infinite Pro 的輸出不應只停留在「看起來像分析結果」的文字段落，而應盡量朝可直接採用的顧問交付物靠攏。
+
+這代表在既有 ontology 主鏈：
+
+> **Task → Context → Evidence → Insight / Risk / Option → Recommendation → ActionItem → Deliverable**
+
+之上，`Recommendation`、`Risk` 與 `ActionItem` 應具備最低限度的可執行資訊。這些規則是 MVP 階段的最小補充要求，不代表正式版最終 schema 已定稿，也不應脫離既有 ontology 另外形成一套平行輸出宇宙。
+
+### Recommendation
+在 MVP 階段，每筆 recommendation 不應只是一句泛用建議，而應盡量具備：
+- 建議內容
+- 優先級
+- rationale：為什麼提出這個建議
+- 預期效果：若可合理推定，應說明這項建議希望改善什麼、推動什麼或降低什麼風險
+
+### Risk
+在 MVP 階段，每筆 risk 不應只是一段模糊提醒，而應盡量具備：
+- 風險內容
+- 嚴重度
+- 影響說明：若風險發生，會對決策、執行或交付造成什麼影響
+- 發生可能性：若可合理推定，應標示高低或相對機率
+
+### ActionItem
+在 MVP 階段，每筆 action item 不應只是一條泛用待辦，而應盡量具備：
+- 行動內容
+- 優先順序
+- 建議責任角色：若可合理推定，應指出比較適合承接的角色
+- 前置依賴或條件：若存在，應說明這項行動需先滿足哪些前提
+
+### 設計原則
+這些輸出物件補充規則應遵守以下原則：
+- 目的不是增加無意義欄位，而是讓 Infinite Pro 的輸出更接近顧問級交付與可執行決策
+- 若任務資料不足，可保留部分欄位為空或暫時推定，但應保留主要內容與不確定性說明
+- 補充欄位應延續既有 ontology 主鏈與 shared world model，不應變成獨立於 ontology 之外的新設計
+- 後續若進入正式版 schema 設計，應以這些 MVP 規則為基礎收斂，而不是回退成只有長篇文字或聊天式回答
+
 ## 對後續實作的約束
 未來所有功能設計、UI 調整、agent 擴充、provider 接入、knowledge ingestion、history 呈現，都應回到這份核心定義檢查是否仍符合 Infinite Pro 的產品初衷。
 
