@@ -107,7 +107,7 @@ Ontology 不只定義物件名稱，也要定義：
 
 ## 5. 正式 core object families
 
-## 4.1 Commercial / engagement objects
+### 5.1 Commercial / engagement objects
 
 ### Client
 代表被服務的客戶主體。
@@ -123,7 +123,7 @@ Ontology 不只定義物件名稱，也要定義：
 
 ---
 
-## 4.2 Work orchestration objects
+### 5.2 Work orchestration objects
 
 ### Task
 代表一次具體工作請求或執行單位。
@@ -152,7 +152,7 @@ Ontology 不只定義物件名稱，也要定義：
 
 ---
 
-## 4.3 Material / knowledge objects
+### 5.3 Material / knowledge objects
 
 ### Artifact
 代表顧問工作會處理的正式材料，例如：
@@ -172,7 +172,7 @@ Ontology 不只定義物件名稱，也要定義：
 
 ---
 
-## 4.4 Analysis objects
+### 5.4 Analysis objects
 
 ### Insight
 代表從 evidence 與 context 中推導出的分析洞察。
@@ -194,7 +194,7 @@ Ontology 不只定義物件名稱，也要定義：
 
 ---
 
-## 4.5 Context extension objects
+### 5.5 Context extension objects
 
 ### ClientStage
 正式值應使用：
@@ -225,7 +225,7 @@ Ontology 不只定義物件名稱，也要定義：
 
 ## 6. Core objects 與 supporting objects 的區分
 
-### 5.1 Core objects
+### 6.1 Core objects
 以下物件必須從第一天就被正式納入架構：
 - Client
 - Engagement
@@ -242,7 +242,7 @@ Ontology 不只定義物件名稱，也要定義：
 - ActionItem
 - Deliverable
 
-### 5.2 Supporting objects
+### 6.2 Supporting objects
 以下物件也屬正式架構，但可依實作順序分波落地：
 - Goal
 - Constraint
@@ -298,7 +298,7 @@ Infinite Pro 的 ontology 不只是一組 objects，還需要明確 links。
 
 ## 9. 第一波實作與第二波實作的正確區分
 
-### 8.1 第一波實作應優先落地
+### 9.1 第一波實作應優先落地
 - Task
 - DecisionContext
 - Artifact
@@ -311,7 +311,7 @@ Infinite Pro 的 ontology 不只是一組 objects，還需要明確 links。
 - Goal / Constraint / Assumption
 - ClientStage / ClientType / DomainLens 的基本掛載方式
 
-### 8.2 第二波實作可再深化
+### 9.2 第二波實作可再深化
 - Client
 - Engagement
 - Workstream 的完整顯性化
@@ -325,12 +325,12 @@ Infinite Pro 的 ontology 不只是一組 objects，還需要明確 links。
 
 ---
 
-## 9. 對 Agent、Workbench 與 Deliverable 的約束
+## 10. 對 Agent、Workbench 與 Deliverable 的約束
 
-### 9.1 對 Host 與 agents 的約束
+### 10.1 對 Host 與 agents 的約束
 Host 與其他 agents 應以 ontology objects 和 links 工作，不應只吃自由文字。
 
-### 9.2 對 workbench UI 的約束
+### 10.2 對 workbench UI 的約束
 UI 應逐步反映：
 - 正在操作哪個 object
 - object 之間的關係
@@ -338,12 +338,12 @@ UI 應逐步反映：
 - 哪些 artifacts / evidence 支撐這輪工作
 - 最後形成哪份 deliverable
 
-### 9.3 對 deliverable 的約束
+### 10.3 對 deliverable 的約束
 Deliverable 應被視為 ontology chain 的正式成果，而不是任意長文。
 
 ---
 
-## 10. 文件結論
+## 11. 文件結論
 
 Infinite Pro 的 ontology 不再只是早期縮小版規劃中的最小骨架。
 
