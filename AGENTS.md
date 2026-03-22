@@ -1,378 +1,408 @@
 # AGENTS.md
 
-This file is the repository-level operating guide for Codex and other coding agents working on this project.
+This file is the repository-level operating guide for Codex and other coding agents working on Infinite Pro.
 
-The goal is not to restate every strategy document in full. The goal is to make implementation work predictable, scoped, and aligned with the current MVP direction.
+The goal is to keep implementation work aligned with the current governance reset:
+
+> **Infinite Pro is now planned as a Single-Consultant Full-Scope Edition.**
+
+That means the product's **capability boundary is full-scope from day one** for a single consultant, even if implementation order is phased.
 
 ---
 
 ## 1. Read this first
 
-Before making any structural or product decisions, read these documents in this order:
+Before making any structural, product, ontology, agent, or UI decisions, read these documents in this order:
 
 1. `docs/00_project_vision.md`
 2. `docs/01_problem_statement.md`
 3. `docs/02_product_scope_v1.md`
 4. `docs/03_system_overview.md`
 5. `docs/09_infinite_pro_core_definition.md`
+6. `docs/04_ontology_core_v1.md`
+7. `docs/05_agent_architecture_v1.md`
+8. `docs/06_system_architecture_v1.md`
+9. `docs/07_mvp_build_plan.md`
+10. `docs/08_codex_handoff.md`
 
-If later documents exist, read them after the four files above:
-- `docs/04_ontology_core_v1.md`
-- `docs/05_agent_architecture_v1.md`
-- `docs/06_system_architecture_v1.md`
+If implementation ideas conflict with the documents, prefer the documents over assumptions.
 
-If implementation ideas conflict with the current documents, prefer the documents over assumptions.
-If naming, product positioning, or product drift questions appear, treat `docs/09_infinite_pro_core_definition.md` as a high-priority guide.
-
-Do not invent product scope that has not been confirmed in the docs.
+If naming, product positioning, ontology modeling, or product drift questions appear, treat `docs/09_infinite_pro_core_definition.md` as a high-priority guide.
 
 ---
 
-## 2. Product summary
+## 2. Formal product definition
 
 Formal product name: `Infinite Pro`
 
-Note:
-- `Infinite Pro` is now the official product name.
-- Legacy references to `AI Advisory OS` may still remain in older documents or internal code/package names until an explicit rename pass is requested.
+Formal planning posture:
 
-This project is an ontology-centered intelligent work platform for complex knowledge work.
+> **Single-Consultant Full-Scope Edition**
 
-At a high level, the system should:
-- accept a user task plus background material
-- let a Host Agent orchestrate the workflow
-- invoke a small set of specialist or perspective-based agents when needed
-- use a shared ontology / world model so agents work on the same task reality
-- produce structured outputs, not only free-form chat
-- preserve task history so work compounds over time
-- remain extensible for future modules, packs, and agent capabilities
+Meaning:
+- the product must be planned to cover the **full working scope of one consultant**
+- implementation order may be phased
+- capability boundaries must **not** be artificially shrunk to an MVP-only product concept
+- multi-user, multi-company, and multi-tenant system concerns are later layers, not the definition of the product itself
 
-This is **not** a generic chatbot wrapper.
-This is **not** a simple RAG app.
-This is **not** a full Palantir-scale ontology platform on day one.
+Legacy references to `AI Advisory OS` may remain in older documents or internal code/package names until an explicit rename pass is requested.
 
 ---
 
-## 3. Current stage
+## 3. Product scope principle
 
-Current stage: **MVP / V1**
+Do **not** treat Infinite Pro as:
+- a small prototype chatbot
+- a prompt-wrapper utility
+- a narrow collection of specialist tools
+- a generic enterprise admin console
 
-The MVP is intentionally scoped as:
-- an internal core tool for consulting work
-- primarily a personal workbench, not a full team collaboration suite
-- focused on complex business problem convergence as the main experience
-- with a few single-task specialist flows as secondary capabilities
+Treat Infinite Pro as:
+- an ontology-first consulting workbench
+- a Host-orchestrated decision system
+- a multi-agent and multi-specialist advisory platform
+- a system that must eventually cover the consultant's full working reality
 
-The MVP exists to validate the platform core, not to prove every future expansion at once.
+The correct planning model is:
 
----
-
-## 4. MVP principles
-
-Always preserve these principles:
-
-1. **Ontology before prompt sprawl**
-   - Prefer structured task objects and explicit state over giant prompt blobs.
-
-2. **Host Agent is the control center**
-   - The Host Agent is not optional.
-   - It should interpret the task, choose workflow mode, select agents, and converge outputs.
-
-3. **Complex-task convergence is the main product story**
-   - Single-task specialist features are useful, but they are secondary in V1.
-
-4. **Structured outputs over long prose**
-   - Prefer output schemas with sections such as:
-     - problem definition
-     - background summary
-     - findings / insights
-     - risks
-     - recommendations
-     - action items
-     - missing information
-
-5. **Build the base, not the entire universe**
-   - Preserve future extensibility.
-   - Do not overbuild platform features too early.
+> **Full-scope by capability, phased by implementation order, single-user first, multi-user later.**
 
 ---
 
-## 5. In-scope for V1
+## 4. Full-scope capability boundary
 
-Codex should treat the following as in scope for MVP implementation:
+Codex should assume the product boundary already includes:
 
-### Core platform flow
-- task input
-- background/context input
-- file upload and document reference
-- host-agent-led workflow selection
-- small multi-agent orchestration flow
-- structured result generation
-- task history persistence
+### 4.1 Client stages
+- `創業階段`
+- `制度化階段`
+- `規模化階段`
 
-### Main experience
-- complex business problem analysis and convergence
+Do not reintroduce:
+- earlier numeric stage shorthand
 
-### Secondary specialist flows
-Support these three specialist categories first:
-- contract review
-- research synthesis
-- document / proposal restructuring
+### 4.2 Client types
+- 中小企業
+- 個人品牌與服務
+- 自媒體
+- 大型企業
 
-### Agent count
-Keep the initial core agent set to roughly **3 to 5** agents.
+### 4.3 Consulting domains
+- 營運
+- 財務
+- 法務
+- 行銷
+- 銷售
+- 募資
+- other extensible consulting domains
 
-### Model layer
-Build a model abstraction / router layer that allows future provider switching.
-Do not hardwire the whole system to a single LLM vendor interface.
+### 4.4 Formal architecture layers
+The following layers are part of the official architecture from day one:
+1. Ontology Layer
+2. Context Layer
+3. Capability Layer
+4. Agent Layer
+5. Industry Pack Layer
+6. Workbench / UI Layer
 
----
-
-## 6. Out of scope for V1
-
-Do **not** expand into these unless explicitly updated in the docs:
-
-- external open agent marketplace
-- large enterprise permission systems
-- complex multi-tenant governance
-- fully autonomous high-risk execution
-- complete industry-specific ontology packs
-- complete team collaboration suite
-- elaborate self-evolving agent ecosystems
-- replacing every specialist tool category
-
-Do not quietly add these because they feel “future-proof.”
-Future-proofing should happen through architecture boundaries, not feature creep.
-
----
-
-## 7. System shape to preserve
-
-At a minimum, implementation should preserve these conceptual layers:
-
-1. **User experience layer**
-   - input task
-   - upload files
-   - review outputs
-   - browse task history
-
-2. **Host orchestration layer**
-   - parse task
-   - choose workflow mode
-   - select agents
-   - manage convergence
-
-3. **Ontology / shared state layer**
-   - shared task world model
-   - background, goals, evidence, risks, recommendations, actions
-
-4. **Agent capability layer**
-   - perspective agents
-   - specialist agents
-   - future extensibility
-
-5. **Persistence layer**
-   - task history
-   - output artifacts
-   - referenced background material
-   - structured state
-
-Do not collapse everything into one giant controller or one giant prompt if avoidable.
-
----
-
-## 8. Expected ontology direction
-
-The ontology does not need to be “complete.”
-It does need to support the MVP core loop.
-
-Implementation should assume the shared task model eventually needs to represent concepts like:
-- task
-- context
-- subject
-- goal
-- constraint
-- evidence
-- insight
-- risk
-- option
-- recommendation
-- action item
-- deliverable
-
-Until the dedicated ontology document is finalized, keep the data model flexible and minimal.
-Do not freeze an overly rigid schema too early.
-
----
-
-## 9. Workflow modes
-
-Support two broad workflow modes:
-
-### A. Complex convergence mode
-Primary mode for MVP.
-Used for multi-perspective analysis and convergence.
-
-Typical flow:
-1. ingest task and context
-2. host agent interprets task
-3. select relevant agents
-4. run agent contributions
-5. converge results
-6. output structured deliverable
-7. save history
-
-### B. Specialist mode
-Secondary mode for MVP.
-Used for bounded, focused tasks such as contract review or synthesis.
-
-The specialist mode should still reuse:
-- task model
-- file/context ingestion
-- model abstraction
-- structured output conventions
+### 4.5 Cross-cutting system responsibilities
+These are also first-class, not later add-ons:
+- provider abstraction
+- source ingestion
+- evidence creation
 - history persistence
+- traceability
+- deliverable-centric outputs
 
 ---
 
-## 10. Implementation priorities
+## 5. Architecture shape to preserve
 
-When choosing between tasks, prefer this order:
+At a minimum, implementation should preserve the following conceptual shape:
 
-1. task ingestion and persistence
-2. file/context handling
-3. host-agent workflow control
-4. basic ontology-aligned task state
-5. multi-agent execution loop
-6. structured output rendering
-7. specialist task flows
-8. model router improvements
-9. polish and refactoring
+### 5.1 Ontology Layer
+This is the shared world model and structured reasoning skeleton.
 
-Do not start from visual polish if core workflow state is not stable.
+### 5.2 Context Layer
+This carries:
+- client stage
+- client type
+- domain lenses
+- decision context
+- goals
+- constraints
+- assumptions
+- stakeholders
 
----
+### 5.3 Capability Layer
+This defines the consulting work archetypes the system can perform, such as:
+- diagnose
+- review
+- synthesize
+- restructure
+- converge
+- plan
+- challenge
 
-## 11. Engineering rules
+### 5.4 Agent Layer
+This includes:
+- Host Agent as the only orchestration center
+- multiple specialist and reasoning agents
+- clear responsibilities, not roleplay personas
 
-### Build small, testable slices
-Prefer incremental delivery over large rewrites.
+### 5.5 Industry Pack Layer
+Industry packs are official capability extensions, not tags.
 
-### Avoid hard-coding product assumptions in UI-only logic
-Important workflow rules should live in reusable application logic.
+They may extend:
+- ontology objects
+- domain heuristics
+- expected evidence
+- decision templates
+- deliverable patterns
 
-### Prefer explicit state
-Use named structures instead of passing opaque strings between components whenever practical.
+### 5.6 Workbench / UI Layer
+The UI must evolve toward:
+- object-aware views
+- workflow-aware views
+- deliverable-aware views
 
-### Preserve future provider switching
-Any model integration should go through an internal abstraction boundary.
-
-### Preserve future module expansion
-When adding specialist flows, plug them into the same base architecture where possible.
-
-### Keep prompt assets organized
-Do not scatter prompts inline across unrelated files.
-Use a clear prompt organization strategy if prompt files are created.
-
----
-
-## 12. UX rules for MVP
-
-The MVP should feel like a personal workbench.
-
-That means:
-- clear task creation
-- clear file attachment / context attachment
-- visible structured outputs
-- visible history
-- minimal but understandable workflow steps
-
-Do not design for full enterprise complexity yet.
-Do not assume many simultaneous users.
-Do not optimize first for admin panels.
+Do not collapse everything into one giant controller, one giant prompt, or one generic task page if avoidable.
 
 ---
 
-## 13. Testing expectations
+## 6. Ontology-first planning rules
 
-Before considering a task done, verify at least:
+Do not plan the product around only:
+- pages
+- feature lists
+- mode dropdowns
 
-- the flow still supports task creation
-- background context can still be attached
-- the host orchestration path still runs
-- structured outputs are still returned
-- task history still persists
-- no new code bypasses the model abstraction layer
+Plan around:
+- objects
+- properties
+- links
+- actions
+- workflows
+- decision context
 
-If a feature touches orchestration or ontology-related state, test with both:
-- complex convergence mode
-- one specialist mode if relevant
+Implementation should assume the ontology must formally represent at least:
+- Client
+- Engagement
+- Workstream
+- Task
+- DecisionContext
+- Artifact
+- SourceMaterial
+- Evidence
+- Insight
+- Risk
+- Option
+- Recommendation
+- ActionItem
+- Deliverable
+- Goal
+- Constraint
+- Assumption
+- Stakeholder
+- Audience
+
+The exact persistence schema may evolve, but these objects are part of the architecture boundary.
 
 ---
 
-## 14. Change control rules
+## 7. Host Agent rules
+
+Host Agent is mandatory and remains the only orchestration center.
+
+Host Agent must be planned to eventually handle:
+- task interpretation
+- ontology mapping
+- decision-context framing
+- workflow selection
+- specialist selection
+- agent coordination
+- readiness governance
+- evidence sufficiency checks
+- convergence and deliverable shaping
+
+Do not bypass Host Agent by letting UI-only logic or direct model calls decide the core workflow.
+
+---
+
+## 8. Agent rules
+
+Agents are not theatrical personas.
+
+Agents should be designed as:
+- capability modules
+- reasoning modules
+- specialist modules
+- domain-aware contributors
+
+Do not lock the system to:
+- only 4 core agents
+- only 3 specialist flows
+- only one narrow task family
+
+Those may be current implementation slices, but they are **not** the formal product boundary anymore.
+
+---
+
+## 9. Industry pack rules
+
+Industry packs are part of the formal architecture.
+
+Do not treat them as:
+- labels
+- marketing categories
+- optional flavor text
+
+Treat them as structured extensions that can influence:
+- ontology
+- evidence expectations
+- decision framing
+- evaluation criteria
+- deliverable shape
+- specialist routing
+
+Even if only a small subset is implemented first, the architecture must preserve this layer clearly.
+
+---
+
+## 10. Workbench / UI rules
+
+The UI should feel like a consulting workbench, not:
+- a generic CRUD admin panel
+- a debug dashboard
+- a chat-first interface
+
+The workbench should increasingly reflect:
+- the primary objects being worked on
+- the current decision context
+- the evidence base
+- the deliverable being shaped
+- the supporting context versus system trace distinction
+
+Do not hard-code product logic into UI-only wording when the same rule belongs in shared application logic.
+
+---
+
+## 11. What is in scope now versus later
+
+### 11.1 In scope for the formal product boundary now
+- full single-consultant capability scope
+- ontology-first object model
+- Host orchestration
+- multiple agents
+- industry pack layer
+- consulting workbench UI
+- provider abstraction
+- source / evidence / history / traceability
+
+### 11.2 Later system layers
+These are later layers, not the current product boundary:
+- multi-user login
+- role / permission systems
+- multi-consultant collaboration
+- multi-company workspace sync
+- multi-tenant governance
+- per-user API key management
+- large enterprise admin features
+
+Do not confuse "not doing multi-user yet" with "shrinking the product into a small MVP."
+
+---
+
+## 12. Implementation order rules
+
+Use implementation order to stage delivery, but **not** to shrink product meaning.
+
+Prefer this order:
+1. governance alignment and object model
+2. ontology and context structures
+3. Host orchestration and capability routing
+4. workbench surfaces
+5. specialist / reasoning agent expansion
+6. industry pack integration
+7. multi-user system layers later
+
+Do not frame design decisions as "out of scope" if they are part of the full single-consultant capability boundary.
+
+Instead, frame them as:
+- first-wave implementation
+- second-wave implementation
+- later system-layer implementation
+
+---
+
+## 13. Engineering rules
+
+### 13.1 Build small, but build toward the full architecture
+Incremental delivery is good.
+Artificially shrinking the architecture boundary is not.
+
+### 13.2 Objects before prompt sprawl
+Prefer structured objects and links over giant prompt blobs.
+
+### 13.3 Preserve provider abstraction
+All model usage must continue to go through an internal router / provider boundary.
+
+### 13.4 Preserve deliverable-centric outputs
+Outputs should remain decision-ready and object-aware, not generic long chat answers.
+
+### 13.5 Preserve traceability
+Source -> Evidence -> Insight / Risk / Recommendation -> Deliverable should remain visible in the architecture.
+
+### 13.6 Avoid fake future-proofing
+Do not add speculative platform features just because they sound scalable.
+Keep the architecture visible and extensible, but implement with discipline.
+
+---
+
+## 14. Testing expectations
+
+Before considering a change done, verify at least:
+- the task / workbench flow still functions
+- Host orchestration still runs
+- structured outputs still return
+- deliverables still persist
+- history still persists
+- no code bypasses the model abstraction layer
+
+If a change touches orchestration, ontology, or context modeling, test both:
+- a convergence-style path
+- at least one specialist path
+
+If a change affects workbench structure, validate:
+- main work surface readability
+- responsive layout stability
+- supporting context and system trace separation
+
+---
+
+## 15. Change control rules
 
 When making changes:
-
 - keep diffs scoped
-- avoid mixing refactors with new feature behavior unless necessary
-- document new assumptions in comments or docs if they affect future work
-- do not rename major concepts casually
-- do not widen scope without updating docs
+- avoid mixing unrelated refactors with new behavior
+- document new architectural assumptions when they affect later work
+- do not casually rename major concepts
+- do not reintroduce MVP framing as the product boundary
 
-If a requested change appears to conflict with the MVP scope, implement the narrowest version that fits the current documents, or flag the conflict clearly.
-
----
-
-## 15. Naming guidance
-
-Branding is now finalized for product-facing language:
-- use `Infinite Pro` as the formal product name in docs, README, user-facing UI copy, and development status updates
-- do not do a large package / repo / module rename unless explicitly requested
-- legacy internal names such as `AI Advisory OS` may remain temporarily in non-user-facing code paths until a dedicated rename pass is approved
+If a requested change conflicts with the full-scope single-consultant architecture, implement the narrowest change that still preserves the architecture boundary, or flag the conflict clearly.
 
 ---
 
-## 16. Repo structure guidance
+## 16. What success looks like
 
-If the repo is being created from scratch, prefer a structure that cleanly separates:
-- app / UI
-- orchestration
-- ontology / domain models
-- agent definitions
-- model providers / router
-- storage / persistence
-- prompts
-- docs
+A good Infinite Pro implementation should make it possible for one consultant to:
 
-Exact framework choices may change, but this separation should remain visible.
+1. work on real client matters
+2. frame decisions in context
+3. attach and organize evidence
+4. run host-led specialist or multi-agent workflows
+5. shape decision-ready deliverables
+6. revisit history and refine recommendations over time
+7. feel that the system is a true consulting workbench, not another chat window
 
----
-
-## 17. What success looks like
-
-A good MVP implementation should make it possible for one user to:
-
-1. start a task
-2. attach relevant context or files
-3. run either a complex convergence flow or a specialist flow
-4. receive a structured result
-5. review the result later in history
-6. feel that the system is a real workbench, not just another chat window
-
-That is enough for the first meaningful version.
-
----
-
-## 18. If unsure
-
-If implementation uncertainty appears, prefer:
-- preserving architecture flexibility
-- preserving shared task state
-- preserving host-agent control
-- preserving structured outputs
-- preserving future extensibility
-
-Do not optimize for speculative future modules at the cost of a working MVP.
-
-Build the base correctly first.
+That is the standard to build toward.

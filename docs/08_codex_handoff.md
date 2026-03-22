@@ -1,59 +1,43 @@
 # 08_codex_handoff.md
 
-> 文件狀態：Baseline v1.0（可直接提供給 Codex 作為開發交接文件）
+> 文件狀態：Governance Reset v2.0（Codex 正式交接文件）
 >
-> 本文件用於把 Infinite Pro V1 / MVP 目前已確認的產品方向、系統邊界、技術選型、施工順序與實作規則，濃縮成一份可直接交給 Codex 的 handoff 文件。
+> 本文件用於把 Infinite Pro 的最新治理原則濃縮成可直接交給 Codex 的施工指引。
 
 ---
 
 ## 1. 這份文件是拿來幹嘛的
 
-這份文件不是再重講願景。
+這份文件不是願景摘要，而是：
 
-它的任務是：
-
-> **讓 Codex 一進 repo，就知道這個專案現在處於哪個階段、先做什麼、不要做什麼、怎麼做才不會走歪。**
-
-如果前面的 00～07 是：
-- 產品與系統定義
-- 架構與規格設計
-- 施工順序規劃
-
-那 08 就是：
-
-> **給 Codex 的實作交接指令文件。**
+> **讓 Codex 一進 repo，就知道 Infinite Pro 現在不再以 MVP 思維施工，而是以單人顧問完整工作台思維施工。**
 
 ---
 
-## 2. 專案目前狀態
+## 2. Codex 必須先記住的正式前提
 
 ### 2.1 正式產品名稱
 - `Infinite Pro`
-- 若 repo 內仍看到 `AI Advisory OS`，應視為歷史工作代稱；命名與產品方向以 [`docs/09_infinite_pro_core_definition.md`](/Users/tonytien/Desktop/Infinite Pro/docs/09_infinite_pro_core_definition.md) 為準
 
-### 2.2 目前階段
-- **MVP / V1**
+### 2.2 正式產品定位
+- **Single-Consultant Full-Scope Edition**
 
-### 2.3 目前定位
-- 顧問服務業內部使用的個人工具台
-- 以複雜商業問題收斂為主體
-- 單點 Specialist 任務為輔
-- 先驗證平台核心，不驗證所有未來擴張
+### 2.3 正式施工原則
+- full-scope by capability
+- phased by implementation order
+- single-user first
+- multi-user later
 
-### 2.4 目前核心原則
-- Ontology 是共享世界模型
-- Host Agent 是流程中樞
-- Core Agents 提供多視角分析
-- Specialist Agents 提供單點能力
-- Structured outputs 比長篇聊天更重要
-- Task history 是價值累積的一部分
-- 檔案 / 背景 / 來源資料是知識入口，不是單純附件
+### 2.4 絕對不要再用的舊思路
+- 用 MVP 當產品能力邊界
+- 先只做少數 domain / 少數 mode 作為正式產品定義
+- 把 ontology / Host / industry packs 當後補功能
+- 把 3 個 specialist flows 當正式產品分類
+- 把 4 core agents + 3 specialists 當固定上限
 
 ---
 
-## 3. Codex 開工前必讀文件順序
-
-Codex 在做任何重大結構決策前，應依序閱讀：
+## 3. Codex 開工前必讀順序
 
 1. `docs/00_project_vision.md`
 2. `docs/01_problem_statement.md`
@@ -66,440 +50,167 @@ Codex 在做任何重大結構決策前，應依序閱讀：
 9. `docs/07_mvp_build_plan.md`
 10. `AGENTS.md`
 
-如果實作想法與上述文件衝突，應以文件為準，而不是以推測為準。
+如果想法與上述文件衝突，以文件為準。
 
 ---
 
-## 4. Codex 需要先理解的產品核心
+## 4. Codex 現在應如何理解 Infinite Pro
 
-這個專案不是：
-- 一般聊天機器人包裝層
-- 純 RAG / 知識庫問答工具
-- 一開始就做到完整 Palantir 規模的平台
-- 一開始就面向所有產業的全功能系統
+Infinite Pro 不是：
+- 小型 chat app
+- 少數 flow 的 MVP
+- 幾個 specialist 工具拼在一起的產品
 
-這個專案是：
+Infinite Pro 是：
 
-> **一個以 Ontology 為核心、以 Host Agent 為中樞、以可擴充 Agent 能力為執行層、能處理複雜知識型工作並輸出結構化結果的智能工作平台。**
+> **一套完整承接單一顧問工作需求的 ontology-first consulting workbench。**
 
-MVP 的目標不是做滿宇宙，而是先把：
-- 任務入口
-- 背景 / 檔案 / 來源資料入口
-- Ontology 最小鏈
+它必須正式承接：
+- 顧問案件
+- 決策 context
+- artifact / source / evidence
 - Host orchestration
-- Specialist flow
-- Multi-agent flow
-- Structured output
-- History persistence
-
-這條主鏈做對。
-
----
-
-## 5. V1 明確 in-scope
-
-Codex 應把以下內容視為 V1 的核心範圍：
-
-### 5.1 主流程
-- Task 建立
-- TaskContext 建立
-- 檔案上傳 / 背景引用
-- Source / Evidence 建立
-- Host Agent 路由與收斂
-- 結構化輸出
-- 任務歷史保存
-
-### 5.2 兩種流程模式
-- `multi_agent`
-- `specialist`
-
-### 5.3 Core Agents
-- Strategy / Business Analysis Agent
-- Operations Agent
-- Market / Research Insight Agent
-- Risk / Challenge Agent
-
-### 5.4 Specialist Agents
-- Contract Review Agent
-- Research Synthesis Agent
-- Document Restructuring Agent
-
-### 5.5 Core Ontology Objects
-- Task
-- TaskContext
-- Subject
-- Goal
-- Constraint
-- Evidence
-- Insight
-- Risk
-- Option
-- Recommendation
-- ActionItem
-- Deliverable
+- reasoning agents
+- specialist agents
+- industry packs
+- deliverable-centric outputs
+- history and traceability
 
 ---
 
-## 6. V1 明確 out-of-scope
+## 5. Codex 必須維持的正式六層主架構
 
-Codex 在 V1 階段不應主動擴張到以下範圍：
+1. Ontology Layer
+2. Context Layer
+3. Capability Layer
+4. Agent Layer
+5. Industry Pack Layer
+6. Workbench / UI Layer
 
-- 完整 Agent Market
-- 外部 Agent 上架機制
-- 複雜企業權限系統
-- 多租戶 SaaS 治理
-- 完整雲端知識平台
-- 全產業完整 Ontology
-- 自我演化 / 自我繁殖 Agent
-- 全自動高風險執行
-- 取代所有單點專業工具
+另外要維持的 cross-cutting concerns：
+- provider abstraction
+- source ingestion
+- evidence pipeline
+- persistence
+- history
+- traceability
 
-未來擴充應保留接口，但不要提前把功能做出來。
-
----
-
-## 7. 建議技術選型（預設，不需重新發明）
-
-### 前端
-- Next.js
-- TypeScript
-- App Router
-
-### 後端
-- Python
-- FastAPI
-
-### 資料庫
-- PostgreSQL
-
-### 檔案儲存
-- V1 先用本機檔案系統或簡單 object storage 模擬
-- metadata 存 DB
-
-### 模型層
-- internal model router abstraction
-- V1 先接 1～2 家 provider
-
-### 啟動方式
-- Docker Compose
-
-如果沒有非常明確的理由，不要自行換成不同技術棧。
+任何結構改動都不能把這些層從正式架構中移除。
 
 ---
 
-## 8. 建議 repo 形狀
+## 6. Codex 應正式承接的能力邊界
 
-```text
-repo-root/
-  AGENTS.md
-  README.md
-  docker-compose.yml
-  .env.example
+### 6.1 Client stages
+- 創業階段
+- 制度化階段
+- 規模化階段
 
-  docs/
-    00_project_vision.md
-    01_problem_statement.md
-    02_product_scope_v1.md
-    03_system_overview.md
-    04_ontology_core_v1.md
-    05_agent_architecture_v1.md
-    06_system_architecture_v1.md
-    07_mvp_build_plan.md
-    08_codex_handoff.md
+### 6.2 Client types
+- 中小企業
+- 個人品牌與服務
+- 自媒體
+- 大型企業
 
-  apps/
-    web/
+### 6.3 Consulting domains
+- 營運
+- 財務
+- 法務
+- 行銷
+- 銷售
+- 募資
+- other extensible domains
 
-  services/
-    api/
+### 6.4 Core consulting capabilities
+- Diagnose / Assess
+- Decide / Converge
+- Review / Challenge
+- Synthesize / Brief
+- Restructure / Reframe
+- Plan / Roadmap
 
-  packages/
-    domain/
-    agents/
-    model_router/
-    shared/
-
-  storage/
-    uploads/
-
-  scripts/
-```
-
-如果實作細節有變動，至少要保留：
-- UI
-- API
-- domain models
-- orchestration
-- agents
-- model router
-- storage
-- docs
-
-的可見分層。
+這些都是正式能力邊界，不是未來才想的東西。
 
 ---
 
-## 9. 系統最小模組拆分
+## 7. Host 與 Agent 的施工原則
 
-Codex 應優先把系統拆成以下模組，而不是一開始寫成一個大檔案或一個超大 controller。
+### 7.1 Host
+Host Agent 永遠是唯一 orchestration center。
 
-### 9.1 Task Module
-- Task CRUD
-- status
-- history 查詢
+必須正式負責：
+- task / decision framing
+- ontology mapping
+- workflow selection
+- agent routing
+- readiness governance
+- convergence
+- deliverable shaping
 
-### 9.2 Context & Evidence Module
-- TaskContext
-- Evidence
-- 背景資料引用
+### 7.2 Agents
+Agents 應依能力面與專業責任分類，而不是只依目前已落地 flow 命名。
 
-### 9.3 Source Module
-- 檔案上傳
-- source metadata
-- 未來 connector interface 預留
-
-### 9.4 Ontology Module
-- 12 類核心 domain entities
-- validation
-- serialization / persistence mapping
-
-### 9.5 Agent Module
-- Agent interface
-- Agent registry / config
-- Agent invocation
-- output normalization
-
-### 9.6 Orchestration Module
-- Host Agent
-- flow mode 判斷
-- agent selection
-- convergence logic
-
-### 9.7 LLM Module
-- provider adapter
-- routing abstraction
-- request / response normalize
-
-### 9.8 Deliverable Module
-- Recommendation 組裝
-- ActionItem 組裝
-- Deliverable 生成
+### 7.3 Industry packs
+Industry packs 應被視為正式能力層，不得退化為 tags。
 
 ---
 
-## 10. Agent 實作規則
+## 8. Codex 不應再怎麼做
 
-### 10.1 Host Agent
-Host Agent 不是普通 Agent。
-它是：
-- 任務分類器
-- 路由器
-- 收斂器
-- 品質控制員
-
-### 10.2 Core Agents
-Core Agents 應先做最小可行版，不要追求過度複雜人格化。
-
-### 10.3 Specialist Agents
-Specialist Agents 應先直接承接三個已定任務：
-- 合約審閱
-- 研究整理
-- 文件 / 提案重組
-
-### 10.4 Agent 是模組，不是寫死角色
-每個 Agent 至少應有：
-- `agent_id`
-- `agent_type`
-- `display_name`
-- `agent_category`
-- `supported_task_types`
-- `supported_flow_modes`
-- `required_inputs`
-- `produced_objects`
-- `default_model_policy`
-- `version`
-- `status`
-
-### 10.5 Agent 輸出規則
-Agent 輸出應優先落在 Ontology 物件裡，而不是只回一段 prose。
+Codex 不應：
+- 以少數已存在 flow 推回產品正式分類
+- 把 object 模型降成 task form 的附屬物
+- 把 UI 做成 admin panel 或 debug panel
+- 把多代理與 specialist 當兩套平行產品
+- 以「尚未做」為理由把正式層從架構中刪掉
 
 ---
 
-## 11. Ontology 實作規則
+## 9. 可以分波做，但要怎麼分
 
-Codex 不需要一開始做 graph database。
+可以分的是：
+- ontology object 的實作深度
+- UI surfaces 的完整程度
+- agent families 的落地數量
+- industry packs 的具體數量
 
-Codex 需要先做的是：
-- 12 類核心 domain models
-- 物件之間的最小可行關係
-- 可序列化與可保存
-- 可支撐 Task → Evidence → Insight / Risk / Option → Recommendation → ActionItem → Deliverable 這條主鏈
-
-### 11.1 不要做太大的本體宇宙
-- 不先做 Stakeholder 全景層
-- 不先做 Decision 獨立本體
-- 不先做完整產業包
-- 不先做完整知識圖譜
-
-### 11.2 檔案不是本體本身
-檔案 / 來源資料是本體物件的重要來源，尤其是：
-- TaskContext
-- Evidence
-- Insight
-- Risk
-- Option
+不可以分的是：
+- 這些層是否屬於產品正式架構
 
 ---
 
-## 12. 檔案與知識入口規則
+## 10. 多人系統能力是另一層
 
-這一層對 V1 很重要。
+以下屬於 multi-user system layer：
+- 登入
+- 權限
+- 多顧問協作
+- 多公司隔離
+- tenant governance
+- user-level credential management
 
-### 12.1 必要能力
-- 使用者可上傳檔案
-- 檔案可與 Task 關聯
-- 可由檔案形成 Evidence
-- Agent 能引用 Evidence
-
-### 12.2 預留但不完整實作
-- Google Drive 類型 connector interface
-- Notion 類型 connector interface
-- source metadata 結構
-
-### 12.3 不要現在就做爆
-- 不做完整同步平台
-- 不做超複雜索引
-- 不做跨專案全域搜尋
+它們可以後做，但不應反過來定義 Infinite Pro 是不是完整產品。
 
 ---
 
-## 13. 錯誤處理與降級規則
+## 11. Codex 的施工優先順序
 
-### 13.1 模型呼叫失敗
-- 記錄錯誤
-- 可重試一次
-- 若仍失敗，回報任務受限
+若要開始實作，優先順序應理解為：
 
-### 13.2 Agent 調用失敗
-- Host Agent 可改派備援流程
-- 或降級為較簡化流程
-
-### 13.3 Agent 輸出不合格
-- 先修正 / 重試
-- 仍失敗則降權或忽略
-- 不假裝結果完整無誤
-
-### 13.4 背景資料不足
-- 明確輸出待補資料 / 不確定性
-- 不硬湊答案
-
-### 13.5 來源資料不可用
-- 明確標示哪些檔案 / 來源未被成功納入
+1. governance alignment
+2. ontology / context spine
+3. Host orchestration spine
+4. workbench UI surfaces
+5. agent family expansion
+6. industry pack integration
+7. multi-user system layer later
 
 ---
 
-## 14. Codex 實作順序（請遵守）
+## 12. 文件結論
 
-### Phase 1
-- repo skeleton
-- docker compose
-- FastAPI / Next.js skeleton
-- PostgreSQL connection
+Codex 應把 Infinite Pro 視為：
 
-### Phase 2
-- Task / TaskContext / Evidence API
-- file upload
-- Task UI
+> **一套正式定義完整能力邊界、但按施工順序分批落地的單人顧問完整工作台。**
 
-### Phase 3
-- 12 類 ontology domain models
-- schema / validation
-- persistence mapping
-
-### Phase 4
-- Host Agent 最小版
-- 3 個 Specialist Agents 最小版
-- Specialist Flow 跑通
-
-### Phase 5
-- Host orchestration 升級
-- 4 個 Core Agents
-- Multi-Agent Flow 跑通
-
-### Phase 6
-- Task history
-- Deliverable review UI
-- 基本 logging / error handling
-
-如果遇到取捨，優先保主流程，不要先做花俏功能。
-
----
-
-## 15. UI / UX 基本規則
-
-V1 是 personal workbench，不是企業控制台。
-
-### 必須有
-- 清楚的 Task 建立
-- 清楚的檔案 / context 附加
-- 清楚的 structured outputs
-- 清楚的 task history
-
-### 先不要有
-- 超多 admin controls
-- 複雜多人協作介面
-- 過度企業感操作流程
-
----
-
-## 16. 測試與驗收規則
-
-每次完成一個功能，至少要驗證：
-- Task creation 還能跑
-- 背景與檔案仍能附加
-- Host orchestration 仍能執行
-- Structured outputs 仍能回來
-- Task history 仍能保存
-- 沒有新邏輯繞過 model abstraction layer
-
-如果功能涉及 orchestration / ontology，至少要測：
-- 一個 specialist flow
-- 一個 complex convergence flow
-
----
-
-## 17. 改動控制規則
-
-Codex 在改動時應遵守：
-- diff 要小
-- refactor 與新功能儘量分開
-- 不要隨意更名 major concepts
-- 不要偷偷擴 scope
-- 若文件未確認，不要自行發明新產品方向
-
-如果需求與目前 MVP 文件衝突，應採最窄實作版本。
-
----
-
-## 18. 什麼叫成功
-
-對 Codex 來說，V1 的成功不是：
-- 看起來像完整平台
-- 有很多 Agent
-- 有很炫的 UI
-
-而是：
-1. 使用者能建立任務
-2. 能附加背景與檔案
-3. 能跑 specialist 或 multi-agent flow
-4. 能得到 structured result
-5. 能回頭在 history 中重看成果
-6. 系統看起來像 workbench，而不是另一個聊天框
-
----
-
-## 19. 最後一句話
-
-如果你不確定該做什麼，請回到這個原則：
-
-> **先把底座做對，先把主流程跑通，先讓一個人真的能用，再談宇宙級擴張。**
+從這一刻起，不再以 MVP 思維規劃這個產品。
