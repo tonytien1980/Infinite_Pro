@@ -59,6 +59,17 @@ export interface ActionItemCardView {
   dependencies: string[];
 }
 
+export interface DecisionSnapshotView {
+  conclusionLabel: string;
+  recommendationLabel: string;
+  riskLabel: string;
+  missingDataLabel: string;
+  conclusion: string;
+  primaryRecommendation: string;
+  primaryRisk: string;
+  missingDataStatus: string;
+}
+
 function isExternalDataStrategyConstraint(constraint: Constraint) {
   return constraint.constraint_type === "external_data_strategy";
 }
@@ -556,6 +567,63 @@ export function buildActionItemCards(
       sequence: inferActionSequence(item.priority, item.due_hint),
       dependencies: item.dependency_refs,
     }));
+}
+
+function buildMissingDataStatus(missingInformation: string[]) {
+  if (missingInformation.length === 0) {
+    return "否，目前沒有被明確標記的重大缺漏資料。";
+  }
+
+  return `是，目前仍有 ${missingInformation.length} 項缺漏；優先補充：${missingInformation[0]}`;
+}
+
+export function buildDecisionSnapshot(
+  task: TaskAggregate,
+  deliverable: Deliverable | null,
+): DecisionSnapshotView {
+  const executiveSummary = buildExecutiveSummary(task, deliverable);
+  const recommendations = buildRecommendationCards(task, deliverable);
+  const risks = buildRiskCards(task, deliverable);
+  const missingInformation = getStructuredStringList(deliverable, "missing_information");
+  const workflowKey = resolveWorkflowKey(task.task_type, task.mode);
+
+  const labelsByMode: Record<WorkflowKey, Omit<DecisionSnapshotView, "conclusion" | "primaryRecommendation" | "primaryRisk" | "missingDataStatus">> = {
+    research_synthesis: {
+      conclusionLabel: "一句話研究結論",
+      recommendationLabel: "最重要建議",
+      riskLabel: "最主要風險",
+      missingDataLabel: "是否仍有重大研究缺口",
+    },
+    contract_review: {
+      conclusionLabel: "一句話審閱結論",
+      recommendationLabel: "最重要 redline 建議",
+      riskLabel: "最主要高風險議題",
+      missingDataLabel: "是否仍缺關鍵附件 / 條款",
+    },
+    document_restructuring: {
+      conclusionLabel: "一句話重組判斷",
+      recommendationLabel: "最重要重組建議",
+      riskLabel: "最主要重構風險",
+      missingDataLabel: "是否仍有重大缺稿或缺資訊",
+    },
+    multi_agent: {
+      conclusionLabel: "一句話收斂結論",
+      recommendationLabel: "最重要建議 / 優先路徑",
+      riskLabel: "最主要決策風險",
+      missingDataLabel: "是否仍缺重大決策資料",
+    },
+  };
+
+  const labels = labelsByMode[workflowKey];
+
+  return {
+    ...labels,
+    conclusion: executiveSummary.coreJudgment || "目前尚未形成可供決策的核心判斷。",
+    primaryRecommendation:
+      recommendations[0]?.content || "目前尚未形成可直接採用的建議，建議先查看完整交付物。",
+    primaryRisk: risks[0]?.content || "目前尚未標記明確的主要風險。",
+    missingDataStatus: buildMissingDataStatus(missingInformation),
+  };
 }
 
 export function buildExecutiveSummary(task: TaskAggregate, deliverable: Deliverable | null) {

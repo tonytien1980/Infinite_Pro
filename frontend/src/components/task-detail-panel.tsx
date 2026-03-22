@@ -8,6 +8,7 @@ import { getTask, runTask } from "@/lib/api";
 import {
   assessTaskReadiness,
   buildActionItemCards,
+  buildDecisionSnapshot,
   buildExternalDataUsage,
   buildExecutiveSummary,
   buildRecommendationCards,
@@ -305,6 +306,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
     task && latestDeliverable ? getModeSpecificResultSections(task, latestDeliverable) : [];
   const visibleConstraints = task ? getVisibleConstraints(task.constraints) : [];
   const externalDataUsage = task ? buildExternalDataUsage(task, latestDeliverable) : null;
+  const decisionSnapshot = task ? buildDecisionSnapshot(task, latestDeliverable) : null;
   const recommendationCards = task ? buildRecommendationCards(task, latestDeliverable) : [];
   const riskCards = task ? buildRiskCards(task, latestDeliverable) : [];
   const actionItemCards = task ? buildActionItemCards(task, latestDeliverable) : [];
@@ -349,6 +351,55 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
 
           <div className="detail-grid">
             <div className="detail-stack">
+              <section className="panel">
+                <div className="panel-header">
+                  <div>
+                    <h2 className="panel-title">Decision Snapshot</h2>
+                    <p className="panel-copy">
+                      先用 10 秒掌握這次分析的核心結論，再決定是否往下看完整交付內容。
+                    </p>
+                  </div>
+                </div>
+                {decisionSnapshot ? (
+                  <div className="snapshot-grid">
+                    <div className="section-card">
+                      <h4>{decisionSnapshot.conclusionLabel}</h4>
+                      <ExpandableText
+                        text={decisionSnapshot.conclusion}
+                        emptyText="尚未產生一句話結論。"
+                        previewChars={180}
+                      />
+                    </div>
+                    <div className="section-card">
+                      <h4>{decisionSnapshot.recommendationLabel}</h4>
+                      <ExpandableText
+                        text={decisionSnapshot.primaryRecommendation}
+                        emptyText="尚未產生最重要建議。"
+                        previewChars={180}
+                      />
+                    </div>
+                    <div className="section-card">
+                      <h4>{decisionSnapshot.riskLabel}</h4>
+                      <ExpandableText
+                        text={decisionSnapshot.primaryRisk}
+                        emptyText="尚未標記主要風險。"
+                        previewChars={180}
+                      />
+                    </div>
+                    <div className="section-card">
+                      <h4>{decisionSnapshot.missingDataLabel}</h4>
+                      <ExpandableText
+                        text={decisionSnapshot.missingDataStatus}
+                        emptyText="目前沒有重大缺漏資料狀態。"
+                        previewChars={180}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <p className="empty-text">尚未產生 Decision Snapshot。</p>
+                )}
+              </section>
+
               <section className="panel">
                 <div className="panel-header">
                   <div>
