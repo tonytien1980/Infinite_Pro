@@ -10,7 +10,7 @@
 
 這份文件不是願景摘要，而是：
 
-> **讓 Codex 一進 repo，就知道 Infinite Pro 現在不再以 MVP 思維施工，而是以單人顧問完整工作台思維施工。**
+> **讓 Codex 一進 repo，就知道 Infinite Pro 現在應以單人顧問完整工作台思維施工。**
 
 ---
 
@@ -29,7 +29,7 @@
 - multi-user later
 
 ### 2.4 絕對不要再用的舊思路
-- 用 MVP 當產品能力邊界
+- 用縮小版產品邊界當正式產品能力邊界
 - 先只做少數 domain / 少數 mode 作為正式產品定義
 - 把 ontology / Host / industry packs 當後補功能
 - 把 3 個 specialist flows 當正式產品分類
@@ -58,7 +58,7 @@
 
 Infinite Pro 不是：
 - 小型 chat app
-- 少數 flow 的 MVP
+- 少數 flow 組成的縮小版產品
 - 幾個 specialist 工具拼在一起的產品
 
 Infinite Pro 是：
@@ -213,4 +213,4 @@ Codex 應把 Infinite Pro 視為：
 
 > **一套正式定義完整能力邊界、但按施工順序分批落地的單人顧問完整工作台。**
 
-從這一刻起，不再以 MVP 思維規劃這個產品。
+從這一刻起，應以完整單人顧問工作台思維規劃這個產品。

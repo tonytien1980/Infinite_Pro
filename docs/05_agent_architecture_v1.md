@@ -1,8 +1,8 @@
 # 05_agent_architecture_v1.md
 
-> 文件狀態：Governance Reset v2.0（正式 Agent 架構文件）
+> 文件狀態：Governance Reset v2.1（正式 Agent 架構文件）
 >
-> 本文件延續既有檔名以維持文件索引穩定，但內容已改為支撐 Infinite Pro 的 **Single-Consultant Full-Scope Edition**，不再以少量 Agent 與 MVP flow 當作正式產品上限。
+> 本文件延續既有檔名以維持文件索引穩定，但內容已改為支撐 Infinite Pro 的 **Single-Consultant Full-Scope Edition**，不再以少量 Agent 與早期 flow 當作正式產品上限。
 
 ---
 

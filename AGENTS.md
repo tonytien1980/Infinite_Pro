@@ -42,12 +42,8 @@ Formal planning posture:
 Meaning:
 - the product must be planned to cover the **full working scope of one consultant**
 - implementation order may be phased
-- capability boundaries must **not** be artificially shrunk to an MVP-only product concept
+- capability boundaries must **not** be artificially shrunk into a reduced product concept
 - multi-user, multi-company, and multi-tenant system concerns are later layers, not the definition of the product itself
-
-Legacy references to `AI Advisory OS` may remain in older documents or internal code/package names until an explicit rename pass is requested.
-
----
 
 ## 3. Product scope principle
 
@@ -309,7 +305,7 @@ These are later layers, not the current product boundary:
 - per-user API key management
 - large enterprise admin features
 
-Do not confuse "not doing multi-user yet" with "shrinking the product into a small MVP."
+Do not confuse "not doing multi-user yet" with shrinking the product into a reduced-scope implementation.
 
 ---
 
@@ -387,7 +383,7 @@ When making changes:
 - avoid mixing unrelated refactors with new behavior
 - document new architectural assumptions when they affect later work
 - do not casually rename major concepts
-- do not reintroduce MVP framing as the product boundary
+- do not reintroduce reduced-scope framing as the product boundary
 
 If a requested change conflicts with the full-scope single-consultant architecture, implement the narrowest change that still preserves the architecture boundary, or flag the conflict clearly.
 

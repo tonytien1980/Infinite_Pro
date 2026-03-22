@@ -1,8 +1,8 @@
 # 06_system_architecture_v1.md
 
-> 文件狀態：Governance Reset v2.0（正式系統架構文件）
+> 文件狀態：Governance Reset v2.1（正式系統架構文件）
 >
-> 本文件延續既有檔名以維持文件索引穩定，但內容已改為支撐 Infinite Pro 的 **Single-Consultant Full-Scope Edition**。本文件不再以 V1 / MVP 作為產品能力邊界。
+> 本文件延續既有檔名以維持文件索引穩定，但內容已改為支撐 Infinite Pro 的 **Single-Consultant Full-Scope Edition**。
 
 ---
 
@@ -225,11 +225,11 @@ Infinite Pro 的正式系統流可理解為：
 
 ---
 
-## 7. 舊式 V1 / MVP thinking 需要移除的地方
+## 7. 舊式縮小版產品思維需要移除的地方
 
 以下觀念不應再作為系統架構規劃依據：
 - 系統只先需要最小 ontology
-- 一開始只需要少數 specialist flow
+- 一開始只需要少數既有 flow
 - 4 core agents + 3 specialists 是正式上限
 - UI 只要 task form + result page
 - industry packs 先不算正式層
@@ -279,7 +279,7 @@ Infinite Pro 的正式系統流可理解為：
 
 後續 Codex 或工程實作，必須遵守：
 
-1. 不再以 MVP 邏輯縮小正式能力邊界
+1. 不再以縮小版產品邏輯縮小正式能力邊界
 2. 不再把單人版理解成縮水版
 3. 不再把 industry packs、ontology、Host、workbench 視為後補
 4. 不再把 mode 清單當成產品主結構

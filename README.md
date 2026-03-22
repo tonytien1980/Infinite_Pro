@@ -9,12 +9,10 @@ The formal planning posture is now:
 That means:
 - the product capability boundary is defined from day one around the **full working reality of one consultant**
 - implementation order may be phased
-- capability boundaries should **not** be artificially reduced to an MVP-only product definition
+- capability boundaries should **not** be artificially reduced into a smaller product definition
 - multi-user, multi-company, multi-tenant, and team-governance concerns are later system layers
 
 The highest-priority product definition lives in [`docs/09_infinite_pro_core_definition.md`](/Users/tonytien/Desktop/Infinite%20Pro/docs/09_infinite_pro_core_definition.md). Governance and implementation documents in [`docs/02_product_scope_v1.md`](/Users/tonytien/Desktop/Infinite%20Pro/docs/02_product_scope_v1.md) through [`docs/08_codex_handoff.md`](/Users/tonytien/Desktop/Infinite%20Pro/docs/08_codex_handoff.md) should be read as the official full-scope planning baseline, even when their filenames still contain `v1` or `mvp`.
-
-Legacy references to `AI Advisory OS` may still remain in older docs or internal code paths until a dedicated rename pass is requested.
 
 ## Product positioning
 
@@ -123,7 +121,7 @@ The repository currently contains a working early implementation slice within th
 - provider abstraction with `mock` and `openai`
 - Traditional Chinese as the default UI language
 
-The implementation is **not yet complete relative to the full-scope product boundary**. However, the governance baseline no longer treats that gap as an MVP definition. It is now treated as an implementation-order gap inside a full-scope architecture.
+The implementation is **not yet complete relative to the full-scope product boundary**. That gap should be understood as an implementation-order gap inside a full-scope architecture, not as a smaller product definition.
 
 ## Repository structure
 
@@ -253,7 +251,7 @@ npm run typecheck
 ## Governance note
 
 From this point forward, planning and implementation should not use:
-- MVP as the product boundary
+- a reduced-scope product definition as the product boundary
 - narrow specialist lists as the formal product category system
 - minimal ontology as the final architectural meaning of Infinite Pro
 

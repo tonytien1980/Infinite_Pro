@@ -1,8 +1,8 @@
 # 02_product_scope_v1.md
 
-> 文件狀態：Governance Reset v2.0（正式產品範圍文件）
+> 文件狀態：Governance Reset v2.1（正式產品範圍文件）
 >
-> 本文件延續既有檔名以維持文件索引穩定，但內容已不再採用「V1 / MVP 作為產品能力邊界」的規劃方式。
+> 本文件延續既有檔名以維持文件索引穩定，但內容已完全對齊 Infinite Pro 的正式 full-scope 單人版治理前提。
 
 ---
 
@@ -28,7 +28,7 @@ Infinite Pro 現在應被定義為：
 這代表：
 - 產品一開始就要完整承接單一顧問的工作需求
 - ontology、Host Agent、multiple specialist agents、industry packs、consulting workbench UI 都屬於正式主架構
-- 可以分批實作，但不能把能力邊界縮成小型 MVP
+- 可以分批實作，但不能把能力邊界縮成較小的產品定義
 - 現階段只限制使用拓撲為單人，不限制產品能力範圍
 
 ---
@@ -45,7 +45,7 @@ Infinite Pro 的規劃方式應改為：
 - 多人系統能力之後再做
 
 不再採用：
-- 以 MVP 作為產品能力邊界
+- 以縮小版產品邊界思維來定義正式產品
 - 先只做少數 domain / 少數 mode 作為正式產品範圍
 - 先把 ontology / Host / industry packs 降成後補項目
 
@@ -226,7 +226,7 @@ Infinite Pro 之後仍可以分波實作，但分的是：
 
 後續 Ontology、Agent、系統架構、施工文件與 Codex handoff 都應遵守以下原則：
 
-1. 不再使用 MVP 作為產品能力邊界
+1. 不再使用縮小版產品邊界作為正式能力邊界
 2. 不再把少數 domain / 少數 mode 當成正式產品上限
 3. 不再把最小 ontology 視為最終主骨架
 4. 不再把 3 個 specialist flows 當成正式產品分類

@@ -1,8 +1,8 @@
 # 07_mvp_build_plan.md
 
-> 文件狀態：Governance Reset v2.0（正式施工順序文件）
+> 文件狀態：Governance Reset v2.1（正式施工順序文件）
 >
-> 本文件延續既有檔名以維持文件索引穩定，但內容已不再以 MVP build plan 的思路規劃 Infinite Pro，而是改為：
+> 本文件延續既有檔名以維持文件索引穩定，但內容已不再以縮小版產品 build plan 的思路規劃 Infinite Pro，而是改為：
 >
 > **full-scope by capability + phased by implementation order**
 
@@ -32,7 +32,7 @@ Infinite Pro 的施工原則應改為：
 
 不再採用：
 - 先做最小功能集合
-- 先只做少數 domain / 少數 mode 當正式產品
+- 先只做少數 domain / 少數 mode 當正式產品定義
 - 先把 ontology / Host / packs 當未來擴充
 
 ---
@@ -183,7 +183,7 @@ Infinite Pro 的施工原則應改為：
 ## 8. 施工時的禁止事項
 
 施工時不要再：
-- 以 MVP 語言決定能力是否存在
+- 以縮小版產品語言決定能力是否存在
 - 以「先只做幾個 specialist flow」當產品分類
 - 以最小 ontology 當長期主骨架
 - 以少數 agents 當正式上限
