@@ -95,10 +95,21 @@ button {
   display: grid;
   grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
   gap: 24px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.workbench-grid > *,
+.detail-grid > * {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .panel {
   padding: 24px;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .panel-header {
@@ -107,6 +118,13 @@ button {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 18px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.panel-header > * {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .panel-title {
@@ -156,6 +174,8 @@ button {
 .ontology-grid {
   display: grid;
   gap: 16px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .field-grid,
@@ -167,6 +187,8 @@ button {
   display: grid;
   gap: 16px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-width: 0;
+  max-width: 100%;
 }
 
 .field small {
@@ -251,6 +273,8 @@ button {
 .section-list {
   display: grid;
   gap: 14px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .history-item,
@@ -260,6 +284,9 @@ button {
   border-radius: 20px;
   padding: 16px;
   background: rgba(255, 255, 255, 0.7);
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .history-item h3,
@@ -275,6 +302,8 @@ button {
   flex-wrap: wrap;
   color: var(--muted);
   font-size: 0.9rem;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .pill {
@@ -303,6 +332,8 @@ button {
 .detail-stack {
   display: grid;
   gap: 24px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .disclosure-panel {
@@ -318,6 +349,13 @@ button {
   gap: 16px;
   padding: 24px;
   cursor: pointer;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.disclosure-summary > * {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .disclosure-summary::-webkit-details-marker,
@@ -333,6 +371,9 @@ button {
   display: grid;
   gap: 16px;
   padding: 20px 24px 24px;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .inline-list {
@@ -344,11 +385,15 @@ button {
 .expandable-copy {
   display: grid;
   gap: 10px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .inline-disclosure {
   display: grid;
   gap: 10px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .inline-disclosure-summary {
@@ -362,12 +407,37 @@ button {
   color: var(--ink);
   line-height: 1.7;
   white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .list-content {
   margin: 0;
   padding-left: 20px;
   line-height: 1.7;
+  min-width: 0;
+  max-width: 100%;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.list-content li,
+.page-subtitle,
+.panel-copy,
+.status-text,
+.empty-text,
+.muted-text,
+.error-text,
+.success-text,
+.meta-row span,
+.meta-row a,
+.pill {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .json-block {
@@ -377,6 +447,11 @@ button {
   background: rgba(34, 23, 15, 0.06);
   overflow-x: auto;
   font-size: 0.92rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .readiness-card {
@@ -432,6 +507,9 @@ button {
   border-radius: 18px;
   padding: 14px;
   background: rgba(255, 255, 255, 0.72);
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .ontology-card h3 {
