@@ -70,6 +70,14 @@ export interface DecisionSnapshotView {
   missingDataStatus: string;
 }
 
+export interface TaskFramingView {
+  summary: string;
+  judgmentToMake: string;
+  analysisFocus: string;
+  sourcePriority: string;
+  externalDataPolicy: string;
+}
+
 function isExternalDataStrategyConstraint(constraint: Constraint) {
   return constraint.constraint_type === "external_data_strategy";
 }
@@ -442,6 +450,133 @@ export function getStructuredStringList(deliverable: Deliverable | null, key: st
   return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
 }
 
+function takeFirst(items: string[], fallback = "") {
+  return items.find((item) => item.trim()) ?? fallback;
+}
+
+function joinNaturalList(items: string[]) {
+  const normalized = items.map((item) => item.trim()).filter(Boolean);
+  if (normalized.length === 0) {
+    return "";
+  }
+  if (normalized.length === 1) {
+    return normalized[0];
+  }
+  return `${normalized.slice(0, -1).join("、")} 與 ${normalized.at(-1)}`;
+}
+
+function buildDefaultJudgment(task: TaskAggregate) {
+  if (task.mode === "multi_agent") {
+    return "把這個複雜問題收斂成可採用的決策方向、主要風險與下一步。";
+  }
+
+  if (task.task_type === "contract_review") {
+    return "先判斷這份合約中最需要優先處理的風險、修改方向與缺口。";
+  }
+
+  if (task.task_type === "document_restructuring") {
+    return "先判斷如何把現有內容重組成更清楚、可直接交付的版本。";
+  }
+
+  return "先把現有資料整理成可供判斷的發現、洞察與建議。";
+}
+
+function buildExternalDataPolicyDescription(task: TaskAggregate) {
+  if (task.external_data_strategy === "strict") {
+    return "這輪分析只使用你提供的背景、來源與附件，不主動補外部資料。";
+  }
+
+  if (task.external_data_strategy === "latest") {
+    return "這輪分析會優先補充最新外部資訊，再與你提供的材料一起判斷。";
+  }
+
+  return "這輪分析會先使用你提供的資料；若證據不足，Host 可視需要補充外部資料。";
+}
+
+function buildSourcePriority(task: TaskAggregate) {
+  const latestContext = task.contexts[0];
+  const sourcePhrases: string[] = [];
+
+  if (task.description.trim()) {
+    sourcePhrases.push("你的原始問題");
+  }
+  if (latestContext?.summary?.trim()) {
+    sourcePhrases.push("背景脈絡");
+  }
+  if (latestContext?.notes?.trim()) {
+    sourcePhrases.push("已知資料整理");
+  }
+  if (task.uploads.length > 0) {
+    sourcePhrases.push(`${task.uploads.length} 份來源 / 附件`);
+  }
+  if (task.evidence.length > 0) {
+    sourcePhrases.push(`${task.evidence.length} 則已整理證據`);
+  }
+
+  if (sourcePhrases.length === 0) {
+    return "目前主要只能依賴你的問題描述做第一輪判斷，建議補一些背景或原始資料。";
+  }
+
+  return `系統會優先使用 ${joinNaturalList(sourcePhrases)}，再把可用材料整理進同一份案件脈絡中。`;
+}
+
+function buildAnalysisFocus(task: TaskAggregate) {
+  const subjectNames = task.subjects.map((subject) => subject.name).filter(Boolean);
+  const successCriteria = getGoalSuccessCriteria(task.goals);
+  const visibleConstraints = getVisibleConstraints(task.constraints);
+  const focusParts: string[] = [];
+
+  if (subjectNames.length > 0) {
+    focusParts.push(`優先聚焦 ${joinNaturalList(subjectNames)}`);
+  }
+
+  if (successCriteria.length > 0) {
+    focusParts.push(`並以 ${joinNaturalList(successCriteria.slice(0, 2))} 作為主要判斷標準`);
+  }
+
+  if (visibleConstraints.length > 0) {
+    focusParts.push(`同時納入 ${visibleConstraints.length} 項限制條件`);
+  }
+
+  if (focusParts.length === 0) {
+    return "這輪會先把問題定義、現有證據與缺漏資訊收斂成可採用的判斷骨架。";
+  }
+
+  return `${focusParts.join("，")}。`;
+}
+
+export function buildTaskFraming(
+  task: TaskAggregate,
+  readiness: ReadinessAssessment,
+): TaskFramingView {
+  const latestContext = task.contexts[0];
+  const primaryGoal = takeFirst(
+    task.goals.map((goal) => goal.description),
+    buildDefaultJudgment(task),
+  );
+  const subjectNames = task.subjects.map((subject) => subject.name).filter(Boolean);
+  const summarySegments = [
+    subjectNames.length > 0 ? `系統目前理解，這次是圍繞 ${joinNaturalList(subjectNames)} 的判斷任務。` : "",
+    `主要目的是 ${primaryGoal}`,
+    readiness.level === "ready"
+      ? "目前資料厚度足以支撐第一輪決策判斷。"
+      : readiness.level === "caution"
+        ? "目前可以先形成第一輪判斷，但部分結論仍需補證。"
+        : "目前只能先形成帶缺漏註記的第一輪判斷。",
+  ].filter(Boolean);
+
+  return {
+    summary: summarySegments.join(" "),
+    judgmentToMake: primaryGoal,
+    analysisFocus: buildAnalysisFocus(task),
+    sourcePriority: buildSourcePriority(task),
+    externalDataPolicy:
+      latestContext?.notes?.trim() || task.uploads.length > 0 || task.evidence.length > 0
+        ? buildExternalDataPolicyDescription(task)
+        : `${buildExternalDataPolicyDescription(task)} 目前可用資料仍偏少，建議先補上至少一份可引用材料。`,
+  };
+}
+
 function getStructuredObjectList(deliverable: Deliverable | null, key: string) {
   const value = deliverable?.content_structure?.[key];
   if (!Array.isArray(value)) {
@@ -585,39 +720,12 @@ export function buildDecisionSnapshot(
   const recommendations = buildRecommendationCards(task, deliverable);
   const risks = buildRiskCards(task, deliverable);
   const missingInformation = getStructuredStringList(deliverable, "missing_information");
-  const workflowKey = resolveWorkflowKey(task.task_type, task.mode);
-
-  const labelsByMode: Record<WorkflowKey, Omit<DecisionSnapshotView, "conclusion" | "primaryRecommendation" | "primaryRisk" | "missingDataStatus">> = {
-    research_synthesis: {
-      conclusionLabel: "一句話研究結論",
-      recommendationLabel: "最重要建議",
-      riskLabel: "最主要風險",
-      missingDataLabel: "是否仍有重大研究缺口",
-    },
-    contract_review: {
-      conclusionLabel: "一句話審閱結論",
-      recommendationLabel: "最重要 redline 建議",
-      riskLabel: "最主要高風險議題",
-      missingDataLabel: "是否仍缺關鍵附件 / 條款",
-    },
-    document_restructuring: {
-      conclusionLabel: "一句話重組判斷",
-      recommendationLabel: "最重要重組建議",
-      riskLabel: "最主要重構風險",
-      missingDataLabel: "是否仍有重大缺稿或缺資訊",
-    },
-    multi_agent: {
-      conclusionLabel: "一句話收斂結論",
-      recommendationLabel: "最重要建議 / 優先路徑",
-      riskLabel: "最主要決策風險",
-      missingDataLabel: "是否仍缺重大決策資料",
-    },
-  };
-
-  const labels = labelsByMode[workflowKey];
 
   return {
-    ...labels,
+    conclusionLabel: "一句話結論",
+    recommendationLabel: "最重要建議",
+    riskLabel: "最主要風險",
+    missingDataLabel: "是否仍有重大缺漏資料",
     conclusion: executiveSummary.coreJudgment || "目前尚未形成可供決策的核心判斷。",
     primaryRecommendation:
       recommendations[0]?.content || "目前尚未形成可直接採用的建議，建議先查看完整交付物。",
