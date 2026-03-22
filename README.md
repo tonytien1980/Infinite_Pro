@@ -28,6 +28,11 @@ Infinite Pro is:
 - a platform that must eventually cover a single consultant's full work scope
 - a system designed around objects, evidence, decisions, deliverables, and history
 
+In this system, ontology should be understood as:
+- the shared world model
+- the operational layer for core consulting objects and relationships
+- the semantic foundation shared by Host, agents, industry packs, work surfaces, and deliverable generation
+
 ## Full-scope capability boundary
 
 The formal product boundary already includes:

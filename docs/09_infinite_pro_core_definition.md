@@ -61,25 +61,32 @@ Infinite Pro 的核心原則是：
 ## 4. Ontology 的正式角色
 
 在 Infinite Pro 中，ontology 不是：
-- 資料庫同義詞
+- 資料表或 schema 的同義詞
+- 單純知識庫
 - 單純分類表
 - prompt 模板集合
+- 功能列表
+- mode 清單
+- UI 本身
+- industry pack 本身
+- deliverable 本身
 
 Ontology 是這套系統的：
 
-> **共享世界模型（shared world model）與結構化思考骨架（structured reasoning skeleton）**
+> **共享世界模型（shared world model）、結構化思考骨架（structured reasoning skeleton），以及承載顧問案件 objects / properties / links / actions / functions / decision context 的操作層。**
 
-它的作用包括：
+它的正式作用包括：
 - 定義系統如何理解 client、engagement、workstream、task 與 decision context
-- 定義 artifact、evidence、risk、option、recommendation、deliverable 之間的關係
-- 讓 Host 與各種 agents 共用同一套分析語境
-- 支撐 industry packs 的正式擴充
+- 定義 artifact、source material、evidence、risk、option、recommendation、deliverable 之間的正式關係
+- 作為 Host、specialist agents、reasoning agents、industry packs、workbench UI 的共同語義底座
+- 作為 deliverable generation 的來源底座，而不是 deliverable 本身
 - 支撐 structured outputs、history、traceability 與多 agent 收斂
 
 請不要把 ontology 簡化成：
 - 一組欄位
 - 一套 mode 下拉選單
 - 一組 prompt 變數
+- 一份 UI 導覽表
 
 ---
 
@@ -120,7 +127,7 @@ Infinite Pro 的工作世界至少應圍繞以下主鏈理解：
 ## 6. 系統角色分工
 
 ### Ontology
-定義系統如何理解世界、任務、資料、判斷與交付。
+定義系統如何理解世界、任務、資料、判斷與交付，並提供共同的 objects / properties / links / actions / functions / decision context 操作層。
 
 ### Host
 作為唯一 orchestration center，負責：
@@ -156,6 +163,13 @@ Infinite Pro 的工作世界至少應圍繞以下主鏈理解：
 ### Deliverable
 是顧問級產出，不只是模型回覆文字；應可被保存、回看、討論、修改與後續行動使用。
 
+### 各層邊界的正式理解
+- Ontology Layer：定義共同世界與操作語義
+- Context Layer：提供本次分析與判斷所需的 stage / type / lens / goals / constraints / assumptions
+- Agent Layer：在共同 ontology 上執行 diagnosis、review、synthesis、convergence 等能力
+- Industry Pack Layer：在共同 ontology 上做 domain / industry / stage 擴充
+- Workbench / UI Layer：把 ontology objects、relationships、actions 與 deliverables 以可操作方式呈現
+
 ---
 
 ## 7. 輸出物件治理原則
@@ -163,6 +177,10 @@ Infinite Pro 的工作世界至少應圍繞以下主鏈理解：
 Infinite Pro 的輸出不應只停留在「看起來像分析結果」的文字段落，而應盡量接近可採用的顧問交付物。
 
 在既有 ontology 主鏈之上，`Recommendation`、`Risk` 與 `ActionItem` 應具備最低限度的可執行資訊。這些規則是正式輸出治理原則的一部分；後續若調整 schema，應做的是收斂與深化，而不是退回聊天式長文。
+
+也就是說：
+- deliverable generation 應建立在 ontology object chain 之上
+- output shaping 可以調整，但不應脫離 shared world model
 
 ### Recommendation
 每筆 recommendation 不應只是一句泛用建議，而應盡量具備：

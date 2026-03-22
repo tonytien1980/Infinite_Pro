@@ -117,7 +117,7 @@ These are also first-class, not later add-ons:
 At a minimum, implementation should preserve the following conceptual shape:
 
 ### 5.1 Ontology Layer
-This is the shared world model and structured reasoning skeleton.
+This is the shared world model, structured reasoning skeleton, and operational layer for objects, properties, links, actions, functions, and decision context.
 
 ### 5.2 Context Layer
 This carries:
@@ -178,6 +178,7 @@ Plan around:
 - properties
 - links
 - actions
+- functions
 - workflows
 - decision context
 

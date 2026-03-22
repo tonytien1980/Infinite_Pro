@@ -24,12 +24,24 @@
 
 Ontology 在 Infinite Pro 中不是：
 - 資料庫同義詞
+- 單純知識庫
 - prompt 模板集合
+- 功能列表
+- mode taxonomy
 - UI 欄位分類表
+- deliverable 本身
+- industry pack 本身
 
 Ontology 是：
 
-> **顧問工作世界的共享世界模型（shared world model）與結構化思考骨架（structured reasoning skeleton）。**
+> **顧問工作世界的共享世界模型（shared world model）、結構化思考骨架（structured reasoning skeleton），以及承載顧問案件 objects / properties / links / actions / functions / decision context 的操作層。**
+
+它是：
+- Host Agent 的共同語義底座
+- specialist / reasoning agents 的共同語義底座
+- industry packs 的共同語義底座
+- workbench UI 的共同語義底座
+- deliverable generation 的來源底座
 
 它至少要同時支撐：
 - 顧問案件的上下文
@@ -55,14 +67,45 @@ Infinite Pro 不應只用 mode 與頁面來定義產品。
 Ontology 是 Host orchestration 與 multiple agents 的共同語境。
 
 ### 3.4 讓 deliverable 與 history 建立在 object chain 上
-Deliverable 不是自由文字終點，而是 object chain 的可回看成果。
+Deliverable 不是 ontology 本身，而是建立在 ontology object chain 之上的可回看成果。
 
 ### 3.5 支撐 industry packs，而不是被 industry packs 取代
 industry pack 是 ontology 的擴充，不是另一套平行系統。
 
+### 3.6 Ontology 是操作層，不是靜態名詞表
+Ontology 不只定義物件名稱，也要定義：
+- 哪些 objects 可被操作
+- 哪些 properties 可被讀寫
+- 哪些 links 代表正式關係
+- 哪些 actions / functions 能改變 decision context 與 deliverable generation
+
 ---
 
-## 4. 正式 core object families
+## 4. Ontology 與其他層的邊界
+
+### 4.1 Ontology Layer 與 Context Layer 的差異
+- Ontology Layer 定義世界中有哪些正式 objects、properties、links、actions、functions
+- Context Layer 則提供本次判斷的脈絡變數，例如 client stage、client type、domain lens、goal、constraint、assumption
+- Context 不是 ontology 的替代品，而是進入 ontology 操作層的正式輸入
+
+### 4.2 Ontology Layer 與 Agent Layer 的差異
+- Ontology Layer 定義 agents 共同工作的世界
+- Agent Layer 則在這個世界上執行 diagnosis、review、synthesis、convergence 等能力
+- Agent 不應自行發明一套平行世界模型
+
+### 4.3 Ontology Layer 與 Industry Pack Layer 的差異
+- Ontology Layer 是共同底座
+- Industry Pack Layer 是在共同底座上的正式擴充
+- industry pack 可以擴充 ontology，但不應取代 ontology
+
+### 4.4 Ontology Layer 與 Workbench / UI Layer 的差異
+- Ontology Layer 不是 UI 本身
+- Workbench / UI Layer 則負責把 ontology objects、relationships、actions、deliverables 以顧問可操作的方式呈現出來
+- UI 應反映 ontology，而不是反過來成為 ontology 的定義來源
+
+---
+
+## 5. 正式 core object families
 
 ## 4.1 Commercial / engagement objects
 
@@ -180,7 +223,7 @@ industry pack 是 ontology 的擴充，不是另一套平行系統。
 
 ---
 
-## 5. Core objects 與 supporting objects 的區分
+## 6. Core objects 與 supporting objects 的區分
 
 ### 5.1 Core objects
 以下物件必須從第一天就被正式納入架構：
@@ -215,7 +258,7 @@ industry pack 是 ontology 的擴充，不是另一套平行系統。
 
 ---
 
-## 6. Core links / relationships
+## 7. Core links / relationships
 
 Infinite Pro 的 ontology 不只是一組 objects，還需要明確 links。
 
@@ -239,7 +282,7 @@ Infinite Pro 的 ontology 不只是一組 objects，還需要明確 links。
 
 ---
 
-## 7. 正式 ontology 主鏈
+## 8. 正式 ontology 主鏈
 
 在完整單人顧問工作台前提下，主鏈不應只停留在：
 
@@ -253,7 +296,7 @@ Infinite Pro 的 ontology 不只是一組 objects，還需要明確 links。
 
 ---
 
-## 8. 第一波實作與第二波實作的正確區分
+## 9. 第一波實作與第二波實作的正確區分
 
 ### 8.1 第一波實作應優先落地
 - Task

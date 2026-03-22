@@ -45,6 +45,15 @@ Agent 的本質是：
 ### 3.3 Agent Layer 需建立在 ontology objects 上
 Agents 不應只吃 prompt 文字，而應建立在 shared objects / links / decision context 上工作。
 
+### 3.3.1 Ontology 與 Agent 的責任不能混在一起
+Ontology 負責定義共同世界與操作語義。
+Agent 則負責在這個共同世界上執行分析、審閱、收斂與交付 shaping。
+
+也就是說：
+- ontology 不是 agent behavior 的同義詞
+- agent 也不是 ontology 的替代品
+- agent output 應來自 ontology object chain，而不是平行 prompt 宇宙
+
 ### 3.4 少量已實作，不等於正式上限
 即使第一波只落地少數 agents，也不代表完整單人顧問版只需要那些 agents。
 
@@ -81,7 +90,7 @@ Host Agent 一開始就必須負責：
    - 解析 Task、DecisionContext、Goal、Constraint、Assumption、Audience
 
 2. **ontology mapping**
-   - 把使用者原始問題映射進 shared objects / links
+   - 把使用者原始問題映射進 shared objects / links / actions / decision context
 
 3. **workflow orchestration**
    - 判斷應採用什麼工作 archetype
@@ -101,6 +110,7 @@ Host Agent 一開始就必須負責：
 7. **convergence**
    - 整理 Insight、Risk、Option、Recommendation、ActionItem
    - 形成 deliverable-centric output
+   - 但 deliverable generation 的來源底座仍是 ontology，而不是 Host 臨時拼裝的自由文字
 
 8. **history writeback**
    - 將本輪執行與交付結果寫回系統歷史
@@ -209,6 +219,9 @@ Specialist agents 不應只被定義為目前已存在的 3 個 flow。
 ## 8. Execution modes 與 consulting capability 的區分
 
 Agent 架構不應再把 mode 與產品分類混在一起。
+
+同樣地，也不應把 mode taxonomy 誤當成 ontology 本身。
+mode 與 capability 是在 ontology world model 上執行的工作方式，不是世界模型本體。
 
 應區分：
 

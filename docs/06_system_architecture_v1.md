@@ -51,7 +51,7 @@ Infinite Pro 應正式以這六層作為主架構：
 ## 4.1 Ontology Layer
 
 ### 角色
-提供 shared world model 與 structured reasoning skeleton。
+提供 shared world model、structured reasoning skeleton，以及 objects / properties / links / actions / functions / decision context 的共同操作層。
 
 ### 正式承接
 - Client
@@ -71,6 +71,7 @@ Infinite Pro 應正式以這六層作為主架構：
 
 ### 原則
 系統不應只圍繞 task 與 mode 工作，而應圍繞 ontology objects 與 links 工作。
+Ontology Layer 不是知識庫、prompt system、industry pack 或 UI 本身，而是這些層共同依附的語義底座。
 
 ---
 

@@ -76,6 +76,12 @@ Infinite Pro 是：
 - deliverable-centric outputs
 - history and traceability
 
+在這裡，ontology 應被理解為：
+- shared world model
+- structured reasoning skeleton
+- objects / properties / links / actions / functions / decision context 的操作層
+- Host、agents、industry packs、workbench 與 deliverable generation 的共同語義底座
+
 ---
 
 ## 5. Codex 必須維持的正式六層主架構

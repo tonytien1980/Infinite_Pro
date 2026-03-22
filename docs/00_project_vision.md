@@ -40,6 +40,11 @@ Infinite Pro 是：
 - Host Agent orchestration 的決策與交付平台
 - 能夠承接單一顧問完整工作現實的 consulting workbench
 
+在這個定位下，ontology 不只是底層資料結構，而是：
+- 顧問工作世界的共享世界模型
+- 顧問工作物件與關係的操作層
+- Host、specialist agents、industry packs、workbench UI 與 deliverable generation 的共同語義底座
+
 ---
 
 ## 3. 一句話願景
@@ -92,7 +97,7 @@ Infinite Pro 的正式原則是：
    - 多人登入、協作、多租戶與治理屬於下一層系統能力。
 
 5. **ontology-first**
-   - 系統應以 objects、properties、links、actions、workflows、decision context 來建模，而不是先以功能頁與 mode 列表建模。
+   - 系統應以 objects、properties、links、actions、functions、workflows、decision context 來建模，而不是先以功能頁與 mode 列表建模。
 
 6. **Host Agent orchestration**
    - Host 必須作為唯一 orchestration center，負責理解任務、選擇能力、治理流程、收斂輸出。
@@ -164,6 +169,12 @@ Infinite Pro 應正式以六層主架構運作：
 - history persistence
 - traceability
 - deliverable-centric output shaping
+
+在這六層之中，Ontology Layer 的角色應被明確理解為：
+- 顧問工作世界的共享世界模型
+- Host、agents、industry packs、UI 的共同語義底座
+- 顧問案件 objects 與 links 的操作層
+- deliverable generation 的來源底座，而不是 deliverable 本身
 
 ---
 
