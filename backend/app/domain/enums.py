@@ -19,6 +19,26 @@ class CapabilityArchetype(str, Enum):
     RISK_SURFACING = "risk_surfacing"
 
 
+class InputEntryMode(str, Enum):
+    ONE_LINE_INQUIRY = "one_line_inquiry"
+    SINGLE_DOCUMENT_INTAKE = "single_document_intake"
+    MULTI_MATERIAL_CASE = "multi_material_case"
+
+
+class PresenceState(str, Enum):
+    EXPLICIT = "explicit"
+    INFERRED = "inferred"
+    PROVISIONAL = "provisional"
+    MISSING = "missing"
+    NOT_APPLICABLE = "not_applicable"
+
+
+class DeliverableClass(str, Enum):
+    EXPLORATORY_BRIEF = "exploratory_brief"
+    ASSESSMENT_REVIEW_MEMO = "assessment_review_memo"
+    DECISION_ACTION_DELIVERABLE = "decision_action_deliverable"
+
+
 class ExternalDataStrategy(str, Enum):
     STRICT = "strict"
     SUPPLEMENTAL = "supplemental"

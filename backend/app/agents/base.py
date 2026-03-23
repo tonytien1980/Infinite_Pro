@@ -5,7 +5,13 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from app.domain.enums import AgentCategory, AgentStatus, FlowMode
+from app.domain.enums import (
+    AgentCategory,
+    AgentStatus,
+    DeliverableClass,
+    FlowMode,
+    InputEntryMode,
+)
 from app.domain.schemas import (
     ArtifactRead,
     ClientRead,
@@ -14,6 +20,7 @@ from app.domain.schemas import (
     EngagementRead,
     EvidenceRead,
     GoalRead,
+    PresenceStateSummaryRead,
     SourceMaterialRead,
     SubjectRead,
     WorkstreamRead,
@@ -47,6 +54,11 @@ class AgentInputPayload(BaseModel):
     decision_context: DecisionContextRead | None = None
     domain_lenses: list[str] = Field(default_factory=list)
     assumptions: list[str] = Field(default_factory=list)
+    input_entry_mode: InputEntryMode = InputEntryMode.ONE_LINE_INQUIRY
+    deliverable_class_hint: DeliverableClass = DeliverableClass.EXPLORATORY_BRIEF
+    external_research_heavy_candidate: bool = False
+    sparse_input_summary: str = ""
+    presence_state_summary: PresenceStateSummaryRead
     source_materials: list[SourceMaterialRead] = Field(default_factory=list)
     artifacts: list[ArtifactRead] = Field(default_factory=list)
     subjects: list[SubjectRead] = Field(default_factory=list)

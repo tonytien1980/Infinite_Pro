@@ -5,7 +5,15 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.domain.enums import ExternalDataStrategy, FlowMode, RunStatus, TaskStatus
+from app.domain.enums import (
+    DeliverableClass,
+    ExternalDataStrategy,
+    FlowMode,
+    InputEntryMode,
+    PresenceState,
+    RunStatus,
+    TaskStatus,
+)
 
 
 class ORMModel(BaseModel):
@@ -105,6 +113,24 @@ class DecisionContextRead(BaseModel):
     source_priority: str = ""
     external_data_policy: str = ""
     created_at: datetime
+
+
+class PresenceStateItemRead(BaseModel):
+    state: PresenceState
+    reason: str
+    display_value: str | None = None
+
+
+class PresenceStateSummaryRead(BaseModel):
+    client: PresenceStateItemRead
+    engagement: PresenceStateItemRead
+    workstream: PresenceStateItemRead
+    decision_context: PresenceStateItemRead
+    artifact: PresenceStateItemRead
+    source_material: PresenceStateItemRead
+    domain_lens: PresenceStateItemRead
+    client_stage: PresenceStateItemRead
+    client_type: PresenceStateItemRead
 
 
 class SubjectRead(ORMModel):
@@ -295,6 +321,11 @@ class TaskAggregateResponse(BaseModel):
     client_type: str | None = None
     domain_lenses: list[str] = Field(default_factory=list)
     assumptions: list[str] = Field(default_factory=list)
+    input_entry_mode: InputEntryMode = InputEntryMode.ONE_LINE_INQUIRY
+    deliverable_class_hint: DeliverableClass = DeliverableClass.EXPLORATORY_BRIEF
+    external_research_heavy_candidate: bool = False
+    sparse_input_summary: str = ""
+    presence_state_summary: PresenceStateSummaryRead
     source_materials: list[SourceMaterialRead] = Field(default_factory=list)
     artifacts: list[ArtifactRead] = Field(default_factory=list)
     contexts: list[TaskContextRead] = Field(default_factory=list)

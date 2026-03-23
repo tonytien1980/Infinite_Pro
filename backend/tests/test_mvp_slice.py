@@ -126,6 +126,12 @@ def test_task_creation_attaches_background_text_as_context_and_evidence(client: 
     assert body["decision_context"] is not None
     assert body["decision_context"]["judgment_to_make"]
     assert body["domain_lenses"]
+    assert body["input_entry_mode"] == "one_line_inquiry"
+    assert body["deliverable_class_hint"] == "exploratory_brief"
+    assert body["presence_state_summary"]["decision_context"]["state"] in {
+        "explicit",
+        "provisional",
+    }
 
 
 def test_task_creation_populates_explicit_ontology_context_spine(client: TestClient) -> None:
@@ -176,6 +182,26 @@ def test_file_upload_creates_usable_txt_evidence(client: TestClient) -> None:
     aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
     assert aggregate["source_materials"]
     assert aggregate["artifacts"]
+    assert aggregate["input_entry_mode"] == "single_document_intake"
+    assert aggregate["presence_state_summary"]["artifact"]["state"] == "explicit"
+
+
+def test_single_document_intake_updates_entry_mode_and_deliverable_hint(
+    client: TestClient,
+) -> None:
+    task = client.post("/api/v1/tasks", json=create_contract_review_payload("Single document intake")).json()
+
+    client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("agreement.txt", b"Termination and liability clauses need review.", "text/plain"))],
+    )
+
+    aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
+
+    assert aggregate["input_entry_mode"] == "single_document_intake"
+    assert aggregate["deliverable_class_hint"] == "assessment_review_memo"
+    assert aggregate["presence_state_summary"]["artifact"]["state"] == "explicit"
+    assert aggregate["presence_state_summary"]["source_material"]["state"] == "explicit"
 
 
 def test_file_upload_creates_usable_md_evidence(client: TestClient) -> None:
@@ -392,7 +418,7 @@ def test_research_synthesis_specialist_run_and_history_persistence(client: TestC
                     b"The competitor set overlaps heavily and pricing differs by service tier. Customers value implementation speed.",
                     "text/plain",
                 ),
-            )
+            ),
         ],
     )
 
@@ -413,6 +439,15 @@ def test_research_synthesis_specialist_run_and_history_persistence(client: TestC
     assert content["capability_frame"]["capability"] == "synthesize_brief"
     assert content["capability_frame"]["execution_mode"] == "specialist"
     assert content["decision_context_summary"]
+    assert content["input_entry_mode"] in {
+        "single_document_intake",
+        "multi_material_case",
+    }
+    assert content["deliverable_class"] in {
+        "assessment_review_memo",
+        "decision_action_deliverable",
+    }
+    assert content["sparse_input_operating_state"]["presence_state_summary"]["decision_context"]["state"]
     assert content["readiness_governance"]["decision_context_clear"] is True
     assert content["ontology_chain_summary"]["decision_context"]
     assert content["ontology_context"]["decision_context"]["judgment_to_make"]
@@ -459,6 +494,7 @@ def test_document_restructuring_specialist_run_and_history_persistence(
     assert run_body["deliverable"]["deliverable_type"] == "document_restructuring"
     content = run_body["deliverable"]["content_structure"]
     assert_consultant_output_shell(content)
+    assert content["deliverable_class"] == "assessment_review_memo"
     assert content["draft_outline"] or content["proposed_outline"]
     assert content["structure_adjustments"] or content["rewrite_guidance"]
     assert content["restructuring_strategy"]
@@ -509,6 +545,7 @@ def test_contract_review_specialist_run_and_history_persistence(
     assert_consultant_output_shell(content)
     assert content["findings"]
     assert content["capability_frame"]["capability"] == "review_challenge"
+    assert content["deliverable_class"] == "assessment_review_memo"
     assert content["readiness_governance"]["artifact_coverage"]
     assert content["high_risk_clauses"]
     assert content["redline_recommendations"]
@@ -625,6 +662,14 @@ def test_multi_agent_happy_path_converges_and_saves_history(client: TestClient) 
                     b"Customers care about implementation speed. Pricing complexity creates adoption friction. Competitor positioning overlaps in the mid-market tier.",
                     "text/plain",
                 ),
+            ),
+            (
+                "files",
+                (
+                    "financial.txt",
+                    b"Gross margin is healthy, but implementation bottlenecks are delaying onboarding and revenue realization.",
+                    "text/plain",
+                ),
             )
         ],
     )
@@ -640,6 +685,7 @@ def test_multi_agent_happy_path_converges_and_saves_history(client: TestClient) 
     assert_consultant_output_shell(content)
     assert content["capability_frame"]["capability"] == "decide_converge"
     assert content["capability_frame"]["execution_mode"] == "multi_agent"
+    assert content["deliverable_class"] == "decision_action_deliverable"
     assert content["readiness_governance"]["evidence_coverage"]
     assert content["participating_agents"][0] == "strategy_business_analysis"
     assert set(content["participating_agents"]) == {
@@ -677,10 +723,65 @@ def test_host_readiness_governance_surfaces_artifact_gap_for_document_restructur
     content = response.json()["deliverable"]["content_structure"]
     assert content["capability_frame"]["capability"] == "restructure_reframe"
     assert content["readiness_governance"]["level"] in {"caution", "insufficient"}
+    assert content["readiness_governance"]["supported_deliverable_class"] in {
+        "exploratory_brief",
+        "assessment_review_memo",
+    }
     assert any(
         "artifact" in item or "文件" in item or "草稿" in item
         for item in content["readiness_governance"]["missing_information"]
     )
+
+
+def test_sparse_external_event_case_caps_deliverable_to_exploratory_brief(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.agents import host as host_module
+    from app.services import sources as source_service
+
+    payload = create_task_payload("External event case")
+    payload.update(
+        {
+            "description": "川普提高關稅後，台灣零組件出口商接下來三個月該先注意哪些風險？",
+            "background_text": "",
+            "subject_name": "",
+            "goal_description": "先形成外部情勢判斷與待驗證事項。",
+        }
+    )
+    task = client.post("/api/v1/tasks", json=payload).json()
+    assert task["external_research_heavy_candidate"] is True
+
+    monkeypatch.setattr(
+        host_module,
+        "search_external_sources",
+        lambda query: [
+            SearchResult(
+                title="Tariff update",
+                url="https://example.com/tariff-update",
+                snippet="Latest tariff change",
+            )
+        ],
+    )
+    monkeypatch.setattr(
+        source_service,
+        "fetch_remote_source",
+        lambda url: RemoteSourceContent(
+            source_type="manual_url",
+            source_url=url,
+            title="Tariff update",
+            content_type="text/html",
+            normalized_text="External coverage explains tariff changes and likely supply chain impacts.",
+        ),
+    )
+
+    response = client.post(f"/api/v1/tasks/{task['id']}/run")
+
+    assert response.status_code == 200
+    content = response.json()["deliverable"]["content_structure"]
+    assert content["deliverable_class"] == "exploratory_brief"
+    assert content["readiness_governance"]["external_research_heavy_case"] is True
+    assert "company-specific certainty" in " ".join(content["readiness_governance"]["missing_information"])
 
 
 def test_host_routes_multi_agent_based_on_context_spine(

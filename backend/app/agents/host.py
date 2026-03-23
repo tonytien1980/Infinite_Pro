@@ -18,7 +18,16 @@ from app.agents.base import (
 )
 from app.agents.registry import AgentRegistry
 from app.domain import models, schemas
-from app.domain.enums import CapabilityArchetype, ExternalDataStrategy, FlowMode, RunStatus, TaskStatus
+from app.domain.enums import (
+    CapabilityArchetype,
+    DeliverableClass,
+    ExternalDataStrategy,
+    FlowMode,
+    InputEntryMode,
+    PresenceState,
+    RunStatus,
+    TaskStatus,
+)
 from app.model_router.factory import get_model_provider
 from app.services.external_search import search_external_sources
 from app.services.sources import ingest_remote_urls_for_task
@@ -69,6 +78,7 @@ class ExternalDataUsageReport:
     strategy: ExternalDataStrategy
     search_attempted: bool = False
     search_used: bool = False
+    external_research_heavy_case: bool = False
     source_documents: list[models.SourceDocument] = field(default_factory=list)
     dependency_note: str = ""
     missing_information: list[str] = field(default_factory=list)
@@ -92,6 +102,9 @@ class ReadinessGovernance:
     domain_context_clear: bool
     artifact_coverage: str
     evidence_coverage: str
+    supported_deliverable_class: DeliverableClass
+    deliverable_guidance: str = ""
+    external_research_heavy_case: bool = False
     missing_information: list[str] = field(default_factory=list)
     conclusion_impact: list[str] = field(default_factory=list)
 
@@ -168,6 +181,11 @@ class HostOrchestrator:
             decision_context=aggregate.decision_context,
             domain_lenses=aggregate.domain_lenses,
             assumptions=aggregate.assumptions,
+            input_entry_mode=aggregate.input_entry_mode,
+            deliverable_class_hint=aggregate.deliverable_class_hint,
+            external_research_heavy_candidate=aggregate.external_research_heavy_candidate,
+            sparse_input_summary=aggregate.sparse_input_summary,
+            presence_state_summary=aggregate.presence_state_summary,
             source_materials=aggregate.source_materials,
             artifacts=aggregate.artifacts,
             subjects=aggregate.subjects,
@@ -209,6 +227,9 @@ class HostOrchestrator:
         if strategy == ExternalDataStrategy.STRICT:
             return False
 
+        if readiness.external_research_heavy_case:
+            return True
+
         if strategy == ExternalDataStrategy.LATEST:
             return True
 
@@ -246,7 +267,10 @@ class HostOrchestrator:
         readiness: ReadinessGovernance,
     ) -> tuple[models.Task, ExternalDataUsageReport]:
         strategy = get_external_data_strategy_for_task(task)
-        report = ExternalDataUsageReport(strategy=strategy)
+        report = ExternalDataUsageReport(
+            strategy=strategy,
+            external_research_heavy_case=readiness.external_research_heavy_case,
+        )
         existing_external_sources = [
             item
             for item in task.uploads
@@ -313,6 +337,40 @@ class HostOrchestrator:
             report.dependency_note = "本輪未啟用 Host 外部搜尋，分析主要依賴你提供的資料。"
 
         return refreshed_task, report
+
+    def _preserve_sparse_case_intent(
+        self,
+        readiness: ReadinessGovernance,
+        external_data_report: ExternalDataUsageReport,
+    ) -> ReadinessGovernance:
+        if not external_data_report.external_research_heavy_case:
+            return readiness
+
+        missing_information = list(readiness.missing_information)
+        caution = "這輪最初屬於 external-research-heavy sparse case，後續補充的外部資料不應被誤讀成 company-specific certainty。"
+        if caution not in missing_information:
+            missing_information.append(caution)
+
+        conclusion_impact = list(readiness.conclusion_impact)
+        guardrail = self._deliverable_guidance_for_class(
+            DeliverableClass.EXPLORATORY_BRIEF,
+            True,
+        )
+        if guardrail not in conclusion_impact:
+            conclusion_impact.append(guardrail)
+
+        return ReadinessGovernance(
+            level=readiness.level,
+            decision_context_clear=readiness.decision_context_clear,
+            domain_context_clear=readiness.domain_context_clear,
+            artifact_coverage=readiness.artifact_coverage,
+            evidence_coverage=readiness.evidence_coverage,
+            supported_deliverable_class=DeliverableClass.EXPLORATORY_BRIEF,
+            deliverable_guidance=guardrail,
+            external_research_heavy_case=True,
+            missing_information=missing_information,
+            conclusion_impact=conclusion_impact,
+        )
 
     @staticmethod
     def _tail(items: list[models.Insight] | list[models.Risk] | list[models.Recommendation] | list[models.ActionItem], count: int):
@@ -585,19 +643,141 @@ class HostOrchestrator:
             framing_summary=framing_summary,
         )
 
+    def _is_external_research_heavy_sparse_case(self, payload: AgentInputPayload) -> bool:
+        if payload.external_research_heavy_candidate:
+            return True
+
+        decision_context_text = " ".join(
+            filter(
+                None,
+                [
+                    payload.description,
+                    payload.decision_context.summary if payload.decision_context else "",
+                    payload.decision_context.judgment_to_make if payload.decision_context else "",
+                ],
+            )
+        ).lower()
+        external_event_keywords = (
+            "地緣政治",
+            "關稅",
+            "制裁",
+            "市場衝擊",
+            "市場崩跌",
+            "政策",
+            "監管",
+            "法規",
+            "戰爭",
+            "利率",
+            "匯率",
+            "產業策略",
+            "macro",
+            "geopolit",
+            "regulation",
+            "market shock",
+            "tariff",
+            "sanction",
+        )
+        has_external_event_signal = any(keyword.lower() in decision_context_text for keyword in external_event_keywords)
+        has_internal_materials = bool(
+            self._meaningful_artifacts(payload)
+            or [
+                item
+                for item in self._meaningful_source_materials(payload)
+                if item.source_type != "external_search"
+            ]
+        )
+        return (
+            payload.input_entry_mode == InputEntryMode.ONE_LINE_INQUIRY
+            and has_external_event_signal
+            and not has_internal_materials
+        )
+
+    @staticmethod
+    def _deliverable_guidance_for_class(
+        deliverable_class: DeliverableClass,
+        external_research_heavy_case: bool,
+    ) -> str:
+        if external_research_heavy_case:
+            return (
+                "目前應先產出 exploratory brief / situation assessment，先釐清外部態勢、可能影響機制與待驗證的公司內部問題，"
+                "不宜假裝已具備 company-specific certainty。"
+            )
+        if deliverable_class == DeliverableClass.EXPLORATORY_BRIEF:
+            return "目前只適合 exploratory level conclusion，應先整理 provisional framing、主要風險、缺漏資訊與下一步補證方向。"
+        if deliverable_class == DeliverableClass.ASSESSMENT_REVIEW_MEMO:
+            return "目前可支撐 document-centered review / assessment，適合形成 review memo、assessment memo 或重組建議。"
+        return "目前資料鏈已接近 decision / action level，可產出較完整的 decision memo、action package 或 converged deliverable。"
+
+    def _resolve_supported_deliverable_class(
+        self,
+        payload: AgentInputPayload,
+        capability_frame: CapabilityFrame,
+        decision_context_clear: bool,
+        artifacts: list[schemas.ArtifactRead],
+        source_materials: list[schemas.SourceMaterialRead],
+        usable_evidence: list[schemas.EvidenceRead],
+        critical_gaps: int,
+        external_research_heavy_case: bool,
+    ) -> DeliverableClass:
+        if external_research_heavy_case:
+            return DeliverableClass.EXPLORATORY_BRIEF
+
+        if payload.input_entry_mode == InputEntryMode.ONE_LINE_INQUIRY:
+            return DeliverableClass.EXPLORATORY_BRIEF
+
+        if payload.input_entry_mode == InputEntryMode.SINGLE_DOCUMENT_INTAKE:
+            if capability_frame.capability in {
+                CapabilityArchetype.REVIEW_CHALLENGE,
+                CapabilityArchetype.RESTRUCTURE_REFRAME,
+                CapabilityArchetype.SYNTHESIZE_BRIEF,
+                CapabilityArchetype.DIAGNOSE_ASSESS,
+            }:
+                return DeliverableClass.ASSESSMENT_REVIEW_MEMO
+            if decision_context_clear and len(usable_evidence) >= 2 and critical_gaps == 0:
+                return DeliverableClass.DECISION_ACTION_DELIVERABLE
+            return DeliverableClass.ASSESSMENT_REVIEW_MEMO
+
+        if capability_frame.capability in {
+            CapabilityArchetype.DECIDE_CONVERGE,
+            CapabilityArchetype.SCENARIO_COMPARISON,
+            CapabilityArchetype.PLAN_ROADMAP,
+        } and decision_context_clear and len(usable_evidence) >= 2:
+            return DeliverableClass.DECISION_ACTION_DELIVERABLE
+
+        if (
+            decision_context_clear
+            and critical_gaps == 0
+            and (
+                len(usable_evidence) >= 2
+                or len(artifacts) + len(source_materials) >= 2
+            )
+        ):
+            return DeliverableClass.DECISION_ACTION_DELIVERABLE
+
+        if artifacts or source_materials or usable_evidence:
+            return DeliverableClass.ASSESSMENT_REVIEW_MEMO
+
+        return DeliverableClass.EXPLORATORY_BRIEF
+
     def _evaluate_readiness_governance(
         self,
         payload: AgentInputPayload,
         capability_frame: CapabilityFrame,
         workflow_mode: FlowMode,
     ) -> ReadinessGovernance:
+        decision_context_state = payload.presence_state_summary.decision_context.state
+        domain_lens_state = payload.presence_state_summary.domain_lens.state
         decision_context_clear = bool(
             payload.decision_context
             and self._coerce_text(payload.decision_context.judgment_to_make)
             and self._coerce_text(payload.decision_context.summary)
+            and decision_context_state
+            in {PresenceState.EXPLICIT, PresenceState.INFERRED, PresenceState.PROVISIONAL}
         )
         domain_context_clear = bool(
-            payload.domain_lenses and any(item and item != DEFAULT_DOMAIN_LENS for item in payload.domain_lenses)
+            payload.domain_lenses
+            and any(item and item != DEFAULT_DOMAIN_LENS for item in payload.domain_lenses)
+            and domain_lens_state in {PresenceState.EXPLICIT, PresenceState.INFERRED}
         )
         artifacts = self._meaningful_artifacts(payload)
         source_materials = self._meaningful_source_materials(payload)
@@ -605,13 +785,23 @@ class HostOrchestrator:
         missing_information: list[str] = []
         conclusion_impact: list[str] = []
         critical_gaps = 0
+        external_research_heavy_case = self._is_external_research_heavy_sparse_case(payload)
 
         if not decision_context_clear:
-            missing_information.append("尚未清楚定義這輪要做的判斷，因此系統目前只能先形成較泛化的顧問草稿。")
+            missing_information.append(
+                "DecisionContext 仍偏 provisional / missing，系統目前只能先形成較泛化的第一輪判斷。"
+            )
             critical_gaps += 1
 
         if not domain_context_clear:
-            missing_information.append("尚未明確指定優先採用的顧問面向，這會降低結論的聚焦度。")
+            missing_information.append("目前 DomainLens 仍偏 provisional，這會降低結論的聚焦度。")
+
+        if payload.input_entry_mode == InputEntryMode.ONE_LINE_INQUIRY:
+            conclusion_impact.append("目前進件屬於一句話問題，Host 會先建立 provisional working world。")
+        elif payload.input_entry_mode == InputEntryMode.SINGLE_DOCUMENT_INTAKE:
+            conclusion_impact.append("目前進件屬於單文件 intake，較適合圍繞該 artifact 形成 document-centered judgment。")
+        else:
+            conclusion_impact.append("目前進件屬於多材料案件，可逐步收斂成較完整的決策工作鏈。")
 
         if capability_frame.capability == CapabilityArchetype.REVIEW_CHALLENGE and not artifacts:
             missing_information.append("目前尚未提供可審閱的文件或條款 artifact，因此審閱結論只能停留在一般風險提醒。")
@@ -637,6 +827,14 @@ class HostOrchestrator:
             payload.constraints or payload.assumptions or usable_evidence
         ):
             missing_information.append("目前缺少限制、假設或可引用證據，因此風險盤點容易停留在一般提醒。")
+
+        if external_research_heavy_case:
+            missing_information.append(
+                "這輪問題高度依賴外部事件資料，但目前缺少公司內部材料，因此不宜直接做 company-specific certainty。"
+            )
+            conclusion_impact.append(
+                "Host 會把這輪視為 external-research-heavy sparse case，優先形成外部態勢判斷與待驗證的公司內部問題。"
+            )
 
         if payload.constraints:
             conclusion_impact.append(f"目前有 {len(payload.constraints)} 項限制條件正在壓縮可行方案。")
@@ -665,12 +863,31 @@ class HostOrchestrator:
         else:
             level = "ready"
 
+        supported_deliverable_class = self._resolve_supported_deliverable_class(
+            payload,
+            capability_frame,
+            decision_context_clear,
+            artifacts,
+            source_materials,
+            usable_evidence,
+            critical_gaps,
+            external_research_heavy_case,
+        )
+        deliverable_guidance = self._deliverable_guidance_for_class(
+            supported_deliverable_class,
+            external_research_heavy_case,
+        )
+        conclusion_impact.append(deliverable_guidance)
+
         return ReadinessGovernance(
             level=level,
             decision_context_clear=decision_context_clear,
             domain_context_clear=domain_context_clear,
             artifact_coverage=artifact_coverage,
             evidence_coverage=evidence_coverage,
+            supported_deliverable_class=supported_deliverable_class,
+            deliverable_guidance=deliverable_guidance,
+            external_research_heavy_case=external_research_heavy_case,
             missing_information=missing_information,
             conclusion_impact=conclusion_impact,
         )
@@ -809,6 +1026,11 @@ class HostOrchestrator:
             else None,
             "domain_lenses": payload.domain_lenses,
             "assumptions": payload.assumptions,
+            "input_entry_mode": payload.input_entry_mode.value,
+            "deliverable_class_hint": payload.deliverable_class_hint.value,
+            "external_research_heavy_candidate": payload.external_research_heavy_candidate,
+            "sparse_input_summary": payload.sparse_input_summary,
+            "presence_state_summary": payload.presence_state_summary.model_dump(mode="json"),
             "source_materials": [item.model_dump(mode="json") for item in payload.source_materials],
             "artifacts": [item.model_dump(mode="json") for item in payload.artifacts],
         }
@@ -856,8 +1078,20 @@ class HostOrchestrator:
             "domain_context_clear": readiness.domain_context_clear,
             "artifact_coverage": readiness.artifact_coverage,
             "evidence_coverage": readiness.evidence_coverage,
+            "supported_deliverable_class": readiness.supported_deliverable_class.value,
+            "deliverable_guidance": readiness.deliverable_guidance,
+            "external_research_heavy_case": readiness.external_research_heavy_case,
             "missing_information": readiness.missing_information,
             "conclusion_impact": readiness.conclusion_impact,
+        }
+        content["input_entry_mode"] = payload.input_entry_mode.value
+        content["deliverable_class"] = readiness.supported_deliverable_class.value
+        content["sparse_input_operating_state"] = {
+            "input_entry_mode": payload.input_entry_mode.value,
+            "deliverable_class": readiness.supported_deliverable_class.value,
+            "external_research_heavy_case": readiness.external_research_heavy_case,
+            "summary": readiness.deliverable_guidance,
+            "presence_state_summary": payload.presence_state_summary.model_dump(mode="json"),
         }
         content["ontology_chain_summary"] = {
             "client": payload.client.name if payload.client else None,
@@ -1135,6 +1369,7 @@ class HostOrchestrator:
                 readiness,
             )
             payload, capability_frame, readiness, workflow_mode = self._prepare_host_context(task, workflow_mode)
+            readiness = self._preserve_sparse_case_intent(readiness, external_data_report)
             fixed_core_agents = capability_frame.selected_core_agents or DEFAULT_CORE_AGENT_ORDER
             logger.info(
                 "Starting multi-agent flow for task %s with capability=%s agents=%s",
@@ -1336,6 +1571,7 @@ class HostOrchestrator:
                 readiness,
             )
             payload, capability_frame, readiness, workflow_mode = self._prepare_host_context(task, workflow_mode)
+            readiness = self._preserve_sparse_case_intent(readiness, external_data_report)
             agent = self.registry.get_specialist_agent(agent_id)
             result = self._normalize_result(payload, agent_id, agent.run(payload))
             result = self._annotate_host_governance(

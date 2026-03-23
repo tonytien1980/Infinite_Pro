@@ -12,6 +12,11 @@ import {
   resolveWorkflowKey,
   type WorkflowKey,
 } from "@/lib/workflow-modes";
+import {
+  labelForDeliverableClass,
+  labelForInputEntryMode,
+  labelForPresenceState,
+} from "@/lib/ui-labels";
 
 export type ReadinessLevel = "ready" | "caution" | "degraded";
 
@@ -131,6 +136,15 @@ export interface OntologyChainSummaryView {
   recommendationCount: number;
   riskCount: number;
   actionItemCount: number;
+}
+
+export interface SparseInputOperatingView {
+  entryModeLabel: string;
+  deliverableClassLabel: string;
+  summary: string;
+  deliverableGuidance: string;
+  externalResearchHeavy: boolean;
+  presenceHighlights: string[];
 }
 
 function isExternalDataStrategyConstraint(constraint: Constraint) {
@@ -726,6 +740,42 @@ function asRecord(value: unknown) {
   return value as Record<string, unknown>;
 }
 
+function getPresenceHighlights(task: TaskAggregate, deliverable: Deliverable | null) {
+  const operatingState = asRecord(deliverable?.content_structure?.sparse_input_operating_state);
+  const deliverableSummary = asRecord(operatingState?.presence_state_summary);
+  const fallbackSummary = task.presence_state_summary as unknown as Record<string, unknown>;
+  const orderedKeys = [
+    "client",
+    "engagement",
+    "workstream",
+    "decision_context",
+    "artifact",
+    "source_material",
+    "domain_lens",
+    "client_stage",
+    "client_type",
+  ];
+
+  return orderedKeys
+    .map((key) => {
+      const source = asRecord(deliverableSummary?.[key]) ?? asRecord(fallbackSummary[key]);
+      if (!source) {
+        return null;
+      }
+      const state = typeof source.state === "string" ? source.state : "";
+      const reason = typeof source.reason === "string" ? source.reason : "";
+      const displayValue = typeof source.display_value === "string" && source.display_value.trim()
+        ? `（${source.display_value.trim()}）`
+        : "";
+      if (!state && !reason) {
+        return null;
+      }
+      const label = key === "decision_context" ? "Decision Context" : key.replaceAll("_", " ");
+      return `${label}：${labelForPresenceState(state)}${displayValue}${reason ? `｜${reason}` : ""}`;
+    })
+    .filter((item): item is string => Boolean(item));
+}
+
 function inferRecommendationExpectedEffect(summary: string, rationale: string) {
   const combinedText = `${summary} ${rationale}`.trim();
 
@@ -899,6 +949,39 @@ export function buildWorkbenchObjectSummary(
   };
 }
 
+export function buildSparseInputOperatingView(
+  task: TaskAggregate,
+  deliverable: Deliverable | null,
+): SparseInputOperatingView {
+  const operatingState = asRecord(deliverable?.content_structure?.sparse_input_operating_state);
+  const readinessGovernance = asRecord(deliverable?.content_structure?.readiness_governance);
+  const entryMode =
+    (typeof operatingState?.input_entry_mode === "string" && operatingState.input_entry_mode) ||
+    task.input_entry_mode;
+  const deliverableClass =
+    (typeof operatingState?.deliverable_class === "string" && operatingState.deliverable_class) ||
+    (typeof readinessGovernance?.supported_deliverable_class === "string"
+      ? readinessGovernance.supported_deliverable_class
+      : task.deliverable_class_hint);
+  const deliverableGuidance =
+    (typeof operatingState?.summary === "string" && operatingState.summary) ||
+    (typeof readinessGovernance?.deliverable_guidance === "string" && readinessGovernance.deliverable_guidance) ||
+    task.sparse_input_summary;
+  const externalResearchHeavy =
+    Boolean(operatingState?.external_research_heavy_case) || task.external_research_heavy_candidate;
+
+  return {
+    entryModeLabel: labelForInputEntryMode(entryMode),
+    deliverableClassLabel: labelForDeliverableClass(deliverableClass),
+    summary:
+      (typeof operatingState?.summary === "string" && operatingState.summary) ||
+      task.sparse_input_summary,
+    deliverableGuidance,
+    externalResearchHeavy,
+    presenceHighlights: getPresenceHighlights(task, deliverable),
+  };
+}
+
 export function buildCapabilityFrame(
   task: TaskAggregate,
   deliverable: Deliverable | null,
@@ -971,9 +1054,13 @@ export function buildReadinessGovernance(
   const evidenceCoverage =
     (typeof governance?.evidence_coverage === "string" && governance.evidence_coverage) ||
     readiness.evidenceStatus;
-  const conclusionImpact =
-    (typeof governance?.conclusion_impact === "string" && governance.conclusion_impact) ||
-    readiness.summary;
+  const conclusionImpact = Array.isArray(governance?.conclusion_impact)
+    ? governance.conclusion_impact
+        .filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+        .join(" ")
+    : (typeof governance?.conclusion_impact === "string" && governance.conclusion_impact) ||
+      (typeof governance?.deliverable_guidance === "string" && governance.deliverable_guidance) ||
+      readiness.summary;
 
   return {
     level,

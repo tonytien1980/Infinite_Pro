@@ -85,6 +85,26 @@ const EXTERNAL_DATA_STRATEGY_LABELS: Record<string, string> = {
   latest: "優先使用最新外部資料",
 };
 
+const INPUT_ENTRY_MODE_LABELS: Record<string, string> = {
+  one_line_inquiry: "一句話問題",
+  single_document_intake: "單文件進件",
+  multi_material_case: "多材料案件",
+};
+
+const PRESENCE_STATE_LABELS: Record<string, string> = {
+  explicit: "明確存在",
+  inferred: "推定存在",
+  provisional: "暫定存在",
+  missing: "目前缺失",
+  not_applicable: "此輪不適用",
+};
+
+const DELIVERABLE_CLASS_LABELS: Record<string, string> = {
+  exploratory_brief: "Exploratory Brief",
+  assessment_review_memo: "Assessment / Review Memo",
+  decision_action_deliverable: "Decision / Action Deliverable",
+};
+
 const DELIVERABLE_TYPE_LABELS: Record<string, string> = {
   research_synthesis: "研究綜整交付物",
   contract_review: "合約審閱交付物",
@@ -130,6 +150,10 @@ const STRUCTURED_FIELD_LABELS: Record<string, string> = {
   external_data_strategy: "外部資料使用方式",
   external_search_used: "是否使用外部搜尋",
   analysis_dependency_note: "外部資料依賴說明",
+  input_entry_mode: "進件形態",
+  deliverable_class: "交付等級",
+  sparse_input_operating_state: "Sparse-Input 運作狀態",
+  presence_state_summary: "物件存在狀態",
 };
 
 function fallbackLabel(value: string) {
@@ -191,6 +215,18 @@ export function labelForExternalDataStrategy(value: string) {
   return EXTERNAL_DATA_STRATEGY_LABELS[value] ?? fallbackLabel(value);
 }
 
+export function labelForInputEntryMode(value: string) {
+  return INPUT_ENTRY_MODE_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForPresenceState(value: string) {
+  return PRESENCE_STATE_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForDeliverableClass(value: string) {
+  return DELIVERABLE_CLASS_LABELS[value] ?? fallbackLabel(value);
+}
+
 export function labelForDeliverableType(value: string) {
   return DELIVERABLE_TYPE_LABELS[value] ?? fallbackLabel(value);
 }
@@ -212,6 +248,14 @@ export function translateStructuredValue(label: string, value: unknown) {
 
   if (label === "external_data_strategy" && typeof value === "string") {
     return labelForExternalDataStrategy(value);
+  }
+
+  if (label === "input_entry_mode" && typeof value === "string") {
+    return labelForInputEntryMode(value);
+  }
+
+  if (label === "deliverable_class" && typeof value === "string") {
+    return labelForDeliverableClass(value);
   }
 
   if (label === "external_search_used" && typeof value === "boolean") {

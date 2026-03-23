@@ -16,6 +16,7 @@ import {
   buildRecommendationCards,
   buildReadinessGovernance,
   buildRiskCards,
+  buildSparseInputOperatingView,
   buildTaskFraming,
   buildWorkbenchObjectSummary,
   getGoalSuccessCriteria,
@@ -39,6 +40,7 @@ import {
   labelForFlowMode,
   labelForImpactLevel,
   labelForLikelihoodLevel,
+  labelForDeliverableClass,
   labelForPriority,
   labelForRunStatus,
   labelForSourceType,
@@ -301,6 +303,8 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
   const readinessGovernance =
     task && readiness ? buildReadinessGovernance(task, latestDeliverable, readiness) : null;
   const ontologyChainSummary = task ? buildOntologyChainSummary(task, latestDeliverable) : null;
+  const sparseInputOperatingView =
+    task ? buildSparseInputOperatingView(task, latestDeliverable) : null;
   const sortedRecommendations = task?.recommendations
     ? [...task.recommendations].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
@@ -369,6 +373,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                   </div>
                 </div>
                 {workbenchObjectSummary && ontologyChainSummary ? (
+                  <>
                   <div className="summary-grid">
                     <div className="section-card">
                       <h4>主要案件主體</h4>
@@ -411,6 +416,18 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                       />
                     </div>
                     <div className="section-card">
+                      <h4>輸入密度 / 交付等級</h4>
+                      <ExpandableText
+                        text={
+                          sparseInputOperatingView
+                            ? `${sparseInputOperatingView.entryModeLabel}\n${sparseInputOperatingView.deliverableClassLabel}\n${sparseInputOperatingView.summary}`
+                            : labelForDeliverableClass(task.deliverable_class_hint)
+                        }
+                        emptyText="尚未辨識這輪 sparse-input 狀態。"
+                        previewChars={180}
+                      />
+                    </div>
+                    <div className="section-card">
                       <h4>物件鏈密度</h4>
                       <p className="content-block">
                         {ontologyChainSummary.sourceMaterialCount} 份 source material /{" "}
@@ -419,6 +436,17 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                       </p>
                     </div>
                   </div>
+                    {sparseInputOperatingView?.presenceHighlights.length ? (
+                      <div className="detail-item" style={{ marginTop: "14px" }}>
+                        <h3>目前世界模型狀態</h3>
+                        <ExpandableList
+                          items={sparseInputOperatingView.presenceHighlights}
+                          emptyText="目前沒有可顯示的 presence state。"
+                          initialCount={5}
+                        />
+                      </div>
+                    ) : null}
+                  </>
                 ) : (
                   <p className="empty-text">尚未形成可讀的案件物件脈絡。</p>
                 )}
@@ -584,6 +612,18 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
 
                     <div className="summary-grid" style={{ marginTop: "14px" }}>
                       <div className="section-card">
+                        <h4>目前可支撐的交付層級</h4>
+                        <ExpandableText
+                          text={
+                            sparseInputOperatingView
+                              ? `${sparseInputOperatingView.deliverableClassLabel}。${sparseInputOperatingView.deliverableGuidance}`
+                              : ""
+                          }
+                          emptyText="尚未整理本輪可支撐的交付層級。"
+                          previewChars={220}
+                        />
+                      </div>
+                      <div className="section-card">
                         <h4>對目前結論的影響</h4>
                         <ExpandableText
                           text={readinessGovernance.conclusionImpact}
@@ -599,6 +639,16 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                           {readinessGovernance.assumptionSignal}
                         </p>
                       </div>
+                      {sparseInputOperatingView?.externalResearchHeavy ? (
+                        <div className="section-card">
+                          <h4>外部事件導向提醒</h4>
+                          <ExpandableText
+                            text="這輪屬於 external-research-heavy sparse case。系統會優先形成外部態勢判斷與待驗證事項，避免假裝已具備 company-specific certainty。"
+                            emptyText="目前沒有額外提醒。"
+                            previewChars={220}
+                          />
+                        </div>
+                      ) : null}
                     </div>
 
                     {readinessGovernance.level === "degraded" ? (

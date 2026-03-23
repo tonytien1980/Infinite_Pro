@@ -2,11 +2,43 @@ export type FlowMode = "multi_agent" | "specialist";
 export type TaskStatus = "draft" | "ready" | "running" | "completed" | "failed";
 export type RunStatus = "running" | "completed" | "failed";
 export type ExternalDataStrategy = "strict" | "supplemental" | "latest";
+export type InputEntryMode =
+  | "one_line_inquiry"
+  | "single_document_intake"
+  | "multi_material_case";
+export type PresenceState =
+  | "explicit"
+  | "inferred"
+  | "provisional"
+  | "missing"
+  | "not_applicable";
+export type DeliverableClass =
+  | "exploratory_brief"
+  | "assessment_review_memo"
+  | "decision_action_deliverable";
 export type TaskType =
   | "research_synthesis"
   | "contract_review"
   | "document_restructuring"
   | "complex_convergence";
+
+export interface PresenceStateItem {
+  state: PresenceState;
+  reason: string;
+  display_value: string | null;
+}
+
+export interface PresenceStateSummary {
+  client: PresenceStateItem;
+  engagement: PresenceStateItem;
+  workstream: PresenceStateItem;
+  decision_context: PresenceStateItem;
+  artifact: PresenceStateItem;
+  source_material: PresenceStateItem;
+  domain_lens: PresenceStateItem;
+  client_stage: PresenceStateItem;
+  client_type: PresenceStateItem;
+}
 
 export interface Client {
   id: string;
@@ -228,6 +260,11 @@ export interface TaskAggregate {
   client_type: string | null;
   domain_lenses: string[];
   assumptions: string[];
+  input_entry_mode: InputEntryMode;
+  deliverable_class_hint: DeliverableClass;
+  external_research_heavy_candidate: boolean;
+  sparse_input_summary: string;
+  presence_state_summary: PresenceStateSummary;
   source_materials: SourceMaterial[];
   artifacts: Artifact[];
   contexts: TaskContext[];

@@ -8,7 +8,13 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.domain import models, schemas
-from app.domain.enums import ExternalDataStrategy, TaskStatus
+from app.domain.enums import (
+    DeliverableClass,
+    ExternalDataStrategy,
+    InputEntryMode,
+    PresenceState,
+    TaskStatus,
+)
 
 logger = logging.getLogger(__name__)
 EXTERNAL_DATA_STRATEGY_CONSTRAINT_TYPE = "external_data_strategy"
@@ -51,6 +57,31 @@ TASK_TYPE_WORKSTREAM_HINTS = {
     "research_synthesis": "研究綜整工作流",
     "complex_convergence": "決策收斂工作流",
 }
+EXTERNAL_EVENT_KEYWORDS = (
+    "地緣政治",
+    "關稅",
+    "制裁",
+    "匯率",
+    "升息",
+    "降息",
+    "市場崩跌",
+    "市場衝擊",
+    "產業策略",
+    "政策",
+    "法規",
+    "監管",
+    "戰爭",
+    "地緣",
+    "景氣",
+    "產業趨勢",
+    "競爭格局",
+    "macro",
+    "geopolit",
+    "regulation",
+    "market shock",
+    "tariff",
+    "sanction",
+)
 
 
 def resolve_external_data_strategy_from_constraints(
@@ -93,6 +124,11 @@ def _unique_preserve_order(values: list[str]) -> list[str]:
         seen.add(normalized)
         unique_values.append(normalized)
     return unique_values
+
+
+def _contains_any_keyword(text: str, keywords: tuple[str, ...]) -> bool:
+    normalized = text.lower()
+    return any(keyword.lower() in normalized for keyword in keywords)
 
 
 def _infer_stage_from_text(text: str) -> str:
@@ -384,6 +420,396 @@ def _build_artifacts(task: models.Task) -> list[schemas.ArtifactRead]:
     ]
 
 
+def _meaningful_source_materials(
+    source_materials: list[schemas.SourceMaterialRead],
+) -> list[schemas.SourceMaterialRead]:
+    return [
+        item
+        for item in source_materials
+        if item.ingest_status == "processed" and _normalize_whitespace(item.summary)
+    ]
+
+
+def _meaningful_artifacts(artifacts: list[schemas.ArtifactRead]) -> list[schemas.ArtifactRead]:
+    return [
+        item
+        for item in artifacts
+        if _normalize_whitespace(item.title) or _normalize_whitespace(item.description)
+    ]
+
+
+def _material_unit_count(
+    source_materials: list[schemas.SourceMaterialRead],
+    artifacts: list[schemas.ArtifactRead],
+) -> int:
+    material_ids = {item.id for item in _meaningful_source_materials(source_materials)}
+    artifact_ids = {
+        item.source_document_id or item.source_material_id or item.id
+        for item in _meaningful_artifacts(artifacts)
+    }
+    return len({*material_ids, *artifact_ids})
+
+
+def _usable_evidence(task: models.Task) -> list[models.Evidence]:
+    return [
+        item
+        for item in task.evidence
+        if not item.evidence_type.endswith("ingestion_issue")
+        and not item.evidence_type.endswith("unparsed")
+        and _normalize_whitespace(item.excerpt_or_summary)
+    ]
+
+
+def _infer_input_entry_mode(
+    task: models.Task,
+    source_materials: list[schemas.SourceMaterialRead],
+    artifacts: list[schemas.ArtifactRead],
+) -> InputEntryMode:
+    material_count = _material_unit_count(source_materials, artifacts)
+
+    if material_count >= 2:
+        return InputEntryMode.MULTI_MATERIAL_CASE
+    if material_count == 1:
+        return InputEntryMode.SINGLE_DOCUMENT_INTAKE
+    return InputEntryMode.ONE_LINE_INQUIRY
+
+
+def _is_external_research_heavy_candidate(
+    task: models.Task,
+    decision_context: schemas.DecisionContextRead | None,
+    source_materials: list[schemas.SourceMaterialRead],
+    artifacts: list[schemas.ArtifactRead],
+    input_entry_mode: InputEntryMode,
+) -> bool:
+    if input_entry_mode != InputEntryMode.ONE_LINE_INQUIRY:
+        return False
+
+    if _meaningful_source_materials(source_materials) or _meaningful_artifacts(artifacts):
+        return False
+
+    signal_text = " ".join(
+        filter(
+            None,
+            [
+                task.title,
+                task.description,
+                decision_context.title if decision_context else "",
+                decision_context.summary if decision_context else "",
+                decision_context.judgment_to_make if decision_context else "",
+                *[item.description for item in task.goals],
+            ],
+        )
+    )
+    return _contains_any_keyword(signal_text, EXTERNAL_EVENT_KEYWORDS)
+
+
+def _build_presence_state_item(
+    state: PresenceState,
+    reason: str,
+    display_value: str | None = None,
+) -> schemas.PresenceStateItemRead:
+    return schemas.PresenceStateItemRead(
+        state=state,
+        reason=reason,
+        display_value=_normalize_whitespace(display_value),
+    )
+
+
+def _build_presence_state_summary(
+    task: models.Task,
+    client: schemas.ClientRead | None,
+    engagement: schemas.EngagementRead | None,
+    workstream: schemas.WorkstreamRead | None,
+    decision_context: schemas.DecisionContextRead | None,
+    domain_lenses: list[str],
+    source_materials: list[schemas.SourceMaterialRead],
+    artifacts: list[schemas.ArtifactRead],
+    input_entry_mode: InputEntryMode,
+    external_research_heavy_candidate: bool,
+) -> schemas.PresenceStateSummaryRead:
+    meaningful_source_materials = _meaningful_source_materials(source_materials)
+    meaningful_artifacts = _meaningful_artifacts(artifacts)
+    explicit_lenses = [item for item in domain_lenses if item and item != DEFAULT_DOMAIN_LENS]
+    default_decision_title = f"{task.title}｜Decision Context"
+    default_decision_summary = (
+        f"本輪要圍繞「{task.description or task.title}」形成可採用的顧問判斷。"
+    )
+    goal_descriptions = {_normalize_whitespace(item.description) for item in task.goals}
+
+    if external_research_heavy_candidate and (
+        not client or client.name == DEFAULT_CLIENT_NAME
+    ):
+        client_state = _build_presence_state_item(
+            PresenceState.NOT_APPLICABLE,
+            "這輪先屬於外部事件導向判斷，尚未綁定到特定 client。",
+        )
+    elif client is None:
+        client_state = _build_presence_state_item(
+            PresenceState.MISSING,
+            "目前尚未建立 client object。",
+        )
+    elif client.name != DEFAULT_CLIENT_NAME:
+        client_state = _build_presence_state_item(
+            PresenceState.EXPLICIT,
+            "目前已存在可直接引用的 client 主體。",
+            client.name,
+        )
+    elif client.client_type != UNSPECIFIED_LABEL or client.client_stage != UNSPECIFIED_LABEL:
+        client_state = _build_presence_state_item(
+            PresenceState.INFERRED,
+            "Host 已根據現有內容推定 client 脈絡，但尚未有明確 client 名稱。",
+            client.name,
+        )
+    else:
+        client_state = _build_presence_state_item(
+            PresenceState.PROVISIONAL,
+            "目前 client 仍是系統為了建立工作世界而保留的暫定物件。",
+            client.name if client else None,
+        )
+
+    if external_research_heavy_candidate and (
+        not engagement or engagement.name == task.title
+    ):
+        engagement_state = _build_presence_state_item(
+            PresenceState.NOT_APPLICABLE,
+            "這輪尚未進入特定 engagement 範圍，先以外部態勢判斷為主。",
+        )
+    elif engagement is None:
+        engagement_state = _build_presence_state_item(
+            PresenceState.MISSING,
+            "目前尚未建立 engagement。",
+        )
+    elif engagement.name != task.title:
+        engagement_state = _build_presence_state_item(
+            PresenceState.EXPLICIT,
+            "已有可識別的 engagement。",
+            engagement.name,
+        )
+    elif _normalize_whitespace(engagement.description):
+        engagement_state = _build_presence_state_item(
+            PresenceState.INFERRED,
+            "engagement 已由任務內容推定，但尚未獨立命名。",
+            engagement.name,
+        )
+    else:
+        engagement_state = _build_presence_state_item(
+            PresenceState.PROVISIONAL,
+            "目前 engagement 仍是沿用任務主題建立的暫定工作殼層。",
+            engagement.name if engagement else None,
+        )
+
+    if external_research_heavy_candidate and (
+        not workstream or workstream.name in TASK_TYPE_WORKSTREAM_HINTS.values()
+    ):
+        workstream_state = _build_presence_state_item(
+            PresenceState.NOT_APPLICABLE,
+            "這輪先屬於外部態勢判斷，尚未落到明確 workstream。",
+        )
+    elif workstream is None:
+        workstream_state = _build_presence_state_item(
+            PresenceState.MISSING,
+            "目前尚未建立 workstream。",
+        )
+    elif workstream.name not in TASK_TYPE_WORKSTREAM_HINTS.values():
+        workstream_state = _build_presence_state_item(
+            PresenceState.EXPLICIT,
+            "已有可直接引用的 workstream。",
+            workstream.name,
+        )
+    elif explicit_lenses or _normalize_whitespace(workstream.description):
+        workstream_state = _build_presence_state_item(
+            PresenceState.INFERRED,
+            "workstream 已依據任務內容形成初步脈絡，但仍偏推定。",
+            workstream.name,
+        )
+    else:
+        workstream_state = _build_presence_state_item(
+            PresenceState.PROVISIONAL,
+            "目前 workstream 仍是系統保留的暫定工作流名稱。",
+            workstream.name if workstream else None,
+        )
+
+    if decision_context is None:
+        decision_context_state = _build_presence_state_item(
+            PresenceState.MISSING,
+            "目前尚未形成 decision context。",
+        )
+    elif (
+        decision_context.title != default_decision_title
+        or decision_context.summary != default_decision_summary
+        or _normalize_whitespace(decision_context.judgment_to_make) not in goal_descriptions
+    ):
+        decision_context_state = _build_presence_state_item(
+            PresenceState.EXPLICIT,
+            "本輪 decision context 已形成可直接引用的判斷主軸。",
+            decision_context.judgment_to_make or decision_context.title,
+        )
+    elif decision_context.judgment_to_make or decision_context.summary:
+        decision_context_state = _build_presence_state_item(
+            PresenceState.PROVISIONAL,
+            "decision context 已建立，但仍偏向 Host 依任務文字先形成的 provisional framing。",
+            decision_context.judgment_to_make or decision_context.title,
+        )
+    else:
+        decision_context_state = _build_presence_state_item(
+            PresenceState.MISSING,
+            "目前尚未形成足以支撐判斷的 decision context。",
+        )
+
+    if meaningful_artifacts:
+        artifact_state = _build_presence_state_item(
+            PresenceState.EXPLICIT,
+            f"目前已有 {len(meaningful_artifacts)} 份 artifact 可直接納入工作鏈。",
+            meaningful_artifacts[0].title,
+        )
+    elif external_research_heavy_candidate:
+        artifact_state = _build_presence_state_item(
+            PresenceState.NOT_APPLICABLE,
+            "這輪先屬於外部事件判斷，尚未期待有 company-specific artifact。",
+        )
+    else:
+        artifact_state = _build_presence_state_item(
+            PresenceState.MISSING,
+            "目前尚未提供可直接引用的 artifact。",
+        )
+
+    if meaningful_source_materials:
+        source_material_state = _build_presence_state_item(
+            PresenceState.EXPLICIT,
+            f"目前已有 {len(meaningful_source_materials)} 份 source material。",
+            meaningful_source_materials[0].title,
+        )
+    elif input_entry_mode == InputEntryMode.ONE_LINE_INQUIRY:
+        source_material_state = _build_presence_state_item(
+            PresenceState.MISSING,
+            "目前仍缺可支撐判斷的 source material。",
+        )
+    else:
+        source_material_state = _build_presence_state_item(
+            PresenceState.PROVISIONAL,
+            "目前 source material 仍偏薄，後續可再補充。",
+        )
+
+    if explicit_lenses:
+        domain_lens_state = _build_presence_state_item(
+            PresenceState.INFERRED,
+            "Host 已從現有內容建立可用的 DomainLens。",
+            "、".join(explicit_lenses),
+        )
+    else:
+        domain_lens_state = _build_presence_state_item(
+            PresenceState.PROVISIONAL,
+            "目前仍以綜合視角作為 provisional DomainLens。",
+            DEFAULT_DOMAIN_LENS,
+        )
+
+    client_stage_value = (
+        decision_context.client_stage
+        if decision_context and decision_context.client_stage
+        else client.client_stage if client else ""
+    )
+    if external_research_heavy_candidate and (
+        not client_stage_value or client_stage_value == UNSPECIFIED_LABEL
+    ):
+        client_stage_state = _build_presence_state_item(
+            PresenceState.NOT_APPLICABLE,
+            "這輪尚未綁定到特定 company stage。",
+        )
+    elif client_stage_value and client_stage_value != UNSPECIFIED_LABEL:
+        client_stage_state = _build_presence_state_item(
+            PresenceState.INFERRED,
+            "目前已有 client stage 脈絡，可用於限制判斷邊界。",
+            client_stage_value,
+        )
+    else:
+        client_stage_state = _build_presence_state_item(
+            PresenceState.MISSING,
+            "目前尚未清楚標示 client stage。",
+        )
+
+    client_type_value = (
+        decision_context.client_type
+        if decision_context and decision_context.client_type
+        else client.client_type if client else ""
+    )
+    if external_research_heavy_candidate and (
+        not client_type_value or client_type_value == UNSPECIFIED_LABEL
+    ):
+        client_type_state = _build_presence_state_item(
+            PresenceState.NOT_APPLICABLE,
+            "這輪尚未綁定到特定 client type。",
+        )
+    elif client_type_value and client_type_value != UNSPECIFIED_LABEL:
+        client_type_state = _build_presence_state_item(
+            PresenceState.INFERRED,
+            "目前已有 client type 脈絡，可協助限制建議適用範圍。",
+            client_type_value,
+        )
+    else:
+        client_type_state = _build_presence_state_item(
+            PresenceState.MISSING,
+            "目前尚未清楚標示 client type。",
+        )
+
+    return schemas.PresenceStateSummaryRead(
+        client=client_state,
+        engagement=engagement_state,
+        workstream=workstream_state,
+        decision_context=decision_context_state,
+        artifact=artifact_state,
+        source_material=source_material_state,
+        domain_lens=domain_lens_state,
+        client_stage=client_stage_state,
+        client_type=client_type_state,
+    )
+
+
+def _resolve_deliverable_class_hint(
+    input_entry_mode: InputEntryMode,
+    decision_context: schemas.DecisionContextRead | None,
+    source_materials: list[schemas.SourceMaterialRead],
+    artifacts: list[schemas.ArtifactRead],
+    evidence_count: int,
+    external_research_heavy_candidate: bool,
+) -> DeliverableClass:
+    if external_research_heavy_candidate or input_entry_mode == InputEntryMode.ONE_LINE_INQUIRY:
+        return DeliverableClass.EXPLORATORY_BRIEF
+
+    if input_entry_mode == InputEntryMode.SINGLE_DOCUMENT_INTAKE:
+        return DeliverableClass.ASSESSMENT_REVIEW_MEMO
+
+    if (
+        decision_context
+        and _normalize_whitespace(decision_context.judgment_to_make)
+        and (
+            _material_unit_count(source_materials, artifacts) >= 2
+            or evidence_count >= 2
+        )
+    ):
+        return DeliverableClass.DECISION_ACTION_DELIVERABLE
+
+    return DeliverableClass.ASSESSMENT_REVIEW_MEMO
+
+
+def _build_sparse_input_summary(
+    input_entry_mode: InputEntryMode,
+    deliverable_class_hint: DeliverableClass,
+    external_research_heavy_candidate: bool,
+) -> str:
+    if external_research_heavy_candidate:
+        return (
+            "目前屬於高時效外部事件導向案例，內部資料仍偏稀疏；系統應先產出 exploratory brief，"
+            "避免假裝已具備 company-specific certainty。"
+        )
+    if input_entry_mode == InputEntryMode.ONE_LINE_INQUIRY:
+        return "目前屬於一句話問題進件；Host 會先建立 provisional world，再以 exploratory brief 形成第一輪判斷。"
+    if input_entry_mode == InputEntryMode.SINGLE_DOCUMENT_INTAKE:
+        return "目前屬於單文件進件；系統可先圍繞該 artifact 形成 assessment / review memo。"
+    if deliverable_class_hint == DeliverableClass.DECISION_ACTION_DELIVERABLE:
+        return "目前屬於多材料案件，資料密度已開始接近 decision / action deliverable 所需的工作鏈。"
+    return "目前屬於多材料案件，但仍建議先以 assessment / review memo 收斂關鍵判斷。"
+
+
 def _build_decision_context_read(task: models.Task) -> schemas.DecisionContextRead | None:
     decision_context = _primary_item(task.decision_contexts)
     if decision_context is None:
@@ -629,6 +1055,34 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
     client, engagement, workstream, decision_context, domain_lenses, source_materials, artifacts = (
         _build_ontology_spine_for_task(task)
     )
+    input_entry_mode = _infer_input_entry_mode(task, source_materials, artifacts)
+    external_research_heavy_candidate = _is_external_research_heavy_candidate(
+        task,
+        decision_context,
+        source_materials,
+        artifacts,
+        input_entry_mode,
+    )
+    presence_state_summary = _build_presence_state_summary(
+        task,
+        client,
+        engagement,
+        workstream,
+        decision_context,
+        domain_lenses,
+        source_materials,
+        artifacts,
+        input_entry_mode,
+        external_research_heavy_candidate,
+    )
+    deliverable_class_hint = _resolve_deliverable_class_hint(
+        input_entry_mode,
+        decision_context,
+        source_materials,
+        artifacts,
+        len(_usable_evidence(task)),
+        external_research_heavy_candidate,
+    )
     return schemas.TaskAggregateResponse(
         id=task.id,
         title=task.title,
@@ -647,6 +1101,15 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         client_type=decision_context.client_type if decision_context else client.client_type if client else None,
         domain_lenses=domain_lenses,
         assumptions=_extract_assumptions(task),
+        input_entry_mode=input_entry_mode,
+        deliverable_class_hint=deliverable_class_hint,
+        external_research_heavy_candidate=external_research_heavy_candidate,
+        sparse_input_summary=_build_sparse_input_summary(
+            input_entry_mode,
+            deliverable_class_hint,
+            external_research_heavy_candidate,
+        ),
+        presence_state_summary=presence_state_summary,
         source_materials=source_materials,
         artifacts=artifacts,
         contexts=[schemas.TaskContextRead.model_validate(item) for item in task.contexts],
