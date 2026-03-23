@@ -8,12 +8,16 @@ import { getTask, runTask } from "@/lib/api";
 import {
   assessTaskReadiness,
   buildActionItemCards,
+  buildCapabilityFrame,
   buildDecisionSnapshot,
   buildExternalDataUsage,
   buildExecutiveSummary,
+  buildOntologyChainSummary,
   buildRecommendationCards,
+  buildReadinessGovernance,
   buildRiskCards,
   buildTaskFraming,
+  buildWorkbenchObjectSummary,
   getGoalSuccessCriteria,
   getLatestDeliverable,
   getVisibleConstraints,
@@ -285,12 +289,18 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
       : [];
   const modeSpecificSections =
     task && latestDeliverable ? getModeSpecificResultSections(task, latestDeliverable) : [];
+  const visibleModeSpecificSections = modeSpecificSections.filter((section) => section.items.length > 0);
   const visibleConstraints = task ? getVisibleConstraints(task.constraints) : [];
   const externalDataUsage = task ? buildExternalDataUsage(task, latestDeliverable) : null;
   const decisionSnapshot = task ? buildDecisionSnapshot(task, latestDeliverable) : null;
   const recommendationCards = task ? buildRecommendationCards(task, latestDeliverable) : [];
   const riskCards = task ? buildRiskCards(task, latestDeliverable) : [];
   const actionItemCards = task ? buildActionItemCards(task, latestDeliverable) : [];
+  const workbenchObjectSummary = task ? buildWorkbenchObjectSummary(task, latestDeliverable) : null;
+  const capabilityFrame = task ? buildCapabilityFrame(task, latestDeliverable) : null;
+  const readinessGovernance =
+    task && readiness ? buildReadinessGovernance(task, latestDeliverable, readiness) : null;
+  const ontologyChainSummary = task ? buildOntologyChainSummary(task, latestDeliverable) : null;
   const sortedRecommendations = task?.recommendations
     ? [...task.recommendations].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
@@ -306,6 +316,23 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       )
     : [];
+  const hasBackgroundSupport = Boolean(
+    task?.subjects.length ||
+      task?.goals.length ||
+      successCriteria.length ||
+      latestContext?.notes?.trim() ||
+      latestContext?.assumptions?.trim() ||
+      visibleConstraints.length ||
+      parsedAppendix.backgroundText.trim() ||
+      modeSpecificEntries.length,
+  );
+  const shouldShowExternalDataContext = Boolean(
+    externalDataUsage &&
+      (externalDataUsage.searchUsed ||
+        externalDataUsage.sources.length > 0 ||
+        task?.external_data_strategy !== "strict"),
+  );
+  const hasSystemTrace = Boolean(task?.runs.length || task?.evidence.length || latestDeliverable);
 
   return (
     <main className="page-shell">
@@ -319,7 +346,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
       {task ? (
         <>
           <section className="hero-card">
-            <span className="eyebrow">Infinite Pro 顧問交付工作區</span>
+            <span className="eyebrow">Infinite Pro Decision Workspace</span>
             <h1 className="page-title">{task.title}</h1>
             <p className="page-subtitle">{task.description || "未提供額外說明。"}</p>
             <div className="meta-row" style={{ marginTop: "16px" }}>
@@ -335,89 +362,111 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
               <section className="panel">
                 <div className="panel-header">
                   <div>
-                    <h2 className="panel-title">原始問題</h2>
+                    <h2 className="panel-title">案件與物件脈絡</h2>
                     <p className="panel-copy">
-                      這是你最初交給 Infinite Pro 的問題，後續 framing、判斷與建議都以這裡為起點。
+                      先用 ontology spine 看清楚這次工作掛在哪個 client / engagement / workstream 與 decision context 上。
                     </p>
                   </div>
                 </div>
-                <div className="detail-item">
-                  <ExpandableText
-                    text={originalProblem}
-                    emptyText="尚未提供可供分析的原始問題。"
-                    previewChars={280}
-                  />
-                </div>
+                {workbenchObjectSummary && ontologyChainSummary ? (
+                  <div className="summary-grid">
+                    <div className="section-card">
+                      <h4>主要案件主體</h4>
+                      <ExpandableText
+                        text={workbenchObjectSummary.primaryEntity}
+                        emptyText="尚未明確標示客戶。"
+                        previewChars={120}
+                      />
+                    </div>
+                    <div className="section-card">
+                      <h4>Engagement</h4>
+                      <ExpandableText
+                        text={workbenchObjectSummary.engagement}
+                        emptyText="尚未建立 engagement。"
+                        previewChars={120}
+                      />
+                    </div>
+                    <div className="section-card">
+                      <h4>Workstream</h4>
+                      <ExpandableText
+                        text={workbenchObjectSummary.workstream}
+                        emptyText="尚未建立 workstream。"
+                        previewChars={120}
+                      />
+                    </div>
+                    <div className="section-card">
+                      <h4>Domain Lens / 客戶脈絡</h4>
+                      <p className="content-block">
+                        {workbenchObjectSummary.domainLensSummary}
+                        {"\n"}
+                        {workbenchObjectSummary.clientContext}
+                      </p>
+                    </div>
+                    <div className="section-card">
+                      <h4>主要來源狀態</h4>
+                      <ExpandableText
+                        text={workbenchObjectSummary.sourceSummary}
+                        emptyText="尚未建立可讀的來源摘要。"
+                        previewChars={160}
+                      />
+                    </div>
+                    <div className="section-card">
+                      <h4>物件鏈密度</h4>
+                      <p className="content-block">
+                        {ontologyChainSummary.sourceMaterialCount} 份 source material /{" "}
+                        {ontologyChainSummary.artifactCount} 份 artifact /{" "}
+                        {ontologyChainSummary.evidenceCount} 則 evidence
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="empty-text">尚未形成可讀的案件物件脈絡。</p>
+                )}
               </section>
 
               <section className="panel">
                 <div className="panel-header">
                   <div>
-                    <h2 className="panel-title">系統理解的任務</h2>
+                    <h2 className="panel-title">原始問題與 Decision Context</h2>
                     <p className="panel-copy">
-                      這一層回答的是：系統理解你要做什麼判斷、會優先看哪些資料，以及是否允許補充外部資料。
+                      先確認你原本問了什麼，以及系統理解這次到底要幫你做哪一個判斷。
                     </p>
                   </div>
                 </div>
 
-                {taskFraming ? (
-                  <div className="section-list">
-                    <div className="detail-item">
+                {taskFraming && capabilityFrame ? (
+                  <div className="summary-grid">
+                    <div className="section-card">
+                      <h4>原始問題</h4>
                       <ExpandableText
-                        text={taskFraming.summary}
-                        emptyText="尚未形成可讀的任務 framing。"
+                        text={originalProblem}
+                        emptyText="尚未提供可供分析的原始問題。"
                         previewChars={240}
                       />
                     </div>
-                    <div className="summary-grid">
-                      <div className="section-card">
-                        <h4>目前案件脈絡</h4>
-                        <ExpandableText
-                          text={taskFraming.consultingContext}
-                          emptyText="尚未整理可讀的顧問案件脈絡。"
-                          previewChars={180}
-                        />
-                      </div>
-                      <div className="section-card">
-                        <h4>這次的 Decision Context</h4>
-                        <ExpandableText
-                          text={taskFraming.decisionContextSummary}
-                          emptyText="尚未整理本輪 decision context。"
-                          previewChars={180}
-                        />
-                      </div>
-                      <div className="section-card">
-                        <h4>這次要幫你做什麼判斷</h4>
-                        <ExpandableText
-                          text={taskFraming.judgmentToMake}
-                          emptyText="尚未明確整理本輪判斷目標。"
-                          previewChars={180}
-                        />
-                      </div>
-                      <div className="section-card">
-                        <h4>這次分析重點是什麼</h4>
-                        <ExpandableText
-                          text={taskFraming.analysisFocus}
-                          emptyText="尚未整理本輪分析重點。"
-                          previewChars={180}
-                        />
-                      </div>
-                      <div className="section-card">
-                        <h4>會優先用哪些資料</h4>
-                        <ExpandableText
-                          text={taskFraming.sourcePriority}
-                          emptyText="尚未整理本輪資料優先順序。"
-                          previewChars={180}
-                        />
-                      </div>
-                      <div className="section-card">
-                        <h4>是否允許補充外部資料</h4>
-                        <ExpandableText
-                          text={taskFraming.externalDataPolicy}
-                          emptyText="尚未整理外部資料使用策略。"
-                          previewChars={180}
-                        />
-                      </div>
+                    <div className="section-card">
+                      <h4>Decision Context</h4>
+                      <ExpandableText
+                        text={taskFraming.decisionContextSummary}
+                        emptyText="尚未整理本輪 decision context。"
+                        previewChars={200}
+                      />
+                    </div>
+                    <div className="section-card">
+                      <h4>這次要幫你做什麼判斷</h4>
+                      <ExpandableText
+                        text={capabilityFrame.judgmentToMake}
+                        emptyText="尚未明確整理本輪判斷目標。"
+                        previewChars={200}
+                      />
+                    </div>
+                    <div className="section-card">
+                      <h4>這次分析重點</h4>
+                      <ExpandableText
+                        text={taskFraming.analysisFocus}
+                        emptyText="尚未整理本輪分析重點。"
+                        previewChars={200}
+                      />
                     </div>
                   </div>
                 ) : (
@@ -428,50 +477,131 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
               <section className="panel">
                 <div className="panel-header">
                   <div>
+                    <h2 className="panel-title">這輪分析框架</h2>
+                    <p className="panel-copy">
+                      這裡對齊 Host 已採用的 capability frame，確認這輪是用什麼顧問能力原型、資料優先順序與執行方式在推進。
+                    </p>
+                  </div>
+                </div>
+
+                {capabilityFrame ? (
+                  <>
+                    <div className="summary-grid">
+                      <div className="section-card">
+                        <h4>Capability Archetype</h4>
+                        <p className="content-block">{capabilityFrame.label}</p>
+                      </div>
+                      <div className="section-card">
+                        <h4>執行方式</h4>
+                        <p className="content-block">{labelForFlowMode(capabilityFrame.executionMode)}</p>
+                      </div>
+                      <div className="section-card">
+                        <h4>Framing Summary</h4>
+                        <ExpandableText
+                          text={capabilityFrame.framingSummary}
+                          emptyText="尚未形成可讀的 capability frame。"
+                          previewChars={180}
+                        />
+                      </div>
+                      <div className="section-card">
+                        <h4>優先資料</h4>
+                        <ExpandableList
+                          items={capabilityFrame.prioritySources}
+                          emptyText="尚未整理這輪優先資料。"
+                        />
+                      </div>
+                    </div>
+
+                    {capabilityFrame.routingRationale.length > 0 ? (
+                      <div className="detail-item" style={{ marginTop: "14px" }}>
+                        <h3>Routing rationale</h3>
+                        <ExpandableList
+                          items={capabilityFrame.routingRationale}
+                          emptyText="目前沒有可顯示的 routing 說明。"
+                        />
+                      </div>
+                    ) : null}
+
+                    {capabilityFrame.selectedAgents.length > 0 ? (
+                      <div className="detail-item" style={{ marginTop: "14px" }}>
+                        <h3>相關代理</h3>
+                        <ExpandableList
+                          items={capabilityFrame.selectedAgents}
+                          emptyText="目前沒有可顯示的代理。"
+                          translateAsAgentIds
+                        />
+                      </div>
+                    ) : null}
+                  </>
+                ) : null}
+              </section>
+
+              <section className="panel">
+                <div className="panel-header">
+                  <div>
                     <h2 className="panel-title">判斷可信度與資料缺口</h2>
                     <p className="panel-copy">
                       先看這輪判斷目前有多穩、還缺哪些資料，以及這些缺口會怎麼影響結論可信度。
                     </p>
                   </div>
-                  {readiness ? (
-                    <span className={`status-badge status-${readiness.level}`}>{readiness.label}</span>
+                  {readinessGovernance ? (
+                    <span className={`status-badge status-${readinessGovernance.level}`}>
+                      {readinessGovernance.label}
+                    </span>
                   ) : null}
                 </div>
 
-                {readiness ? (
+                {readinessGovernance ? (
                   <>
                     <div className="summary-grid">
                       <div className="section-card">
-                        <h4>背景是否足夠</h4>
-                        <p className="content-block">{readiness.backgroundStatus}</p>
+                        <h4>Decision Context 清晰度</h4>
+                        <p className="content-block">{readinessGovernance.decisionContextStatus}</p>
                       </div>
                       <div className="section-card">
-                        <h4>證據是否足夠</h4>
-                        <p className="content-block">{readiness.evidenceStatus}</p>
+                        <h4>Domain Context 成立度</h4>
+                        <p className="content-block">{readinessGovernance.domainStatus}</p>
+                      </div>
+                      <div className="section-card">
+                        <h4>Artifact / SourceMaterial 覆蓋度</h4>
+                        <p className="content-block">{readinessGovernance.artifactStatus}</p>
+                      </div>
+                      <div className="section-card">
+                        <h4>Evidence 覆蓋度</h4>
+                        <p className="content-block">{readinessGovernance.evidenceStatus}</p>
                       </div>
                     </div>
 
-                    {readiness.missingItems.length > 0 ? (
+                    {readinessGovernance.missingInformation.length > 0 ? (
                       <div className="detail-item" style={{ marginTop: "14px" }}>
                         <h3>目前缺少的關鍵資料</h3>
                         <ExpandableList
-                          items={readiness.missingItems}
+                          items={readinessGovernance.missingInformation}
                           emptyText="目前沒有額外缺漏資訊。"
                         />
                       </div>
                     ) : null}
 
-                    {readiness.warnings.length > 0 ? (
-                      <div className="detail-item" style={{ marginTop: "14px" }}>
-                        <h3>建議補充</h3>
-                        <ExpandableList
-                          items={readiness.warnings}
-                          emptyText="目前沒有額外建議補充。"
+                    <div className="summary-grid" style={{ marginTop: "14px" }}>
+                      <div className="section-card">
+                        <h4>對目前結論的影響</h4>
+                        <ExpandableText
+                          text={readinessGovernance.conclusionImpact}
+                          emptyText="尚未整理結論影響。"
+                          previewChars={180}
                         />
                       </div>
-                    ) : null}
+                      <div className="section-card">
+                        <h4>限制與假設訊號</h4>
+                        <p className="content-block">
+                          {readinessGovernance.constraintSignal}
+                          {"\n"}
+                          {readinessGovernance.assumptionSignal}
+                        </p>
+                      </div>
+                    </div>
 
-                    {readiness.degradedOutputLikely ? (
+                    {readinessGovernance.level === "degraded" ? (
                       <p className="error-text">
                         目前若直接執行，系統可能會產出帶有明確缺漏註記的降級結果。
                       </p>
@@ -498,74 +628,72 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
               <section className="panel">
                 <div className="panel-header">
                   <div>
-                    <h2 className="panel-title">Decision Snapshot</h2>
+                    <h2 className="panel-title">正式交付結果</h2>
                     <p className="panel-copy">
-                      先用 10 秒掌握這次分析的核心結論，再決定是否往下看完整交付內容。
+                      這是目前最接近正式顧問交付物的主閱讀主線：先看 Decision Snapshot，再往下讀執行摘要、核心判斷與後續建議。
                     </p>
                   </div>
                 </div>
-                {decisionSnapshot ? (
-                  <div className="snapshot-grid">
-                    <div className="section-card">
-                      <h4>{decisionSnapshot.conclusionLabel}</h4>
-                      <ExpandableText
-                        text={decisionSnapshot.conclusion}
-                        emptyText="尚未產生一句話結論。"
-                        previewChars={180}
-                      />
+                <div className="section-list">
+                  {decisionSnapshot ? (
+                    <div className="snapshot-grid">
+                      <div className="section-card">
+                        <h4>{decisionSnapshot.conclusionLabel}</h4>
+                        <ExpandableText
+                          text={decisionSnapshot.conclusion}
+                          emptyText="尚未產生一句話結論。"
+                          previewChars={180}
+                        />
+                      </div>
+                      <div className="section-card">
+                        <h4>{decisionSnapshot.recommendationLabel}</h4>
+                        <ExpandableText
+                          text={decisionSnapshot.primaryRecommendation}
+                          emptyText="尚未產生最重要建議。"
+                          previewChars={180}
+                        />
+                      </div>
+                      <div className="section-card">
+                        <h4>{decisionSnapshot.riskLabel}</h4>
+                        <ExpandableText
+                          text={decisionSnapshot.primaryRisk}
+                          emptyText="尚未標記主要風險。"
+                          previewChars={180}
+                        />
+                      </div>
+                      <div className="section-card">
+                        <h4>{decisionSnapshot.missingDataLabel}</h4>
+                        <ExpandableText
+                          text={decisionSnapshot.missingDataStatus}
+                          emptyText="目前沒有重大缺漏資料狀態。"
+                          previewChars={180}
+                        />
+                      </div>
                     </div>
-                    <div className="section-card">
-                      <h4>{decisionSnapshot.recommendationLabel}</h4>
-                      <ExpandableText
-                        text={decisionSnapshot.primaryRecommendation}
-                        emptyText="尚未產生最重要建議。"
-                        previewChars={180}
-                      />
-                    </div>
-                    <div className="section-card">
-                      <h4>{decisionSnapshot.riskLabel}</h4>
-                      <ExpandableText
-                        text={decisionSnapshot.primaryRisk}
-                        emptyText="尚未標記主要風險。"
-                        previewChars={180}
-                      />
-                    </div>
-                    <div className="section-card">
-                      <h4>{decisionSnapshot.missingDataLabel}</h4>
-                      <ExpandableText
-                        text={decisionSnapshot.missingDataStatus}
-                        emptyText="目前沒有重大缺漏資料狀態。"
-                        previewChars={180}
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <p className="empty-text">尚未產生 Decision Snapshot。</p>
-                )}
-              </section>
+                  ) : (
+                    <p className="empty-text">尚未產生 Decision Snapshot。</p>
+                  )}
 
-              <section className="panel">
-                <div className="panel-header">
-                  <div>
-                    <h2 className="panel-title">核心判斷與建議</h2>
-                    <p className="panel-copy">
-                      先看這輪最值得採用的判斷、建議、風險與下一步，再往下讀各場景的專業內容。
-                    </p>
-                  </div>
-                </div>
-              </section>
-
-              <section className="panel">
-                <h2 className="section-title">執行摘要</h2>
-                {executiveSummary ? (
-                  <div className="section-list">
-                    <div className="detail-item">
+                  <div className="summary-grid">
+                    <div className="section-card">
+                      <h4>執行摘要</h4>
                       <ExpandableText
-                        text={executiveSummary.summary}
+                        text={executiveSummary?.summary ?? ""}
                         emptyText="尚未產出可供決策閱讀的執行摘要。"
-                        previewChars={260}
+                        previewChars={240}
                       />
                     </div>
+                    <div className="section-card">
+                      <h4>核心判斷</h4>
+                      <ExpandableText
+                        text={executiveSummary?.coreJudgment ?? ""}
+                        emptyText="尚未產出可供顧問式討論的核心判斷。"
+                        previewChars={240}
+                      />
+                    </div>
+                  </div>
+
+                  {executiveSummary?.bullets.length ? (
                     <div className="section-card">
                       <h4>摘要重點</h4>
                       <ExpandableList
@@ -573,20 +701,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                         emptyText="尚未整理出可供快速閱讀的摘要重點。"
                       />
                     </div>
-                  </div>
-                ) : (
-                  <p className="empty-text">尚未產出可供決策閱讀的摘要。</p>
-                )}
-              </section>
-
-              <section className="panel">
-                <h2 className="section-title">核心判斷</h2>
-                <div className="detail-item">
-                  <ExpandableText
-                    text={executiveSummary?.coreJudgment ?? ""}
-                    emptyText="尚未產出可供顧問式討論的核心判斷。"
-                    previewChars={260}
-                  />
+                  ) : null}
                 </div>
               </section>
 
@@ -676,20 +791,16 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                 </div>
               </section>
 
-              {modeSpecificSections.length > 0 ? (
-                <section className="panel">
-                  <div className="panel-header">
-                    <div>
-                      <h2 className="panel-title">場景專業區塊</h2>
-                      <p className="panel-copy">
-                        以下內容只補這個 workflow mode 的專業重點，用來承接場景差異，不改變上面的共通決策骨架。
-                      </p>
-                    </div>
-                  </div>
-                </section>
+              {visibleModeSpecificSections.length > 0 ? (
+                <div className="workspace-section-intro">
+                  <h2 className="section-title">場景專業區塊</h2>
+                  <p className="panel-copy">
+                    以下內容只補這個 workflow mode 的專業重點，用來承接場景差異，不改變上面的共通決策骨架。
+                  </p>
+                </div>
               ) : null}
 
-              {modeSpecificSections.map((section) => (
+              {visibleModeSpecificSections.map((section) => (
                 <ModeSectionList
                   key={section.title}
                   title={section.title}
@@ -707,17 +818,41 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                   <div>
                     <h2 className="panel-title">Supporting Context</h2>
                     <p className="panel-copy">
-                      如果你想追問這次判斷是根據哪些材料形成的，可以先從這些補充內容往下看。
+                      這一欄只保留幫助你理解結論來源的補充內容，不讓 supporting info 抢走主交付主線。
                     </p>
                   </div>
                 </div>
+                {ontologyChainSummary ? (
+                  <div className="summary-grid">
+                    <div className="section-card">
+                      <h4>Decision Context</h4>
+                      <ExpandableText
+                        text={ontologyChainSummary.decisionContext}
+                        emptyText="尚未形成可讀的 decision context。"
+                        previewChars={160}
+                      />
+                    </div>
+                    <div className="section-card">
+                      <h4>物件鏈摘要</h4>
+                      <p className="content-block">
+                        {ontologyChainSummary.artifactCount} artifact /{" "}
+                        {ontologyChainSummary.sourceMaterialCount} source material /{" "}
+                        {ontologyChainSummary.evidenceCount} evidence
+                        {"\n"}
+                        {ontologyChainSummary.recommendationCount} recommendation /{" "}
+                        {ontologyChainSummary.riskCount} risk /{" "}
+                        {ontologyChainSummary.actionItemCount} action item
+                      </p>
+                    </div>
+                  </div>
+                ) : null}
               </section>
 
-              <DisclosurePanel
-                title="完整交付物"
-                description="查看這次 structured deliverable 的完整欄位與原始內容。"
-              >
-                {latestDeliverable ? (
+              {latestDeliverable ? (
+                <DisclosurePanel
+                  title="完整交付物"
+                  description="查看這次 structured deliverable 的完整欄位與原始內容。"
+                >
                   <div className="section-list">
                     <div className="detail-item">
                       <h3>{latestDeliverable.title}</h3>
@@ -730,126 +865,125 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                       renderStructuredValue(label, value),
                     )}
                   </div>
-                ) : (
-                  <p className="empty-text">尚未產生交付物。請先執行所選流程，建立第一份結果。</p>
-                )}
-              </DisclosurePanel>
+                </DisclosurePanel>
+              ) : null}
 
-              <DisclosurePanel
-                title="證據與補充資料"
-                description="查看本輪分析依賴的證據、來源摘錄與可支持結論的補充內容。"
-              >
-                <div className="detail-list">
-                  {task.evidence.map((evidence) => (
-                    <div className="detail-item" key={evidence.id}>
-                      <div className="meta-row">
-                        <span className="pill">{labelForEvidenceType(evidence.evidence_type)}</span>
-                        <span>{labelForSourceType(evidence.source_type)}</span>
+              {task.evidence.length > 0 ? (
+                <DisclosurePanel
+                  title="證據與補充資料"
+                  description="查看本輪分析依賴的證據、來源摘錄與可支持結論的補充內容。"
+                >
+                  <div className="detail-list">
+                    {task.evidence.map((evidence) => (
+                      <div className="detail-item" key={evidence.id}>
+                        <div className="meta-row">
+                          <span className="pill">{labelForEvidenceType(evidence.evidence_type)}</span>
+                          <span>{labelForSourceType(evidence.source_type)}</span>
+                        </div>
+                        <h3>{evidence.title}</h3>
+                        <ExpandableText
+                          text={evidence.excerpt_or_summary}
+                          emptyText="這筆證據目前沒有可顯示的內容摘要。"
+                          previewChars={240}
+                        />
                       </div>
-                      <h3>{evidence.title}</h3>
+                    ))}
+                  </div>
+                </DisclosurePanel>
+              ) : null}
+
+              {hasBackgroundSupport ? (
+                <DisclosurePanel
+                  title="任務背景與補充脈絡"
+                  description="回看你當時提供的背景、目標、限制與其他補充說明。"
+                >
+                  <div className="detail-list">
+                    <div className="detail-item">
+                      <h3>分析對象</h3>
+                      {task.subjects.length > 0 ? (
+                        <ul className="list-content">
+                          {task.subjects.map((subject) => (
+                            <li key={subject.id}>
+                              {subject.name}
+                              {subject.description ? `：${subject.description}` : ""}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="muted-text">尚未設定分析對象。</p>
+                      )}
+                    </div>
+                    <div className="detail-item">
+                      <h3>交付目標</h3>
+                      {task.goals.length > 0 ? (
+                        <ul className="list-content">
+                          {task.goals.map((goal) => (
+                            <li key={goal.id}>{goal.description}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="muted-text">尚未設定明確交付目標。</p>
+                      )}
+                    </div>
+                    <div className="detail-item">
+                      <h3>成功標準 / 判斷標準</h3>
+                      <ExpandableList items={successCriteria} emptyText="尚未設定明確成功標準。" />
+                    </div>
+                    <div className="detail-item">
+                      <h3>已有資料</h3>
                       <ExpandableText
-                        text={evidence.excerpt_or_summary}
-                        emptyText="這筆證據目前沒有可顯示的內容摘要。"
-                        previewChars={240}
+                        text={latestContext?.notes || ""}
+                        emptyText="尚未整理目前已掌握資料。"
                       />
                     </div>
-                  ))}
-                  {task.evidence.length === 0 ? (
-                    <p className="empty-text">尚未附加任何證據。</p>
-                  ) : null}
-                </div>
-              </DisclosurePanel>
-
-              <DisclosurePanel
-                title="任務背景與補充脈絡"
-                description="回看你當時提供的背景、目標、限制與其他補充說明。"
-              >
-                <div className="detail-list">
-                  <div className="detail-item">
-                    <h3>分析對象</h3>
-                    {task.subjects.length > 0 ? (
-                      <ul className="list-content">
-                        {task.subjects.map((subject) => (
-                          <li key={subject.id}>
-                            {subject.name}
-                            {subject.description ? `：${subject.description}` : ""}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="muted-text">尚未設定分析對象。</p>
-                    )}
-                  </div>
-                  <div className="detail-item">
-                    <h3>交付目標</h3>
-                    {task.goals.length > 0 ? (
-                      <ul className="list-content">
-                        {task.goals.map((goal) => (
-                          <li key={goal.id}>{goal.description}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="muted-text">尚未設定明確交付目標。</p>
-                    )}
-                  </div>
-                  <div className="detail-item">
-                    <h3>成功標準 / 判斷標準</h3>
-                    <ExpandableList items={successCriteria} emptyText="尚未設定明確成功標準。" />
-                  </div>
-                  <div className="detail-item">
-                    <h3>已有資料</h3>
-                    <ExpandableText
-                      text={latestContext?.notes || ""}
-                      emptyText="尚未整理目前已掌握資料。"
-                    />
-                  </div>
-                  <div className="detail-item">
-                    <h3>缺少資料 / 待確認假設</h3>
-                    <ExpandableText
-                      text={latestContext?.assumptions || ""}
-                      emptyText="尚未列出待補資料或待確認假設。"
-                    />
-                  </div>
-                  <div className="detail-item">
-                    <h3>限制條件</h3>
-                    {visibleConstraints.length > 0 ? (
-                      <ul className="list-content">
-                        {visibleConstraints.map((constraint) => (
-                          <li key={constraint.id}>{constraint.description}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="muted-text">尚未新增明確限制條件。</p>
-                    )}
-                  </div>
-                  <div className="detail-item">
-                    <h3>背景脈絡</h3>
-                    <ExpandableText
-                      text={parsedAppendix.backgroundText || ""}
-                      emptyText="尚未提供手動背景文字。"
-                      previewChars={260}
-                    />
-                  </div>
-                  {modeSpecificEntries.length > 0 ? (
                     <div className="detail-item">
-                      <h3>{workflowDefinition?.title ?? "流程補充設定"}</h3>
-                      <ul className="list-content">
-                        {modeSpecificEntries.map((entry) => (
-                          <li key={entry.label}>
-                            {entry.label}：{entry.value}
-                          </li>
-                        ))}
-                      </ul>
+                      <h3>缺少資料 / 待確認假設</h3>
+                      <ExpandableText
+                        text={latestContext?.assumptions || ""}
+                        emptyText="尚未列出待補資料或待確認假設。"
+                      />
                     </div>
-                  ) : null}
-                </div>
-              </DisclosurePanel>
+                    <div className="detail-item">
+                      <h3>限制條件</h3>
+                      {visibleConstraints.length > 0 ? (
+                        <ul className="list-content">
+                          {visibleConstraints.map((constraint) => (
+                            <li key={constraint.id}>{constraint.description}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="muted-text">尚未新增明確限制條件。</p>
+                      )}
+                    </div>
+                    <div className="detail-item">
+                      <h3>背景脈絡</h3>
+                      <ExpandableText
+                        text={parsedAppendix.backgroundText || ""}
+                        emptyText="尚未提供手動背景文字。"
+                        previewChars={260}
+                      />
+                    </div>
+                    {modeSpecificEntries.length > 0 ? (
+                      <div className="detail-item">
+                        <h3>{workflowDefinition?.title ?? "流程補充設定"}</h3>
+                        <ul className="list-content">
+                          {modeSpecificEntries.map((entry) => (
+                            <li key={entry.label}>
+                              {entry.label}：{entry.value}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+                  </div>
+                </DisclosurePanel>
+              ) : null}
 
-              <DisclosurePanel
-                title="外部資料使用情況"
-                description="確認這輪判斷是否引用了外部來源，以及哪些結論依賴這些補充資料。"
-              >
-                {externalDataUsage ? (
+              {shouldShowExternalDataContext && externalDataUsage ? (
+                <DisclosurePanel
+                  title="外部資料使用情況"
+                  description="確認這輪判斷是否引用了外部來源，以及哪些結論依賴這些補充資料。"
+                >
                   <div className="detail-list">
                     <div className="detail-item">
                       <h3>外部資料使用方式</h3>
@@ -888,22 +1022,21 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                       />
                     </div>
                   </div>
-                ) : (
-                  <p className="empty-text">目前尚未記錄外部資料使用情況。</p>
-                )}
-              </DisclosurePanel>
+                </DisclosurePanel>
+              ) : null}
 
-              <DisclosurePanel
-                title="System Trace"
-                description="只有在你想檢查系統如何理解、協調與寫回這個任務時，再展開這一層。"
-              >
-                <div className="detail-list">
-                  <div className="detail-item">
-                    <h3>Ontology / 工作物件檢視</h3>
-                    <p className="panel-copy" style={{ marginBottom: "16px" }}>
-                      檢查 shared task model 目前承載了哪些工作物件與結果。
-                    </p>
-                    <div className="ontology-grid">
+              {hasSystemTrace ? (
+                <DisclosurePanel
+                  title="System Trace"
+                  description="只有在你想檢查系統如何理解、協調與寫回這個任務時，再展開這一層。"
+                >
+                  <div className="detail-list">
+                    <div className="detail-item">
+                      <h3>Ontology / 工作物件檢視</h3>
+                      <p className="panel-copy" style={{ marginBottom: "16px" }}>
+                        檢查 shared task model 目前承載了哪些工作物件與結果。
+                      </p>
+                      <div className="ontology-grid">
                       <div className="ontology-card">
                         <h3>客戶</h3>
                         <p className="content-block">
@@ -1119,66 +1252,65 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     </div>
                   </div>
 
-                  <div className="detail-item">
-                    <h3>任務歷史</h3>
-                    <p className="panel-copy" style={{ marginBottom: "16px" }}>
-                      回看這個案件的執行紀錄、寫回摘要與歷程狀態。
-                    </p>
-                    <div className="detail-list">
-                      {task.runs.length > 0 ? (
-                        [...task.runs]
-                          .sort(
-                            (a, b) =>
-                              new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-                          )
-                          .map((run) => (
-                            <div className="detail-item" key={run.id}>
-                              <div className="meta-row">
-                                <span className="pill">{labelForRunStatus(run.status)}</span>
-                                <span>{labelForAgentId(run.agent_id)}</span>
-                                <span>{formatDisplayDate(run.created_at)}</span>
-                              </div>
-                              <h3>{run.summary || "已記錄執行結果"}</h3>
-                              <ExpandableText
-                                text={run.error_message || "結構化結果已寫入任務歷史。"}
-                                emptyText="目前沒有額外執行說明。"
-                              />
-                            </div>
-                          ))
-                      ) : (
-                        <p className="empty-text">目前尚無執行紀錄。</p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="detail-item">
-                    <h3>流程與協調資訊</h3>
-                    <p className="panel-copy" style={{ marginBottom: "16px" }}>
-                      檢查目前工作流程、最新執行代理與 Host 的協調狀態。
-                    </p>
-                    <div className="detail-list">
+                    {task.runs.length > 0 ? (
                       <div className="detail-item">
-                        <h3>工作流程</h3>
-                        <p className="content-block">{labelForFlowMode(task.mode)}</p>
-                      </div>
-                      <div className="detail-item">
-                        <h3>最新執行代理</h3>
-                        <p className="content-block">
-                          {labelForAgentId(task.runs[0]?.agent_id ?? task.task_type)}
+                        <h3>任務歷史</h3>
+                        <p className="panel-copy" style={{ marginBottom: "16px" }}>
+                          回看這個案件的執行紀錄、寫回摘要與歷程狀態。
                         </p>
+                        <div className="detail-list">
+                          {[...task.runs]
+                            .sort(
+                              (a, b) =>
+                                new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+                            )
+                            .map((run) => (
+                              <div className="detail-item" key={run.id}>
+                                <div className="meta-row">
+                                  <span className="pill">{labelForRunStatus(run.status)}</span>
+                                  <span>{labelForAgentId(run.agent_id)}</span>
+                                  <span>{formatDisplayDate(run.created_at)}</span>
+                                </div>
+                                <h3>{run.summary || "已記錄執行結果"}</h3>
+                                <ExpandableText
+                                  text={run.error_message || "結構化結果已寫入任務歷史。"}
+                                  emptyText="目前沒有額外執行說明。"
+                                />
+                              </div>
+                            ))}
+                        </div>
                       </div>
-                      <div className="detail-item">
-                        <h3>參與代理</h3>
-                        <ExpandableList
-                          items={participatingAgents}
-                          emptyText="目前沒有可顯示的參與代理。"
-                          translateAsAgentIds
-                        />
+                    ) : null}
+
+                    <div className="detail-item">
+                      <h3>流程與協調資訊</h3>
+                      <p className="panel-copy" style={{ marginBottom: "16px" }}>
+                        檢查目前工作流程、最新執行代理與 Host 的協調狀態。
+                      </p>
+                      <div className="detail-list">
+                        <div className="detail-item">
+                          <h3>工作流程</h3>
+                          <p className="content-block">{labelForFlowMode(task.mode)}</p>
+                        </div>
+                        <div className="detail-item">
+                          <h3>最新執行代理</h3>
+                          <p className="content-block">
+                            {labelForAgentId(task.runs[0]?.agent_id ?? task.task_type)}
+                          </p>
+                        </div>
+                        <div className="detail-item">
+                          <h3>參與代理</h3>
+                          <ExpandableList
+                            items={participatingAgents}
+                            emptyText="目前沒有可顯示的參與代理。"
+                            translateAsAgentIds
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </DisclosurePanel>
+                </DisclosurePanel>
+              ) : null}
 
             </div>
           </div>

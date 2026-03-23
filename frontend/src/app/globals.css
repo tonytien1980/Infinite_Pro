@@ -93,16 +93,43 @@ button {
 .workbench-grid,
 .detail-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
   gap: 24px;
   min-width: 0;
   max-width: 100%;
+}
+
+.workbench-grid {
+  grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.85fr);
+  align-items: start;
+}
+
+.detail-grid {
+  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.8fr);
+  align-items: start;
 }
 
 .workbench-grid > *,
 .detail-grid > * {
   min-width: 0;
   max-width: 100%;
+}
+
+.workbench-home-grid {
+  align-items: start;
+}
+
+.workbench-overview-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-width: 0;
+  max-width: 100%;
+}
+
+.workbench-metric {
+  margin: 10px 0 6px;
+  font-size: clamp(1.9rem, 4vw, 2.8rem);
+  line-height: 1;
 }
 
 .panel {
@@ -289,6 +316,13 @@ button {
   overflow: hidden;
 }
 
+.history-item-button {
+  width: 100%;
+  border: 1px solid var(--border);
+  color: inherit;
+  text-align: left;
+}
+
 .history-item h3,
 .detail-item h3,
 .section-card h3,
@@ -319,6 +353,11 @@ button {
 .section-title {
   margin: 0 0 12px;
   font-size: 1.15rem;
+}
+
+.workspace-section-intro {
+  display: grid;
+  gap: 8px;
 }
 
 .back-link {
@@ -522,6 +561,7 @@ button {
     grid-template-columns: 1fr;
   }
 
+  .workbench-overview-grid,
   .field-grid,
   .summary-grid,
   .ontology-grid,

@@ -80,6 +80,59 @@ export interface TaskFramingView {
   externalDataPolicy: string;
 }
 
+export interface WorkbenchObjectSummaryView {
+  primaryEntity: string;
+  engagement: string;
+  workstream: string;
+  decisionContext: string;
+  domainLensSummary: string;
+  clientContext: string;
+  sourceSummary: string;
+}
+
+export interface CapabilityFrameView {
+  capability: string;
+  label: string;
+  framingSummary: string;
+  executionMode: string;
+  judgmentToMake: string;
+  routingRationale: string[];
+  selectedAgents: string[];
+  specialistAgent: string;
+  prioritySources: string[];
+  domainLenses: string[];
+  clientStage: string;
+  clientType: string;
+}
+
+export interface ReadinessGovernanceView {
+  level: ReadinessLevel;
+  label: string;
+  summary: string;
+  decisionContextStatus: string;
+  domainStatus: string;
+  artifactStatus: string;
+  evidenceStatus: string;
+  missingInformation: string[];
+  conclusionImpact: string;
+  assumptionSignal: string;
+  constraintSignal: string;
+}
+
+export interface OntologyChainSummaryView {
+  client: string;
+  engagement: string;
+  workstream: string;
+  task: string;
+  decisionContext: string;
+  artifactCount: number;
+  sourceMaterialCount: number;
+  evidenceCount: number;
+  recommendationCount: number;
+  riskCount: number;
+  actionItemCount: number;
+}
+
 function isExternalDataStrategyConstraint(constraint: Constraint) {
   return constraint.constraint_type === "external_data_strategy";
 }
@@ -665,6 +718,14 @@ function asStringArray(value: unknown) {
   return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
 }
 
+function asRecord(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  return value as Record<string, unknown>;
+}
+
 function inferRecommendationExpectedEffect(summary: string, rationale: string) {
   const combinedText = `${summary} ${rationale}`.trim();
 
@@ -795,6 +856,194 @@ export function buildDecisionSnapshot(
       recommendations[0]?.content || "目前尚未形成可直接採用的建議，建議先查看完整交付物。",
     primaryRisk: risks[0]?.content || "目前尚未標記明確的主要風險。",
     missingDataStatus: buildMissingDataStatus(missingInformation),
+  };
+}
+
+export function buildWorkbenchObjectSummary(
+  task: TaskAggregate,
+  deliverable: Deliverable | null,
+): WorkbenchObjectSummaryView {
+  const ontologyContext = asRecord(deliverable?.content_structure?.ontology_context);
+  const primaryEntity =
+    task.client?.name?.trim() ||
+    (typeof ontologyContext?.client_name === "string" ? ontologyContext.client_name : "") ||
+    "尚未明確標示客戶";
+  const engagement =
+    task.engagement?.name?.trim() ||
+    (typeof ontologyContext?.engagement_name === "string" ? ontologyContext.engagement_name : "") ||
+    "尚未建立 engagement";
+  const workstream =
+    task.workstream?.name?.trim() ||
+    (typeof ontologyContext?.workstream_name === "string" ? ontologyContext.workstream_name : "") ||
+    "尚未建立 workstream";
+  const decisionContext =
+    task.decision_context?.title?.trim() ||
+    task.decision_context?.judgment_to_make?.trim() ||
+    buildDecisionContextSummary(task);
+  const domainLensSummary =
+    task.domain_lenses.length > 0 ? joinNaturalList(task.domain_lenses) : "綜合視角";
+  const clientStage = task.client?.client_stage?.trim() || task.client_stage?.trim() || "未指定階段";
+  const clientType = task.client?.client_type?.trim() || task.client_type?.trim() || "未指定型態";
+
+  return {
+    primaryEntity,
+    engagement,
+    workstream,
+    decisionContext,
+    domainLensSummary,
+    clientContext: `${clientType} / ${clientStage}`,
+    sourceSummary:
+      task.source_materials.length > 0 || task.artifacts.length > 0 || task.evidence.length > 0
+        ? `${task.source_materials.length} 份 source material、${task.artifacts.length} 份 artifact、${task.evidence.length} 則證據`
+        : "目前仍主要依賴原始問題與背景脈絡。",
+  };
+}
+
+export function buildCapabilityFrame(
+  task: TaskAggregate,
+  deliverable: Deliverable | null,
+): CapabilityFrameView {
+  const capability = asRecord(deliverable?.content_structure?.capability_frame);
+  const workflowMode = typeof capability?.execution_mode === "string" ? capability.execution_mode : task.mode;
+  const selectedAgents = asStringArray(capability?.selected_agents);
+  const prioritySources = asStringArray(capability?.priority_sources);
+
+  return {
+    capability:
+      (typeof capability?.capability === "string" && capability.capability) || task.task_type,
+    label:
+      (typeof capability?.label === "string" && capability.label) ||
+      (task.mode === "multi_agent" ? "收斂判斷" : "專家工作流"),
+    framingSummary:
+      (typeof capability?.framing_summary === "string" && capability.framing_summary) ||
+      buildTaskFraming(task, assessTaskReadiness(task)).summary,
+    executionMode: workflowMode,
+    judgmentToMake:
+      (typeof capability?.judgment_to_make === "string" && capability.judgment_to_make) ||
+      buildDefaultJudgment(task),
+    routingRationale: asStringArray(capability?.routing_rationale),
+    selectedAgents,
+    specialistAgent:
+      (typeof capability?.specialist_agent === "string" && capability.specialist_agent) || "",
+    prioritySources:
+      prioritySources.length > 0
+        ? prioritySources
+        : [buildSourcePriority(task)],
+    domainLenses:
+      asStringArray(capability?.domain_lenses).length > 0
+        ? asStringArray(capability?.domain_lenses)
+        : task.domain_lenses,
+    clientStage:
+      (typeof capability?.client_stage === "string" && capability.client_stage) ||
+      task.client_stage ||
+      "未指定",
+    clientType:
+      (typeof capability?.client_type === "string" && capability.client_type) ||
+      task.client_type ||
+      "未指定",
+  };
+}
+
+export function buildReadinessGovernance(
+  task: TaskAggregate,
+  deliverable: Deliverable | null,
+  fallbackReadiness?: ReadinessAssessment,
+): ReadinessGovernanceView {
+  const readiness = fallbackReadiness ?? assessTaskReadiness(task);
+  const governance = asRecord(deliverable?.content_structure?.readiness_governance);
+  const missingInformation = asStringArray(governance?.missing_information);
+  const visibleConstraints = getVisibleConstraints(task.constraints);
+  const assumptions = task.assumptions.filter(Boolean);
+
+  const level =
+    (typeof governance?.level === "string" &&
+      (governance.level === "ready" || governance.level === "caution" || governance.level === "degraded")
+      ? governance.level
+      : readiness.level) as ReadinessLevel;
+
+  const decisionContextClear = Boolean(governance?.decision_context_clear);
+  const domainContextClear = Boolean(governance?.domain_context_clear);
+  const artifactCoverage =
+    (typeof governance?.artifact_coverage === "string" && governance.artifact_coverage) ||
+    (task.artifacts.length > 0 || task.source_materials.length > 0
+      ? "已具備可引用的 artifacts / source materials，可支撐本輪判斷。"
+      : "Artifacts / source materials 仍偏少，本輪較依賴問題描述與背景整理。");
+  const evidenceCoverage =
+    (typeof governance?.evidence_coverage === "string" && governance.evidence_coverage) ||
+    readiness.evidenceStatus;
+  const conclusionImpact =
+    (typeof governance?.conclusion_impact === "string" && governance.conclusion_impact) ||
+    readiness.summary;
+
+  return {
+    level,
+    label: getLevelLabel(level),
+    summary: readiness.summary,
+    decisionContextStatus: decisionContextClear
+      ? "Decision context 已明確，可直接支撐本輪判斷。"
+      : "Decision context 仍偏模糊，部分結論只能以暫定 framing 形成。",
+    domainStatus: domainContextClear
+      ? "Domain lens 已具備，系統知道應以哪些顧問視角優先判斷。"
+      : "Domain lens 仍偏鬆散，部分結論仍可能偏向綜合性整理。",
+    artifactStatus: artifactCoverage,
+    evidenceStatus: evidenceCoverage,
+    missingInformation:
+      missingInformation.length > 0 ? missingInformation : readiness.missingItems,
+    conclusionImpact,
+    assumptionSignal:
+      assumptions.length > 0
+        ? `目前有 ${assumptions.length} 項假設會影響本輪結論的適用範圍。`
+        : "目前沒有額外假設被明確寫入 shared state。",
+    constraintSignal:
+      visibleConstraints.length > 0
+        ? `目前有 ${visibleConstraints.length} 項限制條件正在收斂這輪建議與風險判斷。`
+        : "目前沒有明確限制條件在壓縮本輪結論。",
+  };
+}
+
+export function buildOntologyChainSummary(
+  task: TaskAggregate,
+  deliverable: Deliverable | null,
+): OntologyChainSummaryView {
+  const summary = asRecord(deliverable?.content_structure?.ontology_chain_summary);
+
+  return {
+    client:
+      (typeof summary?.client === "string" && summary.client) ||
+      task.client?.name ||
+      "尚未明確標示客戶",
+    engagement:
+      (typeof summary?.engagement === "string" && summary.engagement) ||
+      task.engagement?.name ||
+      "尚未建立 engagement",
+    workstream:
+      (typeof summary?.workstream === "string" && summary.workstream) ||
+      task.workstream?.name ||
+      "尚未建立 workstream",
+    task:
+      (typeof summary?.task === "string" && summary.task) || task.title,
+    decisionContext:
+      (typeof summary?.decision_context === "string" && summary.decision_context) ||
+      task.decision_context?.title ||
+      "尚未形成可讀的 decision context",
+    artifactCount:
+      typeof summary?.artifact_count === "number" ? summary.artifact_count : task.artifacts.length,
+    sourceMaterialCount:
+      typeof summary?.source_material_count === "number"
+        ? summary.source_material_count
+        : task.source_materials.length,
+    evidenceCount:
+      typeof summary?.evidence_count === "number" ? summary.evidence_count : task.evidence.length,
+    recommendationCount:
+      typeof summary?.recommendation_count === "number"
+        ? summary.recommendation_count
+        : task.recommendations.length,
+    riskCount:
+      typeof summary?.risk_count === "number" ? summary.risk_count : task.risks.length,
+    actionItemCount:
+      typeof summary?.action_item_count === "number"
+        ? summary.action_item_count
+        : task.action_items.length,
   };
 }
 

@@ -15,6 +15,10 @@ interface TaskHistoryListProps {
   loading: boolean;
   error: string | null;
   onRefresh: () => void;
+  title?: string;
+  description?: string;
+  emptyText?: string;
+  limit?: number;
 }
 
 export function TaskHistoryList({
@@ -22,15 +26,19 @@ export function TaskHistoryList({
   loading,
   error,
   onRefresh,
+  title = "最近工作",
+  description = "回到最近更新的案件、交付物與分析紀錄，讓工作進度不會散落在不同工具裡。",
+  emptyText = "目前還沒有任務，先從左側啟動第一個顧問案件。",
+  limit,
 }: TaskHistoryListProps) {
+  const visibleTasks = limit ? tasks.slice(0, limit) : tasks;
+
   return (
     <section className="panel">
       <div className="panel-header">
         <div>
-          <h2 className="panel-title">任務歷史</h2>
-          <p className="panel-copy">
-            已儲存的任務、交付物與執行紀錄會累積在這裡，讓系統更像真正的工作台，而不是一次性的聊天視窗。
-          </p>
+          <h2 className="panel-title">{title}</h2>
+          <p className="panel-copy">{description}</p>
         </div>
         <button className="button-secondary" type="button" onClick={onRefresh}>
           重新整理
@@ -41,11 +49,11 @@ export function TaskHistoryList({
       {error ? <p className="error-text">{error}</p> : null}
 
       {!loading && !error && tasks.length === 0 ? (
-        <p className="empty-text">目前還沒有任務，請先在左側建立第一個支援的流程。</p>
+        <p className="empty-text">{emptyText}</p>
       ) : null}
 
       <div className="history-list">
-        {tasks.map((task) => (
+        {visibleTasks.map((task) => (
           <Link href={`/tasks/${task.id}`} key={task.id} className="history-item">
             <div className="meta-row">
               <span className="pill">{labelForTaskStatus(task.status)}</span>
@@ -66,6 +74,10 @@ export function TaskHistoryList({
           </Link>
         ))}
       </div>
+
+      {limit && tasks.length > limit ? (
+        <p className="muted-text">還有 {tasks.length - limit} 個案件可從完整任務歷史回看。</p>
+      ) : null}
     </section>
   );
 }
