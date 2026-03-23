@@ -40,10 +40,55 @@ PACK_REASON_DOMAIN_MATCHES = {
     "research_intelligence_pack": {"研究", "情報", "綜合"},
 }
 INDUSTRY_PACK_REASON_HINTS = {
-    "energy_pack": {"能源", "電力", "公用事業", "renewable", "energy"},
-    "saas_pack": {"saas", "軟體", "訂閱", "software", "subscription"},
-    "media_creator_pack": {"自媒體", "創作者", "內容", "creator", "media"},
-    "professional_services_pack": {"顧問", "服務", "事務所", "agency", "services"},
+    "online_education_pack": {
+        "線上教育",
+        "線上課程",
+        "課程",
+        "教學",
+        "招生",
+        "cohort",
+        "bootcamp",
+        "edtech",
+    },
+    "ecommerce_pack": {
+        "電商",
+        "ecommerce",
+        "shopify",
+        "商城",
+        "蝦皮",
+        "momo",
+        "商品",
+        "sku",
+    },
+    "gaming_pack": {
+        "遊戲",
+        "gaming",
+        "game",
+        "玩家",
+        "live ops",
+        "steam",
+        "retention",
+        "發行",
+    },
+    "funeral_services_pack": {
+        "殯葬",
+        "禮儀",
+        "喪葬",
+        "funeral",
+        "memorial",
+        "生前契約",
+        "殯儀",
+    },
+    "health_supplements_pack": {
+        "保健",
+        "保健食品",
+        "健康食品",
+        "supplement",
+        "supplements",
+        "nutraceutical",
+        "維他命",
+        "益生菌",
+    },
 }
 CLIENT_STAGE_KEYWORDS = {
     "創業階段": ("創業", "早期", "新創", "起步", "初期", "pmf", "驗證"),
@@ -912,6 +957,10 @@ def _serialize_selected_pack(
         pack_type=pack.pack_type.value,
         pack_name=pack.pack_name,
         description=pack.description,
+        industry_definition=pack.industry_definition,
+        common_business_models=pack.common_business_models,
+        stage_specific_heuristics=pack.stage_specific_heuristics,
+        key_kpis=pack.key_kpis,
         reason=_build_selected_pack_reason(
             pack=pack,
             explicit_pack_ids=explicit_pack_ids,
@@ -923,8 +972,11 @@ def _serialize_selected_pack(
         status=pack.status.value,
         version=pack.version,
         evidence_expectations=pack.evidence_expectations,
+        common_risks=pack.common_risks,
+        decision_patterns=pack.decision_patterns,
         deliverable_presets=pack.deliverable_presets,
         routing_hints=pack.routing_hints,
+        pack_notes=pack.pack_notes,
     )
 
 
@@ -1004,6 +1056,48 @@ def resolve_pack_selection_for_task(
                     item
                     for pack in selected_industry_packs
                     for item in pack.evidence_expectations
+                ],
+            ]
+        ),
+        key_kpis=_unique_preserve_order(
+            [
+                *[
+                    item
+                    for pack in selected_domain_packs
+                    for item in pack.key_kpis
+                ],
+                *[
+                    item
+                    for pack in selected_industry_packs
+                    for item in pack.key_kpis
+                ],
+            ]
+        ),
+        common_risks=_unique_preserve_order(
+            [
+                *[
+                    item
+                    for pack in selected_domain_packs
+                    for item in pack.common_risks
+                ],
+                *[
+                    item
+                    for pack in selected_industry_packs
+                    for item in pack.common_risks
+                ],
+            ]
+        ),
+        decision_patterns=_unique_preserve_order(
+            [
+                *[
+                    item
+                    for pack in selected_domain_packs
+                    for item in pack.decision_patterns
+                ],
+                *[
+                    item
+                    for pack in selected_industry_packs
+                    for item in pack.decision_patterns
                 ],
             ]
         ),

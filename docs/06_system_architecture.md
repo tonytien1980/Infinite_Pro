@@ -184,10 +184,11 @@ Pack Layer 應至少具備：
   - `business_development_pack`
   - `research_intelligence_pack`
 - Industry Packs
-  - `energy_pack`
-  - `saas_pack`
-  - `media_creator_pack`
-  - `professional_services_pack`
+  - `online_education_pack`
+  - `ecommerce_pack`
+  - `gaming_pack`
+  - `funeral_services_pack`
+  - `health_supplements_pack`
 
 正式 Pack Spec 至少應包含：
 - `pack_id`
@@ -196,15 +197,22 @@ Pack Layer 應至少具備：
   - `industry`
 - `pack_name`
 - `description`
+- `industry_definition`
+- `common_business_models`
+- `stage_specific_heuristics`
+- `key_kpis`
 - `domain_lenses`
 - `relevant_client_types`
 - `relevant_client_stages`
 - `default_decision_context_patterns`
 - `evidence_expectations`
 - `risk_libraries`
+- `common_risks`
+- `decision_patterns`
 - `recommendation_patterns`
 - `deliverable_presets`
 - `routing_hints`
+- `pack_notes`
 - `version`
 - `status`
   - `draft`

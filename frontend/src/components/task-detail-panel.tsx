@@ -687,6 +687,54 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                       </div>
                     ) : null}
 
+                    {packSelection && packSelection.industryPackCards.length > 0 ? (
+                      <div className="detail-item" style={{ marginTop: "14px" }}>
+                        <h3>Industry pack context</h3>
+                        <div className="detail-list">
+                          {packSelection.industryPackCards.map((pack) => (
+                            <div className="detail-item" key={pack.packName}>
+                              <h3>{pack.packName}</h3>
+                              <ExpandableText
+                                text={`${pack.definition}${pack.reason ? `\n\n選擇原因：${pack.reason}` : ""}`}
+                                emptyText="目前沒有可顯示的 pack 說明。"
+                                previewChars={220}
+                              />
+                              {pack.businessModels.length > 0 ? (
+                                <div style={{ marginTop: "10px" }}>
+                                  <h4>常見商業模式</h4>
+                                  <ExpandableList
+                                    items={pack.businessModels}
+                                    emptyText="目前沒有可顯示的商業模式。"
+                                    initialCount={4}
+                                  />
+                                </div>
+                              ) : null}
+                              {pack.decisionPatterns.length > 0 ? (
+                                <div style={{ marginTop: "10px" }}>
+                                  <h4>常見判斷模式</h4>
+                                  <ExpandableList
+                                    items={pack.decisionPatterns}
+                                    emptyText="目前沒有可顯示的判斷模式。"
+                                    initialCount={4}
+                                  />
+                                </div>
+                              ) : null}
+                              {pack.packNotes.length > 0 ? (
+                                <div style={{ marginTop: "10px" }}>
+                                  <h4>Pack notes</h4>
+                                  <ExpandableList
+                                    items={pack.packNotes}
+                                    emptyText="目前沒有額外 pack notes。"
+                                    initialCount={3}
+                                  />
+                                </div>
+                              ) : null}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
                     {capabilityFrame.selectedAgents.length > 0 ? (
                       <div className="detail-item" style={{ marginTop: "14px" }}>
                         <h3>相關代理</h3>
@@ -782,6 +830,26 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                           <ExpandableList
                             items={readinessGovernance.packEvidenceExpectations}
                             emptyText="目前沒有額外的 pack evidence expectations。"
+                            initialCount={4}
+                          />
+                        </div>
+                      ) : null}
+                      {packSelection && packSelection.keyKpis.length > 0 ? (
+                        <div className="section-card">
+                          <h4>Pack 關鍵指標</h4>
+                          <ExpandableList
+                            items={packSelection.keyKpis}
+                            emptyText="目前沒有額外的 pack 關鍵指標。"
+                            initialCount={4}
+                          />
+                        </div>
+                      ) : null}
+                      {packSelection && packSelection.commonRisks.length > 0 ? (
+                        <div className="section-card">
+                          <h4>Pack 常見風險</h4>
+                          <ExpandableList
+                            items={packSelection.commonRisks}
+                            emptyText="目前沒有額外的 pack 常見風險。"
                             initialCount={4}
                           />
                         </div>

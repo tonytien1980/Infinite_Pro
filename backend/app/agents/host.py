@@ -503,6 +503,25 @@ class HostOrchestrator:
             [item for pack in self._selected_packs(payload) for item in pack.deliverable_presets]
         )
 
+    def _pack_key_kpis(self, payload: AgentInputPayload) -> list[str]:
+        return self._unique_preserve_order(
+            [item for pack in self._selected_packs(payload) for item in pack.key_kpis]
+        )
+
+    def _pack_common_risks(self, payload: AgentInputPayload) -> list[str]:
+        return self._unique_preserve_order(
+            [item for pack in self._selected_packs(payload) for item in pack.common_risks]
+        )
+
+    def _pack_stage_heuristics(self, payload: AgentInputPayload) -> list[str]:
+        client_stage = self._effective_client_stage(payload)
+        if not client_stage or client_stage == "未指定":
+            return []
+        heuristics: list[str] = []
+        for pack in self._selected_packs(payload):
+            heuristics.extend(pack.stage_specific_heuristics.get(client_stage, []))
+        return self._unique_preserve_order(heuristics)
+
     def _decision_signal_text(self, payload: AgentInputPayload) -> str:
         parts = [
             payload.title,
@@ -604,17 +623,30 @@ class HostOrchestrator:
         if "research_intelligence_pack" in selected_pack_ids:
             scores["market_research_insight"] += 18
             routing_notes.append("因選到 Research / Intelligence Pack，Host 會提高研究與外部訊號整理的優先順序。")
-        if "energy_pack" in selected_pack_ids:
-            scores["operations"] += 6
-            scores["risk_challenge"] += 6
-        if "saas_pack" in selected_pack_ids:
-            scores["market_research_insight"] += 6
-            scores["strategy_business_analysis"] += 4
-        if "media_creator_pack" in selected_pack_ids:
-            scores["market_research_insight"] += 6
-        if "professional_services_pack" in selected_pack_ids:
-            scores["operations"] += 5
+        if "online_education_pack" in selected_pack_ids:
+            scores["market_research_insight"] += 10
+            scores["operations"] += 8
+            routing_notes.append("因選到 Online Education Pack，Host 會優先檢查招生漏斗、完成率與教學交付能力。")
+        if "ecommerce_pack" in selected_pack_ids:
+            scores["market_research_insight"] += 10
+            scores["operations"] += 8
             scores["strategy_business_analysis"] += 5
+            routing_notes.append("因選到 Ecommerce Pack，Host 會優先檢查通路效率、SKU 毛利、回購與履約能力。")
+        if "gaming_pack" in selected_pack_ids:
+            scores["market_research_insight"] += 11
+            scores["strategy_business_analysis"] += 8
+            scores["risk_challenge"] += 4
+            routing_notes.append("因選到 Gaming Pack，Host 會優先檢查留存、變現、live ops 節奏與平台風險。")
+        if "funeral_services_pack" in selected_pack_ids:
+            scores["operations"] += 10
+            scores["risk_challenge"] += 10
+            scores["strategy_business_analysis"] += 4
+            routing_notes.append("因選到 Funeral Services Pack，Host 會優先檢查服務信任、法遵、轉介結構與人力容量。")
+        if "health_supplements_pack" in selected_pack_ids:
+            scores["market_research_insight"] += 8
+            scores["risk_challenge"] += 10
+            scores["strategy_business_analysis"] += 5
+            routing_notes.append("因選到 Health Supplements Pack，Host 會優先檢查回購、claim 合規、通路效率與 SKU 結構。")
 
         ordered = sorted(
             DEFAULT_CORE_AGENT_ORDER,
@@ -708,6 +740,20 @@ class HostOrchestrator:
             )
         if payload.pack_resolution.resolver_notes:
             routing_rationale.extend(payload.pack_resolution.resolver_notes)
+        pack_stage_heuristics = self._pack_stage_heuristics(payload)
+        if pack_stage_heuristics:
+            routing_rationale.append(
+                f"依目前客戶階段，selected packs 提醒本輪應優先檢查：{ '、'.join(pack_stage_heuristics[:3]) }。"
+            )
+        pack_decision_patterns = self._unique_preserve_order(
+            [item for pack in self._selected_packs(payload) for item in pack.decision_patterns]
+        )
+        if pack_decision_patterns:
+            routing_rationale.append(
+                "selected packs 目前最相關的產業判斷模式包括："
+                + "、".join(pack_decision_patterns[:3])
+                + "。"
+            )
         prioritized_artifacts = self._meaningful_artifacts(payload)[:3]
         priority_sources = [item.title for item in prioritized_artifacts] + [
             item.title
@@ -887,6 +933,11 @@ class HostOrchestrator:
         if len(usable_evidence) < max(1, min(2, len(selected_packs))):
             pack_names = "、".join(item.pack_name for item in selected_packs[:3])
             gaps.append(f"目前 evidence 仍不足以支撐 {pack_names} 的 pack-aware 判斷。")
+            for pack in self._selected_industry_packs(payload):
+                if pack.key_kpis:
+                    gaps.append(
+                        f"{pack.pack_name} 目前仍缺少與 { '、'.join(pack.key_kpis[:3]) } 相關的關鍵指標或佐證資料。"
+                    )
 
         return self._unique_preserve_order(gaps)
 
@@ -918,6 +969,8 @@ class HostOrchestrator:
         critical_gaps = 0
         external_research_heavy_case = self._is_external_research_heavy_sparse_case(payload)
         pack_evidence_expectations = self._pack_evidence_expectations(payload)
+        pack_key_kpis = self._pack_key_kpis(payload)
+        pack_common_risks = self._pack_common_risks(payload)
         pack_high_impact_gaps = self._build_pack_high_impact_gaps(
             payload,
             usable_evidence,
@@ -978,6 +1031,18 @@ class HostOrchestrator:
             conclusion_impact.append(
                 "本輪 selected packs 期待優先納入："
                 + "、".join(pack_evidence_expectations[:4])
+                + "。"
+            )
+        if pack_key_kpis:
+            conclusion_impact.append(
+                "本輪 pack-aware 判斷也會特別參考："
+                + "、".join(pack_key_kpis[:4])
+                + " 等產業指標。"
+            )
+        if pack_common_risks:
+            conclusion_impact.append(
+                "selected packs 也提醒這輪要優先防範："
+                + "、".join(pack_common_risks[:4])
                 + "。"
             )
         if payload.pack_resolution.deliverable_presets:

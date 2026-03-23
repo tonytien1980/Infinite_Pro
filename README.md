@@ -98,7 +98,12 @@ Infinite Pro formally distinguishes four extension-facing concepts:
   - examples: `operations_pack`, `finance_fundraising_pack`, `legal_risk_pack`
 - `Industry Packs`
   - extend the system with **industry-specific context modules**
-  - examples: `saas_pack`, `energy_pack`, `media_creator_pack`
+  - first-wave examples:
+    - `online_education_pack`
+    - `ecommerce_pack`
+    - `gaming_pack`
+    - `funeral_services_pack`
+    - `health_supplements_pack`
 - `Agents`
   - define **who executes or orchestrates** the work
   - includes `Host Agent`, `Reasoning Agents`, and `Specialist Agents`

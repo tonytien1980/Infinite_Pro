@@ -212,7 +212,20 @@ export interface PackSelectionView {
   industryPacks: string[];
   resolverNotes: string[];
   evidenceExpectations: string[];
+  keyKpis: string[];
+  commonRisks: string[];
+  decisionPatterns: string[];
   deliverablePresets: string[];
+  industryPackCards: Array<{
+    packName: string;
+    definition: string;
+    reason: string;
+    businessModels: string[];
+    keyKpis: string[];
+    decisionPatterns: string[];
+    commonRisks: string[];
+    packNotes: string[];
+  }>;
 }
 
 function isExternalDataStrategyConstraint(constraint: Constraint) {
@@ -830,7 +843,7 @@ function buildPackSummary(domainPacks: string[], industryPacks: string[]) {
 function getPackResolutionRecord(task: TaskAggregate, deliverable: Deliverable | null) {
   const selectedPacks = asRecord(deliverable?.content_structure?.selected_packs);
   const fromDeliverable = selectedPacks
-    ? {
+      ? {
         selected_domain_packs: Array.isArray(selectedPacks.selected_domain_packs)
           ? selectedPacks.selected_domain_packs
           : [],
@@ -839,6 +852,9 @@ function getPackResolutionRecord(task: TaskAggregate, deliverable: Deliverable |
           : [],
         resolver_notes: asStringArray(selectedPacks.resolver_notes),
         evidence_expectations: asStringArray(selectedPacks.evidence_expectations),
+        key_kpis: asStringArray(selectedPacks.key_kpis),
+        common_risks: asStringArray(selectedPacks.common_risks),
+        decision_patterns: asStringArray(selectedPacks.decision_patterns),
         deliverable_presets: asStringArray(selectedPacks.deliverable_presets),
       }
     : null;
@@ -849,6 +865,9 @@ function getPackResolutionRecord(task: TaskAggregate, deliverable: Deliverable |
       selected_industry_packs: task.pack_resolution.selected_industry_packs,
       resolver_notes: task.pack_resolution.resolver_notes,
       evidence_expectations: task.pack_resolution.evidence_expectations,
+      key_kpis: task.pack_resolution.key_kpis,
+      common_risks: task.pack_resolution.common_risks,
+      decision_patterns: task.pack_resolution.decision_patterns,
       deliverable_presets: task.pack_resolution.deliverable_presets,
     }
   );
@@ -865,6 +884,18 @@ export function buildPackSelectionView(
   const industryPacks = (packResolution.selected_industry_packs as Array<Record<string, unknown>>)
     .map((item) => asString(item.pack_name))
     .filter(Boolean);
+  const industryPackCards = (packResolution.selected_industry_packs as Array<Record<string, unknown>>)
+    .map((item) => ({
+      packName: asString(item.pack_name),
+      definition: asString(item.industry_definition) || asString(item.description),
+      reason: asString(item.reason),
+      businessModels: asStringArray(item.common_business_models),
+      keyKpis: asStringArray(item.key_kpis),
+      decisionPatterns: asStringArray(item.decision_patterns),
+      commonRisks: asStringArray(item.common_risks),
+      packNotes: asStringArray(item.pack_notes),
+    }))
+    .filter((item) => item.packName);
 
   return {
     summary: buildPackSummary(domainPacks, industryPacks),
@@ -872,7 +903,11 @@ export function buildPackSelectionView(
     industryPacks,
     resolverNotes: packResolution.resolver_notes,
     evidenceExpectations: packResolution.evidence_expectations,
+    keyKpis: packResolution.key_kpis,
+    commonRisks: packResolution.common_risks,
+    decisionPatterns: packResolution.decision_patterns,
     deliverablePresets: packResolution.deliverable_presets,
+    industryPackCards,
   };
 }
 

@@ -138,12 +138,19 @@ class SelectedPackRead(BaseModel):
     pack_type: str
     pack_name: str
     description: str
+    industry_definition: str = ""
+    common_business_models: list[str] = Field(default_factory=list)
+    stage_specific_heuristics: dict[str, list[str]] = Field(default_factory=dict)
+    key_kpis: list[str] = Field(default_factory=list)
     reason: str = ""
     status: str = "active"
     version: str = "1.0.0"
     evidence_expectations: list[str] = Field(default_factory=list)
+    common_risks: list[str] = Field(default_factory=list)
+    decision_patterns: list[str] = Field(default_factory=list)
     deliverable_presets: list[str] = Field(default_factory=list)
     routing_hints: list[str] = Field(default_factory=list)
+    pack_notes: list[str] = Field(default_factory=list)
 
 
 class PackResolutionRead(BaseModel):
@@ -154,6 +161,9 @@ class PackResolutionRead(BaseModel):
     stack_order: list[str] = Field(default_factory=list)
     resolver_notes: list[str] = Field(default_factory=list)
     evidence_expectations: list[str] = Field(default_factory=list)
+    key_kpis: list[str] = Field(default_factory=list)
+    common_risks: list[str] = Field(default_factory=list)
+    decision_patterns: list[str] = Field(default_factory=list)
     deliverable_presets: list[str] = Field(default_factory=list)
 
 

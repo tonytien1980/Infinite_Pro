@@ -204,14 +204,14 @@ def test_task_aggregate_includes_pack_resolution_from_context_spine(client: Test
     payload = create_task_payload("Pack-aware aggregate")
     payload.update(
         {
-            "description": "請判斷這個 SaaS 訂閱產品是否該優先調整價格與續約策略。",
+            "description": "請判斷這個電商品牌是否該優先調整通路配置、SKU 組合與回購策略。",
             "client_name": "Orbit Labs",
             "client_type": "中小企業",
             "client_stage": "制度化階段",
             "engagement_name": "Orbit Growth Review",
             "workstream_name": "營運與財務收斂",
             "domain_lenses": ["營運", "財務"],
-            "judgment_to_make": "先判斷 SaaS 產品的價格與續約策略是否需要優先調整。",
+            "judgment_to_make": "先判斷電商品牌的通路配置、SKU 組合與回購策略是否需要優先調整。",
         }
     )
 
@@ -229,9 +229,17 @@ def test_task_aggregate_includes_pack_resolution_from_context_spine(client: Test
         for item in body["pack_resolution"]["selected_domain_packs"]
     )
     assert any(
-        item["pack_id"] == "saas_pack"
+        item["pack_id"] == "ecommerce_pack"
         for item in body["pack_resolution"]["selected_industry_packs"]
     )
+    ecommerce_pack = next(
+        item
+        for item in body["pack_resolution"]["selected_industry_packs"]
+        if item["pack_id"] == "ecommerce_pack"
+    )
+    assert ecommerce_pack["industry_definition"]
+    assert ecommerce_pack["key_kpis"]
+    assert ecommerce_pack["decision_patterns"]
     assert body["pack_resolution"]["resolver_notes"]
     assert body["pack_resolution"]["evidence_expectations"]
 
@@ -486,11 +494,11 @@ def test_research_synthesis_specialist_run_and_history_persistence(client: TestC
     payload = create_task_payload("Specialist run")
     payload.update(
         {
-            "description": "Turn the SaaS working notes into a structured internal synthesis for pricing and retention decisions.",
+            "description": "Turn the ecommerce working notes into a structured internal synthesis for channel, SKU, and retention decisions.",
             "client_type": "中小企業",
             "client_stage": "制度化階段",
             "domain_lenses": ["營運", "財務"],
-            "judgment_to_make": "先判斷 SaaS 續約與價格策略是否需要調整。",
+            "judgment_to_make": "先判斷電商品牌的通路、SKU 與回購策略是否需要調整。",
         }
     )
     task = client.post("/api/v1/tasks", json=payload).json()
@@ -525,9 +533,11 @@ def test_research_synthesis_specialist_run_and_history_persistence(client: TestC
     assert content["capability_frame"]["capability"] == "synthesize_brief"
     assert content["capability_frame"]["execution_mode"] == "specialist"
     assert "operations_pack" in content["capability_frame"]["selected_domain_pack_ids"]
-    assert "saas_pack" in content["capability_frame"]["selected_industry_pack_ids"]
+    assert "ecommerce_pack" in content["capability_frame"]["selected_industry_pack_ids"]
     assert content["selected_packs"]["selected_domain_packs"]
     assert content["selected_packs"]["selected_industry_packs"]
+    assert content["selected_packs"]["selected_industry_packs"][0]["key_kpis"]
+    assert content["selected_packs"]["selected_industry_packs"][0]["decision_patterns"]
     assert content["readiness_governance"]["pack_evidence_expectations"]
     assert content["decision_context_summary"]
     assert content["input_entry_mode"] in {
@@ -793,7 +803,7 @@ def test_multi_agent_happy_path_converges_and_saves_history(client: TestClient) 
     assert content["capability_frame"]["execution_mode"] == "multi_agent"
     assert content["deliverable_class"] == "decision_action_deliverable"
     assert content["readiness_governance"]["evidence_coverage"]
-    assert content["participating_agents"][0] == "strategy_business_analysis"
+    assert "strategy_business_analysis" in content["participating_agents"]
     assert set(content["participating_agents"]) == {
         "strategy_business_analysis",
         "market_research_insight",

@@ -27,30 +27,71 @@ DOMAIN_LENS_ALIASES = {
 }
 
 INDUSTRY_TOKEN_ALIASES = {
-    "energy_pack": {"energy", "power", "electricity", "utilities", "renewable", "能源", "電力", "公用事業"},
-    "saas_pack": {"saas", "software", "subscription", "mrr", "arr", "軟體", "訂閱", "軟體服務"},
-    "media_creator_pack": {
-        "creator",
-        "media",
-        "youtube",
-        "podcast",
-        "newsletter",
-        "content",
-        "自媒體",
-        "創作者",
-        "內容",
-        "頻道",
+    "online_education_pack": {
+        "online",
+        "education",
+        "course",
+        "courses",
+        "cohort",
+        "bootcamp",
+        "tutoring",
+        "edtech",
+        "學員",
+        "招生",
+        "課程",
+        "教學",
+        "線上教育",
+        "線上課程",
     },
-    "professional_services_pack": {
-        "consulting",
-        "agency",
-        "services",
-        "firm",
-        "professional",
-        "顧問",
-        "服務",
-        "事務所",
-        "代理商",
+    "ecommerce_pack": {
+        "ecommerce",
+        "commerce",
+        "shopify",
+        "marketplace",
+        "dtc",
+        "sku",
+        "蝦皮",
+        "momo",
+        "電商",
+        "商品",
+        "購物車",
+        "履約",
+    },
+    "gaming_pack": {
+        "gaming",
+        "game",
+        "games",
+        "live",
+        "ops",
+        "steam",
+        "retention",
+        "玩家",
+        "遊戲",
+        "課金",
+        "發行",
+        "wishlist",
+    },
+    "funeral_services_pack": {
+        "funeral",
+        "memorial",
+        "殯葬",
+        "禮儀",
+        "喪葬",
+        "生前契約",
+        "殯儀",
+        "塔位",
+    },
+    "health_supplements_pack": {
+        "supplement",
+        "supplements",
+        "nutraceutical",
+        "vitamin",
+        "維他命",
+        "益生菌",
+        "魚油",
+        "保健",
+        "保健食品",
+        "健康食品",
     },
 }
 
@@ -192,12 +233,26 @@ def _normalize_tokens(values: Iterable[str]) -> set[str]:
     return tokens
 
 
-def _normalize_domain_lenses(values: Iterable[str]) -> set[str]:
-    tokens = _normalize_tokens(values)
-    for value in values:
+def _normalize_domain_lenses(values: Iterable[str]) -> list[str]:
+    ordered_tokens: list[str] = []
+    seen: set[str] = set()
+    raw_values = list(values)
+    for value in raw_values:
+        normalized_value = value.lower().replace("/", " ").replace("-", " ")
+        for token in normalized_value.split():
+            if not token or token in seen:
+                continue
+            seen.add(token)
+            ordered_tokens.append(token)
+    for value in raw_values:
         aliases = DOMAIN_LENS_ALIASES.get(value.strip(), set())
-        tokens.update(alias.lower() for alias in aliases)
-    return tokens
+        for alias in aliases:
+            normalized = alias.lower()
+            if normalized in seen:
+                continue
+            seen.add(normalized)
+            ordered_tokens.append(normalized)
+    return ordered_tokens
 
 
 def _pack_domain_tokens(pack) -> set[str]:
@@ -214,6 +269,11 @@ def _pack_domain_tokens(pack) -> set[str]:
 def _pack_industry_tokens(pack) -> set[str]:
     tokens = _normalize_tokens(pack.routing_hints)
     tokens.update(_normalize_tokens([pack.pack_id, pack.pack_name]))
+    tokens.update(_normalize_tokens([pack.industry_definition]))
+    tokens.update(_normalize_tokens(pack.common_business_models))
+    tokens.update(_normalize_tokens(pack.key_kpis))
+    tokens.update(_normalize_tokens(pack.decision_patterns))
+    tokens.update(_normalize_tokens(pack.pack_notes))
     tokens.update(token.lower() for token in INDUSTRY_TOKEN_ALIASES.get(pack.pack_id, set()))
     return tokens
 
@@ -256,10 +316,11 @@ def _specialists_for_domain_pack(pack_id: str, capability: CapabilityArchetype) 
 
 def _reasoning_agents_for_industry_pack(pack_id: str) -> list[str]:
     mapping = {
-        "energy_pack": ["operations_agent", "finance_agent", "legal_risk_agent"],
-        "saas_pack": ["marketing_growth_agent", "sales_business_development_agent", "finance_agent"],
-        "media_creator_pack": ["marketing_growth_agent", "document_communication_agent"],
-        "professional_services_pack": ["operations_agent", "sales_business_development_agent"],
+        "online_education_pack": ["marketing_growth_agent", "operations_agent", "document_communication_agent"],
+        "ecommerce_pack": ["marketing_growth_agent", "sales_business_development_agent", "operations_agent", "finance_agent"],
+        "gaming_pack": ["marketing_growth_agent", "research_intelligence_agent", "finance_agent"],
+        "funeral_services_pack": ["operations_agent", "legal_risk_agent", "sales_business_development_agent"],
+        "health_supplements_pack": ["marketing_growth_agent", "legal_risk_agent", "finance_agent"],
     }
     return mapping.get(pack_id, [])
 

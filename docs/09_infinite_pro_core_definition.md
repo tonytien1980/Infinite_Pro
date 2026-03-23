@@ -170,6 +170,13 @@ Infinite Pro 的工作世界至少應圍繞以下主鏈理解：
 - 擴充 ontology-aware context、heuristics、evidence expectations、decision templates、deliverable patterns
 - 透過 registry / resolver / management surface 被治理
 
+第一批正式 Industry Packs 可先以以下真實產業範圍為主：
+- `online_education_pack`
+- `ecommerce_pack`
+- `gaming_pack`
+- `funeral_services_pack`
+- `health_supplements_pack`
+
 ### LLM / Provider
 負責語言理解、推理與生成，但不應取代 ontology、Host 與 workbench 的結構化治理角色。
 

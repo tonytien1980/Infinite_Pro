@@ -265,10 +265,11 @@ Domain / Functional Packs provide context modules for consulting functions or en
 
 ### 9.2 Industry Packs
 Industry Packs provide context modules for industry-specific patterns, such as:
-- SaaS
-- energy
-- creator / media
-- professional services
+- online education
+- ecommerce
+- gaming
+- funeral services
+- health supplements
 
 ### 9.3 What packs are not
 Do not treat packs as:

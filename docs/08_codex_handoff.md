@@ -163,6 +163,14 @@ Pack Layer 正式包含：
 - Domain / Functional Packs
 - Industry Packs
 
+目前第一批正式 Industry Packs 例子應以：
+- `online_education_pack`
+- `ecommerce_pack`
+- `gaming_pack`
+- `funeral_services_pack`
+- `health_supplements_pack`
+為準，不要再回到舊的泛用示範 packs。
+
 另外，Codex 必須維持三者邊界：
 - Capability Archetypes = 這次要做哪種顧問工作
 - Packs = 這次要套用哪些 context modules

@@ -22,12 +22,17 @@ def test_extension_registry_contains_first_batch_packs_and_agents() -> None:
         "research_intelligence_pack",
     }
     assert {pack.pack_id for pack in industry_packs} >= {
-        "energy_pack",
-        "saas_pack",
-        "media_creator_pack",
-        "professional_services_pack",
+        "online_education_pack",
+        "ecommerce_pack",
+        "gaming_pack",
+        "funeral_services_pack",
+        "health_supplements_pack",
     }
     assert host_agent.agent_type == AgentType.HOST
+    ecommerce_pack = next(pack for pack in industry_packs if pack.pack_id == "ecommerce_pack")
+    assert ecommerce_pack.industry_definition
+    assert ecommerce_pack.key_kpis
+    assert ecommerce_pack.common_business_models
 
 
 def test_pack_resolver_selects_domain_and_industry_packs() -> None:
@@ -37,17 +42,18 @@ def test_pack_resolver_selects_domain_and_industry_packs() -> None:
     resolution = resolver.resolve(
         PackResolverInput(
             domain_lenses=["operations", "finance"],
-            decision_context_summary="Need a SaaS operating model recommendation.",
+            decision_context_summary="Need an ecommerce operating model recommendation for SKU margin and channel mix.",
         )
     )
 
     assert "operations_pack" in resolution.selected_domain_pack_ids
     assert "finance_fundraising_pack" in resolution.selected_domain_pack_ids
-    assert "saas_pack" in resolution.selected_industry_pack_ids
+    assert "ecommerce_pack" in resolution.selected_industry_pack_ids
     assert resolution.stack_order[:2] == [
         "operations_pack",
         "finance_fundraising_pack",
     ]
+    assert resolution.resolver_notes
 
 
 def test_agent_resolver_maps_capability_and_packs() -> None:
@@ -58,7 +64,7 @@ def test_agent_resolver_maps_capability_and_packs() -> None:
         AgentResolverInput(
             capability=CapabilityArchetype.DECIDE_CONVERGE,
             selected_domain_pack_ids=["operations_pack", "finance_fundraising_pack"],
-            selected_industry_pack_ids=["saas_pack"],
+            selected_industry_pack_ids=["ecommerce_pack"],
         )
     )
 

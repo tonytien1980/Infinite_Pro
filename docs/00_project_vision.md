@@ -183,6 +183,14 @@ Infinite Pro 應正式以六層主架構運作：
 - `Domain / Functional Packs`
 - `Industry Packs`
 
+目前第一批正式 Industry Packs 例子應以：
+- `online_education_pack`
+- `ecommerce_pack`
+- `gaming_pack`
+- `funeral_services_pack`
+- `health_supplements_pack`
+為準。
+
 它們與其他層的邊界必須保持清楚：
 - Capability Archetypes 決定這次要做哪種顧問工作
 - Packs 決定哪些 context modules 要影響本次判斷
