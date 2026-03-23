@@ -20,6 +20,7 @@ from app.domain.schemas import (
     EngagementRead,
     EvidenceRead,
     GoalRead,
+    PackResolutionRead,
     PresenceStateSummaryRead,
     SourceMaterialRead,
     SubjectRead,
@@ -59,6 +60,7 @@ class AgentInputPayload(BaseModel):
     external_research_heavy_candidate: bool = False
     sparse_input_summary: str = ""
     presence_state_summary: PresenceStateSummaryRead
+    pack_resolution: PackResolutionRead = Field(default_factory=PackResolutionRead)
     source_materials: list[SourceMaterialRead] = Field(default_factory=list)
     artifacts: list[ArtifactRead] = Field(default_factory=list)
     subjects: list[SubjectRead] = Field(default_factory=list)

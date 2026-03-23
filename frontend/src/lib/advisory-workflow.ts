@@ -130,6 +130,10 @@ export interface CapabilityFrameView {
   domainLenses: string[];
   clientStage: string;
   clientType: string;
+  selectedDomainPacks: string[];
+  selectedIndustryPacks: string[];
+  packResolverNotes: string[];
+  packDeliverablePresets: string[];
 }
 
 export interface ReadinessGovernanceView {
@@ -144,6 +148,9 @@ export interface ReadinessGovernanceView {
   conclusionImpact: string;
   assumptionSignal: string;
   constraintSignal: string;
+  packEvidenceExpectations: string[];
+  packHighImpactGaps: string[];
+  packDeliverablePresets: string[];
 }
 
 export interface OntologyChainSummaryView {
@@ -196,6 +203,16 @@ export interface TaskListWorkspaceSummaryView {
   objectPath: string;
   decisionContext: string;
   workspaceState: string;
+  packSummary: string;
+}
+
+export interface PackSelectionView {
+  summary: string;
+  domainPacks: string[];
+  industryPacks: string[];
+  resolverNotes: string[];
+  evidenceExpectations: string[];
+  deliverablePresets: string[];
 }
 
 function isExternalDataStrategyConstraint(constraint: Constraint) {
@@ -795,6 +812,70 @@ function asRecord(value: unknown) {
   return value as Record<string, unknown>;
 }
 
+function buildPackSummary(domainPacks: string[], industryPacks: string[]) {
+  if (domainPacks.length === 0 && industryPacks.length === 0) {
+    return "目前尚未選到任何 packs，這輪仍以通用工作鏈為主。";
+  }
+
+  const parts: string[] = [];
+  if (domainPacks.length > 0) {
+    parts.push(`Domain Packs：${joinNaturalList(domainPacks)}`);
+  }
+  if (industryPacks.length > 0) {
+    parts.push(`Industry Packs：${joinNaturalList(industryPacks)}`);
+  }
+  return parts.join("；");
+}
+
+function getPackResolutionRecord(task: TaskAggregate, deliverable: Deliverable | null) {
+  const selectedPacks = asRecord(deliverable?.content_structure?.selected_packs);
+  const fromDeliverable = selectedPacks
+    ? {
+        selected_domain_packs: Array.isArray(selectedPacks.selected_domain_packs)
+          ? selectedPacks.selected_domain_packs
+          : [],
+        selected_industry_packs: Array.isArray(selectedPacks.selected_industry_packs)
+          ? selectedPacks.selected_industry_packs
+          : [],
+        resolver_notes: asStringArray(selectedPacks.resolver_notes),
+        evidence_expectations: asStringArray(selectedPacks.evidence_expectations),
+        deliverable_presets: asStringArray(selectedPacks.deliverable_presets),
+      }
+    : null;
+
+  return (
+    fromDeliverable ?? {
+      selected_domain_packs: task.pack_resolution.selected_domain_packs,
+      selected_industry_packs: task.pack_resolution.selected_industry_packs,
+      resolver_notes: task.pack_resolution.resolver_notes,
+      evidence_expectations: task.pack_resolution.evidence_expectations,
+      deliverable_presets: task.pack_resolution.deliverable_presets,
+    }
+  );
+}
+
+export function buildPackSelectionView(
+  task: TaskAggregate,
+  deliverable: Deliverable | null,
+): PackSelectionView {
+  const packResolution = getPackResolutionRecord(task, deliverable);
+  const domainPacks = (packResolution.selected_domain_packs as Array<Record<string, unknown>>)
+    .map((item) => asString(item.pack_name))
+    .filter(Boolean);
+  const industryPacks = (packResolution.selected_industry_packs as Array<Record<string, unknown>>)
+    .map((item) => asString(item.pack_name))
+    .filter(Boolean);
+
+  return {
+    summary: buildPackSummary(domainPacks, industryPacks),
+    domainPacks,
+    industryPacks,
+    resolverNotes: packResolution.resolver_notes,
+    evidenceExpectations: packResolution.evidence_expectations,
+    deliverablePresets: packResolution.deliverable_presets,
+  };
+}
+
 function getPresenceHighlights(task: TaskAggregate, deliverable: Deliverable | null) {
   const operatingState = asRecord(deliverable?.content_structure?.sparse_input_operating_state);
   const deliverableSummary = asRecord(operatingState?.presence_state_summary);
@@ -1283,6 +1364,7 @@ export function buildEvidenceWorkspaceLane(
     artifactPresence.state !== "explicit" ? `Artifact：${artifactPresence.reason}` : "",
     sourcePresence.state !== "explicit" ? `SourceMaterial：${sourcePresence.reason}` : "",
     decisionPresence.state !== "explicit" ? `DecisionContext：${decisionPresence.reason}` : "",
+    ...(readiness?.packHighImpactGaps.slice(0, 2) ?? []),
     ...(readiness?.missingInformation.slice(0, 3) ?? []),
   ].filter(Boolean);
 
@@ -1403,6 +1485,11 @@ export function buildTaskListWorkspaceSummary(task: TaskListItem): TaskListWorks
     decisionContext:
       task.decision_context_title || task.description || task.title,
     workspaceState: stateParts.join("｜"),
+    packSummary:
+      task.pack_summary?.trim() ||
+      (task.selected_pack_names.length > 0
+        ? `Packs：${joinNaturalList(task.selected_pack_names.slice(0, 3))}`
+        : "目前尚未選到 packs"),
   };
 }
 
@@ -1411,6 +1498,7 @@ export function buildCapabilityFrame(
   deliverable: Deliverable | null,
 ): CapabilityFrameView {
   const capability = asRecord(deliverable?.content_structure?.capability_frame);
+  const packSelection = buildPackSelectionView(task, deliverable);
   const workflowMode = typeof capability?.execution_mode === "string" ? capability.execution_mode : task.mode;
   const selectedAgents = asStringArray(capability?.selected_agents);
   const prioritySources = asStringArray(capability?.priority_sources);
@@ -1448,6 +1536,22 @@ export function buildCapabilityFrame(
       (typeof capability?.client_type === "string" && capability.client_type) ||
       task.client_type ||
       "未指定",
+    selectedDomainPacks:
+      asStringArray(capability?.selected_domain_pack_ids).length > 0
+        ? packSelection.domainPacks
+        : packSelection.domainPacks,
+    selectedIndustryPacks:
+      asStringArray(capability?.selected_industry_pack_ids).length > 0
+        ? packSelection.industryPacks
+        : packSelection.industryPacks,
+    packResolverNotes:
+      asStringArray(capability?.pack_resolver_notes).length > 0
+        ? asStringArray(capability?.pack_resolver_notes)
+        : packSelection.resolverNotes,
+    packDeliverablePresets:
+      asStringArray(capability?.pack_deliverable_presets).length > 0
+        ? asStringArray(capability?.pack_deliverable_presets)
+        : packSelection.deliverablePresets,
   };
 }
 
@@ -1459,6 +1563,7 @@ export function buildReadinessGovernance(
   const readiness = fallbackReadiness ?? assessTaskReadiness(task);
   const governance = asRecord(deliverable?.content_structure?.readiness_governance);
   const missingInformation = asStringArray(governance?.missing_information);
+  const packSelection = buildPackSelectionView(task, deliverable);
   const visibleConstraints = getVisibleConstraints(task.constraints);
   const assumptions = task.assumptions.filter(Boolean);
 
@@ -1509,6 +1614,15 @@ export function buildReadinessGovernance(
       visibleConstraints.length > 0
         ? `目前有 ${visibleConstraints.length} 項限制條件正在收斂這輪建議與風險判斷。`
         : "目前沒有明確限制條件在壓縮本輪結論。",
+    packEvidenceExpectations:
+      asStringArray(governance?.pack_evidence_expectations).length > 0
+        ? asStringArray(governance?.pack_evidence_expectations)
+        : packSelection.evidenceExpectations,
+    packHighImpactGaps: asStringArray(governance?.pack_high_impact_gaps),
+    packDeliverablePresets:
+      asStringArray(governance?.pack_deliverable_presets).length > 0
+        ? asStringArray(governance?.pack_deliverable_presets)
+        : packSelection.deliverablePresets,
   };
 }
 

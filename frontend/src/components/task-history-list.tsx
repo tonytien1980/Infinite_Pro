@@ -73,6 +73,7 @@ export function TaskHistoryList({
                 <span>{task.deliverable_count} 份交付物</span>
                 <span>{task.run_count} 次執行</span>
               </div>
+              <p className="muted-text">{workspaceSummary.packSummary}</p>
               <p className="muted-text">
                 最新交付物：{task.latest_deliverable_title ?? "尚未產生"}
               </p>

@@ -109,6 +109,7 @@ export function WorkbenchHome() {
                       <h3>{task.title}</h3>
                       <p className="workspace-object-path">{workspaceSummary.objectPath}</p>
                       <p className="muted-text">{workspaceSummary.decisionContext}</p>
+                      <p className="muted-text">{workspaceSummary.packSummary}</p>
                       <div className="meta-row">
                         <span>{workspaceSummary.workspaceState}</span>
                       </div>

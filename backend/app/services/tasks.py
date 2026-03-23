@@ -15,6 +15,9 @@ from app.domain.enums import (
     PresenceState,
     TaskStatus,
 )
+from app.extensions.registry import ExtensionRegistry
+from app.extensions.resolver import PackResolver
+from app.extensions.schemas import PackResolverInput, PackSpec, PackType
 from app.services.source_materials import build_source_material_summary, infer_artifact_type
 
 logger = logging.getLogger(__name__)
@@ -26,6 +29,21 @@ EXTERNAL_DATA_STRATEGY_LABELS = {
     ExternalDataStrategy.STRICT: "僅使用我提供的資料（嚴格模式）",
     ExternalDataStrategy.SUPPLEMENTAL: "視需要補充外部資料",
     ExternalDataStrategy.LATEST: "優先使用最新外部資料（研究模式）",
+}
+PACK_OVERRIDE_CONSTRAINT_TYPE = "pack_override"
+PACK_REASON_DOMAIN_MATCHES = {
+    "operations_pack": {"營運"},
+    "finance_fundraising_pack": {"財務", "募資"},
+    "legal_risk_pack": {"法務"},
+    "marketing_sales_pack": {"行銷", "銷售"},
+    "business_development_pack": {"銷售", "商務開發"},
+    "research_intelligence_pack": {"研究", "情報", "綜合"},
+}
+INDUSTRY_PACK_REASON_HINTS = {
+    "energy_pack": {"能源", "電力", "公用事業", "renewable", "energy"},
+    "saas_pack": {"saas", "軟體", "訂閱", "software", "subscription"},
+    "media_creator_pack": {"自媒體", "創作者", "內容", "creator", "media"},
+    "professional_services_pack": {"顧問", "服務", "事務所", "agency", "services"},
 }
 CLIENT_STAGE_KEYWORDS = {
     "創業階段": ("創業", "早期", "新創", "起步", "初期", "pmf", "驗證"),
@@ -83,6 +101,8 @@ EXTERNAL_EVENT_KEYWORDS = (
     "tariff",
     "sanction",
 )
+EXTENSION_REGISTRY = ExtensionRegistry()
+PACK_RESOLVER = PackResolver(EXTENSION_REGISTRY)
 
 
 def resolve_external_data_strategy_from_constraints(
@@ -797,6 +817,213 @@ def _build_presence_state_summary(
     )
 
 
+def _extract_explicit_pack_overrides(
+    constraints: list[models.Constraint],
+) -> list[str]:
+    explicit_pack_ids: list[str] = []
+    for constraint in constraints:
+        if constraint.constraint_type != PACK_OVERRIDE_CONSTRAINT_TYPE:
+            continue
+        explicit_pack_ids.extend(
+            item.strip()
+            for item in re.split(r"[\s,，\n]+", constraint.description or "")
+            if item.strip()
+        )
+    return _unique_preserve_order(explicit_pack_ids)
+
+
+def _build_industry_hints(
+    task: models.Task,
+    client: schemas.ClientRead | None,
+    engagement: schemas.EngagementRead | None,
+    workstream: schemas.WorkstreamRead | None,
+    decision_context: schemas.DecisionContextRead | None,
+) -> list[str]:
+    raw_hints = [
+        task.title,
+        task.description,
+        client.name if client else "",
+        client.client_type if client else "",
+        client.client_stage if client else "",
+        engagement.name if engagement else "",
+        engagement.description if engagement else "",
+        workstream.name if workstream else "",
+        workstream.description if workstream else "",
+        decision_context.title if decision_context else "",
+        decision_context.summary if decision_context else "",
+        decision_context.judgment_to_make if decision_context else "",
+        *[item.name for item in task.subjects if item.name],
+        *[item.description for item in task.goals if item.description],
+    ]
+    return _unique_preserve_order([item for item in raw_hints if item is not None])
+
+
+def _build_selected_pack_reason(
+    *,
+    pack: PackSpec,
+    explicit_pack_ids: list[str],
+    domain_lenses: list[str],
+    client_type: str | None,
+    client_stage: str | None,
+    industry_hints: list[str],
+) -> str:
+    reasons: list[str] = []
+    if pack.pack_id in explicit_pack_ids:
+        reasons.append("由使用者明確指定覆寫。")
+
+    if pack.pack_type == PackType.DOMAIN:
+        matched_lenses = [
+            item
+            for item in domain_lenses
+            if item in PACK_REASON_DOMAIN_MATCHES.get(pack.pack_id, set())
+        ]
+        if matched_lenses:
+            reasons.append(f"對齊 DomainLens：{join_natural_list(matched_lenses)}。")
+    else:
+        if client_type and client_type in pack.relevant_client_types:
+            reasons.append(f"對齊客戶型態：{client_type}。")
+        if client_stage and client_stage in pack.relevant_client_stages:
+            reasons.append(f"對齊客戶階段：{client_stage}。")
+        hint_text = " ".join(item.lower() for item in industry_hints if item)
+        matched_hints = [
+            item
+            for item in INDUSTRY_PACK_REASON_HINTS.get(pack.pack_id, set())
+            if item.lower() in hint_text
+        ]
+        if matched_hints:
+            reasons.append(f"對齊產業線索：{join_natural_list(matched_hints[:2])}。")
+
+    if not reasons:
+        reasons.append("由 Host 依目前 DecisionContext 與 context spine 推定。")
+    return " ".join(reasons)
+
+
+def _serialize_selected_pack(
+    *,
+    pack: PackSpec,
+    explicit_pack_ids: list[str],
+    domain_lenses: list[str],
+    client_type: str | None,
+    client_stage: str | None,
+    industry_hints: list[str],
+) -> schemas.SelectedPackRead:
+    return schemas.SelectedPackRead(
+        pack_id=pack.pack_id,
+        pack_type=pack.pack_type.value,
+        pack_name=pack.pack_name,
+        description=pack.description,
+        reason=_build_selected_pack_reason(
+            pack=pack,
+            explicit_pack_ids=explicit_pack_ids,
+            domain_lenses=domain_lenses,
+            client_type=client_type,
+            client_stage=client_stage,
+            industry_hints=industry_hints,
+        ),
+        status=pack.status.value,
+        version=pack.version,
+        evidence_expectations=pack.evidence_expectations,
+        deliverable_presets=pack.deliverable_presets,
+        routing_hints=pack.routing_hints,
+    )
+
+
+def join_natural_list(items: list[str]) -> str:
+    normalized = [item.strip() for item in items if item and item.strip()]
+    if not normalized:
+        return ""
+    if len(normalized) == 1:
+        return normalized[0]
+    return f"{'、'.join(normalized[:-1])} 與 {normalized[-1]}"
+
+
+def resolve_pack_selection_for_task(
+    task: models.Task,
+    client: schemas.ClientRead | None,
+    engagement: schemas.EngagementRead | None,
+    workstream: schemas.WorkstreamRead | None,
+    decision_context: schemas.DecisionContextRead | None,
+    domain_lenses: list[str],
+) -> schemas.PackResolutionRead:
+    explicit_pack_ids = _extract_explicit_pack_overrides(task.constraints)
+    client_type = decision_context.client_type if decision_context else client.client_type if client else None
+    client_stage = decision_context.client_stage if decision_context else client.client_stage if client else None
+    industry_hints = _build_industry_hints(task, client, engagement, workstream, decision_context)
+    resolution = PACK_RESOLVER.resolve(
+        PackResolverInput(
+            domain_lenses=domain_lenses,
+            client_type=client_type,
+            client_stage=client_stage,
+            decision_context_summary=(
+                decision_context.summary if decision_context else task.description or task.title
+            ),
+            explicit_pack_ids=explicit_pack_ids,
+            industry_hints=industry_hints,
+        )
+    )
+    selected_domain_packs = [
+        _serialize_selected_pack(
+            pack=pack,
+            explicit_pack_ids=explicit_pack_ids,
+            domain_lenses=domain_lenses,
+            client_type=client_type,
+            client_stage=client_stage,
+            industry_hints=industry_hints,
+        )
+        for pack_id in resolution.selected_domain_pack_ids
+        if (pack := EXTENSION_REGISTRY.get_pack(pack_id))
+    ]
+    selected_industry_packs = [
+        _serialize_selected_pack(
+            pack=pack,
+            explicit_pack_ids=explicit_pack_ids,
+            domain_lenses=domain_lenses,
+            client_type=client_type,
+            client_stage=client_stage,
+            industry_hints=industry_hints,
+        )
+        for pack_id in resolution.selected_industry_pack_ids
+        if (pack := EXTENSION_REGISTRY.get_pack(pack_id))
+    ]
+
+    return schemas.PackResolutionRead(
+        selected_domain_packs=selected_domain_packs,
+        selected_industry_packs=selected_industry_packs,
+        override_pack_ids=resolution.override_pack_ids,
+        conflicts=resolution.conflicts,
+        stack_order=resolution.stack_order,
+        resolver_notes=resolution.resolver_notes,
+        evidence_expectations=_unique_preserve_order(
+            [
+                *[
+                    item
+                    for pack in selected_domain_packs
+                    for item in pack.evidence_expectations
+                ],
+                *[
+                    item
+                    for pack in selected_industry_packs
+                    for item in pack.evidence_expectations
+                ],
+            ]
+        ),
+        deliverable_presets=_unique_preserve_order(
+            [
+                *[
+                    item
+                    for pack in selected_domain_packs
+                    for item in pack.deliverable_presets
+                ],
+                *[
+                    item
+                    for pack in selected_industry_packs
+                    for item in pack.deliverable_presets
+                ],
+            ]
+        ),
+    )
+
+
 def _resolve_deliverable_class_hint(
     input_entry_mode: InputEntryMode,
     decision_context: schemas.DecisionContextRead | None,
@@ -1276,6 +1503,14 @@ def list_tasks(db: Session) -> list[schemas.TaskListItemResponse]:
         client, engagement, workstream, decision_context, domain_lenses, source_materials, artifacts = (
             _build_ontology_spine_for_task(task)
         )
+        pack_resolution = resolve_pack_selection_for_task(
+            task,
+            client,
+            engagement,
+            workstream,
+            decision_context,
+            domain_lenses,
+        )
         input_entry_mode = _infer_input_entry_mode(task, source_materials, artifacts)
         external_research_heavy_candidate = _is_external_research_heavy_candidate(
             task,
@@ -1312,6 +1547,15 @@ def list_tasks(db: Session) -> list[schemas.TaskListItemResponse]:
                 input_entry_mode=input_entry_mode,
                 deliverable_class_hint=deliverable_class_hint,
                 external_research_heavy_candidate=external_research_heavy_candidate,
+                selected_pack_ids=pack_resolution.stack_order,
+                selected_pack_names=[
+                    *[item.pack_name for item in pack_resolution.selected_domain_packs],
+                    *[item.pack_name for item in pack_resolution.selected_industry_packs],
+                ],
+                pack_summary=(
+                    f"Domain Packs：{join_natural_list([item.pack_name for item in pack_resolution.selected_domain_packs]) or '未選用'}；"
+                    f"Industry Packs：{join_natural_list([item.pack_name for item in pack_resolution.selected_industry_packs]) or '未選用'}"
+                ),
                 evidence_count=len(task.evidence),
                 deliverable_count=len(task.deliverables),
                 run_count=len(task.runs),
@@ -1368,6 +1612,14 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         input_entry_mode,
         external_research_heavy_candidate,
     )
+    pack_resolution = resolve_pack_selection_for_task(
+        task,
+        client,
+        engagement,
+        workstream,
+        decision_context,
+        domain_lenses,
+    )
     deliverable_class_hint = _resolve_deliverable_class_hint(
         input_entry_mode,
         decision_context,
@@ -1403,6 +1655,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
             external_research_heavy_candidate,
         ),
         presence_state_summary=presence_state_summary,
+        pack_resolution=pack_resolution,
         source_materials=source_materials,
         artifacts=artifacts,
         contexts=[schemas.TaskContextRead.model_validate(item) for item in task.contexts],

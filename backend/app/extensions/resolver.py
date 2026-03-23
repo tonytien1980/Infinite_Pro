@@ -14,6 +14,46 @@ from app.extensions.schemas import (
     PackType,
 )
 
+DOMAIN_LENS_ALIASES = {
+    "營運": {"operations", "process", "execution", "workflow"},
+    "財務": {"finance", "economics", "cash"},
+    "募資": {"fundraising", "capital"},
+    "法務": {"legal", "risk", "compliance", "contract"},
+    "行銷": {"marketing", "growth", "gtm"},
+    "銷售": {"sales", "commercial", "pipeline"},
+    "商務開發": {"business", "development", "partnership", "channel"},
+    "研究": {"research", "intelligence", "signals"},
+    "情報": {"research", "intelligence", "signals"},
+}
+
+INDUSTRY_TOKEN_ALIASES = {
+    "energy_pack": {"energy", "power", "electricity", "utilities", "renewable", "能源", "電力", "公用事業"},
+    "saas_pack": {"saas", "software", "subscription", "mrr", "arr", "軟體", "訂閱", "軟體服務"},
+    "media_creator_pack": {
+        "creator",
+        "media",
+        "youtube",
+        "podcast",
+        "newsletter",
+        "content",
+        "自媒體",
+        "創作者",
+        "內容",
+        "頻道",
+    },
+    "professional_services_pack": {
+        "consulting",
+        "agency",
+        "services",
+        "firm",
+        "professional",
+        "顧問",
+        "服務",
+        "事務所",
+        "代理商",
+    },
+}
+
 
 class PackResolver:
     def __init__(self, registry: ExtensionRegistry):
@@ -44,9 +84,10 @@ class PackResolver:
                 for pack in self.registry.list_packs(PackType.DOMAIN)
                 if pack.status == ExtensionStatus.ACTIVE
             ]
-            for requested_lens in [lens.lower() for lens in payload.domain_lenses]:
+            requested_lenses = _normalize_domain_lenses(payload.domain_lenses)
+            for requested_lens in requested_lenses:
                 for pack in active_domain_packs:
-                    if requested_lens in {lens.lower() for lens in pack.domain_lenses}:
+                    if requested_lens in _pack_domain_tokens(pack):
                         selected_domain.append(pack.pack_id)
             if selected_domain:
                 notes.append("Selected domain packs from domain lenses.")
@@ -54,10 +95,25 @@ class PackResolver:
         if not selected_industry:
             hint_tokens = _normalize_tokens(payload.industry_hints)
             hint_tokens.update(_normalize_tokens([payload.decision_context_summary or ""]))
+            hint_tokens.update(_normalize_tokens([payload.client_type or "", payload.client_stage or ""]))
             for pack in self.registry.list_packs(PackType.INDUSTRY):
                 if pack.status != ExtensionStatus.ACTIVE:
                     continue
-                if hint_tokens.intersection({hint.lower() for hint in pack.routing_hints}):
+                matched_hints = bool(hint_tokens.intersection(_pack_industry_tokens(pack)))
+                matched_client_type = bool(
+                    payload.client_type and payload.client_type in pack.relevant_client_types
+                )
+                matched_client_stage = bool(
+                    payload.client_stage and payload.client_stage in pack.relevant_client_stages
+                )
+                should_select = matched_hints
+                if pack.relevant_client_types and pack.relevant_client_stages:
+                    should_select = should_select or (matched_client_type and matched_client_stage)
+                elif pack.relevant_client_types:
+                    should_select = should_select or matched_client_type
+                elif pack.relevant_client_stages:
+                    should_select = should_select or (matched_client_stage and matched_hints)
+                if should_select:
                     selected_industry.append(pack.pack_id)
             if selected_industry:
                 notes.append("Selected industry packs from industry hints.")
@@ -133,6 +189,32 @@ def _normalize_tokens(values: Iterable[str]) -> set[str]:
         for token in value.lower().replace("/", " ").replace("-", " ").split():
             if token:
                 tokens.add(token)
+    return tokens
+
+
+def _normalize_domain_lenses(values: Iterable[str]) -> set[str]:
+    tokens = _normalize_tokens(values)
+    for value in values:
+        aliases = DOMAIN_LENS_ALIASES.get(value.strip(), set())
+        tokens.update(alias.lower() for alias in aliases)
+    return tokens
+
+
+def _pack_domain_tokens(pack) -> set[str]:
+    tokens = _normalize_tokens(pack.domain_lenses)
+    for lens in pack.domain_lenses:
+        for alias_key, aliases in DOMAIN_LENS_ALIASES.items():
+            if lens.lower() in {item.lower() for item in aliases}:
+                tokens.add(alias_key.lower())
+                tokens.update(alias.lower() for alias in aliases)
+    tokens.update(_normalize_tokens(pack.routing_hints))
+    return tokens
+
+
+def _pack_industry_tokens(pack) -> set[str]:
+    tokens = _normalize_tokens(pack.routing_hints)
+    tokens.update(_normalize_tokens([pack.pack_id, pack.pack_name]))
+    tokens.update(token.lower() for token in INDUSTRY_TOKEN_ALIASES.get(pack.pack_id, set()))
     return tokens
 
 

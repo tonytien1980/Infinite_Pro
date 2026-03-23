@@ -133,6 +133,30 @@ class PresenceStateSummaryRead(BaseModel):
     client_type: PresenceStateItemRead
 
 
+class SelectedPackRead(BaseModel):
+    pack_id: str
+    pack_type: str
+    pack_name: str
+    description: str
+    reason: str = ""
+    status: str = "active"
+    version: str = "1.0.0"
+    evidence_expectations: list[str] = Field(default_factory=list)
+    deliverable_presets: list[str] = Field(default_factory=list)
+    routing_hints: list[str] = Field(default_factory=list)
+
+
+class PackResolutionRead(BaseModel):
+    selected_domain_packs: list[SelectedPackRead] = Field(default_factory=list)
+    selected_industry_packs: list[SelectedPackRead] = Field(default_factory=list)
+    override_pack_ids: list[str] = Field(default_factory=list)
+    conflicts: list[str] = Field(default_factory=list)
+    stack_order: list[str] = Field(default_factory=list)
+    resolver_notes: list[str] = Field(default_factory=list)
+    evidence_expectations: list[str] = Field(default_factory=list)
+    deliverable_presets: list[str] = Field(default_factory=list)
+
+
 class SubjectRead(ORMModel):
     id: str
     task_id: str
@@ -325,6 +349,9 @@ class TaskListItemResponse(BaseModel):
     input_entry_mode: InputEntryMode = InputEntryMode.ONE_LINE_INQUIRY
     deliverable_class_hint: DeliverableClass = DeliverableClass.EXPLORATORY_BRIEF
     external_research_heavy_candidate: bool = False
+    selected_pack_ids: list[str] = Field(default_factory=list)
+    selected_pack_names: list[str] = Field(default_factory=list)
+    pack_summary: str | None = None
     evidence_count: int
     deliverable_count: int
     run_count: int
@@ -354,6 +381,7 @@ class TaskAggregateResponse(BaseModel):
     external_research_heavy_candidate: bool = False
     sparse_input_summary: str = ""
     presence_state_summary: PresenceStateSummaryRead
+    pack_resolution: PackResolutionRead = Field(default_factory=PackResolutionRead)
     source_materials: list[SourceMaterialRead] = Field(default_factory=list)
     artifacts: list[ArtifactRead] = Field(default_factory=list)
     contexts: list[TaskContextRead] = Field(default_factory=list)

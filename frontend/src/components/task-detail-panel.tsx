@@ -16,6 +16,7 @@ import {
   buildExecutiveSummary,
   buildObjectNavigationStrip,
   buildOntologyChainSummary,
+  buildPackSelectionView,
   buildRecommendationCards,
   buildReadinessGovernance,
   buildRiskCards,
@@ -361,6 +362,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
   const workbenchObjectSummary = task ? buildWorkbenchObjectSummary(task, latestDeliverable) : null;
   const objectNavigationStrip = task ? buildObjectNavigationStrip(task, latestDeliverable) : null;
   const capabilityFrame = task ? buildCapabilityFrame(task, latestDeliverable) : null;
+  const packSelection = task ? buildPackSelectionView(task, latestDeliverable) : null;
   const readinessGovernance =
     task && readiness ? buildReadinessGovernance(task, latestDeliverable, readiness) : null;
   const ontologyChainSummary = task ? buildOntologyChainSummary(task, latestDeliverable) : null;
@@ -635,6 +637,24 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                           emptyText="尚未整理這輪優先資料。"
                         />
                       </div>
+                      {capabilityFrame.selectedDomainPacks.length > 0 ? (
+                        <div className="section-card">
+                          <h4>Domain Packs</h4>
+                          <ExpandableList
+                            items={capabilityFrame.selectedDomainPacks}
+                            emptyText="這輪目前沒有選到 Domain / Functional Packs。"
+                          />
+                        </div>
+                      ) : null}
+                      {capabilityFrame.selectedIndustryPacks.length > 0 ? (
+                        <div className="section-card">
+                          <h4>Industry Packs</h4>
+                          <ExpandableList
+                            items={capabilityFrame.selectedIndustryPacks}
+                            emptyText="這輪目前沒有選到 Industry Packs。"
+                          />
+                        </div>
+                      ) : null}
                     </div>
 
                     {capabilityFrame.routingRationale.length > 0 ? (
@@ -643,6 +663,26 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                         <ExpandableList
                           items={capabilityFrame.routingRationale}
                           emptyText="目前沒有可顯示的 routing 說明。"
+                        />
+                      </div>
+                    ) : null}
+
+                    {packSelection && packSelection.resolverNotes.length > 0 ? (
+                      <div className="detail-item" style={{ marginTop: "14px" }}>
+                        <h3>Pack resolver notes</h3>
+                        <ExpandableList
+                          items={packSelection.resolverNotes}
+                          emptyText="目前沒有可顯示的 pack resolver notes。"
+                        />
+                      </div>
+                    ) : null}
+
+                    {capabilityFrame.packDeliverablePresets.length > 0 ? (
+                      <div className="detail-item" style={{ marginTop: "14px" }}>
+                        <h3>Pack deliverable 傾向</h3>
+                        <ExpandableList
+                          items={capabilityFrame.packDeliverablePresets}
+                          emptyText="目前沒有可顯示的 pack deliverable 傾向。"
                         />
                       </div>
                     ) : null}
@@ -736,6 +776,16 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                           {readinessGovernance.assumptionSignal}
                         </p>
                       </div>
+                      {readinessGovernance.packEvidenceExpectations.length > 0 ? (
+                        <div className="section-card">
+                          <h4>Pack evidence expectations</h4>
+                          <ExpandableList
+                            items={readinessGovernance.packEvidenceExpectations}
+                            emptyText="目前沒有額外的 pack evidence expectations。"
+                            initialCount={4}
+                          />
+                        </div>
+                      ) : null}
                       {sparseInputOperatingView?.externalResearchHeavy ? (
                         <div className="section-card">
                           <h4>外部事件導向提醒</h4>
@@ -747,6 +797,16 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                         </div>
                       ) : null}
                     </div>
+
+                    {readinessGovernance.packHighImpactGaps.length > 0 ? (
+                      <div className="detail-item" style={{ marginTop: "14px" }}>
+                        <h3>Pack-aware 高影響缺口</h3>
+                        <ExpandableList
+                          items={readinessGovernance.packHighImpactGaps}
+                          emptyText="目前沒有額外的 pack-aware 高影響缺口。"
+                        />
+                      </div>
+                    ) : null}
 
                     {readinessGovernance.level === "degraded" ? (
                       <p className="error-text">

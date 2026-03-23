@@ -175,7 +175,7 @@ def test_task_list_returns_object_aware_workspace_summary(client: TestClient) ->
             "engagement_name": "Northwind Growth Sprint",
             "workstream_name": "提案重組與銷售收斂",
             "decision_title": "Northwind decision context",
-            "judgment_to_make": "先判斷目前提案重組是否足以提升成交效率。",
+            "judgment_to_make": "先判斷目前 SaaS 提案重組是否足以提升成交效率。",
             "domain_lenses": ["銷售", "行銷"],
         }
     )
@@ -195,6 +195,45 @@ def test_task_list_returns_object_aware_workspace_summary(client: TestClient) ->
     assert item["input_entry_mode"] == "one_line_inquiry"
     assert item["deliverable_class_hint"] == "exploratory_brief"
     assert item["external_research_heavy_candidate"] is False
+    assert "marketing_sales_pack" in item["selected_pack_ids"]
+    assert item["selected_pack_names"]
+    assert item["pack_summary"]
+
+
+def test_task_aggregate_includes_pack_resolution_from_context_spine(client: TestClient) -> None:
+    payload = create_task_payload("Pack-aware aggregate")
+    payload.update(
+        {
+            "description": "請判斷這個 SaaS 訂閱產品是否該優先調整價格與續約策略。",
+            "client_name": "Orbit Labs",
+            "client_type": "中小企業",
+            "client_stage": "制度化階段",
+            "engagement_name": "Orbit Growth Review",
+            "workstream_name": "營運與財務收斂",
+            "domain_lenses": ["營運", "財務"],
+            "judgment_to_make": "先判斷 SaaS 產品的價格與續約策略是否需要優先調整。",
+        }
+    )
+
+    response = client.post("/api/v1/tasks", json=payload)
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["pack_resolution"]["selected_domain_packs"]
+    assert any(
+        item["pack_id"] == "operations_pack"
+        for item in body["pack_resolution"]["selected_domain_packs"]
+    )
+    assert any(
+        item["pack_id"] == "finance_fundraising_pack"
+        for item in body["pack_resolution"]["selected_domain_packs"]
+    )
+    assert any(
+        item["pack_id"] == "saas_pack"
+        for item in body["pack_resolution"]["selected_industry_packs"]
+    )
+    assert body["pack_resolution"]["resolver_notes"]
+    assert body["pack_resolution"]["evidence_expectations"]
 
 
 def test_file_upload_creates_usable_txt_evidence(client: TestClient) -> None:
@@ -444,7 +483,17 @@ def test_google_docs_public_link_creates_processed_source(
 
 
 def test_research_synthesis_specialist_run_and_history_persistence(client: TestClient) -> None:
-    task = client.post("/api/v1/tasks", json=create_task_payload("Specialist run")).json()
+    payload = create_task_payload("Specialist run")
+    payload.update(
+        {
+            "description": "Turn the SaaS working notes into a structured internal synthesis for pricing and retention decisions.",
+            "client_type": "中小企業",
+            "client_stage": "制度化階段",
+            "domain_lenses": ["營運", "財務"],
+            "judgment_to_make": "先判斷 SaaS 續約與價格策略是否需要調整。",
+        }
+    )
+    task = client.post("/api/v1/tasks", json=payload).json()
     client.post(
         f"/api/v1/tasks/{task['id']}/uploads",
         files=[
@@ -475,6 +524,11 @@ def test_research_synthesis_specialist_run_and_history_persistence(client: TestC
     assert "external_data_usage" in content
     assert content["capability_frame"]["capability"] == "synthesize_brief"
     assert content["capability_frame"]["execution_mode"] == "specialist"
+    assert "operations_pack" in content["capability_frame"]["selected_domain_pack_ids"]
+    assert "saas_pack" in content["capability_frame"]["selected_industry_pack_ids"]
+    assert content["selected_packs"]["selected_domain_packs"]
+    assert content["selected_packs"]["selected_industry_packs"]
+    assert content["readiness_governance"]["pack_evidence_expectations"]
     assert content["decision_context_summary"]
     assert content["input_entry_mode"] in {
         "single_document_intake",

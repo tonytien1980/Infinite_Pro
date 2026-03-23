@@ -40,6 +40,30 @@ export interface PresenceStateSummary {
   client_type: PresenceStateItem;
 }
 
+export interface SelectedPack {
+  pack_id: string;
+  pack_type: string;
+  pack_name: string;
+  description: string;
+  reason: string;
+  status: string;
+  version: string;
+  evidence_expectations: string[];
+  deliverable_presets: string[];
+  routing_hints: string[];
+}
+
+export interface PackResolution {
+  selected_domain_packs: SelectedPack[];
+  selected_industry_packs: SelectedPack[];
+  override_pack_ids: string[];
+  conflicts: string[];
+  stack_order: string[];
+  resolver_notes: string[];
+  evidence_expectations: string[];
+  deliverable_presets: string[];
+}
+
 export interface Client {
   id: string;
   task_id: string;
@@ -283,6 +307,7 @@ export interface TaskAggregate {
   external_research_heavy_candidate: boolean;
   sparse_input_summary: string;
   presence_state_summary: PresenceStateSummary;
+  pack_resolution: PackResolution;
   source_materials: SourceMaterial[];
   artifacts: Artifact[];
   contexts: TaskContext[];
@@ -319,6 +344,9 @@ export interface TaskListItem {
   input_entry_mode: InputEntryMode;
   deliverable_class_hint: DeliverableClass;
   external_research_heavy_candidate: boolean;
+  selected_pack_ids: string[];
+  selected_pack_names: string[];
+  pack_summary: string | null;
   evidence_count: number;
   deliverable_count: number;
   run_count: number;

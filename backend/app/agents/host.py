@@ -90,6 +90,11 @@ class CapabilityFrame:
     preferred_execution_mode: FlowMode
     specialist_agent_id: str | None = None
     selected_core_agents: list[str] = field(default_factory=list)
+    selected_domain_pack_ids: list[str] = field(default_factory=list)
+    selected_industry_pack_ids: list[str] = field(default_factory=list)
+    selected_pack_names: list[str] = field(default_factory=list)
+    pack_resolver_notes: list[str] = field(default_factory=list)
+    pack_deliverable_presets: list[str] = field(default_factory=list)
     routing_rationale: list[str] = field(default_factory=list)
     priority_sources: list[str] = field(default_factory=list)
     framing_summary: str = ""
@@ -105,6 +110,9 @@ class ReadinessGovernance:
     supported_deliverable_class: DeliverableClass
     deliverable_guidance: str = ""
     external_research_heavy_case: bool = False
+    pack_evidence_expectations: list[str] = field(default_factory=list)
+    pack_high_impact_gaps: list[str] = field(default_factory=list)
+    pack_deliverable_presets: list[str] = field(default_factory=list)
     missing_information: list[str] = field(default_factory=list)
     conclusion_impact: list[str] = field(default_factory=list)
 
@@ -186,6 +194,7 @@ class HostOrchestrator:
             external_research_heavy_candidate=aggregate.external_research_heavy_candidate,
             sparse_input_summary=aggregate.sparse_input_summary,
             presence_state_summary=aggregate.presence_state_summary,
+            pack_resolution=aggregate.pack_resolution,
             source_materials=aggregate.source_materials,
             artifacts=aggregate.artifacts,
             subjects=aggregate.subjects,
@@ -464,6 +473,36 @@ class HostOrchestrator:
             ordered.append(normalized)
         return ordered
 
+    @staticmethod
+    def _selected_domain_packs(payload: AgentInputPayload) -> list[schemas.SelectedPackRead]:
+        return payload.pack_resolution.selected_domain_packs if payload.pack_resolution else []
+
+    @staticmethod
+    def _selected_industry_packs(payload: AgentInputPayload) -> list[schemas.SelectedPackRead]:
+        return payload.pack_resolution.selected_industry_packs if payload.pack_resolution else []
+
+    def _selected_packs(self, payload: AgentInputPayload) -> list[schemas.SelectedPackRead]:
+        return [
+            *self._selected_domain_packs(payload),
+            *self._selected_industry_packs(payload),
+        ]
+
+    def _pack_names(self, payload: AgentInputPayload) -> list[str]:
+        return self._unique_preserve_order([item.pack_name for item in self._selected_packs(payload)])
+
+    def _pack_ids(self, payload: AgentInputPayload) -> list[str]:
+        return self._unique_preserve_order([item.pack_id for item in self._selected_packs(payload)])
+
+    def _pack_evidence_expectations(self, payload: AgentInputPayload) -> list[str]:
+        return self._unique_preserve_order(
+            [item for pack in self._selected_packs(payload) for item in pack.evidence_expectations]
+        )
+
+    def _pack_deliverable_presets(self, payload: AgentInputPayload) -> list[str]:
+        return self._unique_preserve_order(
+            [item for pack in self._selected_packs(payload) for item in pack.deliverable_presets]
+        )
+
     def _decision_signal_text(self, payload: AgentInputPayload) -> str:
         parts = [
             payload.title,
@@ -497,6 +536,7 @@ class HostOrchestrator:
         client_stage = self._effective_client_stage(payload)
         client_type = self._effective_client_type(payload)
         salient_constraints = self._salient_constraints(payload)
+        selected_pack_ids = set(self._pack_ids(payload))
 
         if capability in {
             CapabilityArchetype.DECIDE_CONVERGE,
@@ -543,6 +583,38 @@ class HostOrchestrator:
         elif client_type == "個人品牌與服務":
             scores["market_research_insight"] += 3
             scores["strategy_business_analysis"] += 2
+
+        if "operations_pack" in selected_pack_ids:
+            scores["operations"] += 18
+            routing_notes.append("因選到 Operations Pack，Host 會提高 Operations Agent 的優先順序。")
+        if "finance_fundraising_pack" in selected_pack_ids:
+            scores["strategy_business_analysis"] += 8
+            scores["risk_challenge"] += 8
+            routing_notes.append("因選到 Finance / Fundraising Pack，Host 會提高策略與風險視角的收斂優先序。")
+        if "legal_risk_pack" in selected_pack_ids:
+            scores["risk_challenge"] += 16
+            routing_notes.append("因選到 Legal / Risk Pack，Host 會提高 Risk / Challenge Agent 的優先順序。")
+        if "marketing_sales_pack" in selected_pack_ids:
+            scores["market_research_insight"] += 16
+            routing_notes.append("因選到 Marketing / Sales Pack，Host 會提高 Market / Research Insight 的優先順序。")
+        if "business_development_pack" in selected_pack_ids:
+            scores["market_research_insight"] += 10
+            scores["strategy_business_analysis"] += 6
+            routing_notes.append("因選到 Business Development Pack，Host 會優先檢查商務拓展與策略收斂。")
+        if "research_intelligence_pack" in selected_pack_ids:
+            scores["market_research_insight"] += 18
+            routing_notes.append("因選到 Research / Intelligence Pack，Host 會提高研究與外部訊號整理的優先順序。")
+        if "energy_pack" in selected_pack_ids:
+            scores["operations"] += 6
+            scores["risk_challenge"] += 6
+        if "saas_pack" in selected_pack_ids:
+            scores["market_research_insight"] += 6
+            scores["strategy_business_analysis"] += 4
+        if "media_creator_pack" in selected_pack_ids:
+            scores["market_research_insight"] += 6
+        if "professional_services_pack" in selected_pack_ids:
+            scores["operations"] += 5
+            scores["strategy_business_analysis"] += 5
 
         ordered = sorted(
             DEFAULT_CORE_AGENT_ORDER,
@@ -594,7 +666,9 @@ class HostOrchestrator:
             capability = CapabilityArchetype.DECIDE_CONVERGE
 
         if capability == CapabilityArchetype.REVIEW_CHALLENGE and (
-            task.task_type == "contract_review" or "法務" in payload.domain_lenses
+            task.task_type == "contract_review"
+            or "法務" in payload.domain_lenses
+            or "legal_risk_pack" in self._pack_ids(payload)
         ):
             specialist_agent_id = "contract_review"
         elif capability == CapabilityArchetype.RESTRUCTURE_REFRAME:
@@ -617,6 +691,23 @@ class HostOrchestrator:
 
         selected_core_agents, core_routing_notes = self._select_core_agents(payload, capability)
         routing_rationale.extend(core_routing_notes)
+        selected_domain_packs = self._selected_domain_packs(payload)
+        selected_industry_packs = self._selected_industry_packs(payload)
+        selected_pack_names = self._pack_names(payload)
+        if selected_domain_packs:
+            routing_rationale.append(
+                "本輪已選用 Domain / Functional Packs："
+                + "、".join(item.pack_name for item in selected_domain_packs)
+                + "。"
+            )
+        if selected_industry_packs:
+            routing_rationale.append(
+                "本輪已選用 Industry Packs："
+                + "、".join(item.pack_name for item in selected_industry_packs)
+                + "。"
+            )
+        if payload.pack_resolution.resolver_notes:
+            routing_rationale.extend(payload.pack_resolution.resolver_notes)
         prioritized_artifacts = self._meaningful_artifacts(payload)[:3]
         priority_sources = [item.title for item in prioritized_artifacts] + [
             item.title
@@ -632,12 +723,19 @@ class HostOrchestrator:
             f"Host 先把這輪工作 framing 成「{CAPABILITY_LABELS[capability]}」，"
             f"並圍繞「{decision_text}」決定要採用的 execution path。"
         )
+        if selected_pack_names:
+            framing_summary += f" 這輪同時套用 { '、'.join(selected_pack_names) } 作為 context modules。"
 
         return CapabilityFrame(
             capability=capability,
             preferred_execution_mode=preferred_execution_mode,
             specialist_agent_id=specialist_agent_id,
             selected_core_agents=selected_core_agents,
+            selected_domain_pack_ids=[item.pack_id for item in selected_domain_packs],
+            selected_industry_pack_ids=[item.pack_id for item in selected_industry_packs],
+            selected_pack_names=selected_pack_names,
+            pack_resolver_notes=payload.pack_resolution.resolver_notes,
+            pack_deliverable_presets=payload.pack_resolution.deliverable_presets,
             routing_rationale=routing_rationale,
             priority_sources=self._unique_preserve_order(priority_sources),
             framing_summary=framing_summary,
@@ -759,6 +857,39 @@ class HostOrchestrator:
 
         return DeliverableClass.EXPLORATORY_BRIEF
 
+    def _build_pack_high_impact_gaps(
+        self,
+        payload: AgentInputPayload,
+        usable_evidence: list[schemas.EvidenceRead],
+        artifacts: list[schemas.ArtifactRead],
+        source_materials: list[schemas.SourceMaterialRead],
+    ) -> list[str]:
+        gaps: list[str] = []
+        selected_packs = self._selected_packs(payload)
+
+        if not selected_packs:
+            return gaps
+
+        if not artifacts:
+            for pack in self._selected_domain_packs(payload):
+                if pack.evidence_expectations:
+                    gaps.append(
+                        f"{pack.pack_name} 期待 {pack.evidence_expectations[0]} 等材料，但目前尚未形成可引用 artifact。"
+                    )
+
+        if not source_materials:
+            for pack in self._selected_industry_packs(payload):
+                if pack.evidence_expectations:
+                    gaps.append(
+                        f"{pack.pack_name} 期待 {pack.evidence_expectations[0]} 等產業脈絡材料，但目前 source material 仍偏薄。"
+                    )
+
+        if len(usable_evidence) < max(1, min(2, len(selected_packs))):
+            pack_names = "、".join(item.pack_name for item in selected_packs[:3])
+            gaps.append(f"目前 evidence 仍不足以支撐 {pack_names} 的 pack-aware 判斷。")
+
+        return self._unique_preserve_order(gaps)
+
     def _evaluate_readiness_governance(
         self,
         payload: AgentInputPayload,
@@ -786,6 +917,13 @@ class HostOrchestrator:
         conclusion_impact: list[str] = []
         critical_gaps = 0
         external_research_heavy_case = self._is_external_research_heavy_sparse_case(payload)
+        pack_evidence_expectations = self._pack_evidence_expectations(payload)
+        pack_high_impact_gaps = self._build_pack_high_impact_gaps(
+            payload,
+            usable_evidence,
+            artifacts,
+            source_materials,
+        )
 
         if not decision_context_clear:
             missing_information.append(
@@ -835,6 +973,22 @@ class HostOrchestrator:
             conclusion_impact.append(
                 "Host 會把這輪視為 external-research-heavy sparse case，優先形成外部態勢判斷與待驗證的公司內部問題。"
             )
+
+        if pack_evidence_expectations:
+            conclusion_impact.append(
+                "本輪 selected packs 期待優先納入："
+                + "、".join(pack_evidence_expectations[:4])
+                + "。"
+            )
+        if payload.pack_resolution.deliverable_presets:
+            conclusion_impact.append(
+                "selected packs 也提示較合理的交付傾向："
+                + "、".join(payload.pack_resolution.deliverable_presets[:3])
+                + "。"
+            )
+        if pack_high_impact_gaps:
+            missing_information.extend(pack_high_impact_gaps)
+            critical_gaps += 1
 
         if payload.constraints:
             conclusion_impact.append(f"目前有 {len(payload.constraints)} 項限制條件正在壓縮可行方案。")
@@ -888,6 +1042,9 @@ class HostOrchestrator:
             supported_deliverable_class=supported_deliverable_class,
             deliverable_guidance=deliverable_guidance,
             external_research_heavy_case=external_research_heavy_case,
+            pack_evidence_expectations=pack_evidence_expectations,
+            pack_high_impact_gaps=pack_high_impact_gaps,
+            pack_deliverable_presets=payload.pack_resolution.deliverable_presets,
             missing_information=missing_information,
             conclusion_impact=conclusion_impact,
         )
@@ -1031,6 +1188,7 @@ class HostOrchestrator:
             "external_research_heavy_candidate": payload.external_research_heavy_candidate,
             "sparse_input_summary": payload.sparse_input_summary,
             "presence_state_summary": payload.presence_state_summary.model_dump(mode="json"),
+            "pack_resolution": payload.pack_resolution.model_dump(mode="json"),
             "source_materials": [item.model_dump(mode="json") for item in payload.source_materials],
             "artifacts": [item.model_dump(mode="json") for item in payload.artifacts],
         }
@@ -1071,6 +1229,11 @@ class HostOrchestrator:
             "domain_lenses": payload.domain_lenses,
             "client_stage": self._effective_client_stage(payload),
             "client_type": self._effective_client_type(payload),
+            "selected_domain_pack_ids": capability_frame.selected_domain_pack_ids,
+            "selected_industry_pack_ids": capability_frame.selected_industry_pack_ids,
+            "selected_pack_names": capability_frame.selected_pack_names,
+            "pack_resolver_notes": capability_frame.pack_resolver_notes,
+            "pack_deliverable_presets": capability_frame.pack_deliverable_presets,
         }
         content["readiness_governance"] = {
             "level": readiness.level,
@@ -1081,9 +1244,13 @@ class HostOrchestrator:
             "supported_deliverable_class": readiness.supported_deliverable_class.value,
             "deliverable_guidance": readiness.deliverable_guidance,
             "external_research_heavy_case": readiness.external_research_heavy_case,
+            "pack_evidence_expectations": readiness.pack_evidence_expectations,
+            "pack_high_impact_gaps": readiness.pack_high_impact_gaps,
+            "pack_deliverable_presets": readiness.pack_deliverable_presets,
             "missing_information": readiness.missing_information,
             "conclusion_impact": readiness.conclusion_impact,
         }
+        content["selected_packs"] = payload.pack_resolution.model_dump(mode="json")
         content["input_entry_mode"] = payload.input_entry_mode.value
         content["deliverable_class"] = readiness.supported_deliverable_class.value
         content["sparse_input_operating_state"] = {
@@ -1105,6 +1272,8 @@ class HostOrchestrator:
             "recommendation_count": len(result.recommendations),
             "risk_count": len(result.risks),
             "action_item_count": len(result.action_items),
+            "selected_pack_count": len(self._selected_packs(payload)),
+            "selected_pack_names": self._pack_names(payload),
         }
         content["missing_information"] = missing_information
         result.deliverable.content_structure = content
@@ -1942,6 +2111,7 @@ class HostOrchestrator:
             "linked_recommendation_count": len(persisted_recommendations),
             "linked_risk_count": len(persisted_risks),
             "linked_action_item_count": len(persisted_action_items),
+            "selected_pack_ids": self._pack_ids(payload),
         }
         deliverable.content_structure = content
 
