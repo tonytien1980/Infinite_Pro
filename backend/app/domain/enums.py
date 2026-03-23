@@ -8,6 +8,17 @@ class FlowMode(str, Enum):
     SPECIALIST = "specialist"
 
 
+class CapabilityArchetype(str, Enum):
+    DIAGNOSE_ASSESS = "diagnose_assess"
+    DECIDE_CONVERGE = "decide_converge"
+    REVIEW_CHALLENGE = "review_challenge"
+    SYNTHESIZE_BRIEF = "synthesize_brief"
+    RESTRUCTURE_REFRAME = "restructure_reframe"
+    PLAN_ROADMAP = "plan_roadmap"
+    SCENARIO_COMPARISON = "scenario_comparison"
+    RISK_SURFACING = "risk_surfacing"
+
+
 class ExternalDataStrategy(str, Enum):
     STRICT = "strict"
     SUPPLEMENTAL = "supplemental"

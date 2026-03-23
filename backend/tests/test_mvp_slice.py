@@ -410,6 +410,11 @@ def test_research_synthesis_specialist_run_and_history_persistence(client: TestC
     assert content["implications"]
     assert "research_gaps" in content
     assert "external_data_usage" in content
+    assert content["capability_frame"]["capability"] == "synthesize_brief"
+    assert content["capability_frame"]["execution_mode"] == "specialist"
+    assert content["decision_context_summary"]
+    assert content["readiness_governance"]["decision_context_clear"] is True
+    assert content["ontology_chain_summary"]["decision_context"]
     assert content["ontology_context"]["decision_context"]["judgment_to_make"]
     assert content["ontology_context"]["source_materials"]
 
@@ -503,6 +508,8 @@ def test_contract_review_specialist_run_and_history_persistence(
     content = run_body["deliverable"]["content_structure"]
     assert_consultant_output_shell(content)
     assert content["findings"]
+    assert content["capability_frame"]["capability"] == "review_challenge"
+    assert content["readiness_governance"]["artifact_coverage"]
     assert content["high_risk_clauses"]
     assert content["redline_recommendations"]
     assert "missing_attachments_or_clauses" in content
@@ -631,12 +638,16 @@ def test_multi_agent_happy_path_converges_and_saves_history(client: TestClient) 
     assert body["deliverable"]["deliverable_type"] == "multi_agent_convergence"
     content = body["deliverable"]["content_structure"]
     assert_consultant_output_shell(content)
-    assert content["participating_agents"] == [
+    assert content["capability_frame"]["capability"] == "decide_converge"
+    assert content["capability_frame"]["execution_mode"] == "multi_agent"
+    assert content["readiness_governance"]["evidence_coverage"]
+    assert content["participating_agents"][0] == "strategy_business_analysis"
+    assert set(content["participating_agents"]) == {
         "strategy_business_analysis",
         "market_research_insight",
         "operations",
         "risk_challenge",
-    ]
+    }
     assert content["findings"]
     assert content["insights"]
     assert content["convergence_summary"]
@@ -650,6 +661,65 @@ def test_multi_agent_happy_path_converges_and_saves_history(client: TestClient) 
     assert len(history["runs"]) == 1
     assert history["runs"][0]["agent_id"] == "host_orchestrator"
     assert len(history["deliverables"]) == 1
+
+
+def test_host_readiness_governance_surfaces_artifact_gap_for_document_restructuring(
+    client: TestClient,
+) -> None:
+    payload = create_document_restructuring_payload("Document restructuring gap")
+    payload["background_text"] = ""
+    payload["external_data_strategy"] = "strict"
+    task = client.post("/api/v1/tasks", json=payload).json()
+
+    response = client.post(f"/api/v1/tasks/{task['id']}/run")
+
+    assert response.status_code == 200
+    content = response.json()["deliverable"]["content_structure"]
+    assert content["capability_frame"]["capability"] == "restructure_reframe"
+    assert content["readiness_governance"]["level"] in {"caution", "insufficient"}
+    assert any(
+        "artifact" in item or "文件" in item or "草稿" in item
+        for item in content["readiness_governance"]["missing_information"]
+    )
+
+
+def test_host_routes_multi_agent_based_on_context_spine(
+    client: TestClient,
+) -> None:
+    payload = create_multi_agent_payload("Context-aware routing")
+    payload.update(
+        {
+            "description": "請盤點這次制度化階段的營運與法務風險，判斷是否要先處理交付流程與合規風險。",
+            "background_text": "目前主要擔心交付流程卡點、責任邊界不清，以及客戶承諾與內部流程不一致。",
+            "client_stage": "制度化階段",
+            "client_type": "中小企業",
+            "domain_lenses": ["營運", "法務"],
+            "decision_summary": "這次要先判斷交付流程與合規風險，是否已經成為制度化階段的主要瓶頸。",
+            "judgment_to_make": "先判斷是否應優先處理交付流程與法務風險，而不是先擴大客戶開發。",
+        }
+    )
+    task = client.post("/api/v1/tasks", json=payload).json()
+    client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[
+            (
+                "files",
+                (
+                    "ops-legal.txt",
+                    b"Delivery ownership is unclear, acceptance criteria are inconsistent, and contract obligations are not mapped to the operating workflow.",
+                    "text/plain",
+                ),
+            )
+        ],
+    )
+
+    response = client.post(f"/api/v1/tasks/{task['id']}/run")
+
+    assert response.status_code == 200
+    content = response.json()["deliverable"]["content_structure"]
+    assert content["capability_frame"]["capability"] == "risk_surfacing"
+    assert content["participating_agents"][0] == "operations"
+    assert "Risk / Challenge Agent 提前" in " ".join(content["capability_frame"]["routing_rationale"])
 
 
 def test_operations_agent_participates_in_multi_agent_convergence(client: TestClient) -> None:
@@ -842,12 +912,13 @@ def test_multi_agent_still_uses_model_router(
     response = client.post(f"/api/v1/tasks/{task['id']}/run")
 
     assert response.status_code == 200
-    assert calls == [
+    assert set(calls) == {
         "strategy_business_analysis",
         "market_research_insight",
         "operations",
         "risk_challenge",
-    ]
+    }
+    assert len(calls) == 4
 
 
 def test_document_restructuring_still_uses_model_router(
