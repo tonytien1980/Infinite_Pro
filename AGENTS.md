@@ -256,20 +256,26 @@ Packs are part of the formal architecture.
 
 ### 9.1 Domain / Functional Packs
 Domain / Functional Packs provide context modules for consulting functions or enterprise problem areas, such as:
-- operations
-- finance / fundraising
-- legal / risk
-- marketing / sales
-- business development
-- research / intelligence
+- `operations_pack`
+- `finance_fundraising_pack`
+- `legal_risk_pack`
+- `marketing_sales_pack`
+- `business_development_pack`
+- `research_intelligence_pack`
+
+Treat these packs as:
+- reusable domain context modules for real enterprise problem families
+- not agents
+- not capability archetypes
+- not thin labels wrapped around existing task types
 
 ### 9.2 Industry Packs
 Industry Packs provide context modules for industry-specific patterns, such as:
-- online education
-- ecommerce
-- gaming
-- funeral services
-- health supplements
+- `online_education_pack`
+- `ecommerce_pack`
+- `gaming_pack`
+- `funeral_services_pack`
+- `health_supplements_pack`
 
 ### 9.3 What packs are not
 Do not treat packs as:

@@ -687,6 +687,74 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                       </div>
                     ) : null}
 
+                    {packSelection && packSelection.domainPackCards.length > 0 ? (
+                      <div className="detail-item" style={{ marginTop: "14px" }}>
+                        <h3>Domain pack context</h3>
+                        <div className="detail-list">
+                          {packSelection.domainPackCards.map((pack) => (
+                            <div className="detail-item" key={pack.packName}>
+                              <h3>{pack.packName}</h3>
+                              <ExpandableText
+                                text={`${pack.definition}${pack.reason ? `\n\n選擇原因：${pack.reason}` : ""}`}
+                                emptyText="目前沒有可顯示的 pack 說明。"
+                                previewChars={220}
+                              />
+                              {pack.problemPatterns.length > 0 ? (
+                                <div style={{ marginTop: "10px" }}>
+                                  <h4>常見企業問題型態</h4>
+                                  <ExpandableList
+                                    items={pack.problemPatterns}
+                                    emptyText="目前沒有可顯示的問題型態。"
+                                    initialCount={4}
+                                  />
+                                </div>
+                              ) : null}
+                              {pack.keySignals.length > 0 ? (
+                                <div style={{ marginTop: "10px" }}>
+                                  <h4>關鍵 KPI / Operating Signals</h4>
+                                  <ExpandableList
+                                    items={pack.keySignals}
+                                    emptyText="目前沒有可顯示的關鍵指標。"
+                                    initialCount={4}
+                                  />
+                                </div>
+                              ) : null}
+                              {pack.boundaries.length > 0 ? (
+                                <div style={{ marginTop: "10px" }}>
+                                  <h4>Pack 邊界</h4>
+                                  <ExpandableList
+                                    items={pack.boundaries}
+                                    emptyText="目前沒有可顯示的邊界說明。"
+                                    initialCount={3}
+                                  />
+                                </div>
+                              ) : null}
+                              {pack.rationale.length > 0 ? (
+                                <div style={{ marginTop: "10px" }}>
+                                  <h4>治理 rationale</h4>
+                                  <ExpandableList
+                                    items={pack.rationale}
+                                    emptyText="目前沒有額外 rationale。"
+                                    initialCount={4}
+                                  />
+                                </div>
+                              ) : null}
+                              {pack.packNotes.length > 0 ? (
+                                <div style={{ marginTop: "10px" }}>
+                                  <h4>Pack notes</h4>
+                                  <ExpandableList
+                                    items={pack.packNotes}
+                                    emptyText="目前沒有額外 pack notes。"
+                                    initialCount={3}
+                                  />
+                                </div>
+                              ) : null}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
                     {packSelection && packSelection.industryPackCards.length > 0 ? (
                       <div className="detail-item" style={{ marginTop: "14px" }}>
                         <h3>Industry pack context</h3>

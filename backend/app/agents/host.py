@@ -505,12 +505,25 @@ class HostOrchestrator:
 
     def _pack_key_kpis(self, payload: AgentInputPayload) -> list[str]:
         return self._unique_preserve_order(
-            [item for pack in self._selected_packs(payload) for item in pack.key_kpis]
+            [
+                item
+                for pack in self._selected_packs(payload)
+                for item in (
+                    pack.key_kpis_or_operating_signals
+                    if pack.key_kpis_or_operating_signals
+                    else pack.key_kpis
+                )
+            ]
         )
 
     def _pack_common_risks(self, payload: AgentInputPayload) -> list[str]:
         return self._unique_preserve_order(
             [item for pack in self._selected_packs(payload) for item in pack.common_risks]
+        )
+
+    def _pack_problem_patterns(self, payload: AgentInputPayload) -> list[str]:
+        return self._unique_preserve_order(
+            [item for pack in self._selected_domain_packs(payload) for item in pack.common_problem_patterns]
         )
 
     def _pack_stage_heuristics(self, payload: AgentInputPayload) -> list[str]:
@@ -754,6 +767,13 @@ class HostOrchestrator:
                 + "、".join(pack_decision_patterns[:3])
                 + "。"
             )
+        pack_problem_patterns = self._pack_problem_patterns(payload)
+        if pack_problem_patterns:
+            routing_rationale.append(
+                "selected domain packs 目前最像的企業問題型態包括："
+                + "、".join(pack_problem_patterns[:2])
+                + "。"
+            )
         prioritized_artifacts = self._meaningful_artifacts(payload)[:3]
         priority_sources = [item.title for item in prioritized_artifacts] + [
             item.title
@@ -771,6 +791,8 @@ class HostOrchestrator:
         )
         if selected_pack_names:
             framing_summary += f" 這輪同時套用 { '、'.join(selected_pack_names) } 作為 context modules。"
+        if pack_problem_patterns:
+            framing_summary += f" Domain packs 目前提醒最值得先看的問題型態包括：{ '、'.join(pack_problem_patterns[:2]) }。"
 
         return CapabilityFrame(
             capability=capability,
@@ -933,10 +955,15 @@ class HostOrchestrator:
         if len(usable_evidence) < max(1, min(2, len(selected_packs))):
             pack_names = "、".join(item.pack_name for item in selected_packs[:3])
             gaps.append(f"目前 evidence 仍不足以支撐 {pack_names} 的 pack-aware 判斷。")
-            for pack in self._selected_industry_packs(payload):
-                if pack.key_kpis:
+            for pack in self._selected_packs(payload):
+                key_signals = (
+                    pack.key_kpis_or_operating_signals
+                    if pack.key_kpis_or_operating_signals
+                    else pack.key_kpis
+                )
+                if key_signals:
                     gaps.append(
-                        f"{pack.pack_name} 目前仍缺少與 { '、'.join(pack.key_kpis[:3]) } 相關的關鍵指標或佐證資料。"
+                        f"{pack.pack_name} 目前仍缺少與 { '、'.join(key_signals[:3]) } 相關的關鍵指標或佐證資料。"
                     )
 
         return self._unique_preserve_order(gaps)
@@ -971,6 +998,7 @@ class HostOrchestrator:
         pack_evidence_expectations = self._pack_evidence_expectations(payload)
         pack_key_kpis = self._pack_key_kpis(payload)
         pack_common_risks = self._pack_common_risks(payload)
+        pack_problem_patterns = self._pack_problem_patterns(payload)
         pack_high_impact_gaps = self._build_pack_high_impact_gaps(
             payload,
             usable_evidence,
@@ -1043,6 +1071,12 @@ class HostOrchestrator:
             conclusion_impact.append(
                 "selected packs 也提醒這輪要優先防範："
                 + "、".join(pack_common_risks[:4])
+                + "。"
+            )
+        if pack_problem_patterns:
+            conclusion_impact.append(
+                "selected domain packs 目前最相關的企業問題型態包括："
+                + "、".join(pack_problem_patterns[:3])
                 + "。"
             )
         if payload.pack_resolution.deliverable_presets:

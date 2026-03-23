@@ -144,10 +144,21 @@ Agent Layer 不是 prompt 集合，而是 capability execution layer。
 ### 正式拆分
 - `Domain / Functional Packs`
   - 代表企業問題面向或顧問職能面向
-  - 例如：operations、finance / fundraising、legal / risk、marketing / sales
+  - 第一批正式範圍：
+    - `operations_pack`
+    - `finance_fundraising_pack`
+    - `legal_risk_pack`
+    - `marketing_sales_pack`
+    - `business_development_pack`
+    - `research_intelligence_pack`
 - `Industry Packs`
   - 代表產業脈絡
-  - 例如：SaaS、energy、creator / media、professional services
+  - 第一批正式範圍：
+    - `online_education_pack`
+    - `ecommerce_pack`
+    - `gaming_pack`
+    - `funeral_services_pack`
+    - `health_supplements_pack`
 
 ### Pack 至少可擴充
 - ontology-aware context presets
@@ -197,9 +208,12 @@ Pack Layer 應至少具備：
   - `industry`
 - `pack_name`
 - `description`
+- `domain_definition`
 - `industry_definition`
 - `common_business_models`
+- `common_problem_patterns`
 - `stage_specific_heuristics`
+- `key_kpis_or_operating_signals`
 - `key_kpis`
 - `domain_lenses`
 - `relevant_client_types`
@@ -213,12 +227,18 @@ Pack Layer 應至少具備：
 - `deliverable_presets`
 - `routing_hints`
 - `pack_notes`
+- `scope_boundaries`
+- `pack_rationale`
 - `version`
 - `status`
   - `draft`
   - `active`
-  - `inactive`
+- `inactive`
 - `override_rules`
+
+其中：
+- `domain_definition`、`common_problem_patterns`、`key_kpis_or_operating_signals`、`scope_boundaries`、`pack_rationale` 對 Domain / Functional Packs 特別重要
+- `industry_definition`、`common_business_models` 與產業型 `key_kpis` 對 Industry Packs 特別重要
 
 ### Capability / Pack / Agent 的層次差異
 - Capability Layer 決定這次要做哪種顧問工作

@@ -183,6 +183,14 @@ Infinite Pro 應正式以六層主架構運作：
 - `Domain / Functional Packs`
 - `Industry Packs`
 
+目前第一批正式 Domain / Functional Packs 例子應以：
+- `operations_pack`
+- `finance_fundraising_pack`
+- `legal_risk_pack`
+- `marketing_sales_pack`
+- `business_development_pack`
+- `research_intelligence_pack`
+
 目前第一批正式 Industry Packs 例子應以：
 - `online_education_pack`
 - `ecommerce_pack`

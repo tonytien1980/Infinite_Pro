@@ -34,9 +34,12 @@ class PackSpec(FrozenModel):
     pack_type: PackType
     pack_name: str
     description: str
+    domain_definition: str = ""
     industry_definition: str = ""
     common_business_models: list[str] = Field(default_factory=list)
+    common_problem_patterns: list[str] = Field(default_factory=list)
     stage_specific_heuristics: dict[str, list[str]] = Field(default_factory=dict)
+    key_kpis_or_operating_signals: list[str] = Field(default_factory=list)
     key_kpis: list[str] = Field(default_factory=list)
     domain_lenses: list[str] = Field(default_factory=list)
     relevant_client_types: list[str] = Field(default_factory=list)
@@ -50,6 +53,8 @@ class PackSpec(FrozenModel):
     deliverable_presets: list[str] = Field(default_factory=list)
     routing_hints: list[str] = Field(default_factory=list)
     pack_notes: list[str] = Field(default_factory=list)
+    scope_boundaries: list[str] = Field(default_factory=list)
+    pack_rationale: list[str] = Field(default_factory=list)
     version: str = "1.0.0"
     status: ExtensionStatus = ExtensionStatus.ACTIVE
     override_rules: list[str] = Field(default_factory=list)

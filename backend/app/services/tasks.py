@@ -957,9 +957,12 @@ def _serialize_selected_pack(
         pack_type=pack.pack_type.value,
         pack_name=pack.pack_name,
         description=pack.description,
+        domain_definition=pack.domain_definition,
         industry_definition=pack.industry_definition,
         common_business_models=pack.common_business_models,
+        common_problem_patterns=pack.common_problem_patterns,
         stage_specific_heuristics=pack.stage_specific_heuristics,
+        key_kpis_or_operating_signals=pack.key_kpis_or_operating_signals,
         key_kpis=pack.key_kpis,
         reason=_build_selected_pack_reason(
             pack=pack,
@@ -977,6 +980,8 @@ def _serialize_selected_pack(
         deliverable_presets=pack.deliverable_presets,
         routing_hints=pack.routing_hints,
         pack_notes=pack.pack_notes,
+        scope_boundaries=pack.scope_boundaries,
+        pack_rationale=pack.pack_rationale,
     )
 
 
@@ -1059,17 +1064,39 @@ def resolve_pack_selection_for_task(
                 ],
             ]
         ),
+        key_kpis_or_operating_signals=_unique_preserve_order(
+            [
+                *[
+                    item
+                    for pack in selected_domain_packs
+                    for item in (
+                        pack.key_kpis_or_operating_signals or pack.key_kpis
+                    )
+                ],
+                *[
+                    item
+                    for pack in selected_industry_packs
+                    for item in (
+                        pack.key_kpis_or_operating_signals or pack.key_kpis
+                    )
+                ],
+            ]
+        ),
         key_kpis=_unique_preserve_order(
             [
                 *[
                     item
                     for pack in selected_domain_packs
-                    for item in pack.key_kpis
+                    for item in (
+                        pack.key_kpis_or_operating_signals or pack.key_kpis
+                    )
                 ],
                 *[
                     item
                     for pack in selected_industry_packs
-                    for item in pack.key_kpis
+                    for item in (
+                        pack.key_kpis_or_operating_signals or pack.key_kpis
+                    )
                 ],
             ]
         ),

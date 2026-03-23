@@ -257,6 +257,11 @@ def _normalize_domain_lenses(values: Iterable[str]) -> list[str]:
 
 def _pack_domain_tokens(pack) -> set[str]:
     tokens = _normalize_tokens(pack.domain_lenses)
+    tokens.update(_normalize_tokens([pack.domain_definition, pack.description]))
+    tokens.update(_normalize_tokens(pack.common_problem_patterns))
+    tokens.update(_normalize_tokens(pack.key_kpis_or_operating_signals))
+    tokens.update(_normalize_tokens(pack.scope_boundaries))
+    tokens.update(_normalize_tokens(pack.pack_notes))
     for lens in pack.domain_lenses:
         for alias_key, aliases in DOMAIN_LENS_ALIASES.items():
             if lens.lower() in {item.lower() for item in aliases}:
@@ -271,6 +276,8 @@ def _pack_industry_tokens(pack) -> set[str]:
     tokens.update(_normalize_tokens([pack.pack_id, pack.pack_name]))
     tokens.update(_normalize_tokens([pack.industry_definition]))
     tokens.update(_normalize_tokens(pack.common_business_models))
+    tokens.update(_normalize_tokens(pack.common_problem_patterns))
+    tokens.update(_normalize_tokens(pack.key_kpis_or_operating_signals))
     tokens.update(_normalize_tokens(pack.key_kpis))
     tokens.update(_normalize_tokens(pack.decision_patterns))
     tokens.update(_normalize_tokens(pack.pack_notes))

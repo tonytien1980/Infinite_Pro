@@ -228,6 +228,16 @@ def test_task_aggregate_includes_pack_resolution_from_context_spine(client: Test
         item["pack_id"] == "finance_fundraising_pack"
         for item in body["pack_resolution"]["selected_domain_packs"]
     )
+    operations_pack = next(
+        item
+        for item in body["pack_resolution"]["selected_domain_packs"]
+        if item["pack_id"] == "operations_pack"
+    )
+    assert operations_pack["domain_definition"]
+    assert operations_pack["common_problem_patterns"]
+    assert operations_pack["key_kpis_or_operating_signals"]
+    assert operations_pack["scope_boundaries"]
+    assert operations_pack["pack_rationale"]
     assert any(
         item["pack_id"] == "ecommerce_pack"
         for item in body["pack_resolution"]["selected_industry_packs"]
@@ -536,6 +546,8 @@ def test_research_synthesis_specialist_run_and_history_persistence(client: TestC
     assert "ecommerce_pack" in content["capability_frame"]["selected_industry_pack_ids"]
     assert content["selected_packs"]["selected_domain_packs"]
     assert content["selected_packs"]["selected_industry_packs"]
+    assert content["selected_packs"]["selected_domain_packs"][0]["domain_definition"]
+    assert content["selected_packs"]["selected_domain_packs"][0]["common_problem_patterns"]
     assert content["selected_packs"]["selected_industry_packs"][0]["key_kpis"]
     assert content["selected_packs"]["selected_industry_packs"][0]["decision_patterns"]
     assert content["readiness_governance"]["pack_evidence_expectations"]

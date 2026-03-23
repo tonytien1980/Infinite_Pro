@@ -95,7 +95,13 @@ Infinite Pro formally distinguishes four extension-facing concepts:
   - examples: `Diagnose / Assess`, `Review / Challenge`, `Synthesize / Brief`, `Plan / Roadmap`
 - `Domain / Functional Packs`
   - extend the system with **functional or consulting-domain context modules**
-  - examples: `operations_pack`, `finance_fundraising_pack`, `legal_risk_pack`
+  - first-wave real implementations:
+    - `operations_pack`
+    - `finance_fundraising_pack`
+    - `legal_risk_pack`
+    - `marketing_sales_pack`
+    - `business_development_pack`
+    - `research_intelligence_pack`
 - `Industry Packs`
   - extend the system with **industry-specific context modules**
   - first-wave examples:
@@ -112,6 +118,11 @@ These concepts must not be collapsed into each other:
 - a capability archetype is not a pack
 - a pack is not an agent
 - a domain / functional pack is not an industry pack
+
+Domain / Functional Packs should be treated as:
+- reusable consulting work modules for real enterprise problem families
+- structured context modules that change evidence expectations, risk framing, routing hints, and deliverable presets
+- not reasoning agents and not capability archetypes
 
 The `Pack Layer` is therefore the formal home of both:
 - `Domain / Functional Packs`

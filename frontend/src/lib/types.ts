@@ -45,9 +45,12 @@ export interface SelectedPack {
   pack_type: string;
   pack_name: string;
   description: string;
+  domain_definition: string;
   industry_definition: string;
   common_business_models: string[];
+  common_problem_patterns: string[];
   stage_specific_heuristics: Record<string, string[]>;
+  key_kpis_or_operating_signals: string[];
   key_kpis: string[];
   reason: string;
   status: string;
@@ -58,6 +61,8 @@ export interface SelectedPack {
   deliverable_presets: string[];
   routing_hints: string[];
   pack_notes: string[];
+  scope_boundaries: string[];
+  pack_rationale: string[];
 }
 
 export interface PackResolution {
@@ -68,6 +73,7 @@ export interface PackResolution {
   stack_order: string[];
   resolver_notes: string[];
   evidence_expectations: string[];
+  key_kpis_or_operating_signals: string[];
   key_kpis: string[];
   common_risks: string[];
   decision_patterns: string[];

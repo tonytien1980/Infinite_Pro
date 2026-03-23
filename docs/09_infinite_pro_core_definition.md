@@ -170,6 +170,14 @@ Infinite Pro 的工作世界至少應圍繞以下主鏈理解：
 - 擴充 ontology-aware context、heuristics、evidence expectations、decision templates、deliverable patterns
 - 透過 registry / resolver / management surface 被治理
 
+第一批正式 Domain / Functional Packs 可先以以下真實顧問面向為主：
+- `operations_pack`
+- `finance_fundraising_pack`
+- `legal_risk_pack`
+- `marketing_sales_pack`
+- `business_development_pack`
+- `research_intelligence_pack`
+
 第一批正式 Industry Packs 可先以以下真實產業範圍為主：
 - `online_education_pack`
 - `ecommerce_pack`

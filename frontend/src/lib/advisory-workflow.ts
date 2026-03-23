@@ -216,6 +216,17 @@ export interface PackSelectionView {
   commonRisks: string[];
   decisionPatterns: string[];
   deliverablePresets: string[];
+  domainPackCards: Array<{
+    packName: string;
+    definition: string;
+    reason: string;
+    problemPatterns: string[];
+    keySignals: string[];
+    commonRisks: string[];
+    boundaries: string[];
+    rationale: string[];
+    packNotes: string[];
+  }>;
   industryPackCards: Array<{
     packName: string;
     definition: string;
@@ -852,6 +863,9 @@ function getPackResolutionRecord(task: TaskAggregate, deliverable: Deliverable |
           : [],
         resolver_notes: asStringArray(selectedPacks.resolver_notes),
         evidence_expectations: asStringArray(selectedPacks.evidence_expectations),
+        key_kpis_or_operating_signals: asStringArray(
+          selectedPacks.key_kpis_or_operating_signals,
+        ),
         key_kpis: asStringArray(selectedPacks.key_kpis),
         common_risks: asStringArray(selectedPacks.common_risks),
         decision_patterns: asStringArray(selectedPacks.decision_patterns),
@@ -865,6 +879,7 @@ function getPackResolutionRecord(task: TaskAggregate, deliverable: Deliverable |
       selected_industry_packs: task.pack_resolution.selected_industry_packs,
       resolver_notes: task.pack_resolution.resolver_notes,
       evidence_expectations: task.pack_resolution.evidence_expectations,
+      key_kpis_or_operating_signals: task.pack_resolution.key_kpis_or_operating_signals,
       key_kpis: task.pack_resolution.key_kpis,
       common_risks: task.pack_resolution.common_risks,
       decision_patterns: task.pack_resolution.decision_patterns,
@@ -884,6 +899,23 @@ export function buildPackSelectionView(
   const industryPacks = (packResolution.selected_industry_packs as Array<Record<string, unknown>>)
     .map((item) => asString(item.pack_name))
     .filter(Boolean);
+  const domainPackCards = (packResolution.selected_domain_packs as Array<Record<string, unknown>>)
+    .map((item) => ({
+      packName: asString(item.pack_name),
+      definition:
+        asString(item.domain_definition) || asString(item.industry_definition) || asString(item.description),
+      reason: asString(item.reason),
+      problemPatterns: asStringArray(item.common_problem_patterns),
+      keySignals:
+        asStringArray(item.key_kpis_or_operating_signals).length > 0
+          ? asStringArray(item.key_kpis_or_operating_signals)
+          : asStringArray(item.key_kpis),
+      commonRisks: asStringArray(item.common_risks),
+      boundaries: asStringArray(item.scope_boundaries),
+      rationale: asStringArray(item.pack_rationale),
+      packNotes: asStringArray(item.pack_notes),
+    }))
+    .filter((item) => item.packName);
   const industryPackCards = (packResolution.selected_industry_packs as Array<Record<string, unknown>>)
     .map((item) => ({
       packName: asString(item.pack_name),
@@ -903,10 +935,14 @@ export function buildPackSelectionView(
     industryPacks,
     resolverNotes: packResolution.resolver_notes,
     evidenceExpectations: packResolution.evidence_expectations,
-    keyKpis: packResolution.key_kpis,
+    keyKpis:
+      asStringArray(packResolution.key_kpis_or_operating_signals).length > 0
+        ? asStringArray(packResolution.key_kpis_or_operating_signals)
+        : packResolution.key_kpis,
     commonRisks: packResolution.common_risks,
     decisionPatterns: packResolution.decision_patterns,
     deliverablePresets: packResolution.deliverable_presets,
+    domainPackCards,
     industryPackCards,
   };
 }

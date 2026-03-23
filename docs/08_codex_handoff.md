@@ -163,6 +163,14 @@ Pack Layer 正式包含：
 - Domain / Functional Packs
 - Industry Packs
 
+目前第一批正式 Domain / Functional Packs 應以：
+- `operations_pack`
+- `finance_fundraising_pack`
+- `legal_risk_pack`
+- `marketing_sales_pack`
+- `business_development_pack`
+- `research_intelligence_pack`
+
 目前第一批正式 Industry Packs 例子應以：
 - `online_education_pack`
 - `ecommerce_pack`
@@ -175,6 +183,11 @@ Pack Layer 正式包含：
 - Capability Archetypes = 這次要做哪種顧問工作
 - Packs = 這次要套用哪些 context modules
 - Agents = 誰來執行與收斂
+
+Domain / Functional Packs 應被理解為：
+- 企業常見經營問題與顧問職能面向的正式 context modules
+- 會影響 evidence expectations、readiness、routing 與 deliverable hints
+- 不是 agents，也不是 capability archetypes
 
 ---
 

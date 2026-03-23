@@ -29,6 +29,12 @@ def test_extension_registry_contains_first_batch_packs_and_agents() -> None:
         "health_supplements_pack",
     }
     assert host_agent.agent_type == AgentType.HOST
+    operations_pack = next(pack for pack in domain_packs if pack.pack_id == "operations_pack")
+    assert operations_pack.domain_definition
+    assert operations_pack.common_problem_patterns
+    assert operations_pack.key_kpis_or_operating_signals
+    assert operations_pack.scope_boundaries
+    assert operations_pack.pack_rationale
     ecommerce_pack = next(pack for pack in industry_packs if pack.pack_id == "ecommerce_pack")
     assert ecommerce_pack.industry_definition
     assert ecommerce_pack.key_kpis
