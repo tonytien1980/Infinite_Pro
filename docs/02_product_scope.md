@@ -27,7 +27,7 @@ Infinite Pro 現在應被定義為：
 
 這代表：
 - 產品一開始就要完整承接單一顧問的工作需求
-- ontology、Host Agent、multiple specialist agents、industry packs、consulting workbench UI 都屬於正式主架構
+- ontology、Host Agent、multiple specialist agents、modular pack system、consulting workbench UI 都屬於正式主架構
 - 可以分批實作，但不能把能力邊界縮成較小的產品定義
 - 現階段只限制使用拓撲為單人，不限制產品能力範圍
 
@@ -47,7 +47,7 @@ Infinite Pro 的規劃方式應改為：
 不再採用：
 - 以縮小版產品邊界思維來定義正式產品
 - 先只做少數 domain / 少數 mode 作為正式產品範圍
-- 先把 ontology / Host / industry packs 降成後補項目
+- 先把 ontology / Host / packs 降成後補項目
 
 ---
 
@@ -100,7 +100,7 @@ Infinite Pro 應被設計為可承接以下顧問工作能力：
 2. **Context Layer**
 3. **Capability Layer**
 4. **Agent Layer**
-5. **Industry Pack Layer**
+5. **Pack Layer**
 6. **Workbench / UI Layer**
 
 此外，以下跨層責任也屬於正式範圍：
@@ -170,8 +170,14 @@ Host Agent 必須正式負責：
 - specialist agents
 - 後續可擴充 agent families
 
-### 7.4 Industry packs
-Industry packs 必須是正式能力層，而不是標籤。
+### 7.4 Pack Layer
+Pack Layer 必須是正式能力層，而不是標籤。
+
+它正式包含：
+- Domain / Functional Packs
+- Industry Packs
+
+Pack 不是 Agent，也不是 Capability Archetype。
 
 ### 7.5 Consulting workbench UI
 UI 必須正式朝顧問工作台設計，而不是只做表單頁與結果頁。

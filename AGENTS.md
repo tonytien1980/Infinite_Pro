@@ -98,7 +98,7 @@ The following layers are part of the official architecture from day one:
 2. Context Layer
 3. Capability Layer
 4. Agent Layer
-5. Industry Pack Layer
+5. Pack Layer
 6. Workbench / UI Layer
 
 ### 4.5 Cross-cutting system responsibilities
@@ -146,15 +146,20 @@ This includes:
 - multiple specialist and reasoning agents
 - clear responsibilities, not roleplay personas
 
-### 5.5 Industry Pack Layer
-Industry packs are official capability extensions, not tags.
+### 5.5 Pack Layer
+Pack Layer contains two formal pack families:
+- Domain / Functional Packs
+- Industry Packs
 
+Packs are structured context modules, not agents.
 They may extend:
-- ontology objects
+- ontology-aware context presets
 - domain heuristics
+- industry heuristics
 - expected evidence
 - decision templates
 - deliverable patterns
+- routing hints
 
 ### 5.6 Workbench / UI Layer
 The UI must evolve toward:
@@ -245,28 +250,59 @@ Those may be current implementation slices, but they are **not** the formal prod
 
 ---
 
-## 9. Industry pack rules
+## 9. Pack rules
 
-Industry packs are part of the formal architecture.
+Packs are part of the formal architecture.
 
-Do not treat them as:
+### 9.1 Domain / Functional Packs
+Domain / Functional Packs provide context modules for consulting functions or enterprise problem areas, such as:
+- operations
+- finance / fundraising
+- legal / risk
+- marketing / sales
+- business development
+- research / intelligence
+
+### 9.2 Industry Packs
+Industry Packs provide context modules for industry-specific patterns, such as:
+- SaaS
+- energy
+- creator / media
+- professional services
+
+### 9.3 What packs are not
+Do not treat packs as:
 - labels
 - marketing categories
 - optional flavor text
+- agents
+- capability archetypes
 
-Treat them as structured extensions that can influence:
-- ontology
+### 9.4 What packs influence
+Treat packs as structured extensions that can influence:
+- ontology-aware context presets
 - evidence expectations
 - decision framing
 - evaluation criteria
 - deliverable shape
-- specialist routing
+- routing hints
 
-Even if only a small subset is implemented first, the architecture must preserve this layer clearly.
+Even if only a subset is implemented first, the architecture must preserve this layer clearly.
+
+## 10. Capability / Pack / Agent boundary rules
+
+Keep these boundaries explicit:
+- Capability Archetypes define **what kind of consulting work** is being done.
+- Packs define **what contextual modules** should shape that work.
+- Agents define **who executes or orchestrates** the work.
+
+Do not collapse these into one taxonomy.
+
+The workbench may later expose a shared `Extension Manager`, but that management surface must remain a UI/governance surface, not a seventh architecture layer.
 
 ---
 
-## 10. Workbench / UI rules
+## 11. Workbench / UI rules
 
 The UI should feel like a consulting workbench, not:
 - a generic CRUD admin panel
@@ -284,14 +320,14 @@ Do not hard-code product logic into UI-only wording when the same rule belongs i
 
 ---
 
-## 11. What is in scope now versus later
+## 12. What is in scope now versus later
 
 ### 11.1 In scope for the formal product boundary now
 - full single-consultant capability scope
 - ontology-first object model
 - Host orchestration
 - multiple agents
-- industry pack layer
+- pack layer
 - consulting workbench UI
 - provider abstraction
 - source / evidence / history / traceability
@@ -310,7 +346,7 @@ Do not confuse "not doing multi-user yet" with shrinking the product into a redu
 
 ---
 
-## 12. Implementation order rules
+## 13. Implementation order rules
 
 Use implementation order to stage delivery, but **not** to shrink product meaning.
 
@@ -320,7 +356,7 @@ Prefer this order:
 3. Host orchestration and capability routing
 4. workbench surfaces
 5. specialist / reasoning agent expansion
-6. industry pack integration
+6. pack integration
 7. multi-user system layers later
 
 Do not frame design decisions as "out of scope" if they are part of the full single-consultant capability boundary.
@@ -332,7 +368,7 @@ Instead, frame them as:
 
 ---
 
-## 13. Engineering rules
+## 14. Engineering rules
 
 ### 13.1 Build small, but build toward the full architecture
 Incremental delivery is good.
@@ -356,7 +392,7 @@ Keep the architecture visible and extensible, but implement with discipline.
 
 ---
 
-## 14. Testing expectations
+## 15. Testing expectations
 
 Before considering a change done, verify at least:
 - the task / workbench flow still functions
@@ -377,7 +413,7 @@ If a change affects workbench structure, validate:
 
 ---
 
-## 15. Change control rules
+## 16. Change control rules
 
 When making changes:
 - keep diffs scoped
@@ -390,7 +426,7 @@ If a requested change conflicts with the full-scope single-consultant architectu
 
 ---
 
-## 16. What success looks like
+## 17. What success looks like
 
 A good Infinite Pro implementation should make it possible for one consultant to:
 

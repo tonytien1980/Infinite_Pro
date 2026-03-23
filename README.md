@@ -31,7 +31,7 @@ Infinite Pro is:
 In this system, ontology should be understood as:
 - the shared world model
 - the operational layer for core consulting objects and relationships
-- the semantic foundation shared by Host, agents, industry packs, work surfaces, and deliverable generation
+- the semantic foundation shared by Host, agents, packs, work surfaces, and deliverable generation
 
 ## Full-scope capability boundary
 
@@ -61,7 +61,7 @@ The formal product boundary already includes:
 - ontology-first
 - Host Agent as the only orchestration center
 - multiple specialist and reasoning agents
-- modular industry packs
+- modular pack system
 - consulting workbench UI
 - provider abstraction
 - source / evidence / history / traceability
@@ -75,7 +75,7 @@ The official architecture should be understood through these six formal layers:
 2. **Context Layer**
 3. **Capability Layer**
 4. **Agent Layer**
-5. **Industry Pack Layer**
+5. **Pack Layer**
 6. **Workbench / UI Layer**
 
 Cross-cutting runtime responsibilities remain first-class:
@@ -85,6 +85,34 @@ Cross-cutting runtime responsibilities remain first-class:
 - persistence
 - history
 - traceability
+
+## Extension architecture
+
+Infinite Pro formally distinguishes four extension-facing concepts:
+
+- `Capability Archetypes`
+  - describe **what kind of consulting work** the system is doing
+  - examples: `Diagnose / Assess`, `Review / Challenge`, `Synthesize / Brief`, `Plan / Roadmap`
+- `Domain / Functional Packs`
+  - extend the system with **functional or consulting-domain context modules**
+  - examples: `operations_pack`, `finance_fundraising_pack`, `legal_risk_pack`
+- `Industry Packs`
+  - extend the system with **industry-specific context modules**
+  - examples: `saas_pack`, `energy_pack`, `media_creator_pack`
+- `Agents`
+  - define **who executes or orchestrates** the work
+  - includes `Host Agent`, `Reasoning Agents`, and `Specialist Agents`
+
+These concepts must not be collapsed into each other:
+- a capability archetype is not a pack
+- a pack is not an agent
+- a domain / functional pack is not an industry pack
+
+The `Pack Layer` is therefore the formal home of both:
+- `Domain / Functional Packs`
+- `Industry Packs`
+
+The management experience for packs and agents may share a single `Extension Manager` surface in the workbench, but that shared manager is a UI/governance surface, not a seventh architecture layer.
 
 ## Core ontology objects
 

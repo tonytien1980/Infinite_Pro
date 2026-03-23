@@ -26,7 +26,7 @@ Infinite Pro 的施工原則應改為：
 2. **實作順序再分批**
 3. **單人顧問完整工作優先**
 4. **多人系統層後做**
-5. **ontology、Host、industry packs、consulting workbench 都算正式主架構**
+5. **ontology、Host、packs、consulting workbench 都算正式主架構**
 
 不再採用：
 - 先做最小功能集合
@@ -82,8 +82,8 @@ Infinite Pro 的施工原則應改為：
 ### Wave 4：Agent families expansion
 讓 reasoning agents 與 specialist agents 形成正式能力層。
 
-### Wave 5：Industry pack integration
-讓 industry packs 進入 ontology、routing、deliverable shaping。
+### Wave 5：Pack integration
+讓 Pack Layer 進入 ontology-aware context、routing、deliverable shaping。
 
 ### Wave 6：Multi-user system layer
 最後才進入多人登入、權限、多租戶與協作治理。
@@ -221,7 +221,7 @@ Infinite Pro 的施工原則應改為：
 - UI 是否更像 consulting workbench
 - deliverable 是否更像顧問交付物
 - evidence 與 history 是否更能支持回看與復用
-- industry pack hooks 是否已保留
+- pack hooks 是否已保留
 
 ---
 

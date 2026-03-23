@@ -31,7 +31,7 @@
 ### 2.4 絕對不要再用的舊思路
 - 用縮小版產品邊界當正式產品能力邊界
 - 先只做少數 domain / 少數 mode 作為正式產品定義
-- 把 ontology / Host / industry packs 當後補功能
+- 把 ontology / Host / packs 當後補功能
 - 把 3 個 specialist flows 當正式產品分類
 - 把 4 core agents + 3 specialists 當固定上限
 
@@ -72,7 +72,7 @@ Infinite Pro 是：
 - Host orchestration
 - reasoning agents
 - specialist agents
-- industry packs
+- packs
 - deliverable-centric outputs
 - history and traceability
 
@@ -80,7 +80,7 @@ Infinite Pro 是：
 - shared world model
 - structured reasoning skeleton
 - objects / properties / links / actions / functions / decision context 的操作層
-- Host、agents、industry packs、workbench 與 deliverable generation 的共同語義底座
+- Host、agents、packs、workbench 與 deliverable generation 的共同語義底座
 
 ---
 
@@ -90,7 +90,7 @@ Infinite Pro 是：
 2. Context Layer
 3. Capability Layer
 4. Agent Layer
-5. Industry Pack Layer
+5. Pack Layer
 6. Workbench / UI Layer
 
 另外要維持的 cross-cutting concerns：
@@ -156,8 +156,17 @@ Host Agent 永遠是唯一 orchestration center。
 ### 7.2 Agents
 Agents 應依能力面與專業責任分類，而不是只依目前已落地 flow 命名。
 
-### 7.3 Industry packs
-Industry packs 應被視為正式能力層，不得退化為 tags。
+### 7.3 Pack Layer
+Packs 應被視為正式能力層，不得退化為 tags。
+
+Pack Layer 正式包含：
+- Domain / Functional Packs
+- Industry Packs
+
+另外，Codex 必須維持三者邊界：
+- Capability Archetypes = 這次要做哪種顧問工作
+- Packs = 這次要套用哪些 context modules
+- Agents = 誰來執行與收斂
 
 ---
 
@@ -178,7 +187,7 @@ Codex 不應：
 - ontology object 的實作深度
 - UI surfaces 的完整程度
 - agent families 的落地數量
-- industry packs 的具體數量
+- packs 的具體數量
 
 不可以分的是：
 - 這些層是否屬於產品正式架構
@@ -208,7 +217,7 @@ Codex 不應：
 3. Host orchestration spine
 4. workbench UI surfaces
 5. agent family expansion
-6. industry pack integration
+6. pack integration
 7. multi-user system layer later
 
 ---

@@ -2,7 +2,7 @@
 
 > 文件狀態：Baseline v2.0（高優先級正式核心準則）
 >
-> 本文件用於正式定義 **Infinite Pro** 的核心定位、ontology 原則、Host 與 agent 分工、industry pack 地位、deliverable 導向輸出原則，以及對後續設計與實作的正式約束。若後續決策與本文件衝突，應優先回到本文件檢查並修正。
+> 本文件用於正式定義 **Infinite Pro** 的核心定位、ontology 原則、Host 與 agent 分工、Pack Layer 地位、deliverable 導向輸出原則，以及對後續設計與實作的正式約束。若後續決策與本文件衝突，應優先回到本文件檢查並修正。
 
 ---
 
@@ -47,8 +47,11 @@ Infinite Pro 的核心原則是：
 3. **multiple specialist agents 與 reasoning agents**
    - agent 是正式能力層，不是少數固定 flow 的暫時附屬物。
 
-4. **modular industry packs**
-   - industry packs 是正式能力層，可擴充 ontology、heuristics、evidence expectations、decision criteria 與 deliverable patterns。
+4. **modular pack system**
+   - Pack Layer 是正式能力層，可擴充 ontology-aware context、heuristics、evidence expectations、decision criteria 與 deliverable patterns。
+   - Pack Layer 正式拆分為：
+     - Domain / Functional Packs
+     - Industry Packs
 
 5. **deliverable-centric outputs**
    - 輸出不應停在聊天式長文，而應形成可採用、可回看、可討論、可追蹤的顧問交付物。
@@ -68,7 +71,7 @@ Infinite Pro 的核心原則是：
 - 功能列表
 - mode 清單
 - UI 本身
-- industry pack 本身
+- pack 本身
 - deliverable 本身
 
 Ontology 是這套系統的：
@@ -78,7 +81,7 @@ Ontology 是這套系統的：
 它的正式作用包括：
 - 定義系統如何理解 client、engagement、workstream、task 與 decision context
 - 定義 artifact、source material、evidence、risk、option、recommendation、deliverable 之間的正式關係
-- 作為 Host、specialist agents、reasoning agents、industry packs、workbench UI 的共同語義底座
+- 作為 Host、specialist agents、reasoning agents、packs、workbench UI 的共同語義底座
 - 作為 deliverable generation 的來源底座，而不是 deliverable 本身
 - 支撐 structured outputs、history、traceability 與多 agent 收斂
 
@@ -149,13 +152,23 @@ Infinite Pro 的工作世界至少應圍繞以下主鏈理解：
 - planning
 - 以及其他可擴充顧問能力
 
-### Industry Packs
+### Capability Archetypes
+定義這次要做哪種顧問工作，例如：
+- Diagnose / Assess
+- Decide / Converge
+- Review / Challenge
+- Synthesize / Brief
+- Restructure / Reframe
+- Plan / Roadmap
+- Scenario comparison
+- Risk surfacing
+
+### Pack Layer
 作為正式能力擴充層，負責：
-- ontology extensions
-- domain heuristics
-- evidence expectations
-- decision templates
-- deliverable patterns
+- 區分 `Domain / Functional Packs` 與 `Industry Packs`
+- 提供 context modules
+- 擴充 ontology-aware context、heuristics、evidence expectations、decision templates、deliverable patterns
+- 透過 registry / resolver / management surface 被治理
 
 ### LLM / Provider
 負責語言理解、推理與生成，但不應取代 ontology、Host 與 workbench 的結構化治理角色。
@@ -167,8 +180,15 @@ Infinite Pro 的工作世界至少應圍繞以下主鏈理解：
 - Ontology Layer：定義共同世界與操作語義
 - Context Layer：提供本次分析與判斷所需的 stage / type / lens / goals / constraints / assumptions
 - Agent Layer：在共同 ontology 上執行 diagnosis、review、synthesis、convergence 等能力
-- Industry Pack Layer：在共同 ontology 上做 domain / industry / stage 擴充
+- Pack Layer：在共同 ontology 上做 domain / function / industry 的 context module 擴充
 - Workbench / UI Layer：把 ontology objects、relationships、actions 與 deliverables 以可操作方式呈現
+
+### Capability / Pack / Agent 的正式邊界
+- Capability Archetypes 回答：這次要做哪種顧問工作
+- Packs 回答：哪些 context modules 要影響這次工作
+- Agents 回答：由誰執行、分析、協作與收斂
+
+三者不可混為同一套 taxonomy。
 
 ---
 
@@ -231,12 +251,12 @@ Infinite Pro 不應退化成：
 
 ## 9. 後續實作的正式約束
 
-未來所有功能設計、UI 調整、agent 擴充、provider 接入、knowledge ingestion、history 呈現、industry pack 擴充，都應回到這份核心定義檢查是否仍符合以下約束：
+未來所有功能設計、UI 調整、agent 擴充、provider 接入、knowledge ingestion、history 呈現、pack 擴充，都應回到這份核心定義檢查是否仍符合以下約束：
 
 - 是否仍以 ontology-first 為中心
 - 是否仍由 Host 作為唯一 orchestration center
 - 是否仍把 agents 視為正式能力層
-- 是否仍把 industry packs 視為正式能力層
+- 是否仍把 packs 視為正式能力層
 - 是否仍把 deliverable 當正式成果物
 - 是否仍在建構 consulting workbench，而不是 generic AI workspace
 

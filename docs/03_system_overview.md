@@ -2,7 +2,7 @@
 
 > 文件狀態：Baseline v2.0（正式系統總覽文件）
 >
-> 本文件用於用白話方式說明 **Infinite Pro** 的完整單人顧問工作台輪廓：六層主架構如何運作、主要工作面如何分工、ontology / Host / agents / industry packs / workbench 如何共同形成一套正式系統。
+> 本文件用於用白話方式說明 **Infinite Pro** 的完整單人顧問工作台輪廓：六層主架構如何運作、主要工作面如何分工、ontology / Host / agents / packs / workbench 如何共同形成一套正式系統。
 
 ---
 
@@ -49,7 +49,7 @@ Infinite Pro 應正式以六層架構理解：
 2. **Context Layer**
 3. **Capability Layer**
 4. **Agent Layer**
-5. **Industry Pack Layer**
+5. **Pack Layer**
 6. **Workbench / UI Layer**
 
 這六層不是可有可無的附加項，而是第一天就存在的正式主架構。
@@ -75,7 +75,7 @@ Infinite Pro 應正式以六層架構理解：
 - 這次分析用什麼 domain lens
 - 有哪些 goals、constraints、assumptions、stakeholders
 
-這些不是補充欄位，而是 Host、agents、industry packs 與 deliverable shaping 的正式輸入。
+這些不是補充欄位，而是 Host、agents、packs 與 deliverable shaping 的正式輸入。
 
 ### 4.3 Capability Layer
 這層定義系統能承接哪些顧問工作 archetypes，例如：
@@ -96,15 +96,25 @@ Infinite Pro 應正式以六層架構理解：
 - reasoning agents 與 specialist agents 共同承接不同能力面
 - agents 應建立在 shared ontology 上工作，而不是各自吃一段 prompt
 
-### 4.5 Industry Pack Layer
-這層承接不同產業與情境的擴充。
+### 4.5 Pack Layer
+這層承接不同問題面向與產業脈絡的正式擴充。
+
+它正式包含兩個 pack family：
+- Domain / Functional Packs
+- Industry Packs
 
 它不只是標籤，而應能正式擴充：
-- ontology extensions
+- ontology-aware context modules
 - heuristics
 - evidence expectations
 - decision criteria
 - deliverable templates
+- routing hints
+
+也就是說：
+- Capability Archetypes 決定這次要做哪種顧問工作
+- Packs 決定哪些 context modules 要影響這次工作
+- Agents 決定由誰來執行與收斂
 
 ### 4.6 Workbench / UI Layer
 這層把整套系統變成顧問真的能使用的工作台。
@@ -179,7 +189,7 @@ Infinite Pro 的正式系統流可白話理解為：
 2. 系統把問題映射成 `Task` 與 `DecisionContext`
 3. 將文件、網址、貼文等來源轉成 `Artifact / SourceMaterial`
 4. 經由 ingestion 與 preprocessing 建立 `Evidence`
-5. Host 根據 ontology、context、capability 與 industry packs 決定工作方式
+5. Host 根據 ontology、context、capability 與 packs 決定工作方式
 6. 調度適合的 reasoning agents / specialist agents
 7. 收斂成 `Insight / Risk / Option / Recommendation / ActionItem`
 8. 形成 `Deliverable`
@@ -205,7 +215,7 @@ Infinite Pro 目前採：
 - capability layer
 - Host orchestration
 - multiple agents
-- industry packs
+- pack layer
 - workbench UI
 - source / evidence / history / traceability
 - deliverable-centric outputs
@@ -237,7 +247,7 @@ Infinite Pro 與一般 AI workspace 的差異在於：
 
 - 不再以縮小版產品敘事來理解系統全貌
 - 不再以少數既有 flows 作為正式產品輪廓
-- 不再把 ontology、Host、industry packs、workbench 視為後補層
+- 不再把 ontology、Host、packs、workbench 視為後補層
 - 不再把 task-centric / mode-centric 當成唯一系統骨架
 
 ---

@@ -30,7 +30,7 @@ Ontology 在 Infinite Pro 中不是：
 - mode taxonomy
 - UI 欄位分類表
 - deliverable 本身
-- industry pack 本身
+- pack 本身
 
 Ontology 是：
 
@@ -39,7 +39,7 @@ Ontology 是：
 它是：
 - Host Agent 的共同語義底座
 - specialist / reasoning agents 的共同語義底座
-- industry packs 的共同語義底座
+- packs 的共同語義底座
 - workbench UI 的共同語義底座
 - deliverable generation 的來源底座
 
@@ -50,7 +50,7 @@ Ontology 是：
 - evidence 到 recommendation 的分析鏈
 - deliverable 的生成與保存
 - specialist 與 Host 在同一語境上工作
-- industry packs 的擴充
+- packs 的擴充
 
 ---
 
@@ -69,8 +69,12 @@ Ontology 是 Host orchestration 與 multiple agents 的共同語境。
 ### 3.4 讓 deliverable 與 history 建立在 object chain 上
 Deliverable 不是 ontology 本身，而是建立在 ontology object chain 之上的可回看成果。
 
-### 3.5 支撐 industry packs，而不是被 industry packs 取代
-industry pack 是 ontology 的擴充，不是另一套平行系統。
+### 3.5 支撐 Pack Layer，而不是被 packs 取代
+Pack Layer 是建立在 ontology 之上的正式擴充，不是另一套平行系統。
+
+Pack Layer 正式包含：
+- Domain / Functional Packs
+- Industry Packs
 
 ### 3.6 Ontology 是操作層，不是靜態名詞表
 Ontology 不只定義物件名稱，也要定義：
@@ -93,10 +97,10 @@ Ontology 不只定義物件名稱，也要定義：
 - Agent Layer 則在這個世界上執行 diagnosis、review、synthesis、convergence 等能力
 - Agent 不應自行發明一套平行世界模型
 
-### 4.3 Ontology Layer 與 Industry Pack Layer 的差異
+### 4.3 Ontology Layer 與 Pack Layer 的差異
 - Ontology Layer 是共同底座
-- Industry Pack Layer 是在共同底座上的正式擴充
-- industry pack 可以擴充 ontology，但不應取代 ontology
+- Pack Layer 是在共同底座上的正式擴充
+- Domain / Functional Packs 與 Industry Packs 都可以擴充 ontology-aware context，但不應取代 ontology
 
 ### 4.4 Ontology Layer 與 Workbench / UI Layer 的差異
 - Ontology Layer 不是 UI 本身
@@ -218,8 +222,15 @@ Ontology 不只定義物件名稱，也要定義：
 - 銷售
 - 募資
 
-### IndustryPack
-代表特定產業或情境的正式擴充包。
+### Pack references
+Pack 的正式定義屬於 Pack Layer，不屬於 Ontology Layer。
+
+Ontology runtime state 可以攜帶：
+- selected domain packs
+- selected industry packs
+- pack resolver outputs
+
+但 pack 本身不是 ontology object family 的替代品。
 
 ---
 
@@ -254,7 +265,6 @@ Ontology 不只定義物件名稱，也要定義：
 - DomainLens
 - ClientStage
 - ClientType
-- IndustryPack
 
 ---
 
@@ -278,7 +288,7 @@ Infinite Pro 的 ontology 不只是一組 objects，還需要明確 links。
 - Recommendation **responds_to** Risk
 - ActionItem **operationalizes** Recommendation
 - Deliverable **summarizes** DecisionContext + Evidence + Recommendation + Risk + ActionItem
-- DomainLens / ClientStage / ClientType / IndustryPack **shape** DecisionContext and Deliverable
+- DomainLens / ClientStage / ClientType / selected Packs **shape** DecisionContext and Deliverable
 
 ---
 
@@ -316,7 +326,7 @@ Infinite Pro 的 ontology 不只是一組 objects，還需要明確 links。
 - Engagement
 - Workstream 的完整顯性化
 - Stakeholder / Audience / Metric / Timeline 的完整物件化
-- IndustryPack 的正式 object extension
+- Pack resolver outputs 與 pack-aware links 的正式掛接
 - 更細的 traceability links
 
 注意：

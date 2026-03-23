@@ -18,3 +18,4 @@ storage/uploads/*
 
 backend/.ruff_cache/
 backend/.pytest_cache/
+backend/.pytest_runtime/

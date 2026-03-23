@@ -13,7 +13,7 @@
 1. **Infinite Pro 的 Agent Layer 在完整單人顧問版中應怎麼被定義？**
 2. **Host Agent 一開始就必須負責什麼？**
 3. **specialist agents 應如何分類，而不是只停在少數 flow 名稱？**
-4. **Agent Layer 如何與 ontology、context、industry packs、deliverables 對接？**
+4. **Agent Layer 如何與 ontology、context、packs、deliverables 對接？**
 
 ---
 
@@ -26,7 +26,7 @@ Infinite Pro 的 Agent Architecture 不應再被理解成：
 
 而應被理解成：
 
-> **一個由 Host Agent 進行流程治理與決策收斂，並由多個 reasoning agents、specialist agents 與 pack-aware capability agents 共同完成顧問工作的正式架構層。**
+> **一個由 Host Agent 進行流程治理與決策收斂，並由多個 reasoning agents 與 specialist agents 在 pack-aware context 下共同完成顧問工作的正式架構層。**
 
 ---
 
@@ -57,8 +57,8 @@ Agent 則負責在這個共同世界上執行分析、審閱、收斂與交付 s
 ### 3.4 少量已實作，不等於正式上限
 即使第一波只落地少數 agents，也不代表完整單人顧問版只需要那些 agents。
 
-### 3.5 Industry packs 必須能影響 agent behavior
-industry pack 不能只是標籤，應能正式影響：
+### 3.5 Packs 必須能影響 agent behavior
+pack 不能只是標籤，應能正式影響：
 - evidence expectations
 - decision framing
 - specialist routing
@@ -77,8 +77,8 @@ industry pack 不能只是標籤，應能正式影響：
 ## 4.3 Specialist Agent Layer
 承接單點高頻任務與專門工作。
 
-## 4.4 Pack-aware Capability Layer
-讓特定 domain / industry / stage context 能覆蓋 reasoning 與 specialist 行為。
+## 4.4 Pack-aware execution behavior
+讓特定 domain / function / industry / stage context 能覆蓋 reasoning 與 specialist 行為。
 
 ---
 
@@ -104,8 +104,8 @@ Host Agent 一開始就必須負責：
    - 判斷背景、artifact、evidence 是否足夠
    - 明確標記不確定性與資料缺口
 
-6. **industry / domain / stage awareness**
-   - 結合 DomainLens、ClientStage、ClientType、IndustryPack 調整分析重心
+6. **domain / pack / stage awareness**
+   - 結合 DomainLens、ClientStage、ClientType、selected domain packs、selected industry packs 調整分析重心
 
 7. **convergence**
    - 整理 Insight、Risk、Option、Recommendation、ActionItem
@@ -171,6 +171,17 @@ Reasoning agents 不應只用少數固定名稱思考，而應先用能力面分
 - 對不同 audience 的表達重塑
 
 第一波可以先落地其中一部分，但架構上不應把其餘能力排除在外。
+
+第一批正式 agent 範圍至少應保留：
+- `Host Agent`
+- `Strategy / Decision Agent`
+- `Operations Agent`
+- `Finance Agent`
+- `Legal / Risk Agent`
+- `Marketing / Growth Agent`
+- `Sales / Business Development Agent`
+- `Research / Intelligence Agent`
+- `Document / Communication Agent`
 
 ---
 
@@ -242,9 +253,35 @@ Execution mode 是 Host 的 orchestration 選擇，不是產品主分類。
 
 ---
 
-## 9. Industry packs 如何進入 Agent Layer
+## 9. Capability、Pack 與 Agent 的責任邊界
 
-Industry packs 必須能正式影響 agent behavior，例如：
+### 9.1 Capability Archetypes
+Capability Archetypes 定義的是：
+- 這次要做哪種顧問工作
+- 例如 Diagnose / Assess、Review / Challenge、Synthesize / Brief、Plan / Roadmap
+
+### 9.2 Packs
+Packs 定義的是：
+- 這次工作要套用哪些 context modules
+- 並正式分為：
+  - Domain / Functional Packs
+  - Industry Packs
+
+### 9.3 Agents
+Agents 定義的是：
+- 誰來執行或收斂這次工作
+- 包含：
+  - Host Agent
+  - Reasoning Agents
+  - Specialist Agents
+
+Pack 不是 Agent。
+Agent 不是 Capability Archetype。
+Domain / Functional Pack 不是 Industry Pack。
+
+## 10. Packs 如何進入 Agent Layer
+
+Packs 必須能正式影響 agent behavior，例如：
 - 哪些 evidence 是必要的
 - 哪些風險類型要優先看
 - 哪些 deliverable sections 要優先形成
@@ -255,7 +292,59 @@ Industry packs 必須能正式影響 agent behavior，例如：
 
 ---
 
-## 10. 第一波實作與第二波實作
+## 11. Agent Spec / Registry / Resolver / Management Surface
+
+### 11.1 Agent Spec
+每個 agent 至少應有正式 spec，包含：
+- `agent_id`
+- `agent_name`
+- `agent_type`
+  - `host`
+  - `reasoning`
+  - `specialist`
+- `description`
+- `supported_capabilities`
+- `relevant_domain_packs`
+- `relevant_industry_packs`
+- `input_requirements`
+- `output_contract`
+- `invocation_rules`
+- `escalation_rules`
+- `version`
+- `status`
+  - `draft`
+  - `active`
+  - `inactive`
+  - `deprecated`
+
+### 11.2 Agent Registry
+系統應有正式 registry 來表達：
+- 有哪些 agents 存在
+- 哪一個是唯一 Host Agent
+- 哪些 agents 可被 Host 調用
+- 哪些 agents 屬於 `draft / active / inactive / deprecated`
+
+### 11.3 Agent Resolver / Selector
+Host 應根據以下輸入決定 agent 組合：
+- capability archetype
+- selected domain packs
+- selected industry packs
+- decision context
+- readiness / evidence sufficiency
+- explicit override
+
+### 11.4 Agent Management Surface
+單人版最小管理能力應能讓顧問：
+- 查看 agent 列表
+- 查看 agent spec
+- 知道這次任務用了哪些 agents
+- 啟用 / 停用某 agent
+- 指定 / 覆寫預設 agent 組合
+- 查看 agent 版本與狀態
+
+---
+
+## 12. 第一波實作與第二波實作
 
 ### 10.1 第一波實作可優先落地
 - Host Agent
@@ -274,13 +363,13 @@ Industry packs 必須能正式影響 agent behavior，例如：
 
 ---
 
-## 11. 對後續實作的約束
+## 13. 對後續實作的約束
 
 後續實作時，不應再：
 - 把 4 core agents + 3 specialist agents 視為固定上限
 - 把 specialist flow 名稱直接當產品主分類
 - 把 Host Agent 降成最後的文案整理員
-- 把 industry pack 視為後補標籤
+- 把 packs 視為後補標籤
 
 後續應做的是：
 - 讓 Host 真正控制能力選擇與收斂
@@ -289,7 +378,7 @@ Industry packs 必須能正式影響 agent behavior，例如：
 
 ---
 
-## 12. 文件結論
+## 14. 文件結論
 
 Infinite Pro 的 Agent Architecture 現在應被視為：
 
