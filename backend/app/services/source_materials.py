@@ -13,6 +13,46 @@ def _task_query_parts(task: models.Task) -> list[str]:
     ]
 
 
+def build_source_material_summary(source_document: models.SourceDocument) -> str:
+    return (
+        (source_document.extracted_text or source_document.ingestion_error or "").strip()[:500]
+    )
+
+
+def infer_artifact_type(source_document: models.SourceDocument) -> str:
+    if source_document.source_type in {"manual_upload", "manual_input", "manual_url", "google_docs"}:
+        return "working_material"
+    if source_document.source_type == "external_search":
+        return "external_reference"
+    return "source_artifact"
+
+
+def build_source_objects_for_document(
+    *,
+    task_id: str,
+    source_document: models.SourceDocument,
+) -> tuple[models.SourceMaterial, models.Artifact]:
+    summary = build_source_material_summary(source_document)
+    source_material = models.SourceMaterial(
+        task_id=task_id,
+        source_document_id=source_document.id,
+        source_type=source_document.source_type,
+        title=source_document.file_name,
+        source_ref=source_document.storage_path,
+        content_type=source_document.content_type,
+        ingest_status=source_document.ingest_status,
+        summary=summary,
+    )
+    artifact = models.Artifact(
+        task_id=task_id,
+        source_document_id=source_document.id,
+        title=source_document.file_name,
+        artifact_type=infer_artifact_type(source_document),
+        description=summary[:280],
+    )
+    return source_material, artifact
+
+
 def build_processed_evidence_items(
     *,
     task: models.Task,

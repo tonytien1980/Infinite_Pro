@@ -1183,17 +1183,22 @@ function buildEvidenceSupportCounts(task: TaskAggregate) {
     {
       recommendations: number;
       risks: number;
+      actionItems: number;
     }
   >();
 
   usableEvidence.forEach((item) => {
-    counts.set(item.id, { recommendations: 0, risks: 0 });
+    counts.set(item.id, { recommendations: 0, risks: 0, actionItems: 0 });
   });
 
   task.recommendations.forEach((recommendation) => {
     usableEvidence
       .filter((evidence) =>
-        recommendation.based_on_refs.some((ref) => matchesEvidenceRef(evidence, ref)),
+        (
+          recommendation.supporting_evidence_ids.length > 0
+            ? recommendation.supporting_evidence_ids.includes(evidence.id)
+            : recommendation.based_on_refs.some((ref) => matchesEvidenceRef(evidence, ref))
+        ),
       )
       .forEach((evidence) => {
         const bucket = counts.get(evidence.id);
@@ -1205,11 +1210,34 @@ function buildEvidenceSupportCounts(task: TaskAggregate) {
 
   task.risks.forEach((risk) => {
     usableEvidence
-      .filter((evidence) => risk.evidence_refs.some((ref) => matchesEvidenceRef(evidence, ref)))
+      .filter((evidence) =>
+        (
+          risk.supporting_evidence_ids.length > 0
+            ? risk.supporting_evidence_ids.includes(evidence.id)
+            : risk.evidence_refs.some((ref) => matchesEvidenceRef(evidence, ref))
+        ),
+      )
       .forEach((evidence) => {
         const bucket = counts.get(evidence.id);
         if (bucket) {
           bucket.risks += 1;
+        }
+      });
+  });
+
+  task.action_items.forEach((actionItem) => {
+    usableEvidence
+      .filter((evidence) =>
+        (
+          actionItem.supporting_evidence_ids.length > 0
+            ? actionItem.supporting_evidence_ids.includes(evidence.id)
+            : actionItem.dependency_refs.some((ref) => matchesEvidenceRef(evidence, ref))
+        ),
+      )
+      .forEach((evidence) => {
+        const bucket = counts.get(evidence.id);
+        if (bucket) {
+          bucket.actionItems += 1;
         }
       });
   });
@@ -1220,10 +1248,10 @@ function buildEvidenceSupportCounts(task: TaskAggregate) {
 function buildEvidenceSupportNote(
   task: TaskAggregate,
   evidence: Evidence,
-  counts: Map<string, { recommendations: number; risks: number }>,
+  counts: Map<string, { recommendations: number; risks: number; actionItems: number }>,
 ) {
   const bucket = counts.get(evidence.id);
-  if (!bucket || (!bucket.recommendations && !bucket.risks)) {
+  if (!bucket || (!bucket.recommendations && !bucket.risks && !bucket.actionItems)) {
     return ["目前主要作為背景或 supporting evidence 使用。"];
   }
 
@@ -1233,6 +1261,9 @@ function buildEvidenceSupportNote(
   }
   if (bucket.risks > 0) {
     notes.push(`支撐 ${bucket.risks} 項風險`);
+  }
+  if (bucket.actionItems > 0) {
+    notes.push(`支撐 ${bucket.actionItems} 項行動`);
   }
   return [notes.join(" / ")];
 }
@@ -1313,21 +1344,37 @@ export function buildDeliverableBacklinkView(
   const workbenchSummary = buildWorkbenchObjectSummary(task, deliverable);
   const ontologyChain = buildOntologyChainSummary(task, deliverable);
   const sparseInput = buildSparseInputOperatingView(task, deliverable);
+  const linkedObjects = deliverable?.linked_objects ?? [];
+  const linkedEvidence = linkedObjects.filter((item) => item.object_type === "evidence");
+  const linkedRecommendations = linkedObjects.filter((item) => item.object_type === "recommendation");
+  const linkedRisks = linkedObjects.filter((item) => item.object_type === "risk");
+  const linkedActionItems = linkedObjects.filter((item) => item.object_type === "action_item");
+  const linkedWorkstream = linkedObjects.find((item) => item.object_type === "workstream");
+  const linkedEngagement = linkedObjects.find((item) => item.object_type === "engagement");
+  const linkedClient = linkedObjects.find((item) => item.object_type === "client");
+  const linkedDecisionContext = linkedObjects.find((item) => item.object_type === "decision_context");
+  const workspacePath = [
+    linkedClient?.object_label || workbenchSummary.primaryEntity,
+    linkedEngagement?.object_label || workbenchSummary.engagement,
+    linkedWorkstream?.object_label || workbenchSummary.workstream,
+  ].join(" / ");
 
   return {
     summary: sparseInput.externalResearchHeavy
       ? `這份 ${sparseInput.deliverableClassLabel} 先對應到「${workbenchSummary.decisionContext}」的外部態勢判斷，尚未聲稱已完整對齊 company-specific 工作世界。`
       : `這份 ${sparseInput.deliverableClassLabel} 目前掛在「${workbenchSummary.workstream}」工作鏈上，圍繞「${workbenchSummary.decisionContext}」形成交付結果。`,
-    workspacePath: `${workbenchSummary.primaryEntity} / ${workbenchSummary.engagement} / ${workbenchSummary.workstream}`,
-    decisionContext: workbenchSummary.decisionContext,
+    workspacePath,
+    decisionContext: linkedDecisionContext?.object_label || workbenchSummary.decisionContext,
     evidenceBasis:
-      ontologyChain.evidenceCount > 0
-        ? `目前有 ${ontologyChain.evidenceCount} 則 evidence 支撐這份交付物，來源來自 ${ontologyChain.sourceMaterialCount} 份 source material 與 ${ontologyChain.artifactCount} 份 artifact。`
+      linkedEvidence.length > 0
+        ? `目前有 ${linkedEvidence.length} 則正式回鏈的 evidence 支撐這份交付物，來源來自 ${ontologyChain.sourceMaterialCount} 份 source material 與 ${ontologyChain.artifactCount} 份 artifact。`
+        : ontologyChain.evidenceCount > 0
+          ? `目前有 ${ontologyChain.evidenceCount} 則 evidence 支撐這份交付物，來源來自 ${ontologyChain.sourceMaterialCount} 份 source material 與 ${ontologyChain.artifactCount} 份 artifact。`
         : "目前 evidence 鏈仍偏薄，這份交付物較依賴問題 framing、背景脈絡與 provisional world。",
     linkedOutputs: [
-      `${ontologyChain.recommendationCount} 項 recommendation`,
-      `${ontologyChain.riskCount} 項 risk`,
-      `${ontologyChain.actionItemCount} 項 action item`,
+      `${linkedRecommendations.length || ontologyChain.recommendationCount} 項 recommendation`,
+      `${linkedRisks.length || ontologyChain.riskCount} 項 risk`,
+      `${linkedActionItems.length || ontologyChain.actionItemCount} 項 action item`,
     ],
   };
 }

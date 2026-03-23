@@ -15,6 +15,7 @@ from app.domain.enums import (
     PresenceState,
     TaskStatus,
 )
+from app.services.source_materials import build_source_material_summary, infer_artifact_type
 
 logger = logging.getLogger(__name__)
 EXTERNAL_DATA_STRATEGY_CONSTRAINT_TYPE = "external_data_strategy"
@@ -356,13 +357,18 @@ def task_load_options():
         selectinload(models.Task.goals),
         selectinload(models.Task.constraints),
         selectinload(models.Task.uploads),
+        selectinload(models.Task.source_materials),
+        selectinload(models.Task.artifacts),
         selectinload(models.Task.evidence),
         selectinload(models.Task.insights),
         selectinload(models.Task.risks),
         selectinload(models.Task.options),
         selectinload(models.Task.recommendations),
         selectinload(models.Task.action_items),
-        selectinload(models.Task.deliverables),
+        selectinload(models.Task.recommendation_evidence_links),
+        selectinload(models.Task.risk_evidence_links),
+        selectinload(models.Task.action_item_evidence_links),
+        selectinload(models.Task.deliverables).selectinload(models.Deliverable.object_links),
         selectinload(models.Task.runs),
     )
 
@@ -376,48 +382,72 @@ def _extract_assumptions(task: models.Task) -> list[str]:
     return _split_multiline_items(latest_context.assumptions if latest_context else None)
 
 
+def _build_legacy_source_material_read(source_document: models.SourceDocument) -> schemas.SourceMaterialRead:
+    return schemas.SourceMaterialRead(
+        id=source_document.id,
+        task_id=source_document.task_id,
+        source_document_id=source_document.id,
+        source_type=source_document.source_type,
+        title=source_document.file_name,
+        source_ref=source_document.storage_path,
+        content_type=source_document.content_type,
+        ingest_status=source_document.ingest_status,
+        summary=_normalize_whitespace(build_source_material_summary(source_document)),
+        created_at=source_document.created_at,
+    )
+
+
+def _build_legacy_artifact_read(
+    source_document: models.SourceDocument,
+    source_material_id: str | None,
+) -> schemas.ArtifactRead:
+    return schemas.ArtifactRead(
+        id=source_document.id,
+        task_id=source_document.task_id,
+        title=source_document.file_name,
+        artifact_type=infer_artifact_type(source_document),
+        source_document_id=source_document.id,
+        source_material_id=source_material_id,
+        description=_normalize_whitespace(build_source_material_summary(source_document)[:280]),
+        created_at=source_document.created_at,
+    )
+
+
 def _build_source_materials(task: models.Task) -> list[schemas.SourceMaterialRead]:
-    materials: list[schemas.SourceMaterialRead] = []
+    materials = [schemas.SourceMaterialRead.model_validate(item) for item in task.source_materials]
+    covered_source_documents = {
+        item.source_document_id for item in materials if item.source_document_id
+    }
     for item in task.uploads:
-        summary = _normalize_whitespace((item.extracted_text or item.ingestion_error or "")[:500])
-        materials.append(
-            schemas.SourceMaterialRead(
-                id=item.id,
-                task_id=item.task_id,
-                source_type=item.source_type,
-                title=item.file_name,
-                source_ref=item.storage_path,
-                content_type=item.content_type,
-                ingest_status=item.ingest_status,
-                summary=summary,
-                created_at=item.created_at,
+        if item.id in covered_source_documents:
+            continue
+        materials.append(_build_legacy_source_material_read(item))
+    return sorted(materials, key=lambda item: item.created_at)
+
+
+def _build_artifacts(
+    task: models.Task,
+    source_materials: list[schemas.SourceMaterialRead],
+) -> list[schemas.ArtifactRead]:
+    artifacts = [schemas.ArtifactRead.model_validate(item) for item in task.artifacts]
+    source_material_by_document = {
+        item.source_document_id: item.id
+        for item in source_materials
+        if item.source_document_id
+    }
+    covered_source_documents = {
+        item.source_document_id for item in artifacts if item.source_document_id
+    }
+    for item in task.uploads:
+        if item.id in covered_source_documents:
+            continue
+        artifacts.append(
+            _build_legacy_artifact_read(
+                item,
+                source_material_by_document.get(item.id),
             )
         )
-    return materials
-
-
-def _infer_artifact_type(source_document: models.SourceDocument) -> str:
-    if source_document.source_type in {"manual_upload", "manual_input", "manual_url", "google_docs"}:
-        return "working_material"
-    if source_document.source_type == "external_search":
-        return "external_reference"
-    return "source_artifact"
-
-
-def _build_artifacts(task: models.Task) -> list[schemas.ArtifactRead]:
-    return [
-        schemas.ArtifactRead(
-            id=item.id,
-            task_id=item.task_id,
-            title=item.file_name,
-            artifact_type=_infer_artifact_type(item),
-            source_document_id=item.id,
-            source_material_id=item.id,
-            description=_normalize_whitespace((item.extracted_text or item.ingestion_error or "")[:280]),
-            created_at=item.created_at,
-        )
-        for item in task.uploads
-    ]
+    return sorted(artifacts, key=lambda item: item.created_at)
 
 
 def _meaningful_source_materials(
@@ -442,12 +472,15 @@ def _material_unit_count(
     source_materials: list[schemas.SourceMaterialRead],
     artifacts: list[schemas.ArtifactRead],
 ) -> int:
-    material_ids = {item.id for item in _meaningful_source_materials(source_materials)}
-    artifact_ids = {
-        item.source_document_id or item.source_material_id or item.id
+    material_keys = {
+        item.source_document_id or f"source_material:{item.id}"
+        for item in _meaningful_source_materials(source_materials)
+    }
+    artifact_keys = {
+        item.source_document_id or item.source_material_id or f"artifact:{item.id}"
         for item in _meaningful_artifacts(artifacts)
     }
-    return len({*material_ids, *artifact_ids})
+    return len({*material_keys, *artifact_keys})
 
 
 def _usable_evidence(task: models.Task) -> list[models.Evidence]:
@@ -861,6 +894,8 @@ def _build_ontology_spine_for_task(
         if decision_context and decision_context.domain_lenses
         else workstream.domain_lenses if workstream else [DEFAULT_DOMAIN_LENS]
     )
+    source_materials = _build_source_materials(task)
+    artifacts = _build_artifacts(task, source_materials)
 
     return (
         schemas.ClientRead.model_validate(client) if client else None,
@@ -868,9 +903,219 @@ def _build_ontology_spine_for_task(
         schemas.WorkstreamRead.model_validate(workstream) if workstream else None,
         decision_context,
         domain_lenses,
-        _build_source_materials(task),
-        _build_artifacts(task),
+        source_materials,
+        artifacts,
     )
+
+
+def _build_evidence_object_mappings(
+    source_materials: list[schemas.SourceMaterialRead],
+    artifacts: list[schemas.ArtifactRead],
+) -> tuple[dict[str, str], dict[str, str]]:
+    source_material_by_document = {
+        item.source_document_id: item.id
+        for item in source_materials
+        if item.source_document_id
+    }
+    artifact_by_document = {
+        item.source_document_id: item.id
+        for item in artifacts
+        if item.source_document_id
+    }
+    return source_material_by_document, artifact_by_document
+
+
+def _serialize_evidence_items(
+    task: models.Task,
+    source_materials: list[schemas.SourceMaterialRead],
+    artifacts: list[schemas.ArtifactRead],
+) -> list[schemas.EvidenceRead]:
+    source_material_by_document, artifact_by_document = _build_evidence_object_mappings(
+        source_materials,
+        artifacts,
+    )
+    return [
+        schemas.EvidenceRead(
+            id=item.id,
+            task_id=item.task_id,
+            source_document_id=item.source_document_id,
+            source_material_id=(
+                source_material_by_document.get(item.source_document_id)
+                if item.source_document_id
+                else None
+            ),
+            artifact_id=artifact_by_document.get(item.source_document_id) if item.source_document_id else None,
+            evidence_type=item.evidence_type,
+            source_type=item.source_type,
+            source_ref=item.source_ref,
+            title=item.title,
+            excerpt_or_summary=item.excerpt_or_summary,
+            reliability_level=item.reliability_level,
+            created_at=item.created_at,
+        )
+        for item in task.evidence
+    ]
+
+
+def _build_supporting_evidence_maps(
+    task: models.Task,
+) -> tuple[dict[str, list[str]], dict[str, list[str]], dict[str, list[str]]]:
+    recommendation_map: dict[str, list[str]] = {}
+    risk_map: dict[str, list[str]] = {}
+    action_item_map: dict[str, list[str]] = {}
+
+    for link in task.recommendation_evidence_links:
+        recommendation_map.setdefault(link.recommendation_id, [])
+        if link.evidence_id not in recommendation_map[link.recommendation_id]:
+            recommendation_map[link.recommendation_id].append(link.evidence_id)
+
+    for link in task.risk_evidence_links:
+        risk_map.setdefault(link.risk_id, [])
+        if link.evidence_id not in risk_map[link.risk_id]:
+            risk_map[link.risk_id].append(link.evidence_id)
+
+    for link in task.action_item_evidence_links:
+        action_item_map.setdefault(link.action_item_id, [])
+        if link.evidence_id not in action_item_map[link.action_item_id]:
+            action_item_map[link.action_item_id].append(link.evidence_id)
+
+    return recommendation_map, risk_map, action_item_map
+
+
+def _serialize_risks(
+    task: models.Task,
+    supporting_map: dict[str, list[str]],
+) -> list[schemas.RiskRead]:
+    return [
+        schemas.RiskRead(
+            id=item.id,
+            task_id=item.task_id,
+            title=item.title,
+            description=item.description,
+            risk_type=item.risk_type,
+            impact_level=item.impact_level,
+            likelihood_level=item.likelihood_level,
+            evidence_refs=item.evidence_refs,
+            supporting_evidence_ids=supporting_map.get(item.id, []),
+            created_at=item.created_at,
+        )
+        for item in task.risks
+    ]
+
+
+def _serialize_recommendations(
+    task: models.Task,
+    supporting_map: dict[str, list[str]],
+) -> list[schemas.RecommendationRead]:
+    return [
+        schemas.RecommendationRead(
+            id=item.id,
+            task_id=item.task_id,
+            summary=item.summary,
+            rationale=item.rationale,
+            based_on_refs=item.based_on_refs,
+            supporting_evidence_ids=supporting_map.get(item.id, []),
+            priority=item.priority,
+            owner_suggestion=item.owner_suggestion,
+            created_at=item.created_at,
+        )
+        for item in task.recommendations
+    ]
+
+
+def _serialize_action_items(
+    task: models.Task,
+    supporting_map: dict[str, list[str]],
+) -> list[schemas.ActionItemRead]:
+    return [
+        schemas.ActionItemRead(
+            id=item.id,
+            task_id=item.task_id,
+            description=item.description,
+            suggested_owner=item.suggested_owner,
+            priority=item.priority,
+            due_hint=item.due_hint,
+            dependency_refs=item.dependency_refs,
+            supporting_evidence_ids=supporting_map.get(item.id, []),
+            status=item.status,
+            created_at=item.created_at,
+        )
+        for item in task.action_items
+    ]
+
+
+def _build_object_label_map(
+    task: models.Task,
+    source_materials: list[schemas.SourceMaterialRead],
+    artifacts: list[schemas.ArtifactRead],
+    evidence: list[schemas.EvidenceRead],
+    recommendations: list[schemas.RecommendationRead],
+    risks: list[schemas.RiskRead],
+    action_items: list[schemas.ActionItemRead],
+    decision_context: schemas.DecisionContextRead | None,
+    client: schemas.ClientRead | None,
+    engagement: schemas.EngagementRead | None,
+    workstream: schemas.WorkstreamRead | None,
+) -> dict[str, dict[str, str]]:
+    return {
+        "client": {client.id: client.name} if client else {},
+        "engagement": {engagement.id: engagement.name} if engagement else {},
+        "workstream": {workstream.id: workstream.name} if workstream else {},
+        "decision_context": (
+            {decision_context.id: decision_context.judgment_to_make or decision_context.title}
+            if decision_context
+            else {}
+        ),
+        "source_material": {item.id: item.title for item in source_materials},
+        "artifact": {item.id: item.title for item in artifacts},
+        "evidence": {item.id: item.title for item in evidence},
+        "recommendation": {item.id: item.summary for item in recommendations},
+        "risk": {item.id: item.title or item.description for item in risks},
+        "action_item": {item.id: item.description for item in action_items},
+    }
+
+
+def _serialize_deliverables(
+    task: models.Task,
+    object_label_map: dict[str, dict[str, str]],
+) -> list[schemas.DeliverableRead]:
+    deliverables: list[schemas.DeliverableRead] = []
+    for item in task.deliverables:
+        linked_objects = [
+            schemas.DeliverableObjectLinkRead(
+                id=link.id,
+                task_id=link.task_id,
+                deliverable_id=link.deliverable_id,
+                object_type=link.object_type,
+                object_id=link.object_id,
+                object_label=(
+                    link.object_label
+                    or (
+                        object_label_map.get(link.object_type, {}).get(link.object_id, "")
+                        if link.object_id
+                        else ""
+                    )
+                    or None
+                ),
+                relation_type=link.relation_type,
+                created_at=link.created_at,
+            )
+            for link in item.object_links
+        ]
+        deliverables.append(
+            schemas.DeliverableRead(
+                id=item.id,
+                task_id=item.task_id,
+                task_run_id=item.task_run_id,
+                deliverable_type=item.deliverable_type,
+                title=item.title,
+                content_structure=item.content_structure,
+                version=item.version,
+                linked_objects=linked_objects,
+                generated_at=item.generated_at,
+            )
+        )
+    return deliverables
 
 
 def get_loaded_task(db: Session, task_id: str) -> models.Task:
@@ -1080,6 +1325,29 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
     client, engagement, workstream, decision_context, domain_lenses, source_materials, artifacts = (
         _build_ontology_spine_for_task(task)
     )
+    evidence = _serialize_evidence_items(task, source_materials, artifacts)
+    recommendation_support_map, risk_support_map, action_item_support_map = _build_supporting_evidence_maps(
+        task
+    )
+    recommendations = _serialize_recommendations(task, recommendation_support_map)
+    risks = _serialize_risks(task, risk_support_map)
+    action_items = _serialize_action_items(task, action_item_support_map)
+    deliverables = _serialize_deliverables(
+        task,
+        _build_object_label_map(
+            task,
+            source_materials,
+            artifacts,
+            evidence,
+            recommendations,
+            risks,
+            action_items,
+            decision_context,
+            client,
+            engagement,
+            workstream,
+        ),
+    )
     input_entry_mode = _infer_input_entry_mode(task, source_materials, artifacts)
     external_research_heavy_candidate = _is_external_research_heavy_candidate(
         task,
@@ -1142,28 +1410,50 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         goals=[schemas.GoalRead.model_validate(item) for item in task.goals],
         constraints=[schemas.ConstraintRead.model_validate(item) for item in task.constraints],
         uploads=[schemas.SourceDocumentRead.model_validate(item) for item in task.uploads],
-        evidence=[schemas.EvidenceRead.model_validate(item) for item in task.evidence],
+        evidence=evidence,
         insights=[schemas.InsightRead.model_validate(item) for item in task.insights],
-        risks=[schemas.RiskRead.model_validate(item) for item in task.risks],
+        risks=risks,
         options=[schemas.OptionRead.model_validate(item) for item in task.options],
-        recommendations=[
-            schemas.RecommendationRead.model_validate(item) for item in task.recommendations
-        ],
-        action_items=[schemas.ActionItemRead.model_validate(item) for item in task.action_items],
-        deliverables=[schemas.DeliverableRead.model_validate(item) for item in task.deliverables],
+        recommendations=recommendations,
+        action_items=action_items,
+        deliverables=deliverables,
         runs=[schemas.TaskRunRead.model_validate(item) for item in task.runs],
     )
 
 
 def get_task_history(db: Session, task_id: str) -> schemas.TaskHistoryResponse:
     task = get_loaded_task(db, task_id)
+    client, engagement, workstream, decision_context, _, source_materials, artifacts = _build_ontology_spine_for_task(
+        task
+    )
+    evidence = _serialize_evidence_items(task, source_materials, artifacts)
+    recommendation_support_map, risk_support_map, action_item_support_map = _build_supporting_evidence_maps(
+        task
+    )
+    recommendations = _serialize_recommendations(task, recommendation_support_map)
+    action_items = _serialize_action_items(task, action_item_support_map)
+    risks = _serialize_risks(task, risk_support_map)
+    deliverables = _serialize_deliverables(
+        task,
+        _build_object_label_map(
+            task,
+            source_materials,
+            artifacts,
+            evidence,
+            recommendations,
+            risks,
+            action_items,
+            decision_context,
+            client,
+            engagement,
+            workstream,
+        ),
+    )
     return schemas.TaskHistoryResponse(
         task_id=task.id,
         runs=[schemas.TaskRunRead.model_validate(item) for item in task.runs],
-        deliverables=[schemas.DeliverableRead.model_validate(item) for item in task.deliverables],
-        recommendations=[
-            schemas.RecommendationRead.model_validate(item) for item in task.recommendations
-        ],
-        action_items=[schemas.ActionItemRead.model_validate(item) for item in task.action_items],
-        evidence=[schemas.EvidenceRead.model_validate(item) for item in task.evidence],
+        deliverables=deliverables,
+        recommendations=recommendations,
+        action_items=action_items,
+        evidence=evidence,
     )

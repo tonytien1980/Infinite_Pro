@@ -14,6 +14,7 @@ from app.ingestion.preprocess import normalize_text
 from app.ingestion.sources import ManualUploadConnector
 from app.services.source_materials import (
     build_failed_evidence_item,
+    build_source_objects_for_document,
     build_processed_evidence_items,
     build_unparsed_evidence_item,
 )
@@ -80,6 +81,16 @@ def save_uploads_for_task(
         db.add(source_document)
         db.flush()
 
+        source_material, artifact = build_source_objects_for_document(
+            task_id=task.id,
+            source_document=source_document,
+        )
+        db.add(source_material)
+        db.flush()
+        artifact.source_material_id = source_material.id
+        db.add(artifact)
+        db.flush()
+
         source_ref = connector.build_source_ref(task.id, source_document.id)
         if ingest_status == "processed" and extracted_text:
             evidence, chunk_items = build_processed_evidence_items(
@@ -128,6 +139,8 @@ def save_uploads_for_task(
             schemas.UploadResultItem(
                 source_document=schemas.SourceDocumentRead.model_validate(source_document),
                 evidence=schemas.EvidenceRead.model_validate(evidence),
+                source_material=schemas.SourceMaterialRead.model_validate(source_material),
+                artifact=schemas.ArtifactRead.model_validate(artifact),
             )
         )
 

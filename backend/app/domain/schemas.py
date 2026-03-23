@@ -173,9 +173,10 @@ class SourceDocumentRead(ORMModel):
     created_at: datetime
 
 
-class SourceMaterialRead(BaseModel):
+class SourceMaterialRead(ORMModel):
     id: str
     task_id: str
+    source_document_id: str | None = None
     source_type: str
     title: str
     source_ref: str
@@ -185,7 +186,7 @@ class SourceMaterialRead(BaseModel):
     created_at: datetime
 
 
-class ArtifactRead(BaseModel):
+class ArtifactRead(ORMModel):
     id: str
     task_id: str
     title: str
@@ -200,6 +201,8 @@ class EvidenceRead(ORMModel):
     id: str
     task_id: str
     source_document_id: str | None
+    source_material_id: str | None = None
+    artifact_id: str | None = None
     evidence_type: str
     source_type: str
     source_ref: str | None
@@ -228,6 +231,7 @@ class RiskRead(ORMModel):
     impact_level: str
     likelihood_level: str
     evidence_refs: list[str]
+    supporting_evidence_ids: list[str] = Field(default_factory=list)
     created_at: datetime
 
 
@@ -248,6 +252,7 @@ class RecommendationRead(ORMModel):
     summary: str
     rationale: str
     based_on_refs: list[str]
+    supporting_evidence_ids: list[str] = Field(default_factory=list)
     priority: str
     owner_suggestion: str | None
     created_at: datetime
@@ -261,7 +266,19 @@ class ActionItemRead(ORMModel):
     priority: str
     due_hint: str | None
     dependency_refs: list[str]
+    supporting_evidence_ids: list[str] = Field(default_factory=list)
     status: str
+    created_at: datetime
+
+
+class DeliverableObjectLinkRead(ORMModel):
+    id: str
+    task_id: str
+    deliverable_id: str
+    object_type: str
+    object_id: str | None
+    object_label: str | None
+    relation_type: str
     created_at: datetime
 
 
@@ -273,6 +290,7 @@ class DeliverableRead(ORMModel):
     title: str
     content_structure: dict[str, Any]
     version: int
+    linked_objects: list[DeliverableObjectLinkRead] = Field(default_factory=list)
     generated_at: datetime
 
 
@@ -356,6 +374,8 @@ class TaskAggregateResponse(BaseModel):
 class UploadResultItem(BaseModel):
     source_document: SourceDocumentRead
     evidence: EvidenceRead
+    source_material: SourceMaterialRead | None = None
+    artifact: ArtifactRead | None = None
 
 
 class UploadBatchResponse(BaseModel):

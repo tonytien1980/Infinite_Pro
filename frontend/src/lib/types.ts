@@ -141,6 +141,7 @@ export interface SourceDocument {
 export interface SourceMaterial {
   id: string;
   task_id: string;
+  source_document_id: string | null;
   source_type: string;
   title: string;
   source_ref: string;
@@ -165,6 +166,8 @@ export interface Evidence {
   id: string;
   task_id: string;
   source_document_id: string | null;
+  source_material_id: string | null;
+  artifact_id: string | null;
   evidence_type: string;
   source_type: string;
   source_ref: string | null;
@@ -193,6 +196,7 @@ export interface Risk {
   impact_level: string;
   likelihood_level: string;
   evidence_refs: string[];
+  supporting_evidence_ids: string[];
   created_at: string;
 }
 
@@ -202,6 +206,7 @@ export interface Recommendation {
   summary: string;
   rationale: string;
   based_on_refs: string[];
+  supporting_evidence_ids: string[];
   priority: string;
   owner_suggestion: string | null;
   created_at: string;
@@ -215,7 +220,19 @@ export interface ActionItem {
   priority: string;
   due_hint: string | null;
   dependency_refs: string[];
+  supporting_evidence_ids: string[];
   status: string;
+  created_at: string;
+}
+
+export interface DeliverableObjectLink {
+  id: string;
+  task_id: string;
+  deliverable_id: string;
+  object_type: string;
+  object_id: string | null;
+  object_label: string | null;
+  relation_type: string;
   created_at: string;
 }
 
@@ -227,6 +244,7 @@ export interface Deliverable {
   title: string;
   content_structure: Record<string, unknown>;
   version: number;
+  linked_objects: DeliverableObjectLink[];
   generated_at: string;
 }
 
@@ -312,6 +330,8 @@ export interface UploadBatchResponse {
   uploaded: Array<{
     source_document: SourceDocument;
     evidence: Evidence;
+    source_material?: SourceMaterial | null;
+    artifact?: Artifact | null;
   }>;
 }
 
@@ -326,6 +346,8 @@ export interface SourceIngestBatchResponse {
   ingested: Array<{
     source_document: SourceDocument;
     evidence: Evidence;
+    source_material?: SourceMaterial | null;
+    artifact?: Artifact | null;
   }>;
 }
 

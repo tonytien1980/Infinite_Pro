@@ -210,12 +210,17 @@ def test_file_upload_creates_usable_txt_evidence(client: TestClient) -> None:
     assert uploaded["source_document"]["ingest_status"] == "processed"
     assert uploaded["evidence"]["evidence_type"] == "uploaded_file_excerpt"
     assert "Alpha insight" in uploaded["evidence"]["excerpt_or_summary"]
+    assert uploaded["source_material"]["source_document_id"] == uploaded["source_document"]["id"]
+    assert uploaded["artifact"]["source_document_id"] == uploaded["source_document"]["id"]
+    assert uploaded["artifact"]["source_material_id"] == uploaded["source_material"]["id"]
 
     aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
     assert aggregate["source_materials"]
     assert aggregate["artifacts"]
     assert aggregate["input_entry_mode"] == "single_document_intake"
     assert aggregate["presence_state_summary"]["artifact"]["state"] == "explicit"
+    assert aggregate["source_materials"][0]["source_document_id"] == uploaded["source_document"]["id"]
+    assert aggregate["artifacts"][0]["source_document_id"] == uploaded["source_document"]["id"]
 
 
 def test_single_document_intake_updates_entry_mode_and_deliverable_hint(
@@ -484,6 +489,16 @@ def test_research_synthesis_specialist_run_and_history_persistence(client: TestC
     assert content["ontology_chain_summary"]["decision_context"]
     assert content["ontology_context"]["decision_context"]["judgment_to_make"]
     assert content["ontology_context"]["source_materials"]
+    assert run_body["recommendations"][0]["supporting_evidence_ids"]
+    assert run_body["deliverable"]["linked_objects"]
+    assert any(
+        item["object_type"] == "decision_context"
+        for item in run_body["deliverable"]["linked_objects"]
+    )
+    assert any(
+        item["object_type"] == "evidence"
+        for item in run_body["deliverable"]["linked_objects"]
+    )
 
     history_response = client.get(f"/api/v1/tasks/{task['id']}/history")
 
@@ -585,6 +600,11 @@ def test_contract_review_specialist_run_and_history_persistence(
     assert run_body["risks"]
     assert run_body["recommendations"]
     assert run_body["action_items"]
+    assert run_body["recommendations"][0]["supporting_evidence_ids"]
+    assert any(
+        item["object_type"] == "recommendation"
+        for item in run_body["deliverable"]["linked_objects"]
+    )
 
     history_response = client.get(f"/api/v1/tasks/{task['id']}/history")
 
@@ -734,6 +754,9 @@ def test_multi_agent_happy_path_converges_and_saves_history(client: TestClient) 
     assert body["recommendations"]
     assert body["action_items"]
     assert "external_data_usage" in content
+    assert body["recommendations"][0]["supporting_evidence_ids"]
+    assert any(item["object_type"] == "workstream" for item in body["deliverable"]["linked_objects"])
+    assert any(item["object_type"] == "evidence" for item in body["deliverable"]["linked_objects"])
 
     history = client.get(f"/api/v1/tasks/{task['id']}/history").json()
     assert len(history["runs"]) == 1

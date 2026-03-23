@@ -18,6 +18,7 @@ from app.ingestion.sources import (
 from app.services.source_materials import (
     build_failed_evidence_item,
     build_processed_evidence_items,
+    build_source_objects_for_document,
 )
 from app.services.tasks import get_loaded_task
 
@@ -35,7 +36,7 @@ def _persist_processed_source(
     storage_path: str,
     extracted_text: str,
     reliability_level: str = "user_provided",
-) -> tuple[models.SourceDocument, models.Evidence]:
+) -> tuple[models.SourceDocument, models.SourceMaterial, models.Artifact, models.Evidence]:
     source_document = models.SourceDocument(
         task_id=task.id,
         source_type=connector_source_type,
@@ -48,6 +49,15 @@ def _persist_processed_source(
         ingestion_error=None,
     )
     db.add(source_document)
+    db.flush()
+    source_material, artifact = build_source_objects_for_document(
+        task_id=task.id,
+        source_document=source_document,
+    )
+    db.add(source_material)
+    db.flush()
+    artifact.source_material_id = source_material.id
+    db.add(artifact)
     db.flush()
     source_ref = connector.build_source_ref(task.id, source_document.id)
 
@@ -64,7 +74,7 @@ def _persist_processed_source(
     for chunk_item in chunk_items:
         db.add(chunk_item)
     db.flush()
-    return source_document, primary_evidence
+    return source_document, source_material, artifact, primary_evidence
 
 
 def _persist_failed_source(
@@ -76,7 +86,7 @@ def _persist_failed_source(
     title: str,
     storage_path: str,
     error_message: str,
-) -> tuple[models.SourceDocument, models.Evidence]:
+) -> tuple[models.SourceDocument, models.SourceMaterial, models.Artifact, models.Evidence]:
     source_document = models.SourceDocument(
         task_id=task.id,
         source_type=connector_source_type,
@@ -90,6 +100,15 @@ def _persist_failed_source(
     )
     db.add(source_document)
     db.flush()
+    source_material, artifact = build_source_objects_for_document(
+        task_id=task.id,
+        source_document=source_document,
+    )
+    db.add(source_material)
+    db.flush()
+    artifact.source_material_id = source_material.id
+    db.add(artifact)
+    db.flush()
     source_ref = connector.build_source_ref(task.id, source_document.id)
 
     primary_evidence = build_failed_evidence_item(
@@ -102,7 +121,7 @@ def _persist_failed_source(
     )
     db.add(primary_evidence)
     db.flush()
-    return source_document, primary_evidence
+    return source_document, source_material, artifact, primary_evidence
 
 
 def _select_connector_for_remote_source(
@@ -119,11 +138,15 @@ def _select_connector_for_remote_source(
 
 def _serialize_upload_item(
     source_document: models.SourceDocument,
+    source_material: models.SourceMaterial,
+    artifact: models.Artifact,
     evidence: models.Evidence,
 ) -> schemas.UploadResultItem:
     return schemas.UploadResultItem(
         source_document=schemas.SourceDocumentRead.model_validate(source_document),
         evidence=schemas.EvidenceRead.model_validate(evidence),
+        source_material=schemas.SourceMaterialRead.model_validate(source_material),
+        artifact=schemas.ArtifactRead.model_validate(artifact),
     )
 
 
@@ -150,7 +173,7 @@ def ingest_remote_urls_for_task(
             remote_source = fetch_remote_source(normalized_url)
             connector = _select_connector_for_remote_source(remote_source, origin=origin)
             title = remote_source.title
-            source_document, evidence = _persist_processed_source(
+            source_document, source_material, artifact, evidence = _persist_processed_source(
                 db=db,
                 task=task,
                 connector_source_type=connector.source_type,
@@ -169,7 +192,7 @@ def ingest_remote_urls_for_task(
                 normalized_url,
                 exc,
             )
-            source_document, evidence = _persist_failed_source(
+            source_document, source_material, artifact, evidence = _persist_failed_source(
                 db=db,
                 task=task,
                 connector_source_type=connector.source_type,
@@ -180,7 +203,7 @@ def ingest_remote_urls_for_task(
             )
 
         existing_storage_paths.add(normalized_url)
-        ingested.append(_serialize_upload_item(source_document, evidence))
+        ingested.append(_serialize_upload_item(source_document, source_material, artifact, evidence))
 
     if ingested:
         db.commit()
@@ -204,7 +227,7 @@ def ingest_sources_for_task(
 
     if pasted_text:
         title = payload.pasted_title or "手動貼上內容"
-        source_document, evidence = _persist_processed_source(
+        source_document, source_material, artifact, evidence = _persist_processed_source(
             db=db,
             task=task,
             connector_source_type=text_connector.source_type,
@@ -214,7 +237,7 @@ def ingest_sources_for_task(
             storage_path=f"inline://task/{task.id}/pasted/{uuid4()}",
             extracted_text=pasted_text,
         )
-        ingested.append(_serialize_upload_item(source_document, evidence))
+        ingested.append(_serialize_upload_item(source_document, source_material, artifact, evidence))
         db.commit()
 
     ingested.extend(ingest_remote_urls_for_task(db=db, task_id=task_id, urls=urls, origin="manual"))

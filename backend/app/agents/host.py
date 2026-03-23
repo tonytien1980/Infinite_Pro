@@ -1324,6 +1324,66 @@ class HostOrchestrator:
         result.deliverable.content_structure = content
         return result
 
+    @staticmethod
+    def _normalize_reference(value: str | None) -> str:
+        return "".join((value or "").lower().split())
+
+    def _matches_evidence_ref(self, evidence: schemas.EvidenceRead, ref: str) -> bool:
+        normalized_ref = self._normalize_reference(ref)
+        if not normalized_ref:
+            return False
+
+        candidates = [
+            evidence.id,
+            evidence.title,
+            evidence.source_ref or "",
+            evidence.source_document_id or "",
+        ]
+        normalized_candidates = [
+            self._normalize_reference(candidate) for candidate in candidates if candidate
+        ]
+        return any(
+            candidate == normalized_ref
+            or candidate in normalized_ref
+            or normalized_ref in candidate
+            for candidate in normalized_candidates
+        )
+
+    def _resolve_evidence_ids(
+        self,
+        payload: AgentInputPayload,
+        refs: list[str],
+    ) -> list[str]:
+        resolved: list[str] = []
+        for ref in refs:
+            for evidence in payload.evidence:
+                if not self._matches_evidence_ref(evidence, ref):
+                    continue
+                if evidence.id not in resolved:
+                    resolved.append(evidence.id)
+        return resolved
+
+    def _add_deliverable_object_link(
+        self,
+        *,
+        task_id: str,
+        deliverable_id: str,
+        object_type: str,
+        object_id: str | None,
+        object_label: str | None,
+        relation_type: str,
+    ) -> None:
+        self.db.add(
+            models.DeliverableObjectLink(
+                task_id=task_id,
+                deliverable_id=deliverable_id,
+                object_type=object_type,
+                object_id=object_id,
+                object_label=object_label,
+                relation_type=relation_type,
+            )
+        )
+
     def orchestrate_task(self, task_id: str) -> schemas.ResearchRunResponse:
         task = get_loaded_task(self.db, task_id)
         payload, capability_frame, _, workflow_mode = self._prepare_host_context(task)
@@ -1408,7 +1468,7 @@ class HostOrchestrator:
             )
             converged = self._annotate_external_data_usage(converged, external_data_report)
             converged = self._apply_consultant_output_shell(payload, converged)
-            deliverable = self.persist_result(task=task, run=run, result=converged)
+            deliverable = self.persist_result(task=task, run=run, payload=payload, result=converged)
         except Exception as exc:
             logger.exception("Multi-agent flow failed for task %s", task.id)
             run.status = RunStatus.FAILED.value
@@ -1420,27 +1480,29 @@ class HostOrchestrator:
             raise
 
         refreshed_task = get_loaded_task(self.db, task.id)
-        new_insights = [
-            schemas.InsightRead.model_validate(item)
-            for item in self._tail(refreshed_task.insights, len(converged.insights))
-        ]
-        new_risks = [
-            schemas.RiskRead.model_validate(item)
-            for item in self._tail(refreshed_task.risks, len(converged.risks))
-        ]
+        aggregate = serialize_task(refreshed_task)
+        new_insight_ids = {item.id for item in self._tail(refreshed_task.insights, len(converged.insights))}
+        new_risk_ids = {item.id for item in self._tail(refreshed_task.risks, len(converged.risks))}
+        new_recommendation_ids = {
+            item.id for item in self._tail(refreshed_task.recommendations, len(converged.recommendations))
+        }
+        new_action_item_ids = {
+            item.id for item in self._tail(refreshed_task.action_items, len(converged.action_items))
+        }
+        new_insights = [item for item in aggregate.insights if item.id in new_insight_ids]
+        new_risks = [item for item in aggregate.risks if item.id in new_risk_ids]
         new_recommendations = [
-            schemas.RecommendationRead.model_validate(item)
-            for item in self._tail(refreshed_task.recommendations, len(converged.recommendations))
+            item for item in aggregate.recommendations if item.id in new_recommendation_ids
         ]
-        new_action_items = [
-            schemas.ActionItemRead.model_validate(item)
-            for item in self._tail(refreshed_task.action_items, len(converged.action_items))
-        ]
+        new_action_items = [item for item in aggregate.action_items if item.id in new_action_item_ids]
+        serialized_deliverable = next(
+            item for item in aggregate.deliverables if item.id == deliverable.id
+        )
 
         return schemas.ResearchRunResponse(
             task_id=refreshed_task.id,
             run=schemas.TaskRunRead.model_validate(run),
-            deliverable=schemas.DeliverableRead.model_validate(deliverable),
+            deliverable=serialized_deliverable,
             insights=new_insights,
             risks=new_risks,
             recommendations=new_recommendations,
@@ -1584,7 +1646,7 @@ class HostOrchestrator:
             )
             result = self._annotate_external_data_usage(result, external_data_report)
             result = self._apply_consultant_output_shell(payload, result)
-            deliverable = self.persist_result(task=task, run=run, result=result)
+            deliverable = self.persist_result(task=task, run=run, payload=payload, result=result)
         except Exception as exc:
             logger.exception("Specialist flow failed for task %s", task.id)
             run.status = RunStatus.FAILED.value
@@ -1596,27 +1658,29 @@ class HostOrchestrator:
             raise
 
         refreshed_task = get_loaded_task(self.db, task.id)
-        new_insights = [
-            schemas.InsightRead.model_validate(item)
-            for item in self._tail(refreshed_task.insights, len(result.insights))
-        ]
-        new_risks = [
-            schemas.RiskRead.model_validate(item)
-            for item in self._tail(refreshed_task.risks, len(result.risks))
-        ]
+        aggregate = serialize_task(refreshed_task)
+        new_insight_ids = {item.id for item in self._tail(refreshed_task.insights, len(result.insights))}
+        new_risk_ids = {item.id for item in self._tail(refreshed_task.risks, len(result.risks))}
+        new_recommendation_ids = {
+            item.id for item in self._tail(refreshed_task.recommendations, len(result.recommendations))
+        }
+        new_action_item_ids = {
+            item.id for item in self._tail(refreshed_task.action_items, len(result.action_items))
+        }
+        new_insights = [item for item in aggregate.insights if item.id in new_insight_ids]
+        new_risks = [item for item in aggregate.risks if item.id in new_risk_ids]
         new_recommendations = [
-            schemas.RecommendationRead.model_validate(item)
-            for item in self._tail(refreshed_task.recommendations, len(result.recommendations))
+            item for item in aggregate.recommendations if item.id in new_recommendation_ids
         ]
-        new_action_items = [
-            schemas.ActionItemRead.model_validate(item)
-            for item in self._tail(refreshed_task.action_items, len(result.action_items))
-        ]
+        new_action_items = [item for item in aggregate.action_items if item.id in new_action_item_ids]
+        serialized_deliverable = next(
+            item for item in aggregate.deliverables if item.id == deliverable.id
+        )
 
         return schemas.ResearchRunResponse(
             task_id=refreshed_task.id,
             run=schemas.TaskRunRead.model_validate(run),
-            deliverable=schemas.DeliverableRead.model_validate(deliverable),
+            deliverable=serialized_deliverable,
             insights=new_insights,
             risks=new_risks,
             recommendations=new_recommendations,
@@ -1627,6 +1691,7 @@ class HostOrchestrator:
         self,
         task: models.Task,
         run: models.TaskRun,
+        payload: AgentInputPayload,
         result: AgentResult,
     ) -> models.Deliverable:
         logger.info(
@@ -1645,9 +1710,9 @@ class HostOrchestrator:
                     confidence_level=insight.confidence_level,
                 )
             )
+        persisted_risks: list[models.Risk] = []
         for risk in result.risks:
-            self.db.add(
-                models.Risk(
+            risk_row = models.Risk(
                     task_id=task.id,
                     title=risk.title,
                     description=risk.description,
@@ -1656,7 +1721,8 @@ class HostOrchestrator:
                     likelihood_level=risk.likelihood_level,
                     evidence_refs=risk.evidence_refs,
                 )
-            )
+            self.db.add(risk_row)
+            persisted_risks.append(risk_row)
         for option in result.options:
             self.db.add(
                 models.Option(
@@ -1668,9 +1734,9 @@ class HostOrchestrator:
                     related_risk_refs=option.related_risk_refs,
                 )
             )
+        persisted_recommendations: list[models.Recommendation] = []
         for recommendation in result.recommendations:
-            self.db.add(
-                models.Recommendation(
+            recommendation_row = models.Recommendation(
                     task_id=task.id,
                     summary=recommendation.summary,
                     rationale=recommendation.rationale,
@@ -1678,10 +1744,11 @@ class HostOrchestrator:
                     priority=recommendation.priority,
                     owner_suggestion=recommendation.owner_suggestion,
                 )
-            )
+            self.db.add(recommendation_row)
+            persisted_recommendations.append(recommendation_row)
+        persisted_action_items: list[models.ActionItem] = []
         for action_item in result.action_items:
-            self.db.add(
-                models.ActionItem(
+            action_item_row = models.ActionItem(
                     task_id=task.id,
                     description=action_item.description,
                     suggested_owner=action_item.suggested_owner,
@@ -1690,7 +1757,63 @@ class HostOrchestrator:
                     dependency_refs=action_item.dependency_refs,
                     status=action_item.status,
                 )
-            )
+            self.db.add(action_item_row)
+            persisted_action_items.append(action_item_row)
+        self.db.flush()
+
+        linked_recommendation_evidence_ids: list[str] = []
+        linked_risk_evidence_ids: list[str] = []
+        linked_action_item_evidence_ids: list[str] = []
+
+        for recommendation_row, recommendation in zip(
+            persisted_recommendations,
+            result.recommendations,
+            strict=False,
+        ):
+            evidence_ids = self._resolve_evidence_ids(payload, recommendation.based_on_refs)
+            for evidence_id in evidence_ids:
+                self.db.add(
+                    models.RecommendationEvidenceLink(
+                        task_id=task.id,
+                        recommendation_id=recommendation_row.id,
+                        evidence_id=evidence_id,
+                        relation_type="supports",
+                    )
+                )
+                if evidence_id not in linked_recommendation_evidence_ids:
+                    linked_recommendation_evidence_ids.append(evidence_id)
+
+        for risk_row, risk in zip(persisted_risks, result.risks, strict=False):
+            evidence_ids = self._resolve_evidence_ids(payload, risk.evidence_refs)
+            for evidence_id in evidence_ids:
+                self.db.add(
+                    models.RiskEvidenceLink(
+                        task_id=task.id,
+                        risk_id=risk_row.id,
+                        evidence_id=evidence_id,
+                        relation_type="supports",
+                    )
+                )
+                if evidence_id not in linked_risk_evidence_ids:
+                    linked_risk_evidence_ids.append(evidence_id)
+
+        for action_item_row, action_item in zip(
+            persisted_action_items,
+            result.action_items,
+            strict=False,
+        ):
+            evidence_ids = self._resolve_evidence_ids(payload, action_item.dependency_refs)
+            for evidence_id in evidence_ids:
+                self.db.add(
+                    models.ActionItemEvidenceLink(
+                        task_id=task.id,
+                        action_item_id=action_item_row.id,
+                        evidence_id=evidence_id,
+                        relation_type="depends_on_evidence",
+                    )
+                )
+                if evidence_id not in linked_action_item_evidence_ids:
+                    linked_action_item_evidence_ids.append(evidence_id)
 
         current_versions = [item.version for item in task.deliverables]
         next_version = max(current_versions, default=0) + 1
@@ -1703,6 +1826,124 @@ class HostOrchestrator:
             version=next_version,
         )
         self.db.add(deliverable)
+        self.db.flush()
+
+        if payload.client:
+            self._add_deliverable_object_link(
+                task_id=task.id,
+                deliverable_id=deliverable.id,
+                object_type="client",
+                object_id=payload.client.id,
+                object_label=payload.client.name,
+                relation_type="scoped_to",
+            )
+        if payload.engagement:
+            self._add_deliverable_object_link(
+                task_id=task.id,
+                deliverable_id=deliverable.id,
+                object_type="engagement",
+                object_id=payload.engagement.id,
+                object_label=payload.engagement.name,
+                relation_type="scoped_to",
+            )
+        if payload.workstream:
+            self._add_deliverable_object_link(
+                task_id=task.id,
+                deliverable_id=deliverable.id,
+                object_type="workstream",
+                object_id=payload.workstream.id,
+                object_label=payload.workstream.name,
+                relation_type="scoped_to",
+            )
+        if payload.decision_context:
+            self._add_deliverable_object_link(
+                task_id=task.id,
+                deliverable_id=deliverable.id,
+                object_type="decision_context",
+                object_id=payload.decision_context.id,
+                object_label=payload.decision_context.judgment_to_make or payload.decision_context.title,
+                relation_type="addresses",
+            )
+
+        for source_material in payload.source_materials:
+            self._add_deliverable_object_link(
+                task_id=task.id,
+                deliverable_id=deliverable.id,
+                object_type="source_material",
+                object_id=source_material.id,
+                object_label=source_material.title,
+                relation_type="draws_from",
+            )
+        for artifact in payload.artifacts:
+            self._add_deliverable_object_link(
+                task_id=task.id,
+                deliverable_id=deliverable.id,
+                object_type="artifact",
+                object_id=artifact.id,
+                object_label=artifact.title,
+                relation_type="draws_from",
+            )
+
+        evidence_lookup = {item.id: item for item in payload.evidence}
+        linked_evidence_ids = [
+            *linked_recommendation_evidence_ids,
+            *[item for item in linked_risk_evidence_ids if item not in linked_recommendation_evidence_ids],
+            *[
+                item
+                for item in linked_action_item_evidence_ids
+                if item not in linked_recommendation_evidence_ids and item not in linked_risk_evidence_ids
+            ],
+        ]
+        for evidence_id in linked_evidence_ids:
+            evidence = evidence_lookup.get(evidence_id)
+            self._add_deliverable_object_link(
+                task_id=task.id,
+                deliverable_id=deliverable.id,
+                object_type="evidence",
+                object_id=evidence_id,
+                object_label=evidence.title if evidence else None,
+                relation_type="based_on",
+            )
+
+        for recommendation_row in persisted_recommendations:
+            self._add_deliverable_object_link(
+                task_id=task.id,
+                deliverable_id=deliverable.id,
+                object_type="recommendation",
+                object_id=recommendation_row.id,
+                object_label=recommendation_row.summary[:255],
+                relation_type="contains",
+            )
+        for risk_row in persisted_risks:
+            self._add_deliverable_object_link(
+                task_id=task.id,
+                deliverable_id=deliverable.id,
+                object_type="risk",
+                object_id=risk_row.id,
+                object_label=risk_row.title[:255],
+                relation_type="contains",
+            )
+        for action_item_row in persisted_action_items:
+            self._add_deliverable_object_link(
+                task_id=task.id,
+                deliverable_id=deliverable.id,
+                object_type="action_item",
+                object_id=action_item_row.id,
+                object_label=action_item_row.description[:255],
+                relation_type="contains",
+            )
+
+        content = dict(deliverable.content_structure or {})
+        content["traceability_foundation"] = {
+            "decision_context_linked": payload.decision_context is not None,
+            "source_material_count": len(payload.source_materials),
+            "artifact_count": len(payload.artifacts),
+            "linked_evidence_count": len(linked_evidence_ids),
+            "linked_recommendation_count": len(persisted_recommendations),
+            "linked_risk_count": len(persisted_risks),
+            "linked_action_item_count": len(persisted_action_items),
+        }
+        deliverable.content_structure = content
 
         run.status = RunStatus.COMPLETED.value
         run.summary = (

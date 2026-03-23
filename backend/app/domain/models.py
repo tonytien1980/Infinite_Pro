@@ -44,6 +44,12 @@ class Task(Base):
     goals: Mapped[list["Goal"]] = relationship(back_populates="task", cascade="all, delete-orphan")
     constraints: Mapped[list["Constraint"]] = relationship(back_populates="task", cascade="all, delete-orphan")
     uploads: Mapped[list["SourceDocument"]] = relationship(back_populates="task", cascade="all, delete-orphan")
+    source_materials: Mapped[list["SourceMaterial"]] = relationship(
+        back_populates="task", cascade="all, delete-orphan", order_by="SourceMaterial.created_at"
+    )
+    artifacts: Mapped[list["Artifact"]] = relationship(
+        back_populates="task", cascade="all, delete-orphan", order_by="Artifact.created_at"
+    )
     evidence: Mapped[list["Evidence"]] = relationship(back_populates="task", cascade="all, delete-orphan")
     insights: Mapped[list["Insight"]] = relationship(back_populates="task", cascade="all, delete-orphan")
     risks: Mapped[list["Risk"]] = relationship(back_populates="task", cascade="all, delete-orphan")
@@ -55,6 +61,18 @@ class Task(Base):
         back_populates="task", cascade="all, delete-orphan"
     )
     deliverables: Mapped[list["Deliverable"]] = relationship(
+        back_populates="task", cascade="all, delete-orphan"
+    )
+    recommendation_evidence_links: Mapped[list["RecommendationEvidenceLink"]] = relationship(
+        back_populates="task", cascade="all, delete-orphan"
+    )
+    risk_evidence_links: Mapped[list["RiskEvidenceLink"]] = relationship(
+        back_populates="task", cascade="all, delete-orphan"
+    )
+    action_item_evidence_links: Mapped[list["ActionItemEvidenceLink"]] = relationship(
+        back_populates="task", cascade="all, delete-orphan"
+    )
+    deliverable_object_links: Mapped[list["DeliverableObjectLink"]] = relationship(
         back_populates="task", cascade="all, delete-orphan"
     )
     runs: Mapped[list["TaskRun"]] = relationship(back_populates="task", cascade="all, delete-orphan")
@@ -203,7 +221,45 @@ class SourceDocument(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
     task: Mapped["Task"] = relationship(back_populates="uploads")
+    source_materials: Mapped[list["SourceMaterial"]] = relationship(back_populates="source_document")
+    artifacts: Mapped[list["Artifact"]] = relationship(back_populates="source_document")
     evidence_items: Mapped[list["Evidence"]] = relationship(back_populates="source_document")
+
+
+class SourceMaterial(Base):
+    __tablename__ = "source_materials"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    source_document_id: Mapped[str | None] = mapped_column(ForeignKey("source_documents.id"), nullable=True)
+    source_type: Mapped[str] = mapped_column(String(100), default="manual_upload")
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    source_ref: Mapped[str] = mapped_column(String(1024), nullable=False)
+    content_type: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    ingest_status: Mapped[str] = mapped_column(String(100), default="processed")
+    summary: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    task: Mapped["Task"] = relationship(back_populates="source_materials")
+    source_document: Mapped["SourceDocument | None"] = relationship(back_populates="source_materials")
+    artifacts: Mapped[list["Artifact"]] = relationship(back_populates="source_material")
+
+
+class Artifact(Base):
+    __tablename__ = "artifacts"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    source_document_id: Mapped[str | None] = mapped_column(ForeignKey("source_documents.id"), nullable=True)
+    source_material_id: Mapped[str | None] = mapped_column(ForeignKey("source_materials.id"), nullable=True)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    artifact_type: Mapped[str] = mapped_column(String(100), default="source_artifact")
+    description: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    task: Mapped["Task"] = relationship(back_populates="artifacts")
+    source_document: Mapped["SourceDocument | None"] = relationship(back_populates="artifacts")
+    source_material: Mapped["SourceMaterial | None"] = relationship(back_populates="artifacts")
 
 
 class Evidence(Base):
@@ -222,6 +278,15 @@ class Evidence(Base):
 
     task: Mapped["Task"] = relationship(back_populates="evidence")
     source_document: Mapped["SourceDocument | None"] = relationship(back_populates="evidence_items")
+    recommendation_links: Mapped[list["RecommendationEvidenceLink"]] = relationship(
+        back_populates="evidence", cascade="all, delete-orphan"
+    )
+    risk_links: Mapped[list["RiskEvidenceLink"]] = relationship(
+        back_populates="evidence", cascade="all, delete-orphan"
+    )
+    action_item_links: Mapped[list["ActionItemEvidenceLink"]] = relationship(
+        back_populates="evidence", cascade="all, delete-orphan"
+    )
 
 
 class Insight(Base):
@@ -252,6 +317,9 @@ class Risk(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
     task: Mapped["Task"] = relationship(back_populates="risks")
+    supporting_evidence_links: Mapped[list["RiskEvidenceLink"]] = relationship(
+        back_populates="risk", cascade="all, delete-orphan"
+    )
 
 
 class Option(Base):
@@ -282,6 +350,9 @@ class Recommendation(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
     task: Mapped["Task"] = relationship(back_populates="recommendations")
+    supporting_evidence_links: Mapped[list["RecommendationEvidenceLink"]] = relationship(
+        back_populates="recommendation", cascade="all, delete-orphan"
+    )
 
 
 class ActionItem(Base):
@@ -298,6 +369,9 @@ class ActionItem(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
     task: Mapped["Task"] = relationship(back_populates="action_items")
+    supporting_evidence_links: Mapped[list["ActionItemEvidenceLink"]] = relationship(
+        back_populates="action_item", cascade="all, delete-orphan"
+    )
 
 
 class Deliverable(Base):
@@ -314,6 +388,70 @@ class Deliverable(Base):
 
     task: Mapped["Task"] = relationship(back_populates="deliverables")
     task_run: Mapped["TaskRun | None"] = relationship(back_populates="deliverables")
+    object_links: Mapped[list["DeliverableObjectLink"]] = relationship(
+        back_populates="deliverable", cascade="all, delete-orphan"
+    )
+
+
+class RecommendationEvidenceLink(Base):
+    __tablename__ = "recommendation_evidence_links"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    recommendation_id: Mapped[str] = mapped_column(ForeignKey("recommendations.id"), nullable=False)
+    evidence_id: Mapped[str] = mapped_column(ForeignKey("evidence.id"), nullable=False)
+    relation_type: Mapped[str] = mapped_column(String(50), default="supports")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    task: Mapped["Task"] = relationship(back_populates="recommendation_evidence_links")
+    recommendation: Mapped["Recommendation"] = relationship(back_populates="supporting_evidence_links")
+    evidence: Mapped["Evidence"] = relationship(back_populates="recommendation_links")
+
+
+class RiskEvidenceLink(Base):
+    __tablename__ = "risk_evidence_links"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    risk_id: Mapped[str] = mapped_column(ForeignKey("risks.id"), nullable=False)
+    evidence_id: Mapped[str] = mapped_column(ForeignKey("evidence.id"), nullable=False)
+    relation_type: Mapped[str] = mapped_column(String(50), default="supports")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    task: Mapped["Task"] = relationship(back_populates="risk_evidence_links")
+    risk: Mapped["Risk"] = relationship(back_populates="supporting_evidence_links")
+    evidence: Mapped["Evidence"] = relationship(back_populates="risk_links")
+
+
+class ActionItemEvidenceLink(Base):
+    __tablename__ = "action_item_evidence_links"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    action_item_id: Mapped[str] = mapped_column(ForeignKey("action_items.id"), nullable=False)
+    evidence_id: Mapped[str] = mapped_column(ForeignKey("evidence.id"), nullable=False)
+    relation_type: Mapped[str] = mapped_column(String(50), default="depends_on_evidence")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    task: Mapped["Task"] = relationship(back_populates="action_item_evidence_links")
+    action_item: Mapped["ActionItem"] = relationship(back_populates="supporting_evidence_links")
+    evidence: Mapped["Evidence"] = relationship(back_populates="action_item_links")
+
+
+class DeliverableObjectLink(Base):
+    __tablename__ = "deliverable_object_links"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    deliverable_id: Mapped[str] = mapped_column(ForeignKey("deliverables.id"), nullable=False)
+    object_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    object_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    object_label: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    relation_type: Mapped[str] = mapped_column(String(50), default="references")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    task: Mapped["Task"] = relationship(back_populates="deliverable_object_links")
+    deliverable: Mapped["Deliverable"] = relationship(back_populates="object_links")
 
 
 class TaskRun(Base):
