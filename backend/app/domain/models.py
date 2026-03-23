@@ -25,6 +25,18 @@ class Task(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
+    clients: Mapped[list["Client"]] = relationship(
+        back_populates="task", cascade="all, delete-orphan", order_by="Client.created_at"
+    )
+    engagements: Mapped[list["Engagement"]] = relationship(
+        back_populates="task", cascade="all, delete-orphan", order_by="Engagement.created_at"
+    )
+    workstreams: Mapped[list["Workstream"]] = relationship(
+        back_populates="task", cascade="all, delete-orphan", order_by="Workstream.created_at"
+    )
+    decision_contexts: Mapped[list["DecisionContext"]] = relationship(
+        back_populates="task", cascade="all, delete-orphan", order_by="DecisionContext.created_at"
+    )
     contexts: Mapped[list["TaskContext"]] = relationship(
         back_populates="task", cascade="all, delete-orphan", order_by="TaskContext.version"
     )
@@ -46,6 +58,81 @@ class Task(Base):
         back_populates="task", cascade="all, delete-orphan"
     )
     runs: Mapped[list["TaskRun"]] = relationship(back_populates="task", cascade="all, delete-orphan")
+
+
+class Client(Base):
+    __tablename__ = "clients"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    client_type: Mapped[str] = mapped_column(String(100), default="未指定")
+    client_stage: Mapped[str] = mapped_column(String(100), default="未指定")
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    task: Mapped["Task"] = relationship(back_populates="clients")
+    engagements: Mapped[list["Engagement"]] = relationship(back_populates="client")
+    decision_contexts: Mapped[list["DecisionContext"]] = relationship(back_populates="client")
+
+
+class Engagement(Base):
+    __tablename__ = "engagements"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    client_id: Mapped[str | None] = mapped_column(ForeignKey("clients.id"), nullable=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    task: Mapped["Task"] = relationship(back_populates="engagements")
+    client: Mapped["Client | None"] = relationship(back_populates="engagements")
+    workstreams: Mapped[list["Workstream"]] = relationship(back_populates="engagement")
+    decision_contexts: Mapped[list["DecisionContext"]] = relationship(back_populates="engagement")
+
+
+class Workstream(Base):
+    __tablename__ = "workstreams"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    engagement_id: Mapped[str | None] = mapped_column(ForeignKey("engagements.id"), nullable=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    domain_lenses: Mapped[list[str]] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    task: Mapped["Task"] = relationship(back_populates="workstreams")
+    engagement: Mapped["Engagement | None"] = relationship(back_populates="workstreams")
+    decision_contexts: Mapped[list["DecisionContext"]] = relationship(back_populates="workstream")
+
+
+class DecisionContext(Base):
+    __tablename__ = "decision_contexts"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    client_id: Mapped[str | None] = mapped_column(ForeignKey("clients.id"), nullable=True)
+    engagement_id: Mapped[str | None] = mapped_column(ForeignKey("engagements.id"), nullable=True)
+    workstream_id: Mapped[str | None] = mapped_column(ForeignKey("workstreams.id"), nullable=True)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    summary: Mapped[str] = mapped_column(Text, default="")
+    judgment_to_make: Mapped[str] = mapped_column(Text, default="")
+    domain_lenses: Mapped[list[str]] = mapped_column(JSON, default=list)
+    client_stage: Mapped[str] = mapped_column(String(100), default="未指定")
+    client_type: Mapped[str] = mapped_column(String(100), default="未指定")
+    goal_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    constraint_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    assumption_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    source_priority: Mapped[str | None] = mapped_column(Text, nullable=True)
+    external_data_policy: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    task: Mapped["Task"] = relationship(back_populates="decision_contexts")
+    client: Mapped["Client | None"] = relationship(back_populates="decision_contexts")
+    engagement: Mapped["Engagement | None"] = relationship(back_populates="decision_contexts")
+    workstream: Mapped["Workstream | None"] = relationship(back_populates="decision_contexts")
 
 
 class TaskContext(Base):

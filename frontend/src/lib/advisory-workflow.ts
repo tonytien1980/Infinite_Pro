@@ -73,6 +73,8 @@ export interface DecisionSnapshotView {
 export interface TaskFramingView {
   summary: string;
   judgmentToMake: string;
+  consultingContext: string;
+  decisionContextSummary: string;
   analysisFocus: string;
   sourcePriority: string;
   externalDataPolicy: string;
@@ -466,6 +468,10 @@ function joinNaturalList(items: string[]) {
 }
 
 function buildDefaultJudgment(task: TaskAggregate) {
+  if (task.decision_context?.judgment_to_make?.trim()) {
+    return task.decision_context.judgment_to_make.trim();
+  }
+
   if (task.mode === "multi_agent") {
     return "把這個複雜問題收斂成可採用的決策方向、主要風險與下一步。";
   }
@@ -482,6 +488,10 @@ function buildDefaultJudgment(task: TaskAggregate) {
 }
 
 function buildExternalDataPolicyDescription(task: TaskAggregate) {
+  if (task.decision_context?.external_data_policy?.trim()) {
+    return task.decision_context.external_data_policy.trim();
+  }
+
   if (task.external_data_strategy === "strict") {
     return "這輪分析只使用你提供的背景、來源與附件，不主動補外部資料。";
   }
@@ -494,6 +504,10 @@ function buildExternalDataPolicyDescription(task: TaskAggregate) {
 }
 
 function buildSourcePriority(task: TaskAggregate) {
+  if (task.decision_context?.source_priority?.trim()) {
+    return task.decision_context.source_priority.trim();
+  }
+
   const latestContext = task.contexts[0];
   const sourcePhrases: string[] = [];
 
@@ -525,9 +539,13 @@ function buildAnalysisFocus(task: TaskAggregate) {
   const successCriteria = getGoalSuccessCriteria(task.goals);
   const visibleConstraints = getVisibleConstraints(task.constraints);
   const focusParts: string[] = [];
+  const domainLenses = task.domain_lenses.filter(Boolean);
 
   if (subjectNames.length > 0) {
     focusParts.push(`優先聚焦 ${joinNaturalList(subjectNames)}`);
+  }
+  if (domainLenses.length > 0) {
+    focusParts.push(`並以 ${joinNaturalList(domainLenses)} 視角做第一輪判斷`);
   }
 
   if (successCriteria.length > 0) {
@@ -545,19 +563,64 @@ function buildAnalysisFocus(task: TaskAggregate) {
   return `${focusParts.join("，")}。`;
 }
 
+function buildConsultingContext(task: TaskAggregate) {
+  const parts: string[] = [];
+  const clientName = task.client?.name?.trim();
+  const clientType = task.client?.client_type?.trim() || task.client_type?.trim() || "";
+  const clientStage = task.client?.client_stage?.trim() || task.client_stage?.trim() || "";
+  const workstreamName = task.workstream?.name?.trim();
+  const engagementName = task.engagement?.name?.trim();
+  const domainLenses = task.domain_lenses.filter(Boolean);
+
+  if (clientName && clientName !== "尚未明確標示客戶") {
+    parts.push(`目前案件主體是「${clientName}」`)
+  } else if (clientType || clientStage) {
+    parts.push("目前案件尚未明確標示客戶名稱")
+  }
+  if (clientType && clientType !== "未指定") {
+    parts.push(`客戶型態偏向「${clientType}」`)
+  }
+  if (clientStage && clientStage !== "未指定") {
+    parts.push(`目前落在「${clientStage}」`)
+  }
+  if (engagementName) {
+    parts.push(`這輪工作隸屬於「${engagementName}」`)
+  }
+  if (workstreamName) {
+    parts.push(`主要工作流聚焦在「${workstreamName}」`)
+  }
+  if (domainLenses.length > 0) {
+    parts.push(`會優先用 ${joinNaturalList(domainLenses)} 視角來判斷`)
+  }
+
+  if (parts.length === 0) {
+    return "目前案件尚未完整標示 client / engagement / workstream，系統仍先以任務與證據形成第一輪判斷脈絡。";
+  }
+
+  return `${parts.join("，")}。`;
+}
+
+function buildDecisionContextSummary(task: TaskAggregate) {
+  if (task.decision_context?.summary?.trim()) {
+    return task.decision_context.summary.trim();
+  }
+
+  const judgment = buildDefaultJudgment(task);
+  const subjectNames = task.subjects.map((subject) => subject.name).filter(Boolean);
+  const subjectText = subjectNames.length > 0 ? `圍繞 ${joinNaturalList(subjectNames)} ` : "";
+  return `這次系統會先${subjectText}形成「${judgment}」的顧問判斷脈絡。`;
+}
+
 export function buildTaskFraming(
   task: TaskAggregate,
   readiness: ReadinessAssessment,
 ): TaskFramingView {
-  const latestContext = task.contexts[0];
-  const primaryGoal = takeFirst(
-    task.goals.map((goal) => goal.description),
-    buildDefaultJudgment(task),
-  );
-  const subjectNames = task.subjects.map((subject) => subject.name).filter(Boolean);
+  const primaryGoal = task.decision_context?.judgment_to_make?.trim()
+    ? task.decision_context.judgment_to_make.trim()
+    : takeFirst(task.goals.map((goal) => goal.description), buildDefaultJudgment(task));
   const summarySegments = [
-    subjectNames.length > 0 ? `系統目前理解，這次是圍繞 ${joinNaturalList(subjectNames)} 的判斷任務。` : "",
-    `主要目的是 ${primaryGoal}`,
+    buildConsultingContext(task),
+    buildDecisionContextSummary(task),
     readiness.level === "ready"
       ? "目前資料厚度足以支撐第一輪決策判斷。"
       : readiness.level === "caution"
@@ -568,12 +631,13 @@ export function buildTaskFraming(
   return {
     summary: summarySegments.join(" "),
     judgmentToMake: primaryGoal,
+    consultingContext: buildConsultingContext(task),
+    decisionContextSummary: buildDecisionContextSummary(task),
     analysisFocus: buildAnalysisFocus(task),
     sourcePriority: buildSourcePriority(task),
-    externalDataPolicy:
-      latestContext?.notes?.trim() || task.uploads.length > 0 || task.evidence.length > 0
-        ? buildExternalDataPolicyDescription(task)
-        : `${buildExternalDataPolicyDescription(task)} 目前可用資料仍偏少，建議先補上至少一份可引用材料。`,
+    externalDataPolicy: task.uploads.length > 0 || task.evidence.length > 0
+      ? buildExternalDataPolicyDescription(task)
+      : `${buildExternalDataPolicyDescription(task)} 目前可用資料仍偏少，建議先補上至少一份可引用材料。`,
   };
 }
 

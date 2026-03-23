@@ -24,6 +24,18 @@ class TaskCreateRequest(BaseModel):
     task_type: str = "research_synthesis"
     mode: FlowMode = FlowMode.SPECIALIST
     external_data_strategy: ExternalDataStrategy = ExternalDataStrategy.SUPPLEMENTAL
+    client_name: str | None = None
+    client_type: str | None = None
+    client_stage: str | None = None
+    client_description: str | None = None
+    engagement_name: str | None = None
+    engagement_description: str | None = None
+    workstream_name: str | None = None
+    workstream_description: str | None = None
+    domain_lenses: list[str] = Field(default_factory=list)
+    decision_title: str | None = None
+    decision_summary: str | None = None
+    judgment_to_make: str | None = None
     background_text: str = ""
     assumptions: str | None = None
     notes: str | None = None
@@ -43,6 +55,55 @@ class TaskContextRead(ORMModel):
     assumptions: str | None
     notes: str | None
     version: int
+    created_at: datetime
+
+
+class ClientRead(ORMModel):
+    id: str
+    task_id: str
+    name: str
+    client_type: str
+    client_stage: str
+    description: str | None
+    created_at: datetime
+
+
+class EngagementRead(ORMModel):
+    id: str
+    task_id: str
+    client_id: str | None
+    name: str
+    description: str | None
+    created_at: datetime
+
+
+class WorkstreamRead(ORMModel):
+    id: str
+    task_id: str
+    engagement_id: str | None
+    name: str
+    description: str | None
+    domain_lenses: list[str]
+    created_at: datetime
+
+
+class DecisionContextRead(BaseModel):
+    id: str
+    task_id: str
+    client_id: str | None
+    engagement_id: str | None
+    workstream_id: str | None
+    title: str
+    summary: str
+    judgment_to_make: str
+    domain_lenses: list[str] = Field(default_factory=list)
+    client_stage: str | None = None
+    client_type: str | None = None
+    goals: list[str] = Field(default_factory=list)
+    constraints: list[str] = Field(default_factory=list)
+    assumptions: list[str] = Field(default_factory=list)
+    source_priority: str = ""
+    external_data_policy: str = ""
     created_at: datetime
 
 
@@ -83,6 +144,29 @@ class SourceDocumentRead(ORMModel):
     ingest_status: str
     extracted_text: str | None
     ingestion_error: str | None
+    created_at: datetime
+
+
+class SourceMaterialRead(BaseModel):
+    id: str
+    task_id: str
+    source_type: str
+    title: str
+    source_ref: str
+    content_type: str | None
+    ingest_status: str
+    summary: str
+    created_at: datetime
+
+
+class ArtifactRead(BaseModel):
+    id: str
+    task_id: str
+    title: str
+    artifact_type: str
+    source_document_id: str | None
+    source_material_id: str | None
+    description: str
     created_at: datetime
 
 
@@ -203,6 +287,16 @@ class TaskAggregateResponse(BaseModel):
     status: TaskStatus
     created_at: datetime
     updated_at: datetime
+    client: ClientRead | None = None
+    engagement: EngagementRead | None = None
+    workstream: WorkstreamRead | None = None
+    decision_context: DecisionContextRead | None = None
+    client_stage: str | None = None
+    client_type: str | None = None
+    domain_lenses: list[str] = Field(default_factory=list)
+    assumptions: list[str] = Field(default_factory=list)
+    source_materials: list[SourceMaterialRead] = Field(default_factory=list)
+    artifacts: list[ArtifactRead] = Field(default_factory=list)
     contexts: list[TaskContextRead] = Field(default_factory=list)
     subjects: list[SubjectRead] = Field(default_factory=list)
     goals: list[GoalRead] = Field(default_factory=list)

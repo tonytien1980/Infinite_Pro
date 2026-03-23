@@ -371,6 +371,22 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     </div>
                     <div className="summary-grid">
                       <div className="section-card">
+                        <h4>目前案件脈絡</h4>
+                        <ExpandableText
+                          text={taskFraming.consultingContext}
+                          emptyText="尚未整理可讀的顧問案件脈絡。"
+                          previewChars={180}
+                        />
+                      </div>
+                      <div className="section-card">
+                        <h4>這次的 Decision Context</h4>
+                        <ExpandableText
+                          text={taskFraming.decisionContextSummary}
+                          emptyText="尚未整理本輪 decision context。"
+                          previewChars={180}
+                        />
+                      </div>
+                      <div className="section-card">
                         <h4>這次要幫你做什麼判斷</h4>
                         <ExpandableText
                           text={taskFraming.judgmentToMake}
@@ -889,6 +905,43 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     </p>
                     <div className="ontology-grid">
                       <div className="ontology-card">
+                        <h3>客戶</h3>
+                        <p className="content-block">
+                          {task.client?.name || "尚未明確標示客戶"}
+                          {"\n"}
+                          {(task.client?.client_type || task.client_type || "未指定")}
+                          {" / "}
+                          {(task.client?.client_stage || task.client_stage || "未指定")}
+                        </p>
+                      </div>
+                      <div className="ontology-card">
+                        <h3>Engagement</h3>
+                        <p className="content-block">
+                          {task.engagement?.name || "尚未建立 engagement 名稱"}
+                          {task.engagement?.description ? `\n${task.engagement.description}` : ""}
+                        </p>
+                      </div>
+                      <div className="ontology-card">
+                        <h3>Workstream</h3>
+                        <p className="content-block">
+                          {task.workstream?.name || "尚未建立 workstream"}
+                          {"\n"}
+                          {task.domain_lenses.length > 0 ? task.domain_lenses.join(" / ") : "綜合"}
+                        </p>
+                      </div>
+                      <div className="ontology-card">
+                        <h3>Decision Context</h3>
+                        <ExpandableText
+                          text={
+                            task.decision_context?.judgment_to_make ||
+                            task.decision_context?.summary ||
+                            ""
+                          }
+                          emptyText="尚未形成可讀的 decision context。"
+                          previewChars={180}
+                        />
+                      </div>
+                      <div className="ontology-card">
                         <h3>任務</h3>
                         <p className="content-block">
                           {task.title}
@@ -930,6 +983,30 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                           </ul>
                         ) : (
                           <p className="muted-text">尚未設定。</p>
+                        )}
+                      </div>
+                      <div className="ontology-card">
+                        <h3>Source Materials</h3>
+                        {task.source_materials.length > 0 ? (
+                          <ul className="list-content">
+                            {task.source_materials.slice(0, 5).map((sourceMaterial) => (
+                              <li key={sourceMaterial.id}>{sourceMaterial.title}</li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="muted-text">尚未建立。</p>
+                        )}
+                      </div>
+                      <div className="ontology-card">
+                        <h3>Artifacts</h3>
+                        {task.artifacts.length > 0 ? (
+                          <ul className="list-content">
+                            {task.artifacts.slice(0, 5).map((artifact) => (
+                              <li key={artifact.id}>{artifact.title}</li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="muted-text">尚未建立。</p>
                         )}
                       </div>
                       <div className="ontology-card">

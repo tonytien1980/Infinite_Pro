@@ -128,6 +128,71 @@ function inferFlowValue({
   return "research_synthesis";
 }
 
+function inferClientStage(description: string) {
+  const signalText = description.toLowerCase();
+  if (/(創業|新創|起步|早期|驗證|pmf)/i.test(signalText)) {
+    return "創業階段";
+  }
+  if (/(制度化|流程|sop|內控|管理|團隊)/i.test(signalText)) {
+    return "制度化階段";
+  }
+  if (/(規模化|擴張|成長|跨部門|授權|scale)/i.test(signalText)) {
+    return "規模化階段";
+  }
+  return undefined;
+}
+
+function inferClientType(description: string) {
+  const signalText = description.toLowerCase();
+  if (/(自媒體|內容|頻道|podcast|newsletter|社群)/i.test(signalText)) {
+    return "自媒體";
+  }
+  if (/(個人品牌|教練|顧問|講師|服務型)/i.test(signalText)) {
+    return "個人品牌與服務";
+  }
+  if (/(大型企業|集團|總部|enterprise|上市|跨國)/i.test(signalText)) {
+    return "大型企業";
+  }
+  if (/(公司|企業|品牌|團隊|中小企業)/i.test(signalText)) {
+    return "中小企業";
+  }
+  return undefined;
+}
+
+function inferDomainLenses({
+  description,
+  subjectName,
+  flowValue,
+}: {
+  description: string;
+  subjectName: string;
+  flowValue: FlowOption["value"];
+}) {
+  const signalText = `${description} ${subjectName}`.toLowerCase();
+  const lenses: string[] = [];
+
+  if (flowValue === "contract_review" || /(合約|契約|條款|法務|責任|權利)/i.test(signalText)) {
+    lenses.push("法務");
+  }
+  if (/(營運|流程|效率|交付|執行|供應鏈)/i.test(signalText)) {
+    lenses.push("營運");
+  }
+  if (/(財務|現金流|預算|成本|損益)/i.test(signalText)) {
+    lenses.push("財務");
+  }
+  if (/(募資|投資人|term sheet|融資|cap table)/i.test(signalText)) {
+    lenses.push("募資");
+  }
+  if (/(行銷|品牌|內容|流量|社群|campaign)/i.test(signalText)) {
+    lenses.push("行銷");
+  }
+  if (/(銷售|業務|pipeline|proposal|提案|成交)/i.test(signalText)) {
+    lenses.push("銷售");
+  }
+
+  return lenses.length > 0 ? Array.from(new Set(lenses)) : ["綜合"];
+}
+
 function buildConsultantBrief({
   flowLabel,
   title,
@@ -227,6 +292,20 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
       task_type: flow.taskType,
       mode: flow.mode,
       external_data_strategy: externalDataStrategy,
+      client_type: inferClientType(description),
+      client_stage: inferClientStage(description),
+      engagement_name: derivedTitle || undefined,
+      engagement_description: description || undefined,
+      workstream_name: subjectName || flow.label,
+      workstream_description: scopeNotes || undefined,
+      domain_lenses: inferDomainLenses({
+        description,
+        subjectName,
+        flowValue: flow.value,
+      }),
+      decision_title: derivedTitle ? `${derivedTitle}｜Decision Context` : undefined,
+      decision_summary: description || undefined,
+      judgment_to_make: analysisDepth || undefined,
       background_text: consultantBrief,
       assumptions: assumptions || undefined,
       subject_name: subjectName || undefined,

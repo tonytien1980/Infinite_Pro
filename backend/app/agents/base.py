@@ -6,7 +6,18 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from app.domain.enums import AgentCategory, AgentStatus, FlowMode
-from app.domain.schemas import ConstraintRead, EvidenceRead, GoalRead, SubjectRead
+from app.domain.schemas import (
+    ArtifactRead,
+    ClientRead,
+    ConstraintRead,
+    DecisionContextRead,
+    EngagementRead,
+    EvidenceRead,
+    GoalRead,
+    SourceMaterialRead,
+    SubjectRead,
+    WorkstreamRead,
+)
 
 
 class AgentDescriptor(BaseModel):
@@ -30,6 +41,14 @@ class AgentInputPayload(BaseModel):
     task_type: str
     flow_mode: FlowMode
     background_text: str = ""
+    client: ClientRead | None = None
+    engagement: EngagementRead | None = None
+    workstream: WorkstreamRead | None = None
+    decision_context: DecisionContextRead | None = None
+    domain_lenses: list[str] = Field(default_factory=list)
+    assumptions: list[str] = Field(default_factory=list)
+    source_materials: list[SourceMaterialRead] = Field(default_factory=list)
+    artifacts: list[ArtifactRead] = Field(default_factory=list)
     subjects: list[SubjectRead] = Field(default_factory=list)
     goals: list[GoalRead] = Field(default_factory=list)
     constraints: list[ConstraintRead] = Field(default_factory=list)

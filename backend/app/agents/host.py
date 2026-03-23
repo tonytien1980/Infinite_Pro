@@ -26,6 +26,7 @@ from app.services.tasks import (
     EXTERNAL_DATA_STRATEGY_CONSTRAINT_TYPE,
     get_external_data_strategy_for_task,
     get_loaded_task,
+    serialize_task,
 )
 
 REQUIRED_DELIVERABLE_KEYS = (
@@ -73,6 +74,7 @@ class HostOrchestrator:
         )
 
     def build_payload(self, task: models.Task) -> AgentInputPayload:
+        aggregate = serialize_task(task)
         latest_context = task.contexts[-1].summary if task.contexts else ""
         return AgentInputPayload(
             task_id=task.id,
@@ -80,15 +82,23 @@ class HostOrchestrator:
             description=task.description,
             task_type=task.task_type,
             flow_mode=self.determine_flow_mode(task),
-            background_text=latest_context,
-            subjects=[schemas.SubjectRead.model_validate(item) for item in task.subjects],
-            goals=[schemas.GoalRead.model_validate(item) for item in task.goals],
+            background_text=aggregate.decision_context.summary if aggregate.decision_context else latest_context,
+            client=aggregate.client,
+            engagement=aggregate.engagement,
+            workstream=aggregate.workstream,
+            decision_context=aggregate.decision_context,
+            domain_lenses=aggregate.domain_lenses,
+            assumptions=aggregate.assumptions,
+            source_materials=aggregate.source_materials,
+            artifacts=aggregate.artifacts,
+            subjects=aggregate.subjects,
+            goals=aggregate.goals,
             constraints=[
-                schemas.ConstraintRead.model_validate(item)
-                for item in task.constraints
+                item
+                for item in aggregate.constraints
                 if item.constraint_type != EXTERNAL_DATA_STRATEGY_CONSTRAINT_TYPE
             ],
-            evidence=[schemas.EvidenceRead.model_validate(item) for item in task.evidence],
+            evidence=aggregate.evidence,
         )
 
     def _build_search_query(self, task: models.Task) -> str:
@@ -233,6 +243,8 @@ class HostOrchestrator:
             return f"依據目前任務脈絡，最可執行的方向是：{recommendations[0]}"
         if risks:
             return f"目前最需要優先管理的風險是：{risks[0]}"
+        if payload.decision_context and payload.decision_context.judgment_to_make:
+            return f"這輪先圍繞「{payload.decision_context.judgment_to_make}」形成可採用的第一輪判斷。"
 
         return (
             "目前證據仍不足以形成高信心判斷，建議先把這份結果視為帶有缺漏註記的工作草稿。"
@@ -326,6 +338,21 @@ class HostOrchestrator:
             }
             for item in action_items
         ]
+
+    @staticmethod
+    def _build_ontology_context(payload: AgentInputPayload) -> dict[str, object]:
+        return {
+            "client": payload.client.model_dump(mode="json") if payload.client else None,
+            "engagement": payload.engagement.model_dump(mode="json") if payload.engagement else None,
+            "workstream": payload.workstream.model_dump(mode="json") if payload.workstream else None,
+            "decision_context": payload.decision_context.model_dump(mode="json")
+            if payload.decision_context
+            else None,
+            "domain_lenses": payload.domain_lenses,
+            "assumptions": payload.assumptions,
+            "source_materials": [item.model_dump(mode="json") for item in payload.source_materials],
+            "artifacts": [item.model_dump(mode="json") for item in payload.artifacts],
+        }
 
     def _shape_mode_specific_output(
         self,
@@ -436,6 +463,7 @@ class HostOrchestrator:
         content["recommendation_cards"] = self._build_recommendation_cards(result.recommendations)
         content["risk_cards"] = self._build_risk_cards(result.risks)
         content["action_item_cards"] = self._build_action_item_cards(result.action_items)
+        content["ontology_context"] = self._build_ontology_context(payload)
         content = self._shape_mode_specific_output(payload, content)
         result.deliverable.content_structure = content
         return result

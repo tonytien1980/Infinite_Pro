@@ -120,6 +120,43 @@ def test_task_creation_attaches_background_text_as_context_and_evidence(client: 
     assert body["contexts"][0]["summary"].startswith("The client wants a quick internal summary")
     assert any(item["evidence_type"] == "background_text" for item in body["evidence"])
     assert body["goals"][0]["description"] == "Highlight the strongest findings and next actions."
+    assert body["client"] is not None
+    assert body["engagement"] is not None
+    assert body["workstream"] is not None
+    assert body["decision_context"] is not None
+    assert body["decision_context"]["judgment_to_make"]
+    assert body["domain_lenses"]
+
+
+def test_task_creation_populates_explicit_ontology_context_spine(client: TestClient) -> None:
+    payload = create_task_payload("Ontology spine")
+    payload.update(
+        {
+            "client_name": "Acme Advisory",
+            "client_type": "中小企業",
+            "client_stage": "制度化階段",
+            "engagement_name": "Acme 內部診斷案",
+            "workstream_name": "營運與銷售優化",
+            "domain_lenses": ["營運", "銷售"],
+            "decision_title": "Acme decision context",
+            "decision_summary": "這次要先判斷是否該優先重整成交流程與交付節奏。",
+            "judgment_to_make": "先判斷成交流程與交付節奏是否是目前最值得優先處理的決策點。",
+        }
+    )
+
+    response = client.post("/api/v1/tasks", json=payload)
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["client"]["name"] == "Acme Advisory"
+    assert body["client"]["client_type"] == "中小企業"
+    assert body["client"]["client_stage"] == "制度化階段"
+    assert body["engagement"]["name"] == "Acme 內部診斷案"
+    assert body["workstream"]["name"] == "營運與銷售優化"
+    assert body["decision_context"]["title"] == "Acme decision context"
+    assert body["decision_context"]["summary"].startswith("這次要先判斷")
+    assert body["decision_context"]["judgment_to_make"].startswith("先判斷成交流程")
+    assert body["decision_context"]["domain_lenses"] == ["營運", "銷售"]
 
 
 def test_file_upload_creates_usable_txt_evidence(client: TestClient) -> None:
@@ -135,6 +172,10 @@ def test_file_upload_creates_usable_txt_evidence(client: TestClient) -> None:
     assert uploaded["source_document"]["ingest_status"] == "processed"
     assert uploaded["evidence"]["evidence_type"] == "uploaded_file_excerpt"
     assert "Alpha insight" in uploaded["evidence"]["excerpt_or_summary"]
+
+    aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
+    assert aggregate["source_materials"]
+    assert aggregate["artifacts"]
 
 
 def test_file_upload_creates_usable_md_evidence(client: TestClient) -> None:
@@ -369,6 +410,8 @@ def test_research_synthesis_specialist_run_and_history_persistence(client: TestC
     assert content["implications"]
     assert "research_gaps" in content
     assert "external_data_usage" in content
+    assert content["ontology_context"]["decision_context"]["judgment_to_make"]
+    assert content["ontology_context"]["source_materials"]
 
     history_response = client.get(f"/api/v1/tasks/{task['id']}/history")
 

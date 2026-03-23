@@ -8,6 +8,55 @@ export type TaskType =
   | "document_restructuring"
   | "complex_convergence";
 
+export interface Client {
+  id: string;
+  task_id: string;
+  name: string;
+  client_type: string;
+  client_stage: string;
+  description: string | null;
+  created_at: string;
+}
+
+export interface Engagement {
+  id: string;
+  task_id: string;
+  client_id: string | null;
+  name: string;
+  description: string | null;
+  created_at: string;
+}
+
+export interface Workstream {
+  id: string;
+  task_id: string;
+  engagement_id: string | null;
+  name: string;
+  description: string | null;
+  domain_lenses: string[];
+  created_at: string;
+}
+
+export interface DecisionContext {
+  id: string;
+  task_id: string;
+  client_id: string | null;
+  engagement_id: string | null;
+  workstream_id: string | null;
+  title: string;
+  summary: string;
+  judgment_to_make: string;
+  domain_lenses: string[];
+  client_stage: string | null;
+  client_type: string | null;
+  goals: string[];
+  constraints: string[];
+  assumptions: string[];
+  source_priority: string;
+  external_data_policy: string;
+  created_at: string;
+}
+
 export interface TaskContext {
   id: string;
   task_id: string;
@@ -54,6 +103,29 @@ export interface SourceDocument {
   file_size: number;
   ingest_status: string;
   extracted_text: string | null;
+  created_at: string;
+}
+
+export interface SourceMaterial {
+  id: string;
+  task_id: string;
+  source_type: string;
+  title: string;
+  source_ref: string;
+  content_type: string | null;
+  ingest_status: string;
+  summary: string;
+  created_at: string;
+}
+
+export interface Artifact {
+  id: string;
+  task_id: string;
+  title: string;
+  artifact_type: string;
+  source_document_id: string | null;
+  source_material_id: string | null;
+  description: string;
   created_at: string;
 }
 
@@ -148,6 +220,16 @@ export interface TaskAggregate {
   status: TaskStatus;
   created_at: string;
   updated_at: string;
+  client: Client | null;
+  engagement: Engagement | null;
+  workstream: Workstream | null;
+  decision_context: DecisionContext | null;
+  client_stage: string | null;
+  client_type: string | null;
+  domain_lenses: string[];
+  assumptions: string[];
+  source_materials: SourceMaterial[];
+  artifacts: Artifact[];
   contexts: TaskContext[];
   subjects: Subject[];
   goals: Goal[];
@@ -216,6 +298,18 @@ export interface TaskCreatePayload {
   task_type: TaskType;
   mode: FlowMode;
   external_data_strategy: ExternalDataStrategy;
+  client_name?: string;
+  client_type?: string;
+  client_stage?: string;
+  client_description?: string;
+  engagement_name?: string;
+  engagement_description?: string;
+  workstream_name?: string;
+  workstream_description?: string;
+  domain_lenses?: string[];
+  decision_title?: string;
+  decision_summary?: string;
+  judgment_to_make?: string;
   background_text: string;
   assumptions?: string;
   notes?: string;
