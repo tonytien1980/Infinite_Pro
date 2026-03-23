@@ -51,13 +51,25 @@ const ACTION_STATUS_LABELS: Record<string, string> = {
 
 const AGENT_LABELS: Record<string, string> = {
   host_orchestrator: "Host 協調中心",
+  host_agent: "Host Agent",
   strategy_business_analysis: "策略 / 商業分析代理",
+  strategy_decision_agent: "策略 / 決策代理",
   market_research_insight: "市場 / 研究洞察代理",
+  research_intelligence_agent: "研究 / 情報代理",
   operations: "營運代理",
+  operations_agent: "營運代理",
   risk_challenge: "風險 / 挑戰代理",
+  finance_agent: "財務 / 募資代理",
+  legal_risk_agent: "法務 / 風險代理",
+  marketing_growth_agent: "行銷 / 成長代理",
+  sales_business_development_agent: "銷售 / 商務開發代理",
+  document_communication_agent: "文件 / 溝通代理",
   research_synthesis: "研究綜整代理",
+  research_synthesis_specialist: "研究綜整專家代理",
   contract_review: "合約審閱代理",
+  contract_review_specialist: "合約審閱專家代理",
   document_restructuring: "文件重構代理",
+  document_restructuring_specialist: "文件重構專家代理",
 };
 
 const EVIDENCE_TYPE_LABELS: Record<string, string> = {

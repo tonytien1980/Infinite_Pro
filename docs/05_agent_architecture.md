@@ -339,6 +339,11 @@ Packs 必須能正式影響 agent behavior，例如：
 - 哪些 agents 可被 Host 調用
 - 哪些 agents 屬於 `draft / active / inactive / deprecated`
 
+目前第一版正式落地應至少做到：
+- Host 能直接讀取 Agent Registry
+- aggregate / workspace payload 能回傳 selected agents
+- deliverable metadata 能寫回本輪實際選用的 agents 與理由
+
 ### 11.3 Agent Resolver / Selector
 Host 應根據以下輸入決定 agent 組合：
 - capability archetype
@@ -347,6 +352,11 @@ Host 應根據以下輸入決定 agent 組合：
 - decision context
 - readiness / evidence sufficiency
 - explicit override
+
+第一波正式 integration 不需要做複雜 orchestration graph，但至少要做到：
+- reasoning agents 與 specialist agents 的最小正式 selection
+- omitted agent notes
+- runtime-compatible agent selection writeback
 
 ### 11.4 Agent Management Surface
 單人版最小管理能力應能讓顧問：

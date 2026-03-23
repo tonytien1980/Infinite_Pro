@@ -3,6 +3,7 @@ import type {
   Deliverable,
   Evidence,
   Goal,
+  SelectedAgent,
   SourceDocument,
   TaskAggregate,
   TaskListItem,
@@ -124,7 +125,19 @@ export interface CapabilityFrameView {
   executionMode: string;
   judgmentToMake: string;
   routingRationale: string[];
+  hostAgent: string;
   selectedAgents: string[];
+  selectedAgentDetails: Array<{
+    agentId: string;
+    agentName: string;
+    agentType: string;
+    reason: string;
+    runtimeBinding: string | null;
+  }>;
+  agentResolverNotes: string[];
+  agentSelectionRationale: string[];
+  omittedAgentNotes: string[];
+  runtimeAgents: string[];
   specialistAgent: string;
   prioritySources: string[];
   domainLenses: string[];
@@ -204,6 +217,7 @@ export interface TaskListWorkspaceSummaryView {
   decisionContext: string;
   workspaceState: string;
   packSummary: string;
+  agentSummary: string;
 }
 
 export interface PackSelectionView {
@@ -834,6 +848,22 @@ function asRecord(value: unknown) {
   }
 
   return value as Record<string, unknown>;
+}
+
+function asSelectedAgentArray(value: unknown): SelectedAgent[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter(
+    (item): item is SelectedAgent =>
+      Boolean(
+        item &&
+          typeof item === "object" &&
+          "agent_id" in item &&
+          typeof (item as { agent_id?: unknown }).agent_id === "string",
+      ),
+  );
 }
 
 function buildPackSummary(domainPacks: string[], industryPacks: string[]) {
@@ -1561,6 +1591,11 @@ export function buildTaskListWorkspaceSummary(task: TaskListItem): TaskListWorks
       (task.selected_pack_names.length > 0
         ? `Packs：${joinNaturalList(task.selected_pack_names.slice(0, 3))}`
         : "目前尚未選到 packs"),
+    agentSummary:
+      task.agent_summary?.trim() ||
+      (task.selected_agent_names.length > 0
+        ? `Agents：${joinNaturalList(task.selected_agent_names.slice(0, 3))}`
+        : "目前仍以 Host 的最小 orchestration context 為主"),
   };
 }
 
@@ -1572,7 +1607,38 @@ export function buildCapabilityFrame(
   const packSelection = buildPackSelectionView(task, deliverable);
   const workflowMode = typeof capability?.execution_mode === "string" ? capability.execution_mode : task.mode;
   const selectedAgents = asStringArray(capability?.selected_agents);
+  const selectedAgentDetails = asSelectedAgentArray(capability?.selected_agent_details);
   const prioritySources = asStringArray(capability?.priority_sources);
+  const aggregateAgentSelection = task.agent_selection;
+  const selectedAgentIds =
+    selectedAgents.length > 0 ? selectedAgents : aggregateAgentSelection.selected_agent_ids;
+  const selectedAgentDetailViews =
+    selectedAgentDetails.length > 0
+      ? selectedAgentDetails.map((item) => ({
+          agentId: item.agent_id,
+          agentName: item.agent_name,
+          agentType: item.agent_type,
+          reason: item.reason,
+          runtimeBinding: item.runtime_binding,
+        }))
+      : [
+          ...aggregateAgentSelection.selected_reasoning_agents,
+          ...aggregateAgentSelection.selected_specialist_agents,
+        ].map((item) => ({
+          agentId: item.agent_id,
+          agentName: item.agent_name,
+          agentType: item.agent_type,
+          reason: item.reason,
+          runtimeBinding: item.runtime_binding,
+        }));
+  const agentResolverNotes = asStringArray(capability?.agent_resolver_notes);
+  const agentSelectionRationale = asStringArray(capability?.agent_selection_rationale);
+  const omittedAgentNotes = asStringArray(capability?.omitted_agent_notes);
+  const runtimeAgents = asStringArray(capability?.runtime_agents);
+  const hostAgent =
+    (typeof capability?.host_agent === "string" && capability.host_agent) ||
+    aggregateAgentSelection.host_agent?.agent_id ||
+    "host_agent";
 
   return {
     capability:
@@ -1588,7 +1654,22 @@ export function buildCapabilityFrame(
       (typeof capability?.judgment_to_make === "string" && capability.judgment_to_make) ||
       buildDefaultJudgment(task),
     routingRationale: asStringArray(capability?.routing_rationale),
-    selectedAgents,
+    hostAgent,
+    selectedAgents: selectedAgentIds,
+    selectedAgentDetails: selectedAgentDetailViews,
+    agentResolverNotes:
+      agentResolverNotes.length > 0
+        ? agentResolverNotes
+        : aggregateAgentSelection.resolver_notes,
+    agentSelectionRationale:
+      agentSelectionRationale.length > 0
+        ? agentSelectionRationale
+        : aggregateAgentSelection.rationale,
+    omittedAgentNotes:
+      omittedAgentNotes.length > 0
+        ? omittedAgentNotes
+        : aggregateAgentSelection.omitted_agent_notes,
+    runtimeAgents,
     specialistAgent:
       (typeof capability?.specialist_agent === "string" && capability.specialist_agent) || "",
     prioritySources:

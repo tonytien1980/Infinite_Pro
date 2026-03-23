@@ -129,10 +129,13 @@ Capability Layer 是產品主體，不應被簡化成少數 workflow mode 名稱
 - Host Agent
 - reasoning agents
 - specialist agents
+- Agent Registry
+- Agent Resolver / Selector
 - pack-aware routing hooks
 
 ### 原則
 Agent Layer 不是 prompt 集合，而是 capability execution layer。
+它也不應停留在抽象概念層；至少要有正式 registry / resolver，讓 Host 能把 selected agents 寫進 aggregate、workspace payload 與 deliverable metadata。
 
 ---
 

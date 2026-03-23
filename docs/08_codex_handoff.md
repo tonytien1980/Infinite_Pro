@@ -155,6 +155,10 @@ Host Agent 永遠是唯一 orchestration center。
 
 ### 7.2 Agents
 Agents 應依能力面與專業責任分類，而不是只依目前已落地 flow 命名。
+目前已不只是抽象分類：
+- Agent Registry / Resolver 已是正式系統骨架
+- Host 已應開始正式吃 resolver 輸出
+- selected agents、selection rationale、omitted notes 應寫回 aggregate / workspace payload / deliverable metadata
 
 ### 7.3 Pack Layer
 Packs 應被視為正式能力層，不得退化為 tags。

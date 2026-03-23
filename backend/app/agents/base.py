@@ -13,6 +13,7 @@ from app.domain.enums import (
     InputEntryMode,
 )
 from app.domain.schemas import (
+    AgentSelectionRead,
     ArtifactRead,
     ClientRead,
     ConstraintRead,
@@ -61,6 +62,7 @@ class AgentInputPayload(BaseModel):
     sparse_input_summary: str = ""
     presence_state_summary: PresenceStateSummaryRead
     pack_resolution: PackResolutionRead = Field(default_factory=PackResolutionRead)
+    agent_selection: AgentSelectionRead = Field(default_factory=AgentSelectionRead)
     source_materials: list[SourceMaterialRead] = Field(default_factory=list)
     artifacts: list[ArtifactRead] = Field(default_factory=list)
     subjects: list[SubjectRead] = Field(default_factory=list)

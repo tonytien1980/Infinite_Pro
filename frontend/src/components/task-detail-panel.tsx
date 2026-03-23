@@ -803,12 +803,78 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                       </div>
                     ) : null}
 
-                    {capabilityFrame.selectedAgents.length > 0 ? (
+                    {capabilityFrame.selectedAgents.length > 0 || capabilityFrame.hostAgent ? (
                       <div className="detail-item" style={{ marginTop: "14px" }}>
-                        <h3>相關代理</h3>
+                        <h3>Agent selection</h3>
+                        <div className="detail-list">
+                          <div className="detail-item">
+                            <h4>Host</h4>
+                            <p className="content-block">{labelForAgentId(capabilityFrame.hostAgent)}</p>
+                          </div>
+                          {capabilityFrame.selectedAgentDetails.length > 0 ? (
+                            capabilityFrame.selectedAgentDetails.map((agent) => (
+                              <div className="detail-item" key={agent.agentId}>
+                                <div className="meta-row">
+                                  <span className="pill">{agent.agentType}</span>
+                                  {agent.runtimeBinding ? (
+                                    <span>runtime：{labelForAgentId(agent.runtimeBinding)}</span>
+                                  ) : null}
+                                </div>
+                                <h4>{agent.agentName}</h4>
+                                <ExpandableText
+                                  text={agent.reason}
+                                  emptyText="目前沒有可顯示的 selection reason。"
+                                  previewChars={200}
+                                />
+                              </div>
+                            ))
+                          ) : (
+                            <ExpandableList
+                              items={capabilityFrame.selectedAgents}
+                              emptyText="目前沒有可顯示的代理。"
+                              translateAsAgentIds
+                            />
+                          )}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {capabilityFrame.agentSelectionRationale.length > 0 ? (
+                      <div className="detail-item" style={{ marginTop: "14px" }}>
+                        <h3>Agent selection rationale</h3>
                         <ExpandableList
-                          items={capabilityFrame.selectedAgents}
-                          emptyText="目前沒有可顯示的代理。"
+                          items={capabilityFrame.agentSelectionRationale}
+                          emptyText="目前沒有可顯示的 agent selection rationale。"
+                        />
+                      </div>
+                    ) : null}
+
+                    {capabilityFrame.agentResolverNotes.length > 0 ? (
+                      <div className="detail-item" style={{ marginTop: "14px" }}>
+                        <h3>Agent resolver notes</h3>
+                        <ExpandableList
+                          items={capabilityFrame.agentResolverNotes}
+                          emptyText="目前沒有可顯示的 agent resolver notes。"
+                        />
+                      </div>
+                    ) : null}
+
+                    {capabilityFrame.omittedAgentNotes.length > 0 ? (
+                      <div className="detail-item" style={{ marginTop: "14px" }}>
+                        <h3>本輪未啟用的相關 agents</h3>
+                        <ExpandableList
+                          items={capabilityFrame.omittedAgentNotes}
+                          emptyText="目前沒有可顯示的 omitted agent notes。"
+                        />
+                      </div>
+                    ) : null}
+
+                    {capabilityFrame.runtimeAgents.length > 0 ? (
+                      <div className="detail-item" style={{ marginTop: "14px" }}>
+                        <h3>目前實際 runtime agents</h3>
+                        <ExpandableList
+                          items={capabilityFrame.runtimeAgents}
+                          emptyText="目前沒有可顯示的 runtime agents。"
                           translateAsAgentIds
                         />
                       </div>

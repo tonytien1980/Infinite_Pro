@@ -100,6 +100,9 @@ class AgentResolverInput(BaseModel):
     selected_industry_pack_ids: list[str] = Field(default_factory=list)
     decision_context_summary: str | None = None
     explicit_agent_ids: list[str] = Field(default_factory=list)
+    evidence_count: int = 0
+    artifact_count: int = 0
+    external_research_heavy_case: bool = False
     allow_specialists: bool = True
 
 
@@ -109,6 +112,7 @@ class AgentResolution(BaseModel):
     specialist_agent_ids: list[str] = Field(default_factory=list)
     override_agent_ids: list[str] = Field(default_factory=list)
     resolver_notes: list[str] = Field(default_factory=list)
+    omitted_agent_notes: list[str] = Field(default_factory=list)
 
 
 class PackRegistrySnapshot(BaseModel):

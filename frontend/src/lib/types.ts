@@ -80,6 +80,31 @@ export interface PackResolution {
   deliverable_presets: string[];
 }
 
+export interface SelectedAgent {
+  agent_id: string;
+  agent_name: string;
+  agent_type: string;
+  description: string;
+  supported_capabilities: string[];
+  relevant_domain_packs: string[];
+  relevant_industry_packs: string[];
+  reason: string;
+  runtime_binding: string | null;
+  status: string;
+  version: string;
+}
+
+export interface AgentSelection {
+  host_agent: SelectedAgent | null;
+  selected_reasoning_agents: SelectedAgent[];
+  selected_specialist_agents: SelectedAgent[];
+  selected_agent_ids: string[];
+  selected_agent_names: string[];
+  resolver_notes: string[];
+  rationale: string[];
+  omitted_agent_notes: string[];
+}
+
 export interface Client {
   id: string;
   task_id: string;
@@ -324,6 +349,7 @@ export interface TaskAggregate {
   sparse_input_summary: string;
   presence_state_summary: PresenceStateSummary;
   pack_resolution: PackResolution;
+  agent_selection: AgentSelection;
   source_materials: SourceMaterial[];
   artifacts: Artifact[];
   contexts: TaskContext[];
@@ -363,6 +389,9 @@ export interface TaskListItem {
   selected_pack_ids: string[];
   selected_pack_names: string[];
   pack_summary: string | null;
+  selected_agent_ids: string[];
+  selected_agent_names: string[];
+  agent_summary: string | null;
   evidence_count: number;
   deliverable_count: number;
   run_count: number;

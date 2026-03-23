@@ -205,6 +205,21 @@ Infinite Pro 的工作世界至少應圍繞以下主鏈理解：
 
 三者不可混為同一套 taxonomy。
 
+### Agent Registry / Resolver 的正式地位
+在正式 runtime 中，Agent Layer 不能只停留在概念層。
+至少應存在：
+- `Agent Registry`
+- `Agent Resolver / Selector`
+- selected agents writeback
+
+也就是：
+- 哪些 agents 可用
+- 哪些 agents 被選中
+- 為什麼被選中
+- 哪些相關 agents 本輪沒有啟用
+
+都應能被 aggregate、workspace 與 deliverable metadata 看見。
+
 ---
 
 ## 7. 輸出物件治理原則

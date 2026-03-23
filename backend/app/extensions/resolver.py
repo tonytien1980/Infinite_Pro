@@ -95,6 +95,21 @@ INDUSTRY_TOKEN_ALIASES = {
     },
 }
 
+RUNTIME_AGENT_BINDINGS = {
+    "host_agent": "host_orchestrator",
+    "strategy_decision_agent": "strategy_business_analysis",
+    "operations_agent": "operations",
+    "finance_agent": "strategy_business_analysis",
+    "legal_risk_agent": "risk_challenge",
+    "marketing_growth_agent": "market_research_insight",
+    "sales_business_development_agent": "market_research_insight",
+    "research_intelligence_agent": "market_research_insight",
+    "document_communication_agent": "market_research_insight",
+    "contract_review_specialist": "contract_review",
+    "research_synthesis_specialist": "research_synthesis",
+    "document_restructuring_specialist": "document_restructuring",
+}
+
 
 class PackResolver:
     def __init__(self, registry: ExtensionRegistry):
@@ -187,6 +202,7 @@ class AgentResolver:
             dict.fromkeys(_base_reasoning_agents_for_capability(payload.capability))
         )
         specialist_agent_ids: list[str] = []
+        omitted_agent_notes: list[str] = []
         resolver_notes = [
             f"Resolved base reasoning set from capability={payload.capability.value}."
         ]
@@ -200,6 +216,12 @@ class AgentResolver:
         for pack_id in payload.selected_industry_pack_ids:
             reasoning_agent_ids.extend(_reasoning_agents_for_industry_pack(pack_id))
 
+        if payload.external_research_heavy_case:
+            reasoning_agent_ids.append("research_intelligence_agent")
+            resolver_notes.append(
+                "External-research-heavy sparse case detected, so Research / Intelligence Agent was elevated."
+            )
+
         if payload.explicit_agent_ids:
             override_agent_ids = list(dict.fromkeys(payload.explicit_agent_ids))
             resolver_notes.append("Explicit agent overrides were provided.")
@@ -212,6 +234,40 @@ class AgentResolver:
                 elif agent.agent_type == AgentType.SPECIALIST and payload.allow_specialists:
                     specialist_agent_ids.append(agent_id)
 
+        if not payload.allow_specialists and specialist_agent_ids:
+            omitted_agent_notes.append(
+                "Specialist agents were considered but withheld because the current execution context does not support specialist-first handling."
+            )
+            specialist_agent_ids = []
+
+        if payload.artifact_count <= 0:
+            if "contract_review_specialist" in specialist_agent_ids:
+                specialist_agent_ids = [
+                    agent_id for agent_id in specialist_agent_ids if agent_id != "contract_review_specialist"
+                ]
+                omitted_agent_notes.append(
+                    "Contract Review Specialist was not activated because no contract artifact is currently available."
+                )
+            if "document_restructuring_specialist" in specialist_agent_ids:
+                specialist_agent_ids = [
+                    agent_id
+                    for agent_id in specialist_agent_ids
+                    if agent_id != "document_restructuring_specialist"
+                ]
+                omitted_agent_notes.append(
+                    "Document Restructuring Specialist was not activated because no source artifact is currently available."
+                )
+
+        if payload.evidence_count <= 0 and payload.capability in {
+            CapabilityArchetype.DECIDE_CONVERGE,
+            CapabilityArchetype.SCENARIO_COMPARISON,
+            CapabilityArchetype.PLAN_ROADMAP,
+            CapabilityArchetype.RISK_SURFACING,
+        }:
+            resolver_notes.append(
+                "Evidence is still thin, so the selection remains intentionally narrow and decision-facing specialists are not expanded yet."
+            )
+
         reasoning_agent_ids = _filter_active_agents(self.registry, reasoning_agent_ids, AgentType.REASONING)
         specialist_agent_ids = _filter_active_agents(self.registry, specialist_agent_ids, AgentType.SPECIALIST)
 
@@ -221,7 +277,12 @@ class AgentResolver:
             specialist_agent_ids=specialist_agent_ids,
             override_agent_ids=override_agent_ids,
             resolver_notes=resolver_notes,
+            omitted_agent_notes=omitted_agent_notes,
         )
+
+
+def resolve_runtime_agent_binding(agent_id: str) -> str | None:
+    return RUNTIME_AGENT_BINDINGS.get(agent_id)
 
 
 def _normalize_tokens(values: Iterable[str]) -> set[str]:

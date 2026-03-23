@@ -252,6 +252,9 @@ def test_task_aggregate_includes_pack_resolution_from_context_spine(client: Test
     assert ecommerce_pack["decision_patterns"]
     assert body["pack_resolution"]["resolver_notes"]
     assert body["pack_resolution"]["evidence_expectations"]
+    assert body["agent_selection"]["host_agent"]["agent_id"] == "host_agent"
+    assert body["agent_selection"]["selected_agent_ids"]
+    assert body["agent_selection"]["selected_agent_names"]
 
 
 def test_file_upload_creates_usable_txt_evidence(client: TestClient) -> None:
@@ -544,6 +547,10 @@ def test_research_synthesis_specialist_run_and_history_persistence(client: TestC
     assert content["capability_frame"]["execution_mode"] == "specialist"
     assert "operations_pack" in content["capability_frame"]["selected_domain_pack_ids"]
     assert "ecommerce_pack" in content["capability_frame"]["selected_industry_pack_ids"]
+    assert "host_agent" == content["capability_frame"]["host_agent"]
+    assert "research_synthesis_specialist" in content["capability_frame"]["selected_specialist_agents"]
+    assert content["capability_frame"]["selected_agent_details"]
+    assert content["agent_selection"]["selected_agent_ids"]
     assert content["selected_packs"]["selected_domain_packs"]
     assert content["selected_packs"]["selected_industry_packs"]
     assert content["selected_packs"]["selected_domain_packs"][0]["domain_definition"]
@@ -813,6 +820,9 @@ def test_multi_agent_happy_path_converges_and_saves_history(client: TestClient) 
     assert_consultant_output_shell(content)
     assert content["capability_frame"]["capability"] == "decide_converge"
     assert content["capability_frame"]["execution_mode"] == "multi_agent"
+    assert content["capability_frame"]["selected_agents"]
+    assert content["capability_frame"]["selected_agent_details"]
+    assert content["capability_frame"]["runtime_agents"]
     assert content["deliverable_class"] == "decision_action_deliverable"
     assert content["readiness_governance"]["evidence_coverage"]
     assert "strategy_business_analysis" in content["participating_agents"]

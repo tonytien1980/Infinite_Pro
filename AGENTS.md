@@ -145,6 +145,8 @@ This includes:
 - Host Agent as the only orchestration center
 - multiple specialist and reasoning agents
 - clear responsibilities, not roleplay personas
+- a formal Agent Registry and Agent Resolver
+- Host-selected agent context written back into aggregates, workspace payloads, and deliverable metadata
 
 ### 5.5 Pack Layer
 Pack Layer contains two formal pack families:
@@ -223,6 +225,7 @@ Host Agent must be planned to eventually handle:
 - workflow selection
 - specialist selection
 - agent coordination
+- agent-aware selection through the formal registry / resolver path
 - readiness governance
 - evidence sufficiency checks
 - convergence and deliverable shaping

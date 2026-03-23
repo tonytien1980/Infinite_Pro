@@ -81,6 +81,24 @@ def test_agent_resolver_maps_capability_and_packs() -> None:
     assert "marketing_growth_agent" in resolution.reasoning_agent_ids
 
 
+def test_agent_resolver_honors_sparse_readiness_when_specialists_are_not_ready() -> None:
+    registry = ExtensionRegistry()
+    resolver = AgentResolver(registry)
+
+    resolution = resolver.resolve(
+        AgentResolverInput(
+            capability=CapabilityArchetype.REVIEW_CHALLENGE,
+            selected_domain_pack_ids=["legal_risk_pack"],
+            artifact_count=0,
+            evidence_count=0,
+            allow_specialists=True,
+        )
+    )
+
+    assert "contract_review_specialist" not in resolution.specialist_agent_ids
+    assert resolution.omitted_agent_notes
+
+
 def test_extension_manager_snapshot_surfaces_pack_and_agent_catalogs() -> None:
     registry = ExtensionRegistry()
 

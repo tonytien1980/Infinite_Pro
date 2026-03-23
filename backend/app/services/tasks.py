@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.domain import models, schemas
 from app.domain.enums import (
+    CapabilityArchetype,
     DeliverableClass,
     ExternalDataStrategy,
     InputEntryMode,
@@ -16,8 +17,8 @@ from app.domain.enums import (
     TaskStatus,
 )
 from app.extensions.registry import ExtensionRegistry
-from app.extensions.resolver import PackResolver
-from app.extensions.schemas import PackResolverInput, PackSpec, PackType
+from app.extensions.resolver import AgentResolver, PackResolver, resolve_runtime_agent_binding
+from app.extensions.schemas import AgentResolverInput, AgentSpec, PackResolverInput, PackSpec, PackType
 from app.services.source_materials import build_source_material_summary, infer_artifact_type
 
 logger = logging.getLogger(__name__)
@@ -31,6 +32,7 @@ EXTERNAL_DATA_STRATEGY_LABELS = {
     ExternalDataStrategy.LATEST: "優先使用最新外部資料（研究模式）",
 }
 PACK_OVERRIDE_CONSTRAINT_TYPE = "pack_override"
+AGENT_OVERRIDE_CONSTRAINT_TYPE = "agent_override"
 PACK_REASON_DOMAIN_MATCHES = {
     "operations_pack": {"營運"},
     "finance_fundraising_pack": {"財務", "募資"},
@@ -148,6 +150,7 @@ EXTERNAL_EVENT_KEYWORDS = (
 )
 EXTENSION_REGISTRY = ExtensionRegistry()
 PACK_RESOLVER = PackResolver(EXTENSION_REGISTRY)
+AGENT_RESOLVER = AgentResolver(EXTENSION_REGISTRY)
 
 
 def resolve_external_data_strategy_from_constraints(
@@ -994,6 +997,290 @@ def join_natural_list(items: list[str]) -> str:
     return f"{'、'.join(normalized[:-1])} 與 {normalized[-1]}"
 
 
+def _extract_explicit_agent_overrides(
+    constraints: list[models.Constraint],
+) -> list[str]:
+    explicit_agent_ids: list[str] = []
+    for constraint in constraints:
+        if constraint.constraint_type != AGENT_OVERRIDE_CONSTRAINT_TYPE:
+            continue
+        explicit_agent_ids.extend(
+            item.strip()
+            for item in re.split(r"[\s,，\n]+", constraint.description or "")
+            if item.strip()
+        )
+    return _unique_preserve_order(explicit_agent_ids)
+
+
+def _latest_deliverable(task: models.Task) -> models.Deliverable | None:
+    return max(task.deliverables, key=lambda item: item.version, default=None)
+
+
+def _infer_capability_from_deliverable(
+    task: models.Task,
+) -> CapabilityArchetype | None:
+    latest_deliverable = _latest_deliverable(task)
+    if not latest_deliverable or not isinstance(latest_deliverable.content_structure, dict):
+        return None
+
+    capability_frame = latest_deliverable.content_structure.get("capability_frame")
+    if not isinstance(capability_frame, dict):
+        return None
+
+    capability = capability_frame.get("capability")
+    if not isinstance(capability, str):
+        return None
+
+    try:
+        return CapabilityArchetype(capability)
+    except ValueError:
+        return None
+
+
+def _build_capability_signal_text(
+    task: models.Task,
+    decision_context: schemas.DecisionContextRead | None,
+    domain_lenses: list[str],
+) -> str:
+    parts = [
+        task.title,
+        task.description,
+        decision_context.title if decision_context else "",
+        decision_context.summary if decision_context else "",
+        decision_context.judgment_to_make if decision_context else "",
+        *(goal.description for goal in task.goals),
+        *(constraint.description for constraint in task.constraints),
+        *domain_lenses,
+    ]
+    return " ".join(part.strip() for part in parts if part and part.strip()).lower()
+
+
+def _infer_capability_for_task(
+    task: models.Task,
+    decision_context: schemas.DecisionContextRead | None,
+    domain_lenses: list[str],
+) -> CapabilityArchetype:
+    existing = _infer_capability_from_deliverable(task)
+    if existing is not None:
+        return existing
+
+    if task.task_type == "contract_review":
+        return CapabilityArchetype.REVIEW_CHALLENGE
+    if task.task_type == "document_restructuring":
+        return CapabilityArchetype.RESTRUCTURE_REFRAME
+    if task.task_type == "research_synthesis":
+        return CapabilityArchetype.SYNTHESIZE_BRIEF
+
+    signal_text = _build_capability_signal_text(task, decision_context, domain_lenses)
+    if _contains_any_keyword(signal_text, ("比較", "方案", "option", "trade-off", "scenario")):
+        return CapabilityArchetype.SCENARIO_COMPARISON
+    if _contains_any_keyword(signal_text, ("路線圖", "roadmap", "規劃", "milestone", "計畫")):
+        return CapabilityArchetype.PLAN_ROADMAP
+    if _contains_any_keyword(signal_text, ("風險盤點", "risk surfacing", "法務風險", "合規風險", "risk register")):
+        return CapabilityArchetype.RISK_SURFACING
+    if _contains_any_keyword(signal_text, ("診斷", "盤點", "assess", "framing", "現況")):
+        return CapabilityArchetype.DIAGNOSE_ASSESS
+    if len([item for item in domain_lenses if item and item != DEFAULT_DOMAIN_LENS]) > 1:
+        return CapabilityArchetype.DECIDE_CONVERGE
+    return CapabilityArchetype.DECIDE_CONVERGE if task.task_type == "complex_convergence" else CapabilityArchetype.SYNTHESIZE_BRIEF
+
+
+def _allow_specialists_for_selection(
+    capability: CapabilityArchetype,
+    input_entry_mode: InputEntryMode,
+    external_research_heavy_candidate: bool,
+) -> bool:
+    if external_research_heavy_candidate or input_entry_mode == InputEntryMode.ONE_LINE_INQUIRY:
+        return False
+    return capability in {
+        CapabilityArchetype.REVIEW_CHALLENGE,
+        CapabilityArchetype.SYNTHESIZE_BRIEF,
+        CapabilityArchetype.RESTRUCTURE_REFRAME,
+    }
+
+
+def _build_selected_agent_reason(
+    *,
+    agent: AgentSpec,
+    capability: CapabilityArchetype,
+    explicit_agent_ids: list[str],
+    selected_domain_packs: list[schemas.SelectedPackRead],
+    selected_industry_packs: list[schemas.SelectedPackRead],
+) -> str:
+    reasons: list[str] = []
+    domain_pack_names = {
+        pack.pack_id: pack.pack_name for pack in selected_domain_packs
+    }
+    industry_pack_names = {
+        pack.pack_id: pack.pack_name for pack in selected_industry_packs
+    }
+
+    if agent.agent_id == "host_agent":
+        reasons.append("Host 是唯一 orchestration center，因此本輪固定存在。")
+    if agent.agent_id in explicit_agent_ids:
+        reasons.append("由使用者或上游流程明確指定覆寫。")
+    if capability in agent.supported_capabilities:
+        reasons.append(f"對齊 Capability Archetype：{capability.value}。")
+
+    matched_domain_packs = [
+        domain_pack_names[pack_id]
+        for pack_id in agent.relevant_domain_packs
+        if pack_id in domain_pack_names
+    ]
+    if matched_domain_packs:
+        reasons.append(f"對齊 Domain Packs：{join_natural_list(matched_domain_packs)}。")
+
+    matched_industry_packs = [
+        industry_pack_names[pack_id]
+        for pack_id in agent.relevant_industry_packs
+        if pack_id in industry_pack_names
+    ]
+    if matched_industry_packs:
+        reasons.append(f"對齊 Industry Packs：{join_natural_list(matched_industry_packs)}。")
+
+    if not reasons:
+        reasons.append("由 Agent Resolver 依目前 DecisionContext 與 readiness 推定。")
+    return " ".join(reasons)
+
+
+def _serialize_selected_agent(
+    *,
+    agent: AgentSpec,
+    capability: CapabilityArchetype,
+    explicit_agent_ids: list[str],
+    selected_domain_packs: list[schemas.SelectedPackRead],
+    selected_industry_packs: list[schemas.SelectedPackRead],
+) -> schemas.SelectedAgentRead:
+    return schemas.SelectedAgentRead(
+        agent_id=agent.agent_id,
+        agent_name=agent.agent_name,
+        agent_type=agent.agent_type.value,
+        description=agent.description,
+        supported_capabilities=[item.value for item in agent.supported_capabilities],
+        relevant_domain_packs=agent.relevant_domain_packs,
+        relevant_industry_packs=agent.relevant_industry_packs,
+        reason=_build_selected_agent_reason(
+            agent=agent,
+            capability=capability,
+            explicit_agent_ids=explicit_agent_ids,
+            selected_domain_packs=selected_domain_packs,
+            selected_industry_packs=selected_industry_packs,
+        ),
+        runtime_binding=resolve_runtime_agent_binding(agent.agent_id),
+        status=agent.status.value,
+        version=agent.version,
+    )
+
+
+def resolve_agent_selection_for_task(
+    task: models.Task,
+    decision_context: schemas.DecisionContextRead | None,
+    domain_lenses: list[str],
+    pack_resolution: schemas.PackResolutionRead,
+    input_entry_mode: InputEntryMode,
+    deliverable_class_hint: DeliverableClass,
+    external_research_heavy_candidate: bool,
+    source_materials: list[schemas.SourceMaterialRead],
+    artifacts: list[schemas.ArtifactRead],
+) -> schemas.AgentSelectionRead:
+    capability = _infer_capability_for_task(task, decision_context, domain_lenses)
+    explicit_agent_ids = _extract_explicit_agent_overrides(task.constraints)
+    resolution = AGENT_RESOLVER.resolve(
+        AgentResolverInput(
+            capability=capability,
+            selected_domain_pack_ids=[item.pack_id for item in pack_resolution.selected_domain_packs],
+            selected_industry_pack_ids=[item.pack_id for item in pack_resolution.selected_industry_packs],
+            decision_context_summary=(
+                decision_context.summary if decision_context else task.description or task.title
+            ),
+            explicit_agent_ids=explicit_agent_ids,
+            evidence_count=len(_usable_evidence(task)),
+            artifact_count=len(_meaningful_artifacts(artifacts)),
+            external_research_heavy_case=external_research_heavy_candidate,
+            allow_specialists=_allow_specialists_for_selection(
+                capability,
+                input_entry_mode,
+                external_research_heavy_candidate,
+            ),
+        )
+    )
+
+    selected_reasoning_agents = [
+        _serialize_selected_agent(
+            agent=agent,
+            capability=capability,
+            explicit_agent_ids=explicit_agent_ids,
+            selected_domain_packs=pack_resolution.selected_domain_packs,
+            selected_industry_packs=pack_resolution.selected_industry_packs,
+        )
+        for agent_id in resolution.reasoning_agent_ids
+        if (agent := EXTENSION_REGISTRY.get_agent(agent_id)) is not None
+    ]
+    selected_specialist_agents = [
+        _serialize_selected_agent(
+            agent=agent,
+            capability=capability,
+            explicit_agent_ids=explicit_agent_ids,
+            selected_domain_packs=pack_resolution.selected_domain_packs,
+            selected_industry_packs=pack_resolution.selected_industry_packs,
+        )
+        for agent_id in resolution.specialist_agent_ids
+        if (agent := EXTENSION_REGISTRY.get_agent(agent_id)) is not None
+    ]
+    host_agent = EXTENSION_REGISTRY.get_agent(resolution.host_agent_id)
+
+    selected_agent_names = [
+        *[item.agent_name for item in selected_reasoning_agents],
+        *[item.agent_name for item in selected_specialist_agents],
+    ]
+    rationale = [
+        f"本輪 capability archetype 已被解析為 {capability.value}。",
+    ]
+    if pack_resolution.selected_domain_packs:
+        rationale.append(
+            "Domain / Functional Packs："
+            + join_natural_list([item.pack_name for item in pack_resolution.selected_domain_packs])
+            + "。"
+        )
+    if pack_resolution.selected_industry_packs:
+        rationale.append(
+            "Industry Packs："
+            + join_natural_list([item.pack_name for item in pack_resolution.selected_industry_packs])
+            + "。"
+        )
+    if input_entry_mode == InputEntryMode.ONE_LINE_INQUIRY:
+        rationale.append("目前屬於一句話 sparse input，因此 agent selection 會維持較保守的最小集合。")
+    elif input_entry_mode == InputEntryMode.SINGLE_DOCUMENT_INTAKE:
+        rationale.append("目前屬於單文件 intake，因此 agent selection 會偏向 document-centered review / synthesis。")
+    else:
+        rationale.append("目前屬於多材料案件，因此可啟用較完整的 reasoning 組合。")
+    if external_research_heavy_candidate:
+        rationale.append("這輪屬於 external-research-heavy sparse case，因此會優先保留外部研究與不確定性 framing 能力。")
+    if deliverable_class_hint == DeliverableClass.EXPLORATORY_BRIEF:
+        rationale.append("目前交付等級仍偏 exploratory，因此不會假裝已啟用完整 decision-action agent 組合。")
+
+    return schemas.AgentSelectionRead(
+        host_agent=(
+            _serialize_selected_agent(
+                agent=host_agent,
+                capability=capability,
+                explicit_agent_ids=explicit_agent_ids,
+                selected_domain_packs=pack_resolution.selected_domain_packs,
+                selected_industry_packs=pack_resolution.selected_industry_packs,
+            )
+            if host_agent is not None
+            else None
+        ),
+        selected_reasoning_agents=selected_reasoning_agents,
+        selected_specialist_agents=selected_specialist_agents,
+        selected_agent_ids=[item.agent_id for item in [*selected_reasoning_agents, *selected_specialist_agents]],
+        selected_agent_names=selected_agent_names,
+        resolver_notes=resolution.resolver_notes,
+        rationale=rationale,
+        omitted_agent_notes=resolution.omitted_agent_notes,
+    )
+
+
 def resolve_pack_selection_for_task(
     task: models.Task,
     client: schemas.ClientRead | None,
@@ -1620,7 +1907,7 @@ def list_tasks(db: Session) -> list[schemas.TaskListItemResponse]:
 
     items: list[schemas.TaskListItemResponse] = []
     for task in tasks:
-        latest_deliverable = max(task.deliverables, key=lambda item: item.version, default=None)
+        latest_deliverable = _latest_deliverable(task)
         client, engagement, workstream, decision_context, domain_lenses, source_materials, artifacts = (
             _build_ontology_spine_for_task(task)
         )
@@ -1647,6 +1934,17 @@ def list_tasks(db: Session) -> list[schemas.TaskListItemResponse]:
             artifacts,
             len(_usable_evidence(task)),
             external_research_heavy_candidate,
+        )
+        agent_selection = resolve_agent_selection_for_task(
+            task,
+            decision_context,
+            domain_lenses,
+            pack_resolution,
+            input_entry_mode,
+            deliverable_class_hint,
+            external_research_heavy_candidate,
+            source_materials,
+            artifacts,
         )
         items.append(
             schemas.TaskListItemResponse(
@@ -1676,6 +1974,14 @@ def list_tasks(db: Session) -> list[schemas.TaskListItemResponse]:
                 pack_summary=(
                     f"Domain Packs：{join_natural_list([item.pack_name for item in pack_resolution.selected_domain_packs]) or '未選用'}；"
                     f"Industry Packs：{join_natural_list([item.pack_name for item in pack_resolution.selected_industry_packs]) or '未選用'}"
+                ),
+                selected_agent_ids=agent_selection.selected_agent_ids,
+                selected_agent_names=agent_selection.selected_agent_names,
+                agent_summary=(
+                    f"Host：{agent_selection.host_agent.agent_name}；"
+                    f"Selected agents：{join_natural_list(agent_selection.selected_agent_names[:3]) or '尚未選到其他 agents'}"
+                    if agent_selection.host_agent
+                    else None
                 ),
                 evidence_count=len(task.evidence),
                 deliverable_count=len(task.deliverables),
@@ -1749,6 +2055,17 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         len(_usable_evidence(task)),
         external_research_heavy_candidate,
     )
+    agent_selection = resolve_agent_selection_for_task(
+        task,
+        decision_context,
+        domain_lenses,
+        pack_resolution,
+        input_entry_mode,
+        deliverable_class_hint,
+        external_research_heavy_candidate,
+        source_materials,
+        artifacts,
+    )
     return schemas.TaskAggregateResponse(
         id=task.id,
         title=task.title,
@@ -1777,6 +2094,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         ),
         presence_state_summary=presence_state_summary,
         pack_resolution=pack_resolution,
+        agent_selection=agent_selection,
         source_materials=source_materials,
         artifacts=artifacts,
         contexts=[schemas.TaskContextRead.model_validate(item) for item in task.contexts],

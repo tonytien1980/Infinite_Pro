@@ -113,6 +113,7 @@ Infinite Pro formally distinguishes four extension-facing concepts:
 - `Agents`
   - define **who executes or orchestrates** the work
   - includes `Host Agent`, `Reasoning Agents`, and `Specialist Agents`
+  - are governed through a formal `Agent Registry` and selected through an `Agent Resolver`
 
 These concepts must not be collapsed into each other:
 - a capability archetype is not a pack
@@ -129,6 +130,12 @@ The `Pack Layer` is therefore the formal home of both:
 - `Industry Packs`
 
 The management experience for packs and agents may share a single `Extension Manager` surface in the workbench, but that shared manager is a UI/governance surface, not a seventh architecture layer.
+
+Current minimal formal integration now exists for both extension families:
+- `Pack Resolver -> Host`
+- `Agent Registry / Resolver -> Host`
+
+That means selected packs and selected agents are no longer only conceptual governance definitions; they now enter task aggregates, workspace payloads, Host framing, readiness governance, and deliverable metadata.
 
 ## Core ontology objects
 

@@ -28,6 +28,9 @@ from app.domain.enums import (
     RunStatus,
     TaskStatus,
 )
+from app.extensions.registry import ExtensionRegistry
+from app.extensions.resolver import AgentResolver, resolve_runtime_agent_binding
+from app.extensions.schemas import AgentResolverInput
 from app.model_router.factory import get_model_provider
 from app.services.external_search import search_external_sources
 from app.services.sources import ingest_remote_urls_for_task
@@ -71,6 +74,7 @@ SPECIALIST_TASK_TYPES = {
     "research_synthesis",
     "document_restructuring",
 }
+AGENT_OVERRIDE_CONSTRAINT_TYPE = "agent_override"
 
 
 @dataclass
@@ -90,6 +94,14 @@ class CapabilityFrame:
     preferred_execution_mode: FlowMode
     specialist_agent_id: str | None = None
     selected_core_agents: list[str] = field(default_factory=list)
+    host_agent_id: str = "host_agent"
+    selected_agent_ids: list[str] = field(default_factory=list)
+    selected_reasoning_agent_ids: list[str] = field(default_factory=list)
+    selected_specialist_agent_ids: list[str] = field(default_factory=list)
+    selected_agent_details: list[schemas.SelectedAgentRead] = field(default_factory=list)
+    agent_resolver_notes: list[str] = field(default_factory=list)
+    agent_selection_rationale: list[str] = field(default_factory=list)
+    omitted_agent_notes: list[str] = field(default_factory=list)
     selected_domain_pack_ids: list[str] = field(default_factory=list)
     selected_industry_pack_ids: list[str] = field(default_factory=list)
     selected_pack_names: list[str] = field(default_factory=list)
@@ -121,6 +133,8 @@ class HostOrchestrator:
     def __init__(self, db: Session):
         self.db = db
         self.registry = AgentRegistry(model_provider=get_model_provider())
+        self.extension_registry = ExtensionRegistry()
+        self.agent_resolver = AgentResolver(self.extension_registry)
 
     @staticmethod
     def _compatibility_flow_mode(task: models.Task) -> FlowMode:
@@ -195,6 +209,7 @@ class HostOrchestrator:
             sparse_input_summary=aggregate.sparse_input_summary,
             presence_state_summary=aggregate.presence_state_summary,
             pack_resolution=aggregate.pack_resolution,
+            agent_selection=aggregate.agent_selection,
             source_materials=aggregate.source_materials,
             artifacts=aggregate.artifacts,
             subjects=aggregate.subjects,
@@ -535,6 +550,229 @@ class HostOrchestrator:
             heuristics.extend(pack.stage_specific_heuristics.get(client_stage, []))
         return self._unique_preserve_order(heuristics)
 
+    @staticmethod
+    def _extract_explicit_agent_overrides(payload: AgentInputPayload) -> list[str]:
+        explicit_agent_ids: list[str] = []
+        for constraint in payload.constraints:
+            if constraint.constraint_type != AGENT_OVERRIDE_CONSTRAINT_TYPE:
+                continue
+            explicit_agent_ids.extend(
+                item.strip()
+                for item in constraint.description.replace("，", ",").replace("\n", ",").split(",")
+                if item.strip()
+            )
+        return explicit_agent_ids
+
+    @staticmethod
+    def _allow_specialists_for_agent_selection(
+        payload: AgentInputPayload,
+        capability: CapabilityArchetype,
+        preferred_execution_mode: FlowMode,
+        external_research_heavy_case: bool,
+    ) -> bool:
+        if external_research_heavy_case or payload.input_entry_mode == InputEntryMode.ONE_LINE_INQUIRY:
+            return False
+        if preferred_execution_mode != FlowMode.SPECIALIST:
+            return False
+        return capability in {
+            CapabilityArchetype.REVIEW_CHALLENGE,
+            CapabilityArchetype.SYNTHESIZE_BRIEF,
+            CapabilityArchetype.RESTRUCTURE_REFRAME,
+        }
+
+    @staticmethod
+    def _build_selected_agent_reason(
+        *,
+        agent,
+        capability: CapabilityArchetype,
+        explicit_agent_ids: list[str],
+        selected_domain_packs: list[schemas.SelectedPackRead],
+        selected_industry_packs: list[schemas.SelectedPackRead],
+    ) -> str:
+        reasons: list[str] = []
+        domain_pack_names = {pack.pack_id: pack.pack_name for pack in selected_domain_packs}
+        industry_pack_names = {pack.pack_id: pack.pack_name for pack in selected_industry_packs}
+
+        if agent.agent_id == "host_agent":
+            reasons.append("Host 是唯一 orchestration center，因此本輪固定存在。")
+        if agent.agent_id in explicit_agent_ids:
+            reasons.append("由使用者或上游流程明確指定覆寫。")
+        if capability in agent.supported_capabilities:
+            reasons.append(f"對齊 Capability Archetype：{capability.value}。")
+
+        matched_domain_packs = [
+            domain_pack_names[pack_id]
+            for pack_id in agent.relevant_domain_packs
+            if pack_id in domain_pack_names
+        ]
+        if matched_domain_packs:
+            reasons.append(
+                "對齊 Domain Packs：" + "、".join(matched_domain_packs) + "。"
+            )
+
+        matched_industry_packs = [
+            industry_pack_names[pack_id]
+            for pack_id in agent.relevant_industry_packs
+            if pack_id in industry_pack_names
+        ]
+        if matched_industry_packs:
+            reasons.append(
+                "對齊 Industry Packs：" + "、".join(matched_industry_packs) + "。"
+            )
+
+        if not reasons:
+            reasons.append("由 Agent Resolver 依目前 DecisionContext、packs 與 readiness 推定。")
+        return " ".join(reasons)
+
+    def _serialize_selected_agent(
+        self,
+        *,
+        agent_id: str,
+        capability: CapabilityArchetype,
+        explicit_agent_ids: list[str],
+        selected_domain_packs: list[schemas.SelectedPackRead],
+        selected_industry_packs: list[schemas.SelectedPackRead],
+    ) -> schemas.SelectedAgentRead | None:
+        agent = self.extension_registry.get_agent(agent_id)
+        if agent is None:
+            return None
+
+        return schemas.SelectedAgentRead(
+            agent_id=agent.agent_id,
+            agent_name=agent.agent_name,
+            agent_type=agent.agent_type.value,
+            description=agent.description,
+            supported_capabilities=[item.value for item in agent.supported_capabilities],
+            relevant_domain_packs=agent.relevant_domain_packs,
+            relevant_industry_packs=agent.relevant_industry_packs,
+            reason=self._build_selected_agent_reason(
+                agent=agent,
+                capability=capability,
+                explicit_agent_ids=explicit_agent_ids,
+                selected_domain_packs=selected_domain_packs,
+                selected_industry_packs=selected_industry_packs,
+            ),
+            runtime_binding=resolve_runtime_agent_binding(agent.agent_id),
+            status=agent.status.value,
+            version=agent.version,
+        )
+
+    def _resolve_runtime_reasoning_agents(
+        self,
+        reasoning_agent_ids: list[str],
+    ) -> list[str]:
+        runtime_agent_ids = [
+            resolve_runtime_agent_binding(agent_id) for agent_id in reasoning_agent_ids
+        ]
+        runtime_agent_ids = [
+            agent_id for agent_id in runtime_agent_ids if agent_id in DEFAULT_CORE_AGENT_ORDER
+        ]
+        return self._unique_preserve_order(runtime_agent_ids)
+
+    @staticmethod
+    def _default_specialist_agent_for_capability(
+        capability: CapabilityArchetype,
+        payload: AgentInputPayload,
+    ) -> str | None:
+        if capability == CapabilityArchetype.REVIEW_CHALLENGE and (
+            "法務" in payload.domain_lenses or payload.task_type == "contract_review"
+        ):
+            return "contract_review_specialist"
+        if capability == CapabilityArchetype.RESTRUCTURE_REFRAME:
+            return "document_restructuring_specialist"
+        if capability in {
+            CapabilityArchetype.SYNTHESIZE_BRIEF,
+            CapabilityArchetype.DIAGNOSE_ASSESS,
+            CapabilityArchetype.PLAN_ROADMAP,
+            CapabilityArchetype.RISK_SURFACING,
+        }:
+            return "research_synthesis_specialist"
+        return None
+
+    def _resolve_agent_selection(
+        self,
+        payload: AgentInputPayload,
+        capability: CapabilityArchetype,
+        preferred_execution_mode: FlowMode,
+    ) -> tuple[
+        list[str],
+        list[str],
+        list[str],
+        list[schemas.SelectedAgentRead],
+        list[str],
+        list[str],
+        str,
+    ]:
+        selected_domain_packs = self._selected_domain_packs(payload)
+        selected_industry_packs = self._selected_industry_packs(payload)
+        explicit_agent_ids = self._extract_explicit_agent_overrides(payload)
+        external_research_heavy_case = self._is_external_research_heavy_sparse_case(payload)
+        resolution = self.agent_resolver.resolve(
+            AgentResolverInput(
+                capability=capability,
+                selected_domain_pack_ids=[item.pack_id for item in selected_domain_packs],
+                selected_industry_pack_ids=[item.pack_id for item in selected_industry_packs],
+                decision_context_summary=(
+                    payload.decision_context.summary if payload.decision_context else payload.description or payload.title
+                ),
+                explicit_agent_ids=explicit_agent_ids,
+                evidence_count=len(self._usable_evidence(payload)),
+                artifact_count=len(self._meaningful_artifacts(payload)),
+                external_research_heavy_case=external_research_heavy_case,
+                allow_specialists=self._allow_specialists_for_agent_selection(
+                    payload,
+                    capability,
+                    preferred_execution_mode,
+                    external_research_heavy_case,
+                ),
+            )
+        )
+        if preferred_execution_mode == FlowMode.SPECIALIST and not resolution.specialist_agent_ids:
+            fallback_specialist = self._default_specialist_agent_for_capability(capability, payload)
+            if fallback_specialist:
+                resolution.specialist_agent_ids.append(fallback_specialist)
+                resolution.resolver_notes.append(
+                    f"Host applied a specialist fallback for capability={capability.value} to preserve the current specialist execution path."
+                )
+
+        selected_agent_details = [
+            item
+            for item in [
+                self._serialize_selected_agent(
+                    agent_id=agent_id,
+                    capability=capability,
+                    explicit_agent_ids=explicit_agent_ids,
+                    selected_domain_packs=selected_domain_packs,
+                    selected_industry_packs=selected_industry_packs,
+                )
+                for agent_id in [*resolution.reasoning_agent_ids, *resolution.specialist_agent_ids]
+            ]
+            if item is not None
+        ]
+        selected_runtime_agents = self._resolve_runtime_reasoning_agents(resolution.reasoning_agent_ids)
+        legacy_runtime_order, _ = self._select_core_agents(payload, capability)
+        selected_runtime_agents = sorted(
+            selected_runtime_agents,
+            key=lambda item: (
+                legacy_runtime_order.index(item)
+                if item in legacy_runtime_order
+                else len(legacy_runtime_order)
+            ),
+        )
+        if not selected_runtime_agents:
+            selected_runtime_agents = DEFAULT_CORE_AGENT_ORDER.copy()
+
+        host_agent_id = resolution.host_agent_id
+        return (
+            resolution.reasoning_agent_ids,
+            resolution.specialist_agent_ids,
+            selected_runtime_agents,
+            selected_agent_details,
+            resolution.resolver_notes,
+            resolution.omitted_agent_notes,
+            host_agent_id,
+        )
+
     def _decision_signal_text(self, payload: AgentInputPayload) -> str:
         parts = [
             payload.title,
@@ -734,8 +972,6 @@ class HostOrchestrator:
         } and len([item for item in payload.domain_lenses if item and item != DEFAULT_DOMAIN_LENS]) > 1:
             preferred_execution_mode = FlowMode.MULTI_AGENT
 
-        selected_core_agents, core_routing_notes = self._select_core_agents(payload, capability)
-        routing_rationale.extend(core_routing_notes)
         selected_domain_packs = self._selected_domain_packs(payload)
         selected_industry_packs = self._selected_industry_packs(payload)
         selected_pack_names = self._pack_names(payload)
@@ -774,6 +1010,31 @@ class HostOrchestrator:
                 + "、".join(pack_problem_patterns[:2])
                 + "。"
             )
+        _, legacy_core_routing_notes = self._select_core_agents(payload, capability)
+        routing_rationale.extend(legacy_core_routing_notes)
+        (
+            selected_reasoning_agent_ids,
+            selected_specialist_agent_ids,
+            selected_runtime_agents,
+            selected_agent_details,
+            agent_resolver_notes,
+            omitted_agent_notes,
+            host_agent_id,
+        ) = self._resolve_agent_selection(
+            payload,
+            capability,
+            preferred_execution_mode,
+        )
+        if agent_resolver_notes:
+            routing_rationale.extend(agent_resolver_notes)
+        if selected_agent_details:
+            routing_rationale.append(
+                "這輪由 Host 正式透過 Agent Resolver 選出："
+                + "、".join(item.agent_name for item in selected_agent_details[:4])
+                + "。"
+            )
+        if omitted_agent_notes:
+            routing_rationale.extend(omitted_agent_notes)
         prioritized_artifacts = self._meaningful_artifacts(payload)[:3]
         priority_sources = [item.title for item in prioritized_artifacts] + [
             item.title
@@ -797,8 +1058,41 @@ class HostOrchestrator:
         return CapabilityFrame(
             capability=capability,
             preferred_execution_mode=preferred_execution_mode,
-            specialist_agent_id=specialist_agent_id,
-            selected_core_agents=selected_core_agents,
+            specialist_agent_id=(
+                resolve_runtime_agent_binding(selected_specialist_agent_ids[0])
+                if selected_specialist_agent_ids
+                else specialist_agent_id
+            ),
+            selected_core_agents=selected_runtime_agents,
+            host_agent_id=host_agent_id,
+            selected_agent_ids=[item.agent_id for item in selected_agent_details],
+            selected_reasoning_agent_ids=selected_reasoning_agent_ids,
+            selected_specialist_agent_ids=selected_specialist_agent_ids,
+            selected_agent_details=selected_agent_details,
+            agent_resolver_notes=agent_resolver_notes,
+            agent_selection_rationale=[
+                f"Host 先根據 capability={capability.value} 建立最小 agent selection。",
+                *(
+                    [
+                        "selected domain packs 為："
+                        + "、".join(item.pack_name for item in selected_domain_packs)
+                        + "。"
+                    ]
+                    if selected_domain_packs
+                    else []
+                ),
+                *(
+                    [
+                        "selected industry packs 為："
+                        + "、".join(item.pack_name for item in selected_industry_packs)
+                        + "。"
+                    ]
+                    if selected_industry_packs
+                    else []
+                ),
+                *agent_resolver_notes,
+            ],
+            omitted_agent_notes=omitted_agent_notes,
             selected_domain_pack_ids=[item.pack_id for item in selected_domain_packs],
             selected_industry_pack_ids=[item.pack_id for item in selected_industry_packs],
             selected_pack_names=selected_pack_names,
@@ -1299,7 +1593,7 @@ class HostOrchestrator:
         capability_frame: CapabilityFrame,
         readiness: ReadinessGovernance,
         workflow_mode: FlowMode,
-        selected_agents: list[str],
+        runtime_agents: list[str],
     ) -> AgentResult:
         content = dict(result.deliverable.content_structure or {})
         missing_information = self._string_list(content.get("missing_information"))
@@ -1322,8 +1616,22 @@ class HostOrchestrator:
                 else payload.description or payload.title
             ),
             "routing_rationale": capability_frame.routing_rationale,
-            "selected_agents": selected_agents,
-            "specialist_agent": capability_frame.specialist_agent_id,
+            "host_agent": capability_frame.host_agent_id,
+            "selected_agents": capability_frame.selected_agent_ids,
+            "selected_reasoning_agents": capability_frame.selected_reasoning_agent_ids,
+            "selected_specialist_agents": capability_frame.selected_specialist_agent_ids,
+            "selected_agent_details": [
+                item.model_dump(mode="json") for item in capability_frame.selected_agent_details
+            ],
+            "specialist_agent": (
+                capability_frame.selected_specialist_agent_ids[0]
+                if capability_frame.selected_specialist_agent_ids
+                else capability_frame.specialist_agent_id
+            ),
+            "runtime_agents": runtime_agents,
+            "agent_resolver_notes": capability_frame.agent_resolver_notes,
+            "agent_selection_rationale": capability_frame.agent_selection_rationale,
+            "omitted_agent_notes": capability_frame.omitted_agent_notes,
             "priority_sources": capability_frame.priority_sources,
             "domain_lenses": payload.domain_lenses,
             "client_stage": self._effective_client_stage(payload),
@@ -1350,6 +1658,19 @@ class HostOrchestrator:
             "conclusion_impact": readiness.conclusion_impact,
         }
         content["selected_packs"] = payload.pack_resolution.model_dump(mode="json")
+        content["agent_selection"] = {
+            "host_agent": capability_frame.host_agent_id,
+            "selected_agent_ids": capability_frame.selected_agent_ids,
+            "selected_reasoning_agent_ids": capability_frame.selected_reasoning_agent_ids,
+            "selected_specialist_agent_ids": capability_frame.selected_specialist_agent_ids,
+            "selected_agent_details": [
+                item.model_dump(mode="json") for item in capability_frame.selected_agent_details
+            ],
+            "resolver_notes": capability_frame.agent_resolver_notes,
+            "rationale": capability_frame.agent_selection_rationale,
+            "omitted_agent_notes": capability_frame.omitted_agent_notes,
+            "runtime_agents": runtime_agents,
+        }
         content["input_entry_mode"] = payload.input_entry_mode.value
         content["deliverable_class"] = readiness.supported_deliverable_class.value
         content["sparse_input_operating_state"] = {

@@ -110,6 +110,7 @@ export function WorkbenchHome() {
                       <p className="workspace-object-path">{workspaceSummary.objectPath}</p>
                       <p className="muted-text">{workspaceSummary.decisionContext}</p>
                       <p className="muted-text">{workspaceSummary.packSummary}</p>
+                      <p className="muted-text">{workspaceSummary.agentSummary}</p>
                       <div className="meta-row">
                         <span>{workspaceSummary.workspaceState}</span>
                       </div>
