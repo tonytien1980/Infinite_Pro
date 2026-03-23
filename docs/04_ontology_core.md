@@ -1,8 +1,8 @@
-# 04_ontology_core_v1.md
+# 04_ontology_core.md
 
 > 文件狀態：Governance Reset v2.1（正式 Ontology 基底文件）
 >
-> 本文件延續既有檔名以維持文件索引穩定，但內容已改為支撐 Infinite Pro 的 **Single-Consultant Full-Scope Edition**，並以正式 ontology 基底作為產品主骨架。
+> 本文件支撐 Infinite Pro 的 **Single-Consultant Full-Scope Edition**，並以正式 ontology 基底作為產品主骨架。
 
 ---
 

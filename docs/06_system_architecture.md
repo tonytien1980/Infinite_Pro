@@ -1,8 +1,8 @@
-# 06_system_architecture_v1.md
+# 06_system_architecture.md
 
 > 文件狀態：Governance Reset v2.1（正式系統架構文件）
 >
-> 本文件延續既有檔名以維持文件索引穩定，但內容已改為支撐 Infinite Pro 的 **Single-Consultant Full-Scope Edition**。
+> 本文件支撐 Infinite Pro 的 **Single-Consultant Full-Scope Edition**。
 
 ---
 

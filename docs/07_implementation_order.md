@@ -1,10 +1,8 @@
-# 07_mvp_build_plan.md
+# 07_implementation_order.md
 
 > 文件狀態：Governance Reset v2.1（正式施工順序文件）
 >
-> 本文件延續既有檔名以維持文件索引穩定，但內容已不再以縮小版產品 build plan 的思路規劃 Infinite Pro，而是改為：
->
-> **full-scope by capability + phased by implementation order**
+> 本文件以 **full-scope by capability + phased by implementation order** 作為正式施工原則。
 
 ---
 

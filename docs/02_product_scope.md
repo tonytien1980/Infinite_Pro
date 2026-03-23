@@ -1,8 +1,8 @@
-# 02_product_scope_v1.md
+# 02_product_scope.md
 
 > 文件狀態：Governance Reset v2.1（正式產品範圍文件）
 >
-> 本文件延續既有檔名以維持文件索引穩定，但內容已完全對齊 Infinite Pro 的正式 full-scope 單人版治理前提。
+> 本文件已正式對齊 Infinite Pro 的 full-scope 單人版治理前提。
 
 ---
 

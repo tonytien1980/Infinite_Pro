@@ -12,7 +12,7 @@ That means:
 - capability boundaries should **not** be artificially reduced into a smaller product definition
 - multi-user, multi-company, multi-tenant, and team-governance concerns are later system layers
 
-The highest-priority product definition lives in [`docs/09_infinite_pro_core_definition.md`](/Users/tonytien/Desktop/Infinite%20Pro/docs/09_infinite_pro_core_definition.md). Governance and implementation documents in [`docs/02_product_scope_v1.md`](/Users/tonytien/Desktop/Infinite%20Pro/docs/02_product_scope_v1.md) through [`docs/08_codex_handoff.md`](/Users/tonytien/Desktop/Infinite%20Pro/docs/08_codex_handoff.md) should be read as the official full-scope planning baseline, even when their filenames still contain `v1` or `mvp`.
+The highest-priority product definition lives in [`docs/09_infinite_pro_core_definition.md`](/Users/tonytien/Desktop/Infinite%20Pro/docs/09_infinite_pro_core_definition.md). Governance and implementation documents in [`docs/02_product_scope.md`](/Users/tonytien/Desktop/Infinite%20Pro/docs/02_product_scope.md) through [`docs/08_codex_handoff.md`](/Users/tonytien/Desktop/Infinite%20Pro/docs/08_codex_handoff.md) should be read as the official full-scope planning baseline.
 
 ## Product positioning
 
