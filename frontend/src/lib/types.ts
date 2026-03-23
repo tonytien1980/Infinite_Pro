@@ -291,6 +291,16 @@ export interface TaskListItem {
   status: TaskStatus;
   created_at: string;
   updated_at: string;
+  client_name: string | null;
+  engagement_name: string | null;
+  workstream_name: string | null;
+  decision_context_title: string | null;
+  client_stage: string | null;
+  client_type: string | null;
+  domain_lenses: string[];
+  input_entry_mode: InputEntryMode;
+  deliverable_class_hint: DeliverableClass;
+  external_research_heavy_candidate: boolean;
   evidence_count: number;
   deliverable_count: number;
   run_count: number;

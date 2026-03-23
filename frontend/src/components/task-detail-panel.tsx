@@ -10,8 +10,11 @@ import {
   buildActionItemCards,
   buildCapabilityFrame,
   buildDecisionSnapshot,
+  buildDeliverableBacklinkView,
+  buildEvidenceWorkspaceLane,
   buildExternalDataUsage,
   buildExecutiveSummary,
+  buildObjectNavigationStrip,
   buildOntologyChainSummary,
   buildRecommendationCards,
   buildReadinessGovernance,
@@ -40,7 +43,6 @@ import {
   labelForFlowMode,
   labelForImpactLevel,
   labelForLikelihoodLevel,
-  labelForDeliverableClass,
   labelForPriority,
   labelForRunStatus,
   labelForSourceType,
@@ -233,6 +235,64 @@ function DisclosurePanel({
   );
 }
 
+function WorkspaceMaterialSection({
+  title,
+  description,
+  items,
+  emptyText,
+}: {
+  title: string;
+  description: string;
+  items: Array<{
+    title: string;
+    summary: string;
+    meta: string[];
+    supportNotes: string[];
+  }>;
+  emptyText: string;
+}) {
+  return (
+    <div className="detail-item">
+      <h3>{title}</h3>
+      <p className="panel-copy" style={{ marginBottom: "16px" }}>
+        {description}
+      </p>
+      {items.length > 0 ? (
+        <div className="detail-list">
+          {items.map((item) => (
+            <div className="detail-item" key={`${title}-${item.title}`}>
+              {item.meta.length > 0 ? (
+                <div className="meta-row">
+                  {item.meta.map((meta) => (
+                    <span key={`${item.title}-${meta}`}>{meta}</span>
+                  ))}
+                </div>
+              ) : null}
+              <h3>{item.title}</h3>
+              <ExpandableText
+                text={item.summary}
+                emptyText="目前沒有可顯示的摘要。"
+                previewChars={220}
+              />
+              {item.supportNotes.length > 0 ? (
+                <div style={{ marginTop: "10px" }}>
+                  <ExpandableList
+                    items={item.supportNotes}
+                    emptyText="目前沒有額外支持說明。"
+                    initialCount={3}
+                  />
+                </div>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="empty-text">{emptyText}</p>
+      )}
+    </div>
+  );
+}
+
 export function TaskDetailPanel({ taskId }: { taskId: string }) {
   const [task, setTask] = useState<TaskAggregate | null>(null);
   const [loading, setLoading] = useState(true);
@@ -299,12 +359,16 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
   const riskCards = task ? buildRiskCards(task, latestDeliverable) : [];
   const actionItemCards = task ? buildActionItemCards(task, latestDeliverable) : [];
   const workbenchObjectSummary = task ? buildWorkbenchObjectSummary(task, latestDeliverable) : null;
+  const objectNavigationStrip = task ? buildObjectNavigationStrip(task, latestDeliverable) : null;
   const capabilityFrame = task ? buildCapabilityFrame(task, latestDeliverable) : null;
   const readinessGovernance =
     task && readiness ? buildReadinessGovernance(task, latestDeliverable, readiness) : null;
   const ontologyChainSummary = task ? buildOntologyChainSummary(task, latestDeliverable) : null;
   const sparseInputOperatingView =
     task ? buildSparseInputOperatingView(task, latestDeliverable) : null;
+  const evidenceWorkspaceLane =
+    task ? buildEvidenceWorkspaceLane(task, latestDeliverable, readinessGovernance) : null;
+  const deliverableBacklink = task ? buildDeliverableBacklinkView(task, latestDeliverable) : null;
   const sortedRecommendations = task?.recommendations
     ? [...task.recommendations].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
@@ -361,98 +425,131 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
             </div>
           </section>
 
+          {objectNavigationStrip ? (
+            <section className="panel object-nav-panel">
+              <div className="panel-header">
+                <div>
+                  <h2 className="panel-title">Object-Aware Workspace Strip</h2>
+                  <p className="panel-copy">
+                    先確認這輪工作掛在哪個 client / engagement / workstream / decision context 上，再決定要往哪條工作面繼續下鑽。
+                  </p>
+                </div>
+              </div>
+              <div className="meta-row" style={{ marginBottom: "16px" }}>
+                <span className="pill">{objectNavigationStrip.entryModeLabel}</span>
+                <span>{objectNavigationStrip.deliverableClassLabel}</span>
+                {objectNavigationStrip.externalResearchHeavy ? (
+                  <span>external-research-heavy sparse case</span>
+                ) : null}
+              </div>
+              <p className="panel-copy workspace-strip-summary">
+                {objectNavigationStrip.workspaceSummary}
+              </p>
+              <div className="object-strip">
+                {objectNavigationStrip.items.map((item) => (
+                  <a
+                    key={item.key}
+                    className="object-strip-card"
+                    href={`#${item.anchorId}`}
+                  >
+                    <div className="meta-row">
+                      <span className="pill">{item.label}</span>
+                      <span>{item.stateLabel}</span>
+                    </div>
+                    <h3>{item.value}</h3>
+                    <p className="object-strip-note">{item.note}</p>
+                  </a>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
           <div className="detail-grid">
             <div className="detail-stack">
-              <section className="panel">
+              <section className="panel" id="workspace-lane">
                 <div className="panel-header">
                   <div>
-                    <h2 className="panel-title">案件與物件脈絡</h2>
+                    <h2 className="panel-title">Artifact / SourceMaterial / Evidence 工作面</h2>
                     <p className="panel-copy">
-                      先用 ontology spine 看清楚這次工作掛在哪個 client / engagement / workstream 與 decision context 上。
+                      這裡不是單純 supporting data，而是這輪判斷真正依附的工作鏈。先確認有哪些 artifact、source material 與 evidence 正在支撐這份交付物。
                     </p>
                   </div>
                 </div>
-                {workbenchObjectSummary && ontologyChainSummary ? (
+                {evidenceWorkspaceLane && workbenchObjectSummary && ontologyChainSummary ? (
                   <>
-                  <div className="summary-grid">
-                    <div className="section-card">
-                      <h4>主要案件主體</h4>
-                      <ExpandableText
-                        text={workbenchObjectSummary.primaryEntity}
-                        emptyText="尚未明確標示客戶。"
-                        previewChars={120}
+                    <div className="summary-grid">
+                      <div className="section-card">
+                        <h4>工作面判斷</h4>
+                        <ExpandableText
+                          text={evidenceWorkspaceLane.summary}
+                          emptyText="尚未形成可讀的工作面摘要。"
+                          previewChars={220}
+                        />
+                      </div>
+                      <div className="section-card">
+                        <h4>主要案件主體</h4>
+                        <p className="content-block">
+                          {workbenchObjectSummary.primaryEntity}
+                          {"\n"}
+                          {workbenchObjectSummary.clientContext}
+                        </p>
+                      </div>
+                      <div className="section-card">
+                        <h4>Domain Lens / Workstream</h4>
+                        <p className="content-block">
+                          {workbenchObjectSummary.domainLensSummary}
+                          {"\n"}
+                          {workbenchObjectSummary.workstream}
+                        </p>
+                      </div>
+                      <div className="section-card">
+                        <h4>物件鏈密度</h4>
+                        <p className="content-block">
+                          {ontologyChainSummary.sourceMaterialCount} 份 source material /{" "}
+                          {ontologyChainSummary.artifactCount} 份 artifact /{" "}
+                          {ontologyChainSummary.evidenceCount} 則 evidence
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="detail-list" style={{ marginTop: "16px" }}>
+                      <WorkspaceMaterialSection
+                        title="關鍵 Artifacts"
+                        description="這些是目前已進入工作鏈的核心 artifact。若沒有 artifact，不代表不能工作，但代表這輪仍偏 exploratory 或 provisional。"
+                        items={evidenceWorkspaceLane.artifactCards}
+                        emptyText="目前還沒有可直接瀏覽的 artifact；這輪工作鏈仍較依賴原始問題、背景或 source material。"
+                      />
+                      <WorkspaceMaterialSection
+                        title="Source Materials"
+                        description="這些來源材料提供背景、引用內容與 supporting context，是 Host 形成 evidence 的主要材料基底。"
+                        items={evidenceWorkspaceLane.sourceMaterialCards}
+                        emptyText="目前還沒有可直接瀏覽的 source material。"
+                      />
+                      <WorkspaceMaterialSection
+                        title="Evidence Lane"
+                        description="這些 evidence 是目前最接近 recommendation / risk 判斷基礎的工作單元。若 support note 很薄，代表這輪還沒有完整 evidence-to-decision 鏈。"
+                        items={evidenceWorkspaceLane.evidenceCards}
+                        emptyText="目前還沒有形成可讀的 evidence lane。"
                       />
                     </div>
-                    <div className="section-card">
-                      <h4>Engagement</h4>
-                      <ExpandableText
-                        text={workbenchObjectSummary.engagement}
-                        emptyText="尚未建立 engagement。"
-                        previewChars={120}
-                      />
-                    </div>
-                    <div className="section-card">
-                      <h4>Workstream</h4>
-                      <ExpandableText
-                        text={workbenchObjectSummary.workstream}
-                        emptyText="尚未建立 workstream。"
-                        previewChars={120}
-                      />
-                    </div>
-                    <div className="section-card">
-                      <h4>Domain Lens / 客戶脈絡</h4>
-                      <p className="content-block">
-                        {workbenchObjectSummary.domainLensSummary}
-                        {"\n"}
-                        {workbenchObjectSummary.clientContext}
-                      </p>
-                    </div>
-                    <div className="section-card">
-                      <h4>主要來源狀態</h4>
-                      <ExpandableText
-                        text={workbenchObjectSummary.sourceSummary}
-                        emptyText="尚未建立可讀的來源摘要。"
-                        previewChars={160}
-                      />
-                    </div>
-                    <div className="section-card">
-                      <h4>輸入密度 / 交付等級</h4>
-                      <ExpandableText
-                        text={
-                          sparseInputOperatingView
-                            ? `${sparseInputOperatingView.entryModeLabel}\n${sparseInputOperatingView.deliverableClassLabel}\n${sparseInputOperatingView.summary}`
-                            : labelForDeliverableClass(task.deliverable_class_hint)
-                        }
-                        emptyText="尚未辨識這輪 sparse-input 狀態。"
-                        previewChars={180}
-                      />
-                    </div>
-                    <div className="section-card">
-                      <h4>物件鏈密度</h4>
-                      <p className="content-block">
-                        {ontologyChainSummary.sourceMaterialCount} 份 source material /{" "}
-                        {ontologyChainSummary.artifactCount} 份 artifact /{" "}
-                        {ontologyChainSummary.evidenceCount} 則 evidence
-                      </p>
-                    </div>
-                  </div>
-                    {sparseInputOperatingView?.presenceHighlights.length ? (
+
+                    {evidenceWorkspaceLane.missingSignals.length > 0 ? (
                       <div className="detail-item" style={{ marginTop: "14px" }}>
-                        <h3>目前世界模型狀態</h3>
+                        <h3>目前工作鏈缺口</h3>
                         <ExpandableList
-                          items={sparseInputOperatingView.presenceHighlights}
-                          emptyText="目前沒有可顯示的 presence state。"
+                          items={evidenceWorkspaceLane.missingSignals}
+                          emptyText="目前沒有可顯示的工作鏈缺口。"
                           initialCount={5}
                         />
                       </div>
                     ) : null}
                   </>
                 ) : (
-                  <p className="empty-text">尚未形成可讀的案件物件脈絡。</p>
+                  <p className="empty-text">尚未形成可讀的 Artifact / SourceMaterial / Evidence 工作面。</p>
                 )}
               </section>
 
-              <section className="panel">
+              <section className="panel" id="decision-context">
                 <div className="panel-header">
                   <div>
                     <h2 className="panel-title">原始問題與 Decision Context</h2>
@@ -675,7 +772,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                 </div>
               </section>
 
-              <section className="panel">
+              <section className="panel" id="deliverable-surface">
                 <div className="panel-header">
                   <div>
                     <h2 className="panel-title">正式交付結果</h2>
@@ -685,6 +782,53 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                   </div>
                 </div>
                 <div className="section-list">
+                  {deliverableBacklink ? (
+                    <div className="summary-grid">
+                      <div className="section-card">
+                        <h4>交付物掛載位置</h4>
+                        <ExpandableText
+                          text={deliverableBacklink.workspacePath}
+                          emptyText="尚未整理這份交付物掛載的工作鏈位置。"
+                          previewChars={180}
+                        />
+                      </div>
+                      <div className="section-card">
+                        <h4>對應 Decision Context</h4>
+                        <ExpandableText
+                          text={deliverableBacklink.decisionContext}
+                          emptyText="尚未整理這份交付物的 decision context。"
+                          previewChars={180}
+                        />
+                      </div>
+                      <div className="section-card">
+                        <h4>Evidence Basis</h4>
+                        <ExpandableText
+                          text={deliverableBacklink.evidenceBasis}
+                          emptyText="尚未整理這份交付物的 evidence basis。"
+                          previewChars={180}
+                        />
+                      </div>
+                      <div className="section-card">
+                        <h4>寫回的決策鏈</h4>
+                        <ExpandableList
+                          items={deliverableBacklink.linkedOutputs}
+                          emptyText="尚未整理這份交付物寫回的決策鏈。"
+                        />
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {deliverableBacklink ? (
+                    <div className="section-card">
+                      <h4>交付物回鏈摘要</h4>
+                      <ExpandableText
+                        text={deliverableBacklink.summary}
+                        emptyText="尚未整理這份交付物如何掛回 ontology chain。"
+                        previewChars={240}
+                      />
+                    </div>
+                  ) : null}
+
                   {decisionSnapshot ? (
                     <div className="snapshot-grid">
                       <div className="section-card">

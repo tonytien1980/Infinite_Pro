@@ -297,6 +297,16 @@ class TaskListItemResponse(BaseModel):
     status: TaskStatus
     created_at: datetime
     updated_at: datetime
+    client_name: str | None = None
+    engagement_name: str | None = None
+    workstream_name: str | None = None
+    decision_context_title: str | None = None
+    client_stage: str | None = None
+    client_type: str | None = None
+    domain_lenses: list[str] = Field(default_factory=list)
+    input_entry_mode: InputEntryMode = InputEntryMode.ONE_LINE_INQUIRY
+    deliverable_class_hint: DeliverableClass = DeliverableClass.EXPLORATORY_BRIEF
+    external_research_heavy_candidate: bool = False
     evidence_count: int
     deliverable_count: int
     run_count: int

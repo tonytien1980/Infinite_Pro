@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { buildTaskListWorkspaceSummary } from "@/lib/advisory-workflow";
 import { listTasks } from "@/lib/api";
 import type { TaskAggregate, TaskListItem } from "@/lib/types";
 import { TaskCreateForm } from "@/components/task-create-form";
@@ -92,21 +93,28 @@ export function WorkbenchHome() {
 
             <div className="history-list">
               {activeTasks.length > 0 ? (
-                activeTasks.map((task) => (
-                  <button
-                    key={task.id}
-                    className="history-item history-item-button"
-                    type="button"
-                    onClick={() => router.push(`/tasks/${task.id}`)}
-                  >
-                    <div className="meta-row">
-                      <span className="pill">{task.status === "running" ? "執行中" : "待回看"}</span>
-                      <span>{task.latest_deliverable_title ? "已有交付物" : "待產出"}</span>
-                    </div>
-                    <h3>{task.title}</h3>
-                    <p className="muted-text">{task.description || "未提供額外說明。"}</p>
-                  </button>
-                ))
+                activeTasks.map((task) => {
+                  const workspaceSummary = buildTaskListWorkspaceSummary(task);
+                  return (
+                    <button
+                      key={task.id}
+                      className="history-item history-item-button"
+                      type="button"
+                      onClick={() => router.push(`/tasks/${task.id}`)}
+                    >
+                      <div className="meta-row">
+                        <span className="pill">{task.status === "running" ? "執行中" : "待回看"}</span>
+                        <span>{task.latest_deliverable_title ? "已有交付物" : "待產出"}</span>
+                      </div>
+                      <h3>{task.title}</h3>
+                      <p className="workspace-object-path">{workspaceSummary.objectPath}</p>
+                      <p className="muted-text">{workspaceSummary.decisionContext}</p>
+                      <div className="meta-row">
+                        <span>{workspaceSummary.workspaceState}</span>
+                      </div>
+                    </button>
+                  );
+                })
               ) : (
                 <p className="empty-text">目前沒有待處理中的案件，新的分析會直接從左側收件台開始。</p>
               )}

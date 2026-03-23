@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { buildTaskListWorkspaceSummary } from "@/lib/advisory-workflow";
 import type { TaskListItem } from "@/lib/types";
 import {
   formatDisplayDate,
@@ -53,26 +54,31 @@ export function TaskHistoryList({
       ) : null}
 
       <div className="history-list">
-        {visibleTasks.map((task) => (
-          <Link href={`/tasks/${task.id}`} key={task.id} className="history-item">
-            <div className="meta-row">
-              <span className="pill">{labelForTaskStatus(task.status)}</span>
-              <span>{labelForTaskType(task.task_type)}</span>
-              <span>{labelForFlowMode(task.mode)}</span>
-              <span>{formatDisplayDate(task.updated_at)}</span>
-            </div>
-            <h3>{task.title}</h3>
-            <p className="muted-text">{task.description || "未提供額外說明。"}</p>
-            <div className="meta-row">
-              <span>{task.evidence_count} 筆證據</span>
-              <span>{task.deliverable_count} 份交付物</span>
-              <span>{task.run_count} 次執行</span>
-            </div>
-            <p className="muted-text">
-              最新交付物：{task.latest_deliverable_title ?? "尚未產生"}
-            </p>
-          </Link>
-        ))}
+        {visibleTasks.map((task) => {
+          const workspaceSummary = buildTaskListWorkspaceSummary(task);
+          return (
+            <Link href={`/tasks/${task.id}`} key={task.id} className="history-item">
+              <div className="meta-row">
+                <span className="pill">{labelForTaskStatus(task.status)}</span>
+                <span>{labelForTaskType(task.task_type)}</span>
+                <span>{labelForFlowMode(task.mode)}</span>
+                <span>{formatDisplayDate(task.updated_at)}</span>
+              </div>
+              <h3>{task.title}</h3>
+              <p className="workspace-object-path">{workspaceSummary.objectPath}</p>
+              <p className="muted-text">{workspaceSummary.decisionContext}</p>
+              <div className="meta-row">
+                <span>{workspaceSummary.workspaceState}</span>
+                <span>{task.evidence_count} 筆證據</span>
+                <span>{task.deliverable_count} 份交付物</span>
+                <span>{task.run_count} 次執行</span>
+              </div>
+              <p className="muted-text">
+                最新交付物：{task.latest_deliverable_title ?? "尚未產生"}
+              </p>
+            </Link>
+          );
+        })}
       </div>
 
       {limit && tasks.length > limit ? (

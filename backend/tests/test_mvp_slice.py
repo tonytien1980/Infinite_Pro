@@ -165,6 +165,38 @@ def test_task_creation_populates_explicit_ontology_context_spine(client: TestCli
     assert body["decision_context"]["domain_lenses"] == ["營運", "銷售"]
 
 
+def test_task_list_returns_object_aware_workspace_summary(client: TestClient) -> None:
+    payload = create_task_payload("Object-aware list")
+    payload.update(
+        {
+            "client_name": "Northwind Studio",
+            "client_type": "個人品牌與服務",
+            "client_stage": "創業階段",
+            "engagement_name": "Northwind Growth Sprint",
+            "workstream_name": "提案重組與銷售收斂",
+            "decision_title": "Northwind decision context",
+            "judgment_to_make": "先判斷目前提案重組是否足以提升成交效率。",
+            "domain_lenses": ["銷售", "行銷"],
+        }
+    )
+    task = client.post("/api/v1/tasks", json=payload).json()
+
+    response = client.get("/api/v1/tasks")
+
+    assert response.status_code == 200
+    item = next(row for row in response.json() if row["id"] == task["id"])
+    assert item["client_name"] == "Northwind Studio"
+    assert item["engagement_name"] == "Northwind Growth Sprint"
+    assert item["workstream_name"] == "提案重組與銷售收斂"
+    assert item["decision_context_title"] == "Northwind decision context"
+    assert item["client_stage"] == "創業階段"
+    assert item["client_type"] == "個人品牌與服務"
+    assert item["domain_lenses"] == ["銷售", "行銷"]
+    assert item["input_entry_mode"] == "one_line_inquiry"
+    assert item["deliverable_class_hint"] == "exploratory_brief"
+    assert item["external_research_heavy_candidate"] is False
+
+
 def test_file_upload_creates_usable_txt_evidence(client: TestClient) -> None:
     task = client.post("/api/v1/tasks", json=create_task_payload("TXT upload")).json()
 

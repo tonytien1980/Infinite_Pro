@@ -1022,16 +1022,31 @@ def create_task(db: Session, payload: schemas.TaskCreateRequest) -> models.Task:
 
 
 def list_tasks(db: Session) -> list[schemas.TaskListItemResponse]:
-    statement = select(models.Task).options(
-        selectinload(models.Task.evidence),
-        selectinload(models.Task.deliverables),
-        selectinload(models.Task.runs),
-    ).order_by(models.Task.updated_at.desc())
+    statement = select(models.Task).options(*task_load_options()).order_by(models.Task.updated_at.desc())
     tasks = db.scalars(statement).unique().all()
 
     items: list[schemas.TaskListItemResponse] = []
     for task in tasks:
         latest_deliverable = max(task.deliverables, key=lambda item: item.version, default=None)
+        client, engagement, workstream, decision_context, domain_lenses, source_materials, artifacts = (
+            _build_ontology_spine_for_task(task)
+        )
+        input_entry_mode = _infer_input_entry_mode(task, source_materials, artifacts)
+        external_research_heavy_candidate = _is_external_research_heavy_candidate(
+            task,
+            decision_context,
+            source_materials,
+            artifacts,
+            input_entry_mode,
+        )
+        deliverable_class_hint = _resolve_deliverable_class_hint(
+            input_entry_mode,
+            decision_context,
+            source_materials,
+            artifacts,
+            len(_usable_evidence(task)),
+            external_research_heavy_candidate,
+        )
         items.append(
             schemas.TaskListItemResponse(
                 id=task.id,
@@ -1042,6 +1057,16 @@ def list_tasks(db: Session) -> list[schemas.TaskListItemResponse]:
                 status=task.status,
                 created_at=task.created_at,
                 updated_at=task.updated_at,
+                client_name=client.name if client else None,
+                engagement_name=engagement.name if engagement else None,
+                workstream_name=workstream.name if workstream else None,
+                decision_context_title=decision_context.title if decision_context else None,
+                client_stage=client.client_stage if client and client.client_stage != UNSPECIFIED_LABEL else None,
+                client_type=client.client_type if client and client.client_type != UNSPECIFIED_LABEL else None,
+                domain_lenses=domain_lenses,
+                input_entry_mode=input_entry_mode,
+                deliverable_class_hint=deliverable_class_hint,
+                external_research_heavy_candidate=external_research_heavy_candidate,
                 evidence_count=len(task.evidence),
                 deliverable_count=len(task.deliverables),
                 run_count=len(task.runs),

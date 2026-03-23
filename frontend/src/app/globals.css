@@ -355,6 +355,59 @@ button {
   font-size: 1.15rem;
 }
 
+.object-nav-panel {
+  margin-bottom: 24px;
+}
+
+.workspace-strip-summary {
+  margin-bottom: 18px;
+}
+
+.object-strip {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  min-width: 0;
+  max-width: 100%;
+}
+
+.object-strip-card {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  transition: transform 120ms ease, border-color 120ms ease;
+}
+
+.object-strip-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(175, 92, 42, 0.28);
+}
+
+.object-strip-card h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.object-strip-note,
+.workspace-object-path {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.workspace-object-path {
+  font-weight: 600;
+  color: var(--ink);
+}
+
 .workspace-section-intro {
   display: grid;
   gap: 8px;
@@ -565,7 +618,8 @@ button {
   .field-grid,
   .summary-grid,
   .ontology-grid,
-  .snapshot-grid {
+  .snapshot-grid,
+  .object-strip {
     grid-template-columns: 1fr;
   }
 

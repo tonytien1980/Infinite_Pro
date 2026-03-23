@@ -5,6 +5,8 @@ import type {
   Goal,
   SourceDocument,
   TaskAggregate,
+  TaskListItem,
+  PresenceStateItem,
 } from "@/lib/types";
 import {
   extractModeSpecificAppendix,
@@ -14,8 +16,10 @@ import {
 } from "@/lib/workflow-modes";
 import {
   labelForDeliverableClass,
+  labelForEvidenceType,
   labelForInputEntryMode,
   labelForPresenceState,
+  labelForSourceType,
 } from "@/lib/ui-labels";
 
 export type ReadinessLevel = "ready" | "caution" | "degraded";
@@ -95,6 +99,24 @@ export interface WorkbenchObjectSummaryView {
   sourceSummary: string;
 }
 
+export interface ObjectNavigationStripItemView {
+  key: string;
+  label: string;
+  value: string;
+  stateLabel: string;
+  note: string;
+  anchorId: string;
+}
+
+export interface ObjectNavigationStripView {
+  items: ObjectNavigationStripItemView[];
+  entryModeLabel: string;
+  deliverableClassLabel: string;
+  workspaceSummary: string;
+  externalResearchHeavy: boolean;
+  workspaceTone: "exploratory" | "review" | "decision";
+}
+
 export interface CapabilityFrameView {
   capability: string;
   label: string;
@@ -145,6 +167,35 @@ export interface SparseInputOperatingView {
   deliverableGuidance: string;
   externalResearchHeavy: boolean;
   presenceHighlights: string[];
+}
+
+export interface WorkspaceMaterialCardView {
+  title: string;
+  summary: string;
+  meta: string[];
+  supportNotes: string[];
+}
+
+export interface EvidenceWorkspaceLaneView {
+  summary: string;
+  artifactCards: WorkspaceMaterialCardView[];
+  sourceMaterialCards: WorkspaceMaterialCardView[];
+  evidenceCards: WorkspaceMaterialCardView[];
+  missingSignals: string[];
+}
+
+export interface DeliverableBacklinkView {
+  summary: string;
+  workspacePath: string;
+  decisionContext: string;
+  evidenceBasis: string;
+  linkedOutputs: string[];
+}
+
+export interface TaskListWorkspaceSummaryView {
+  objectPath: string;
+  decisionContext: string;
+  workspaceState: string;
 }
 
 function isExternalDataStrategyConstraint(constraint: Constraint) {
@@ -532,6 +583,10 @@ function joinNaturalList(items: string[]) {
     return normalized[0];
   }
   return `${normalized.slice(0, -1).join("、")} 與 ${normalized.at(-1)}`;
+}
+
+function uniqueStrings(items: string[]) {
+  return Array.from(new Set(items.map((item) => item.trim()).filter(Boolean)));
 }
 
 function buildDefaultJudgment(task: TaskAggregate) {
@@ -949,6 +1004,118 @@ export function buildWorkbenchObjectSummary(
   };
 }
 
+function resolveWorkspaceTone(deliverableClass: string): "exploratory" | "review" | "decision" {
+  if (deliverableClass === "decision_action_deliverable") {
+    return "decision";
+  }
+  if (deliverableClass === "assessment_review_memo") {
+    return "review";
+  }
+  return "exploratory";
+}
+
+function buildPresenceNote(item: PresenceStateItem, fallback: string) {
+  return item.reason.trim() || fallback;
+}
+
+function buildObjectNavigationItem({
+  key,
+  label,
+  value,
+  item,
+  anchorId,
+  fallbackNote,
+}: {
+  key: string;
+  label: string;
+  value: string;
+  item: PresenceStateItem;
+  anchorId: string;
+  fallbackNote: string;
+}): ObjectNavigationStripItemView {
+  return {
+    key,
+    label,
+    value: value.trim() || "尚未建立",
+    stateLabel: labelForPresenceState(item.state),
+    note: buildPresenceNote(item, fallbackNote),
+    anchorId,
+  };
+}
+
+export function buildObjectNavigationStrip(
+  task: TaskAggregate,
+  deliverable: Deliverable | null,
+): ObjectNavigationStripView {
+  const operatingState = asRecord(deliverable?.content_structure?.sparse_input_operating_state);
+  const sparseInput = buildSparseInputOperatingView(task, deliverable);
+  const workbenchSummary = buildWorkbenchObjectSummary(task, deliverable);
+  const tone = resolveWorkspaceTone(
+    (typeof operatingState?.deliverable_class === "string" && operatingState.deliverable_class) ||
+      task.deliverable_class_hint,
+  );
+  const client = task.presence_state_summary.client;
+  const engagement = task.presence_state_summary.engagement;
+  const workstream = task.presence_state_summary.workstream;
+  const decisionContext = task.presence_state_summary.decision_context;
+
+  return {
+    items: [
+      buildObjectNavigationItem({
+        key: "client",
+        label: "Client",
+        value: workbenchSummary.primaryEntity,
+        item: client,
+        anchorId: "workspace-lane",
+        fallbackNote: "這個工作面目前的 client 主體。",
+      }),
+      buildObjectNavigationItem({
+        key: "engagement",
+        label: "Engagement",
+        value: workbenchSummary.engagement,
+        item: engagement,
+        anchorId: "workspace-lane",
+        fallbackNote: "這個工作面目前的 engagement 層。",
+      }),
+      buildObjectNavigationItem({
+        key: "workstream",
+        label: "Workstream",
+        value: workbenchSummary.workstream,
+        item: workstream,
+        anchorId: "workspace-lane",
+        fallbackNote: "這個工作面目前聚焦的 workstream。",
+      }),
+      buildObjectNavigationItem({
+        key: "decision_context",
+        label: "Decision Context",
+        value: workbenchSummary.decisionContext,
+        item: decisionContext,
+        anchorId: "decision-context",
+        fallbackNote: "這一輪要形成的判斷主軸。",
+      }),
+      {
+        key: "deliverable",
+        label: "Deliverable Class",
+        value: sparseInput.deliverableClassLabel,
+        stateLabel: sparseInput.entryModeLabel,
+        note: sparseInput.deliverableGuidance,
+        anchorId: "deliverable-surface",
+      },
+    ],
+    entryModeLabel: sparseInput.entryModeLabel,
+    deliverableClassLabel: sparseInput.deliverableClassLabel,
+    workspaceSummary: sparseInput.externalResearchHeavy
+      ? "目前是 external-research-heavy 的探索級工作面。系統先建立 provisional world，優先形成外部態勢判斷與待驗證事項，而不是假裝已有公司內部確定性。"
+      : tone === "exploratory"
+        ? "目前這是一個探索級工作面。Host 會先把稀疏輸入收斂成 provisional consulting world，再形成第一輪 exploratory brief。"
+        : tone === "review"
+          ? "目前這是一個文件中心的 review / assessment 工作面。系統會先圍繞現有 artifact 與 source material 形成可採用的審閱或評估結果。"
+          : "目前這是一個決策 / 行動級工作面。Client、workstream、decision context 與 evidence 鏈已足以支撐較完整的 decision deliverable。",
+    externalResearchHeavy: sparseInput.externalResearchHeavy,
+    workspaceTone: tone,
+  };
+}
+
 export function buildSparseInputOperatingView(
   task: TaskAggregate,
   deliverable: Deliverable | null,
@@ -979,6 +1146,216 @@ export function buildSparseInputOperatingView(
     deliverableGuidance,
     externalResearchHeavy,
     presenceHighlights: getPresenceHighlights(task, deliverable),
+  };
+}
+
+function normalizeReference(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function matchesEvidenceRef(evidence: Evidence, ref: string) {
+  const normalizedRef = normalizeReference(ref);
+  if (!normalizedRef) {
+    return false;
+  }
+
+  const candidates = [
+    evidence.id,
+    evidence.title,
+    evidence.source_ref ?? "",
+    evidence.source_document_id ?? "",
+  ]
+    .map(normalizeReference)
+    .filter(Boolean);
+
+  return candidates.some(
+    (candidate) =>
+      candidate === normalizedRef ||
+      candidate.includes(normalizedRef) ||
+      normalizedRef.includes(candidate),
+  );
+}
+
+function buildEvidenceSupportCounts(task: TaskAggregate) {
+  const usableEvidence = getUsableEvidence(task.evidence);
+  const counts = new Map<
+    string,
+    {
+      recommendations: number;
+      risks: number;
+    }
+  >();
+
+  usableEvidence.forEach((item) => {
+    counts.set(item.id, { recommendations: 0, risks: 0 });
+  });
+
+  task.recommendations.forEach((recommendation) => {
+    usableEvidence
+      .filter((evidence) =>
+        recommendation.based_on_refs.some((ref) => matchesEvidenceRef(evidence, ref)),
+      )
+      .forEach((evidence) => {
+        const bucket = counts.get(evidence.id);
+        if (bucket) {
+          bucket.recommendations += 1;
+        }
+      });
+  });
+
+  task.risks.forEach((risk) => {
+    usableEvidence
+      .filter((evidence) => risk.evidence_refs.some((ref) => matchesEvidenceRef(evidence, ref)))
+      .forEach((evidence) => {
+        const bucket = counts.get(evidence.id);
+        if (bucket) {
+          bucket.risks += 1;
+        }
+      });
+  });
+
+  return counts;
+}
+
+function buildEvidenceSupportNote(
+  task: TaskAggregate,
+  evidence: Evidence,
+  counts: Map<string, { recommendations: number; risks: number }>,
+) {
+  const bucket = counts.get(evidence.id);
+  if (!bucket || (!bucket.recommendations && !bucket.risks)) {
+    return ["目前主要作為背景或 supporting evidence 使用。"];
+  }
+
+  const notes: string[] = [];
+  if (bucket.recommendations > 0) {
+    notes.push(`支撐 ${bucket.recommendations} 項建議`);
+  }
+  if (bucket.risks > 0) {
+    notes.push(`支撐 ${bucket.risks} 項風險`);
+  }
+  return [notes.join(" / ")];
+}
+
+export function buildEvidenceWorkspaceLane(
+  task: TaskAggregate,
+  deliverable: Deliverable | null,
+  readiness: ReadinessGovernanceView | null,
+): EvidenceWorkspaceLaneView {
+  const sparseInput = buildSparseInputOperatingView(task, deliverable);
+  const supportCounts = buildEvidenceSupportCounts(task);
+  const usableEvidence = getUsableEvidence(task.evidence);
+  const artifactPresence = task.presence_state_summary.artifact;
+  const sourcePresence = task.presence_state_summary.source_material;
+  const decisionPresence = task.presence_state_summary.decision_context;
+  const missingSignals = [
+    artifactPresence.state !== "explicit" ? `Artifact：${artifactPresence.reason}` : "",
+    sourcePresence.state !== "explicit" ? `SourceMaterial：${sourcePresence.reason}` : "",
+    decisionPresence.state !== "explicit" ? `DecisionContext：${decisionPresence.reason}` : "",
+    ...(readiness?.missingInformation.slice(0, 3) ?? []),
+  ].filter(Boolean);
+
+  return {
+    summary: sparseInput.externalResearchHeavy
+      ? "目前這條工作面以外部研究與 supporting evidence 為主，尚未進入 company-specific artifact 主導的分析鏈。"
+      : task.artifacts.length > 0 || task.source_materials.length > 0 || usableEvidence.length > 0
+        ? `目前這輪判斷依附於 ${task.artifacts.length} 份 artifact、${task.source_materials.length} 份 source material 與 ${usableEvidence.length} 則可用 evidence。`
+        : "目前仍主要依賴原始問題與背景脈絡，尚未形成厚實的 Artifact / SourceMaterial / Evidence 工作鏈。",
+    artifactCards:
+      task.artifacts.length > 0
+        ? task.artifacts.slice(0, 4).map((artifact) => ({
+            title: artifact.title || "未命名 Artifact",
+            summary:
+              artifact.description.trim() ||
+              "目前沒有額外 artifact 說明，後續可再補這份材料的角色與用途。",
+            meta: ["Artifact", artifact.artifact_type || "未分類"],
+            supportNotes: [
+              artifact.source_material_id
+                ? "已連回 source material"
+                : artifact.source_document_id
+                  ? "由 source document 建立"
+                  : "目前仍是獨立 artifact",
+            ],
+          }))
+        : [],
+    sourceMaterialCards:
+      task.source_materials.length > 0
+        ? task.source_materials.slice(0, 4).map((material) => ({
+            title: material.title || "未命名 SourceMaterial",
+            summary:
+              material.summary.trim() ||
+              "目前沒有可顯示的 source material 摘要，後續可補更完整的來源摘要。",
+            meta: [labelForSourceType(material.source_type), material.ingest_status || "未標示狀態"],
+            supportNotes: [material.source_ref ? `來源：${material.source_ref}` : "目前沒有來源參照"],
+          }))
+        : [],
+    evidenceCards:
+      usableEvidence.length > 0
+        ? usableEvidence.slice(0, 5).map((evidence) => ({
+            title: evidence.title,
+            summary: evidence.excerpt_or_summary,
+            meta: [
+              labelForEvidenceType(evidence.evidence_type),
+              labelForSourceType(evidence.source_type),
+              evidence.reliability_level || "未標示可靠度",
+            ],
+            supportNotes: buildEvidenceSupportNote(task, evidence, supportCounts),
+          }))
+        : [],
+    missingSignals: uniqueStrings(missingSignals),
+  };
+}
+
+export function buildDeliverableBacklinkView(
+  task: TaskAggregate,
+  deliverable: Deliverable | null,
+): DeliverableBacklinkView {
+  const workbenchSummary = buildWorkbenchObjectSummary(task, deliverable);
+  const ontologyChain = buildOntologyChainSummary(task, deliverable);
+  const sparseInput = buildSparseInputOperatingView(task, deliverable);
+
+  return {
+    summary: sparseInput.externalResearchHeavy
+      ? `這份 ${sparseInput.deliverableClassLabel} 先對應到「${workbenchSummary.decisionContext}」的外部態勢判斷，尚未聲稱已完整對齊 company-specific 工作世界。`
+      : `這份 ${sparseInput.deliverableClassLabel} 目前掛在「${workbenchSummary.workstream}」工作鏈上，圍繞「${workbenchSummary.decisionContext}」形成交付結果。`,
+    workspacePath: `${workbenchSummary.primaryEntity} / ${workbenchSummary.engagement} / ${workbenchSummary.workstream}`,
+    decisionContext: workbenchSummary.decisionContext,
+    evidenceBasis:
+      ontologyChain.evidenceCount > 0
+        ? `目前有 ${ontologyChain.evidenceCount} 則 evidence 支撐這份交付物，來源來自 ${ontologyChain.sourceMaterialCount} 份 source material 與 ${ontologyChain.artifactCount} 份 artifact。`
+        : "目前 evidence 鏈仍偏薄，這份交付物較依賴問題 framing、背景脈絡與 provisional world。",
+    linkedOutputs: [
+      `${ontologyChain.recommendationCount} 項 recommendation`,
+      `${ontologyChain.riskCount} 項 risk`,
+      `${ontologyChain.actionItemCount} 項 action item`,
+    ],
+  };
+}
+
+export function buildTaskListWorkspaceSummary(task: TaskListItem): TaskListWorkspaceSummaryView {
+  const clientLabel =
+    task.client_name ||
+    [task.client_type, task.client_stage].filter(Boolean).join(" / ") ||
+    "未明示 Client";
+  const path = [
+    clientLabel,
+    task.engagement_name || "暫定 Engagement",
+    task.workstream_name || "暫定 Workstream",
+  ].join(" / ");
+
+  const stateParts = [
+    labelForInputEntryMode(task.input_entry_mode),
+    labelForDeliverableClass(task.deliverable_class_hint),
+  ];
+  if (task.external_research_heavy_candidate) {
+    stateParts.push("外部研究主導");
+  }
+
+  return {
+    objectPath: path,
+    decisionContext:
+      task.decision_context_title || task.description || task.title,
+    workspaceState: stateParts.join("｜"),
   };
 }
 
