@@ -137,7 +137,10 @@ export interface CapabilityFrameView {
   agentResolverNotes: string[];
   agentSelectionRationale: string[];
   omittedAgentNotes: string[];
+  deferredAgentNotes: string[];
+  escalationNotes: string[];
   runtimeAgents: string[];
+  selectedSupportingAgents: string[];
   specialistAgent: string;
   prioritySources: string[];
   domainLenses: string[];
@@ -164,6 +167,7 @@ export interface ReadinessGovernanceView {
   packEvidenceExpectations: string[];
   packHighImpactGaps: string[];
   packDeliverablePresets: string[];
+  agentSelectionImplications: string[];
 }
 
 export interface OntologyChainSummaryView {
@@ -1641,7 +1645,22 @@ export function buildCapabilityFrame(
   const agentResolverNotes = asStringArray(capability?.agent_resolver_notes);
   const agentSelectionRationale = asStringArray(capability?.agent_selection_rationale);
   const omittedAgentNotes = asStringArray(capability?.omitted_agent_notes);
-  const runtimeAgents = asStringArray(capability?.runtime_agents);
+  const deferredAgentNotes = asStringArray(capability?.deferred_agent_notes);
+  const escalationNotes = asStringArray(capability?.escalation_notes);
+  const runtimeAgents =
+    asStringArray(capability?.runtime_agents).length > 0
+      ? asStringArray(capability?.runtime_agents)
+      : Array.from(
+          new Set(
+            selectedAgentDetailViews
+              .map((item) => item.runtimeBinding)
+              .filter((item): item is string => Boolean(item)),
+          ),
+        );
+  const selectedSupportingAgents =
+    asStringArray(capability?.selected_supporting_agents).length > 0
+      ? asStringArray(capability?.selected_supporting_agents)
+      : runtimeAgents.slice(1);
   const hostAgent =
     (typeof capability?.host_agent === "string" && capability.host_agent) ||
     aggregateAgentSelection.host_agent?.agent_id ||
@@ -1676,7 +1695,16 @@ export function buildCapabilityFrame(
       omittedAgentNotes.length > 0
         ? omittedAgentNotes
         : aggregateAgentSelection.omitted_agent_notes,
+    deferredAgentNotes:
+      deferredAgentNotes.length > 0
+        ? deferredAgentNotes
+        : aggregateAgentSelection.deferred_agent_notes,
+    escalationNotes:
+      escalationNotes.length > 0
+        ? escalationNotes
+        : aggregateAgentSelection.escalation_notes,
     runtimeAgents,
+    selectedSupportingAgents,
     specialistAgent:
       (typeof capability?.specialist_agent === "string" && capability.specialist_agent) || "",
     prioritySources:
@@ -1749,6 +1777,7 @@ export function buildReadinessGovernance(
     : (typeof governance?.conclusion_impact === "string" && governance.conclusion_impact) ||
       (typeof governance?.deliverable_guidance === "string" && governance.deliverable_guidance) ||
       readiness.summary;
+  const agentSelectionImplications = asStringArray(governance?.agent_selection_implications);
 
   return {
     level,
@@ -1782,6 +1811,7 @@ export function buildReadinessGovernance(
       asStringArray(governance?.pack_deliverable_presets).length > 0
         ? asStringArray(governance?.pack_deliverable_presets)
         : packSelection.deliverablePresets,
+    agentSelectionImplications,
   };
 }
 

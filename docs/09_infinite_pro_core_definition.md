@@ -226,6 +226,8 @@ Infinite Pro 的工作世界至少應圍繞以下主鏈理解：
 - 哪些 agents 被選中
 - 為什麼被選中
 - 哪些相關 agents 本輪沒有啟用
+- 哪些 agents 被 deferred
+- 哪些 agents 需要 escalation 才適合啟用
 
 都應能被 aggregate、workspace 與 deliverable metadata 看見。
 

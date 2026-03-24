@@ -255,6 +255,8 @@ def test_task_aggregate_includes_pack_resolution_from_context_spine(client: Test
     assert body["agent_selection"]["host_agent"]["agent_id"] == "host_agent"
     assert body["agent_selection"]["selected_agent_ids"]
     assert body["agent_selection"]["selected_agent_names"]
+    assert "deferred_agent_notes" in body["agent_selection"]
+    assert "escalation_notes" in body["agent_selection"]
 
 
 def test_extension_manager_endpoint_returns_catalogs(client: TestClient) -> None:
@@ -298,6 +300,8 @@ def test_task_extension_overrides_write_back_to_aggregate(client: TestClient) ->
     ]
     assert "legal_risk_agent" in body["agent_selection"]["selected_agent_ids"]
     assert "research_intelligence_agent" in body["agent_selection"]["selected_agent_ids"]
+    assert "deferred_agent_notes" in body["agent_selection"]
+    assert "escalation_notes" in body["agent_selection"]
 
 
 def test_file_upload_creates_usable_txt_evidence(client: TestClient) -> None:
@@ -594,6 +598,9 @@ def test_research_synthesis_specialist_run_and_history_persistence(client: TestC
     assert "research_synthesis_specialist" in content["capability_frame"]["selected_specialist_agents"]
     assert content["capability_frame"]["selected_agent_details"]
     assert content["agent_selection"]["selected_agent_ids"]
+    assert "deferred_agent_notes" in content["capability_frame"]
+    assert "escalation_notes" in content["capability_frame"]
+    assert "agent_selection_implications" in content["readiness_governance"]
     assert content["selected_packs"]["selected_domain_packs"]
     assert content["selected_packs"]["selected_industry_packs"]
     assert content["selected_packs"]["selected_domain_packs"][0]["domain_definition"]
@@ -866,6 +873,9 @@ def test_multi_agent_happy_path_converges_and_saves_history(client: TestClient) 
     assert content["capability_frame"]["selected_agents"]
     assert content["capability_frame"]["selected_agent_details"]
     assert content["capability_frame"]["runtime_agents"]
+    assert content["capability_frame"]["selected_supporting_agents"] == content["participating_agents"][1:]
+    assert "deferred_agent_notes" in content["agent_selection"]
+    assert "escalation_notes" in content["agent_selection"]
     assert content["deliverable_class"] == "decision_action_deliverable"
     assert content["readiness_governance"]["evidence_coverage"]
     assert "strategy_business_analysis" in content["participating_agents"]
@@ -966,6 +976,8 @@ def test_sparse_external_event_case_caps_deliverable_to_exploratory_brief(
     assert content["deliverable_class"] == "exploratory_brief"
     assert content["readiness_governance"]["external_research_heavy_case"] is True
     assert "company-specific certainty" in " ".join(content["readiness_governance"]["missing_information"])
+    assert content["agent_selection"]["deferred_agent_notes"]
+    assert content["agent_selection"]["escalation_notes"]
 
 
 def test_host_routes_multi_agent_based_on_context_spine(

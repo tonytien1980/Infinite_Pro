@@ -900,12 +900,43 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                       </div>
                     ) : null}
 
+                    {capabilityFrame.deferredAgentNotes.length > 0 ? (
+                      <div className="detail-item" style={{ marginTop: "14px" }}>
+                        <h3>本輪 deferred agents</h3>
+                        <ExpandableList
+                          items={capabilityFrame.deferredAgentNotes}
+                          emptyText="目前沒有可顯示的 deferred agent notes。"
+                        />
+                      </div>
+                    ) : null}
+
+                    {capabilityFrame.escalationNotes.length > 0 ? (
+                      <div className="detail-item" style={{ marginTop: "14px" }}>
+                        <h3>本輪 escalation notes</h3>
+                        <ExpandableList
+                          items={capabilityFrame.escalationNotes}
+                          emptyText="目前沒有可顯示的 escalation notes。"
+                        />
+                      </div>
+                    ) : null}
+
                     {capabilityFrame.runtimeAgents.length > 0 ? (
                       <div className="detail-item" style={{ marginTop: "14px" }}>
                         <h3>目前實際 runtime agents</h3>
                         <ExpandableList
                           items={capabilityFrame.runtimeAgents}
                           emptyText="目前沒有可顯示的 runtime agents。"
+                          translateAsAgentIds
+                        />
+                      </div>
+                    ) : null}
+
+                    {capabilityFrame.selectedSupportingAgents.length > 0 ? (
+                      <div className="detail-item" style={{ marginTop: "14px" }}>
+                        <h3>Supporting runtime agents</h3>
+                        <ExpandableList
+                          items={capabilityFrame.selectedSupportingAgents}
+                          emptyText="目前沒有額外 supporting runtime agents。"
                           translateAsAgentIds
                         />
                       </div>
@@ -1037,6 +1068,16 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                         <ExpandableList
                           items={readinessGovernance.packHighImpactGaps}
                           emptyText="目前沒有額外的 pack-aware 高影響缺口。"
+                        />
+                      </div>
+                    ) : null}
+
+                    {readinessGovernance.agentSelectionImplications.length > 0 ? (
+                      <div className="detail-item" style={{ marginTop: "14px" }}>
+                        <h3>Agent orchestration 對交付物的影響</h3>
+                        <ExpandableList
+                          items={readinessGovernance.agentSelectionImplications}
+                          emptyText="目前沒有額外的 orchestration impact 說明。"
                         />
                       </div>
                     ) : null}

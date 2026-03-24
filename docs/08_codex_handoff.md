@@ -157,9 +157,13 @@ Host Agent 永遠是唯一 orchestration center。
 Agents 應依能力面與專業責任分類，而不是只依目前已落地 flow 命名。
 目前已不只是抽象分類：
 - Agent Registry / Resolver 已是正式系統骨架
-- Host 已應開始正式吃 resolver 輸出
-- selected agents、selection rationale、omitted notes 應寫回 aggregate / workspace payload / deliverable metadata
+- Host 已正式吃 resolver 輸出
+- selected agents、selection rationale、omitted / deferred / escalation notes 應寫回 aggregate / workspace payload / deliverable metadata
 - Workbench / UI Layer 內也應有最小可用的 agent visibility 與 task-level override surface
+
+對單人版來說，Agent Orchestration 不應再被當成「後續還要更深做」的未完成主題；完成後的後續重點應轉向：
+- 新 pack 與新 agent family 的擴充
+- multi-user / marketplace / 組織治理
 
 ### 7.3 Pack Layer
 Packs 應被視為正式能力層，不得退化為 tags。

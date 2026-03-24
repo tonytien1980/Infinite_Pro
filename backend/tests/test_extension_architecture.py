@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.domain.enums import CapabilityArchetype
+from app.domain.enums import CapabilityArchetype, DeliverableClass, InputEntryMode
 from app.extensions.registry import ExtensionRegistry
 from app.extensions.resolver import AgentResolver, PackResolver
 from app.extensions.schemas import AgentResolverInput, AgentType, PackResolverInput, PackType
@@ -71,6 +71,11 @@ def test_agent_resolver_maps_capability_and_packs() -> None:
             capability=CapabilityArchetype.DECIDE_CONVERGE,
             selected_domain_pack_ids=["operations_pack", "finance_fundraising_pack"],
             selected_industry_pack_ids=["ecommerce_pack"],
+            input_entry_mode=InputEntryMode.MULTI_MATERIAL_CASE,
+            deliverable_class=DeliverableClass.DECISION_ACTION_DELIVERABLE,
+            decision_context_clear=True,
+            evidence_count=3,
+            artifact_count=2,
         )
     )
 
@@ -96,7 +101,8 @@ def test_agent_resolver_honors_sparse_readiness_when_specialists_are_not_ready()
     )
 
     assert "contract_review_specialist" not in resolution.specialist_agent_ids
-    assert resolution.omitted_agent_notes
+    assert resolution.deferred_agent_notes
+    assert resolution.escalation_notes
 
 
 def test_extension_manager_snapshot_surfaces_pack_and_agent_catalogs() -> None:

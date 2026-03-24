@@ -343,6 +343,7 @@ Packs 必須能正式影響 agent behavior，例如：
 - Host 能直接讀取 Agent Registry
 - aggregate / workspace payload 能回傳 selected agents
 - deliverable metadata 能寫回本輪實際選用的 agents 與理由
+- omitted / deferred / escalation notes 能成為正式 writeback 結果
 
 ### 11.3 Agent Resolver / Selector
 Host 應根據以下輸入決定 agent 組合：
@@ -353,10 +354,11 @@ Host 應根據以下輸入決定 agent 組合：
 - readiness / evidence sufficiency
 - explicit override
 
-第一波正式 integration 不需要做複雜 orchestration graph，但至少要做到：
-- reasoning agents 與 specialist agents 的最小正式 selection
-- omitted agent notes
+在單人版正式範圍內，Agent Resolver / Selector 應已完成以下能力：
+- reasoning agents 與 specialist agents 的正式 selection
+- omitted / deferred / escalation notes
 - runtime-compatible agent selection writeback
+- selection 對 execution path、readiness governance 與 deliverable shaping 的正式影響
 
 ### 11.4 Agent Management Surface
 單人版最小管理能力應能讓顧問：

@@ -104,6 +104,8 @@ export interface AgentSelection {
   resolver_notes: string[];
   rationale: string[];
   omitted_agent_notes: string[];
+  deferred_agent_notes: string[];
+  escalation_notes: string[];
 }
 
 export interface PackCatalogEntry {

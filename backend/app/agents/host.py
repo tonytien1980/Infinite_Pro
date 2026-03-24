@@ -94,6 +94,7 @@ class CapabilityFrame:
     preferred_execution_mode: FlowMode
     specialist_agent_id: str | None = None
     selected_core_agents: list[str] = field(default_factory=list)
+    selected_supporting_agents: list[str] = field(default_factory=list)
     host_agent_id: str = "host_agent"
     selected_agent_ids: list[str] = field(default_factory=list)
     selected_reasoning_agent_ids: list[str] = field(default_factory=list)
@@ -102,6 +103,8 @@ class CapabilityFrame:
     agent_resolver_notes: list[str] = field(default_factory=list)
     agent_selection_rationale: list[str] = field(default_factory=list)
     omitted_agent_notes: list[str] = field(default_factory=list)
+    deferred_agent_notes: list[str] = field(default_factory=list)
+    escalation_notes: list[str] = field(default_factory=list)
     selected_domain_pack_ids: list[str] = field(default_factory=list)
     selected_industry_pack_ids: list[str] = field(default_factory=list)
     selected_pack_names: list[str] = field(default_factory=list)
@@ -127,6 +130,7 @@ class ReadinessGovernance:
     pack_deliverable_presets: list[str] = field(default_factory=list)
     missing_information: list[str] = field(default_factory=list)
     conclusion_impact: list[str] = field(default_factory=list)
+    agent_selection_implications: list[str] = field(default_factory=list)
 
 
 class HostOrchestrator:
@@ -392,8 +396,15 @@ class HostOrchestrator:
             supported_deliverable_class=DeliverableClass.EXPLORATORY_BRIEF,
             deliverable_guidance=guardrail,
             external_research_heavy_case=True,
+            pack_evidence_expectations=readiness.pack_evidence_expectations,
+            pack_high_impact_gaps=readiness.pack_high_impact_gaps,
+            pack_deliverable_presets=readiness.pack_deliverable_presets,
             missing_information=missing_information,
             conclusion_impact=conclusion_impact,
+            agent_selection_implications=[
+                *readiness.agent_selection_implications,
+                "即使本輪後續補進外部資料，agent orchestration 仍應維持 exploratory-first，不可假裝已進入 company-specific execution。",
+            ],
         )
 
     @staticmethod
@@ -698,7 +709,10 @@ class HostOrchestrator:
         list[str],
         list[str],
         list[str],
+        list[str],
         list[schemas.SelectedAgentRead],
+        list[str],
+        list[str],
         list[str],
         list[str],
         str,
@@ -707,6 +721,11 @@ class HostOrchestrator:
         selected_industry_packs = self._selected_industry_packs(payload)
         explicit_agent_ids = self._extract_explicit_agent_overrides(payload)
         external_research_heavy_case = self._is_external_research_heavy_sparse_case(payload)
+        decision_context_clear = bool(
+            payload.decision_context
+            and self._coerce_text(payload.decision_context.summary)
+            and self._coerce_text(payload.decision_context.judgment_to_make)
+        )
         resolution = self.agent_resolver.resolve(
             AgentResolverInput(
                 capability=capability,
@@ -718,6 +737,9 @@ class HostOrchestrator:
                 explicit_agent_ids=explicit_agent_ids,
                 evidence_count=len(self._usable_evidence(payload)),
                 artifact_count=len(self._meaningful_artifacts(payload)),
+                input_entry_mode=payload.input_entry_mode,
+                deliverable_class=payload.deliverable_class_hint,
+                decision_context_clear=decision_context_clear,
                 external_research_heavy_case=external_research_heavy_case,
                 allow_specialists=self._allow_specialists_for_agent_selection(
                     payload,
@@ -759,17 +781,28 @@ class HostOrchestrator:
                 else len(legacy_runtime_order)
             ),
         )
-        if not selected_runtime_agents:
+        resolver_notes = list(resolution.resolver_notes)
+        if preferred_execution_mode == FlowMode.MULTI_AGENT and not selected_runtime_agents:
             selected_runtime_agents = DEFAULT_CORE_AGENT_ORDER.copy()
+            resolver_notes.append(
+                "目前沒有解析到更合適的 reasoning runtime set，因此 Host 先回退到預設的 multi-agent convergence runtime 組合。"
+            )
+
+        selected_supporting_agents = (
+            selected_runtime_agents[1:] if len(selected_runtime_agents) > 1 else []
+        )
 
         host_agent_id = resolution.host_agent_id
         return (
             resolution.reasoning_agent_ids,
             resolution.specialist_agent_ids,
             selected_runtime_agents,
+            selected_supporting_agents,
             selected_agent_details,
-            resolution.resolver_notes,
+            resolver_notes,
             resolution.omitted_agent_notes,
+            resolution.deferred_agent_notes,
+            resolution.escalation_notes,
             host_agent_id,
         )
 
@@ -1016,9 +1049,12 @@ class HostOrchestrator:
             selected_reasoning_agent_ids,
             selected_specialist_agent_ids,
             selected_runtime_agents,
+            selected_supporting_agents,
             selected_agent_details,
             agent_resolver_notes,
             omitted_agent_notes,
+            deferred_agent_notes,
+            escalation_notes,
             host_agent_id,
         ) = self._resolve_agent_selection(
             payload,
@@ -1035,6 +1071,10 @@ class HostOrchestrator:
             )
         if omitted_agent_notes:
             routing_rationale.extend(omitted_agent_notes)
+        if deferred_agent_notes:
+            routing_rationale.extend(deferred_agent_notes)
+        if escalation_notes:
+            routing_rationale.extend(escalation_notes)
         prioritized_artifacts = self._meaningful_artifacts(payload)[:3]
         priority_sources = [item.title for item in prioritized_artifacts] + [
             item.title
@@ -1054,6 +1094,18 @@ class HostOrchestrator:
             framing_summary += f" 這輪同時套用 { '、'.join(selected_pack_names) } 作為 context modules。"
         if pack_problem_patterns:
             framing_summary += f" Domain packs 目前提醒最值得先看的問題型態包括：{ '、'.join(pack_problem_patterns[:2]) }。"
+        if preferred_execution_mode == FlowMode.MULTI_AGENT and selected_runtime_agents:
+            framing_summary += (
+                f" Host 會以 {selected_runtime_agents[0]} 作為主要收斂 runtime agent。"
+            )
+            if selected_supporting_agents:
+                framing_summary += (
+                    f" supporting runtime agents 為 { '、'.join(selected_supporting_agents) }。"
+                )
+        elif selected_specialist_agent_ids:
+            framing_summary += (
+                f" Host 會以 {selected_specialist_agent_ids[0]} 對應的 specialist path 作為主要執行路徑。"
+            )
 
         return CapabilityFrame(
             capability=capability,
@@ -1064,6 +1116,7 @@ class HostOrchestrator:
                 else specialist_agent_id
             ),
             selected_core_agents=selected_runtime_agents,
+            selected_supporting_agents=selected_supporting_agents,
             host_agent_id=host_agent_id,
             selected_agent_ids=[item.agent_id for item in selected_agent_details],
             selected_reasoning_agent_ids=selected_reasoning_agent_ids,
@@ -1072,6 +1125,11 @@ class HostOrchestrator:
             agent_resolver_notes=agent_resolver_notes,
             agent_selection_rationale=[
                 f"Host 先根據 capability={capability.value} 建立最小 agent selection。",
+                *(
+                    [
+                        f"本輪 deliverable class hint 為 {payload.deliverable_class_hint.value}，因此 agent selection 會對齊相應的工作深度。"
+                    ]
+                ),
                 *(
                     [
                         "selected domain packs 為："
@@ -1093,6 +1151,8 @@ class HostOrchestrator:
                 *agent_resolver_notes,
             ],
             omitted_agent_notes=omitted_agent_notes,
+            deferred_agent_notes=deferred_agent_notes,
+            escalation_notes=escalation_notes,
             selected_domain_pack_ids=[item.pack_id for item in selected_domain_packs],
             selected_industry_pack_ids=[item.pack_id for item in selected_industry_packs],
             selected_pack_names=selected_pack_names,
@@ -1425,6 +1485,35 @@ class HostOrchestrator:
             external_research_heavy_case,
         )
         conclusion_impact.append(deliverable_guidance)
+        agent_selection_implications: list[str] = []
+        if supported_deliverable_class == DeliverableClass.EXPLORATORY_BRIEF:
+            agent_selection_implications.append(
+                "由於目前只適合 exploratory-level deliverable，Host 會維持較保守的 agent 組合，避免假裝已進入完整 company-specific execution。"
+            )
+        elif supported_deliverable_class == DeliverableClass.ASSESSMENT_REVIEW_MEMO:
+            agent_selection_implications.append(
+                "由於目前較適合 assessment / review memo，Host 會優先保留 review、synthesis 或 restructuring 相關 agent，而不是過早擴成完整決策收斂組合。"
+            )
+        else:
+            agent_selection_implications.append(
+                "目前資料鏈已接近 decision / action level，因此 Host 可啟用較完整的 reasoning 組合來支撐 recommendation、risk 與 action shaping。"
+            )
+        if capability_frame.selected_specialist_agent_ids:
+            agent_selection_implications.append(
+                "本輪 specialist path 會直接影響 deliverable 的主體結構與語氣，而不是僅作為附帶參考。"
+            )
+        elif capability_frame.selected_core_agents:
+            agent_selection_implications.append(
+                "本輪 multi-agent / reasoning runtime set 會直接影響 convergence 的視角與 evidence emphasis。"
+            )
+        if capability_frame.deferred_agent_notes:
+            agent_selection_implications.append(
+                "部分相關 agents 已被標記為 deferred；這會讓目前輸出較保守，並把後續升級條件明確寫進工作面。"
+            )
+        if capability_frame.escalation_notes:
+            agent_selection_implications.append(
+                "本輪也保留了 escalation notes，說明補哪些資料後可升級到更完整的 agent orchestration。"
+            )
 
         return ReadinessGovernance(
             level=level,
@@ -1440,6 +1529,7 @@ class HostOrchestrator:
             pack_deliverable_presets=payload.pack_resolution.deliverable_presets,
             missing_information=missing_information,
             conclusion_impact=conclusion_impact,
+            agent_selection_implications=self._unique_preserve_order(agent_selection_implications),
         )
 
     def _prepare_host_context(
@@ -1597,9 +1687,22 @@ class HostOrchestrator:
     ) -> AgentResult:
         content = dict(result.deliverable.content_structure or {})
         missing_information = self._string_list(content.get("missing_information"))
+        deferred_agent_notes = list(capability_frame.deferred_agent_notes)
+        escalation_notes = list(capability_frame.escalation_notes)
         for item in readiness.missing_information:
             if item not in missing_information:
                 missing_information.append(item)
+        if readiness.external_research_heavy_case:
+            sparse_deferred_note = (
+                "由於這輪屬於 external-research-heavy sparse case，較偏 company-specific execution 的 agents 會先延後，避免假裝已具備內部確定性。"
+            )
+            if sparse_deferred_note not in deferred_agent_notes:
+                deferred_agent_notes.append(sparse_deferred_note)
+            sparse_escalation_note = (
+                "若要升級到更完整的 company-specific agent orchestration，請先補上客戶內部資料、營運現況或可引用的 artifact / source materials。"
+            )
+            if sparse_escalation_note not in escalation_notes:
+                escalation_notes.append(sparse_escalation_note)
 
         content["decision_context_summary"] = (
             self._coerce_text(content.get("decision_context_summary"))
@@ -1620,6 +1723,7 @@ class HostOrchestrator:
             "selected_agents": capability_frame.selected_agent_ids,
             "selected_reasoning_agents": capability_frame.selected_reasoning_agent_ids,
             "selected_specialist_agents": capability_frame.selected_specialist_agent_ids,
+            "selected_supporting_agents": capability_frame.selected_supporting_agents,
             "selected_agent_details": [
                 item.model_dump(mode="json") for item in capability_frame.selected_agent_details
             ],
@@ -1632,6 +1736,8 @@ class HostOrchestrator:
             "agent_resolver_notes": capability_frame.agent_resolver_notes,
             "agent_selection_rationale": capability_frame.agent_selection_rationale,
             "omitted_agent_notes": capability_frame.omitted_agent_notes,
+            "deferred_agent_notes": deferred_agent_notes,
+            "escalation_notes": escalation_notes,
             "priority_sources": capability_frame.priority_sources,
             "domain_lenses": payload.domain_lenses,
             "client_stage": self._effective_client_stage(payload),
@@ -1656,6 +1762,7 @@ class HostOrchestrator:
             "pack_deliverable_presets": readiness.pack_deliverable_presets,
             "missing_information": readiness.missing_information,
             "conclusion_impact": readiness.conclusion_impact,
+            "agent_selection_implications": readiness.agent_selection_implications,
         }
         content["selected_packs"] = payload.pack_resolution.model_dump(mode="json")
         content["agent_selection"] = {
@@ -1663,6 +1770,7 @@ class HostOrchestrator:
             "selected_agent_ids": capability_frame.selected_agent_ids,
             "selected_reasoning_agent_ids": capability_frame.selected_reasoning_agent_ids,
             "selected_specialist_agent_ids": capability_frame.selected_specialist_agent_ids,
+            "selected_supporting_agents": capability_frame.selected_supporting_agents,
             "override_agent_ids": payload.agent_selection.override_agent_ids,
             "selected_agent_details": [
                 item.model_dump(mode="json") for item in capability_frame.selected_agent_details
@@ -1670,6 +1778,8 @@ class HostOrchestrator:
             "resolver_notes": capability_frame.agent_resolver_notes,
             "rationale": capability_frame.agent_selection_rationale,
             "omitted_agent_notes": capability_frame.omitted_agent_notes,
+            "deferred_agent_notes": deferred_agent_notes,
+            "escalation_notes": escalation_notes,
             "runtime_agents": runtime_agents,
         }
         content["input_entry_mode"] = payload.input_entry_mode.value

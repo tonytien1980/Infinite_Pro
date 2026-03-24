@@ -1216,6 +1216,11 @@ def resolve_agent_selection_for_task(
 ) -> schemas.AgentSelectionRead:
     capability = _infer_capability_for_task(task, decision_context, domain_lenses)
     explicit_agent_ids = _extract_explicit_agent_overrides(task.constraints)
+    decision_context_clear = bool(
+        decision_context
+        and decision_context.summary.strip()
+        and decision_context.judgment_to_make.strip()
+    )
     resolution = AGENT_RESOLVER.resolve(
         AgentResolverInput(
             capability=capability,
@@ -1227,6 +1232,9 @@ def resolve_agent_selection_for_task(
             explicit_agent_ids=explicit_agent_ids,
             evidence_count=len(_usable_evidence(task)),
             artifact_count=len(_meaningful_artifacts(artifacts)),
+            input_entry_mode=input_entry_mode,
+            deliverable_class=deliverable_class_hint,
+            decision_context_clear=decision_context_clear,
             external_research_heavy_case=external_research_heavy_candidate,
             allow_specialists=_allow_specialists_for_selection(
                 capability,
@@ -1289,6 +1297,10 @@ def resolve_agent_selection_for_task(
         rationale.append("這輪屬於 external-research-heavy sparse case，因此會優先保留外部研究與不確定性 framing 能力。")
     if deliverable_class_hint == DeliverableClass.EXPLORATORY_BRIEF:
         rationale.append("目前交付等級仍偏 exploratory，因此不會假裝已啟用完整 decision-action agent 組合。")
+    if resolution.deferred_agent_notes:
+        rationale.append("部分相關 agents 已被正式標記為 deferred，待後續補證或工作條件成熟後再啟用。")
+    if resolution.escalation_notes:
+        rationale.append("本輪也保留了 escalation notes，說明要如何升級到更完整的 agent 組合。")
 
     return schemas.AgentSelectionRead(
         host_agent=(
@@ -1310,6 +1322,8 @@ def resolve_agent_selection_for_task(
         resolver_notes=resolution.resolver_notes,
         rationale=rationale,
         omitted_agent_notes=resolution.omitted_agent_notes,
+        deferred_agent_notes=resolution.deferred_agent_notes,
+        escalation_notes=resolution.escalation_notes,
     )
 
 

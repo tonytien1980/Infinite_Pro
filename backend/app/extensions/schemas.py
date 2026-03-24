@@ -4,7 +4,7 @@ from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.domain.enums import CapabilityArchetype
+from app.domain.enums import CapabilityArchetype, DeliverableClass, InputEntryMode
 
 
 class PackType(str, Enum):
@@ -102,6 +102,9 @@ class AgentResolverInput(BaseModel):
     explicit_agent_ids: list[str] = Field(default_factory=list)
     evidence_count: int = 0
     artifact_count: int = 0
+    input_entry_mode: InputEntryMode = InputEntryMode.ONE_LINE_INQUIRY
+    deliverable_class: DeliverableClass = DeliverableClass.EXPLORATORY_BRIEF
+    decision_context_clear: bool = False
     external_research_heavy_case: bool = False
     allow_specialists: bool = True
 
@@ -113,6 +116,8 @@ class AgentResolution(BaseModel):
     override_agent_ids: list[str] = Field(default_factory=list)
     resolver_notes: list[str] = Field(default_factory=list)
     omitted_agent_notes: list[str] = Field(default_factory=list)
+    deferred_agent_notes: list[str] = Field(default_factory=list)
+    escalation_notes: list[str] = Field(default_factory=list)
 
 
 class PackRegistrySnapshot(BaseModel):

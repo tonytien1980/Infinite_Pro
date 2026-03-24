@@ -202,6 +202,8 @@ class AgentSelectionRead(BaseModel):
     resolver_notes: list[str] = Field(default_factory=list)
     rationale: list[str] = Field(default_factory=list)
     omitted_agent_notes: list[str] = Field(default_factory=list)
+    deferred_agent_notes: list[str] = Field(default_factory=list)
+    escalation_notes: list[str] = Field(default_factory=list)
 
 
 class SubjectRead(ORMModel):

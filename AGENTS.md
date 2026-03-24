@@ -147,6 +147,8 @@ This includes:
 - clear responsibilities, not roleplay personas
 - a formal Agent Registry and Agent Resolver
 - Host-selected agent context written back into aggregates, workspace payloads, and deliverable metadata
+- formal omitted / deferred / escalation notes for relevant but non-activated agents
+- execution-path impact, not just catalog visibility
 
 ### 5.5 Pack Layer
 Pack Layer contains two formal pack families:
@@ -229,6 +231,17 @@ Host Agent must be planned to eventually handle:
 - readiness governance
 - evidence sufficiency checks
 - convergence and deliverable shaping
+
+For the single-consultant scope, this orchestration layer should now be treated as complete:
+- selected agents must be explainable
+- omitted / deferred / escalation reasoning must be visible
+- selected agents must affect runtime path and deliverable shaping
+
+Future work in this area should normally mean:
+- bug fixes
+- new packs
+- new agent families
+- multi-user / marketplace / organizational governance layers
 
 Do not bypass Host Agent by letting UI-only logic or direct model calls decide the core workflow.
 

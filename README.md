@@ -137,6 +137,11 @@ Current minimal formal integration now exists for both extension families:
 
 That means selected packs and selected agents are no longer only conceptual governance definitions; they now enter task aggregates, workspace payloads, Host framing, readiness governance, and deliverable metadata.
 
+Within the single-consultant scope, Agent Orchestration is now treated as a completed runtime layer:
+- Host selection formally responds to capability archetype, selected packs, decision context, readiness/evidence sufficiency, sparse-input mode, and deliverable class
+- selected agents influence execution path and deliverable shaping, not just metadata
+- omitted / deferred / escalation notes are part of the formal writeback surface
+
 Single-user minimal management now also exists for:
 - extension catalog visibility
 - task-level selected pack / agent visibility
