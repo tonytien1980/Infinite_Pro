@@ -350,8 +350,10 @@ Within the single-consultant scope, the following workbench surfaces should now 
 - `Decision Workspace`
 - `Extension Manager` minimal surface
 - `Matter / Engagement Workspace`
+- `Artifact / Evidence Workspace`
 
 That means `Client / Engagement / Workstream / DecisionContext` should be treated as formal workspace subjects, not just task-detail summaries.
+It also means `Artifact / SourceMaterial / Evidence` should be treated as formal workspace subjects with visible support chains, sufficiency, and gap governance, not only as supporting context cards.
 
 Do not hard-code product logic into UI-only wording when the same rule belongs in shared application logic.
 
@@ -367,6 +369,7 @@ Do not hard-code product logic into UI-only wording when the same rule belongs i
 - pack layer
 - consulting workbench UI
 - matter / engagement workspace as a formal case-working surface
+- artifact / evidence workspace as a formal source-and-evidence work surface
 - provider abstraction
 - source / evidence / history / traceability
 

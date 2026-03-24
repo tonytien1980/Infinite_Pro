@@ -286,6 +286,60 @@ def test_matter_workspace_routes_return_cross_task_continuity(client: TestClient
     }
 
 
+def test_artifact_evidence_workspace_route_returns_formal_source_and_support_chains(
+    client: TestClient,
+) -> None:
+    payload = create_contract_review_payload("Artifact evidence workspace")
+    payload.update(
+        {
+            "client_name": "Northwind Studio",
+            "client_type": "中小企業",
+            "client_stage": "制度化階段",
+            "engagement_name": "Northwind Risk Review",
+            "workstream_name": "合約與風險審閱",
+            "decision_title": "Northwind legal review decision",
+            "judgment_to_make": "先判斷這份合作文件是否已具備可接受的責任與終止條款邊界。",
+            "domain_lenses": ["法務", "營運"],
+        }
+    )
+
+    task = client.post("/api/v1/tasks", json=payload).json()
+    client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[
+            (
+                "files",
+                (
+                    "agreement.txt",
+                    b"Supplier may terminate for convenience on 10 days notice. Liability cap excludes confidentiality breaches. Acceptance criteria are not clearly defined.",
+                    "text/plain",
+                ),
+            )
+        ],
+    )
+    run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
+    assert run_response.status_code == 200
+
+    matter = client.get("/api/v1/matters").json()[0]
+    workspace_response = client.get(
+        f"/api/v1/matters/{matter['id']}/artifact-evidence"
+    )
+
+    assert workspace_response.status_code == 200
+    workspace = workspace_response.json()
+    assert workspace["matter_summary"]["id"] == matter["id"]
+    assert workspace["source_material_cards"]
+    assert workspace["artifact_cards"]
+    assert workspace["evidence_chains"]
+    assert workspace["sufficiency_summary"]
+    assert workspace["high_impact_gaps"] is not None
+    assert workspace["continuity_notes"] is not None
+    assert any(
+        item["linked_recommendations"] or item["linked_risks"] or item["linked_action_items"]
+        for item in workspace["evidence_chains"]
+    )
+
+
 def test_task_aggregate_includes_pack_resolution_from_context_spine(client: TestClient) -> None:
     payload = create_task_payload("Pack-aware aggregate")
     payload.update(

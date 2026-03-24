@@ -191,7 +191,13 @@ Infinite Pro 的工作主體不應只是 task。
 用來做 task framing、readiness、decision output、mode-specific sections。
 
 ### 6.4 Artifact / Evidence workspace
-用來處理文件、來源、evidence 與 supporting context。
+用來處理文件、來源、evidence、支撐鏈與缺口治理。
+
+在單人版範圍內，這個工作面現在也應視為已正式成立：
+- `Artifact / SourceMaterial / Evidence` 已成為正式工作面的主體，而不是 supporting context 附屬區塊
+- 顧問可以從 matter workspace 或 task detail 進入正式來源 / 證據工作面
+- evidence 對 recommendation / risk / action item 的最小正式支撐鏈已可回看
+- sufficiency 與 high-impact gaps 已是正式工作面責任，而不是隱性 trace metadata
 
 ### 6.5 Deliverable workspace
 用來閱讀、整理、調整與回看交付物。
@@ -199,7 +205,7 @@ Infinite Pro 的工作主體不應只是 task。
 ### 6.6 System trace surface
 用來查看 orchestration、history、ontology mapping 與工作流痕跡。
 
-這些工作面都屬於正式系統輪廓；其中 `Matter / Engagement workspace` 在單人版範圍內已可視為正式完成的案件主體工作面。
+這些工作面都屬於正式系統輪廓；其中 `Matter / Engagement workspace` 與 `Artifact / Evidence workspace` 在單人版範圍內已可視為正式完成的工作面。
 
 ---
 

@@ -482,6 +482,62 @@ class MatterWorkspaceResponse(BaseModel):
     continuity_notes: list[str] = Field(default_factory=list)
 
 
+class ArtifactEvidenceMaterialRead(BaseModel):
+    object_id: str
+    task_id: str
+    task_title: str
+    object_type: str
+    title: str
+    summary: str
+    role_label: str
+    presence_state: PresenceState
+    source_type: str | None = None
+    ingest_status: str | None = None
+    source_ref: str | None = None
+    linked_evidence_count: int = 0
+    linked_output_count: int = 0
+    created_at: datetime
+
+
+class EvidenceSupportTargetRead(BaseModel):
+    target_type: str
+    target_id: str | None = None
+    task_id: str
+    task_title: str
+    title: str
+    note: str = ""
+
+
+class EvidenceWorkspaceEvidenceRead(BaseModel):
+    evidence: EvidenceRead
+    task_title: str
+    source_material_title: str | None = None
+    artifact_title: str | None = None
+    strength_label: str
+    sufficiency_note: str
+    linked_recommendations: list[EvidenceSupportTargetRead] = Field(default_factory=list)
+    linked_risks: list[EvidenceSupportTargetRead] = Field(default_factory=list)
+    linked_action_items: list[EvidenceSupportTargetRead] = Field(default_factory=list)
+    linked_deliverables: list[EvidenceSupportTargetRead] = Field(default_factory=list)
+
+
+class ArtifactEvidenceWorkspaceResponse(BaseModel):
+    matter_summary: MatterWorkspaceSummaryRead
+    client: ClientRead | None = None
+    engagement: EngagementRead | None = None
+    workstream: WorkstreamRead | None = None
+    current_decision_context: DecisionContextRead | None = None
+    related_tasks: list[TaskListItemResponse] = Field(default_factory=list)
+    artifact_cards: list[ArtifactEvidenceMaterialRead] = Field(default_factory=list)
+    source_material_cards: list[ArtifactEvidenceMaterialRead] = Field(default_factory=list)
+    evidence_chains: list[EvidenceWorkspaceEvidenceRead] = Field(default_factory=list)
+    evidence_expectations: list[str] = Field(default_factory=list)
+    high_impact_gaps: list[str] = Field(default_factory=list)
+    sufficiency_summary: str = ""
+    deliverable_limitations: list[str] = Field(default_factory=list)
+    continuity_notes: list[str] = Field(default_factory=list)
+
+
 class TaskAggregateResponse(BaseModel):
     id: str
     title: str

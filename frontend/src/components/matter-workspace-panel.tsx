@@ -65,6 +65,9 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
                 </p>
                 <p className="muted-text">{matterCard.continuity}</p>
               </div>
+              <Link className="button-secondary matter-hero-link" href={`/matters/${matterId}/evidence`}>
+                打開來源 / 證據工作面
+              </Link>
             </div>
           </section>
 
@@ -215,9 +218,12 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
                   <div>
                     <h2 className="panel-title">Related Artifacts / Source Materials</h2>
                     <p className="panel-copy">
-                      這些材料是目前案件世界下可回看的最小工作鏈。Artifact / Evidence Workspace Completion 之後會再把這條工作面獨立做滿。
+                      這些材料現在已可從正式的 Artifact / Evidence Workspace 進一步回看來源角色、evidence 支撐鏈與高影響缺口。
                     </p>
                   </div>
+                  <Link className="button-secondary" href={`/matters/${matterId}/evidence`}>
+                    進入來源 / 證據工作面
+                  </Link>
                 </div>
                 <div className="detail-list">
                   {[...matter.related_artifacts, ...matter.related_source_materials].length > 0 ? (

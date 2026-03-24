@@ -1,4 +1,5 @@
 import type {
+  ArtifactEvidenceWorkspace,
   Constraint,
   Deliverable,
   Evidence,
@@ -244,6 +245,16 @@ export interface MatterWorkspaceContinuityView {
   relatedTaskHighlights: string[];
   deliverableHighlights: string[];
   materialHighlights: string[];
+}
+
+export interface ArtifactEvidenceWorkspaceView {
+  summary: string;
+  evidenceExpectations: string[];
+  highImpactGaps: string[];
+  deliverableLimitations: string[];
+  artifactHighlights: string[];
+  sourceMaterialHighlights: string[];
+  evidenceHighlights: string[];
 }
 
 export interface PackSelectionView {
@@ -1688,6 +1699,38 @@ export function buildMatterWorkspaceContinuity(
         .slice(0, 3)
         .map((item) => `SourceMaterial｜${item.title}｜${item.task_title}`),
     ],
+  };
+}
+
+export function buildArtifactEvidenceWorkspaceView(
+  workspace: ArtifactEvidenceWorkspace,
+): ArtifactEvidenceWorkspaceView {
+  return {
+    summary: workspace.sufficiency_summary,
+    evidenceExpectations: workspace.evidence_expectations,
+    highImpactGaps: workspace.high_impact_gaps,
+    deliverableLimitations: workspace.deliverable_limitations,
+    artifactHighlights: workspace.artifact_cards
+      .slice(0, 5)
+      .map(
+        (item) =>
+          `${item.title}｜${item.role_label}｜${item.linked_evidence_count} 則 evidence / ${item.linked_output_count} 項 outputs`,
+      ),
+    sourceMaterialHighlights: workspace.source_material_cards
+      .slice(0, 5)
+      .map(
+        (item) =>
+          `${item.title}｜${item.role_label}｜${item.linked_evidence_count} 則 evidence / ${item.linked_output_count} 項 outputs`,
+      ),
+    evidenceHighlights: workspace.evidence_chains
+      .slice(0, 6)
+      .map((item) => {
+        const supportCount =
+          item.linked_recommendations.length +
+          item.linked_risks.length +
+          item.linked_action_items.length;
+        return `${item.evidence.title}｜${item.strength_label}｜${supportCount} 項 decision supports`;
+      }),
   };
 }
 

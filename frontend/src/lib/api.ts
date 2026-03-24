@@ -1,4 +1,5 @@
 import {
+  ArtifactEvidenceWorkspace,
   ExtensionManagerSnapshot,
   MatterWorkspace,
   MatterWorkspaceSummary,
@@ -66,6 +67,15 @@ export async function getMatterWorkspace(matterId: string): Promise<MatterWorksp
     cache: "no-store",
   });
   return parseResponse<MatterWorkspace>(response);
+}
+
+export async function getArtifactEvidenceWorkspace(
+  matterId: string,
+): Promise<ArtifactEvidenceWorkspace> {
+  const response = await fetch(`${API_BASE_URL}/matters/${matterId}/artifact-evidence`, {
+    cache: "no-store",
+  });
+  return parseResponse<ArtifactEvidenceWorkspace>(response);
 }
 
 export async function createTask(payload: TaskCreatePayload): Promise<TaskAggregate> {

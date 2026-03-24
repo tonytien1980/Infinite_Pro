@@ -2664,6 +2664,463 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
     )
 
 
+def _material_role_label(
+    linked_evidence_count: int,
+    linked_output_count: int,
+    ingest_status: str | None = None,
+) -> tuple[str, PresenceState]:
+    if linked_output_count >= 2 or linked_evidence_count >= 2:
+        return "主要來源", PresenceState.EXPLICIT
+    if linked_evidence_count >= 1:
+        return "補充來源", PresenceState.EXPLICIT
+    if ingest_status and ingest_status != "processed":
+        return "暫定來源", PresenceState.PROVISIONAL
+    return "待補強來源", PresenceState.PROVISIONAL
+
+
+def _evidence_strength_label(
+    linked_output_count: int,
+    linked_deliverable_count: int,
+    reliability_level: str,
+) -> str:
+    normalized_reliability = (reliability_level or "").lower()
+    if linked_output_count >= 2 or (
+        linked_output_count >= 1 and normalized_reliability in {"user_provided", "high", "high_confidence"}
+    ):
+        return "strong"
+    if linked_output_count >= 1 or linked_deliverable_count >= 1:
+        return "moderate"
+    if normalized_reliability in {"user_provided", "medium"}:
+        return "moderate"
+    return "thin"
+
+
+def _build_evidence_support_note(
+    linked_recommendations: list[schemas.EvidenceSupportTargetRead],
+    linked_risks: list[schemas.EvidenceSupportTargetRead],
+    linked_action_items: list[schemas.EvidenceSupportTargetRead],
+    linked_deliverables: list[schemas.EvidenceSupportTargetRead],
+) -> str:
+    parts: list[str] = []
+    if linked_recommendations:
+        parts.append(f"{len(linked_recommendations)} 項 recommendations")
+    if linked_risks:
+        parts.append(f"{len(linked_risks)} 項 risks")
+    if linked_action_items:
+        parts.append(f"{len(linked_action_items)} 項 action items")
+    if linked_deliverables:
+        parts.append(f"{len(linked_deliverables)} 份 deliverables")
+
+    if parts:
+        return f"這則 evidence 目前已正式支撐 {join_natural_list(parts)}。"
+
+    return "這則 evidence 已被保存，但尚未形成足夠清楚的 recommendation / risk / action 支撐鏈。"
+
+
+def get_artifact_evidence_workspace(
+    db: Session,
+    matter_id: str,
+) -> schemas.ArtifactEvidenceWorkspaceResponse:
+    matter_workspace = db.scalars(
+        select(models.MatterWorkspace).where(models.MatterWorkspace.id == matter_id)
+    ).one_or_none()
+    if matter_workspace is None:
+        raise HTTPException(status_code=404, detail="找不到指定來源 / 證據工作面。")
+
+    related_tasks = _load_tasks_for_matter_workspaces(db, [matter_workspace.id]).get(
+        matter_workspace.id,
+        [],
+    )
+    if not related_tasks:
+        raise HTTPException(status_code=404, detail="找不到此來源 / 證據工作面的相關任務。")
+
+    matter_summary = _build_matter_workspace_summary_from_tasks(matter_workspace, related_tasks)
+    latest_task = related_tasks[0]
+    latest_task_spine = _build_ontology_spine_for_task(latest_task)
+    client = latest_task_spine[0]
+    engagement = latest_task_spine[1]
+    workstream = latest_task_spine[2]
+    current_decision_context = latest_task_spine[3]
+    related_task_items = [
+        _build_task_list_item_response(task, matter_summary) for task in related_tasks[:8]
+    ]
+
+    source_material_cards: list[schemas.ArtifactEvidenceMaterialRead] = []
+    artifact_cards: list[schemas.ArtifactEvidenceMaterialRead] = []
+    evidence_chains: list[schemas.EvidenceWorkspaceEvidenceRead] = []
+    evidence_expectations: list[str] = []
+    high_impact_gaps: list[str] = []
+    deliverable_limitations: list[str] = []
+    continuity_notes: list[str] = []
+
+    source_material_seen: set[str] = set()
+    artifact_seen: set[str] = set()
+    evidence_seen: set[str] = set()
+    task_ids_with_materials: set[str] = set()
+    task_ids_with_evidence: set[str] = set()
+    unsupported_recommendation_count = 0
+    unsupported_risk_count = 0
+    unsupported_action_item_count = 0
+    linked_evidence_count = 0
+    linked_deliverable_count = 0
+    external_research_heavy_detected = False
+
+    for task in related_tasks:
+        task_title = task.title
+        task_spine = _build_ontology_spine_for_task(task)
+        decision_context = task_spine[3]
+        domain_lenses = task_spine[4]
+        source_materials = task_spine[5]
+        artifacts = task_spine[6]
+        evidence = _serialize_evidence_items(task, source_materials, artifacts)
+        recommendation_support_map, risk_support_map, action_item_support_map = _build_supporting_evidence_maps(
+            task
+        )
+        recommendations = _serialize_recommendations(task, recommendation_support_map)
+        risks = _serialize_risks(task, risk_support_map)
+        action_items = _serialize_action_items(task, action_item_support_map)
+        deliverables = _serialize_deliverables(
+            task,
+            _build_object_label_map(
+                task,
+                source_materials,
+                artifacts,
+                evidence,
+                recommendations,
+                risks,
+                action_items,
+                decision_context,
+                task_spine[0],
+                task_spine[1],
+                task_spine[2],
+            ),
+        )
+        input_entry_mode = _infer_input_entry_mode(task, source_materials, artifacts)
+        external_research_heavy_candidate = _is_external_research_heavy_candidate(
+            task,
+            decision_context,
+            source_materials,
+            artifacts,
+            input_entry_mode,
+        )
+        external_research_heavy_detected = (
+            external_research_heavy_detected or external_research_heavy_candidate
+        )
+        deliverable_class_hint = _resolve_deliverable_class_hint(
+            input_entry_mode,
+            decision_context,
+            source_materials,
+            artifacts,
+            len(_usable_evidence(task)),
+            external_research_heavy_candidate,
+        )
+        pack_resolution = resolve_pack_selection_for_task(
+            task,
+            task_spine[0],
+            task_spine[1],
+            task_spine[2],
+            decision_context,
+            domain_lenses,
+        )
+        evidence_expectations.extend(pack_resolution.evidence_expectations)
+
+        unsupported_recommendation_count += sum(
+            1 for item in recommendations if not item.supporting_evidence_ids
+        )
+        unsupported_risk_count += sum(1 for item in risks if not item.supporting_evidence_ids)
+        unsupported_action_item_count += sum(
+            1 for item in action_items if not item.supporting_evidence_ids
+        )
+
+        recommendation_targets_by_evidence: dict[str, list[schemas.EvidenceSupportTargetRead]] = {}
+        risk_targets_by_evidence: dict[str, list[schemas.EvidenceSupportTargetRead]] = {}
+        action_targets_by_evidence: dict[str, list[schemas.EvidenceSupportTargetRead]] = {}
+        deliverable_targets_by_evidence: dict[str, list[schemas.EvidenceSupportTargetRead]] = {}
+
+        for item in recommendations:
+            for evidence_id in item.supporting_evidence_ids:
+                recommendation_targets_by_evidence.setdefault(evidence_id, []).append(
+                    schemas.EvidenceSupportTargetRead(
+                        target_type="recommendation",
+                        target_id=item.id,
+                        task_id=item.task_id,
+                        task_title=task_title,
+                        title=item.summary,
+                        note=f"優先級：{item.priority}",
+                    )
+                )
+        for item in risks:
+            for evidence_id in item.supporting_evidence_ids:
+                risk_targets_by_evidence.setdefault(evidence_id, []).append(
+                    schemas.EvidenceSupportTargetRead(
+                        target_type="risk",
+                        target_id=item.id,
+                        task_id=item.task_id,
+                        task_title=task_title,
+                        title=item.title,
+                        note=f"影響：{item.impact_level} / 可能性：{item.likelihood_level}",
+                    )
+                )
+        for item in action_items:
+            for evidence_id in item.supporting_evidence_ids:
+                action_targets_by_evidence.setdefault(evidence_id, []).append(
+                    schemas.EvidenceSupportTargetRead(
+                        target_type="action_item",
+                        target_id=item.id,
+                        task_id=item.task_id,
+                        task_title=task_title,
+                        title=item.description,
+                        note=f"優先級：{item.priority}",
+                    )
+                )
+        for deliverable in deliverables:
+            for link in deliverable.linked_objects:
+                if link.object_type != "evidence" or not link.object_id:
+                    continue
+                deliverable_targets_by_evidence.setdefault(link.object_id, []).append(
+                    schemas.EvidenceSupportTargetRead(
+                        target_type="deliverable",
+                        target_id=deliverable.id,
+                        task_id=deliverable.task_id,
+                        task_title=task_title,
+                        title=deliverable.title,
+                        note=f"v{deliverable.version}",
+                    )
+                )
+
+        evidence_by_source_material: dict[str, list[schemas.EvidenceRead]] = {}
+        evidence_by_artifact: dict[str, list[schemas.EvidenceRead]] = {}
+        for item in evidence:
+            if item.source_material_id:
+                evidence_by_source_material.setdefault(item.source_material_id, []).append(item)
+            if item.artifact_id:
+                evidence_by_artifact.setdefault(item.artifact_id, []).append(item)
+
+        for source_material in source_materials:
+            if source_material.id in source_material_seen:
+                continue
+            source_material_seen.add(source_material.id)
+            linked_evidence = evidence_by_source_material.get(source_material.id, [])
+            linked_output_count = sum(
+                len(recommendation_targets_by_evidence.get(item.id, []))
+                + len(risk_targets_by_evidence.get(item.id, []))
+                + len(action_targets_by_evidence.get(item.id, []))
+                for item in linked_evidence
+            )
+            role_label, presence_state = _material_role_label(
+                len(linked_evidence),
+                linked_output_count,
+                source_material.ingest_status,
+            )
+            source_material_cards.append(
+                schemas.ArtifactEvidenceMaterialRead(
+                    object_id=source_material.id,
+                    task_id=task.id,
+                    task_title=task_title,
+                    object_type="source_material",
+                    title=source_material.title,
+                    summary=source_material.summary,
+                    role_label=role_label,
+                    presence_state=presence_state,
+                    source_type=source_material.source_type,
+                    ingest_status=source_material.ingest_status,
+                    source_ref=source_material.source_ref,
+                    linked_evidence_count=len(linked_evidence),
+                    linked_output_count=linked_output_count,
+                    created_at=source_material.created_at,
+                )
+            )
+            task_ids_with_materials.add(task.id)
+
+        for artifact in artifacts:
+            if artifact.id in artifact_seen:
+                continue
+            artifact_seen.add(artifact.id)
+            linked_evidence = evidence_by_artifact.get(artifact.id, [])
+            linked_output_count = sum(
+                len(recommendation_targets_by_evidence.get(item.id, []))
+                + len(risk_targets_by_evidence.get(item.id, []))
+                + len(action_targets_by_evidence.get(item.id, []))
+                for item in linked_evidence
+            )
+            role_label, presence_state = _material_role_label(
+                len(linked_evidence),
+                linked_output_count,
+                None,
+            )
+            artifact_cards.append(
+                schemas.ArtifactEvidenceMaterialRead(
+                    object_id=artifact.id,
+                    task_id=task.id,
+                    task_title=task_title,
+                    object_type="artifact",
+                    title=artifact.title,
+                    summary=artifact.description or artifact.artifact_type,
+                    role_label=role_label,
+                    presence_state=presence_state,
+                    source_type=None,
+                    ingest_status=None,
+                    source_ref=None,
+                    linked_evidence_count=len(linked_evidence),
+                    linked_output_count=linked_output_count,
+                    created_at=artifact.created_at,
+                )
+            )
+            task_ids_with_materials.add(task.id)
+
+        source_material_lookup = {item.id: item.title for item in source_materials}
+        artifact_lookup = {item.id: item.title for item in artifacts}
+        for item in evidence:
+            if item.id in evidence_seen:
+                continue
+            evidence_seen.add(item.id)
+            linked_recommendations = recommendation_targets_by_evidence.get(item.id, [])
+            linked_risks = risk_targets_by_evidence.get(item.id, [])
+            linked_action_items = action_targets_by_evidence.get(item.id, [])
+            linked_deliverables = deliverable_targets_by_evidence.get(item.id, [])
+            linked_output_total = (
+                len(linked_recommendations) + len(linked_risks) + len(linked_action_items)
+            )
+            if linked_output_total > 0:
+                linked_evidence_count += 1
+            if linked_deliverables:
+                linked_deliverable_count += 1
+            task_ids_with_evidence.add(task.id)
+            evidence_chains.append(
+                schemas.EvidenceWorkspaceEvidenceRead(
+                    evidence=item,
+                    task_title=task_title,
+                    source_material_title=(
+                        source_material_lookup.get(item.source_material_id)
+                        if item.source_material_id
+                        else None
+                    ),
+                    artifact_title=(
+                        artifact_lookup.get(item.artifact_id) if item.artifact_id else None
+                    ),
+                    strength_label=_evidence_strength_label(
+                        linked_output_total,
+                        len(linked_deliverables),
+                        item.reliability_level,
+                    ),
+                    sufficiency_note=_build_evidence_support_note(
+                        linked_recommendations,
+                        linked_risks,
+                        linked_action_items,
+                        linked_deliverables,
+                    ),
+                    linked_recommendations=linked_recommendations,
+                    linked_risks=linked_risks,
+                    linked_action_items=linked_action_items,
+                    linked_deliverables=linked_deliverables,
+                )
+            )
+
+        if deliverable_class_hint != DeliverableClass.DECISION_ACTION_DELIVERABLE:
+            deliverable_limitations.append(
+                f"任務「{task.title}」目前仍屬 {deliverable_class_hint.value}，代表來源 / 證據鏈尚不足以穩定支撐更高等級的 decision / action deliverable。"
+            )
+        if external_research_heavy_candidate:
+            deliverable_limitations.append(
+                f"任務「{task.title}」目前屬 external-research-heavy sparse case，不能假裝已具備 company-specific certainty。"
+            )
+
+    if not source_material_cards:
+        high_impact_gaps.append("目前案件世界仍缺可直接回看的 source materials。")
+    if not artifact_cards:
+        high_impact_gaps.append("目前案件世界仍缺可直接回看的 artifacts。")
+    if not evidence_chains:
+        high_impact_gaps.append("目前尚未形成可正式支撐 recommendation / risk / action 的 evidence chain。")
+    if unsupported_recommendation_count > 0:
+        high_impact_gaps.append(
+            f"目前仍有 {unsupported_recommendation_count} 項 recommendations 缺乏正式 supporting evidence。"
+        )
+    if unsupported_risk_count > 0:
+        high_impact_gaps.append(
+            f"目前仍有 {unsupported_risk_count} 項 risks 缺乏正式 supporting evidence。"
+        )
+    if unsupported_action_item_count > 0:
+        high_impact_gaps.append(
+            f"目前仍有 {unsupported_action_item_count} 項 action items 缺乏正式 supporting evidence。"
+        )
+
+    unique_expectations = _unique_preserve_order(evidence_expectations)[:8]
+    if unique_expectations and len(evidence_chains) < max(2, len(unique_expectations) // 2):
+        high_impact_gaps.append(
+            "目前已選 packs 對 evidence coverage 的期待仍高於現有來源厚度，建議優先補齊核心 source materials 與可引用 evidence。"
+        )
+
+    if evidence_chains:
+        sufficiency_summary = (
+            f"目前案件世界共有 {len(source_material_cards)} 份 source materials、"
+            f"{len(artifact_cards)} 份 artifacts、{len(evidence_chains)} 則 evidence；"
+            f"其中 {linked_evidence_count} 則 evidence 已正式支撐 recommendation / risk / action，"
+            f"{linked_deliverable_count} 則 evidence 已被寫回 deliverables。"
+        )
+    elif source_material_cards or artifact_cards:
+        sufficiency_summary = (
+            "目前已形成來源與材料工作面，但 evidence-to-decision 支撐鏈仍偏薄，這輪較適合做 exploratory / review 等級判斷。"
+        )
+    else:
+        sufficiency_summary = (
+            "目前案件世界仍偏 sparse input，來源 / 證據工作面主要用來揭示缺口，而不是聲稱已有完整 evidence world。"
+        )
+
+    if len(task_ids_with_materials) > 1:
+        continuity_notes.append(
+            f"目前來源材料已跨 {len(task_ids_with_materials)} 個 tasks 累積，不再只是單次任務的附帶資料。"
+        )
+    if len(task_ids_with_evidence) > 1:
+        continuity_notes.append(
+            f"目前 evidence 已跨 {len(task_ids_with_evidence)} 個 tasks 被累積與回看，形成最小 cross-task continuity。"
+        )
+    if linked_deliverable_count > 0:
+        continuity_notes.append(
+            f"目前已有 {linked_deliverable_count} 則 evidence 正式回鏈到 deliverables，可直接回看支撐鏈。"
+        )
+    if external_research_heavy_detected:
+        continuity_notes.append(
+            "這個案件世界中包含 external-research-heavy sparse case；系統會保留 exploratory 層級誠實性，不假裝 company-specific certainty。"
+        )
+
+    source_material_cards = sorted(
+        source_material_cards,
+        key=lambda item: (item.linked_output_count, item.linked_evidence_count, item.created_at),
+        reverse=True,
+    )[:10]
+    artifact_cards = sorted(
+        artifact_cards,
+        key=lambda item: (item.linked_output_count, item.linked_evidence_count, item.created_at),
+        reverse=True,
+    )[:10]
+    evidence_chains = sorted(
+        evidence_chains,
+        key=lambda item: (
+            len(item.linked_recommendations) + len(item.linked_risks) + len(item.linked_action_items),
+            len(item.linked_deliverables),
+            item.evidence.created_at,
+        ),
+        reverse=True,
+    )[:12]
+
+    return schemas.ArtifactEvidenceWorkspaceResponse(
+        matter_summary=matter_summary,
+        client=client,
+        engagement=engagement,
+        workstream=workstream,
+        current_decision_context=current_decision_context,
+        related_tasks=related_task_items,
+        artifact_cards=artifact_cards,
+        source_material_cards=source_material_cards,
+        evidence_chains=evidence_chains,
+        evidence_expectations=unique_expectations,
+        high_impact_gaps=_unique_preserve_order(high_impact_gaps)[:8],
+        sufficiency_summary=sufficiency_summary,
+        deliverable_limitations=_unique_preserve_order(deliverable_limitations)[:6],
+        continuity_notes=_unique_preserve_order(continuity_notes)[:6],
+    )
+
+
 def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
     db = object_session(task)
     if db is None:

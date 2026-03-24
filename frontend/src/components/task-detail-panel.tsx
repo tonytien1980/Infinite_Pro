@@ -449,6 +449,11 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
             ← 返回案件工作面
           </Link>
         ) : null}
+        {task?.matter_workspace ? (
+          <Link className="back-link" href={`/matters/${task.matter_workspace.id}/evidence`}>
+            ← 返回來源 / 證據工作面
+          </Link>
+        ) : null}
       </div>
 
       {loading ? <p className="status-text">正在載入任務工作區...</p> : null}
@@ -583,9 +588,14 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                   <div>
                     <h2 className="panel-title">Artifact / SourceMaterial / Evidence 工作面</h2>
                     <p className="panel-copy">
-                      這裡不是單純 supporting data，而是這輪判斷真正依附的工作鏈。先確認有哪些 artifact、source material 與 evidence 正在支撐這份交付物。
+                      這裡不是單純 supporting data，而是這輪判斷真正依附的工作鏈。若要完整回看來源角色、支撐鏈與高影響缺口，現在可直接進入正式的 Artifact / Evidence Workspace。
                     </p>
                   </div>
+                  {task.matter_workspace ? (
+                    <Link className="button-secondary" href={`/matters/${task.matter_workspace.id}/evidence`}>
+                      打開來源 / 證據工作面
+                    </Link>
+                  ) : null}
                 </div>
                 {evidenceWorkspaceLane && workbenchObjectSummary && ontologyChainSummary ? (
                   <>

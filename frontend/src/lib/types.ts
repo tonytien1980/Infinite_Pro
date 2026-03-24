@@ -522,6 +522,62 @@ export interface MatterWorkspace {
   continuity_notes: string[];
 }
 
+export interface ArtifactEvidenceMaterial {
+  object_id: string;
+  task_id: string;
+  task_title: string;
+  object_type: string;
+  title: string;
+  summary: string;
+  role_label: string;
+  presence_state: PresenceState;
+  source_type: string | null;
+  ingest_status: string | null;
+  source_ref: string | null;
+  linked_evidence_count: number;
+  linked_output_count: number;
+  created_at: string;
+}
+
+export interface EvidenceSupportTarget {
+  target_type: string;
+  target_id: string | null;
+  task_id: string;
+  task_title: string;
+  title: string;
+  note: string;
+}
+
+export interface ArtifactEvidenceChain {
+  evidence: Evidence;
+  task_title: string;
+  source_material_title: string | null;
+  artifact_title: string | null;
+  strength_label: string;
+  sufficiency_note: string;
+  linked_recommendations: EvidenceSupportTarget[];
+  linked_risks: EvidenceSupportTarget[];
+  linked_action_items: EvidenceSupportTarget[];
+  linked_deliverables: EvidenceSupportTarget[];
+}
+
+export interface ArtifactEvidenceWorkspace {
+  matter_summary: MatterWorkspaceSummary;
+  client: Client | null;
+  engagement: Engagement | null;
+  workstream: Workstream | null;
+  current_decision_context: DecisionContext | null;
+  related_tasks: TaskListItem[];
+  artifact_cards: ArtifactEvidenceMaterial[];
+  source_material_cards: ArtifactEvidenceMaterial[];
+  evidence_chains: ArtifactEvidenceChain[];
+  evidence_expectations: string[];
+  high_impact_gaps: string[];
+  sufficiency_summary: string;
+  deliverable_limitations: string[];
+  continuity_notes: string[];
+}
+
 export interface UploadBatchResponse {
   task_id: string;
   uploaded: Array<{

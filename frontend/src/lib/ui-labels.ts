@@ -83,6 +83,12 @@ const EVIDENCE_TYPE_LABELS: Record<string, string> = {
   uploaded_file_unparsed: "檔案未完成解析",
 };
 
+const EVIDENCE_STRENGTH_LABELS: Record<string, string> = {
+  strong: "支撐力強",
+  moderate: "支撐力中等",
+  thin: "支撐力偏薄",
+};
+
 const SOURCE_TYPE_LABELS: Record<string, string> = {
   manual_input: "手動輸入",
   manual_upload: "手動上傳",
@@ -235,6 +241,10 @@ export function labelForAgentId(value: string) {
 
 export function labelForEvidenceType(value: string) {
   return EVIDENCE_TYPE_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForEvidenceStrength(value: string) {
+  return EVIDENCE_STRENGTH_LABELS[value] ?? fallbackLabel(value);
 }
 
 export function labelForExtensionStatus(value: string) {

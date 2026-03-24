@@ -5,7 +5,11 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.domain import schemas
-from app.services.tasks import get_matter_workspace, list_matter_workspaces
+from app.services.tasks import (
+    get_artifact_evidence_workspace,
+    get_matter_workspace,
+    list_matter_workspaces,
+)
 
 router = APIRouter(prefix="/matters", tags=["matters"])
 
@@ -23,3 +27,14 @@ def get_matter_workspace_route(
     db: Session = Depends(get_db),
 ) -> schemas.MatterWorkspaceResponse:
     return get_matter_workspace(db, matter_id)
+
+
+@router.get(
+    "/{matter_id}/artifact-evidence",
+    response_model=schemas.ArtifactEvidenceWorkspaceResponse,
+)
+def get_artifact_evidence_workspace_route(
+    matter_id: str,
+    db: Session = Depends(get_db),
+) -> schemas.ArtifactEvidenceWorkspaceResponse:
+    return get_artifact_evidence_workspace(db, matter_id)

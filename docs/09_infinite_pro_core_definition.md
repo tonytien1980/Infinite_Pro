@@ -203,6 +203,15 @@ Infinite Pro 的工作世界至少應圍繞以下主鏈理解：
 - workbench home -> matter workspace -> task / deliverable detail 的正式導航骨架
 - 對單一顧問而言可長時間使用的案件工作上下文
 
+### Artifact / Evidence Workspace 的正式地位
+在單人版範圍內，`Artifact / Evidence Workspace` 也已是正式工作面，而不是 supporting context 或 trace panel 的延伸。
+
+它正式承接：
+- `Artifact / SourceMaterial / Evidence` 的來源世界主體
+- evidence 對 recommendation / risk / action item 的最小正式支撐鏈
+- evidence sufficiency、high-impact gaps、deliverable limitations 的可見治理
+- matter workspace、task detail 與 deliverable lane 對來源 / 證據工作面的正式回跳與連續性
+
 ### LLM / Provider
 負責語言理解、推理與生成，但不應取代 ontology、Host 與 workbench 的結構化治理角色。
 

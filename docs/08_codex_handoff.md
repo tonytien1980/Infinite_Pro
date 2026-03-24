@@ -207,6 +207,15 @@ Codex 應把它理解為已完成的正式案件工作面，至少承接：
 - workbench home -> matter workspace -> task detail 的正式導覽鏈
 - 不同 task 與 deliverable 在同一個案件世界中的最小回看脈絡
 
+### 7.5 Artifact / Evidence Workspace
+在單人版範圍內，`Artifact / Evidence Workspace` 也不應再被視為未來工作面或 supporting context 的延伸區塊。
+
+Codex 應把它理解為已完成的正式來源 / 證據工作面，至少承接：
+- `Artifact / SourceMaterial / Evidence` 的 canonical display 與正式工作面入口
+- evidence 對 recommendation / risk / action item 的最小正式支撐鏈
+- evidence sufficiency、high-impact gaps、deliverable limitations 的可見治理結果
+- matter workspace / task detail / deliverable lane 與來源 / 證據工作面的正式銜接
+
 ---
 
 ## 8. Codex 不應再怎麼做

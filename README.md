@@ -153,6 +153,11 @@ Within the single-consultant scope, the `Matter / Engagement Workspace` should n
 - the workbench can move from home -> matter workspace -> task / deliverable detail
 - cross-task and cross-deliverable continuity now belongs to the formal workbench, not to ad hoc task-detail summaries
 
+Within the single-consultant scope, the `Artifact / Evidence Workspace` should now also be treated as a completed formal work surface:
+- `Artifact / SourceMaterial / Evidence` have canonical workspace identities and a dedicated workspace route
+- consultants can move from matter workspace or task detail into a formal source/evidence work surface
+- evidence support chains, sufficiency, and high-impact gaps are visible as workbench responsibilities rather than hidden trace metadata
+
 ## Core ontology objects
 
 The system should be planned around objects such as:
@@ -190,6 +195,7 @@ The repository currently contains a working early implementation slice within th
 - Host-led workflow orchestration
 - specialist and multi-agent execution paths
 - a formal `Matter / Engagement Workspace` for single-consultant case continuity
+- a formal `Artifact / Evidence Workspace` for source, evidence, support-chain, and gap governance
 - structured deliverable rendering
 - provider abstraction with `mock` and `openai`
 - Traditional Chinese as the default UI language
