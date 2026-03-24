@@ -456,6 +456,49 @@ def test_task_aggregate_includes_pack_resolution_from_context_spine(client: Test
     assert "escalation_notes" in body["agent_selection"]
 
 
+def test_task_aggregate_supports_second_wave_industry_and_new_domain_packs(client: TestClient) -> None:
+    payload = create_multi_agent_payload("Second-wave pack aggregate")
+    payload.update(
+        {
+            "description": "請判斷這家 SaaS 公司是否該先重整產品方案、定價與組織人力配置，再擴大 enterprise pipeline。",
+            "client_name": "Northstar Cloud",
+            "client_type": "中小企業",
+            "client_stage": "制度化階段",
+            "engagement_name": "Northstar Growth and Org Review",
+            "workstream_name": "產品 / 組織收斂",
+            "domain_lenses": ["產品服務", "組織人力", "銷售"],
+            "judgment_to_make": "先判斷這家 SaaS 公司是否應優先重整 offer architecture、pricing 與團隊設計，再擴大 enterprise pipeline。",
+        }
+    )
+
+    response = client.post("/api/v1/tasks", json=payload)
+
+    assert response.status_code == 201
+    body = response.json()
+    assert any(
+        item["pack_id"] == "organization_people_pack"
+        for item in body["pack_resolution"]["selected_domain_packs"]
+    )
+    assert any(
+        item["pack_id"] == "product_service_pack"
+        for item in body["pack_resolution"]["selected_domain_packs"]
+    )
+    assert any(
+        item["pack_id"] == "saas_pack"
+        for item in body["pack_resolution"]["selected_industry_packs"]
+    )
+    assert {
+        item["pack_id"] for item in body["pack_resolution"]["selected_industry_packs"]
+    } == {"saas_pack"}
+    assert body["pack_resolution"]["deliverable_presets"]
+    assert body["pack_resolution"]["evidence_expectations"]
+    assert "strategy_decision_agent" in body["agent_selection"]["selected_agent_ids"]
+    assert body["agent_selection"]["rationale"]
+    assert any("Domain / Functional Packs" in item for item in body["agent_selection"]["rationale"])
+    assert any("Industry Packs" in item for item in body["agent_selection"]["rationale"])
+    assert body["agent_selection"]["deferred_agent_notes"]
+
+
 def test_extension_manager_endpoint_returns_catalogs(client: TestClient) -> None:
     response = client.get("/api/v1/extensions/manager")
 

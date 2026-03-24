@@ -24,6 +24,9 @@ DOMAIN_LENS_ALIASES = {
     "商務開發": {"business", "development", "partnership", "channel"},
     "研究": {"research", "intelligence", "signals"},
     "情報": {"research", "intelligence", "signals"},
+    "綜合": {"research", "intelligence", "signals"},
+    "組織人力": {"organization", "people", "org", "team", "talent", "hiring", "hr"},
+    "產品服務": {"product", "service", "offer", "sku", "pricing", "package", "bundle"},
 }
 
 INDUSTRY_TOKEN_ALIASES = {
@@ -93,6 +96,80 @@ INDUSTRY_TOKEN_ALIASES = {
         "保健食品",
         "健康食品",
     },
+    "energy_pack": {
+        "energy",
+        "utility",
+        "renewable",
+        "solar",
+        "storage",
+        "power",
+        "能源",
+        "電力",
+        "儲能",
+        "光電",
+        "PPA",
+        "EPC",
+    },
+    "saas_pack": {
+        "saas",
+        "software",
+        "subscription",
+        "mrr",
+        "arr",
+        "plg",
+        "churn",
+        "retention",
+        "onboarding",
+    },
+    "media_creator_pack": {
+        "creator",
+        "media",
+        "audience",
+        "newsletter",
+        "podcast",
+        "youtube",
+        "業配",
+        "自媒體",
+        "內容創作者",
+        "membership",
+    },
+    "professional_services_pack": {
+        "consulting",
+        "agency",
+        "retainer",
+        "advisory",
+        "專業服務",
+        "代操",
+        "代管",
+    },
+    "manufacturing_pack": {
+        "manufacturing",
+        "factory",
+        "oem",
+        "odm",
+        "production",
+        "supply",
+        "工廠",
+        "製造",
+        "供應鏈",
+        "良率",
+        "產能",
+        "BOM",
+    },
+    "healthcare_clinic_pack": {
+        "clinic",
+        "healthcare",
+        "medical",
+        "appointment",
+        "patient",
+        "provider",
+        "診所",
+        "醫療",
+        "門診",
+        "病患",
+        "療程",
+        "醫師",
+    },
 }
 
 RUNTIME_AGENT_BINDINGS = {
@@ -151,26 +228,32 @@ class PackResolver:
         if not selected_industry:
             hint_tokens = _normalize_tokens(payload.industry_hints)
             hint_tokens.update(_normalize_tokens([payload.decision_context_summary or ""]))
-            hint_tokens.update(_normalize_tokens([payload.client_type or "", payload.client_stage or ""]))
+            hint_text = " ".join(
+                item.lower()
+                for item in [*payload.industry_hints, payload.decision_context_summary or ""]
+                if item
+            )
             for pack in self.registry.list_packs(PackType.INDUSTRY):
                 if pack.status != ExtensionStatus.ACTIVE:
                     continue
-                matched_hints = bool(hint_tokens.intersection(_pack_industry_tokens(pack)))
-                matched_client_type = bool(
-                    payload.client_type and payload.client_type in pack.relevant_client_types
+                matched_hints = bool(hint_tokens.intersection(_pack_industry_tokens(pack))) or (
+                    _matches_industry_hint_text(pack, hint_text)
                 )
-                matched_client_stage = bool(
-                    payload.client_stage and payload.client_stage in pack.relevant_client_stages
-                )
-                should_select = matched_hints
-                if pack.relevant_client_types and pack.relevant_client_stages:
-                    should_select = should_select or (matched_client_type and matched_client_stage)
-                elif pack.relevant_client_types:
-                    should_select = should_select or matched_client_type
-                elif pack.relevant_client_stages:
-                    should_select = should_select or (matched_client_stage and matched_hints)
-                if should_select:
-                    selected_industry.append(pack.pack_id)
+                if not matched_hints:
+                    continue
+                if (
+                    pack.relevant_client_types
+                    and payload.client_type
+                    and payload.client_type not in pack.relevant_client_types
+                ):
+                    continue
+                if (
+                    pack.relevant_client_stages
+                    and payload.client_stage
+                    and payload.client_stage not in pack.relevant_client_stages
+                ):
+                    continue
+                selected_industry.append(pack.pack_id)
             if selected_industry:
                 notes.append("Selected industry packs from industry hints.")
 
@@ -428,11 +511,7 @@ def _normalize_domain_lenses(values: Iterable[str]) -> list[str]:
 
 def _pack_domain_tokens(pack) -> set[str]:
     tokens = _normalize_tokens(pack.domain_lenses)
-    tokens.update(_normalize_tokens([pack.domain_definition, pack.description]))
-    tokens.update(_normalize_tokens(pack.common_problem_patterns))
-    tokens.update(_normalize_tokens(pack.key_kpis_or_operating_signals))
-    tokens.update(_normalize_tokens(pack.scope_boundaries))
-    tokens.update(_normalize_tokens(pack.pack_notes))
+    tokens.update(_normalize_tokens([pack.pack_id, pack.pack_name]))
     for lens in pack.domain_lenses:
         for alias_key, aliases in DOMAIN_LENS_ALIASES.items():
             if lens.lower() in {item.lower() for item in aliases}:
@@ -444,22 +523,39 @@ def _pack_domain_tokens(pack) -> set[str]:
 
 def _pack_industry_tokens(pack) -> set[str]:
     tokens = _normalize_tokens(pack.routing_hints)
-    tokens.update(_normalize_tokens([pack.pack_id, pack.pack_name]))
-    tokens.update(_normalize_tokens([pack.industry_definition]))
-    tokens.update(_normalize_tokens(pack.common_business_models))
-    tokens.update(_normalize_tokens(pack.common_problem_patterns))
-    tokens.update(_normalize_tokens(pack.key_kpis_or_operating_signals))
-    tokens.update(_normalize_tokens(pack.key_kpis))
-    tokens.update(_normalize_tokens(pack.decision_patterns))
-    tokens.update(_normalize_tokens(pack.pack_notes))
+    tokens.update(_normalize_tokens([pack.pack_id]))
     tokens.update(token.lower() for token in INDUSTRY_TOKEN_ALIASES.get(pack.pack_id, set()))
     return tokens
+
+
+def _contains_cjk(value: str) -> bool:
+    return any("\u4e00" <= char <= "\u9fff" for char in value)
+
+
+def _matches_industry_hint_text(pack, hint_text: str) -> bool:
+    candidates = {
+        item.strip().lower()
+        for item in [
+            *pack.routing_hints,
+            *INDUSTRY_TOKEN_ALIASES.get(pack.pack_id, set()),
+        ]
+        if item and item.strip()
+    }
+    return any(
+        candidate in hint_text
+        for candidate in candidates
+        if _contains_cjk(candidate) and len(candidate) >= 2
+    )
 
 
 def _base_reasoning_agents_for_capability(capability: CapabilityArchetype) -> list[str]:
     mapping = {
         CapabilityArchetype.DIAGNOSE_ASSESS: ["strategy_decision_agent", "operations_agent"],
-        CapabilityArchetype.DECIDE_CONVERGE: ["strategy_decision_agent", "operations_agent"],
+        CapabilityArchetype.DECIDE_CONVERGE: [
+            "strategy_decision_agent",
+            "research_intelligence_agent",
+            "operations_agent",
+        ],
         CapabilityArchetype.REVIEW_CHALLENGE: ["legal_risk_agent", "strategy_decision_agent"],
         CapabilityArchetype.SYNTHESIZE_BRIEF: ["research_intelligence_agent", "document_communication_agent"],
         CapabilityArchetype.RESTRUCTURE_REFRAME: ["document_communication_agent"],
@@ -478,6 +574,12 @@ def _reasoning_agents_for_domain_pack(pack_id: str) -> list[str]:
         "marketing_sales_pack": ["marketing_growth_agent", "sales_business_development_agent"],
         "business_development_pack": ["sales_business_development_agent"],
         "research_intelligence_pack": ["research_intelligence_agent"],
+        "organization_people_pack": ["operations_agent", "strategy_decision_agent"],
+        "product_service_pack": [
+            "strategy_decision_agent",
+            "marketing_growth_agent",
+            "operations_agent",
+        ],
     }
     return mapping.get(pack_id, [])
 
@@ -499,6 +601,12 @@ def _reasoning_agents_for_industry_pack(pack_id: str) -> list[str]:
         "gaming_pack": ["marketing_growth_agent", "research_intelligence_agent", "finance_agent"],
         "funeral_services_pack": ["operations_agent", "legal_risk_agent", "sales_business_development_agent"],
         "health_supplements_pack": ["marketing_growth_agent", "legal_risk_agent", "finance_agent"],
+        "energy_pack": ["operations_agent", "finance_agent", "legal_risk_agent"],
+        "saas_pack": ["marketing_growth_agent", "sales_business_development_agent", "finance_agent"],
+        "media_creator_pack": ["marketing_growth_agent", "research_intelligence_agent", "document_communication_agent"],
+        "professional_services_pack": ["operations_agent", "sales_business_development_agent", "finance_agent"],
+        "manufacturing_pack": ["operations_agent", "finance_agent", "research_intelligence_agent"],
+        "healthcare_clinic_pack": ["operations_agent", "legal_risk_agent", "marketing_growth_agent"],
     }
     return mapping.get(pack_id, [])
 

@@ -172,21 +172,29 @@ Pack Layer 正式包含：
 - Domain / Functional Packs
 - Industry Packs
 
-目前第一批正式 Domain / Functional Packs 應以：
+目前單人版 Pack 基本盤中的 Domain / Functional Packs 應以：
 - `operations_pack`
 - `finance_fundraising_pack`
 - `legal_risk_pack`
 - `marketing_sales_pack`
 - `business_development_pack`
 - `research_intelligence_pack`
+- `organization_people_pack`
+- `product_service_pack`
 
-目前第一批正式 Industry Packs 例子應以：
+目前單人版 Pack 基本盤中的 Industry Packs 應以：
 - `online_education_pack`
 - `ecommerce_pack`
 - `gaming_pack`
 - `funeral_services_pack`
 - `health_supplements_pack`
-為準，不要再回到舊的泛用示範 packs。
+- `energy_pack`
+- `saas_pack`
+- `media_creator_pack`
+- `professional_services_pack`
+- `manufacturing_pack`
+- `healthcare_clinic_pack`
+為準。
 
 另外，Codex 必須維持三者邊界：
 - Capability Archetypes = 這次要做哪種顧問工作

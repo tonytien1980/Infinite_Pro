@@ -156,6 +156,8 @@ Agent Layer 不是 prompt 集合，而是 capability execution layer。
     - `marketing_sales_pack`
     - `business_development_pack`
     - `research_intelligence_pack`
+    - `organization_people_pack`
+    - `product_service_pack`
 - `Industry Packs`
   - 代表產業脈絡
   - 第一批正式範圍：
@@ -164,6 +166,12 @@ Agent Layer 不是 prompt 集合，而是 capability execution layer。
     - `gaming_pack`
     - `funeral_services_pack`
     - `health_supplements_pack`
+    - `energy_pack`
+    - `saas_pack`
+    - `media_creator_pack`
+    - `professional_services_pack`
+    - `manufacturing_pack`
+    - `healthcare_clinic_pack`
 
 ### Pack 至少可擴充
 - ontology-aware context presets
@@ -191,7 +199,7 @@ Pack Layer 應至少具備：
 - `Pack Resolver` 定義 Host 如何選 pack、疊加 pack、處理衝突與 override
 - `Pack Management Surface` 則讓顧問能查看 pack 列表、版本、狀態，以及本次任務用到了哪些 pack
 
-第一批正式 pack 範圍至少應保留：
+單人版 Pack 基本盤至少應保留：
 - Domain / Functional Packs
   - `operations_pack`
   - `finance_fundraising_pack`
@@ -199,12 +207,20 @@ Pack Layer 應至少具備：
   - `marketing_sales_pack`
   - `business_development_pack`
   - `research_intelligence_pack`
+  - `organization_people_pack`
+  - `product_service_pack`
 - Industry Packs
   - `online_education_pack`
   - `ecommerce_pack`
   - `gaming_pack`
   - `funeral_services_pack`
   - `health_supplements_pack`
+  - `energy_pack`
+  - `saas_pack`
+  - `media_creator_pack`
+  - `professional_services_pack`
+  - `manufacturing_pack`
+  - `healthcare_clinic_pack`
 
 正式 Pack Spec 至少應包含：
 - `pack_id`

@@ -41,6 +41,8 @@ PACK_REASON_DOMAIN_MATCHES = {
     "marketing_sales_pack": {"行銷", "銷售"},
     "business_development_pack": {"銷售", "商務開發"},
     "research_intelligence_pack": {"研究", "情報", "綜合"},
+    "organization_people_pack": {"組織人力", "組織", "人力"},
+    "product_service_pack": {"產品服務", "產品", "服務"},
 }
 INDUSTRY_PACK_REASON_HINTS = {
     "online_education_pack": {
@@ -92,6 +94,65 @@ INDUSTRY_PACK_REASON_HINTS = {
         "維他命",
         "益生菌",
     },
+    "energy_pack": {
+        "energy",
+        "能源",
+        "電力",
+        "儲能",
+        "solar",
+        "renewable",
+        "ppa",
+        "epc",
+    },
+    "saas_pack": {
+        "saas",
+        "software",
+        "subscription",
+        "arr",
+        "mrr",
+        "plg",
+        "churn",
+    },
+    "media_creator_pack": {
+        "creator",
+        "media",
+        "自媒體",
+        "內容創作者",
+        "youtube",
+        "podcast",
+        "newsletter",
+        "業配",
+    },
+    "professional_services_pack": {
+        "consulting",
+        "agency",
+        "顧問",
+        "專業服務",
+        "retainer",
+        "managed service",
+        "代操",
+        "代管",
+    },
+    "manufacturing_pack": {
+        "manufacturing",
+        "工廠",
+        "製造",
+        "oem",
+        "odm",
+        "產能",
+        "良率",
+        "供應鏈",
+    },
+    "healthcare_clinic_pack": {
+        "clinic",
+        "healthcare",
+        "medical",
+        "診所",
+        "門診",
+        "醫療",
+        "病患",
+        "療程",
+    },
 }
 CLIENT_STAGE_KEYWORDS = {
     "創業階段": ("創業", "早期", "新創", "起步", "初期", "pmf", "驗證"),
@@ -111,6 +172,8 @@ DOMAIN_LENS_KEYWORDS = {
     "行銷": ("行銷", "品牌", "內容", "流量", "廣告", "社群", "campaign"),
     "銷售": ("銷售", "業務", "客戶開發", "pipeline", "成交", "proposal", "提案"),
     "募資": ("募資", "投資人", "term sheet", "融資", "fundraising", "cap table"),
+    "組織人力": ("組織", "人力", "團隊", "招募", "人才", "管理", "ownership", "org"),
+    "產品服務": ("產品", "服務", "方案", "定價", "sku", "offer", "package", "value proposition"),
 }
 TASK_TYPE_DOMAIN_HINTS = {
     "contract_review": ["法務"],

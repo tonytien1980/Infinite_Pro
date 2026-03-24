@@ -95,21 +95,29 @@ Infinite Pro formally distinguishes four extension-facing concepts:
   - examples: `Diagnose / Assess`, `Review / Challenge`, `Synthesize / Brief`, `Plan / Roadmap`
 - `Domain / Functional Packs`
   - extend the system with **functional or consulting-domain context modules**
-  - first-wave real implementations:
+  - current single-consultant baseline:
     - `operations_pack`
     - `finance_fundraising_pack`
     - `legal_risk_pack`
     - `marketing_sales_pack`
     - `business_development_pack`
     - `research_intelligence_pack`
+    - `organization_people_pack`
+    - `product_service_pack`
 - `Industry Packs`
   - extend the system with **industry-specific context modules**
-  - first-wave examples:
+  - current single-consultant baseline:
     - `online_education_pack`
     - `ecommerce_pack`
     - `gaming_pack`
     - `funeral_services_pack`
     - `health_supplements_pack`
+    - `energy_pack`
+    - `saas_pack`
+    - `media_creator_pack`
+    - `professional_services_pack`
+    - `manufacturing_pack`
+    - `healthcare_clinic_pack`
 - `Agents`
   - define **who executes or orchestrates** the work
   - includes `Host Agent`, `Reasoning Agents`, and `Specialist Agents`

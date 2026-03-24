@@ -103,20 +103,28 @@ Infinite Pro 應正式以六層架構理解：
 - Domain / Functional Packs
 - Industry Packs
 
-目前第一批正式 Domain / Functional Packs 例子應以：
+目前單人版 Pack 基本盤中的 Domain / Functional Packs 應以：
 - `operations_pack`
 - `finance_fundraising_pack`
 - `legal_risk_pack`
 - `marketing_sales_pack`
 - `business_development_pack`
 - `research_intelligence_pack`
+- `organization_people_pack`
+- `product_service_pack`
 
-目前第一批正式 Industry Packs 例子應以：
+目前單人版 Pack 基本盤中的 Industry Packs 應以：
 - `online_education_pack`
 - `ecommerce_pack`
 - `gaming_pack`
 - `funeral_services_pack`
 - `health_supplements_pack`
+- `energy_pack`
+- `saas_pack`
+- `media_creator_pack`
+- `professional_services_pack`
+- `manufacturing_pack`
+- `healthcare_clinic_pack`
 為準。
 
 它不只是標籤，而應能正式擴充：

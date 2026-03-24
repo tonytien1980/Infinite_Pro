@@ -170,20 +170,28 @@ Infinite Pro 的工作世界至少應圍繞以下主鏈理解：
 - 擴充 ontology-aware context、heuristics、evidence expectations、decision templates、deliverable patterns
 - 透過 registry / resolver / management surface 被治理
 
-第一批正式 Domain / Functional Packs 可先以以下真實顧問面向為主：
+單人版 Pack 基本盤中的 Domain / Functional Packs 應至少包括：
 - `operations_pack`
 - `finance_fundraising_pack`
 - `legal_risk_pack`
 - `marketing_sales_pack`
 - `business_development_pack`
 - `research_intelligence_pack`
+- `organization_people_pack`
+- `product_service_pack`
 
-第一批正式 Industry Packs 可先以以下真實產業範圍為主：
+單人版 Pack 基本盤中的 Industry Packs 應至少包括：
 - `online_education_pack`
 - `ecommerce_pack`
 - `gaming_pack`
 - `funeral_services_pack`
 - `health_supplements_pack`
+- `energy_pack`
+- `saas_pack`
+- `media_creator_pack`
+- `professional_services_pack`
+- `manufacturing_pack`
+- `healthcare_clinic_pack`
 
 ### Extension Manager 的正式地位
 `Extension Manager` 屬於 `Workbench / UI Layer` 內的最小正式管理面。

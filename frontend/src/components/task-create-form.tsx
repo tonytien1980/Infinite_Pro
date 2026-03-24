@@ -189,6 +189,12 @@ function inferDomainLenses({
   if (/(銷售|業務|pipeline|proposal|提案|成交)/i.test(signalText)) {
     lenses.push("銷售");
   }
+  if (/(組織|人力|團隊|招募|人才|管理|ownership|org)/i.test(signalText)) {
+    lenses.push("組織人力");
+  }
+  if (/(產品|服務|方案|定價|sku|offer|package|value proposition)/i.test(signalText)) {
+    lenses.push("產品服務");
+  }
 
   return lenses.length > 0 ? Array.from(new Set(lenses)) : ["綜合"];
 }

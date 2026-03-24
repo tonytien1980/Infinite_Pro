@@ -907,6 +907,15 @@ class HostOrchestrator:
         if "research_intelligence_pack" in selected_pack_ids:
             scores["market_research_insight"] += 18
             routing_notes.append("因選到 Research / Intelligence Pack，Host 會提高研究與外部訊號整理的優先順序。")
+        if "organization_people_pack" in selected_pack_ids:
+            scores["operations"] += 14
+            scores["strategy_business_analysis"] += 8
+            routing_notes.append("因選到 Organization / People Pack，Host 會優先檢查權責設計、團隊容量與管理機制是否足以承接目前決策。")
+        if "product_service_pack" in selected_pack_ids:
+            scores["strategy_business_analysis"] += 10
+            scores["market_research_insight"] += 10
+            scores["operations"] += 6
+            routing_notes.append("因選到 Product / Service Pack，Host 會優先檢查 offer architecture、定價與 promise-versus-delivery 的匹配度。")
         if "online_education_pack" in selected_pack_ids:
             scores["market_research_insight"] += 10
             scores["operations"] += 8
@@ -931,6 +940,35 @@ class HostOrchestrator:
             scores["risk_challenge"] += 10
             scores["strategy_business_analysis"] += 5
             routing_notes.append("因選到 Health Supplements Pack，Host 會優先檢查回購、claim 合規、通路效率與 SKU 結構。")
+        if "energy_pack" in selected_pack_ids:
+            scores["operations"] += 10
+            scores["strategy_business_analysis"] += 10
+            scores["risk_challenge"] += 8
+            routing_notes.append("因選到 Energy Pack，Host 會優先檢查法規約束、專案 economics、可用率與 counterparty quality。")
+        if "saas_pack" in selected_pack_ids:
+            scores["market_research_insight"] += 10
+            scores["strategy_business_analysis"] += 9
+            scores["operations"] += 5
+            routing_notes.append("因選到 SaaS Pack，Host 會優先檢查 activation、retention、pricing、pipeline 與 time-to-value。")
+        if "media_creator_pack" in selected_pack_ids:
+            scores["market_research_insight"] += 13
+            scores["strategy_business_analysis"] += 5
+            routing_notes.append("因選到 Media / Creator Pack，Host 會優先檢查 audience asset、平台依賴、內容節奏與收入組合。")
+        if "professional_services_pack" in selected_pack_ids:
+            scores["operations"] += 9
+            scores["strategy_business_analysis"] += 8
+            scores["market_research_insight"] += 5
+            routing_notes.append("因選到 Professional Services Pack，Host 會優先檢查 utilization、scope、pricing 與交付經濟性。")
+        if "manufacturing_pack" in selected_pack_ids:
+            scores["operations"] += 14
+            scores["strategy_business_analysis"] += 8
+            scores["risk_challenge"] += 4
+            routing_notes.append("因選到 Manufacturing Pack，Host 會優先檢查產能、品質、供應鏈、交期與工作資本壓力。")
+        if "healthcare_clinic_pack" in selected_pack_ids:
+            scores["operations"] += 10
+            scores["risk_challenge"] += 10
+            scores["market_research_insight"] += 5
+            routing_notes.append("因選到 Healthcare / Clinic Pack，Host 會優先檢查 provider capacity、排程、病患體驗與 compliance-sensitive growth。")
 
         ordered = sorted(
             DEFAULT_CORE_AGENT_ORDER,

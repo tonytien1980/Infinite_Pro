@@ -278,6 +278,8 @@ Domain / Functional Packs provide context modules for consulting functions or en
 - `marketing_sales_pack`
 - `business_development_pack`
 - `research_intelligence_pack`
+- `organization_people_pack`
+- `product_service_pack`
 
 Treat these packs as:
 - reusable domain context modules for real enterprise problem families
@@ -292,6 +294,12 @@ Industry Packs provide context modules for industry-specific patterns, such as:
 - `gaming_pack`
 - `funeral_services_pack`
 - `health_supplements_pack`
+- `energy_pack`
+- `saas_pack`
+- `media_creator_pack`
+- `professional_services_pack`
+- `manufacturing_pack`
+- `healthcare_clinic_pack`
 
 ### 9.3 What packs are not
 Do not treat packs as:

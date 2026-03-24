@@ -6,7 +6,7 @@ from app.extensions.resolver import AgentResolver, PackResolver
 from app.extensions.schemas import AgentResolverInput, AgentType, PackResolverInput, PackType
 
 
-def test_extension_registry_contains_first_batch_packs_and_agents() -> None:
+def test_extension_registry_contains_completed_pack_baseline_and_agents() -> None:
     registry = ExtensionRegistry()
 
     domain_packs = registry.list_packs(PackType.DOMAIN)
@@ -20,6 +20,8 @@ def test_extension_registry_contains_first_batch_packs_and_agents() -> None:
         "marketing_sales_pack",
         "business_development_pack",
         "research_intelligence_pack",
+        "organization_people_pack",
+        "product_service_pack",
     }
     assert {pack.pack_id for pack in industry_packs} >= {
         "online_education_pack",
@@ -27,6 +29,12 @@ def test_extension_registry_contains_first_batch_packs_and_agents() -> None:
         "gaming_pack",
         "funeral_services_pack",
         "health_supplements_pack",
+        "energy_pack",
+        "saas_pack",
+        "media_creator_pack",
+        "professional_services_pack",
+        "manufacturing_pack",
+        "healthcare_clinic_pack",
     }
     assert host_agent.agent_type == AgentType.HOST
     operations_pack = next(pack for pack in domain_packs if pack.pack_id == "operations_pack")
@@ -39,6 +47,14 @@ def test_extension_registry_contains_first_batch_packs_and_agents() -> None:
     assert ecommerce_pack.industry_definition
     assert ecommerce_pack.key_kpis
     assert ecommerce_pack.common_business_models
+    organization_pack = next(pack for pack in domain_packs if pack.pack_id == "organization_people_pack")
+    assert organization_pack.pack_rationale
+    product_pack = next(pack for pack in domain_packs if pack.pack_id == "product_service_pack")
+    assert product_pack.scope_boundaries
+    saas_pack = next(pack for pack in industry_packs if pack.pack_id == "saas_pack")
+    assert saas_pack.pack_rationale
+    clinic_pack = next(pack for pack in industry_packs if pack.pack_id == "healthcare_clinic_pack")
+    assert clinic_pack.evidence_expectations
 
 
 def test_pack_resolver_selects_domain_and_industry_packs() -> None:
@@ -59,6 +75,25 @@ def test_pack_resolver_selects_domain_and_industry_packs() -> None:
         "operations_pack",
         "finance_fundraising_pack",
     ]
+    assert resolution.resolver_notes
+
+
+def test_pack_resolver_selects_second_wave_domain_and_industry_packs() -> None:
+    registry = ExtensionRegistry()
+    resolver = PackResolver(registry)
+
+    resolution = resolver.resolve(
+        PackResolverInput(
+            domain_lenses=["組織人力", "產品服務"],
+            client_type="中小企業",
+            client_stage="制度化階段",
+            decision_context_summary="Need a SaaS offer architecture and organization redesign recommendation for onboarding, pricing, and churn.",
+        )
+    )
+
+    assert "organization_people_pack" in resolution.selected_domain_pack_ids
+    assert "product_service_pack" in resolution.selected_domain_pack_ids
+    assert resolution.selected_industry_pack_ids == ["saas_pack"]
     assert resolution.resolver_notes
 
 
