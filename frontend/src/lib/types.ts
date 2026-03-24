@@ -100,9 +100,58 @@ export interface AgentSelection {
   selected_specialist_agents: SelectedAgent[];
   selected_agent_ids: string[];
   selected_agent_names: string[];
+  override_agent_ids: string[];
   resolver_notes: string[];
   rationale: string[];
   omitted_agent_notes: string[];
+}
+
+export interface PackCatalogEntry {
+  pack_id: string;
+  pack_type: string;
+  pack_name: string;
+  description: string;
+  domain_definition: string;
+  industry_definition: string;
+  common_business_models: string[];
+  common_problem_patterns: string[];
+  key_kpis_or_operating_signals: string[];
+  key_kpis: string[];
+  deliverable_presets: string[];
+  version: string;
+  status: string;
+}
+
+export interface AgentCatalogEntry {
+  agent_id: string;
+  agent_name: string;
+  agent_type: string;
+  description: string;
+  supported_capabilities: string[];
+  relevant_domain_packs: string[];
+  relevant_industry_packs: string[];
+  version: string;
+  status: string;
+}
+
+export interface PackRegistrySnapshot {
+  packs: PackCatalogEntry[];
+  active_pack_ids: string[];
+  draft_pack_ids: string[];
+  inactive_pack_ids: string[];
+}
+
+export interface AgentRegistrySnapshot {
+  agents: AgentCatalogEntry[];
+  host_agent_id: string;
+  active_agent_ids: string[];
+  draft_agent_ids: string[];
+  inactive_agent_ids: string[];
+}
+
+export interface ExtensionManagerSnapshot {
+  pack_registry: PackRegistrySnapshot;
+  agent_registry: AgentRegistrySnapshot;
 }
 
 export interface Client {
@@ -466,4 +515,9 @@ export interface TaskCreatePayload {
     constraint_type: string;
     severity: string;
   }>;
+}
+
+export interface TaskExtensionOverridePayload {
+  pack_override_ids: string[];
+  agent_override_ids: string[];
 }

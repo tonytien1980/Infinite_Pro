@@ -270,11 +270,13 @@ Pack Layer 應至少具備：
 UI 不是只做表單與結果頁，而是正式工作面。
 
 ### Extension Manager 的正式位置
-若未來需要讓顧問查看 packs 與 agents、管理 active / inactive / draft 狀態、查看版本與本次任務使用情況，
+顧問查看 packs 與 agents、查看 active / inactive / draft 狀態、查看版本與本次任務使用情況，
 應透過 Workbench / UI Layer 內的 shared `Extension Manager` 來呈現。
 
 這個 `Extension Manager`：
+- 已在單人版工作台中以最小 surface 形式正式存在
 - 可以同時管理 pack catalog 與 agent catalog
+- 可以承接 task-level override 與 selection visibility
 - 但不代表 Pack Layer 與 Agent Layer 合併
 - 也不代表系統新增第七層
 

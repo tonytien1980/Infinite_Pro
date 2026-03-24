@@ -308,7 +308,14 @@ Keep these boundaries explicit:
 
 Do not collapse these into one taxonomy.
 
-The workbench may later expose a shared `Extension Manager`, but that management surface must remain a UI/governance surface, not a seventh architecture layer.
+The workbench now exposes a minimal shared `Extension Manager`, and that management surface must remain a UI/governance surface, not a seventh architecture layer.
+
+The single-consultant minimal management surface should at least support:
+- pack catalog visibility
+- agent catalog visibility
+- task-level selected extension visibility
+- task-level pack / agent overrides
+- version / status visibility
 
 ---
 

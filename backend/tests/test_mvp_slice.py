@@ -257,6 +257,49 @@ def test_task_aggregate_includes_pack_resolution_from_context_spine(client: Test
     assert body["agent_selection"]["selected_agent_names"]
 
 
+def test_extension_manager_endpoint_returns_catalogs(client: TestClient) -> None:
+    response = client.get("/api/v1/extensions/manager")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["pack_registry"]["packs"]
+    assert body["agent_registry"]["agents"]
+    assert body["agent_registry"]["host_agent_id"] == "host_agent"
+
+
+def test_task_extension_overrides_write_back_to_aggregate(client: TestClient) -> None:
+    task = client.post("/api/v1/tasks", json=create_task_payload("Override task")).json()
+
+    response = client.put(
+        f"/api/v1/tasks/{task['id']}/extensions",
+        json={
+            "pack_override_ids": ["legal_risk_pack", "online_education_pack"],
+            "agent_override_ids": ["legal_risk_agent", "research_intelligence_agent"],
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["pack_resolution"]["override_pack_ids"] == [
+        "legal_risk_pack",
+        "online_education_pack",
+    ]
+    assert any(
+        item["pack_id"] == "legal_risk_pack"
+        for item in body["pack_resolution"]["selected_domain_packs"]
+    )
+    assert any(
+        item["pack_id"] == "online_education_pack"
+        for item in body["pack_resolution"]["selected_industry_packs"]
+    )
+    assert body["agent_selection"]["override_agent_ids"] == [
+        "legal_risk_agent",
+        "research_intelligence_agent",
+    ]
+    assert "legal_risk_agent" in body["agent_selection"]["selected_agent_ids"]
+    assert "research_intelligence_agent" in body["agent_selection"]["selected_agent_ids"]
+
+
 def test_file_upload_creates_usable_txt_evidence(client: TestClient) -> None:
     task = client.post("/api/v1/tasks", json=create_task_payload("TXT upload")).json()
 

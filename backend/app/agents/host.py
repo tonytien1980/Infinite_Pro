@@ -1663,6 +1663,7 @@ class HostOrchestrator:
             "selected_agent_ids": capability_frame.selected_agent_ids,
             "selected_reasoning_agent_ids": capability_frame.selected_reasoning_agent_ids,
             "selected_specialist_agent_ids": capability_frame.selected_specialist_agent_ids,
+            "override_agent_ids": payload.agent_selection.override_agent_ids,
             "selected_agent_details": [
                 item.model_dump(mode="json") for item in capability_frame.selected_agent_details
             ],

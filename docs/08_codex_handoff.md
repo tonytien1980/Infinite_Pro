@@ -159,6 +159,7 @@ Agents 應依能力面與專業責任分類，而不是只依目前已落地 flo
 - Agent Registry / Resolver 已是正式系統骨架
 - Host 已應開始正式吃 resolver 輸出
 - selected agents、selection rationale、omitted notes 應寫回 aggregate / workspace payload / deliverable metadata
+- Workbench / UI Layer 內也應有最小可用的 agent visibility 與 task-level override surface
 
 ### 7.3 Pack Layer
 Packs 應被視為正式能力層，不得退化為 tags。

@@ -129,13 +129,19 @@ The `Pack Layer` is therefore the formal home of both:
 - `Domain / Functional Packs`
 - `Industry Packs`
 
-The management experience for packs and agents may share a single `Extension Manager` surface in the workbench, but that shared manager is a UI/governance surface, not a seventh architecture layer.
+The management experience for packs and agents now shares a minimal `Extension Manager` surface inside the workbench, but that shared manager is a UI/governance surface, not a seventh architecture layer.
 
 Current minimal formal integration now exists for both extension families:
 - `Pack Resolver -> Host`
 - `Agent Registry / Resolver -> Host`
 
 That means selected packs and selected agents are no longer only conceptual governance definitions; they now enter task aggregates, workspace payloads, Host framing, readiness governance, and deliverable metadata.
+
+Single-user minimal management now also exists for:
+- extension catalog visibility
+- task-level selected pack / agent visibility
+- task-level pack / agent overrides
+- spec / version / status visibility
 
 ## Core ontology objects
 

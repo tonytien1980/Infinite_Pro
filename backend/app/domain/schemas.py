@@ -56,6 +56,11 @@ class TaskCreateRequest(BaseModel):
     constraints: list[ConstraintCreate] = Field(default_factory=list)
 
 
+class TaskExtensionOverrideRequest(BaseModel):
+    pack_override_ids: list[str] = Field(default_factory=list)
+    agent_override_ids: list[str] = Field(default_factory=list)
+
+
 class TaskContextRead(ORMModel):
     id: str
     task_id: str
@@ -193,6 +198,7 @@ class AgentSelectionRead(BaseModel):
     selected_specialist_agents: list[SelectedAgentRead] = Field(default_factory=list)
     selected_agent_ids: list[str] = Field(default_factory=list)
     selected_agent_names: list[str] = Field(default_factory=list)
+    override_agent_ids: list[str] = Field(default_factory=list)
     resolver_notes: list[str] = Field(default_factory=list)
     rationale: list[str] = Field(default_factory=list)
     omitted_agent_notes: list[str] = Field(default_factory=list)

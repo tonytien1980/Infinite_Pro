@@ -1012,6 +1012,37 @@ def _extract_explicit_agent_overrides(
     return _unique_preserve_order(explicit_agent_ids)
 
 
+def _normalize_override_ids(values: list[str]) -> list[str]:
+    normalized: list[str] = []
+    for value in values:
+        normalized.extend(
+            item.strip()
+            for item in re.split(r"[\s,，\n]+", value or "")
+            if item.strip()
+        )
+    return _unique_preserve_order(normalized)
+
+
+def _validate_pack_override_ids(pack_ids: list[str]) -> list[str]:
+    unknown = [pack_id for pack_id in pack_ids if EXTENSION_REGISTRY.get_pack(pack_id) is None]
+    if unknown:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown pack override ids: {join_natural_list(unknown)}",
+        )
+    return pack_ids
+
+
+def _validate_agent_override_ids(agent_ids: list[str]) -> list[str]:
+    unknown = [agent_id for agent_id in agent_ids if EXTENSION_REGISTRY.get_agent(agent_id) is None]
+    if unknown:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown agent override ids: {join_natural_list(unknown)}",
+        )
+    return agent_ids
+
+
 def _latest_deliverable(task: models.Task) -> models.Deliverable | None:
     return max(task.deliverables, key=lambda item: item.version, default=None)
 
@@ -1275,6 +1306,7 @@ def resolve_agent_selection_for_task(
         selected_specialist_agents=selected_specialist_agents,
         selected_agent_ids=[item.agent_id for item in [*selected_reasoning_agents, *selected_specialist_agents]],
         selected_agent_names=selected_agent_names,
+        override_agent_ids=resolution.override_agent_ids,
         resolver_notes=resolution.resolver_notes,
         rationale=rationale,
         omitted_agent_notes=resolution.omitted_agent_notes,
@@ -1759,6 +1791,47 @@ def get_loaded_task(db: Session, task_id: str) -> models.Task:
     if task is None:
         raise HTTPException(status_code=404, detail="找不到指定任務。")
     return task
+
+
+def update_task_extension_overrides(
+    db: Session,
+    task_id: str,
+    payload: schemas.TaskExtensionOverrideRequest,
+) -> models.Task:
+    task = get_loaded_task(db, task_id)
+    pack_override_ids = _validate_pack_override_ids(
+        _normalize_override_ids(payload.pack_override_ids)
+    )
+    agent_override_ids = _validate_agent_override_ids(
+        _normalize_override_ids(payload.agent_override_ids)
+    )
+
+    for constraint in list(task.constraints):
+        if constraint.constraint_type in {PACK_OVERRIDE_CONSTRAINT_TYPE, AGENT_OVERRIDE_CONSTRAINT_TYPE}:
+            db.delete(constraint)
+
+    for pack_id in pack_override_ids:
+        db.add(
+            models.Constraint(
+                task_id=task.id,
+                constraint_type=PACK_OVERRIDE_CONSTRAINT_TYPE,
+                description=pack_id,
+                severity="low",
+            )
+        )
+
+    for agent_id in agent_override_ids:
+        db.add(
+            models.Constraint(
+                task_id=task.id,
+                constraint_type=AGENT_OVERRIDE_CONSTRAINT_TYPE,
+                description=agent_id,
+                severity="low",
+            )
+        )
+
+    db.commit()
+    return get_loaded_task(db, task.id)
 
 
 def create_task(db: Session, payload: schemas.TaskCreateRequest) -> models.Task:

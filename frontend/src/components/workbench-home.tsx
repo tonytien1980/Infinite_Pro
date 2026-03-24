@@ -4,16 +4,20 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { buildTaskListWorkspaceSummary } from "@/lib/advisory-workflow";
-import { listTasks } from "@/lib/api";
-import type { TaskAggregate, TaskListItem } from "@/lib/types";
+import { getExtensionManager, listTasks } from "@/lib/api";
+import type { ExtensionManagerSnapshot, TaskAggregate, TaskListItem } from "@/lib/types";
+import { ExtensionManagerSurface } from "@/components/extension-manager-surface";
 import { TaskCreateForm } from "@/components/task-create-form";
 import { TaskHistoryList } from "@/components/task-history-list";
 
 export function WorkbenchHome() {
   const router = useRouter();
   const [tasks, setTasks] = useState<TaskListItem[]>([]);
+  const [extensionManager, setExtensionManager] = useState<ExtensionManagerSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
+  const [extensionLoading, setExtensionLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [extensionError, setExtensionError] = useState<string | null>(null);
 
   async function refreshTasks() {
     try {
@@ -32,6 +36,21 @@ export function WorkbenchHome() {
 
   useEffect(() => {
     void refreshTasks();
+    void (async () => {
+      try {
+        setExtensionLoading(true);
+        setExtensionError(null);
+        setExtensionManager(await getExtensionManager());
+      } catch (managerError) {
+        setExtensionError(
+          managerError instanceof Error
+            ? managerError.message
+            : "載入 Extension Manager 失敗。",
+        );
+      } finally {
+        setExtensionLoading(false);
+      }
+    })();
   }, []);
 
   function handleCreated(task: TaskAggregate) {
@@ -133,6 +152,25 @@ export function WorkbenchHome() {
             emptyText="目前還沒有任務，先從左側啟動第一個顧問案件。"
             limit={6}
           />
+
+          <details className="panel disclosure-panel">
+            <summary className="disclosure-summary">
+              <div>
+                <h2 className="section-title">Extension Manager</h2>
+                <p className="panel-copy">
+                  查看目前有哪些 Domain Packs、Industry Packs 與 Agents 可用。這是單人版最小管理面，不是 marketplace。
+                </p>
+              </div>
+              <span className="pill">展開</span>
+            </summary>
+            <div className="disclosure-body">
+              <ExtensionManagerSurface
+                snapshot={extensionManager}
+                loading={extensionLoading}
+                error={extensionError}
+              />
+            </div>
+          </details>
         </div>
       </div>
     </main>

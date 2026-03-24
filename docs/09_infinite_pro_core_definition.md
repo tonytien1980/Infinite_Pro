@@ -180,6 +180,15 @@ Infinite Pro 的工作世界至少應圍繞以下主鏈理解：
 
 第一批正式 Industry Packs 可先以以下真實產業範圍為主：
 - `online_education_pack`
+
+### Extension Manager 的正式地位
+`Extension Manager` 屬於 `Workbench / UI Layer` 內的最小正式管理面。
+
+它不是 marketplace，也不是第七層；它的責任是：
+- 讓單人顧問看見可用的 packs / agents catalog
+- 讓單人顧問看見本次任務實際用了哪些 packs / agents
+- 讓 task-level pack / agent overrides 有正式入口
+- 讓 spec / version / status 可被查看，而不是只停在 payload 或 debug metadata
 - `ecommerce_pack`
 - `gaming_pack`
 - `funeral_services_pack`

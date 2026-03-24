@@ -363,9 +363,16 @@ Host 應根據以下輸入決定 agent 組合：
 - 查看 agent 列表
 - 查看 agent spec
 - 知道這次任務用了哪些 agents
-- 啟用 / 停用某 agent
 - 指定 / 覆寫預設 agent 組合
 - 查看 agent 版本與狀態
+
+目前第一版正式落地應至少包含：
+- Agent Registry catalog visibility
+- task-level selected agents visibility
+- task-level agent override surface
+- version / status visibility
+
+全域啟用 / 停用與更完整治理介面，可留到後續 manager / marketplace 擴張再處理。
 
 ---
 

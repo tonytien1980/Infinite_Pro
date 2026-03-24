@@ -5,7 +5,14 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.domain import schemas
-from app.services.tasks import create_task, get_loaded_task, get_task_history, list_tasks, serialize_task
+from app.services.tasks import (
+    create_task,
+    get_loaded_task,
+    get_task_history,
+    list_tasks,
+    serialize_task,
+    update_task_extension_overrides,
+)
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -27,6 +34,16 @@ def list_tasks_route(db: Session = Depends(get_db)) -> list[schemas.TaskListItem
 @router.get("/{task_id}", response_model=schemas.TaskAggregateResponse)
 def get_task_route(task_id: str, db: Session = Depends(get_db)) -> schemas.TaskAggregateResponse:
     task = get_loaded_task(db, task_id)
+    return serialize_task(task)
+
+
+@router.put("/{task_id}/extensions", response_model=schemas.TaskAggregateResponse)
+def update_task_extensions_route(
+    task_id: str,
+    payload: schemas.TaskExtensionOverrideRequest,
+    db: Session = Depends(get_db),
+) -> schemas.TaskAggregateResponse:
+    task = update_task_extension_overrides(db, task_id, payload)
     return serialize_task(task)
 
 

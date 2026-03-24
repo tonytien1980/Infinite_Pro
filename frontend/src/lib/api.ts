@@ -1,9 +1,11 @@
 import {
+  ExtensionManagerSnapshot,
   ResearchRunResponse,
   SourceIngestBatchResponse,
   SourceIngestPayload,
   TaskAggregate,
   TaskCreatePayload,
+  TaskExtensionOverridePayload,
   TaskListItem,
   UploadBatchResponse,
 } from "@/lib/types";
@@ -41,6 +43,13 @@ export async function getTask(taskId: string): Promise<TaskAggregate> {
     cache: "no-store",
   });
   return parseResponse<TaskAggregate>(response);
+}
+
+export async function getExtensionManager(): Promise<ExtensionManagerSnapshot> {
+  const response = await fetch(`${API_BASE_URL}/extensions/manager`, {
+    cache: "no-store",
+  });
+  return parseResponse<ExtensionManagerSnapshot>(response);
 }
 
 export async function createTask(payload: TaskCreatePayload): Promise<TaskAggregate> {
@@ -87,4 +96,18 @@ export async function runTask(taskId: string): Promise<ResearchRunResponse> {
     method: "POST",
   });
   return parseResponse<ResearchRunResponse>(response);
+}
+
+export async function updateTaskExtensions(
+  taskId: string,
+  payload: TaskExtensionOverridePayload,
+): Promise<TaskAggregate> {
+  const response = await fetch(`${API_BASE_URL}/tasks/${taskId}/extensions`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  return parseResponse<TaskAggregate>(response);
 }

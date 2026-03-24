@@ -257,8 +257,15 @@ function isExternalDataStrategyConstraint(constraint: Constraint) {
   return constraint.constraint_type === "external_data_strategy";
 }
 
+function isExtensionOverrideConstraint(constraint: Constraint) {
+  return ["pack_override", "agent_override"].includes(constraint.constraint_type);
+}
+
 export function getVisibleConstraints(constraints: Constraint[]) {
-  return constraints.filter((constraint) => !isExternalDataStrategyConstraint(constraint));
+  return constraints.filter(
+    (constraint) =>
+      !isExternalDataStrategyConstraint(constraint) && !isExtensionOverrideConstraint(constraint),
+  );
 }
 
 export function getExternalSourceDocuments(task: TaskAggregate): SourceDocument[] {

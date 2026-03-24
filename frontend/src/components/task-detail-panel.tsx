@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
-import { getTask, runTask } from "@/lib/api";
+import { getExtensionManager, getTask, runTask, updateTaskExtensions } from "@/lib/api";
 import {
   assessTaskReadiness,
   buildActionItemCards,
@@ -28,7 +28,8 @@ import {
   getVisibleConstraints,
   getStructuredStringList,
 } from "@/lib/advisory-workflow";
-import type { TaskAggregate } from "@/lib/types";
+import type { ExtensionManagerSnapshot, TaskAggregate, TaskExtensionOverridePayload } from "@/lib/types";
+import { ExtensionManagerSurface } from "@/components/extension-manager-surface";
 import {
   extractModeSpecificAppendix,
   getModeDefinition,
@@ -296,9 +297,13 @@ function WorkspaceMaterialSection({
 
 export function TaskDetailPanel({ taskId }: { taskId: string }) {
   const [task, setTask] = useState<TaskAggregate | null>(null);
+  const [extensionManager, setExtensionManager] = useState<ExtensionManagerSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
+  const [extensionLoading, setExtensionLoading] = useState(true);
+  const [savingOverrides, setSavingOverrides] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [extensionError, setExtensionError] = useState<string | null>(null);
 
   async function refreshTask() {
     try {
@@ -315,6 +320,19 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
 
   useEffect(() => {
     void refreshTask();
+    void (async () => {
+      try {
+        setExtensionLoading(true);
+        setExtensionError(null);
+        setExtensionManager(await getExtensionManager());
+      } catch (loadError) {
+        setExtensionError(
+          loadError instanceof Error ? loadError.message : "載入 Extension Manager 失敗。",
+        );
+      } finally {
+        setExtensionLoading(false);
+      }
+    })();
   }, [taskId]);
 
   async function handleRun() {
@@ -327,6 +345,19 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
       setError(runError instanceof Error ? runError.message : "執行所選流程失敗。");
     } finally {
       setRunning(false);
+    }
+  }
+
+  async function handleSaveOverrides(payload: TaskExtensionOverridePayload) {
+    try {
+      setSavingOverrides(true);
+      setError(null);
+      const response = await updateTaskExtensions(taskId, payload);
+      setTask(response);
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "更新 extension overrides 失敗。");
+    } finally {
+      setSavingOverrides(false);
     }
   }
 
@@ -1269,6 +1300,25 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
             </div>
 
             <div className="detail-stack">
+              <section className="panel">
+                <div className="panel-header">
+                  <div>
+                    <h2 className="panel-title">Extension Manager</h2>
+                    <p className="panel-copy">
+                      這裡用最小正式管理面承接本次任務的 pack / agent context。你可以查看 catalog、理解這輪 selected extensions，並對單一任務覆寫 packs 或 agent hints。
+                    </p>
+                  </div>
+                </div>
+                <ExtensionManagerSurface
+                  snapshot={extensionManager}
+                  loading={extensionLoading}
+                  error={extensionError}
+                  task={task}
+                  saving={savingOverrides}
+                  onSaveOverrides={handleSaveOverrides}
+                />
+              </section>
+
               <section className="panel">
                 <div className="panel-header">
                   <div>

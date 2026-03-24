@@ -124,6 +124,24 @@ const DELIVERABLE_TYPE_LABELS: Record<string, string> = {
   multi_agent_convergence: "多代理收斂交付物",
 };
 
+const EXTENSION_STATUS_LABELS: Record<string, string> = {
+  active: "Active",
+  inactive: "Inactive",
+  draft: "Draft",
+  deprecated: "Deprecated",
+};
+
+const PACK_TYPE_LABELS: Record<string, string> = {
+  domain: "Domain Pack",
+  industry: "Industry Pack",
+};
+
+const AGENT_TYPE_LABELS: Record<string, string> = {
+  host: "Host Agent",
+  reasoning: "Reasoning Agent",
+  specialist: "Specialist Agent",
+};
+
 const STRUCTURED_FIELD_LABELS: Record<string, string> = {
   executive_summary: "執行摘要",
   core_judgment: "核心判斷",
@@ -217,6 +235,18 @@ export function labelForAgentId(value: string) {
 
 export function labelForEvidenceType(value: string) {
   return EVIDENCE_TYPE_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForExtensionStatus(value: string) {
+  return EXTENSION_STATUS_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForPackType(value: string) {
+  return PACK_TYPE_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForAgentType(value: string) {
+  return AGENT_TYPE_LABELS[value] ?? fallbackLabel(value);
 }
 
 export function labelForSourceType(value: string) {
