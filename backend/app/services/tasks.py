@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import hashlib
 import logging
 import re
 
 from fastapi import HTTPException
 from sqlalchemy import select
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session, object_session, selectinload
 
 from app.domain import models, schemas
 from app.domain.enums import (
@@ -416,6 +417,7 @@ def _build_external_data_strategy_constraint(
 
 def task_load_options():
     return (
+        selectinload(models.Task.matter_workspace_links),
         selectinload(models.Task.clients),
         selectinload(models.Task.engagements),
         selectinload(models.Task.workstreams),
@@ -443,6 +445,87 @@ def task_load_options():
 
 def _primary_item(items: list[models.Client] | list[models.Engagement] | list[models.Workstream] | list[models.DecisionContext]):
     return items[0] if items else None
+
+
+def _canonical_workspace_value(value: str | None, fallback: str) -> str:
+    normalized = _normalize_whitespace(value)
+    return normalized or fallback
+
+
+def _build_matter_workspace_key(
+    client_name: str,
+    engagement_name: str,
+    workstream_name: str,
+) -> str:
+    raw_key = " :: ".join(
+        [
+            _normalize_whitespace(client_name).lower(),
+            _normalize_whitespace(engagement_name).lower(),
+            _normalize_whitespace(workstream_name).lower(),
+        ]
+    )
+    return hashlib.sha1(raw_key.encode("utf-8")).hexdigest()
+
+
+def _build_matter_workspace_title(engagement_name: str, workstream_name: str) -> str:
+    if _normalize_whitespace(engagement_name) == _normalize_whitespace(workstream_name):
+        return engagement_name
+    return f"{engagement_name}｜{workstream_name}"
+
+
+def _build_matter_workspace_object_path(
+    client_name: str,
+    engagement_name: str,
+    workstream_name: str,
+) -> str:
+    return " / ".join([client_name, engagement_name, workstream_name])
+
+
+def _derive_matter_workspace_identity(
+    task: models.Task,
+    client: schemas.ClientRead | None,
+    engagement: schemas.EngagementRead | None,
+    workstream: schemas.WorkstreamRead | None,
+    decision_context: schemas.DecisionContextRead | None,
+    domain_lenses: list[str],
+) -> dict[str, object]:
+    client_name = _canonical_workspace_value(client.name if client else None, DEFAULT_CLIENT_NAME)
+    engagement_name = _canonical_workspace_value(
+        engagement.name if engagement else None,
+        task.title,
+    )
+    workstream_name = _canonical_workspace_value(
+        workstream.name if workstream else None,
+        TASK_TYPE_WORKSTREAM_HINTS.get(task.task_type, "顧問工作流"),
+    )
+    client_type = (
+        decision_context.client_type
+        if decision_context and decision_context.client_type and decision_context.client_type != UNSPECIFIED_LABEL
+        else client.client_type if client and client.client_type != UNSPECIFIED_LABEL else ""
+    )
+    client_stage = (
+        decision_context.client_stage
+        if decision_context and decision_context.client_stage and decision_context.client_stage != UNSPECIFIED_LABEL
+        else client.client_stage if client and client.client_stage != UNSPECIFIED_LABEL else ""
+    )
+    workspace_lenses = _unique_preserve_order(
+        [item for item in domain_lenses if item and item != DEFAULT_DOMAIN_LENS]
+    ) or [DEFAULT_DOMAIN_LENS]
+    decision_title = decision_context.title if decision_context else ""
+    decision_summary = decision_context.summary if decision_context else ""
+
+    return {
+        "matter_key": _build_matter_workspace_key(client_name, engagement_name, workstream_name),
+        "title": _build_matter_workspace_title(engagement_name, workstream_name),
+        "client_name": client_name,
+        "engagement_name": engagement_name,
+        "workstream_name": workstream_name,
+        "client_type": client_type or UNSPECIFIED_LABEL,
+        "client_stage": client_stage or UNSPECIFIED_LABEL,
+        "domain_lenses": workspace_lenses,
+        "current_decision_context_title": decision_title or None,
+        "current_decision_context_summary": decision_summary or None,
+    }
 
 
 def _extract_assumptions(task: models.Task) -> list[str]:
@@ -1589,6 +1672,259 @@ def _build_ontology_spine_for_task(
     )
 
 
+def ensure_matter_workspace_for_task(
+    db: Session,
+    task: models.Task,
+    client: schemas.ClientRead | None,
+    engagement: schemas.EngagementRead | None,
+    workstream: schemas.WorkstreamRead | None,
+    decision_context: schemas.DecisionContextRead | None,
+    domain_lenses: list[str],
+) -> tuple[models.MatterWorkspace, bool]:
+    identity = _derive_matter_workspace_identity(
+        task,
+        client,
+        engagement,
+        workstream,
+        decision_context,
+        domain_lenses,
+    )
+    matter_workspace = db.scalars(
+        select(models.MatterWorkspace).where(
+            models.MatterWorkspace.matter_key == str(identity["matter_key"])
+        )
+    ).one_or_none()
+    changed = False
+
+    if matter_workspace is None:
+        matter_workspace = models.MatterWorkspace(**identity)
+        db.add(matter_workspace)
+        db.flush()
+        changed = True
+    else:
+        for field in (
+            "title",
+            "client_name",
+            "engagement_name",
+            "workstream_name",
+            "client_type",
+            "client_stage",
+            "current_decision_context_title",
+            "current_decision_context_summary",
+        ):
+            incoming = identity[field]
+            if incoming and getattr(matter_workspace, field) != incoming:
+                setattr(matter_workspace, field, incoming)
+                changed = True
+        merged_lenses = _unique_preserve_order(
+            [*matter_workspace.domain_lenses, *list(identity["domain_lenses"])]
+        )
+        if merged_lenses != matter_workspace.domain_lenses:
+            matter_workspace.domain_lenses = merged_lenses
+            changed = True
+
+    existing_link = next(
+        (
+            link
+            for link in task.matter_workspace_links
+            if link.matter_workspace_id == matter_workspace.id
+        ),
+        None,
+    )
+    if existing_link is None:
+        db.add(
+            models.MatterWorkspaceTaskLink(
+                matter_workspace_id=matter_workspace.id,
+                task_id=task.id,
+            )
+        )
+        changed = True
+
+    if changed:
+        db.flush()
+
+    return matter_workspace, changed
+
+
+def _load_tasks_for_matter_workspaces(
+    db: Session,
+    matter_workspace_ids: list[str],
+) -> dict[str, list[models.Task]]:
+    if not matter_workspace_ids:
+        return {}
+
+    links = db.scalars(
+        select(models.MatterWorkspaceTaskLink).where(
+            models.MatterWorkspaceTaskLink.matter_workspace_id.in_(matter_workspace_ids)
+        )
+    ).all()
+    task_ids = _unique_preserve_order([link.task_id for link in links])
+    if not task_ids:
+        return {matter_workspace_id: [] for matter_workspace_id in matter_workspace_ids}
+
+    tasks = db.scalars(
+        select(models.Task)
+        .options(*task_load_options())
+        .where(models.Task.id.in_(task_ids))
+    ).unique().all()
+    task_by_id = {task.id: task for task in tasks}
+    tasks_by_workspace: dict[str, list[models.Task]] = {
+        matter_workspace_id: [] for matter_workspace_id in matter_workspace_ids
+    }
+
+    for link in links:
+        task = task_by_id.get(link.task_id)
+        if task is not None:
+            tasks_by_workspace.setdefault(link.matter_workspace_id, []).append(task)
+
+    for matter_workspace_id, related_tasks in tasks_by_workspace.items():
+        tasks_by_workspace[matter_workspace_id] = sorted(
+            related_tasks,
+            key=lambda item: item.updated_at,
+            reverse=True,
+        )
+
+    return tasks_by_workspace
+
+
+def _build_matter_workspace_summary_from_tasks(
+    matter_workspace: models.MatterWorkspace,
+    related_tasks: list[models.Task],
+) -> schemas.MatterWorkspaceSummaryRead:
+    latest_task = related_tasks[0] if related_tasks else None
+    active_task_count = sum(1 for task in related_tasks if task.status != TaskStatus.COMPLETED.value)
+    deliverable_count = sum(len(task.deliverables) for task in related_tasks)
+    artifact_count = 0
+    source_material_count = 0
+    selected_pack_names: list[str] = []
+    selected_agent_names: list[str] = []
+    current_decision_context_title = matter_workspace.current_decision_context_title
+    current_decision_context_summary = matter_workspace.current_decision_context_summary
+
+    for task in related_tasks:
+        _, _, _, decision_context, domain_lenses, source_materials, artifacts = _build_ontology_spine_for_task(task)
+        artifact_count += len(_meaningful_artifacts(artifacts))
+        source_material_count += len(_meaningful_source_materials(source_materials))
+
+        if not current_decision_context_title and decision_context:
+            current_decision_context_title = decision_context.title
+            current_decision_context_summary = decision_context.summary
+
+        pack_resolution = resolve_pack_selection_for_task(
+            task,
+            schemas.ClientRead.model_validate(_primary_item(task.clients)) if task.clients else None,
+            schemas.EngagementRead.model_validate(_primary_item(task.engagements)) if task.engagements else None,
+            schemas.WorkstreamRead.model_validate(_primary_item(task.workstreams)) if task.workstreams else None,
+            decision_context,
+            domain_lenses,
+        )
+        input_entry_mode = _infer_input_entry_mode(task, source_materials, artifacts)
+        external_research_heavy_candidate = _is_external_research_heavy_candidate(
+            task,
+            decision_context,
+            source_materials,
+            artifacts,
+            input_entry_mode,
+        )
+        deliverable_class_hint = _resolve_deliverable_class_hint(
+            input_entry_mode,
+            decision_context,
+            source_materials,
+            artifacts,
+            len(_usable_evidence(task)),
+            external_research_heavy_candidate,
+        )
+        agent_selection = resolve_agent_selection_for_task(
+            task,
+            decision_context,
+            domain_lenses,
+            pack_resolution,
+            input_entry_mode,
+            deliverable_class_hint,
+            external_research_heavy_candidate,
+            source_materials,
+            artifacts,
+        )
+        selected_pack_names.extend(
+            [*pack_resolution.selected_domain_packs, *pack_resolution.selected_industry_packs]
+        )
+        selected_agent_names.extend(agent_selection.selected_agent_names)
+
+    continuity_summary = (
+        f"目前這個案件世界已有 {len(related_tasks)} 個相關 tasks、{deliverable_count} 份 deliverables，"
+        "可直接回看 decision trajectory、最近交付與工作鏈材料。"
+        if len(related_tasks) > 1 or deliverable_count > 0
+        else "這個案件世界目前仍是第一個 task，但已具備正式的 matter / engagement 工作面。"
+    )
+    active_work_summary = (
+        f"目前有 {active_task_count} 個 active work item；最近更新來自「{latest_task.title}」。"
+        if latest_task and active_task_count > 0
+        else (
+            f"最近一次完成的工作是「{latest_task.title}」。"
+            if latest_task
+            else "目前尚未有可顯示的案件工作。"
+        )
+    )
+
+    return schemas.MatterWorkspaceSummaryRead(
+        id=matter_workspace.id,
+        title=matter_workspace.title,
+        object_path=_build_matter_workspace_object_path(
+            matter_workspace.client_name,
+            matter_workspace.engagement_name,
+            matter_workspace.workstream_name,
+        ),
+        client_name=matter_workspace.client_name,
+        engagement_name=matter_workspace.engagement_name,
+        workstream_name=matter_workspace.workstream_name,
+        client_stage=(
+            matter_workspace.client_stage
+            if matter_workspace.client_stage != UNSPECIFIED_LABEL
+            else None
+        ),
+        client_type=(
+            matter_workspace.client_type
+            if matter_workspace.client_type != UNSPECIFIED_LABEL
+            else None
+        ),
+        domain_lenses=matter_workspace.domain_lenses or [DEFAULT_DOMAIN_LENS],
+        current_decision_context_title=current_decision_context_title,
+        current_decision_context_summary=current_decision_context_summary,
+        total_task_count=len(related_tasks),
+        active_task_count=active_task_count,
+        deliverable_count=deliverable_count,
+        artifact_count=artifact_count,
+        source_material_count=source_material_count,
+        latest_updated_at=latest_task.updated_at if latest_task else matter_workspace.updated_at,
+        continuity_summary=continuity_summary,
+        active_work_summary=active_work_summary,
+        selected_pack_names=_unique_preserve_order(
+            [
+                item.pack_name if isinstance(item, schemas.SelectedPackRead) else str(item)
+                for item in selected_pack_names
+            ]
+        )[:6],
+        selected_agent_names=_unique_preserve_order(selected_agent_names)[:6],
+    )
+
+
+def _build_matter_workspace_summary_map(
+    db: Session,
+    matter_workspaces: list[models.MatterWorkspace],
+) -> dict[str, schemas.MatterWorkspaceSummaryRead]:
+    tasks_by_workspace = _load_tasks_for_matter_workspaces(
+        db,
+        [item.id for item in matter_workspaces],
+    )
+    return {
+        matter_workspace.id: _build_matter_workspace_summary_from_tasks(
+            matter_workspace,
+            tasks_by_workspace.get(matter_workspace.id, []),
+        )
+        for matter_workspace in matter_workspaces
+    }
+
+
 def _build_evidence_object_mappings(
     source_materials: list[schemas.SourceMaterialRead],
     artifacts: list[schemas.ArtifactRead],
@@ -1970,6 +2306,7 @@ def create_task(db: Session, payload: schemas.TaskCreateRequest) -> models.Task:
         external_data_policy=_build_external_data_policy_text(payload.external_data_strategy),
     )
     db.add(decision_context)
+    db.flush()
 
     if background_brief.strip():
         db.add(
@@ -1984,21 +2321,140 @@ def create_task(db: Session, payload: schemas.TaskCreateRequest) -> models.Task:
             )
         )
 
+    client_read = schemas.ClientRead.model_validate(client)
+    engagement_read = schemas.EngagementRead.model_validate(engagement)
+    workstream_read = schemas.WorkstreamRead.model_validate(workstream)
+    decision_context_read = schemas.DecisionContextRead(
+        id=decision_context.id,
+        task_id=decision_context.task_id,
+        client_id=decision_context.client_id,
+        engagement_id=decision_context.engagement_id,
+        workstream_id=decision_context.workstream_id,
+        title=decision_context.title,
+        summary=decision_context.summary,
+        judgment_to_make=decision_context.judgment_to_make,
+        domain_lenses=decision_context.domain_lenses,
+        client_stage=decision_context.client_stage,
+        client_type=decision_context.client_type,
+        goals=[goal_description],
+        constraints=[item.description for item in inferred_constraints],
+        assumptions=_split_multiline_items(payload.assumptions),
+        source_priority=decision_context.source_priority or "",
+        external_data_policy=decision_context.external_data_policy or "",
+        created_at=decision_context.created_at,
+    )
+    ensure_matter_workspace_for_task(
+        db,
+        task,
+        client_read,
+        engagement_read,
+        workstream_read,
+        decision_context_read,
+        domain_lenses,
+    )
+
     db.commit()
     return get_loaded_task(db, task.id)
+
+
+def _build_task_list_item_response(
+    task: models.Task,
+    matter_workspace: schemas.MatterWorkspaceSummaryRead | None = None,
+) -> schemas.TaskListItemResponse:
+    latest_deliverable = _latest_deliverable(task)
+    client, engagement, workstream, decision_context, domain_lenses, source_materials, artifacts = (
+        _build_ontology_spine_for_task(task)
+    )
+    pack_resolution = resolve_pack_selection_for_task(
+        task,
+        client,
+        engagement,
+        workstream,
+        decision_context,
+        domain_lenses,
+    )
+    input_entry_mode = _infer_input_entry_mode(task, source_materials, artifacts)
+    external_research_heavy_candidate = _is_external_research_heavy_candidate(
+        task,
+        decision_context,
+        source_materials,
+        artifacts,
+        input_entry_mode,
+    )
+    deliverable_class_hint = _resolve_deliverable_class_hint(
+        input_entry_mode,
+        decision_context,
+        source_materials,
+        artifacts,
+        len(_usable_evidence(task)),
+        external_research_heavy_candidate,
+    )
+    agent_selection = resolve_agent_selection_for_task(
+        task,
+        decision_context,
+        domain_lenses,
+        pack_resolution,
+        input_entry_mode,
+        deliverable_class_hint,
+        external_research_heavy_candidate,
+        source_materials,
+        artifacts,
+    )
+    return schemas.TaskListItemResponse(
+        id=task.id,
+        title=task.title,
+        description=task.description,
+        task_type=task.task_type,
+        mode=task.mode,
+        status=task.status,
+        created_at=task.created_at,
+        updated_at=task.updated_at,
+        client_name=client.name if client else None,
+        engagement_name=engagement.name if engagement else None,
+        workstream_name=workstream.name if workstream else None,
+        decision_context_title=decision_context.title if decision_context else None,
+        client_stage=client.client_stage if client and client.client_stage != UNSPECIFIED_LABEL else None,
+        client_type=client.client_type if client and client.client_type != UNSPECIFIED_LABEL else None,
+        domain_lenses=domain_lenses,
+        input_entry_mode=input_entry_mode,
+        deliverable_class_hint=deliverable_class_hint,
+        external_research_heavy_candidate=external_research_heavy_candidate,
+        selected_pack_ids=pack_resolution.stack_order,
+        selected_pack_names=[
+            *[item.pack_name for item in pack_resolution.selected_domain_packs],
+            *[item.pack_name for item in pack_resolution.selected_industry_packs],
+        ],
+        pack_summary=(
+            f"Domain Packs：{join_natural_list([item.pack_name for item in pack_resolution.selected_domain_packs]) or '未選用'}；"
+            f"Industry Packs：{join_natural_list([item.pack_name for item in pack_resolution.selected_industry_packs]) or '未選用'}"
+        ),
+        selected_agent_ids=agent_selection.selected_agent_ids,
+        selected_agent_names=agent_selection.selected_agent_names,
+        agent_summary=(
+            f"Host：{agent_selection.host_agent.agent_name}；"
+            f"Selected agents：{join_natural_list(agent_selection.selected_agent_names[:3]) or '尚未選到其他 agents'}"
+            if agent_selection.host_agent
+            else None
+        ),
+        evidence_count=len(task.evidence),
+        deliverable_count=len(task.deliverables),
+        run_count=len(task.runs),
+        latest_deliverable_title=latest_deliverable.title if latest_deliverable else None,
+        matter_workspace=matter_workspace,
+    )
 
 
 def list_tasks(db: Session) -> list[schemas.TaskListItemResponse]:
     statement = select(models.Task).options(*task_load_options()).order_by(models.Task.updated_at.desc())
     tasks = db.scalars(statement).unique().all()
+    matter_workspaces: dict[str, models.MatterWorkspace] = {}
+    workspace_id_by_task_id: dict[str, str] = {}
+    changed = False
 
-    items: list[schemas.TaskListItemResponse] = []
     for task in tasks:
-        latest_deliverable = _latest_deliverable(task)
-        client, engagement, workstream, decision_context, domain_lenses, source_materials, artifacts = (
-            _build_ontology_spine_for_task(task)
-        )
-        pack_resolution = resolve_pack_selection_for_task(
+        client, engagement, workstream, decision_context, domain_lenses, _, _ = _build_ontology_spine_for_task(task)
+        matter_workspace, workspace_changed = ensure_matter_workspace_for_task(
+            db,
             task,
             client,
             engagement,
@@ -2006,6 +2462,91 @@ def list_tasks(db: Session) -> list[schemas.TaskListItemResponse]:
             decision_context,
             domain_lenses,
         )
+        matter_workspaces[matter_workspace.id] = matter_workspace
+        workspace_id_by_task_id[task.id] = matter_workspace.id
+        changed = changed or workspace_changed
+
+    if changed:
+        db.commit()
+
+    matter_summary_by_id = _build_matter_workspace_summary_map(db, list(matter_workspaces.values()))
+
+    return [
+        _build_task_list_item_response(
+            task,
+            matter_summary_by_id.get(workspace_id_by_task_id.get(task.id, "")),
+        )
+        for task in tasks
+    ]
+
+
+def list_matter_workspaces(db: Session) -> list[schemas.MatterWorkspaceSummaryRead]:
+    tasks = db.scalars(
+        select(models.Task).options(*task_load_options()).order_by(models.Task.updated_at.desc())
+    ).unique().all()
+    changed = False
+
+    for task in tasks:
+        client, engagement, workstream, decision_context, domain_lenses, _, _ = _build_ontology_spine_for_task(task)
+        _, workspace_changed = ensure_matter_workspace_for_task(
+            db,
+            task,
+            client,
+            engagement,
+            workstream,
+            decision_context,
+            domain_lenses,
+        )
+        changed = changed or workspace_changed
+
+    if changed:
+        db.commit()
+
+    matter_workspaces = db.scalars(
+        select(models.MatterWorkspace).order_by(models.MatterWorkspace.updated_at.desc())
+    ).all()
+    summary_by_id = _build_matter_workspace_summary_map(db, matter_workspaces)
+    return sorted(
+        summary_by_id.values(),
+        key=lambda item: item.latest_updated_at,
+        reverse=True,
+    )
+
+
+def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspaceResponse:
+    matter_workspace = db.scalars(
+        select(models.MatterWorkspace).where(models.MatterWorkspace.id == matter_id)
+    ).one_or_none()
+    if matter_workspace is None:
+        raise HTTPException(status_code=404, detail="找不到指定案件工作面。")
+
+    related_tasks = _load_tasks_for_matter_workspaces(db, [matter_workspace.id]).get(
+        matter_workspace.id,
+        [],
+    )
+    if not related_tasks:
+        raise HTTPException(status_code=404, detail="找不到此案件工作面的相關任務。")
+
+    summary = _build_matter_workspace_summary_from_tasks(matter_workspace, related_tasks)
+    latest_task = related_tasks[0]
+    latest_task_spine = _build_ontology_spine_for_task(latest_task)
+    current_decision_context = latest_task_spine[3]
+    client = latest_task_spine[0]
+    engagement = latest_task_spine[1]
+    workstream = latest_task_spine[2]
+
+    related_task_items = [
+        _build_task_list_item_response(task, summary) for task in related_tasks[:8]
+    ]
+    decision_trajectory: list[schemas.MatterDecisionPointRead] = []
+    related_deliverables: list[schemas.MatterDeliverableSummaryRead] = []
+    related_artifacts: list[schemas.MatterMaterialSummaryRead] = []
+    related_source_materials: list[schemas.MatterMaterialSummaryRead] = []
+    seen_material_keys: set[str] = set()
+    continuity_notes: list[str] = []
+
+    for task in related_tasks:
+        _, _, _, decision_context, _, source_materials, artifacts = _build_ontology_spine_for_task(task)
         input_entry_mode = _infer_input_entry_mode(task, source_materials, artifacts)
         external_research_heavy_candidate = _is_external_research_heavy_candidate(
             task,
@@ -2022,66 +2563,128 @@ def list_tasks(db: Session) -> list[schemas.TaskListItemResponse]:
             len(_usable_evidence(task)),
             external_research_heavy_candidate,
         )
-        agent_selection = resolve_agent_selection_for_task(
-            task,
-            decision_context,
-            domain_lenses,
-            pack_resolution,
-            input_entry_mode,
-            deliverable_class_hint,
-            external_research_heavy_candidate,
-            source_materials,
-            artifacts,
-        )
-        items.append(
-            schemas.TaskListItemResponse(
-                id=task.id,
-                title=task.title,
-                description=task.description,
-                task_type=task.task_type,
-                mode=task.mode,
-                status=task.status,
-                created_at=task.created_at,
-                updated_at=task.updated_at,
-                client_name=client.name if client else None,
-                engagement_name=engagement.name if engagement else None,
-                workstream_name=workstream.name if workstream else None,
-                decision_context_title=decision_context.title if decision_context else None,
-                client_stage=client.client_stage if client and client.client_stage != UNSPECIFIED_LABEL else None,
-                client_type=client.client_type if client and client.client_type != UNSPECIFIED_LABEL else None,
-                domain_lenses=domain_lenses,
-                input_entry_mode=input_entry_mode,
+        decision_trajectory.append(
+            schemas.MatterDecisionPointRead(
+                task_id=task.id,
+                task_title=task.title,
+                task_status=TaskStatus(task.status),
+                decision_context_id=decision_context.id if decision_context else None,
+                decision_context_title=decision_context.title if decision_context else task.title,
+                judgment_to_make=(
+                    decision_context.judgment_to_make
+                    if decision_context and decision_context.judgment_to_make
+                    else task.description or task.title
+                ),
                 deliverable_class_hint=deliverable_class_hint,
-                external_research_heavy_candidate=external_research_heavy_candidate,
-                selected_pack_ids=pack_resolution.stack_order,
-                selected_pack_names=[
-                    *[item.pack_name for item in pack_resolution.selected_domain_packs],
-                    *[item.pack_name for item in pack_resolution.selected_industry_packs],
-                ],
-                pack_summary=(
-                    f"Domain Packs：{join_natural_list([item.pack_name for item in pack_resolution.selected_domain_packs]) or '未選用'}；"
-                    f"Industry Packs：{join_natural_list([item.pack_name for item in pack_resolution.selected_industry_packs]) or '未選用'}"
-                ),
-                selected_agent_ids=agent_selection.selected_agent_ids,
-                selected_agent_names=agent_selection.selected_agent_names,
-                agent_summary=(
-                    f"Host：{agent_selection.host_agent.agent_name}；"
-                    f"Selected agents：{join_natural_list(agent_selection.selected_agent_names[:3]) or '尚未選到其他 agents'}"
-                    if agent_selection.host_agent
-                    else None
-                ),
-                evidence_count=len(task.evidence),
-                deliverable_count=len(task.deliverables),
-                run_count=len(task.runs),
-                latest_deliverable_title=latest_deliverable.title if latest_deliverable else None,
+                updated_at=task.updated_at,
             )
         )
-    return items
+        for deliverable in sorted(task.deliverables, key=lambda item: (item.generated_at, item.version), reverse=True)[:3]:
+            related_deliverables.append(
+                schemas.MatterDeliverableSummaryRead(
+                    deliverable_id=deliverable.id,
+                    task_id=task.id,
+                    task_title=task.title,
+                    title=deliverable.title,
+                    deliverable_type=deliverable.deliverable_type,
+                    version=deliverable.version,
+                    generated_at=deliverable.generated_at,
+                    decision_context_title=decision_context.title if decision_context else None,
+                )
+            )
+        for artifact in artifacts:
+            key = f"artifact:{artifact.id}"
+            if key in seen_material_keys:
+                continue
+            seen_material_keys.add(key)
+            related_artifacts.append(
+                schemas.MatterMaterialSummaryRead(
+                    object_id=artifact.id,
+                    task_id=task.id,
+                    task_title=task.title,
+                    object_type="artifact",
+                    title=artifact.title,
+                    summary=artifact.description or artifact.artifact_type,
+                    created_at=artifact.created_at,
+                )
+            )
+        for source_material in source_materials:
+            key = f"source_material:{source_material.id}"
+            if key in seen_material_keys:
+                continue
+            seen_material_keys.add(key)
+            related_source_materials.append(
+                schemas.MatterMaterialSummaryRead(
+                    object_id=source_material.id,
+                    task_id=task.id,
+                    task_title=task.title,
+                    object_type="source_material",
+                    title=source_material.title,
+                    summary=source_material.summary,
+                    created_at=source_material.created_at,
+                )
+            )
+
+    if summary.total_task_count > 1:
+        continuity_notes.append(
+            f"這個案件世界目前已串起 {summary.total_task_count} 個 tasks，可回看 decision trajectory 與跨 task deliverables。"
+        )
+    if summary.active_task_count > 0:
+        continuity_notes.append(f"目前仍有 {summary.active_task_count} 個 active work item 正在這個案件世界內推進。")
+    if summary.artifact_count == 0 and summary.source_material_count == 0:
+        continuity_notes.append("目前案件材料仍偏 sparse，工作面主要依賴 DecisionContext 與 Host framing。")
+
+    readiness_hint = (
+        f"最近一次工作屬於「{summary.current_decision_context_title or latest_task.title}」，"
+        f"目前累積 {summary.deliverable_count} 份 deliverables、{summary.artifact_count} 份 artifacts、"
+        f"{summary.source_material_count} 份 source materials。"
+    )
+
+    return schemas.MatterWorkspaceResponse(
+        summary=summary,
+        client=client,
+        engagement=engagement,
+        workstream=workstream,
+        current_decision_context=current_decision_context,
+        decision_trajectory=decision_trajectory[:8],
+        related_tasks=related_task_items,
+        related_deliverables=related_deliverables[:8],
+        related_artifacts=sorted(
+            related_artifacts,
+            key=lambda item: item.created_at,
+            reverse=True,
+        )[:8],
+        related_source_materials=sorted(
+            related_source_materials,
+            key=lambda item: item.created_at,
+            reverse=True,
+        )[:8],
+        readiness_hint=readiness_hint,
+        continuity_notes=continuity_notes,
+    )
 
 
 def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
+    db = object_session(task)
+    if db is None:
+        raise RuntimeError("Task must be attached to an active session before serialization.")
+
     client, engagement, workstream, decision_context, domain_lenses, source_materials, artifacts = (
         _build_ontology_spine_for_task(task)
+    )
+    matter_workspace, workspace_changed = ensure_matter_workspace_for_task(
+        db=db,
+        task=task,
+        client=client,
+        engagement=engagement,
+        workstream=workstream,
+        decision_context=decision_context,
+        domain_lenses=domain_lenses,
+    )
+    if workspace_changed:
+        db.commit()
+    matter_workspace_summary = _build_matter_workspace_summary_map(db, [matter_workspace]).get(
+        matter_workspace.id
     )
     evidence = _serialize_evidence_items(task, source_materials, artifacts)
     recommendation_support_map, risk_support_map, action_item_support_map = _build_supporting_evidence_maps(
@@ -2197,6 +2800,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         action_items=action_items,
         deliverables=deliverables,
         runs=[schemas.TaskRunRead.model_validate(item) for item in task.runs],
+        matter_workspace=matter_workspace_summary,
     )
 
 

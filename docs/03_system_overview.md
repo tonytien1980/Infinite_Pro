@@ -173,13 +173,19 @@ Infinite Pro 的工作主體不應只是 task。
 
 ## 6. 工作台的主要工作面
 
-從 UI / workbench 角度來看，Infinite Pro 應逐步形成以下主要工作面：
+從 UI / workbench 角度來看，Infinite Pro 目前的正式單人版工作面應理解為：
 
 ### 6.1 Intake surface
 用來接住原始問題、補充資料、外部資料策略與進階背景。
 
 ### 6.2 Matter / Engagement workspace
 用來表示這次顧問案件本身與其工作脈絡。
+
+在單人版範圍內，這個工作面現在應視為已正式成立：
+- `Client / Engagement / Workstream / DecisionContext` 已成為案件工作面的主體
+- 顧問可以從 workbench 進入 matter workspace，再回到相關 task / deliverable
+- 同一個案件世界下的 related tasks、recent deliverables、related artifacts / source materials 已具備最小跨任務連續性
+- 這不再只是 task detail 的 object strip，而是正式案件工作面
 
 ### 6.3 Decision workspace
 用來做 task framing、readiness、decision output、mode-specific sections。
@@ -193,7 +199,7 @@ Infinite Pro 的工作主體不應只是 task。
 ### 6.6 System trace surface
 用來查看 orchestration、history、ontology mapping 與工作流痕跡。
 
-這些工作面可以分波逐步實作，但它們都屬於正式系統輪廓。
+這些工作面都屬於正式系統輪廓；其中 `Matter / Engagement workspace` 在單人版範圍內已可視為正式完成的案件主體工作面。
 
 ---
 

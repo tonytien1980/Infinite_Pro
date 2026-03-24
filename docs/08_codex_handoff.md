@@ -198,6 +198,15 @@ Domain / Functional Packs 應被理解為：
 - 會影響 evidence expectations、readiness、routing 與 deliverable hints
 - 不是 agents，也不是 capability archetypes
 
+### 7.4 Matter / Engagement Workspace
+在單人版範圍內，`Matter / Engagement Workspace` 不應再被視為未來工作面或 partial object-aware deepening。
+
+Codex 應把它理解為已完成的正式案件工作面，至少承接：
+- `Client / Engagement / Workstream / DecisionContext` 的 canonical display 與導航骨架
+- related tasks / deliverables / source materials 的案件連續性
+- workbench home -> matter workspace -> task detail 的正式導覽鏈
+- 不同 task 與 deliverable 在同一個案件世界中的最小回看脈絡
+
 ---
 
 ## 8. Codex 不應再怎麼做

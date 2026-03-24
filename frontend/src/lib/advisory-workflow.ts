@@ -3,6 +3,8 @@ import type {
   Deliverable,
   Evidence,
   Goal,
+  MatterWorkspace,
+  MatterWorkspaceSummary,
   SelectedAgent,
   SourceDocument,
   TaskAggregate,
@@ -222,6 +224,26 @@ export interface TaskListWorkspaceSummaryView {
   workspaceState: string;
   packSummary: string;
   agentSummary: string;
+}
+
+export interface MatterWorkspaceCardView {
+  title: string;
+  objectPath: string;
+  decisionContext: string;
+  continuity: string;
+  activeWork: string;
+  packSummary: string;
+  agentSummary: string;
+  counts: string[];
+}
+
+export interface MatterWorkspaceContinuityView {
+  summary: string;
+  readinessHint: string;
+  decisionTrajectory: string[];
+  relatedTaskHighlights: string[];
+  deliverableHighlights: string[];
+  materialHighlights: string[];
 }
 
 export interface PackSelectionView {
@@ -1607,6 +1629,65 @@ export function buildTaskListWorkspaceSummary(task: TaskListItem): TaskListWorks
       (task.selected_agent_names.length > 0
         ? `Agents：${joinNaturalList(task.selected_agent_names.slice(0, 3))}`
         : "目前仍以 Host 的最小 orchestration context 為主"),
+  };
+}
+
+export function buildMatterWorkspaceCard(
+  matter: MatterWorkspaceSummary,
+): MatterWorkspaceCardView {
+  return {
+    title: matter.title,
+    objectPath: matter.object_path,
+    decisionContext:
+      matter.current_decision_context_title ||
+      matter.current_decision_context_summary ||
+      "目前尚未形成清楚的 DecisionContext。",
+    continuity: matter.continuity_summary,
+    activeWork: matter.active_work_summary,
+    packSummary:
+      matter.selected_pack_names.length > 0
+        ? `Packs：${joinNaturalList(matter.selected_pack_names.slice(0, 4))}`
+        : "目前尚未形成可顯示的 pack context。",
+    agentSummary:
+      matter.selected_agent_names.length > 0
+        ? `Agents：${joinNaturalList(matter.selected_agent_names.slice(0, 4))}`
+        : "目前尚未形成可顯示的 agent context。",
+    counts: [
+      `${matter.total_task_count} 個 tasks`,
+      `${matter.deliverable_count} 份 deliverables`,
+      `${matter.artifact_count} 份 artifacts`,
+      `${matter.source_material_count} 份 source materials`,
+    ],
+  };
+}
+
+export function buildMatterWorkspaceContinuity(
+  matter: MatterWorkspace,
+): MatterWorkspaceContinuityView {
+  const summary = matter.summary;
+  return {
+    summary: `${summary.continuity_summary} ${summary.active_work_summary}`.trim(),
+    readinessHint: matter.readiness_hint,
+    decisionTrajectory: matter.decision_trajectory
+      .slice(0, 5)
+      .map(
+        (item) =>
+          `${item.decision_context_title}｜${item.judgment_to_make}｜${labelForDeliverableClass(item.deliverable_class_hint)}`,
+      ),
+    relatedTaskHighlights: matter.related_tasks
+      .slice(0, 5)
+      .map((item) => `${item.title}｜${item.latest_deliverable_title ?? "尚未產生交付物"}`),
+    deliverableHighlights: matter.related_deliverables
+      .slice(0, 5)
+      .map((item) => `${item.title}｜${item.task_title}`),
+    materialHighlights: [
+      ...matter.related_artifacts
+        .slice(0, 3)
+        .map((item) => `Artifact｜${item.title}｜${item.task_title}`),
+      ...matter.related_source_materials
+        .slice(0, 3)
+        .map((item) => `SourceMaterial｜${item.title}｜${item.task_title}`),
+    ],
   };
 }
 

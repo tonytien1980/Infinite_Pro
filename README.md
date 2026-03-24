@@ -148,6 +148,11 @@ Single-user minimal management now also exists for:
 - task-level pack / agent overrides
 - spec / version / status visibility
 
+Within the single-consultant scope, the `Matter / Engagement Workspace` should now be treated as a completed formal work surface:
+- `Client / Engagement / Workstream / DecisionContext` have canonical workspace identities
+- the workbench can move from home -> matter workspace -> task / deliverable detail
+- cross-task and cross-deliverable continuity now belongs to the formal workbench, not to ad hoc task-detail summaries
+
 ## Core ontology objects
 
 The system should be planned around objects such as:
@@ -184,6 +189,7 @@ The repository currently contains a working early implementation slice within th
 - a running task/evidence/history flow
 - Host-led workflow orchestration
 - specialist and multi-agent execution paths
+- a formal `Matter / Engagement Workspace` for single-consultant case continuity
 - structured deliverable rendering
 - provider abstraction with `mock` and `openai`
 - Traditional Chinese as the default UI language

@@ -14,6 +14,7 @@ import {
   buildEvidenceWorkspaceLane,
   buildExternalDataUsage,
   buildExecutiveSummary,
+  buildMatterWorkspaceCard,
   buildObjectNavigationStrip,
   buildOntologyChainSummary,
   buildPackSelectionView,
@@ -391,6 +392,8 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
   const riskCards = task ? buildRiskCards(task, latestDeliverable) : [];
   const actionItemCards = task ? buildActionItemCards(task, latestDeliverable) : [];
   const workbenchObjectSummary = task ? buildWorkbenchObjectSummary(task, latestDeliverable) : null;
+  const matterWorkspaceCard =
+    task?.matter_workspace ? buildMatterWorkspaceCard(task.matter_workspace) : null;
   const objectNavigationStrip = task ? buildObjectNavigationStrip(task, latestDeliverable) : null;
   const capabilityFrame = task ? buildCapabilityFrame(task, latestDeliverable) : null;
   const packSelection = task ? buildPackSelectionView(task, latestDeliverable) : null;
@@ -437,9 +440,16 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
 
   return (
     <main className="page-shell">
-      <Link className="back-link" href="/">
-        ← 返回工作台
-      </Link>
+      <div className="back-link-group">
+        <Link className="back-link" href="/">
+          ← 返回工作台
+        </Link>
+        {task?.matter_workspace ? (
+          <Link className="back-link" href={`/matters/${task.matter_workspace.id}`}>
+            ← 返回案件工作面
+          </Link>
+        ) : null}
+      </div>
 
       {loading ? <p className="status-text">正在載入任務工作區...</p> : null}
       {error ? <p className="error-text">{error}</p> : null}
@@ -456,7 +466,76 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
               <span>{labelForFlowMode(task.mode)}</span>
               <span>更新於 {formatDisplayDate(task.updated_at)}</span>
             </div>
+            {matterWorkspaceCard ? (
+              <div className="matter-hero-strip">
+                <div>
+                  <span className="pill">Matter / Engagement Workspace</span>
+                  <p className="workspace-object-path" style={{ marginTop: "10px" }}>
+                    {matterWorkspaceCard.objectPath}
+                  </p>
+                  <p className="muted-text">{matterWorkspaceCard.continuity}</p>
+                </div>
+                <Link className="button-secondary matter-hero-link" href={`/matters/${task.matter_workspace?.id}`}>
+                  進入案件工作面
+                </Link>
+              </div>
+            ) : null}
           </section>
+
+          {matterWorkspaceCard ? (
+            <section className="panel">
+              <div className="panel-header">
+                <div>
+                  <h2 className="panel-title">Matter / Engagement Continuity</h2>
+                  <p className="panel-copy">
+                    這個 task 現在已正式掛在案件世界下。你可以回到同一個 matter / engagement workspace 看跨 task 的 decision trajectory、deliverables 與材料累積。
+                  </p>
+                </div>
+                <Link className="button-secondary" href={`/matters/${task.matter_workspace?.id}`}>
+                  打開案件工作面
+                </Link>
+              </div>
+              <div className="summary-grid">
+                <div className="section-card">
+                  <h4>案件世界</h4>
+                  <p className="content-block">{matterWorkspaceCard.objectPath}</p>
+                </div>
+                <div className="section-card">
+                  <h4>當前主要 DecisionContext</h4>
+                  <ExpandableText
+                    text={matterWorkspaceCard.decisionContext}
+                    emptyText="目前沒有可顯示的案件判斷主軸。"
+                    previewChars={220}
+                  />
+                </div>
+                <div className="section-card">
+                  <h4>連續性摘要</h4>
+                  <ExpandableText
+                    text={matterWorkspaceCard.continuity}
+                    emptyText="目前沒有可顯示的連續性摘要。"
+                    previewChars={220}
+                  />
+                </div>
+                <div className="section-card">
+                  <h4>目前工作狀態</h4>
+                  <ExpandableText
+                    text={matterWorkspaceCard.activeWork}
+                    emptyText="目前沒有可顯示的工作狀態。"
+                    previewChars={220}
+                  />
+                </div>
+              </div>
+              <div className="meta-row" style={{ marginTop: "16px" }}>
+                {matterWorkspaceCard.counts.map((count) => (
+                  <span key={count}>{count}</span>
+                ))}
+              </div>
+              <p className="muted-text" style={{ marginTop: "12px" }}>
+                {matterWorkspaceCard.packSummary}
+              </p>
+              <p className="muted-text">{matterWorkspaceCard.agentSummary}</p>
+            </section>
+          ) : null}
 
           {objectNavigationStrip ? (
             <section className="panel object-nav-panel">

@@ -379,6 +379,30 @@ class TaskRunRead(ORMModel):
     completed_at: datetime | None
 
 
+class MatterWorkspaceSummaryRead(BaseModel):
+    id: str
+    title: str
+    object_path: str
+    client_name: str
+    engagement_name: str
+    workstream_name: str
+    client_stage: str | None = None
+    client_type: str | None = None
+    domain_lenses: list[str] = Field(default_factory=list)
+    current_decision_context_title: str | None = None
+    current_decision_context_summary: str | None = None
+    total_task_count: int = 0
+    active_task_count: int = 0
+    deliverable_count: int = 0
+    artifact_count: int = 0
+    source_material_count: int = 0
+    latest_updated_at: datetime
+    continuity_summary: str = ""
+    active_work_summary: str = ""
+    selected_pack_names: list[str] = Field(default_factory=list)
+    selected_agent_names: list[str] = Field(default_factory=list)
+
+
 class TaskListItemResponse(BaseModel):
     id: str
     title: str
@@ -408,6 +432,54 @@ class TaskListItemResponse(BaseModel):
     deliverable_count: int
     run_count: int
     latest_deliverable_title: str | None
+    matter_workspace: MatterWorkspaceSummaryRead | None = None
+
+
+class MatterDecisionPointRead(BaseModel):
+    task_id: str
+    task_title: str
+    task_status: TaskStatus
+    decision_context_id: str | None = None
+    decision_context_title: str
+    judgment_to_make: str
+    deliverable_class_hint: DeliverableClass
+    updated_at: datetime
+
+
+class MatterDeliverableSummaryRead(BaseModel):
+    deliverable_id: str
+    task_id: str
+    task_title: str
+    title: str
+    deliverable_type: str
+    version: int
+    generated_at: datetime
+    decision_context_title: str | None = None
+
+
+class MatterMaterialSummaryRead(BaseModel):
+    object_id: str
+    task_id: str
+    task_title: str
+    object_type: str
+    title: str
+    summary: str
+    created_at: datetime
+
+
+class MatterWorkspaceResponse(BaseModel):
+    summary: MatterWorkspaceSummaryRead
+    client: ClientRead | None = None
+    engagement: EngagementRead | None = None
+    workstream: WorkstreamRead | None = None
+    current_decision_context: DecisionContextRead | None = None
+    decision_trajectory: list[MatterDecisionPointRead] = Field(default_factory=list)
+    related_tasks: list[TaskListItemResponse] = Field(default_factory=list)
+    related_deliverables: list[MatterDeliverableSummaryRead] = Field(default_factory=list)
+    related_artifacts: list[MatterMaterialSummaryRead] = Field(default_factory=list)
+    related_source_materials: list[MatterMaterialSummaryRead] = Field(default_factory=list)
+    readiness_hint: str = ""
+    continuity_notes: list[str] = Field(default_factory=list)
 
 
 class TaskAggregateResponse(BaseModel):
@@ -450,6 +522,7 @@ class TaskAggregateResponse(BaseModel):
     action_items: list[ActionItemRead] = Field(default_factory=list)
     deliverables: list[DeliverableRead] = Field(default_factory=list)
     runs: list[TaskRunRead] = Field(default_factory=list)
+    matter_workspace: MatterWorkspaceSummaryRead | None = None
 
 
 class UploadResultItem(BaseModel):

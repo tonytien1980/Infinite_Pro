@@ -200,6 +200,92 @@ def test_task_list_returns_object_aware_workspace_summary(client: TestClient) ->
     assert item["pack_summary"]
 
 
+def test_task_aggregate_includes_matter_workspace_summary(client: TestClient) -> None:
+    payload = create_task_payload("Matter summary aggregate")
+    payload.update(
+        {
+            "client_name": "Northwind Studio",
+            "client_type": "個人品牌與服務",
+            "client_stage": "創業階段",
+            "engagement_name": "Northwind Growth Sprint",
+            "workstream_name": "提案重組與銷售收斂",
+            "decision_title": "Northwind decision context",
+            "judgment_to_make": "先判斷目前提案骨架是否足以支撐後續成交轉換。",
+            "domain_lenses": ["銷售", "行銷"],
+        }
+    )
+
+    response = client.post("/api/v1/tasks", json=payload)
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["matter_workspace"] is not None
+    assert body["matter_workspace"]["object_path"] == (
+        "Northwind Studio / Northwind Growth Sprint / 提案重組與銷售收斂"
+    )
+    assert body["matter_workspace"]["total_task_count"] == 1
+    assert body["matter_workspace"]["active_task_count"] == 1
+
+
+def test_matter_workspace_routes_return_cross_task_continuity(client: TestClient) -> None:
+    shared_payload = create_task_payload("Northwind growth sprint")
+    shared_payload.update(
+        {
+            "client_name": "Northwind Studio",
+            "client_type": "個人品牌與服務",
+            "client_stage": "創業階段",
+            "engagement_name": "Northwind Growth Sprint",
+            "workstream_name": "提案重組與銷售收斂",
+            "decision_title": "Northwind primary decision",
+            "judgment_to_make": "先判斷提案重組是否足以提升成交效率。",
+            "domain_lenses": ["銷售", "行銷"],
+        }
+    )
+    follow_up_payload = create_task_payload("Northwind follow-up")
+    follow_up_payload.update(
+        {
+            "client_name": "Northwind Studio",
+            "client_type": "個人品牌與服務",
+            "client_stage": "創業階段",
+            "engagement_name": "Northwind Growth Sprint",
+            "workstream_name": "提案重組與銷售收斂",
+            "decision_title": "Northwind follow-up decision",
+            "judgment_to_make": "先判斷新的提案摘要是否應該優先強化報價與成交主張。",
+            "domain_lenses": ["銷售", "行銷"],
+        }
+    )
+
+    first_task = client.post("/api/v1/tasks", json=shared_payload).json()
+    second_task = client.post("/api/v1/tasks", json=follow_up_payload).json()
+    run_response = client.post(f"/api/v1/tasks/{first_task['id']}/run")
+
+    assert run_response.status_code == 200
+
+    matters_response = client.get("/api/v1/matters")
+    assert matters_response.status_code == 200
+    matter = next(
+        item
+        for item in matters_response.json()
+        if item["object_path"] == "Northwind Studio / Northwind Growth Sprint / 提案重組與銷售收斂"
+    )
+    assert matter["total_task_count"] == 2
+    assert matter["deliverable_count"] >= 1
+
+    workspace_response = client.get(f"/api/v1/matters/{matter['id']}")
+    assert workspace_response.status_code == 200
+    workspace = workspace_response.json()
+    assert workspace["summary"]["total_task_count"] == 2
+    assert len(workspace["related_tasks"]) == 2
+    assert workspace["decision_trajectory"]
+    assert workspace["related_deliverables"]
+    assert workspace["readiness_hint"]
+    assert workspace["continuity_notes"]
+    assert {item["id"] for item in workspace["related_tasks"]} == {
+        first_task["id"],
+        second_task["id"],
+    }
+
+
 def test_task_aggregate_includes_pack_resolution_from_context_spine(client: TestClient) -> None:
     payload = create_task_payload("Pack-aware aggregate")
     payload.update(

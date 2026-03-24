@@ -1,5 +1,7 @@
 import {
   ExtensionManagerSnapshot,
+  MatterWorkspace,
+  MatterWorkspaceSummary,
   ResearchRunResponse,
   SourceIngestBatchResponse,
   SourceIngestPayload,
@@ -50,6 +52,20 @@ export async function getExtensionManager(): Promise<ExtensionManagerSnapshot> {
     cache: "no-store",
   });
   return parseResponse<ExtensionManagerSnapshot>(response);
+}
+
+export async function listMatterWorkspaces(): Promise<MatterWorkspaceSummary[]> {
+  const response = await fetch(`${API_BASE_URL}/matters`, {
+    cache: "no-store",
+  });
+  return parseResponse<MatterWorkspaceSummary[]>(response);
+}
+
+export async function getMatterWorkspace(matterId: string): Promise<MatterWorkspace> {
+  const response = await fetch(`${API_BASE_URL}/matters/${matterId}`, {
+    cache: "no-store",
+  });
+  return parseResponse<MatterWorkspace>(response);
 }
 
 export async function createTask(payload: TaskCreatePayload): Promise<TaskAggregate> {

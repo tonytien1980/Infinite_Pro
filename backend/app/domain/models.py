@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from sqlalchemy import DateTime, ForeignKey, Integer, JSON, String, Text
+from sqlalchemy import DateTime, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -75,7 +75,52 @@ class Task(Base):
     deliverable_object_links: Mapped[list["DeliverableObjectLink"]] = relationship(
         back_populates="task", cascade="all, delete-orphan"
     )
+    matter_workspace_links: Mapped[list["MatterWorkspaceTaskLink"]] = relationship(
+        back_populates="task", cascade="all, delete-orphan"
+    )
     runs: Mapped[list["TaskRun"]] = relationship(back_populates="task", cascade="all, delete-orphan")
+
+
+class MatterWorkspace(Base):
+    __tablename__ = "matter_workspaces"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    matter_key: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    client_name: Mapped[str] = mapped_column(String(255), default="")
+    engagement_name: Mapped[str] = mapped_column(String(255), default="")
+    workstream_name: Mapped[str] = mapped_column(String(255), default="")
+    client_type: Mapped[str] = mapped_column(String(100), default="未指定")
+    client_stage: Mapped[str] = mapped_column(String(100), default="未指定")
+    domain_lenses: Mapped[list[str]] = mapped_column(JSON, default=list)
+    current_decision_context_title: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    current_decision_context_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+    task_links: Mapped[list["MatterWorkspaceTaskLink"]] = relationship(
+        back_populates="matter_workspace",
+        cascade="all, delete-orphan",
+        order_by="MatterWorkspaceTaskLink.created_at",
+    )
+
+
+class MatterWorkspaceTaskLink(Base):
+    __tablename__ = "matter_workspace_task_links"
+    __table_args__ = (
+        UniqueConstraint("matter_workspace_id", "task_id", name="uq_matter_workspace_task_link"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    matter_workspace_id: Mapped[str] = mapped_column(
+        ForeignKey("matter_workspaces.id"),
+        nullable=False,
+    )
+    task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    matter_workspace: Mapped["MatterWorkspace"] = relationship(back_populates="task_links")
+    task: Mapped["Task"] = relationship(back_populates="matter_workspace_links")
 
 
 class Client(Base):

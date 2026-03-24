@@ -346,6 +346,13 @@ The workbench should increasingly reflect:
 - the deliverable being shaped
 - the supporting context versus system trace distinction
 
+Within the single-consultant scope, the following workbench surfaces should now be treated as formally established rather than provisional:
+- `Decision Workspace`
+- `Extension Manager` minimal surface
+- `Matter / Engagement Workspace`
+
+That means `Client / Engagement / Workstream / DecisionContext` should be treated as formal workspace subjects, not just task-detail summaries.
+
 Do not hard-code product logic into UI-only wording when the same rule belongs in shared application logic.
 
 ---
@@ -359,6 +366,7 @@ Do not hard-code product logic into UI-only wording when the same rule belongs i
 - multiple agents
 - pack layer
 - consulting workbench UI
+- matter / engagement workspace as a formal case-working surface
 - provider abstraction
 - source / evidence / history / traceability
 

@@ -421,6 +421,29 @@ button {
   color: var(--muted);
 }
 
+.back-link-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.matter-hero-strip {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.matter-hero-link {
+  white-space: nowrap;
+}
+
 .detail-stack {
   display: grid;
   gap: 24px;
@@ -630,5 +653,9 @@ button {
   .hero-card,
   .panel {
     padding: 20px;
+  }
+
+  .matter-hero-strip {
+    flex-direction: column;
   }
 }

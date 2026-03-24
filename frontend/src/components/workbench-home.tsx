@@ -3,9 +3,17 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { buildTaskListWorkspaceSummary } from "@/lib/advisory-workflow";
-import { getExtensionManager, listTasks } from "@/lib/api";
-import type { ExtensionManagerSnapshot, TaskAggregate, TaskListItem } from "@/lib/types";
+import {
+  buildMatterWorkspaceCard,
+  buildTaskListWorkspaceSummary,
+} from "@/lib/advisory-workflow";
+import { getExtensionManager, listMatterWorkspaces, listTasks } from "@/lib/api";
+import type {
+  ExtensionManagerSnapshot,
+  MatterWorkspaceSummary,
+  TaskAggregate,
+  TaskListItem,
+} from "@/lib/types";
 import { ExtensionManagerSurface } from "@/components/extension-manager-surface";
 import { TaskCreateForm } from "@/components/task-create-form";
 import { TaskHistoryList } from "@/components/task-history-list";
@@ -13,10 +21,13 @@ import { TaskHistoryList } from "@/components/task-history-list";
 export function WorkbenchHome() {
   const router = useRouter();
   const [tasks, setTasks] = useState<TaskListItem[]>([]);
+  const [matters, setMatters] = useState<MatterWorkspaceSummary[]>([]);
   const [extensionManager, setExtensionManager] = useState<ExtensionManagerSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
+  const [matterLoading, setMatterLoading] = useState(true);
   const [extensionLoading, setExtensionLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [matterError, setMatterError] = useState<string | null>(null);
   const [extensionError, setExtensionError] = useState<string | null>(null);
 
   async function refreshTasks() {
@@ -34,8 +45,24 @@ export function WorkbenchHome() {
     }
   }
 
+  async function refreshMatters() {
+    try {
+      setMatterLoading(true);
+      setMatterError(null);
+      const response = await listMatterWorkspaces();
+      setMatters(response);
+    } catch (refreshError) {
+      setMatterError(
+        refreshError instanceof Error ? refreshError.message : "載入案件工作面失敗。",
+      );
+    } finally {
+      setMatterLoading(false);
+    }
+  }
+
   useEffect(() => {
     void refreshTasks();
+    void refreshMatters();
     void (async () => {
       try {
         setExtensionLoading(true);
@@ -55,6 +82,7 @@ export function WorkbenchHome() {
 
   function handleCreated(task: TaskAggregate) {
     void refreshTasks();
+    void refreshMatters();
     router.push(`/tasks/${task.id}`);
   }
 
@@ -65,6 +93,7 @@ export function WorkbenchHome() {
   const recentDeliverables = sortedTasks
     .filter((task) => Boolean(task.latest_deliverable_title))
     .slice(0, 3);
+  const activeMatters = matters.slice(0, 4);
 
   return (
     <main className="page-shell">
@@ -77,9 +106,9 @@ export function WorkbenchHome() {
         </p>
         <div className="workbench-overview-grid" style={{ marginTop: "20px" }}>
           <div className="section-card">
-            <h3>目前案件數</h3>
-            <p className="workbench-metric">{tasks.length}</p>
-            <p className="muted-text">所有已建立並可回看的顧問案件。</p>
+            <h3>案件工作面</h3>
+            <p className="workbench-metric">{matters.length}</p>
+            <p className="muted-text">已形成可回看的 matter / engagement 工作面。</p>
           </div>
           <div className="section-card">
             <h3>進行中工作</h3>
@@ -103,9 +132,61 @@ export function WorkbenchHome() {
           <section className="panel">
             <div className="panel-header">
               <div>
-                <h2 className="panel-title">現在值得先回到哪裡</h2>
+                <h2 className="panel-title">現在值得先回到哪個案件世界</h2>
                 <p className="panel-copy">
-                  這一欄只保留最接近當前工作的案件與交付物，避免首頁被歷史清單主導。
+                  先回到 matter / engagement workspace，再決定要沿著哪個 task、decision context 或 deliverable 繼續工作。
+                </p>
+              </div>
+            </div>
+
+            <div className="history-list">
+              {matterLoading ? <p className="status-text">正在載入案件工作面...</p> : null}
+              {matterError ? <p className="error-text">{matterError}</p> : null}
+              {!matterLoading && !matterError && activeMatters.length > 0 ? (
+                activeMatters.map((matter) => {
+                  const workspaceCard = buildMatterWorkspaceCard(matter);
+                  return (
+                    <button
+                      key={matter.id}
+                      className="history-item history-item-button"
+                      type="button"
+                      onClick={() => router.push(`/matters/${matter.id}`)}
+                    >
+                      <div className="meta-row">
+                        <span className="pill">Matter Workspace</span>
+                        <span>{matter.active_task_count > 0 ? "有進行中工作" : "以回看為主"}</span>
+                      </div>
+                      <h3>{workspaceCard.title}</h3>
+                      <p className="workspace-object-path">{workspaceCard.objectPath}</p>
+                      <p className="muted-text">{workspaceCard.decisionContext}</p>
+                      <p className="muted-text">{workspaceCard.continuity}</p>
+                      <p className="muted-text">{workspaceCard.packSummary}</p>
+                      <p className="muted-text">{workspaceCard.agentSummary}</p>
+                      <div className="meta-row">
+                        {workspaceCard.counts.map((count) => (
+                          <span key={`${matter.id}-${count}`}>{count}</span>
+                        ))}
+                      </div>
+                    </button>
+                  );
+                })
+              ) : (
+                !matterLoading &&
+                !matterError && (
+                  <p className="empty-text">
+                    目前還沒有已形成的案件工作面；新的分析建立後，會自動串進對應的 matter / engagement workspace。
+                  </p>
+                )
+              )}
+            </div>
+          </section>
+
+          <section className="panel">
+            <div className="panel-header">
+              <div>
+                <h2 className="panel-title">從案件世界回到具體工作</h2>
+                <p className="panel-copy">
+                  這裡保留最接近當前工作的 task 與交付物，但它們現在是案件世界下的工作單元，而不是首頁主體。
                 </p>
               </div>
             </div>
@@ -124,6 +205,7 @@ export function WorkbenchHome() {
                       <div className="meta-row">
                         <span className="pill">{task.status === "running" ? "執行中" : "待回看"}</span>
                         <span>{task.latest_deliverable_title ? "已有交付物" : "待產出"}</span>
+                        {task.matter_workspace ? <span>所屬案件已串接</span> : null}
                       </div>
                       <h3>{task.title}</h3>
                       <p className="workspace-object-path">{workspaceSummary.objectPath}</p>

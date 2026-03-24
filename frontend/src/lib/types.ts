@@ -156,6 +156,62 @@ export interface ExtensionManagerSnapshot {
   agent_registry: AgentRegistrySnapshot;
 }
 
+export interface MatterWorkspaceSummary {
+  id: string;
+  title: string;
+  object_path: string;
+  client_name: string;
+  engagement_name: string;
+  workstream_name: string;
+  client_stage: string | null;
+  client_type: string | null;
+  domain_lenses: string[];
+  current_decision_context_title: string | null;
+  current_decision_context_summary: string | null;
+  total_task_count: number;
+  active_task_count: number;
+  deliverable_count: number;
+  artifact_count: number;
+  source_material_count: number;
+  latest_updated_at: string;
+  continuity_summary: string;
+  active_work_summary: string;
+  selected_pack_names: string[];
+  selected_agent_names: string[];
+}
+
+export interface MatterDecisionPoint {
+  task_id: string;
+  task_title: string;
+  task_status: TaskStatus;
+  decision_context_id: string | null;
+  decision_context_title: string;
+  judgment_to_make: string;
+  deliverable_class_hint: DeliverableClass;
+  updated_at: string;
+}
+
+export interface MatterDeliverableSummary {
+  deliverable_id: string;
+  task_id: string;
+  task_title: string;
+  title: string;
+  deliverable_type: string;
+  version: number;
+  generated_at: string;
+  decision_context_title: string | null;
+}
+
+export interface MatterMaterialSummary {
+  object_id: string;
+  task_id: string;
+  task_title: string;
+  object_type: string;
+  title: string;
+  summary: string;
+  created_at: string;
+}
+
 export interface Client {
   id: string;
   task_id: string;
@@ -416,6 +472,7 @@ export interface TaskAggregate {
   action_items: ActionItem[];
   deliverables: Deliverable[];
   runs: TaskRun[];
+  matter_workspace: MatterWorkspaceSummary | null;
 }
 
 export interface TaskListItem {
@@ -447,6 +504,22 @@ export interface TaskListItem {
   deliverable_count: number;
   run_count: number;
   latest_deliverable_title: string | null;
+  matter_workspace: MatterWorkspaceSummary | null;
+}
+
+export interface MatterWorkspace {
+  summary: MatterWorkspaceSummary;
+  client: Client | null;
+  engagement: Engagement | null;
+  workstream: Workstream | null;
+  current_decision_context: DecisionContext | null;
+  decision_trajectory: MatterDecisionPoint[];
+  related_tasks: TaskListItem[];
+  related_deliverables: MatterDeliverableSummary[];
+  related_artifacts: MatterMaterialSummary[];
+  related_source_materials: MatterMaterialSummary[];
+  readiness_hint: string;
+  continuity_notes: string[];
 }
 
 export interface UploadBatchResponse {

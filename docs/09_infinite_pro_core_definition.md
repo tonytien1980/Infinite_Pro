@@ -180,6 +180,10 @@ Infinite Pro 的工作世界至少應圍繞以下主鏈理解：
 
 第一批正式 Industry Packs 可先以以下真實產業範圍為主：
 - `online_education_pack`
+- `ecommerce_pack`
+- `gaming_pack`
+- `funeral_services_pack`
+- `health_supplements_pack`
 
 ### Extension Manager 的正式地位
 `Extension Manager` 屬於 `Workbench / UI Layer` 內的最小正式管理面。
@@ -189,10 +193,15 @@ Infinite Pro 的工作世界至少應圍繞以下主鏈理解：
 - 讓單人顧問看見本次任務實際用了哪些 packs / agents
 - 讓 task-level pack / agent overrides 有正式入口
 - 讓 spec / version / status 可被查看，而不是只停在 payload 或 debug metadata
-- `ecommerce_pack`
-- `gaming_pack`
-- `funeral_services_pack`
-- `health_supplements_pack`
+
+### Matter / Engagement Workspace 的正式地位
+在單人版範圍內，`Matter / Engagement Workspace` 已是正式工作面，而不是未來概念層。
+
+它正式承接：
+- `Client / Engagement / Workstream / DecisionContext` 的案件世界主體
+- related tasks、deliverables、artifacts、source materials 的最小連續性
+- workbench home -> matter workspace -> task / deliverable detail 的正式導航骨架
+- 對單一顧問而言可長時間使用的案件工作上下文
 
 ### LLM / Provider
 負責語言理解、推理與生成，但不應取代 ontology、Host 與 workbench 的結構化治理角色。
