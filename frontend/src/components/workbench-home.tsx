@@ -224,6 +224,48 @@ export function WorkbenchHome() {
             </div>
           </section>
 
+          <section className="panel">
+            <div className="panel-header">
+              <div>
+                <h2 className="panel-title">最近交付物</h2>
+                <p className="panel-copy">
+                  這些交付物現在有正式的 Deliverable Workspace，可直接回看交付等級、依據鏈、限制與案件脈絡。
+                </p>
+              </div>
+            </div>
+
+            <div className="history-list">
+              {recentDeliverables.length > 0 ? (
+                recentDeliverables.map((task) => {
+                  const workspaceSummary = buildTaskListWorkspaceSummary(task);
+                  return (
+                    <button
+                      key={`${task.id}-${task.latest_deliverable_id ?? "deliverable"}`}
+                      className="history-item history-item-button"
+                      type="button"
+                      onClick={() =>
+                        task.latest_deliverable_id
+                          ? router.push(`/deliverables/${task.latest_deliverable_id}`)
+                          : router.push(`/tasks/${task.id}`)
+                      }
+                    >
+                      <div className="meta-row">
+                        <span className="pill">Deliverable Workspace</span>
+                        <span>{task.latest_deliverable_title ? "已有正式交付物" : "回到來源 task"}</span>
+                      </div>
+                      <h3>{task.latest_deliverable_title || task.title}</h3>
+                      <p className="workspace-object-path">{workspaceSummary.objectPath}</p>
+                      <p className="muted-text">{workspaceSummary.decisionContext}</p>
+                      <p className="muted-text">{workspaceSummary.workspaceState}</p>
+                    </button>
+                  );
+                })
+              ) : (
+                <p className="empty-text">目前還沒有最近交付物，新的 deliverable 產出後會出現在這裡。</p>
+              )}
+            </div>
+          </section>
+
           <TaskHistoryList
             tasks={tasks}
             loading={loading}

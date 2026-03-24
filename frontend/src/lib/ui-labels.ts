@@ -130,6 +130,11 @@ const DELIVERABLE_TYPE_LABELS: Record<string, string> = {
   multi_agent_convergence: "多代理收斂交付物",
 };
 
+const DELIVERABLE_WORKSPACE_STATUS_LABELS: Record<string, string> = {
+  current: "Current Version",
+  superseded: "Superseded Version",
+};
+
 const EXTENSION_STATUS_LABELS: Record<string, string> = {
   active: "Active",
   inactive: "Inactive",
@@ -281,6 +286,10 @@ export function labelForDeliverableClass(value: string) {
 
 export function labelForDeliverableType(value: string) {
   return DELIVERABLE_TYPE_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForDeliverableWorkspaceStatus(value: string) {
+  return DELIVERABLE_WORKSPACE_STATUS_LABELS[value] ?? fallbackLabel(value);
 }
 
 export function labelForStructuredField(value: string) {

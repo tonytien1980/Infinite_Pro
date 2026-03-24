@@ -1203,6 +1203,11 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                       這是目前最接近正式顧問交付物的主閱讀主線：先看 Decision Snapshot，再往下讀執行摘要、核心判斷與後續建議。
                     </p>
                   </div>
+                  {latestDeliverable ? (
+                    <Link className="button-secondary" href={`/deliverables/${latestDeliverable.id}`}>
+                      打開交付物工作面
+                    </Link>
+                  ) : null}
                 </div>
                 <div className="section-list">
                   {deliverableBacklink ? (
@@ -1496,6 +1501,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                         <span>版本 {latestDeliverable.version}</span>
                         <span>{formatDisplayDate(latestDeliverable.generated_at)}</span>
                       </div>
+                      <Link className="back-link" href={`/deliverables/${latestDeliverable.id}`}>
+                        進入正式 Deliverable Workspace
+                      </Link>
                     </div>
                     {Object.entries(latestDeliverable.content_structure).map(([label, value]) =>
                       renderStructuredValue(label, value),

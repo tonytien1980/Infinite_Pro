@@ -503,6 +503,7 @@ export interface TaskListItem {
   evidence_count: number;
   deliverable_count: number;
   run_count: number;
+  latest_deliverable_id: string | null;
   latest_deliverable_title: string | null;
   matter_workspace: MatterWorkspaceSummary | null;
 }
@@ -575,6 +576,27 @@ export interface ArtifactEvidenceWorkspace {
   high_impact_gaps: string[];
   sufficiency_summary: string;
   deliverable_limitations: string[];
+  continuity_notes: string[];
+}
+
+export interface DeliverableWorkspace {
+  deliverable: Deliverable;
+  task: TaskAggregate;
+  matter_workspace: MatterWorkspaceSummary | null;
+  deliverable_class: DeliverableClass;
+  workspace_status: string;
+  is_latest_for_task: boolean;
+  confidence_summary: string;
+  deliverable_guidance: string;
+  high_impact_gaps: string[];
+  limitation_notes: string[];
+  linked_source_materials: SourceMaterial[];
+  linked_artifacts: Artifact[];
+  linked_evidence: Evidence[];
+  linked_recommendations: Recommendation[];
+  linked_risks: Risk[];
+  linked_action_items: ActionItem[];
+  related_deliverables: MatterDeliverableSummary[];
   continuity_notes: string[];
 }
 

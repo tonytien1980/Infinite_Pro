@@ -431,6 +431,7 @@ class TaskListItemResponse(BaseModel):
     evidence_count: int
     deliverable_count: int
     run_count: int
+    latest_deliverable_id: str | None = None
     latest_deliverable_title: str | None
     matter_workspace: MatterWorkspaceSummaryRead | None = None
 
@@ -579,6 +580,27 @@ class TaskAggregateResponse(BaseModel):
     deliverables: list[DeliverableRead] = Field(default_factory=list)
     runs: list[TaskRunRead] = Field(default_factory=list)
     matter_workspace: MatterWorkspaceSummaryRead | None = None
+
+
+class DeliverableWorkspaceResponse(BaseModel):
+    deliverable: DeliverableRead
+    task: TaskAggregateResponse
+    matter_workspace: MatterWorkspaceSummaryRead | None = None
+    deliverable_class: DeliverableClass
+    workspace_status: str
+    is_latest_for_task: bool = True
+    confidence_summary: str = ""
+    deliverable_guidance: str = ""
+    high_impact_gaps: list[str] = Field(default_factory=list)
+    limitation_notes: list[str] = Field(default_factory=list)
+    linked_source_materials: list[SourceMaterialRead] = Field(default_factory=list)
+    linked_artifacts: list[ArtifactRead] = Field(default_factory=list)
+    linked_evidence: list[EvidenceRead] = Field(default_factory=list)
+    linked_recommendations: list[RecommendationRead] = Field(default_factory=list)
+    linked_risks: list[RiskRead] = Field(default_factory=list)
+    linked_action_items: list[ActionItemRead] = Field(default_factory=list)
+    related_deliverables: list[MatterDeliverableSummaryRead] = Field(default_factory=list)
+    continuity_notes: list[str] = Field(default_factory=list)
 
 
 class UploadResultItem(BaseModel):

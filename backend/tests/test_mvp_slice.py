@@ -340,6 +340,63 @@ def test_artifact_evidence_workspace_route_returns_formal_source_and_support_cha
     )
 
 
+def test_deliverable_workspace_route_returns_formal_deliverable_context(
+    client: TestClient,
+) -> None:
+    payload = create_task_payload("Deliverable workspace")
+    payload.update(
+        {
+            "description": "請先判斷電商品牌的通路、回購與毛利結構是否需要調整，並形成正式交付物。",
+            "client_name": "Northwind Commerce",
+            "client_type": "中小企業",
+            "client_stage": "制度化階段",
+            "engagement_name": "Northwind Commerce Sprint",
+            "workstream_name": "通路與毛利決策",
+            "decision_title": "Northwind commerce decision",
+            "judgment_to_make": "先判斷目前電商品牌是否應優先調整通路組合與 SKU 結構。",
+            "domain_lenses": ["營運", "財務", "行銷"],
+        }
+    )
+
+    task = client.post("/api/v1/tasks", json=payload).json()
+    client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[
+            (
+                "files",
+                (
+                    "commerce-notes.txt",
+                    b"Repeat purchase is falling while marketplace commissions are rising. Best-selling SKUs have lower contribution margin than expected.",
+                    "text/plain",
+                ),
+            )
+        ],
+    )
+
+    run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
+    assert run_response.status_code == 200
+    deliverable_id = run_response.json()["deliverable"]["id"]
+
+    workspace_response = client.get(f"/api/v1/deliverables/{deliverable_id}")
+
+    assert workspace_response.status_code == 200
+    workspace = workspace_response.json()
+    assert workspace["deliverable"]["id"] == deliverable_id
+    assert workspace["task"]["id"] == task["id"]
+    assert workspace["deliverable_class"] in {
+        "assessment_review_memo",
+        "decision_action_deliverable",
+    }
+    assert workspace["workspace_status"] == "current"
+    assert workspace["linked_evidence"]
+    assert workspace["linked_recommendations"]
+    assert workspace["linked_risks"] is not None
+    assert workspace["linked_action_items"] is not None
+    assert workspace["confidence_summary"]
+    assert workspace["limitation_notes"] is not None
+    assert workspace["continuity_notes"] is not None
+
+
 def test_task_aggregate_includes_pack_resolution_from_context_spine(client: TestClient) -> None:
     payload = create_task_payload("Pack-aware aggregate")
     payload.update(

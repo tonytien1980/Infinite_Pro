@@ -200,12 +200,18 @@ Infinite Pro 的工作主體不應只是 task。
 - sufficiency 與 high-impact gaps 已是正式工作面責任，而不是隱性 trace metadata
 
 ### 6.5 Deliverable workspace
-用來閱讀、整理、調整與回看交付物。
+用來閱讀、整理、回看與操作正式交付物。
+
+在單人版範圍內，這個工作面現在也應視為已正式成立：
+- `Deliverable` 已成為正式工作面的主體，而不是 task detail 裡的結果區塊
+- 顧問可以從 matter workspace、task detail 與 artifact / evidence workspace 進入正式 deliverable workspace
+- deliverable class、evidence basis、ontology linkage、limitations 與適用範圍已成為正式工作面責任
+- 這不再只是 generic result page，而是正式交付物工作面
 
 ### 6.6 System trace surface
 用來查看 orchestration、history、ontology mapping 與工作流痕跡。
 
-這些工作面都屬於正式系統輪廓；其中 `Matter / Engagement workspace` 與 `Artifact / Evidence workspace` 在單人版範圍內已可視為正式完成的工作面。
+這些工作面都屬於正式系統輪廓；其中 `Matter / Engagement workspace`、`Artifact / Evidence workspace` 與 `Deliverable workspace` 在單人版範圍內已可視為正式完成的工作面。
 
 ---
 

@@ -303,7 +303,13 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                             <ul className="list-content">
                               {item.linked_deliverables.map((target) => (
                                 <li key={`${item.evidence.id}-deliverable-${target.target_id}`}>
-                                  {target.title}
+                                  {target.target_id ? (
+                                    <Link className="back-link" href={`/deliverables/${target.target_id}`}>
+                                      {target.title}
+                                    </Link>
+                                  ) : (
+                                    target.title
+                                  )}
                                   {target.note ? `｜${target.note}` : ""}
                                 </li>
                               ))}

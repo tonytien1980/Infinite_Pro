@@ -282,6 +282,12 @@ UI 不是只做表單與結果頁，而是正式工作面。
 - sufficiency、high-impact gaps、deliverable limitations 已成為正式工作面責任
 - 它不是 supporting context 區塊，也不是 raw trace panel
 
+在單人顧問完整工作台範圍內，`Deliverable Workspace` 也應視為已完成的正式工作面：
+- `Deliverable` 已具備 canonical workspace identity 與獨立工作面入口
+- deliverable class、confidence / applicability、limitations、high-impact gaps 已成為正式工作面責任
+- deliverable 對 matter / decision context / source / evidence / recommendation / risk / action 的回鏈已可被正式回看
+- 它不是 generic result page，也不是 task detail 的附帶閱讀區
+
 ### Extension Manager 的正式位置
 顧問查看 packs 與 agents、查看 active / inactive / draft 狀態、查看版本與本次任務使用情況，
 應透過 Workbench / UI Layer 內的 shared `Extension Manager` 來呈現。

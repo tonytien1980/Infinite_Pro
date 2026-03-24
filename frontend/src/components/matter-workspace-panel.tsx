@@ -202,8 +202,8 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
                         <p className="content-block">
                           {item.decision_context_title || "目前沒有可顯示的 decision context。"}
                         </p>
-                        <Link className="back-link" href={`/tasks/${item.task_id}`}>
-                          打開來源 task
+                        <Link className="back-link" href={`/deliverables/${item.deliverable_id}`}>
+                          打開這份交付物
                         </Link>
                       </div>
                     ))

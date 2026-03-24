@@ -2,6 +2,7 @@ import type {
   ArtifactEvidenceWorkspace,
   Constraint,
   Deliverable,
+  DeliverableWorkspace,
   Evidence,
   Goal,
   MatterWorkspace,
@@ -20,6 +21,8 @@ import {
 } from "@/lib/workflow-modes";
 import {
   labelForDeliverableClass,
+  labelForDeliverableType,
+  labelForDeliverableWorkspaceStatus,
   labelForEvidenceType,
   labelForInputEntryMode,
   labelForPresenceState,
@@ -255,6 +258,21 @@ export interface ArtifactEvidenceWorkspaceView {
   artifactHighlights: string[];
   sourceMaterialHighlights: string[];
   evidenceHighlights: string[];
+}
+
+export interface DeliverableWorkspaceView {
+  title: string;
+  deliverableClassLabel: string;
+  deliverableTypeLabel: string;
+  workspaceStatusLabel: string;
+  summary: string;
+  confidenceSummary: string;
+  limitations: string[];
+  highImpactGaps: string[];
+  evidenceBasisSummary: string;
+  linkedOutputSummary: string[];
+  continuityHighlights: string[];
+  relatedDeliverableHighlights: string[];
 }
 
 export interface PackSelectionView {
@@ -1731,6 +1749,47 @@ export function buildArtifactEvidenceWorkspaceView(
           item.linked_action_items.length;
         return `${item.evidence.title}｜${item.strength_label}｜${supportCount} 項 decision supports`;
       }),
+  };
+}
+
+export function buildDeliverableWorkspaceView(
+  workspace: DeliverableWorkspace,
+): DeliverableWorkspaceView {
+  const deliverable = workspace.deliverable;
+  const task = workspace.task;
+  const workbenchSummary = buildWorkbenchObjectSummary(task, deliverable);
+  const linkedOutputSummary = [
+    `${workspace.linked_recommendations.length} 項 recommendations`,
+    `${workspace.linked_risks.length} 項 risks`,
+    `${workspace.linked_action_items.length} 項 action items`,
+  ];
+
+  const summary =
+    getStructuredString(deliverable, "executive_summary") ||
+    getStructuredString(deliverable, "core_judgment") ||
+    getStructuredString(deliverable, "background_summary") ||
+    `這份交付物目前圍繞「${workbenchSummary.decisionContext}」形成正式 deliverable。`;
+
+  const evidenceBasisSummary =
+    workspace.linked_evidence.length > 0
+      ? `目前已正式回鏈 ${workspace.linked_evidence.length} 則 evidence、${workspace.linked_source_materials.length} 份 source materials、${workspace.linked_artifacts.length} 份 artifacts。`
+      : "目前 evidence basis 仍偏薄，建議回到來源 / 證據工作面補齊主要依據。";
+
+  return {
+    title: deliverable.title,
+    deliverableClassLabel: labelForDeliverableClass(workspace.deliverable_class),
+    deliverableTypeLabel: labelForDeliverableType(deliverable.deliverable_type),
+    workspaceStatusLabel: labelForDeliverableWorkspaceStatus(workspace.workspace_status),
+    summary,
+    confidenceSummary: workspace.confidence_summary,
+    limitations: workspace.limitation_notes,
+    highImpactGaps: workspace.high_impact_gaps,
+    evidenceBasisSummary,
+    linkedOutputSummary,
+    continuityHighlights: workspace.continuity_notes,
+    relatedDeliverableHighlights: workspace.related_deliverables.map(
+      (item) => `${item.title}｜${item.task_title}`,
+    ),
   };
 }
 

@@ -2439,6 +2439,7 @@ def _build_task_list_item_response(
         evidence_count=len(task.evidence),
         deliverable_count=len(task.deliverables),
         run_count=len(task.runs),
+        latest_deliverable_id=latest_deliverable.id if latest_deliverable else None,
         latest_deliverable_title=latest_deliverable.title if latest_deliverable else None,
         matter_workspace=matter_workspace,
     )
@@ -3118,6 +3119,243 @@ def get_artifact_evidence_workspace(
         sufficiency_summary=sufficiency_summary,
         deliverable_limitations=_unique_preserve_order(deliverable_limitations)[:6],
         continuity_notes=_unique_preserve_order(continuity_notes)[:6],
+    )
+
+
+def _get_content_record(deliverable: schemas.DeliverableRead) -> dict:
+    return deliverable.content_structure if isinstance(deliverable.content_structure, dict) else {}
+
+
+def _get_content_string(content: dict, key: str) -> str:
+    value = content.get(key)
+    return value.strip() if isinstance(value, str) else ""
+
+
+def _get_content_string_list(content: dict, key: str) -> list[str]:
+    value = content.get(key)
+    if isinstance(value, list):
+        return [item.strip() for item in value if isinstance(item, str) and item.strip()]
+    return []
+
+
+def _dedupe_schema_items(items: list):
+    seen_ids: set[str] = set()
+    deduped: list = []
+    for item in items:
+        item_id = getattr(item, "id", None)
+        if not item_id or item_id in seen_ids:
+            continue
+        seen_ids.add(item_id)
+        deduped.append(item)
+    return deduped
+
+
+def _resolve_deliverable_class_for_workspace(
+    task: schemas.TaskAggregateResponse,
+    deliverable: schemas.DeliverableRead,
+) -> DeliverableClass:
+    content = _get_content_record(deliverable)
+    operating_state = content.get("sparse_input_operating_state")
+    if isinstance(operating_state, dict):
+        raw_class = operating_state.get("deliverable_class")
+        if isinstance(raw_class, str):
+            try:
+                return DeliverableClass(raw_class)
+            except ValueError:
+                pass
+
+    readiness = content.get("readiness_governance")
+    if isinstance(readiness, dict):
+        raw_class = readiness.get("supported_deliverable_class")
+        if isinstance(raw_class, str):
+            try:
+                return DeliverableClass(raw_class)
+            except ValueError:
+                pass
+
+    return task.deliverable_class_hint
+
+
+def _build_deliverable_confidence_summary(
+    deliverable_class: DeliverableClass,
+    linked_evidence_count: int,
+    high_impact_gaps: list[str],
+    external_research_heavy_candidate: bool,
+) -> str:
+    if external_research_heavy_candidate or deliverable_class == DeliverableClass.EXPLORATORY_BRIEF:
+        return (
+            "這份交付物目前屬於 exploratory level，重點是建立可用判斷與後續補證方向，"
+            "不應被誤讀成已完整對齊 company-specific certainty 的正式決策備忘錄。"
+        )
+    if deliverable_class == DeliverableClass.ASSESSMENT_REVIEW_MEMO:
+        return (
+            "這份交付物目前屬於 assessment / review memo，判斷主要建立在既有文件、來源材料與可回看的 evidence 上，"
+            "適合支撐 review / challenge，但未必足以直接推進完整行動方案。"
+        )
+    if high_impact_gaps:
+        return (
+            f"這份 decision / action deliverable 已具備 {linked_evidence_count} 則正式 evidence 支撐，"
+            f"但仍有 {len(high_impact_gaps)} 項高影響缺口需要在採行前一併考慮。"
+        )
+    return (
+        f"這份 decision / action deliverable 目前已有 {linked_evidence_count} 則正式 evidence 支撐，"
+        "可作為較完整的決策 / 行動級交付物回看。"
+    )
+
+
+def get_deliverable_workspace(
+    db: Session,
+    deliverable_id: str,
+) -> schemas.DeliverableWorkspaceResponse:
+    deliverable_row = db.scalars(
+        select(models.Deliverable).where(models.Deliverable.id == deliverable_id)
+    ).one_or_none()
+    if deliverable_row is None:
+        raise HTTPException(status_code=404, detail="找不到指定交付物工作面。")
+
+    task = get_loaded_task(db, deliverable_row.task_id)
+    task_aggregate = serialize_task(task)
+    deliverable = next(
+        (item for item in task_aggregate.deliverables if item.id == deliverable_id),
+        None,
+    )
+    if deliverable is None:
+        raise HTTPException(status_code=404, detail="找不到指定交付物工作面。")
+
+    content = _get_content_record(deliverable)
+    readiness_governance = content.get("readiness_governance")
+    if not isinstance(readiness_governance, dict):
+        readiness_governance = {}
+
+    deliverable_class = _resolve_deliverable_class_for_workspace(task_aggregate, deliverable)
+    latest_deliverable = max(
+        task_aggregate.deliverables,
+        key=lambda item: (item.version, item.generated_at),
+    )
+    is_latest_for_task = latest_deliverable.id == deliverable.id
+    workspace_status = "current" if is_latest_for_task else "superseded"
+
+    linked_ids_by_type: dict[str, set[str]] = {}
+    for link in deliverable.linked_objects:
+        if not link.object_id:
+            continue
+        linked_ids_by_type.setdefault(link.object_type, set()).add(link.object_id)
+
+    linked_recommendations = [
+        item
+        for item in task_aggregate.recommendations
+        if item.id in linked_ids_by_type.get("recommendation", set())
+    ]
+    linked_risks = [
+        item for item in task_aggregate.risks if item.id in linked_ids_by_type.get("risk", set())
+    ]
+    linked_action_items = [
+        item
+        for item in task_aggregate.action_items
+        if item.id in linked_ids_by_type.get("action_item", set())
+    ]
+
+    if not linked_recommendations:
+        linked_recommendations = task_aggregate.recommendations
+    if not linked_risks:
+        linked_risks = task_aggregate.risks
+    if not linked_action_items:
+        linked_action_items = task_aggregate.action_items
+
+    evidence_ids = set(linked_ids_by_type.get("evidence", set()))
+    for item in [*linked_recommendations, *linked_risks, *linked_action_items]:
+        evidence_ids.update(getattr(item, "supporting_evidence_ids", []))
+
+    linked_evidence = [
+        item for item in task_aggregate.evidence if item.id in evidence_ids
+    ] or task_aggregate.evidence
+    linked_evidence = _dedupe_schema_items(linked_evidence)
+
+    source_material_ids = set(linked_ids_by_type.get("source_material", set()))
+    artifact_ids = set(linked_ids_by_type.get("artifact", set()))
+    for evidence in linked_evidence:
+        if evidence.source_material_id:
+            source_material_ids.add(evidence.source_material_id)
+        if evidence.artifact_id:
+            artifact_ids.add(evidence.artifact_id)
+
+    linked_source_materials = [
+        item for item in task_aggregate.source_materials if item.id in source_material_ids
+    ] or task_aggregate.source_materials
+    linked_artifacts = [
+        item for item in task_aggregate.artifacts if item.id in artifact_ids
+    ] or task_aggregate.artifacts
+
+    high_impact_gaps = _unique_preserve_order(
+        [
+            *[
+                item
+                for item in readiness_governance.get("pack_high_impact_gaps", [])
+                if isinstance(item, str) and item.strip()
+            ],
+            *_get_content_string_list(content, "missing_information"),
+        ]
+    )
+    deliverable_guidance = (
+        readiness_governance.get("deliverable_guidance", "")
+        if isinstance(readiness_governance.get("deliverable_guidance", ""), str)
+        else ""
+    )
+    limitation_notes = _unique_preserve_order(
+        [
+            deliverable_guidance,
+            task_aggregate.sparse_input_summary,
+            *high_impact_gaps[:4],
+        ]
+    )
+    confidence_summary = _build_deliverable_confidence_summary(
+        deliverable_class,
+        len(linked_evidence),
+        high_impact_gaps,
+        bool(task_aggregate.external_research_heavy_candidate),
+    )
+
+    related_deliverables: list[schemas.MatterDeliverableSummaryRead] = []
+    continuity_notes: list[str] = []
+    if task_aggregate.matter_workspace:
+        matter_workspace = get_matter_workspace(db, task_aggregate.matter_workspace.id)
+        related_deliverables = [
+            item
+            for item in matter_workspace.related_deliverables
+            if item.deliverable_id != deliverable.id
+        ][:6]
+        continuity_notes.extend(matter_workspace.continuity_notes)
+
+    if is_latest_for_task:
+        continuity_notes.append("這份 deliverable 目前是此 task 最新版本的正式交付物。")
+    else:
+        continuity_notes.append("這份 deliverable 仍可回看，但已不是此 task 的最新版本。")
+    if related_deliverables:
+        continuity_notes.append(
+            f"同一個案件世界內另外還有 {len(related_deliverables)} 份 related deliverables 可交叉回看。"
+        )
+    if not linked_evidence:
+        continuity_notes.append("這份交付物目前尚未形成厚實 evidence basis，應先回看來源 / 證據工作面再採行。")
+
+    return schemas.DeliverableWorkspaceResponse(
+        deliverable=deliverable,
+        task=task_aggregate,
+        matter_workspace=task_aggregate.matter_workspace,
+        deliverable_class=deliverable_class,
+        workspace_status=workspace_status,
+        is_latest_for_task=is_latest_for_task,
+        confidence_summary=confidence_summary,
+        deliverable_guidance=deliverable_guidance,
+        high_impact_gaps=high_impact_gaps[:8],
+        limitation_notes=limitation_notes[:8],
+        linked_source_materials=_dedupe_schema_items(linked_source_materials)[:8],
+        linked_artifacts=_dedupe_schema_items(linked_artifacts)[:8],
+        linked_evidence=_dedupe_schema_items(linked_evidence)[:8],
+        linked_recommendations=_dedupe_schema_items(linked_recommendations)[:8],
+        linked_risks=_dedupe_schema_items(linked_risks)[:8],
+        linked_action_items=_dedupe_schema_items(linked_action_items)[:8],
+        related_deliverables=related_deliverables,
+        continuity_notes=_unique_preserve_order(continuity_notes),
     )
 
 

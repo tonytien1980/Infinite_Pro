@@ -212,6 +212,15 @@ Infinite Pro 的工作世界至少應圍繞以下主鏈理解：
 - evidence sufficiency、high-impact gaps、deliverable limitations 的可見治理
 - matter workspace、task detail 與 deliverable lane 對來源 / 證據工作面的正式回跳與連續性
 
+### Deliverable Workspace 的正式地位
+在單人版範圍內，`Deliverable Workspace` 也已是正式工作面，而不是 generic result page 或 task detail 結果區的延伸。
+
+它正式承接：
+- `Deliverable` 的交付物主體與 canonical display
+- deliverable class、confidence / applicability、limitations、high-impact gaps 的可見治理
+- deliverable 對 matter、decision context、artifact、source material、evidence、recommendation、risk、action item 的正式回鏈
+- matter workspace、artifact / evidence workspace、task detail 與 deliverable workspace 的正式銜接與連續性
+
 ### LLM / Provider
 負責語言理解、推理與生成，但不應取代 ontology、Host 與 workbench 的結構化治理角色。
 

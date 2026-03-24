@@ -158,6 +158,11 @@ Within the single-consultant scope, the `Artifact / Evidence Workspace` should n
 - consultants can move from matter workspace or task detail into a formal source/evidence work surface
 - evidence support chains, sufficiency, and high-impact gaps are visible as workbench responsibilities rather than hidden trace metadata
 
+Within the single-consultant scope, the `Deliverable Workspace` should now also be treated as a completed formal work surface:
+- `Deliverable` has a canonical workspace identity and a dedicated workspace route
+- consultants can move from matter workspace, task detail, and artifact/evidence workspace into a formal deliverable work surface
+- deliverable class, evidence basis, ontology linkage, limitations, and applicability are visible as first-class workbench responsibilities rather than being buried in task-result blobs
+
 ## Core ontology objects
 
 The system should be planned around objects such as:
@@ -196,6 +201,7 @@ The repository currently contains a working early implementation slice within th
 - specialist and multi-agent execution paths
 - a formal `Matter / Engagement Workspace` for single-consultant case continuity
 - a formal `Artifact / Evidence Workspace` for source, evidence, support-chain, and gap governance
+- a formal `Deliverable Workspace` for deliverable identity, linkage, limitations, and continuity
 - structured deliverable rendering
 - provider abstraction with `mock` and `openai`
 - Traditional Chinese as the default UI language
