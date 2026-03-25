@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
+import { AppShell } from "@/components/app-shell";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Infinite Pro",
-  description: "以 ontology 為核心的 MVP 工作台，支援結構化研究與任務收斂。",
+  description: "單人優先、多人相容的顧問工作台，承接案件、來源、證據與交付物工作面。",
 };
 
 export default function RootLayout({
@@ -13,7 +14,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-Hant">
-      <body>{children}</body>
+      <body>
+        <AppShell>{children}</AppShell>
+      </body>
     </html>
   );
 }

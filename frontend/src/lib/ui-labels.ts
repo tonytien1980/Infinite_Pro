@@ -51,7 +51,7 @@ const ACTION_STATUS_LABELS: Record<string, string> = {
 
 const AGENT_LABELS: Record<string, string> = {
   host_orchestrator: "Host 協調中心",
-  host_agent: "Host Agent",
+  host_agent: "Host 代理",
   strategy_business_analysis: "策略 / 商業分析代理",
   strategy_decision_agent: "策略 / 決策代理",
   market_research_insight: "市場 / 研究洞察代理",
@@ -118,9 +118,9 @@ const PRESENCE_STATE_LABELS: Record<string, string> = {
 };
 
 const DELIVERABLE_CLASS_LABELS: Record<string, string> = {
-  exploratory_brief: "Exploratory Brief",
-  assessment_review_memo: "Assessment / Review Memo",
-  decision_action_deliverable: "Decision / Action Deliverable",
+  exploratory_brief: "探索型簡報",
+  assessment_review_memo: "評估 / 審閱備忘",
+  decision_action_deliverable: "決策 / 行動交付物",
 };
 
 const DELIVERABLE_TYPE_LABELS: Record<string, string> = {
@@ -131,26 +131,26 @@ const DELIVERABLE_TYPE_LABELS: Record<string, string> = {
 };
 
 const DELIVERABLE_WORKSPACE_STATUS_LABELS: Record<string, string> = {
-  current: "Current Version",
-  superseded: "Superseded Version",
+  current: "目前版本",
+  superseded: "較舊版本",
 };
 
 const EXTENSION_STATUS_LABELS: Record<string, string> = {
-  active: "Active",
-  inactive: "Inactive",
-  draft: "Draft",
-  deprecated: "Deprecated",
+  active: "啟用中",
+  inactive: "停用中",
+  draft: "草稿",
+  deprecated: "已淘汰",
 };
 
 const PACK_TYPE_LABELS: Record<string, string> = {
-  domain: "Domain Pack",
-  industry: "Industry Pack",
+  domain: "問題面向模組包",
+  industry: "產業模組包",
 };
 
 const AGENT_TYPE_LABELS: Record<string, string> = {
-  host: "Host Agent",
-  reasoning: "Reasoning Agent",
-  specialist: "Specialist Agent",
+  host: "Host 代理",
+  reasoning: "推理代理",
+  specialist: "專家代理",
 };
 
 const STRUCTURED_FIELD_LABELS: Record<string, string> = {
@@ -175,7 +175,7 @@ const STRUCTURED_FIELD_LABELS: Record<string, string> = {
   sources_used: "使用來源",
   clauses_reviewed: "審閱條款",
   high_risk_clauses: "高風險條款",
-  redline_recommendations: "Redline / 修改建議",
+  redline_recommendations: "修改建議",
   missing_attachments_or_clauses: "缺漏附件 / 缺漏條款",
   proposed_outline: "建議大綱",
   draft_outline: "產出草案 / 新版結構",
@@ -193,7 +193,7 @@ const STRUCTURED_FIELD_LABELS: Record<string, string> = {
   analysis_dependency_note: "外部資料依賴說明",
   input_entry_mode: "進件形態",
   deliverable_class: "交付等級",
-  sparse_input_operating_state: "Sparse-Input 運作狀態",
+  sparse_input_operating_state: "稀疏輸入運作狀態",
   presence_state_summary: "物件存在狀態",
 };
 

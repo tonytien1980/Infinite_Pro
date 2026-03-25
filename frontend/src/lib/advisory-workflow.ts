@@ -930,15 +930,15 @@ function asSelectedAgentArray(value: unknown): SelectedAgent[] {
 
 function buildPackSummary(domainPacks: string[], industryPacks: string[]) {
   if (domainPacks.length === 0 && industryPacks.length === 0) {
-    return "目前尚未選到任何 packs，這輪仍以通用工作鏈為主。";
+    return "目前尚未選到任何模組包，這輪仍以通用工作鏈為主。";
   }
 
   const parts: string[] = [];
   if (domainPacks.length > 0) {
-    parts.push(`Domain Packs：${joinNaturalList(domainPacks)}`);
+    parts.push(`問題面向模組包：${joinNaturalList(domainPacks)}`);
   }
   if (industryPacks.length > 0) {
-    parts.push(`Industry Packs：${joinNaturalList(industryPacks)}`);
+    parts.push(`產業模組包：${joinNaturalList(industryPacks)}`);
   }
   return parts.join("；");
 }
@@ -1069,7 +1069,7 @@ function getPresenceHighlights(task: TaskAggregate, deliverable: Deliverable | n
       if (!state && !reason) {
         return null;
       }
-      const label = key === "decision_context" ? "Decision Context" : key.replaceAll("_", " ");
+      const label = key === "decision_context" ? "決策問題" : key.replaceAll("_", " ");
       return `${label}：${labelForPresenceState(state)}${displayValue}${reason ? `｜${reason}` : ""}`;
     })
     .filter((item): item is string => Boolean(item));
@@ -1243,7 +1243,7 @@ export function buildWorkbenchObjectSummary(
     clientContext: `${clientType} / ${clientStage}`,
     sourceSummary:
       task.source_materials.length > 0 || task.artifacts.length > 0 || task.evidence.length > 0
-        ? `${task.source_materials.length} 份 source material、${task.artifacts.length} 份 artifact、${task.evidence.length} 則證據`
+        ? `${task.source_materials.length} 份來源材料、${task.artifacts.length} 份工作物件、${task.evidence.length} 則證據`
         : "目前仍主要依賴原始問題與背景脈絡。",
   };
 }
@@ -1315,7 +1315,7 @@ export function buildObjectNavigationStrip(
       }),
       buildObjectNavigationItem({
         key: "engagement",
-        label: "Engagement",
+        label: "案件委託",
         value: workbenchSummary.engagement,
         item: engagement,
         anchorId: "workspace-lane",
@@ -1323,7 +1323,7 @@ export function buildObjectNavigationStrip(
       }),
       buildObjectNavigationItem({
         key: "workstream",
-        label: "Workstream",
+        label: "工作流",
         value: workbenchSummary.workstream,
         item: workstream,
         anchorId: "workspace-lane",
@@ -1331,7 +1331,7 @@ export function buildObjectNavigationStrip(
       }),
       buildObjectNavigationItem({
         key: "decision_context",
-        label: "Decision Context",
+        label: "決策問題",
         value: workbenchSummary.decisionContext,
         item: decisionContext,
         anchorId: "decision-context",
@@ -1339,7 +1339,7 @@ export function buildObjectNavigationStrip(
       }),
       {
         key: "deliverable",
-        label: "Deliverable Class",
+        label: "交付等級",
         value: sparseInput.deliverableClassLabel,
         stateLabel: sparseInput.entryModeLabel,
         note: sparseInput.deliverableGuidance,
@@ -1349,11 +1349,11 @@ export function buildObjectNavigationStrip(
     entryModeLabel: sparseInput.entryModeLabel,
     deliverableClassLabel: sparseInput.deliverableClassLabel,
     workspaceSummary: sparseInput.externalResearchHeavy
-      ? "目前是 external-research-heavy 的探索級工作面。系統先建立 provisional world，優先形成外部態勢判斷與待驗證事項，而不是假裝已有公司內部確定性。"
+      ? "目前是外部研究導向的探索級工作面。系統會先建立暫定案件世界，優先形成外部態勢判斷與待驗證事項，而不是假裝已有公司內部確定性。"
       : tone === "exploratory"
-        ? "目前這是一個探索級工作面。Host 會先把稀疏輸入收斂成 provisional consulting world，再形成第一輪 exploratory brief。"
+        ? "目前這是一個探索級工作面。Host 會先把稀疏輸入收斂成暫定案件世界，再形成第一輪探索型交付。"
         : tone === "review"
-          ? "目前這是一個文件中心的 review / assessment 工作面。系統會先圍繞現有 artifact 與 source material 形成可採用的審閱或評估結果。"
+          ? "目前這是一個文件中心的審閱 / 評估工作面。系統會先圍繞現有工作物件與來源材料形成可採用的審閱或評估結果。"
           : "目前這是一個決策 / 行動級工作面。Client、workstream、decision context 與 evidence 鏈已足以支撐較完整的 decision deliverable。",
     externalResearchHeavy: sparseInput.externalResearchHeavy,
     workspaceTone: tone,
@@ -1524,7 +1524,7 @@ export function buildEvidenceWorkspaceLane(
   const sourcePresence = task.presence_state_summary.source_material;
   const decisionPresence = task.presence_state_summary.decision_context;
   const missingSignals = [
-    artifactPresence.state !== "explicit" ? `Artifact：${artifactPresence.reason}` : "",
+    artifactPresence.state !== "explicit" ? `工作物件：${artifactPresence.reason}` : "",
     sourcePresence.state !== "explicit" ? `SourceMaterial：${sourcePresence.reason}` : "",
     decisionPresence.state !== "explicit" ? `DecisionContext：${decisionPresence.reason}` : "",
     ...(readiness?.packHighImpactGaps.slice(0, 2) ?? []),
@@ -1533,24 +1533,24 @@ export function buildEvidenceWorkspaceLane(
 
   return {
     summary: sparseInput.externalResearchHeavy
-      ? "目前這條工作面以外部研究與 supporting evidence 為主，尚未進入 company-specific artifact 主導的分析鏈。"
+      ? "目前這條工作面以外部研究與補充證據為主，尚未進入公司情境主導的工作物件分析鏈。"
       : task.artifacts.length > 0 || task.source_materials.length > 0 || usableEvidence.length > 0
-        ? `目前這輪判斷依附於 ${task.artifacts.length} 份 artifact、${task.source_materials.length} 份 source material 與 ${usableEvidence.length} 則可用 evidence。`
-        : "目前仍主要依賴原始問題與背景脈絡，尚未形成厚實的 Artifact / SourceMaterial / Evidence 工作鏈。",
+        ? `目前這輪判斷依附於 ${task.artifacts.length} 份工作物件、${task.source_materials.length} 份來源材料與 ${usableEvidence.length} 則可用證據。`
+        : "目前仍主要依賴原始問題與背景脈絡，尚未形成厚實的工作物件 / 來源材料 / 證據工作鏈。",
     artifactCards:
       task.artifacts.length > 0
         ? task.artifacts.slice(0, 4).map((artifact) => ({
-            title: artifact.title || "未命名 Artifact",
+            title: artifact.title || "未命名工作物件",
             summary:
               artifact.description.trim() ||
-              "目前沒有額外 artifact 說明，後續可再補這份材料的角色與用途。",
-            meta: ["Artifact", artifact.artifact_type || "未分類"],
+              "目前沒有額外工作物件說明，後續可再補這份材料的角色與用途。",
+            meta: ["工作物件", artifact.artifact_type || "未分類"],
             supportNotes: [
               artifact.source_material_id
-                ? "已連回 source material"
+                ? "已連回來源材料"
                 : artifact.source_document_id
-                  ? "由 source document 建立"
-                  : "目前仍是獨立 artifact",
+                  ? "由原始來源文件建立"
+                  : "目前仍是獨立工作物件",
             ],
           }))
         : [],
@@ -1560,7 +1560,7 @@ export function buildEvidenceWorkspaceLane(
             title: material.title || "未命名 SourceMaterial",
             summary:
               material.summary.trim() ||
-              "目前沒有可顯示的 source material 摘要，後續可補更完整的來源摘要。",
+              "目前沒有可顯示的來源材料摘要，後續可補更完整的來源摘要。",
             meta: [labelForSourceType(material.source_type), material.ingest_status || "未標示狀態"],
             supportNotes: [material.source_ref ? `來源：${material.source_ref}` : "目前沒有來源參照"],
           }))
@@ -1606,20 +1606,20 @@ export function buildDeliverableBacklinkView(
 
   return {
     summary: sparseInput.externalResearchHeavy
-      ? `這份 ${sparseInput.deliverableClassLabel} 先對應到「${workbenchSummary.decisionContext}」的外部態勢判斷，尚未聲稱已完整對齊 company-specific 工作世界。`
+      ? `這份 ${sparseInput.deliverableClassLabel} 先對應到「${workbenchSummary.decisionContext}」的外部態勢判斷，尚未聲稱已完整對齊公司情境工作世界。`
       : `這份 ${sparseInput.deliverableClassLabel} 目前掛在「${workbenchSummary.workstream}」工作鏈上，圍繞「${workbenchSummary.decisionContext}」形成交付結果。`,
     workspacePath,
     decisionContext: linkedDecisionContext?.object_label || workbenchSummary.decisionContext,
     evidenceBasis:
       linkedEvidence.length > 0
-        ? `目前有 ${linkedEvidence.length} 則正式回鏈的 evidence 支撐這份交付物，來源來自 ${ontologyChain.sourceMaterialCount} 份 source material 與 ${ontologyChain.artifactCount} 份 artifact。`
+        ? `目前有 ${linkedEvidence.length} 則正式回鏈的證據支撐這份交付物，來源來自 ${ontologyChain.sourceMaterialCount} 份來源材料與 ${ontologyChain.artifactCount} 份工作物件。`
         : ontologyChain.evidenceCount > 0
-          ? `目前有 ${ontologyChain.evidenceCount} 則 evidence 支撐這份交付物，來源來自 ${ontologyChain.sourceMaterialCount} 份 source material 與 ${ontologyChain.artifactCount} 份 artifact。`
-        : "目前 evidence 鏈仍偏薄，這份交付物較依賴問題 framing、背景脈絡與 provisional world。",
+          ? `目前有 ${ontologyChain.evidenceCount} 則證據支撐這份交付物，來源來自 ${ontologyChain.sourceMaterialCount} 份來源材料與 ${ontologyChain.artifactCount} 份工作物件。`
+        : "目前證據鏈仍偏薄，這份交付物較依賴問題 framing、背景脈絡與暫定工作世界。",
     linkedOutputs: [
-      `${linkedRecommendations.length || ontologyChain.recommendationCount} 項 recommendation`,
-      `${linkedRisks.length || ontologyChain.riskCount} 項 risk`,
-      `${linkedActionItems.length || ontologyChain.actionItemCount} 項 action item`,
+      `${linkedRecommendations.length || ontologyChain.recommendationCount} 項建議`,
+      `${linkedRisks.length || ontologyChain.riskCount} 項風險`,
+      `${linkedActionItems.length || ontologyChain.actionItemCount} 項行動項目`,
     ],
   };
 }
@@ -1628,11 +1628,11 @@ export function buildTaskListWorkspaceSummary(task: TaskListItem): TaskListWorks
   const clientLabel =
     task.client_name ||
     [task.client_type, task.client_stage].filter(Boolean).join(" / ") ||
-    "未明示 Client";
+    "未明示客戶";
   const path = [
     clientLabel,
-    task.engagement_name || "暫定 Engagement",
-    task.workstream_name || "暫定 Workstream",
+    task.engagement_name || "暫定案件委託",
+    task.workstream_name || "暫定工作流",
   ].join(" / ");
 
   const stateParts = [
@@ -1651,13 +1651,13 @@ export function buildTaskListWorkspaceSummary(task: TaskListItem): TaskListWorks
     packSummary:
       task.pack_summary?.trim() ||
       (task.selected_pack_names.length > 0
-        ? `Packs：${joinNaturalList(task.selected_pack_names.slice(0, 3))}`
-        : "目前尚未選到 packs"),
+        ? `模組包：${joinNaturalList(task.selected_pack_names.slice(0, 3))}`
+        : "目前尚未選到模組包"),
     agentSummary:
       task.agent_summary?.trim() ||
       (task.selected_agent_names.length > 0
-        ? `Agents：${joinNaturalList(task.selected_agent_names.slice(0, 3))}`
-        : "目前仍以 Host 的最小 orchestration context 為主"),
+        ? `代理：${joinNaturalList(task.selected_agent_names.slice(0, 3))}`
+        : "目前仍以 Host 的最小協調脈絡為主"),
   };
 }
 
@@ -1670,22 +1670,22 @@ export function buildMatterWorkspaceCard(
     decisionContext:
       matter.current_decision_context_title ||
       matter.current_decision_context_summary ||
-      "目前尚未形成清楚的 DecisionContext。",
+      "目前尚未形成清楚的決策問題。",
     continuity: matter.continuity_summary,
     activeWork: matter.active_work_summary,
     packSummary:
       matter.selected_pack_names.length > 0
-        ? `Packs：${joinNaturalList(matter.selected_pack_names.slice(0, 4))}`
-        : "目前尚未形成可顯示的 pack context。",
+        ? `模組包：${joinNaturalList(matter.selected_pack_names.slice(0, 4))}`
+        : "目前尚未形成可顯示的模組包脈絡。",
     agentSummary:
       matter.selected_agent_names.length > 0
-        ? `Agents：${joinNaturalList(matter.selected_agent_names.slice(0, 4))}`
-        : "目前尚未形成可顯示的 agent context。",
+        ? `代理：${joinNaturalList(matter.selected_agent_names.slice(0, 4))}`
+        : "目前尚未形成可顯示的代理脈絡。",
     counts: [
-      `${matter.total_task_count} 個 tasks`,
-      `${matter.deliverable_count} 份 deliverables`,
-      `${matter.artifact_count} 份 artifacts`,
-      `${matter.source_material_count} 份 source materials`,
+      `${matter.total_task_count} 筆工作紀錄`,
+      `${matter.deliverable_count} 份交付物`,
+      `${matter.artifact_count} 份工作物件`,
+      `${matter.source_material_count} 份來源材料`,
     ],
   };
 }
@@ -1712,10 +1712,10 @@ export function buildMatterWorkspaceContinuity(
     materialHighlights: [
       ...matter.related_artifacts
         .slice(0, 3)
-        .map((item) => `Artifact｜${item.title}｜${item.task_title}`),
+        .map((item) => `工作物件｜${item.title}｜${item.task_title}`),
       ...matter.related_source_materials
         .slice(0, 3)
-        .map((item) => `SourceMaterial｜${item.title}｜${item.task_title}`),
+        .map((item) => `來源材料｜${item.title}｜${item.task_title}`),
     ],
   };
 }
@@ -1732,13 +1732,13 @@ export function buildArtifactEvidenceWorkspaceView(
       .slice(0, 5)
       .map(
         (item) =>
-          `${item.title}｜${item.role_label}｜${item.linked_evidence_count} 則 evidence / ${item.linked_output_count} 項 outputs`,
+          `${item.title}｜${item.role_label}｜${item.linked_evidence_count} 則證據 / ${item.linked_output_count} 項輸出`,
       ),
     sourceMaterialHighlights: workspace.source_material_cards
       .slice(0, 5)
       .map(
         (item) =>
-          `${item.title}｜${item.role_label}｜${item.linked_evidence_count} 則 evidence / ${item.linked_output_count} 項 outputs`,
+          `${item.title}｜${item.role_label}｜${item.linked_evidence_count} 則證據 / ${item.linked_output_count} 項輸出`,
       ),
     evidenceHighlights: workspace.evidence_chains
       .slice(0, 6)
@@ -1747,7 +1747,7 @@ export function buildArtifactEvidenceWorkspaceView(
           item.linked_recommendations.length +
           item.linked_risks.length +
           item.linked_action_items.length;
-        return `${item.evidence.title}｜${item.strength_label}｜${supportCount} 項 decision supports`;
+        return `${item.evidence.title}｜${item.strength_label}｜支撐 ${supportCount} 項決策輸出`;
       }),
   };
 }
@@ -1759,21 +1759,21 @@ export function buildDeliverableWorkspaceView(
   const task = workspace.task;
   const workbenchSummary = buildWorkbenchObjectSummary(task, deliverable);
   const linkedOutputSummary = [
-    `${workspace.linked_recommendations.length} 項 recommendations`,
-    `${workspace.linked_risks.length} 項 risks`,
-    `${workspace.linked_action_items.length} 項 action items`,
+    `${workspace.linked_recommendations.length} 項建議`,
+    `${workspace.linked_risks.length} 項風險`,
+    `${workspace.linked_action_items.length} 項行動項目`,
   ];
 
   const summary =
     getStructuredString(deliverable, "executive_summary") ||
     getStructuredString(deliverable, "core_judgment") ||
     getStructuredString(deliverable, "background_summary") ||
-    `這份交付物目前圍繞「${workbenchSummary.decisionContext}」形成正式 deliverable。`;
+    `這份交付物目前圍繞「${workbenchSummary.decisionContext}」形成正式交付物。`;
 
   const evidenceBasisSummary =
     workspace.linked_evidence.length > 0
-      ? `目前已正式回鏈 ${workspace.linked_evidence.length} 則 evidence、${workspace.linked_source_materials.length} 份 source materials、${workspace.linked_artifacts.length} 份 artifacts。`
-      : "目前 evidence basis 仍偏薄，建議回到來源 / 證據工作面補齊主要依據。";
+      ? `目前已正式回鏈 ${workspace.linked_evidence.length} 則證據、${workspace.linked_source_materials.length} 份來源材料、${workspace.linked_artifacts.length} 份工作物件。`
+      : "目前依據來源仍偏薄，建議回到來源 / 證據工作面補齊主要依據。";
 
   return {
     title: deliverable.title,
@@ -1948,8 +1948,8 @@ export function buildReadinessGovernance(
   const artifactCoverage =
     (typeof governance?.artifact_coverage === "string" && governance.artifact_coverage) ||
     (task.artifacts.length > 0 || task.source_materials.length > 0
-      ? "已具備可引用的 artifacts / source materials，可支撐本輪判斷。"
-      : "Artifacts / source materials 仍偏少，本輪較依賴問題描述與背景整理。");
+      ? "已具備可引用的工作物件 / 來源材料，可支撐本輪判斷。"
+      : "可引用的工作物件 / 來源材料仍偏少，本輪較依賴問題描述與背景整理。");
   const evidenceCoverage =
     (typeof governance?.evidence_coverage === "string" && governance.evidence_coverage) ||
     readiness.evidenceStatus;
@@ -1967,11 +1967,11 @@ export function buildReadinessGovernance(
     label: getLevelLabel(level),
     summary: readiness.summary,
     decisionContextStatus: decisionContextClear
-      ? "Decision context 已明確，可直接支撐本輪判斷。"
-      : "Decision context 仍偏模糊，部分結論只能以暫定 framing 形成。",
+      ? "決策問題已明確，可直接支撐本輪判斷。"
+      : "決策問題仍偏模糊，部分結論只能以暫定 framing 形成。",
     domainStatus: domainContextClear
-      ? "Domain lens 已具備，系統知道應以哪些顧問視角優先判斷。"
-      : "Domain lens 仍偏鬆散，部分結論仍可能偏向綜合性整理。",
+      ? "問題面向已具備，系統知道應以哪些顧問視角優先判斷。"
+      : "問題面向仍偏鬆散，部分結論仍可能偏向綜合性整理。",
     artifactStatus: artifactCoverage,
     evidenceStatus: evidenceCoverage,
     missingInformation:

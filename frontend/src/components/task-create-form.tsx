@@ -26,7 +26,7 @@ const FLOW_OPTIONS = [
     label: "合約審閱",
     mode: "specialist",
     taskType: "contract_review",
-    description: "適合快速辨識高風險條款、審閱議題與 redline / issue spotting 方向。",
+    description: "適合快速辨識高風險條款、審閱議題與修改建議方向。",
   },
   {
     value: "document_restructuring",
@@ -309,7 +309,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
         subjectName,
         flowValue: flow.value,
       }),
-      decision_title: derivedTitle ? `${derivedTitle}｜Decision Context` : undefined,
+      decision_title: derivedTitle ? `${derivedTitle}｜決策問題` : undefined,
       decision_summary: description || undefined,
       judgment_to_make: analysisDepth || undefined,
       background_text: consultantBrief,
@@ -401,18 +401,18 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
           </div>
 
           <div className="field">
-            <label htmlFor="source-urls">URL</label>
+            <label htmlFor="source-urls">網址</label>
             <textarea
               id="source-urls"
               value={urlsText}
               onChange={(event) => setUrlsText(event.target.value)}
               placeholder={"每行一個網址，例如：\nhttps://example.com/article\nhttps://docs.google.com/document/d/..."}
             />
-            <small>支援網頁、新聞、部落格、PDF URL、Google Docs。</small>
+            <small>支援網頁、新聞、部落格、PDF 網址與 Google Docs。</small>
           </div>
 
           <div className="field">
-            <label htmlFor="source-files">upload</label>
+            <label htmlFor="source-files">上傳檔案</label>
             <input
               id="source-files"
               type="file"
@@ -424,7 +424,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
           </div>
 
           <div className="field">
-            <label htmlFor="source-paste">paste</label>
+            <label htmlFor="source-paste">貼上內容</label>
             <textarea
               id="source-paste"
               value={pastedContent}

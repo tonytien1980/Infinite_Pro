@@ -110,42 +110,48 @@ export function ExtensionManagerSurface({
 
   return (
     <div className="section-list">
-      {loading ? <p className="status-text">正在載入 Extension Manager…</p> : null}
+      {loading ? <p className="status-text">正在載入擴充管理面…</p> : null}
       {error ? <p className="error-text">{error}</p> : null}
 
       {snapshot ? (
         <div className="summary-grid">
           <div className="section-card">
-            <h4>Available Domain Packs</h4>
+            <h4>可用問題面向模組包</h4>
             <p className="content-block">
               {domainPacks.length} 項
               {"\n"}
-              Active：{snapshot.pack_registry.active_pack_ids.filter((id) => domainPacks.some((pack) => pack.pack_id === id)).length}
+              已啟用：
+              {snapshot.pack_registry.active_pack_ids.filter((id) =>
+                domainPacks.some((pack) => pack.pack_id === id),
+              ).length}
             </p>
           </div>
           <div className="section-card">
-            <h4>Available Industry Packs</h4>
+            <h4>可用產業模組包</h4>
             <p className="content-block">
               {industryPacks.length} 項
               {"\n"}
-              Active：{snapshot.pack_registry.active_pack_ids.filter((id) => industryPacks.some((pack) => pack.pack_id === id)).length}
+              已啟用：
+              {snapshot.pack_registry.active_pack_ids.filter((id) =>
+                industryPacks.some((pack) => pack.pack_id === id),
+              ).length}
             </p>
           </div>
           <div className="section-card">
-            <h4>Available Agents</h4>
+            <h4>可用代理</h4>
             <p className="content-block">
               {agents.length} 項
               {"\n"}
-              Host：{findAgentName(agents, snapshot.agent_registry.host_agent_id)}
+              Host 代理：{findAgentName(agents, snapshot.agent_registry.host_agent_id)}
             </p>
           </div>
           {task ? (
             <div className="section-card">
-              <h4>本次任務使用中的 Extensions</h4>
+              <h4>本次任務使用中的擴充</h4>
               <p className="content-block">
-                Packs：{selectedDomainPackNames.length + selectedIndustryPackNames.length}
+                模組包：{selectedDomainPackNames.length + selectedIndustryPackNames.length}
                 {"\n"}
-                Agents：{selectedAgentNames.length}
+                代理：{selectedAgentNames.length}
               </p>
             </div>
           ) : null}
@@ -155,48 +161,48 @@ export function ExtensionManagerSurface({
       {task ? (
         <div className="detail-list">
           <div className="detail-item">
-            <h3>本次 selected packs</h3>
+            <h3>本次選用的模組包</h3>
             <p className="muted-text">
-              Domain：{selectedDomainPackNames.length > 0 ? selectedDomainPackNames.join("、") : "未選用"}
+              問題面向：{selectedDomainPackNames.length > 0 ? selectedDomainPackNames.join("、") : "未選用"}
             </p>
             <p className="muted-text">
-              Industry：{selectedIndustryPackNames.length > 0 ? selectedIndustryPackNames.join("、") : "未選用"}
+              產業：{selectedIndustryPackNames.length > 0 ? selectedIndustryPackNames.join("、") : "未選用"}
             </p>
             {task.pack_resolution.resolver_notes.length > 0 ? (
-              <p className="muted-text">Resolver：{summarizeList(task.pack_resolution.resolver_notes, 2)}</p>
+              <p className="muted-text">解析註記：{summarizeList(task.pack_resolution.resolver_notes, 2)}</p>
             ) : null}
           </div>
 
           <div className="detail-item">
-            <h3>本次 selected agents</h3>
+            <h3>本次選用的代理</h3>
             <p className="muted-text">
-              Host：{task.agent_selection.host_agent?.agent_name ?? "Host Agent"}
+              Host：{task.agent_selection.host_agent?.agent_name ?? "Host 代理"}
             </p>
             <p className="muted-text">
-              Agents：{selectedAgentNames.length > 0 ? selectedAgentNames.join("、") : "目前僅 Host 最小介入"}
+              代理：{selectedAgentNames.length > 0 ? selectedAgentNames.join("、") : "目前僅由 Host 最小介入"}
             </p>
             {task.agent_selection.rationale.length > 0 ? (
-              <p className="muted-text">Selection：{summarizeList(task.agent_selection.rationale, 2)}</p>
+              <p className="muted-text">選用理由：{summarizeList(task.agent_selection.rationale, 2)}</p>
             ) : null}
             {task.agent_selection.omitted_agent_notes.length > 0 ? (
               <p className="muted-text">
-                Omitted：{summarizeList(task.agent_selection.omitted_agent_notes, 1)}
+                省略代理：{summarizeList(task.agent_selection.omitted_agent_notes, 1)}
               </p>
             ) : null}
           </div>
 
           <div className="detail-item">
-            <h3>目前 override 狀態</h3>
+            <h3>目前覆寫狀態</h3>
             <p className="muted-text">
-              Pack overrides：{task.pack_resolution.override_pack_ids.length > 0 ? task.pack_resolution.override_pack_ids.join("、") : "未設定"}
+              模組包覆寫：{task.pack_resolution.override_pack_ids.length > 0 ? task.pack_resolution.override_pack_ids.join("、") : "未設定"}
             </p>
             <p className="muted-text">
-              Agent overrides：{task.agent_selection.override_agent_ids.length > 0 ? task.agent_selection.override_agent_ids.join("、") : "未設定"}
+              代理覆寫：{task.agent_selection.override_agent_ids.length > 0 ? task.agent_selection.override_agent_ids.join("、") : "未設定"}
             </p>
             {(task.pack_resolution.deliverable_presets.length > 0 ||
               task.pack_resolution.evidence_expectations.length > 0) ? (
               <p className="muted-text">
-                Deliverable / Evidence hints：
+                交付 / 證據提示：
                 {summarizeList(
                   [
                     ...task.pack_resolution.deliverable_presets,
@@ -214,32 +220,32 @@ export function ExtensionManagerSurface({
         <form className="form-grid" onSubmit={handleSubmit}>
           <div className="field-grid">
             <div className="field">
-              <label htmlFor={`pack-overrides-${task.id}`}>Task-level Pack Overrides</label>
+              <label htmlFor={`pack-overrides-${task.id}`}>本次任務模組包覆寫</label>
               <textarea
                 id={`pack-overrides-${task.id}`}
                 value={packOverrideInput}
                 onChange={(event) => setPackOverrideInput(event.target.value)}
                 placeholder="例如：operations_pack&#10;ecommerce_pack"
               />
-              <small>一行一個，或用逗號分隔。會寫入本次任務的 override constraints。</small>
+              <small>一行一個，或用逗號分隔。會寫入本次任務的覆寫約束。</small>
             </div>
             <div className="field">
-              <label htmlFor={`agent-overrides-${task.id}`}>Task-level Agent Overrides</label>
+              <label htmlFor={`agent-overrides-${task.id}`}>本次任務代理覆寫</label>
               <textarea
                 id={`agent-overrides-${task.id}`}
                 value={agentOverrideInput}
                 onChange={(event) => setAgentOverrideInput(event.target.value)}
                 placeholder="例如：strategy_decision_agent&#10;research_intelligence_agent"
               />
-              <small>用來指定這輪任務的 agent hints；不是全域 marketplace 控制。</small>
+              <small>用來指定這輪任務的代理提示；不是全域市集控制。</small>
             </div>
           </div>
           <div className="meta-row">
             <button className="button-primary" type="submit" disabled={saving}>
-              {saving ? "儲存中..." : "套用 Extension Overrides"}
+              {saving ? "儲存中..." : "套用本次覆寫"}
             </button>
             <button className="button-secondary" type="button" disabled={saving} onClick={() => void handleClear()}>
-              清除 Overrides
+              清除覆寫
             </button>
           </div>
         </form>
@@ -249,7 +255,7 @@ export function ExtensionManagerSurface({
         <div className="detail-list">
           <details className="inline-disclosure">
             <summary className="inline-disclosure-summary">
-              查看可用 Domain Packs（{domainPacks.length}）
+              查看可用問題面向模組包（{domainPacks.length}）
             </summary>
             <div className="detail-list" style={{ marginTop: "12px" }}>
               {domainPacks.map((pack) => (
@@ -274,7 +280,7 @@ export function ExtensionManagerSurface({
 
           <details className="inline-disclosure">
             <summary className="inline-disclosure-summary">
-              查看可用 Industry Packs（{industryPacks.length}）
+              查看可用產業模組包（{industryPacks.length}）
             </summary>
             <div className="detail-list" style={{ marginTop: "12px" }}>
               {industryPacks.map((pack) => (
@@ -296,7 +302,7 @@ export function ExtensionManagerSurface({
           </details>
 
           <details className="inline-disclosure">
-            <summary className="inline-disclosure-summary">查看可用 Agents（{agents.length}）</summary>
+            <summary className="inline-disclosure-summary">查看可用代理（{agents.length}）</summary>
             <div className="detail-list" style={{ marginTop: "12px" }}>
               {agents.map((agent) => (
                 <div className="detail-item" key={agent.agent_id}>
@@ -308,10 +314,10 @@ export function ExtensionManagerSurface({
                   <h3>{agent.agent_name}</h3>
                   <p className="muted-text">{agent.description}</p>
                   <p className="muted-text">
-                    Capabilities：{summarizeList(agent.supported_capabilities, 3)}
+                    可支援工作類型：{summarizeList(agent.supported_capabilities, 3)}
                   </p>
                   <p className="muted-text">
-                    Relevant packs：
+                    相關模組包：
                     {summarizeList([
                       ...agent.relevant_domain_packs,
                       ...agent.relevant_industry_packs,

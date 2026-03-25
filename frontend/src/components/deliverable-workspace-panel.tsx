@@ -84,7 +84,10 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
     <main className="page-shell">
       <div className="back-link-group">
         <Link className="back-link" href="/">
-          ← 返回工作台
+          ← 返回總覽
+        </Link>
+        <Link className="back-link" href="/deliverables">
+          ← 返回交付物
         </Link>
         {workspace?.matter_workspace ? (
           <Link className="back-link" href={`/matters/${workspace.matter_workspace.id}`}>
@@ -93,7 +96,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
         ) : null}
         {task ? (
           <Link className="back-link" href={`/tasks/${task.id}`}>
-            ← 返回來源 task
+            ← 返回來源工作紀錄
           </Link>
         ) : null}
         {workspace?.matter_workspace ? (
@@ -109,7 +112,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
       {workspace && workspaceView && task && deliverable ? (
         <>
           <section className="hero-card">
-            <span className="eyebrow">Infinite Pro Deliverable Workspace</span>
+            <span className="eyebrow">交付物工作面</span>
             <h1 className="page-title">{workspaceView.title}</h1>
             <p className="page-subtitle">
               {workspace.matter_workspace?.object_path ||
@@ -124,11 +127,11 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
             </div>
             <div className="matter-hero-strip">
               <div>
-                <span className="pill">Decision Context</span>
+                <span className="pill">決策問題</span>
                 <p className="workspace-object-path" style={{ marginTop: "10px" }}>
                   {task.decision_context?.judgment_to_make ||
                     task.decision_context?.title ||
-                    "目前尚未形成清楚的 DecisionContext。"}
+                    "目前尚未形成清楚的決策問題。"}
                 </p>
                 <p className="muted-text">{workspaceView.summary}</p>
               </div>
@@ -140,7 +143,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
               <div>
                 <h2 className="panel-title">交付物工作面摘要</h2>
                 <p className="panel-copy">
-                  這裡是正式的 Deliverable Workspace，不是 generic result page。你可以在這裡回看這份交付物的類型、依據鏈、限制、適用範圍與相關工作脈絡。
+                  這裡是正式的交付物工作面，不是一般結果頁。你可以在這裡回看這份交付物的類型、依據鏈、限制、適用範圍與相關工作脈絡。
                 </p>
               </div>
             </div>
@@ -150,15 +153,15 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                 <p className="content-block">{workspaceView.summary}</p>
               </div>
               <div className="section-card">
-                <h4>Confidence / Applicability</h4>
+                <h4>可信度與適用範圍</h4>
                 <p className="content-block">{workspaceView.confidenceSummary}</p>
               </div>
               <div className="section-card">
-                <h4>Evidence Basis</h4>
+                <h4>依據來源</h4>
                 <p className="content-block">{workspaceView.evidenceBasisSummary}</p>
               </div>
               <div className="section-card">
-                <h4>Decision Chain</h4>
+                <h4>決策鏈寫回</h4>
                 <CompactList
                   items={workspaceView.linkedOutputSummary}
                   emptyText="目前沒有可顯示的 decision chain 寫回項目。"
@@ -172,9 +175,9 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
               <section className="panel">
                 <div className="panel-header">
                   <div>
-                    <h2 className="panel-title">Executive View</h2>
+                    <h2 className="panel-title">交付摘要</h2>
                     <p className="panel-copy">
-                      用正式交付物視角回看這次 judgment、summary 與可採行重點，而不是只看 task result 區塊。
+                      用正式交付物視角回看這次判斷、摘要與可採行重點，而不是只看工作結果區塊。
                     </p>
                   </div>
                 </div>
@@ -220,15 +223,15 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
               <section className="panel">
                 <div className="panel-header">
                   <div>
-                    <h2 className="panel-title">Structured Decisions</h2>
+                    <h2 className="panel-title">建議、風險與行動</h2>
                     <p className="panel-copy">
-                      這裡正式呈現 recommendation / risk / action，不再讓它們只散落在 task detail 的結果卡片中。
+                      這裡正式呈現建議 / 風險 / 行動，不再讓它們只散落在工作細節頁的結果卡片中。
                     </p>
                   </div>
                 </div>
                 <div className="detail-list">
                   <div className="detail-item">
-                    <h3>Recommendations</h3>
+                    <h3>建議</h3>
                     {recommendations.length > 0 ? (
                       <div className="section-list">
                         {recommendations.map((item) => (
@@ -242,12 +245,12 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                         ))}
                       </div>
                     ) : (
-                      <p className="empty-text">目前沒有可顯示的 recommendations。</p>
+                      <p className="empty-text">目前沒有可顯示的建議。</p>
                     )}
                   </div>
 
                   <div className="detail-item">
-                    <h3>Risks</h3>
+                    <h3>風險</h3>
                     {risks.length > 0 ? (
                       <div className="section-list">
                         {risks.map((item) => (
@@ -261,12 +264,12 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                         ))}
                       </div>
                     ) : (
-                      <p className="empty-text">目前沒有可顯示的 risks。</p>
+                      <p className="empty-text">目前沒有可顯示的風險。</p>
                     )}
                   </div>
 
                   <div className="detail-item">
-                    <h3>Action Items</h3>
+                    <h3>行動項目</h3>
                     {actionItems.length > 0 ? (
                       <div className="section-list">
                         {actionItems.map((item) => (
@@ -278,14 +281,14 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                             {item.dependencies.length > 0 ? (
                               <CompactList
                                 items={item.dependencies}
-                                emptyText="目前沒有額外的 dependencies。"
+                                emptyText="目前沒有額外的相依條件。"
                               />
                             ) : null}
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p className="empty-text">目前沒有可顯示的 action items。</p>
+                      <p className="empty-text">目前沒有可顯示的行動項目。</p>
                     )}
                   </div>
                 </div>
@@ -294,9 +297,9 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
               <section className="panel">
                 <div className="panel-header">
                   <div>
-                    <h2 className="panel-title">Evidence Basis & Ontology Linkage</h2>
+                    <h2 className="panel-title">依據來源與 ontology 回鏈</h2>
                     <p className="panel-copy">
-                      這裡正式回看 deliverable 對 decision context、sources、evidence 與決策鏈的回鏈，而不是把這些資訊藏在 payload 裡。
+                      這裡正式回看交付物對決策問題、來源、證據與決策鏈的回鏈，而不是把這些資訊藏在資料結構裡。
                     </p>
                   </div>
                 </div>
@@ -307,11 +310,11 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                       <p className="content-block">{deliverableBacklink.workspacePath}</p>
                     </div>
                     <div className="section-card">
-                      <h4>Decision Context</h4>
+                      <h4>決策問題</h4>
                       <p className="content-block">{deliverableBacklink.decisionContext}</p>
                     </div>
                     <div className="section-card">
-                      <h4>Evidence Basis</h4>
+                      <h4>依據來源</h4>
                       <p className="content-block">{deliverableBacklink.evidenceBasis}</p>
                     </div>
                     <div className="section-card">
@@ -327,7 +330,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                 <div className="detail-grid" style={{ marginTop: "20px" }}>
                   <div className="detail-stack">
                     <div className="detail-item">
-                      <h3>Linked Source Materials</h3>
+                      <h3>已連結來源材料</h3>
                       {workspace.linked_source_materials.length > 0 ? (
                         <div className="section-list">
                           {workspace.linked_source_materials.map((item) => (
@@ -341,31 +344,31 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                           ))}
                         </div>
                       ) : (
-                        <p className="empty-text">目前沒有可顯示的 source materials。</p>
+                        <p className="empty-text">目前沒有可顯示的來源材料。</p>
                       )}
                     </div>
 
                     <div className="detail-item">
-                      <h3>Linked Artifacts</h3>
+                      <h3>已連結工作物件</h3>
                       {workspace.linked_artifacts.length > 0 ? (
                         <div className="section-list">
                           {workspace.linked_artifacts.map((item) => (
                             <div className="section-card" key={item.id}>
                               <h4>{item.title}</h4>
-                              <p className="muted-text">{item.artifact_type || "未分類 Artifact"}</p>
-                              <p className="content-block">{item.description || "目前沒有 artifact 摘要。"}</p>
+                              <p className="muted-text">{item.artifact_type || "未分類工作物件"}</p>
+                              <p className="content-block">{item.description || "目前沒有工作物件摘要。"}</p>
                             </div>
                           ))}
                         </div>
                       ) : (
-                        <p className="empty-text">目前沒有可顯示的 artifacts。</p>
+                        <p className="empty-text">目前沒有可顯示的工作物件。</p>
                       )}
                     </div>
                   </div>
 
                   <div className="detail-stack">
                     <div className="detail-item">
-                      <h3>Linked Evidence</h3>
+                      <h3>已連結證據</h3>
                       {workspace.linked_evidence.length > 0 ? (
                         <div className="section-list">
                           {workspace.linked_evidence.map((item) => (
@@ -379,7 +382,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                           ))}
                         </div>
                       ) : (
-                        <p className="empty-text">目前沒有可顯示的 evidence。</p>
+                        <p className="empty-text">目前沒有可顯示的證據。</p>
                       )}
                     </div>
                   </div>
@@ -391,41 +394,41 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
               <section className="panel">
                 <div className="panel-header">
                   <div>
-                    <h2 className="panel-title">Confidence, Limits & Gaps</h2>
+                    <h2 className="panel-title">可信度、限制與缺口</h2>
                     <p className="panel-copy">
-                      這裡正式表達 deliverable class、可信度、限制與高影響缺口，不讓 exploratory / review / decision deliverables 混成同一種語氣。
+                      這裡正式表達交付等級、可信度、限制與高影響缺口，不讓探索型 / 審閱型 / 決策型交付物混成同一種語氣。
                     </p>
                   </div>
                 </div>
                 <div className="section-list">
                   <div className="section-card">
-                    <h4>Confidence Summary</h4>
+                    <h4>可信度摘要</h4>
                     <p className="content-block">{workspace.confidence_summary}</p>
                   </div>
                   <div className="section-card">
-                    <h4>Deliverable Guidance</h4>
+                    <h4>交付指引</h4>
                     <p className="content-block">
-                      {workspace.deliverable_guidance || "目前沒有額外的 deliverable guidance。"}
+                      {workspace.deliverable_guidance || "目前沒有額外的交付指引。"}
                     </p>
                   </div>
                   <div className="section-card">
-                    <h4>High-Impact Gaps</h4>
+                    <h4>高影響缺口</h4>
                     <CompactList
                       items={workspace.high_impact_gaps}
-                      emptyText="目前沒有額外 high-impact gaps。"
+                      emptyText="目前沒有額外高影響缺口。"
                     />
                   </div>
                   <div className="section-card">
-                    <h4>Limitations</h4>
+                    <h4>限制說明</h4>
                     <CompactList
                       items={workspace.limitation_notes}
-                      emptyText="目前沒有額外 limitations。"
+                      emptyText="目前沒有額外限制說明。"
                     />
                   </div>
                 </div>
                 {readinessGovernance ? (
                   <div className="detail-item" style={{ marginTop: "16px" }}>
-                    <h3>Readiness Governance</h3>
+                    <h3>就緒度治理</h3>
                     <p className="content-block">{readinessGovernance.summary}</p>
                   </div>
                 ) : null}
@@ -434,30 +437,30 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
               <section className="panel">
                 <div className="panel-header">
                   <div>
-                    <h2 className="panel-title">Pack / Agent Context</h2>
+                    <h2 className="panel-title">模組包 / 代理脈絡</h2>
                     <p className="panel-copy">
-                      這份交付物不是脫離 runtime context 的孤立報告；它仍然回鏈到 Host、packs 與 selected agents。
+                      這份交付物不是脫離執行脈絡的孤立報告；它仍然回鏈到 Host、模組包與已選代理。
                     </p>
                   </div>
                 </div>
                 <div className="section-list">
                   {packSelection ? (
                     <div className="section-card">
-                      <h4>Packs</h4>
+                      <h4>模組包</h4>
                       <CompactList
                         items={[...packSelection.domainPacks, ...packSelection.industryPacks]}
-                        emptyText="目前沒有可顯示的 pack context。"
+                        emptyText="目前沒有可顯示的模組包脈絡。"
                       />
                     </div>
                   ) : null}
                   {capabilityFrame ? (
                     <div className="section-card">
-                      <h4>Selected Agents</h4>
+                      <h4>已選代理</h4>
                       <CompactList
                         items={capabilityFrame.selectedAgentDetails.map(
                           (item) => `${item.agentName}｜${item.reason || labelForAgentId(item.agentId)}`,
                         )}
-                        emptyText="目前沒有可顯示的 agent context。"
+                        emptyText="目前沒有可顯示的代理脈絡。"
                       />
                     </div>
                   ) : null}
@@ -467,28 +470,31 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
               <section className="panel">
                 <div className="panel-header">
                   <div>
-                    <h2 className="panel-title">Deliverable Continuity</h2>
+                    <h2 className="panel-title">交付連續性</h2>
                     <p className="panel-copy">
-                      交付物現在已正式掛在案件世界中，可回到同一個 matter 下的其他 deliverables、task 與 evidence workspace。
+                      交付物現在已正式掛在案件世界中，可回到同一個案件下的其他交付物、工作紀錄與來源 / 證據工作面。
                     </p>
                   </div>
+                  <Link className="button-secondary" href="/deliverables">
+                    查看全部交付物
+                  </Link>
                 </div>
                 <div className="detail-item">
-                  <h3>Continuity Notes</h3>
+                  <h3>連續性提示</h3>
                   <CompactList
                     items={workspaceView.continuityHighlights}
-                    emptyText="目前沒有額外 continuity notes。"
+                    emptyText="目前沒有額外連續性提示。"
                   />
                 </div>
                 <div className="detail-item" style={{ marginTop: "16px" }}>
-                  <h3>Related Deliverables</h3>
+                  <h3>最近相關交付物</h3>
                   {workspace.related_deliverables.length > 0 ? (
                     <div className="section-list">
-                      {workspace.related_deliverables.map((item) => (
+                      {workspace.related_deliverables.slice(0, 3).map((item) => (
                         <div className="section-card" key={item.deliverable_id}>
                           <h4>{item.title}</h4>
                           <p className="muted-text">
-                            {item.task_title}｜{item.decision_context_title || "未標示 Decision Context"}
+                            {item.task_title}｜{item.decision_context_title || "未標示決策問題"}
                           </p>
                           <div className="meta-row">
                             <span>v{item.version}</span>
@@ -501,7 +507,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                       ))}
                     </div>
                   ) : (
-                    <p className="empty-text">目前沒有其他 related deliverables。</p>
+                    <p className="empty-text">目前沒有其他相關交付物。</p>
                   )}
                 </div>
               </section>

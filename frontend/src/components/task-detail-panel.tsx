@@ -328,7 +328,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
         setExtensionManager(await getExtensionManager());
       } catch (loadError) {
         setExtensionError(
-          loadError instanceof Error ? loadError.message : "載入 Extension Manager 失敗。",
+          loadError instanceof Error ? loadError.message : "載入擴充管理面失敗。",
         );
       } finally {
         setExtensionLoading(false);
@@ -356,7 +356,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
       const response = await updateTaskExtensions(taskId, payload);
       setTask(response);
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "更新 extension overrides 失敗。");
+      setError(saveError instanceof Error ? saveError.message : "更新擴充覆寫失敗。");
     } finally {
       setSavingOverrides(false);
     }
@@ -462,7 +462,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
       {task ? (
         <>
           <section className="hero-card">
-            <span className="eyebrow">Infinite Pro Decision Workspace</span>
+            <span className="eyebrow">決策工作面</span>
             <h1 className="page-title">{task.title}</h1>
             <p className="page-subtitle">{task.description || "未提供額外說明。"}</p>
             <div className="meta-row" style={{ marginTop: "16px" }}>
@@ -474,7 +474,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
             {matterWorkspaceCard ? (
               <div className="matter-hero-strip">
                 <div>
-                  <span className="pill">Matter / Engagement Workspace</span>
+                  <span className="pill">案件工作台</span>
                   <p className="workspace-object-path" style={{ marginTop: "10px" }}>
                     {matterWorkspaceCard.objectPath}
                   </p>
@@ -491,9 +491,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
             <section className="panel">
               <div className="panel-header">
                 <div>
-                  <h2 className="panel-title">Matter / Engagement Continuity</h2>
+                  <h2 className="panel-title">案件世界連續性</h2>
                   <p className="panel-copy">
-                    這個 task 現在已正式掛在案件世界下。你可以回到同一個 matter / engagement workspace 看跨 task 的 decision trajectory、deliverables 與材料累積。
+                    這筆工作現在已正式掛在案件世界下。你可以回到同一個案件工作台，看跨工作紀錄的決策脈絡、交付物與材料累積。
                   </p>
                 </div>
                 <Link className="button-secondary" href={`/matters/${task.matter_workspace?.id}`}>
@@ -546,9 +546,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
             <section className="panel object-nav-panel">
               <div className="panel-header">
                 <div>
-                  <h2 className="panel-title">Object-Aware Workspace Strip</h2>
+                  <h2 className="panel-title">物件導覽列</h2>
                   <p className="panel-copy">
-                    先確認這輪工作掛在哪個 client / engagement / workstream / decision context 上，再決定要往哪條工作面繼續下鑽。
+                    先確認這輪工作掛在哪個客戶 / 案件委託 / 工作流 / 決策問題上，再決定要往哪條工作面繼續下鑽。
                   </p>
                 </div>
               </div>
@@ -556,7 +556,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                 <span className="pill">{objectNavigationStrip.entryModeLabel}</span>
                 <span>{objectNavigationStrip.deliverableClassLabel}</span>
                 {objectNavigationStrip.externalResearchHeavy ? (
-                  <span>external-research-heavy sparse case</span>
+                  <span>外部研究導向的稀疏輸入案件</span>
                 ) : null}
               </div>
               <p className="panel-copy workspace-strip-summary">
@@ -586,9 +586,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
               <section className="panel" id="workspace-lane">
                 <div className="panel-header">
                   <div>
-                    <h2 className="panel-title">Artifact / SourceMaterial / Evidence 工作面</h2>
+                    <h2 className="panel-title">工作物件 / 來源材料 / 證據工作面</h2>
                     <p className="panel-copy">
-                      這裡不是單純 supporting data，而是這輪判斷真正依附的工作鏈。若要完整回看來源角色、支撐鏈與高影響缺口，現在可直接進入正式的 Artifact / Evidence Workspace。
+                    這裡不是單純補充資料，而是這輪判斷真正依附的工作鏈。若要完整回看來源角色、支撐鏈與高影響缺口，現在可直接進入正式的來源 / 證據工作面。
                     </p>
                   </div>
                   {task.matter_workspace ? (
@@ -617,7 +617,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                         </p>
                       </div>
                       <div className="section-card">
-                        <h4>Domain Lens / Workstream</h4>
+                        <h4>問題面向 / 工作流</h4>
                         <p className="content-block">
                           {workbenchObjectSummary.domainLensSummary}
                           {"\n"}
@@ -636,14 +636,14 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
 
                     <div className="detail-list" style={{ marginTop: "16px" }}>
                       <WorkspaceMaterialSection
-                        title="關鍵 Artifacts"
+                        title="關鍵工作物件"
                         description="這些是目前已進入工作鏈的核心 artifact。若沒有 artifact，不代表不能工作，但代表這輪仍偏 exploratory 或 provisional。"
                         items={evidenceWorkspaceLane.artifactCards}
                         emptyText="目前還沒有可直接瀏覽的 artifact；這輪工作鏈仍較依賴原始問題、背景或 source material。"
                       />
                       <WorkspaceMaterialSection
-                        title="Source Materials"
-                        description="這些來源材料提供背景、引用內容與 supporting context，是 Host 形成 evidence 的主要材料基底。"
+                        title="來源材料"
+                        description="這些來源材料提供背景、引用內容與補充脈絡，是 Host 形成證據的主要材料基底。"
                         items={evidenceWorkspaceLane.sourceMaterialCards}
                         emptyText="目前還沒有可直接瀏覽的 source material。"
                       />
@@ -667,14 +667,14 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     ) : null}
                   </>
                 ) : (
-                  <p className="empty-text">尚未形成可讀的 Artifact / SourceMaterial / Evidence 工作面。</p>
+                  <p className="empty-text">尚未形成可讀的工作物件 / 來源材料 / 證據工作面。</p>
                 )}
               </section>
 
               <section className="panel" id="decision-context">
                 <div className="panel-header">
                   <div>
-                    <h2 className="panel-title">原始問題與 Decision Context</h2>
+                    <h2 className="panel-title">原始問題與決策問題</h2>
                     <p className="panel-copy">
                       先確認你原本問了什麼，以及系統理解這次到底要幫你做哪一個判斷。
                     </p>
@@ -692,10 +692,10 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                       />
                     </div>
                     <div className="section-card">
-                      <h4>Decision Context</h4>
+                      <h4>決策問題</h4>
                       <ExpandableText
                         text={taskFraming.decisionContextSummary}
-                        emptyText="尚未整理本輪 decision context。"
+                        emptyText="尚未整理本輪決策問題。"
                         previewChars={200}
                       />
                     </div>
@@ -735,7 +735,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                   <>
                     <div className="summary-grid">
                       <div className="section-card">
-                        <h4>Capability Archetype</h4>
+                        <h4>顧問工作類型</h4>
                         <p className="content-block">{capabilityFrame.label}</p>
                       </div>
                       <div className="section-card">
@@ -743,10 +743,10 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                         <p className="content-block">{labelForFlowMode(capabilityFrame.executionMode)}</p>
                       </div>
                       <div className="section-card">
-                        <h4>Framing Summary</h4>
+                        <h4>工作框架摘要</h4>
                         <ExpandableText
                           text={capabilityFrame.framingSummary}
-                          emptyText="尚未形成可讀的 capability frame。"
+                          emptyText="尚未形成可讀的分析框架。"
                           previewChars={180}
                         />
                       </div>
@@ -759,19 +759,19 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                       </div>
                       {capabilityFrame.selectedDomainPacks.length > 0 ? (
                         <div className="section-card">
-                          <h4>Domain Packs</h4>
+                          <h4>問題面向模組包</h4>
                           <ExpandableList
                             items={capabilityFrame.selectedDomainPacks}
-                            emptyText="這輪目前沒有選到 Domain / Functional Packs。"
+                            emptyText="這輪目前沒有選到問題面向模組包。"
                           />
                         </div>
                       ) : null}
                       {capabilityFrame.selectedIndustryPacks.length > 0 ? (
                         <div className="section-card">
-                          <h4>Industry Packs</h4>
+                          <h4>產業模組包</h4>
                           <ExpandableList
                             items={capabilityFrame.selectedIndustryPacks}
-                            emptyText="這輪目前沒有選到 Industry Packs。"
+                            emptyText="這輪目前沒有選到產業模組包。"
                           />
                         </div>
                       ) : null}
@@ -779,44 +779,44 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
 
                     {capabilityFrame.routingRationale.length > 0 ? (
                       <div className="detail-item" style={{ marginTop: "14px" }}>
-                        <h3>Routing rationale</h3>
+                        <h3>路由理由</h3>
                         <ExpandableList
                           items={capabilityFrame.routingRationale}
-                          emptyText="目前沒有可顯示的 routing 說明。"
+                          emptyText="目前沒有可顯示的路由說明。"
                         />
                       </div>
                     ) : null}
 
                     {packSelection && packSelection.resolverNotes.length > 0 ? (
                       <div className="detail-item" style={{ marginTop: "14px" }}>
-                        <h3>Pack resolver notes</h3>
+                        <h3>模組包解析註記</h3>
                         <ExpandableList
                           items={packSelection.resolverNotes}
-                          emptyText="目前沒有可顯示的 pack resolver notes。"
+                          emptyText="目前沒有可顯示的模組包解析註記。"
                         />
                       </div>
                     ) : null}
 
                     {capabilityFrame.packDeliverablePresets.length > 0 ? (
                       <div className="detail-item" style={{ marginTop: "14px" }}>
-                        <h3>Pack deliverable 傾向</h3>
+                        <h3>模組包交付傾向</h3>
                         <ExpandableList
                           items={capabilityFrame.packDeliverablePresets}
-                          emptyText="目前沒有可顯示的 pack deliverable 傾向。"
+                          emptyText="目前沒有可顯示的模組包交付傾向。"
                         />
                       </div>
                     ) : null}
 
                     {packSelection && packSelection.domainPackCards.length > 0 ? (
                       <div className="detail-item" style={{ marginTop: "14px" }}>
-                        <h3>Domain pack context</h3>
+                        <h3>問題面向模組包脈絡</h3>
                         <div className="detail-list">
                           {packSelection.domainPackCards.map((pack) => (
                             <div className="detail-item" key={pack.packName}>
                               <h3>{pack.packName}</h3>
                               <ExpandableText
                                 text={`${pack.definition}${pack.reason ? `\n\n選擇原因：${pack.reason}` : ""}`}
-                                emptyText="目前沒有可顯示的 pack 說明。"
+                                emptyText="目前沒有可顯示的模組包說明。"
                                 previewChars={220}
                               />
                               {pack.problemPatterns.length > 0 ? (
@@ -831,7 +831,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                               ) : null}
                               {pack.keySignals.length > 0 ? (
                                 <div style={{ marginTop: "10px" }}>
-                                  <h4>關鍵 KPI / Operating Signals</h4>
+                                  <h4>關鍵 KPI / 經營訊號</h4>
                                   <ExpandableList
                                     items={pack.keySignals}
                                     emptyText="目前沒有可顯示的關鍵指標。"
@@ -841,7 +841,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                               ) : null}
                               {pack.boundaries.length > 0 ? (
                                 <div style={{ marginTop: "10px" }}>
-                                  <h4>Pack 邊界</h4>
+                                  <h4>模組包邊界</h4>
                                   <ExpandableList
                                     items={pack.boundaries}
                                     emptyText="目前沒有可顯示的邊界說明。"
@@ -851,20 +851,20 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                               ) : null}
                               {pack.rationale.length > 0 ? (
                                 <div style={{ marginTop: "10px" }}>
-                                  <h4>治理 rationale</h4>
+                                  <h4>治理理由</h4>
                                   <ExpandableList
                                     items={pack.rationale}
-                                    emptyText="目前沒有額外 rationale。"
+                                    emptyText="目前沒有額外治理理由。"
                                     initialCount={4}
                                   />
                                 </div>
                               ) : null}
                               {pack.packNotes.length > 0 ? (
                                 <div style={{ marginTop: "10px" }}>
-                                  <h4>Pack notes</h4>
+                                  <h4>模組包備註</h4>
                                   <ExpandableList
                                     items={pack.packNotes}
-                                    emptyText="目前沒有額外 pack notes。"
+                                    emptyText="目前沒有額外模組包備註。"
                                     initialCount={3}
                                   />
                                 </div>
@@ -877,14 +877,14 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
 
                     {packSelection && packSelection.industryPackCards.length > 0 ? (
                       <div className="detail-item" style={{ marginTop: "14px" }}>
-                        <h3>Industry pack context</h3>
+                        <h3>產業模組包脈絡</h3>
                         <div className="detail-list">
                           {packSelection.industryPackCards.map((pack) => (
                             <div className="detail-item" key={pack.packName}>
                               <h3>{pack.packName}</h3>
                               <ExpandableText
                                 text={`${pack.definition}${pack.reason ? `\n\n選擇原因：${pack.reason}` : ""}`}
-                                emptyText="目前沒有可顯示的 pack 說明。"
+                                emptyText="目前沒有可顯示的模組包說明。"
                                 previewChars={220}
                               />
                               {pack.businessModels.length > 0 ? (
@@ -909,10 +909,10 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                               ) : null}
                               {pack.packNotes.length > 0 ? (
                                 <div style={{ marginTop: "10px" }}>
-                                  <h4>Pack notes</h4>
+                                  <h4>模組包備註</h4>
                                   <ExpandableList
                                     items={pack.packNotes}
-                                    emptyText="目前沒有額外 pack notes。"
+                                    emptyText="目前沒有額外模組包備註。"
                                     initialCount={3}
                                   />
                                 </div>
@@ -925,10 +925,10 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
 
                     {capabilityFrame.selectedAgents.length > 0 || capabilityFrame.hostAgent ? (
                       <div className="detail-item" style={{ marginTop: "14px" }}>
-                        <h3>Agent selection</h3>
+                        <h3>代理選用</h3>
                         <div className="detail-list">
                           <div className="detail-item">
-                            <h4>Host</h4>
+                            <h4>Host 代理</h4>
                             <p className="content-block">{labelForAgentId(capabilityFrame.hostAgent)}</p>
                           </div>
                           {capabilityFrame.selectedAgentDetails.length > 0 ? (
@@ -937,13 +937,13 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                                 <div className="meta-row">
                                   <span className="pill">{agent.agentType}</span>
                                   {agent.runtimeBinding ? (
-                                    <span>runtime：{labelForAgentId(agent.runtimeBinding)}</span>
+                                    <span>執行綁定：{labelForAgentId(agent.runtimeBinding)}</span>
                                   ) : null}
                                 </div>
                                 <h4>{agent.agentName}</h4>
                                 <ExpandableText
                                   text={agent.reason}
-                                  emptyText="目前沒有可顯示的 selection reason。"
+                                  emptyText="目前沒有可顯示的選用理由。"
                                   previewChars={200}
                                 />
                               </div>
@@ -961,60 +961,60 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
 
                     {capabilityFrame.agentSelectionRationale.length > 0 ? (
                       <div className="detail-item" style={{ marginTop: "14px" }}>
-                        <h3>Agent selection rationale</h3>
+                        <h3>代理選用理由</h3>
                         <ExpandableList
                           items={capabilityFrame.agentSelectionRationale}
-                          emptyText="目前沒有可顯示的 agent selection rationale。"
+                          emptyText="目前沒有可顯示的代理選用理由。"
                         />
                       </div>
                     ) : null}
 
                     {capabilityFrame.agentResolverNotes.length > 0 ? (
                       <div className="detail-item" style={{ marginTop: "14px" }}>
-                        <h3>Agent resolver notes</h3>
+                        <h3>代理解析註記</h3>
                         <ExpandableList
                           items={capabilityFrame.agentResolverNotes}
-                          emptyText="目前沒有可顯示的 agent resolver notes。"
+                          emptyText="目前沒有可顯示的代理解析註記。"
                         />
                       </div>
                     ) : null}
 
                     {capabilityFrame.omittedAgentNotes.length > 0 ? (
                       <div className="detail-item" style={{ marginTop: "14px" }}>
-                        <h3>本輪未啟用的相關 agents</h3>
+                        <h3>本輪未啟用的相關代理</h3>
                         <ExpandableList
                           items={capabilityFrame.omittedAgentNotes}
-                          emptyText="目前沒有可顯示的 omitted agent notes。"
+                          emptyText="目前沒有可顯示的未啟用代理說明。"
                         />
                       </div>
                     ) : null}
 
                     {capabilityFrame.deferredAgentNotes.length > 0 ? (
                       <div className="detail-item" style={{ marginTop: "14px" }}>
-                        <h3>本輪 deferred agents</h3>
+                        <h3>本輪延後啟用的代理</h3>
                         <ExpandableList
                           items={capabilityFrame.deferredAgentNotes}
-                          emptyText="目前沒有可顯示的 deferred agent notes。"
+                          emptyText="目前沒有可顯示的延後啟用代理說明。"
                         />
                       </div>
                     ) : null}
 
                     {capabilityFrame.escalationNotes.length > 0 ? (
                       <div className="detail-item" style={{ marginTop: "14px" }}>
-                        <h3>本輪 escalation notes</h3>
+                        <h3>本輪升級提示</h3>
                         <ExpandableList
                           items={capabilityFrame.escalationNotes}
-                          emptyText="目前沒有可顯示的 escalation notes。"
+                          emptyText="目前沒有可顯示的升級提示。"
                         />
                       </div>
                     ) : null}
 
                     {capabilityFrame.runtimeAgents.length > 0 ? (
                       <div className="detail-item" style={{ marginTop: "14px" }}>
-                        <h3>目前實際 runtime agents</h3>
+                        <h3>目前實際參與的代理</h3>
                         <ExpandableList
                           items={capabilityFrame.runtimeAgents}
-                          emptyText="目前沒有可顯示的 runtime agents。"
+                          emptyText="目前沒有可顯示的實際參與代理。"
                           translateAsAgentIds
                         />
                       </div>
@@ -1022,10 +1022,10 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
 
                     {capabilityFrame.selectedSupportingAgents.length > 0 ? (
                       <div className="detail-item" style={{ marginTop: "14px" }}>
-                        <h3>Supporting runtime agents</h3>
+                        <h3>支援代理</h3>
                         <ExpandableList
                           items={capabilityFrame.selectedSupportingAgents}
-                          emptyText="目前沒有額外 supporting runtime agents。"
+                          emptyText="目前沒有額外支援代理。"
                           translateAsAgentIds
                         />
                       </div>
@@ -1053,19 +1053,19 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                   <>
                     <div className="summary-grid">
                       <div className="section-card">
-                        <h4>Decision Context 清晰度</h4>
+                        <h4>決策問題清晰度</h4>
                         <p className="content-block">{readinessGovernance.decisionContextStatus}</p>
                       </div>
                       <div className="section-card">
-                        <h4>Domain Context 成立度</h4>
+                        <h4>問題面向成立度</h4>
                         <p className="content-block">{readinessGovernance.domainStatus}</p>
                       </div>
                       <div className="section-card">
-                        <h4>Artifact / SourceMaterial 覆蓋度</h4>
+                        <h4>工作物件 / 來源材料覆蓋度</h4>
                         <p className="content-block">{readinessGovernance.artifactStatus}</p>
                       </div>
                       <div className="section-card">
-                        <h4>Evidence 覆蓋度</h4>
+                        <h4>證據覆蓋度</h4>
                         <p className="content-block">{readinessGovernance.evidenceStatus}</p>
                       </div>
                     </div>
@@ -1111,17 +1111,17 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                       </div>
                       {readinessGovernance.packEvidenceExpectations.length > 0 ? (
                         <div className="section-card">
-                          <h4>Pack evidence expectations</h4>
+                          <h4>模組包證據期待</h4>
                           <ExpandableList
                             items={readinessGovernance.packEvidenceExpectations}
-                            emptyText="目前沒有額外的 pack evidence expectations。"
+                            emptyText="目前沒有額外的模組包證據期待。"
                             initialCount={4}
                           />
                         </div>
                       ) : null}
                       {packSelection && packSelection.keyKpis.length > 0 ? (
                         <div className="section-card">
-                          <h4>Pack 關鍵指標</h4>
+                          <h4>模組包關鍵指標</h4>
                           <ExpandableList
                             items={packSelection.keyKpis}
                             emptyText="目前沒有額外的 pack 關鍵指標。"
@@ -1131,7 +1131,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                       ) : null}
                       {packSelection && packSelection.commonRisks.length > 0 ? (
                         <div className="section-card">
-                          <h4>Pack 常見風險</h4>
+                          <h4>模組包常見風險</h4>
                           <ExpandableList
                             items={packSelection.commonRisks}
                             emptyText="目前沒有額外的 pack 常見風險。"
@@ -1143,7 +1143,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                         <div className="section-card">
                           <h4>外部事件導向提醒</h4>
                           <ExpandableText
-                            text="這輪屬於 external-research-heavy sparse case。系統會優先形成外部態勢判斷與待驗證事項，避免假裝已具備 company-specific certainty。"
+                            text="這輪屬於外部研究導向的稀疏輸入案件。系統會優先形成外部態勢判斷與待驗證事項，避免假裝已具備公司內部確定性。"
                             emptyText="目前沒有額外提醒。"
                             previewChars={220}
                           />
@@ -1153,20 +1153,20 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
 
                     {readinessGovernance.packHighImpactGaps.length > 0 ? (
                       <div className="detail-item" style={{ marginTop: "14px" }}>
-                        <h3>Pack-aware 高影響缺口</h3>
+                        <h3>模組包感知的高影響缺口</h3>
                         <ExpandableList
                           items={readinessGovernance.packHighImpactGaps}
-                          emptyText="目前沒有額外的 pack-aware 高影響缺口。"
+                          emptyText="目前沒有額外的模組包高影響缺口。"
                         />
                       </div>
                     ) : null}
 
                     {readinessGovernance.agentSelectionImplications.length > 0 ? (
                       <div className="detail-item" style={{ marginTop: "14px" }}>
-                        <h3>Agent orchestration 對交付物的影響</h3>
+                        <h3>代理協調對交付物的影響</h3>
                         <ExpandableList
                           items={readinessGovernance.agentSelectionImplications}
-                          emptyText="目前沒有額外的 orchestration impact 說明。"
+                          emptyText="目前沒有額外的代理協調影響說明。"
                         />
                       </div>
                     ) : null}
@@ -1200,7 +1200,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                   <div>
                     <h2 className="panel-title">正式交付結果</h2>
                     <p className="panel-copy">
-                      這是目前最接近正式顧問交付物的主閱讀主線：先看 Decision Snapshot，再往下讀執行摘要、核心判斷與後續建議。
+                      這是目前最接近正式顧問交付物的主閱讀主線：先看決策快照，再往下讀執行摘要、核心判斷與後續建議。
                     </p>
                   </div>
                   {latestDeliverable ? (
@@ -1221,18 +1221,18 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                         />
                       </div>
                       <div className="section-card">
-                        <h4>對應 Decision Context</h4>
+                        <h4>對應決策問題</h4>
                         <ExpandableText
                           text={deliverableBacklink.decisionContext}
-                          emptyText="尚未整理這份交付物的 decision context。"
+                          emptyText="尚未整理這份交付物的決策問題。"
                           previewChars={180}
                         />
                       </div>
                       <div className="section-card">
-                        <h4>Evidence Basis</h4>
+                        <h4>依據來源</h4>
                         <ExpandableText
                           text={deliverableBacklink.evidenceBasis}
-                          emptyText="尚未整理這份交付物的 evidence basis。"
+                          emptyText="尚未整理這份交付物的依據來源。"
                           previewChars={180}
                         />
                       </div>
@@ -1438,10 +1438,18 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
               <section className="panel">
                 <div className="panel-header">
                   <div>
-                    <h2 className="panel-title">Extension Manager</h2>
+                    <h2 className="panel-title">擴充管理面</h2>
                     <p className="panel-copy">
-                      這裡用最小正式管理面承接本次任務的 pack / agent context。你可以查看 catalog、理解這輪 selected extensions，並對單一任務覆寫 packs 或 agent hints。
+                    這裡用最小正式管理面承接本次任務的模組包 / 代理脈絡。你可以查看目錄、理解這輪選用的擴充，並對單一任務覆寫模組包或代理提示。
                     </p>
+                  </div>
+                  <div className="button-row">
+                    <Link className="button-secondary" href="/agents">
+                      代理管理
+                    </Link>
+                    <Link className="button-secondary" href="/packs">
+                      模組包管理
+                    </Link>
                   </div>
                 </div>
                 <ExtensionManagerSurface
@@ -1457,7 +1465,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
               <section className="panel">
                 <div className="panel-header">
                   <div>
-                    <h2 className="panel-title">Supporting Context</h2>
+                    <h2 className="panel-title">補充脈絡</h2>
                     <p className="panel-copy">
                       這一欄只保留幫助你理解結論來源的補充內容，不讓 supporting info 抢走主交付主線。
                     </p>
@@ -1466,10 +1474,10 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                 {ontologyChainSummary ? (
                   <div className="summary-grid">
                     <div className="section-card">
-                      <h4>Decision Context</h4>
+                      <h4>決策問題</h4>
                       <ExpandableText
                         text={ontologyChainSummary.decisionContext}
-                        emptyText="尚未形成可讀的 decision context。"
+                        emptyText="尚未形成可讀的決策問題。"
                         previewChars={160}
                       />
                     </div>
@@ -1502,7 +1510,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                         <span>{formatDisplayDate(latestDeliverable.generated_at)}</span>
                       </div>
                       <Link className="back-link" href={`/deliverables/${latestDeliverable.id}`}>
-                        進入正式 Deliverable Workspace
+                        進入正式交付物工作面
                       </Link>
                     </div>
                     {Object.entries(latestDeliverable.content_structure).map(([label, value]) =>
@@ -1671,14 +1679,14 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
 
               {hasSystemTrace ? (
                 <DisclosurePanel
-                  title="System Trace"
+                  title="系統追蹤"
                   description="只有在你想檢查系統如何理解、協調與寫回這個任務時，再展開這一層。"
                 >
                   <div className="detail-list">
                     <div className="detail-item">
-                      <h3>Ontology / 工作物件檢視</h3>
+                      <h3>世界模型 / 工作物件檢視</h3>
                       <p className="panel-copy" style={{ marginBottom: "16px" }}>
-                        檢查 shared task model 目前承載了哪些工作物件與結果。
+                        檢查共享工作模型目前承載了哪些工作物件與結果。
                       </p>
                       <div className="ontology-grid">
                       <div className="ontology-card">
@@ -1692,29 +1700,29 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                         </p>
                       </div>
                       <div className="ontology-card">
-                        <h3>Engagement</h3>
+                        <h3>案件委託</h3>
                         <p className="content-block">
-                          {task.engagement?.name || "尚未建立 engagement 名稱"}
+                          {task.engagement?.name || "尚未建立案件委託名稱"}
                           {task.engagement?.description ? `\n${task.engagement.description}` : ""}
                         </p>
                       </div>
                       <div className="ontology-card">
-                        <h3>Workstream</h3>
+                        <h3>工作流</h3>
                         <p className="content-block">
-                          {task.workstream?.name || "尚未建立 workstream"}
+                          {task.workstream?.name || "尚未建立工作流"}
                           {"\n"}
                           {task.domain_lenses.length > 0 ? task.domain_lenses.join(" / ") : "綜合"}
                         </p>
                       </div>
                       <div className="ontology-card">
-                        <h3>Decision Context</h3>
+                        <h3>決策問題</h3>
                         <ExpandableText
                           text={
                             task.decision_context?.judgment_to_make ||
                             task.decision_context?.summary ||
                             ""
                           }
-                          emptyText="尚未形成可讀的 decision context。"
+                          emptyText="尚未形成可讀的決策問題。"
                           previewChars={180}
                         />
                       </div>
@@ -1763,7 +1771,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                         )}
                       </div>
                       <div className="ontology-card">
-                        <h3>Source Materials</h3>
+                        <h3>來源材料</h3>
                         {task.source_materials.length > 0 ? (
                           <ul className="list-content">
                             {task.source_materials.slice(0, 5).map((sourceMaterial) => (
@@ -1775,7 +1783,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                         )}
                       </div>
                       <div className="ontology-card">
-                        <h3>Artifacts</h3>
+                        <h3>工作物件</h3>
                         {task.artifacts.length > 0 ? (
                           <ul className="list-content">
                             {task.artifacts.slice(0, 5).map((artifact) => (

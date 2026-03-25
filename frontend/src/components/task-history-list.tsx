@@ -20,6 +20,8 @@ interface TaskHistoryListProps {
   description?: string;
   emptyText?: string;
   limit?: number;
+  viewAllHref?: string;
+  viewAllLabel?: string;
 }
 
 export function TaskHistoryList({
@@ -29,8 +31,10 @@ export function TaskHistoryList({
   onRefresh,
   title = "最近工作",
   description = "回到最近更新的案件、交付物與分析紀錄，讓工作進度不會散落在不同工具裡。",
-  emptyText = "目前還沒有任務，先從左側啟動第一個顧問案件。",
+  emptyText = "目前還沒有任務，先從「建立新案件」開始第一個顧問工作流。",
   limit,
+  viewAllHref,
+  viewAllLabel = "查看全部",
 }: TaskHistoryListProps) {
   const visibleTasks = limit ? tasks.slice(0, limit) : tasks;
 
@@ -83,8 +87,19 @@ export function TaskHistoryList({
         })}
       </div>
 
-      {limit && tasks.length > limit ? (
-        <p className="muted-text">還有 {tasks.length - limit} 個案件可從完整任務歷史回看。</p>
+      {limit || viewAllHref ? (
+        <div className="panel-footer">
+          {limit && tasks.length > limit ? (
+            <p className="muted-text">還有 {tasks.length - limit} 筆工作可從完整歷史紀錄回看。</p>
+          ) : (
+            <span />
+          )}
+          {viewAllHref ? (
+            <Link className="back-link" href={viewAllHref}>
+              {viewAllLabel}
+            </Link>
+          ) : null}
+        </div>
       ) : null}
     </section>
   );
