@@ -44,13 +44,17 @@
 3. `docs/02_product_scope.md`
 4. `docs/03_system_overview.md`
 5. `docs/09_infinite_pro_core_definition.md`
-6. `docs/04_ontology_core.md`
-7. `docs/05_agent_architecture.md`
-8. `docs/06_system_architecture.md`
-9. `docs/07_implementation_order.md`
-10. `AGENTS.md`
+6. `docs/10_frontend_information_architecture_and_ux_principles.md`
+7. `docs/04_ontology_core.md`
+8. `docs/05_agent_architecture.md`
+9. `docs/06_system_architecture.md`
+10. `docs/07_implementation_order.md`
+11. `AGENTS.md`
 
 如果想法與上述文件衝突，以文件為準。
+
+另外，前端改版不得再把 Infinite Pro 做回 generic AI workspace。
+首頁、導覽、工作面、管理面、歷史紀錄與繁體中文化規則，現在正式由 `docs/10_frontend_information_architecture_and_ux_principles.md` 承接。
 
 ---
 

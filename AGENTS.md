@@ -19,15 +19,17 @@ Before making any structural, product, ontology, agent, or UI decisions, read th
 3. `docs/02_product_scope.md`
 4. `docs/03_system_overview.md`
 5. `docs/09_infinite_pro_core_definition.md`
-6. `docs/04_ontology_core.md`
-7. `docs/05_agent_architecture.md`
-8. `docs/06_system_architecture.md`
-9. `docs/07_implementation_order.md`
-10. `docs/08_codex_handoff.md`
+6. `docs/10_frontend_information_architecture_and_ux_principles.md`
+7. `docs/04_ontology_core.md`
+8. `docs/05_agent_architecture.md`
+9. `docs/06_system_architecture.md`
+10. `docs/07_implementation_order.md`
+11. `docs/08_codex_handoff.md`
 
 If implementation ideas conflict with the documents, prefer the documents over assumptions.
 
 If naming, product positioning, ontology modeling, or product drift questions appear, treat `docs/09_infinite_pro_core_definition.md` as a high-priority guide.
+If homepage, navigation, workspace surface, management surface, history page, or Traditional Chinese UI copy decisions appear, treat `docs/10_frontend_information_architecture_and_ux_principles.md` as the primary governance guide.
 
 ---
 
