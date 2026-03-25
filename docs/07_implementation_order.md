@@ -157,6 +157,9 @@ Infinite Pro 的施工原則應改為：
 - artifact work surfaces
 - deliverable work surfaces
 
+前端資訊架構、頁面角色與 UX 驗收原則，現在已由 `docs/10_frontend_information_architecture_and_ux_principles.md` 正式承接。
+後續 UI deepen 應以該文件作為正式治理依據，而不是再以零散頁面調整或單點 polish 方式推進。
+
 ### 6.4 Industry pack deepen
 - domain heuristics
 - risk libraries

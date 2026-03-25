@@ -58,6 +58,7 @@ Infinite Pro 的核心原則是：
 
 6. **consulting workbench UI**
    - 介面應反映顧問在操作的 objects、relationships、actions、workflows 與 deliverables，而不是 generic AI workspace。
+   - 前端資訊架構、頁面角色、中文化規則與 UX 驗收原則，正式由 `docs/10_frontend_information_architecture_and_ux_principles.md` 承接。
 
 ---
 
