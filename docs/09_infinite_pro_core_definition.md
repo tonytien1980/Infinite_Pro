@@ -245,6 +245,12 @@ Infinite Pro 的工作世界至少應圍繞以下主鏈理解：
 - retention / purge metadata
 - metadata-only / limited support / unsupported 的正式邊界
 
+格式支援口徑應正式理解為：
+- `.md / .txt / .docx / .xlsx / .csv / text-first PDF / URL / 純文字補充`：正式支援
+- `.jpg / .jpeg / .png / .webp / 掃描型 PDF`：有限支援
+- 有限支援的意思是建立 metadata / reference-level record，不預設做高成本 OCR，也不宣稱與 text-first 文件同等成熟
+- `.pptx`、壓縮包、批次圖片資料夾、OCR-heavy image parsing：尚未正式支援
+
 正式規則是：
 - DB 負責 structured metadata、關聯、狀態、publish / artifact record
 - object storage 負責 raw materials、derived extracts、released artifacts

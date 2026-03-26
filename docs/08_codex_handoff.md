@@ -252,6 +252,9 @@ Codex 應把它理解為已完成的正式交付物工作面，至少承接：
   - 多材料案件
 - 三種模式都應匯進同一條 `task → matter → source material / artifact → evidence → deliverable` 主鏈
 - 同一個案件可持續補檔案、網址與補充文字，不可被資料模型限制成單檔心智
+- 正式支援格式應理解為：`.md / .txt / .docx / .xlsx / .csv / text-first PDF / URL / 純文字補充`
+- 有限支援格式應理解為：`.jpg / .jpeg / .png / .webp / 掃描型 PDF`
+- 有限支援的意思是可建立 metadata / reference-level record，但不預設做高成本 OCR，也不宣稱與 text-first 文件同等成熟
 - storage architecture 必須正式區分：
   - DB metadata
   - raw intake storage

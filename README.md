@@ -220,6 +220,8 @@ The repository currently contains a working early implementation slice within th
   - `多材料案件`
 - matter-level supplement flow for additional files, URLs, and pasted text
 - source material metadata with support level, ingest strategy, retention, purge state, and availability state
+- formal support for `.md / .txt / .docx / .xlsx / .csv / text-first PDF / URL / 純文字補充`
+- limited support for `.jpg / .jpeg / .png / .webp / 掃描型 PDF` as metadata / reference-level intake only, without default OCR
 - storage separation for raw intake files, derived extracts, and released artifacts
 - matter正文 remote-first persistence with degraded-mode local fallback and manual re-sync
 - deliverable正文 remote-only persistence with revision history, rollback, version events, publish records, and artifact registry
@@ -370,7 +372,7 @@ npm run typecheck
 - multi-user / multi-tenant system layers
 - production-grade object storage serving / signed URLs
 - scheduled purge / lifecycle jobs
-- OCR-heavy parsing and scanned-PDF ingestion at scale
+- OCR-heavy parsing and production-grade scanned-PDF全文 ingestion at scale
 
 ## Governance note
 

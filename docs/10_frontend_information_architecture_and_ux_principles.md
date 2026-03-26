@@ -158,6 +158,8 @@ Infinite Pro 的正式第一層主導覽應為：
 - 三種模式共用同一條 task / matter / source material / evidence / deliverable 主鏈
 - 單文件模式建立時不應混成多材料案件
 - 多材料模式應清楚允許混合檔案、URL 與補充文字
+- `.md / .txt / .docx / .xlsx / .csv / text-first PDF / URL / 純文字補充` 應在 UI 上明確標示為正式支援
+- `.jpg / .jpeg / .png / .webp / 掃描型 PDF` 應在 UI 上明確標示為有限支援，意思是 metadata / reference-level ingestion，不預設 OCR
 - 正式支援、有限支援與未支援應在 UI 上明確分層，不可寫得像所有格式都同等成熟
 
 ### A. 總覽
