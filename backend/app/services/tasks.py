@@ -21,13 +21,24 @@ from app.domain.enums import (
 from app.extensions.registry import ExtensionRegistry
 from app.extensions.resolver import AgentResolver, PackResolver, resolve_runtime_agent_binding
 from app.extensions.schemas import AgentResolverInput, AgentSpec, PackResolverInput, PackSpec, PackType
+from app.services.content_revisions import (
+    CONTENT_REVISION_SOURCE_MANUAL_EDIT,
+    CONTENT_REVISION_SOURCE_ROLLBACK,
+    CONTENT_REVISION_SOURCE_RUNTIME_BACKFILL,
+    create_deliverable_content_revision,
+    create_matter_content_revision,
+    ensure_deliverable_content_revisions,
+    ensure_matter_content_revisions,
+)
 from app.services.deliverable_records import (
     DELIVERABLE_ARTIFACT_KIND_EXPORT,
     DELIVERABLE_ARTIFACT_KIND_RELEASE,
+    DELIVERABLE_EVENT_CONTENT_ROLLED_BACK,
     DELIVERABLE_EVENT_CONTENT_UPDATED,
     DELIVERABLE_EVENT_EXPORTED,
     DELIVERABLE_EVENT_NOTE_ADDED,
     DELIVERABLE_EVENT_PUBLISHED,
+    DELIVERABLE_EVENT_SOURCE_CONTENT_ROLLBACK,
     DELIVERABLE_EVENT_SOURCE_CONTENT_UPDATE,
     DELIVERABLE_EVENT_SOURCE_EXPORT,
     DELIVERABLE_EVENT_SOURCE_METADATA_UPDATE,
@@ -1931,6 +1942,68 @@ def _serialize_deliverable_content_sections(
     }
 
 
+def _serialize_content_revision_diff_summary(
+    value: object,
+) -> list[schemas.ContentRevisionDiffItemRead]:
+    if not isinstance(value, list):
+        return []
+
+    items: list[schemas.ContentRevisionDiffItemRead] = []
+    for entry in value:
+        if not isinstance(entry, dict):
+            continue
+        items.append(
+            schemas.ContentRevisionDiffItemRead(
+                section_key=str(entry.get("section_key", "")).strip(),
+                section_label=str(entry.get("section_label", "")).strip(),
+                change_type=str(entry.get("change_type", "")).strip(),
+                previous_preview=_normalize_multiline_text(entry.get("previous_preview")),
+                current_preview=_normalize_multiline_text(entry.get("current_preview")),
+            )
+        )
+    return items
+
+
+def _build_matter_content_revision_read(
+    revision: models.MatterContentRevision,
+) -> schemas.MatterContentRevisionRead:
+    return schemas.MatterContentRevisionRead(
+        id=revision.id,
+        matter_workspace_id=revision.matter_workspace_id,
+        object_type="matter",
+        object_id=revision.matter_workspace_id,
+        source=revision.source,
+        revision_summary=revision.revision_summary,
+        changed_sections=revision.changed_sections or [],
+        diff_summary=_serialize_content_revision_diff_summary(revision.diff_summary),
+        snapshot=_normalize_matter_content_sections(revision.snapshot),
+        rollback_target_revision_id=revision.rollback_target_revision_id,
+        created_at=revision.created_at,
+    )
+
+
+def _build_deliverable_content_revision_read(
+    revision: models.DeliverableContentRevision,
+) -> schemas.DeliverableContentRevisionRead:
+    return schemas.DeliverableContentRevisionRead(
+        id=revision.id,
+        deliverable_id=revision.deliverable_id,
+        task_id=revision.task_id,
+        object_type="deliverable",
+        object_id=revision.deliverable_id,
+        source=revision.source,
+        revision_summary=revision.revision_summary,
+        changed_sections=revision.changed_sections or [],
+        diff_summary=_serialize_content_revision_diff_summary(revision.diff_summary),
+        snapshot=_normalize_deliverable_content_sections(revision.snapshot),
+        version_tag=revision.version_tag,
+        deliverable_status=revision.deliverable_status,
+        source_version_event_id=revision.source_version_event_id,
+        rollback_target_revision_id=revision.rollback_target_revision_id,
+        created_at=revision.created_at,
+    )
+
+
 def _load_tasks_for_matter_workspaces(
     db: Session,
     matter_workspace_ids: list[str],
@@ -2730,6 +2803,7 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
     ).one_or_none()
     if matter_workspace is None:
         raise HTTPException(status_code=404, detail="找不到指定案件工作面。")
+    content_revisions = ensure_matter_content_revisions(db, matter_workspace)
 
     related_tasks = _load_tasks_for_matter_workspaces(db, [matter_workspace.id]).get(
         matter_workspace.id,
@@ -2861,6 +2935,9 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
         workstream=workstream,
         current_decision_context=current_decision_context,
         content_sections=_normalize_matter_content_sections(matter_workspace.content_sections),
+        content_revisions=[
+            _build_matter_content_revision_read(item) for item in content_revisions[:12]
+        ],
         decision_trajectory=decision_trajectory[:8],
         related_tasks=related_task_items,
         related_deliverables=related_deliverables[:8],
@@ -2890,12 +2967,31 @@ def update_matter_workspace(
     if matter_workspace is None:
         raise HTTPException(status_code=404, detail="找不到指定案件工作面。")
 
+    previous_content_sections = _normalize_matter_content_sections(matter_workspace.content_sections)
+    next_content_sections_payload = _serialize_matter_content_sections(payload.content_sections)
+    next_content_sections = _normalize_matter_content_sections(next_content_sections_payload)
+
     matter_workspace.title = payload.title.strip()
     matter_workspace.summary = payload.summary.strip()
     matter_workspace.status = payload.status
-    matter_workspace.content_sections = _serialize_matter_content_sections(payload.content_sections)
+    matter_workspace.content_sections = next_content_sections_payload
     matter_workspace.title_override_active = True
     db.add(matter_workspace)
+    if next_content_sections != previous_content_sections:
+        create_matter_content_revision(
+            db,
+            matter_workspace,
+            snapshot=next_content_sections_payload,
+            previous_snapshot=_serialize_matter_content_sections(
+                schemas.MatterWorkspaceContentSectionsRequest(
+                    core_question=previous_content_sections.core_question,
+                    analysis_focus=previous_content_sections.analysis_focus,
+                    constraints_and_risks=previous_content_sections.constraints_and_risks,
+                    next_steps=previous_content_sections.next_steps,
+                )
+            ),
+            source=CONTENT_REVISION_SOURCE_MANUAL_EDIT,
+        )
     db.commit()
 
     return get_matter_workspace(db, matter_id)
@@ -2935,6 +3031,60 @@ def update_matter_workspace_metadata(
             ),
         ),
     )
+
+
+def rollback_matter_content_revision(
+    db: Session,
+    matter_id: str,
+    revision_id: str,
+) -> schemas.MatterWorkspaceResponse:
+    matter_workspace = db.scalars(
+        select(models.MatterWorkspace).where(models.MatterWorkspace.id == matter_id)
+    ).one_or_none()
+    if matter_workspace is None:
+        raise HTTPException(status_code=404, detail="找不到指定案件工作面。")
+
+    target_revision = db.scalars(
+        select(models.MatterContentRevision).where(
+            models.MatterContentRevision.id == revision_id,
+            models.MatterContentRevision.matter_workspace_id == matter_id,
+        )
+    ).one_or_none()
+    if target_revision is None:
+        raise HTTPException(status_code=404, detail="找不到指定案件正文修訂。")
+
+    current_snapshot = _normalize_matter_content_sections(matter_workspace.content_sections)
+    target_snapshot = _normalize_matter_content_sections(target_revision.snapshot)
+    if target_snapshot == current_snapshot:
+        raise HTTPException(status_code=400, detail="目前案件正文已與目標修訂相同。")
+
+    serialized_target_snapshot = {
+        "core_question": target_snapshot.core_question,
+        "analysis_focus": target_snapshot.analysis_focus,
+        "constraints_and_risks": target_snapshot.constraints_and_risks,
+        "next_steps": target_snapshot.next_steps,
+    }
+    matter_workspace.content_sections = serialized_target_snapshot
+    matter_workspace.updated_at = models.utc_now()
+    db.add(matter_workspace)
+    db.flush()
+
+    create_matter_content_revision(
+        db,
+        matter_workspace,
+        snapshot=serialized_target_snapshot,
+        previous_snapshot={
+            "core_question": current_snapshot.core_question,
+            "analysis_focus": current_snapshot.analysis_focus,
+            "constraints_and_risks": current_snapshot.constraints_and_risks,
+            "next_steps": current_snapshot.next_steps,
+        },
+        source=CONTENT_REVISION_SOURCE_ROLLBACK,
+        revision_summary=f"回退案件正文到 {target_revision.created_at.isoformat()} 的修訂",
+        rollback_target_revision_id=target_revision.id,
+    )
+    db.commit()
+    return get_matter_workspace(db, matter_id)
 
 
 def _material_role_label(
@@ -3524,6 +3674,7 @@ def get_deliverable_workspace(
             fallback_status=deliverable.status,
         )
     ]
+    content_revisions = ensure_deliverable_content_revisions(db, deliverable_row)
     artifact_records, publish_records = ensure_deliverable_release_records(
         db,
         deliverable_row,
@@ -3665,6 +3816,9 @@ def get_deliverable_workspace(
         related_deliverables=related_deliverables,
         continuity_notes=_unique_preserve_order(continuity_notes),
         content_sections=_normalize_deliverable_content_sections(deliverable_row.content_sections),
+        content_revisions=[
+            _build_deliverable_content_revision_read(item) for item in content_revisions[:12]
+        ],
         version_events=version_events,
         artifact_records=[
             schemas.DeliverableArtifactRecordRead.model_validate(item)
@@ -3781,7 +3935,14 @@ def _apply_deliverable_workspace_update(
             changed_sections.append("行動項目")
         if next_content_sections.evidence_basis != previous_content_sections.evidence_basis:
             changed_sections.append("依據來源")
-        record_deliverable_version_event(
+        content_revision = create_deliverable_content_revision(
+            db,
+            deliverable,
+            snapshot=next_content_sections_payload,
+            previous_snapshot=_serialize_deliverable_content_sections(previous_content_sections),
+            source=CONTENT_REVISION_SOURCE_MANUAL_EDIT,
+        )
+        content_event = record_deliverable_version_event(
             db,
             deliverable,
             DELIVERABLE_EVENT_CONTENT_UPDATED,
@@ -3794,6 +3955,14 @@ def _apply_deliverable_workspace_update(
                 "content_scope": "workspace_sections",
             },
         )
+        if content_revision is not None:
+            content_revision.source_version_event_id = content_event.id
+            db.add(content_revision)
+            content_event.event_payload = {
+                **(content_event.event_payload if isinstance(content_event.event_payload, dict) else {}),
+                "revision_id": content_revision.id,
+            }
+            db.add(content_event)
 
     if version_tag_changed:
         record_deliverable_version_event(
@@ -3902,6 +4071,64 @@ def update_deliverable_metadata(
             ),
         ),
     )
+
+
+def rollback_deliverable_content_revision(
+    db: Session,
+    deliverable_id: str,
+    revision_id: str,
+) -> schemas.DeliverableWorkspaceResponse:
+    deliverable, task = _load_deliverable_and_task(db, deliverable_id)
+    target_revision = db.scalars(
+        select(models.DeliverableContentRevision).where(
+            models.DeliverableContentRevision.id == revision_id,
+            models.DeliverableContentRevision.deliverable_id == deliverable_id,
+        )
+    ).one_or_none()
+    if target_revision is None:
+        raise HTTPException(status_code=404, detail="找不到指定交付物正文修訂。")
+
+    current_snapshot = _normalize_deliverable_content_sections(deliverable.content_sections)
+    target_snapshot = _normalize_deliverable_content_sections(target_revision.snapshot)
+    if target_snapshot == current_snapshot:
+        raise HTTPException(status_code=400, detail="目前交付物正文已與目標修訂相同。")
+
+    serialized_target_snapshot = _serialize_deliverable_content_sections(target_snapshot)
+    deliverable.content_sections = serialized_target_snapshot
+    task.updated_at = models.utc_now()
+    db.add_all([deliverable, task])
+    db.flush()
+
+    content_revision = create_deliverable_content_revision(
+        db,
+        deliverable,
+        snapshot=serialized_target_snapshot,
+        previous_snapshot=_serialize_deliverable_content_sections(current_snapshot),
+        source=CONTENT_REVISION_SOURCE_ROLLBACK,
+        revision_summary=f"回退交付物正文到 {target_revision.created_at.isoformat()} 的修訂",
+        rollback_target_revision_id=target_revision.id,
+    )
+    rollback_event = record_deliverable_version_event(
+        db,
+        deliverable,
+        DELIVERABLE_EVENT_CONTENT_ROLLED_BACK,
+        version_tag=default_deliverable_version_tag(deliverable),
+        deliverable_status=deliverable.status,
+        summary=f"回退交付物正文到 {target_revision.created_at.isoformat()} 的修訂",
+        event_payload={
+            "source": DELIVERABLE_EVENT_SOURCE_CONTENT_ROLLBACK,
+            "rollback_target_revision_id": target_revision.id,
+            "revision_id": content_revision.id if content_revision else None,
+            "changed_sections": content_revision.changed_sections if content_revision else [],
+            "content_scope": "workspace_sections",
+        },
+    )
+    if content_revision is not None:
+        content_revision.source_version_event_id = rollback_event.id
+        db.add(content_revision)
+
+    db.commit()
+    return get_deliverable_workspace(db, deliverable_id)
 
 
 def _build_deliverable_export_filename(

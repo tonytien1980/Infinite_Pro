@@ -14,7 +14,10 @@ import type {
   MatterWorkspaceMetadataUpdatePayload,
   MatterWorkspaceUpdatePayload,
 } from "@/lib/types";
-import type { MatterWorkspaceRecord } from "@/lib/workbench-store";
+import type {
+  MatterWorkspaceRecord,
+  MatterWorkspaceSyncState,
+} from "@/lib/workbench-store";
 import { nowIsoString } from "@/lib/workbench-store";
 
 export type PersistenceSource = "remote" | "local-fallback";
@@ -59,6 +62,7 @@ export async function persistMatterWorkspaceMetadata(
 export async function persistMatterWorkspace(
   matterId: string,
   payload: MatterWorkspaceUpdatePayload,
+  options?: { baseRemoteUpdatedAt?: string | null },
 ) {
   try {
     const workspace = await updateMatterWorkspace(matterId, payload);
@@ -78,6 +82,10 @@ export async function persistMatterWorkspace(
       contentSections: payload.content_sections,
       updatedAt: nowIsoString(),
       persistenceSource: "local-fallback",
+      syncState: "pending_sync",
+      baseRemoteUpdatedAt: options?.baseRemoteUpdatedAt ?? null,
+      lastSyncAttemptAt: null,
+      lastSyncError: null,
     };
 
     return {
@@ -86,6 +94,49 @@ export async function persistMatterWorkspace(
       error: error instanceof Error ? error : new Error("案件資訊暫時無法寫入後端。"),
     };
   }
+}
+
+export async function syncMatterWorkspaceFallback(
+  matterId: string,
+  record: MatterWorkspaceRecord,
+) {
+  try {
+    const workspace = await updateMatterWorkspace(matterId, {
+      title: record.title,
+      summary: record.summary,
+      status: record.status,
+      content_sections: record.contentSections,
+    });
+    return {
+      source: "remote" as const,
+      workspace,
+    };
+  } catch (error) {
+    const normalizedError = buildMatterSyncError(error);
+    return {
+      source: "sync-failed" as const,
+      error: normalizedError,
+      nextRecord: {
+        ...record,
+        syncState: "sync_failed" as MatterWorkspaceSyncState,
+        lastSyncAttemptAt: nowIsoString(),
+        lastSyncError: normalizedError.message,
+      },
+    };
+  }
+}
+
+function buildMatterSyncError(error: unknown) {
+  const status = (error as Error & { status?: number }).status;
+  if (typeof status === "number" && status < 500) {
+    return error instanceof Error ? error : new Error("案件暫存重新同步失敗。");
+  }
+
+  if (error instanceof Error && error.message && error.message !== "Failed to fetch") {
+    return new Error(`${error.message} 本機暫存仍保留，待後端恢復後可再次重試。`);
+  }
+
+  return new Error("重新同步失敗，後端仍不可用；本機暫存仍保留，待恢復後可再次重試。");
 }
 
 export async function persistDeliverableMetadata(
@@ -126,7 +177,10 @@ export async function persistDeliverableWorkspace(
 
 function buildRemoteOnlyPersistenceError(error: unknown, defaultMessage: string) {
   const status = (error as Error & { status?: number }).status;
-  const fallbackError = error instanceof Error ? error : new Error(defaultMessage);
+  const fallbackError =
+    error instanceof Error && error.message && error.message !== "Failed to fetch"
+      ? error
+      : new Error(defaultMessage);
   if (typeof status === "number" && status < 500) {
     return fallbackError;
   }
@@ -149,6 +203,19 @@ export function isLocalFallbackMatterRecord(record?: MatterWorkspaceRecord | nul
   return record?.persistenceSource === "local-fallback";
 }
 
+export function buildMatterSyncFeedback(state: MatterWorkspaceSyncState) {
+  if (state === "pending_sync") {
+    return "本機暫存待同步，後端恢復後可重新同步到正式資料。";
+  }
+  if (state === "syncing") {
+    return "正在把本機暫存重新同步到正式資料。";
+  }
+  if (state === "needs_review") {
+    return "遠端資料在 fallback 期間也有變更，請先人工確認再決定是否覆蓋正式資料。";
+  }
+  return "重新同步失敗；本機暫存仍保留，待後端恢復後可再次重試。";
+}
+
 export function buildMatterSaveFeedback(
   source: PersistenceSource,
   workspace?: MatterWorkspace,
@@ -157,7 +224,7 @@ export function buildMatterSaveFeedback(
     return `案件資訊已寫入正式資料。更新時間：${workspace?.summary.latest_updated_at ?? "剛剛"}`;
   }
 
-  return "後端暫時不可用，案件正文與摘要已先保存到本機工作台。";
+  return "後端暫時不可用，案件正文與摘要已先保存到本機工作台，尚未寫回正式資料。";
 }
 
 export function buildDeliverableSaveFeedback(

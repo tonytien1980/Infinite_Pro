@@ -87,6 +87,10 @@ def _ensure_incremental_schema_updates() -> None:
 
 def _normalize_incremental_data() -> None:
     from app.domain import models
+    from app.services.content_revisions import (
+        ensure_deliverable_content_revisions,
+        ensure_matter_content_revisions,
+    )
     from app.services.deliverable_records import (
         ensure_deliverable_release_records,
         normalize_deliverable_version_events,
@@ -100,7 +104,11 @@ def _normalize_incremental_data() -> None:
         ).all()
         for deliverable_id in deliverable_ids:
             normalize_deliverable_version_events(session, deliverable_id)
+        matter_workspaces = session.scalars(select(models.MatterWorkspace)).all()
+        for matter_workspace in matter_workspaces:
+            ensure_matter_content_revisions(session, matter_workspace)
         for deliverable in deliverables:
+            ensure_deliverable_content_revisions(session, deliverable)
             ensure_deliverable_release_records(
                 session,
                 deliverable,

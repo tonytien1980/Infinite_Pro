@@ -452,6 +452,50 @@ class DeliverableContentSectionsRead(BaseModel):
     evidence_basis: list[str] = Field(default_factory=list)
 
 
+class ContentRevisionDiffItemRead(BaseModel):
+    section_key: str
+    section_label: str
+    change_type: str
+    previous_preview: str = ""
+    current_preview: str = ""
+
+
+class MatterContentRevisionRead(ORMModel):
+    id: str
+    matter_workspace_id: str
+    object_type: str = "matter"
+    object_id: str
+    source: str
+    revision_summary: str
+    changed_sections: list[str] = Field(default_factory=list)
+    diff_summary: list[ContentRevisionDiffItemRead] = Field(default_factory=list)
+    snapshot: MatterWorkspaceContentSectionsRead = Field(
+        default_factory=lambda: MatterWorkspaceContentSectionsRead()
+    )
+    rollback_target_revision_id: str | None = None
+    created_at: datetime
+
+
+class DeliverableContentRevisionRead(ORMModel):
+    id: str
+    deliverable_id: str
+    task_id: str
+    object_type: str = "deliverable"
+    object_id: str
+    source: str
+    revision_summary: str
+    changed_sections: list[str] = Field(default_factory=list)
+    diff_summary: list[ContentRevisionDiffItemRead] = Field(default_factory=list)
+    snapshot: DeliverableContentSectionsRead = Field(
+        default_factory=DeliverableContentSectionsRead
+    )
+    version_tag: str
+    deliverable_status: str | None = None
+    source_version_event_id: str | None = None
+    rollback_target_revision_id: str | None = None
+    created_at: datetime
+
+
 class DeliverableArtifactRecordRead(ORMModel):
     id: str
     deliverable_id: str
@@ -609,6 +653,7 @@ class MatterWorkspaceResponse(BaseModel):
     content_sections: MatterWorkspaceContentSectionsRead = Field(
         default_factory=MatterWorkspaceContentSectionsRead
     )
+    content_revisions: list[MatterContentRevisionRead] = Field(default_factory=list)
     decision_trajectory: list[MatterDecisionPointRead] = Field(default_factory=list)
     related_tasks: list[TaskListItemResponse] = Field(default_factory=list)
     related_deliverables: list[MatterDeliverableSummaryRead] = Field(default_factory=list)
@@ -739,6 +784,7 @@ class DeliverableWorkspaceResponse(BaseModel):
     content_sections: DeliverableContentSectionsRead = Field(
         default_factory=DeliverableContentSectionsRead
     )
+    content_revisions: list[DeliverableContentRevisionRead] = Field(default_factory=list)
     version_events: list[DeliverableVersionEventRead] = Field(default_factory=list)
     artifact_records: list[DeliverableArtifactRecordRead] = Field(default_factory=list)
     publish_records: list[DeliverablePublishRecordRead] = Field(default_factory=list)

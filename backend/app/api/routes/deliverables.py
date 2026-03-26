@@ -12,6 +12,7 @@ from app.services.tasks import (
     download_deliverable_artifact,
     get_deliverable_workspace,
     publish_deliverable_release,
+    rollback_deliverable_content_revision,
     update_deliverable_metadata,
     update_deliverable_workspace,
 )
@@ -52,6 +53,18 @@ def publish_deliverable_release_route(
     db: Session = Depends(get_db),
 ) -> schemas.DeliverableWorkspaceResponse:
     return publish_deliverable_release(db, deliverable_id, payload)
+
+
+@router.post(
+    "/{deliverable_id}/revisions/{revision_id}/rollback",
+    response_model=schemas.DeliverableWorkspaceResponse,
+)
+def rollback_deliverable_content_revision_route(
+    deliverable_id: str,
+    revision_id: str,
+    db: Session = Depends(get_db),
+) -> schemas.DeliverableWorkspaceResponse:
+    return rollback_deliverable_content_revision(db, deliverable_id, revision_id)
 
 
 @router.get("/{deliverable_id}/export")

@@ -4,9 +4,10 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { buildTaskListWorkspaceSummary } from "@/lib/advisory-workflow";
-import { getMatterWorkspace } from "@/lib/api";
+import { getMatterWorkspace, rollbackMatterContentRevision } from "@/lib/api";
 import { truncateText } from "@/lib/text-format";
 import type {
+  MatterContentRevision,
   MatterWorkspace,
   MatterWorkspaceContentSections,
   TaskListItem,
@@ -20,12 +21,15 @@ import {
 import {
   type MatterLifecycleStatus,
   type MatterWorkspaceRecord,
+  type MatterWorkspaceSyncState,
   useMatterWorkspaceRecords,
 } from "@/lib/workbench-store";
 import {
   buildMatterSaveFeedback,
+  buildMatterSyncFeedback,
   isLocalFallbackMatterRecord,
   persistMatterWorkspace,
+  syncMatterWorkspaceFallback,
 } from "@/lib/workspace-persistence";
 
 type MatterTab = "overview" | "decision" | "evidence" | "deliverables" | "history";
@@ -131,6 +135,78 @@ function buildResolvedMatterContentSections(
   };
 }
 
+function labelForContentRevisionSource(source: string) {
+  if (source === "rollback") {
+    return "回退修訂";
+  }
+  if (source === "runtime_backfill") {
+    return "基線回填";
+  }
+  return "手動編修";
+}
+
+function labelForContentDiffChangeType(changeType: string) {
+  if (changeType === "added") {
+    return "新增";
+  }
+  if (changeType === "cleared") {
+    return "清空";
+  }
+  return "更新";
+}
+
+function serializeMatterContentSections(sections: MatterWorkspaceContentSections) {
+  return {
+    core_question: sections.core_question,
+    analysis_focus: sections.analysis_focus,
+    constraints_and_risks: sections.constraints_and_risks,
+    next_steps: sections.next_steps,
+  };
+}
+
+function buildRemoteMatterSummary(matter: MatterWorkspace) {
+  return (
+    matter.summary.workspace_summary ||
+    matter.summary.active_work_summary ||
+    matter.summary.continuity_summary ||
+    ""
+  );
+}
+
+function matterRecordMatchesRemote(record: MatterWorkspaceRecord, matter: MatterWorkspace) {
+  const remoteSections = serializeMatterContentSections(matter.content_sections);
+  return (
+    record.title === matter.summary.title &&
+    record.summary === buildRemoteMatterSummary(matter) &&
+    record.status === defaultMatterStatus(matter) &&
+    JSON.stringify(record.contentSections) === JSON.stringify(remoteSections)
+  );
+}
+
+function buildMatterFallbackDiffItems(record: MatterWorkspaceRecord, matter: MatterWorkspace) {
+  const remoteSections = matter.content_sections;
+  const items: Array<{ label: string; remote: string; local: string }> = [];
+  const pushIfDifferent = (label: string, remote: string, local: string) => {
+    if (remote === local) {
+      return;
+    }
+    items.push({
+      label,
+      remote: truncateText(remote || "空白", 84),
+      local: truncateText(local || "空白", 84),
+    });
+  };
+
+  pushIfDifferent("案件標題", matter.summary.title, record.title);
+  pushIfDifferent("簡短摘要", buildRemoteMatterSummary(matter), record.summary);
+  pushIfDifferent("狀態", labelForMatterStatus(defaultMatterStatus(matter)), labelForMatterStatus(record.status));
+  pushIfDifferent("核心問題", remoteSections.core_question, record.contentSections.core_question);
+  pushIfDifferent("分析焦點", remoteSections.analysis_focus, record.contentSections.analysis_focus);
+  pushIfDifferent("限制 / 風險", remoteSections.constraints_and_risks, record.contentSections.constraints_and_risks);
+  pushIfDifferent("下一步建議", remoteSections.next_steps, record.contentSections.next_steps);
+  return items;
+}
+
 export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
   const [matter, setMatter] = useState<MatterWorkspace | null>(null);
   const [activeTab, setActiveTab] = useState<MatterTab>("overview");
@@ -146,6 +222,8 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
   });
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [saveTone, setSaveTone] = useState<"success" | "warning" | "error" | null>(null);
+  const [isResyncing, setIsResyncing] = useState(false);
+  const [rollingBackRevisionId, setRollingBackRevisionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -165,6 +243,17 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
 
   const fallbackRecord =
     matter && isLocalFallbackMatterRecord(matterRecords[matterId]) ? matterRecords[matterId] : null;
+  const fallbackDiffItems =
+    matter && fallbackRecord ? buildMatterFallbackDiffItems(fallbackRecord, matter) : [];
+  const matterSyncState: MatterWorkspaceSyncState | null =
+    matter && fallbackRecord
+      ? matterRecordMatchesRemote(fallbackRecord, matter)
+        ? null
+        : fallbackRecord.baseRemoteUpdatedAt &&
+            fallbackRecord.baseRemoteUpdatedAt !== matter.summary.latest_updated_at
+          ? "needs_review"
+          : fallbackRecord.syncState || "pending_sync"
+      : null;
 
   useEffect(() => {
     if (!matter) {
@@ -254,7 +343,9 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
         },
       } as const;
 
-      const result = await persistMatterWorkspace(matterId, payload);
+      const result = await persistMatterWorkspace(matterId, payload, {
+        baseRemoteUpdatedAt: matter.summary.latest_updated_at,
+      });
 
       if (result.source === "remote") {
         setMatter(result.workspace);
@@ -281,6 +372,122 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
       );
     }
   }
+
+  async function handleResyncMatterFallback(forceOverwrite: boolean) {
+    if (!matter || !fallbackRecord) {
+      return;
+    }
+
+    if (matterSyncState === "needs_review" && !forceOverwrite) {
+      const confirmed = window.confirm(
+        "遠端資料在 fallback 期間也有變更。要以本機暫存覆蓋正式資料並重新同步嗎？",
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    setIsResyncing(true);
+    setMatterRecords((current) => ({
+      ...current,
+      [matterId]: {
+        ...fallbackRecord,
+        syncState: "syncing",
+        lastSyncAttemptAt: new Date().toISOString(),
+        lastSyncError: null,
+      },
+    }));
+    setSaveTone("warning");
+    setSaveMessage(buildMatterSyncFeedback("syncing"));
+
+    const result = await syncMatterWorkspaceFallback(matterId, fallbackRecord);
+    if (result.source === "remote") {
+      setMatter(result.workspace);
+      setMatterRecords((current) => {
+        const next = { ...current };
+        delete next[matterId];
+        return next;
+      });
+      setSaveTone("success");
+      setSaveMessage("本機暫存已重新同步到正式資料。");
+      setIsResyncing(false);
+      return;
+    }
+
+    setMatterRecords((current) => ({
+      ...current,
+      [matterId]: result.nextRecord,
+    }));
+    setSaveTone("warning");
+    setSaveMessage(result.error.message);
+    setIsResyncing(false);
+  }
+
+  function handleDiscardLocalFallback() {
+    if (!fallbackRecord) {
+      return;
+    }
+
+    const confirmed = window.confirm("要放棄這份本機暫存，改回正式資料版本嗎？");
+    if (!confirmed) {
+      return;
+    }
+
+    setMatterRecords((current) => {
+      const next = { ...current };
+      delete next[matterId];
+      return next;
+    });
+    setSaveTone("success");
+    setSaveMessage("已放棄本機暫存，畫面改回正式資料版本。");
+  }
+
+  async function handleRollbackRevision(revision: MatterContentRevision) {
+    if (fallbackRecord) {
+      setSaveTone("warning");
+      setSaveMessage("目前仍有待同步的本機暫存；請先同步或放棄暫存後，再回退正式修訂。");
+      return;
+    }
+
+    const confirmed = window.confirm("要把案件正文回退到這筆修訂嗎？系統會留下新的回退修訂紀錄。");
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setRollingBackRevisionId(revision.id);
+      const nextWorkspace = await rollbackMatterContentRevision(matterId, revision.id);
+      setMatter(nextWorkspace);
+      setSaveTone("success");
+      setSaveMessage("已回退案件正文，並留下新的修訂紀錄。");
+    } catch (rollbackError) {
+      setSaveTone("error");
+      setSaveMessage(
+        rollbackError instanceof Error ? rollbackError.message : "回退案件正文失敗。",
+      );
+    } finally {
+      setRollingBackRevisionId(null);
+    }
+  }
+
+  useEffect(() => {
+    if (!matter || !fallbackRecord) {
+      return;
+    }
+
+    if (matterRecordMatchesRemote(fallbackRecord, matter)) {
+      setMatterRecords((current) => {
+        const next = { ...current };
+        delete next[matterId];
+        return next;
+      });
+      if (saveTone !== "success") {
+        setSaveTone("success");
+        setSaveMessage("本機暫存已與正式資料一致，已清除待同步狀態。");
+      }
+      return;
+    }
+  }, [fallbackRecord, matter, matterId, saveTone, setMatterRecords]);
 
   return (
     <main className="page-shell">
@@ -505,8 +712,38 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
                       {saveMessage}
                     </p>
                   ) : null}
-                  {fallbackRecord ? (
-                    <p className="muted-text">目前顯示的是本機暫存版本，待後端可用後再寫回正式資料。</p>
+                  {fallbackRecord && matterSyncState ? (
+                    <div className="section-card" style={{ marginTop: "12px" }}>
+                      <h4>同步狀態</h4>
+                      <p className="content-block">{buildMatterSyncFeedback(matterSyncState)}</p>
+                      {fallbackDiffItems.length > 0 && matterSyncState === "needs_review" ? (
+                        <ul className="list-content" style={{ marginTop: "12px" }}>
+                          {fallbackDiffItems.slice(0, 5).map((item) => (
+                            <li key={item.label}>
+                              {item.label}：遠端「{item.remote}」／本機「{item.local}」
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                      <div className="button-row" style={{ marginTop: "12px" }}>
+                        <button
+                          className="button-secondary"
+                          type="button"
+                          onClick={() => void handleResyncMatterFallback(matterSyncState === "needs_review")}
+                          disabled={isResyncing}
+                        >
+                          {isResyncing ? "同步中..." : matterSyncState === "needs_review" ? "以本機內容重新同步" : "重新同步正式資料"}
+                        </button>
+                        <button
+                          className="button-secondary"
+                          type="button"
+                          onClick={handleDiscardLocalFallback}
+                          disabled={isResyncing}
+                        >
+                          放棄本機暫存
+                        </button>
+                      </div>
+                    </div>
                   ) : null}
                 </section>
 
@@ -713,6 +950,39 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
                       {saveMessage}
                     </p>
                   ) : null}
+                  {fallbackRecord && matterSyncState ? (
+                    <div className="section-card" style={{ marginTop: "12px" }}>
+                      <h4>待同步狀態</h4>
+                      <p className="content-block">{buildMatterSyncFeedback(matterSyncState)}</p>
+                      {fallbackDiffItems.length > 0 && matterSyncState === "needs_review" ? (
+                        <ul className="list-content" style={{ marginTop: "12px" }}>
+                          {fallbackDiffItems.slice(0, 5).map((item) => (
+                            <li key={item.label}>
+                              {item.label}：遠端「{item.remote}」／本機「{item.local}」
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                      <div className="button-row" style={{ marginTop: "12px" }}>
+                        <button
+                          className="button-secondary"
+                          type="button"
+                          onClick={() => void handleResyncMatterFallback(matterSyncState === "needs_review")}
+                          disabled={isResyncing}
+                        >
+                          {isResyncing ? "同步中..." : matterSyncState === "needs_review" ? "以本機內容重新同步" : "重新同步正式資料"}
+                        </button>
+                        <button
+                          className="button-secondary"
+                          type="button"
+                          onClick={handleDiscardLocalFallback}
+                          disabled={isResyncing}
+                        >
+                          放棄本機暫存
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
                 </section>
               </div>
 
@@ -788,6 +1058,61 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
                       <p className="empty-text">目前還沒有可顯示的決策脈絡。</p>
                     )}
                   </div>
+                </section>
+
+                <section className="panel">
+                  <div className="panel-header">
+                    <div>
+                      <h2 className="panel-title">正文修訂</h2>
+                      <p className="panel-copy">這裡只追案件正文的演進、diff 與回退，不會和工作紀錄或發布歷史混在一起。</p>
+                    </div>
+                  </div>
+
+                  {fallbackRecord ? (
+                    <p className="muted-text">本機暫存尚未形成正式 revision；完成重新同步後，才會回到 backend 修訂歷史。</p>
+                  ) : null}
+
+                  {matter.content_revisions.length > 0 ? (
+                    <div className="detail-list">
+                      {matter.content_revisions.map((revision) => (
+                        <div className="detail-item" key={revision.id}>
+                          <div className="meta-row">
+                            <span className="pill">{labelForContentRevisionSource(revision.source)}</span>
+                            <span>{formatDisplayDate(revision.created_at)}</span>
+                          </div>
+                          <h3>{revision.revision_summary}</h3>
+                          {revision.diff_summary.length > 0 ? (
+                            <ul className="list-content">
+                              {revision.diff_summary.map((item) => (
+                                <li key={`${revision.id}-${item.section_key}`}>
+                                  {labelForContentDiffChangeType(item.change_type)} {item.section_label}
+                                  ：{item.previous_preview || "空白"} → {item.current_preview || "空白"}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="muted-text">這筆修訂目前沒有額外的 diff 摘要。</p>
+                          )}
+                          <div className="button-row" style={{ marginTop: "12px" }}>
+                            <button
+                              className="button-secondary"
+                              type="button"
+                              onClick={() => void handleRollbackRevision(revision)}
+                              disabled={
+                                Boolean(fallbackRecord) ||
+                                rollingBackRevisionId === revision.id ||
+                                revision.id === matter.content_revisions[0]?.id
+                              }
+                            >
+                              {rollingBackRevisionId === revision.id ? "回退中..." : "回退到這一版"}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="empty-text">目前尚未建立正式正文修訂紀錄。</p>
+                  )}
                 </section>
               </div>
             </div>

@@ -560,6 +560,7 @@ export interface MatterWorkspace {
   workstream: Workstream | null;
   current_decision_context: DecisionContext | null;
   content_sections: MatterWorkspaceContentSections;
+  content_revisions: MatterContentRevision[];
   decision_trajectory: MatterDecisionPoint[];
   related_tasks: TaskListItem[];
   related_deliverables: MatterDeliverableSummary[];
@@ -645,6 +646,7 @@ export interface DeliverableWorkspace {
   related_deliverables: MatterDeliverableSummary[];
   continuity_notes: string[];
   content_sections: DeliverableContentSections;
+  content_revisions: DeliverableContentRevision[];
   version_events: DeliverableVersionEvent[];
   artifact_records: DeliverableArtifactRecord[];
   publish_records: DeliverablePublishRecord[];
@@ -675,6 +677,46 @@ export interface DeliverableContentSections {
   risks: string[];
   action_items: string[];
   evidence_basis: string[];
+}
+
+export interface ContentRevisionDiffItem {
+  section_key: string;
+  section_label: string;
+  change_type: string;
+  previous_preview: string;
+  current_preview: string;
+}
+
+export interface MatterContentRevision {
+  id: string;
+  matter_workspace_id: string;
+  object_type: "matter";
+  object_id: string;
+  source: string;
+  revision_summary: string;
+  changed_sections: string[];
+  diff_summary: ContentRevisionDiffItem[];
+  snapshot: MatterWorkspaceContentSections;
+  rollback_target_revision_id: string | null;
+  created_at: string;
+}
+
+export interface DeliverableContentRevision {
+  id: string;
+  deliverable_id: string;
+  task_id: string;
+  object_type: "deliverable";
+  object_id: string;
+  source: string;
+  revision_summary: string;
+  changed_sections: string[];
+  diff_summary: ContentRevisionDiffItem[];
+  snapshot: DeliverableContentSections;
+  version_tag: string;
+  deliverable_status: string | null;
+  source_version_event_id: string | null;
+  rollback_target_revision_id: string | null;
+  created_at: string;
 }
 
 export interface DeliverableArtifactRecord {

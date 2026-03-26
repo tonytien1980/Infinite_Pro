@@ -234,6 +234,19 @@ export async function updateMatterWorkspace(
   return parseResponse<MatterWorkspace>(response);
 }
 
+export async function rollbackMatterContentRevision(
+  matterId: string,
+  revisionId: string,
+): Promise<MatterWorkspace> {
+  const response = await fetch(
+    `${getApiBaseUrl()}/matters/${matterId}/revisions/${revisionId}/rollback`,
+    {
+      method: "POST",
+    },
+  );
+  return parseResponse<MatterWorkspace>(response);
+}
+
 export async function getArtifactEvidenceWorkspace(
   matterId: string,
 ): Promise<ArtifactEvidenceWorkspace> {
@@ -292,6 +305,19 @@ export async function publishDeliverableRelease(
     },
     body: JSON.stringify(payload),
   });
+  return parseResponse<DeliverableWorkspace>(response);
+}
+
+export async function rollbackDeliverableContentRevision(
+  deliverableId: string,
+  revisionId: string,
+): Promise<DeliverableWorkspace> {
+  const response = await fetch(
+    `${getApiBaseUrl()}/deliverables/${deliverableId}/revisions/${revisionId}/rollback`,
+    {
+      method: "POST",
+    },
+  );
   return parseResponse<DeliverableWorkspace>(response);
 }
 

@@ -25,6 +25,11 @@ export type DeliverableLifecycleStatus =
   | "pending_confirmation"
   | "final"
   | "archived";
+export type MatterWorkspaceSyncState =
+  | "pending_sync"
+  | "syncing"
+  | "sync_failed"
+  | "needs_review";
 
 export interface MatterWorkspaceRecord {
   title: string;
@@ -33,6 +38,10 @@ export interface MatterWorkspaceRecord {
   contentSections: MatterWorkspaceContentSections;
   updatedAt: string;
   persistenceSource?: "local-fallback";
+  syncState?: MatterWorkspaceSyncState;
+  baseRemoteUpdatedAt?: string | null;
+  lastSyncAttemptAt?: string | null;
+  lastSyncError?: string | null;
 }
 
 export interface AgentManagerState {

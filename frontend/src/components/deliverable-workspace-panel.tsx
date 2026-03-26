@@ -9,6 +9,7 @@ import {
   exportDeliverableMarkdown,
   getDeliverableWorkspace,
   publishDeliverableRelease,
+  rollbackDeliverableContentRevision,
 } from "@/lib/api";
 import {
   assessTaskReadiness,
@@ -24,7 +25,7 @@ import {
   buildRiskCards,
 } from "@/lib/advisory-workflow";
 import { truncateText } from "@/lib/text-format";
-import type { DeliverableWorkspace } from "@/lib/types";
+import type { DeliverableContentRevision, DeliverableWorkspace } from "@/lib/types";
 import {
   formatDisplayDate,
   labelForAgentId,
@@ -148,11 +149,54 @@ function buildDeliverableEventDetail(
   if (event.event_type === "published") {
     return publishNote || "已建立正式發布紀錄與 release artifact。";
   }
+  if (event.event_type === "content_rolled_back" && changedSections.length > 0) {
+    return `回退區塊：${changedSections.join("、")}`;
+  }
   if (event.event_type === "content_updated" && changedSections.length > 0) {
     return `更新區塊：${changedSections.join("、")}`;
   }
 
   return "";
+}
+
+function labelForContentRevisionSource(source: string) {
+  if (source === "rollback") {
+    return "回退修訂";
+  }
+  if (source === "runtime_backfill") {
+    return "基線回填";
+  }
+  return "手動編修";
+}
+
+function labelForContentDiffChangeType(changeType: string) {
+  if (changeType === "added") {
+    return "新增";
+  }
+  if (changeType === "cleared") {
+    return "清空";
+  }
+  return "更新";
+}
+
+function revisionMatchesCurrentContent(
+  revision: DeliverableContentRevision,
+  workspace: DeliverableWorkspace,
+) {
+  return JSON.stringify(revision.snapshot) === JSON.stringify(workspace.content_sections);
+}
+
+function normalizeFormalDeliverableError(error: unknown, defaultMessage: string) {
+  const status = (error as Error & { status?: number }).status;
+  if (typeof status === "number" && status < 500 && error instanceof Error) {
+    return error.message;
+  }
+
+  if (error instanceof Error && error.message && error.message !== "Failed to fetch") {
+    return `${error.message} 這次正式操作沒有改寫本機假資料，請在後端恢復後重試。`;
+  }
+
+  return `${defaultMessage} 後端目前不可用；這次正式操作沒有改寫本機假資料，請在服務恢復後重試。`;
 }
 
 export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: string }) {
@@ -183,7 +227,9 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
     | { kind: "save"; status?: DeliverableLifecycleStatus }
     | { kind: "publish" }
     | { kind: "export"; format: "markdown" | "docx" }
+    | { kind: "rollback"; revisionId: string }
   >(null);
+  const [rollingBackRevisionId, setRollingBackRevisionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -199,6 +245,10 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
         setLoading(false);
       }
     })();
+  }, [deliverableId]);
+
+  useEffect(() => {
+    setDraftPublishNote("");
   }, [deliverableId]);
 
   useEffect(() => {
@@ -221,7 +271,6 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
     setDraftStatus(defaultStatus);
     setDraftVersionTag(workspace.deliverable.version_tag || `v${workspace.deliverable.version}`);
     setDraftEventNote("");
-    setDraftPublishNote("");
     setDraftContentSections({
       executive_summary: nextResolvedSections.executive_summary,
       recommendations: joinLineItems(nextResolvedSections.recommendations),
@@ -272,6 +321,14 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const effectiveRisks = resolvedSections?.risks || [];
   const effectiveActionItems = resolvedSections?.action_items || [];
   const effectiveEvidenceBasis = resolvedSections?.evidence_basis || [];
+  const latestContentRevision = workspace?.content_revisions[0] ?? null;
+  const latestPublishRecord = workspace?.publish_records[0] ?? null;
+  const hasUnpublishedContentChanges = Boolean(
+    latestContentRevision &&
+      latestPublishRecord &&
+      new Date(latestContentRevision.created_at).getTime() >
+        new Date(latestPublishRecord.created_at).getTime(),
+  );
   const hasUnsavedChanges = Boolean(
     workspace &&
       resolvedSections &&
@@ -321,7 +378,6 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
       setDraftStatus(result.workspace.deliverable.status as DeliverableLifecycleStatus);
       setDraftVersionTag(result.workspace.deliverable.version_tag || nextVersionTag);
       setDraftEventNote("");
-      setDraftPublishNote("");
       setSaveTone("success");
       setSaveMessage(buildDeliverableSaveFeedback("remote", result.workspace));
       setRetryAction(null);
@@ -373,7 +429,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
       );
     } catch (exportError) {
       setExportTone("error");
-      setExportMessage(exportError instanceof Error ? exportError.message : "匯出交付物失敗。");
+      setExportMessage(normalizeFormalDeliverableError(exportError, "匯出交付物失敗。"));
       if (isRetriableWorkspaceError(exportError)) {
         setRetryAction({ kind: "export", format });
       }
@@ -416,14 +472,48 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
       );
     } catch (publishError) {
       setExportTone("error");
-      setExportMessage(
-        publishError instanceof Error ? publishError.message : "正式發布交付物失敗。",
-      );
+      setExportMessage(normalizeFormalDeliverableError(publishError, "正式發布交付物失敗。"));
       if (isRetriableWorkspaceError(publishError)) {
         setRetryAction({ kind: "publish" });
       }
     } finally {
       setIsPublishing(false);
+    }
+  }
+
+  async function handleRollbackRevision(revision: DeliverableContentRevision) {
+    if (hasUnsavedChanges) {
+      setSaveTone("error");
+      setSaveMessage("目前仍有未儲存變更；請先儲存正式內容，再進行 rollback。");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "要把交付物正文回退到這筆修訂嗎？系統會留下新的 rollback revision 與版本事件，既有發布紀錄不會消失。",
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setRollingBackRevisionId(revision.id);
+    setRetryAction(null);
+    try {
+      const result = await rollbackDeliverableContentRevision(deliverableId, revision.id);
+      setWorkspace(result);
+      setDraftStatus(result.deliverable.status as DeliverableLifecycleStatus);
+      setDraftVersionTag(result.deliverable.version_tag || draftVersionTag);
+      setDraftPublishNote("");
+      setDraftEventNote("");
+      setSaveTone("success");
+      setSaveMessage("已回退交付物正文，並留下新的 rollback revision 與版本事件。");
+    } catch (rollbackError) {
+      setSaveTone("error");
+      setSaveMessage(normalizeFormalDeliverableError(rollbackError, "回退交付物正文失敗。"));
+      if (isRetriableWorkspaceError(rollbackError)) {
+        setRetryAction({ kind: "rollback", revisionId: revision.id });
+      }
+    } finally {
+      setRollingBackRevisionId(null);
     }
   }
 
@@ -455,9 +545,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
       setExportMessage(`已下載 artifact ${result.fileName}。`);
     } catch (downloadError) {
       setExportTone("error");
-      setExportMessage(
-        downloadError instanceof Error ? downloadError.message : "下載 artifact 失敗。",
-      );
+      setExportMessage(normalizeFormalDeliverableError(downloadError, "下載 artifact 失敗。"));
     } finally {
       setActiveArtifactDownloadId(null);
     }
@@ -474,6 +562,13 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
     }
     if (retryAction.kind === "publish") {
       void handlePublishRelease();
+      return;
+    }
+    if (retryAction.kind === "rollback") {
+      const revision = workspace?.content_revisions.find((item) => item.id === retryAction.revisionId);
+      if (revision) {
+        void handleRollbackRevision(revision);
+      }
       return;
     }
     void handleExportEntry(retryAction.format);
@@ -591,11 +686,19 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                     <div className="detail-item">
                       <h3>發布紀錄</h3>
                       <p className="content-block">
-                        {workspace.publish_records[0]
-                          ? `${workspace.publish_records[0].version_tag}｜${formatDisplayDate(
-                              workspace.publish_records[0].created_at,
+                        {latestPublishRecord
+                          ? `${latestPublishRecord.version_tag}｜${formatDisplayDate(
+                              latestPublishRecord.created_at,
                             )}`
                           : "目前尚未建立正式發布紀錄。"}
+                      </p>
+                    </div>
+                    <div className="detail-item">
+                      <h3>正文 / 發布關係</h3>
+                      <p className="content-block">
+                        {hasUnpublishedContentChanges
+                          ? "最新正文修訂晚於最近一次正式發布；若要形成新的正式版，需再次發布。"
+                          : "目前正文與最近一次正式發布沒有額外的未發布差異。"}
                       </p>
                     </div>
                   </div>
@@ -945,6 +1048,9 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
               {hasUnsavedChanges ? (
                 <p className="muted-text">目前有未儲存變更；匯出會先要求你把內容落盤，正式發布則會直接把目前內容寫入後端並建立發布紀錄。</p>
               ) : null}
+              {hasUnpublishedContentChanges ? (
+                <p className="muted-text">最新正文修訂晚於最近一次正式發布；若要形成新的正式版本，請再次正式發布。</p>
+              ) : null}
               {saveMessage ? (
                 <p className={saveTone === "error" ? "error-text" : "success-text"}>
                   {saveMessage}
@@ -1286,6 +1392,60 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                     </div>
                   ) : null}
                 </div>
+              </section>
+
+              <section className="panel">
+                <div className="panel-header">
+                  <div>
+                    <h2 className="panel-title">正文修訂</h2>
+                    <p className="panel-copy">這裡只追摘要、建議、風險、行動項目與依據來源的正文演進，不和發布紀錄混在一起。</p>
+                  </div>
+                </div>
+                {workspace.content_revisions.length > 0 ? (
+                  <div className="detail-list">
+                    {workspace.content_revisions.map((revision) => (
+                      <div className="detail-item" key={revision.id}>
+                        <div className="meta-row">
+                          <span className="pill">{labelForContentRevisionSource(revision.source)}</span>
+                          <span>{revision.version_tag}</span>
+                          {revision.deliverable_status ? (
+                            <span>{labelForDeliverableStatus(revision.deliverable_status)}</span>
+                          ) : null}
+                          <span>{formatDisplayDate(revision.created_at)}</span>
+                        </div>
+                        <h3>{revision.revision_summary}</h3>
+                        {revision.diff_summary.length > 0 ? (
+                          <ul className="list-content">
+                            {revision.diff_summary.map((item) => (
+                              <li key={`${revision.id}-${item.section_key}`}>
+                                {labelForContentDiffChangeType(item.change_type)} {item.section_label}
+                                ：{item.previous_preview || "空白"} → {item.current_preview || "空白"}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="muted-text">這筆修訂目前沒有額外的 diff 摘要。</p>
+                        )}
+                        <div className="button-row" style={{ marginTop: "12px" }}>
+                          <button
+                            className="button-secondary"
+                            type="button"
+                            onClick={() => void handleRollbackRevision(revision)}
+                            disabled={
+                              hasUnsavedChanges ||
+                              rollingBackRevisionId === revision.id ||
+                              revisionMatchesCurrentContent(revision, workspace)
+                            }
+                          >
+                            {rollingBackRevisionId === revision.id ? "回退中..." : "回退到這一版"}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="empty-text">目前尚未建立正式正文修訂紀錄。</p>
+                )}
               </section>
 
               <section className="panel">

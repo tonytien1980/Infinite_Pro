@@ -156,6 +156,7 @@ const AGENT_TYPE_LABELS: Record<string, string> = {
 const DELIVERABLE_EVENT_LABELS: Record<string, string> = {
   draft_created: "建立草稿",
   content_updated: "更新內容",
+  content_rolled_back: "回退正文",
   status_changed: "狀態切換",
   version_tag_updated: "版本標記更新",
   exported: "匯出交付物",

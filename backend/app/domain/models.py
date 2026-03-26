@@ -178,6 +178,30 @@ class MatterWorkspace(Base):
         cascade="all, delete-orphan",
         order_by="MatterWorkspaceTaskLink.created_at",
     )
+    content_revisions: Mapped[list["MatterContentRevision"]] = relationship(
+        back_populates="matter_workspace",
+        cascade="all, delete-orphan",
+        order_by="MatterContentRevision.created_at.desc()",
+    )
+
+
+class MatterContentRevision(Base):
+    __tablename__ = "matter_content_revisions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    matter_workspace_id: Mapped[str] = mapped_column(
+        ForeignKey("matter_workspaces.id"),
+        nullable=False,
+    )
+    source: Mapped[str] = mapped_column(String(50), default="manual_edit")
+    revision_summary: Mapped[str] = mapped_column(Text, default="")
+    changed_sections: Mapped[list[str]] = mapped_column(JSON, default=list)
+    diff_summary: Mapped[list[dict]] = mapped_column(JSON, default=list)
+    snapshot: Mapped[dict] = mapped_column(JSON, default=dict)
+    rollback_target_revision_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    matter_workspace: Mapped["MatterWorkspace"] = relationship(back_populates="content_revisions")
 
 
 class MatterWorkspaceTaskLink(Base):
@@ -530,6 +554,11 @@ class Deliverable(Base):
         cascade="all, delete-orphan",
         order_by="DeliverablePublishRecord.created_at.desc()",
     )
+    content_revisions: Mapped[list["DeliverableContentRevision"]] = relationship(
+        back_populates="deliverable",
+        cascade="all, delete-orphan",
+        order_by="DeliverableContentRevision.created_at.desc()",
+    )
 
 
 class DeliverableVersionEvent(Base):
@@ -554,6 +583,27 @@ class DeliverableVersionEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
     deliverable: Mapped["Deliverable"] = relationship(back_populates="version_events")
+    task: Mapped["Task"] = relationship()
+
+
+class DeliverableContentRevision(Base):
+    __tablename__ = "deliverable_content_revisions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    deliverable_id: Mapped[str] = mapped_column(ForeignKey("deliverables.id"), nullable=False)
+    task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    source: Mapped[str] = mapped_column(String(50), default="manual_edit")
+    revision_summary: Mapped[str] = mapped_column(Text, default="")
+    changed_sections: Mapped[list[str]] = mapped_column(JSON, default=list)
+    diff_summary: Mapped[list[dict]] = mapped_column(JSON, default=list)
+    snapshot: Mapped[dict] = mapped_column(JSON, default=dict)
+    version_tag: Mapped[str] = mapped_column(String(50), default="")
+    deliverable_status: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    source_version_event_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    rollback_target_revision_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    deliverable: Mapped["Deliverable"] = relationship(back_populates="content_revisions")
     task: Mapped["Task"] = relationship()
 
 
