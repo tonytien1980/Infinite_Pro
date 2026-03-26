@@ -186,6 +186,13 @@ Infinite Pro 的工作主體不應只是 task。
 ### 6.1 Intake surface
 用來接住原始問題、補充資料、外部資料策略與進階背景。
 
+在目前單人正式 beta 階段，這個工作面已正式包含：
+- `一句話問題`
+- `單文件進件`
+- `多材料案件`
+- 建立後回到同一條 matter / source material / evidence / deliverable 主鏈
+- matter-level 補件入口，而不是只存在一次性上傳流程
+
 ### 6.2 Matter / Engagement workspace
 用來表示這次顧問案件本身與其工作脈絡。
 
@@ -193,6 +200,7 @@ Infinite Pro 的工作主體不應只是 task。
 - `Client / Engagement / Workstream / DecisionContext` 已成為案件工作面的主體
 - 顧問可以從 workbench 進入 matter workspace，再回到相關 task / deliverable
 - 同一個案件世界下的 related tasks、recent deliverables、related artifacts / source materials 已具備最小跨任務連續性
+- matter 正文與摘要已具備 remote-first 正式 persistence；後端暫時不可用時，才進入明示的 degraded-mode local fallback 與 re-sync
 - 這不再只是 task detail 的 object strip，而是正式案件工作面
 
 ### 6.3 Decision workspace
@@ -214,6 +222,7 @@ Infinite Pro 的工作主體不應只是 task。
 - `Deliverable` 已成為正式工作面的主體，而不是 task detail 裡的結果區塊
 - 顧問可以從 matter workspace、task detail 與 artifact / evidence workspace 進入正式 deliverable workspace
 - deliverable class、evidence basis、ontology linkage、limitations 與適用範圍已成為正式工作面責任
+- deliverable 正文、revision history、rollback、version events、publish records 與 artifact registry 已成為正式工作面責任
 - 這不再只是 generic result page，而是正式交付物工作面
 
 ### 6.6 System trace surface
@@ -235,11 +244,15 @@ Infinite Pro 的正式系統流可白話理解為：
 6. 調度適合的 reasoning agents / specialist agents
 7. 收斂成 `Insight / Risk / Option / Recommendation / ActionItem`
 8. 形成 `Deliverable`
-9. 保存 history、supporting context 與 traceability
+9. 形成 revision、version event、publish / artifact record 與正式 history
+10. 保存 supporting context 與 traceability
 
 這條鏈代表：
 
 > Infinite Pro 不只是回答問題，而是在完成一段正式的顧問工作流程。
+
+若施工觸及 intake / storage / retention / purge，應同步參考 `docs/11_intake_storage_architecture.md`。
+若施工觸及正文 persistence、revision、rollback、publish、artifact registry、fallback 或 re-sync，應同步參考 `docs/12_runtime_persistence_and_release_integrity.md`。
 
 ---
 

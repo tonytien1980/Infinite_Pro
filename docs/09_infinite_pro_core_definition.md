@@ -60,6 +60,7 @@ Infinite Pro 的核心原則是：
    - 介面應反映顧問在操作的 objects、relationships、actions、workflows 與 deliverables，而不是 generic AI workspace。
    - 前端資訊架構、頁面角色、中文化規則與 UX 驗收原則，正式由 `docs/10_frontend_information_architecture_and_ux_principles.md` 承接。
    - 正式進件模式、multi-source ingestion、storage / retention / purge 邊界，正式由 `docs/11_intake_storage_architecture.md` 承接。
+   - 正文 persistence、revision、rollback、publish / artifact records、fallback / degraded mode / re-sync 邊界，正式由 `docs/12_runtime_persistence_and_release_integrity.md` 承接。
 
 ---
 
@@ -249,6 +250,19 @@ Infinite Pro 的工作世界至少應圍繞以下主鏈理解：
 - object storage 負責 raw materials、derived extracts、released artifacts
 - raw intake file 不預設永久保存
 - publish / artifact / audit record 不可跟 raw file retention 混成同一層
+
+### Persistence / Release Integrity 的正式地位
+在目前單人正式 beta 階段，以下也應被視為正式 architecture responsibility：
+- matter metadata 與正文的 remote-first persistence
+- matter degraded mode 的 local fallback、sync state 與 re-sync
+- deliverable 正文、revision、rollback、version events、publish records 與 artifact registry
+- revision / version event / publish record 三層明確分工
+
+正式規則是：
+- matter degraded mode 只可作為明示 fallback，不可假裝正式成功
+- deliverable 正文、發布與正式 artifact 流程必須 fail-closed
+- 正文 revision 不等於 publish record
+- export event 不等於正式發布
 
 ### LLM / Provider
 負責語言理解、推理與生成，但不應取代 ontology、Host 與 workbench 的結構化治理角色。

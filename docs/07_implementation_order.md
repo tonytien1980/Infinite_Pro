@@ -83,6 +83,7 @@ Infinite Pro 的施工原則應改為：
 - retention / purge metadata 與成本控制邊界
 
 若施工觸及 intake、source material、artifact storage、retention 或 purge lifecycle，應同步參考 `docs/11_intake_storage_architecture.md`。
+若施工觸及正文 persistence、revision、rollback、publish、artifact registry、fallback、degraded mode 或 sync recovery，應同步參考 `docs/12_runtime_persistence_and_release_integrity.md`。
 
 ### Wave 3：Host orchestration reset
 把 Host 的 task framing、decision context framing、routing 與 readiness 治理正式接起來。
@@ -166,6 +167,7 @@ Infinite Pro 的施工原則應改為：
 - engagement / workstream views
 - artifact work surfaces
 - deliverable work surfaces
+- revision / rollback / publish 與 degraded-mode UX 收斂
 
 前端資訊架構、頁面角色與 UX 驗收原則，現在已由 `docs/10_frontend_information_architecture_and_ux_principles.md` 正式承接。
 後續 UI deepen 應以該文件作為正式治理依據，而不是再以零散頁面調整或單點 polish 方式推進。

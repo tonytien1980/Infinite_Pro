@@ -49,13 +49,16 @@
 8. `docs/05_agent_architecture.md`
 9. `docs/06_system_architecture.md`
 10. `docs/07_implementation_order.md`
-11. `AGENTS.md`
+11. `docs/11_intake_storage_architecture.md` when touching intake / source / storage / retention
+12. `docs/12_runtime_persistence_and_release_integrity.md` when touching revision / publish / fallback / sync recovery
+13. `AGENTS.md`
 
 如果想法與上述文件衝突，以文件為準。
 
 另外，前端改版不得再把 Infinite Pro 做回 generic AI workspace。
 首頁、導覽、工作面、管理面、歷史紀錄與繁體中文化規則，現在正式由 `docs/10_frontend_information_architecture_and_ux_principles.md` 承接。
 若施工觸及三種進件模式、multi-source ingestion、storage / retention / purge 邊界，需補讀 `docs/11_intake_storage_architecture.md`。
+若施工觸及正文 persistence、revision、rollback、publish / artifact records、fallback、degraded mode 或 sync recovery，需補讀 `docs/12_runtime_persistence_and_release_integrity.md`。
 
 ---
 
@@ -255,6 +258,16 @@ Codex 應把它理解為已完成的正式交付物工作面，至少承接：
   - derived storage
   - release artifacts
 - retention / purge policy、metadata-only / limited support、digest / dedupe boundary 與成本控制邊界，現在已由 `docs/11_intake_storage_architecture.md` 正式承接
+
+### 7.8 正式 persistence / revision / publish 邊界
+在目前單人正式 beta 範圍內，Codex 也應把以下能力視為已成立的正式 runtime 邊界：
+
+- matter metadata 與正文採 remote-first persistence
+- matter degraded mode 的 local fallback、sync state 與 re-sync 規則
+- deliverable metadata、正文、revision、rollback、version events、publish records、artifact registry 與正式匯出採 fail-closed 正式路徑
+- revision / version event / publish record 三層分工不可混淆
+
+上述規則現在已由 `docs/12_runtime_persistence_and_release_integrity.md` 正式承接。
 
 ---
 

@@ -291,6 +291,7 @@ UI 不是只做表單與結果頁，而是正式工作面。
 - `Client / Engagement / Workstream / DecisionContext` 已具備 canonical workspace identity
 - workspace 不再只是 task list 的包裝，而是案件世界的正式導航骨架
 - cross-task / cross-deliverable continuity 已屬於正式工作面責任，而不是零散頁面邏輯
+- matter metadata 與正文已是 remote-first 正式 persistence；degraded mode 只作為明示 fallback 與待同步保底
 
 在單人顧問完整工作台範圍內，`Artifact / Evidence Workspace` 也應視為已完成的正式工作面：
 - `Artifact / SourceMaterial / Evidence` 已具備 canonical workspace identity 與獨立工作面入口
@@ -302,6 +303,7 @@ UI 不是只做表單與結果頁，而是正式工作面。
 - `Deliverable` 已具備 canonical workspace identity 與獨立工作面入口
 - deliverable class、confidence / applicability、limitations、high-impact gaps 已成為正式工作面責任
 - deliverable 對 matter / decision context / source / evidence / recommendation / risk / action 的回鏈已可被正式回看
+- deliverable 正文、revision、rollback、version events、publish / artifact records 與正式匯出都已屬於正式 runtime responsibility
 - 它不是 generic result page，也不是 task detail 的附帶閱讀區
 
 ### Extension Manager 的正式位置
@@ -324,8 +326,12 @@ UI 不是只做表單與結果頁，而是正式工作面。
 ### 5.1 Source & Ingestion
 - file ingestion
 - URL ingestion
+- three formal intake modes
+- matter-level supplement chain
 - source normalization
 - artifact creation
+- raw / derived / released storage separation
+- retention / purge metadata
 
 ### 5.2 Evidence Pipeline
 - evidence extraction
@@ -339,17 +345,26 @@ UI 不是只做表單與結果頁，而是正式工作面。
 
 ### 5.4 Persistence / History
 - structured state persistence
+- content persistence
+- revision history
 - deliverable history
+- publish / artifact records
 - task / matter history
 - traceability support
 
-### 5.5 Traceability
+### 5.5 Failure Governance / Sync Recovery
+- fail-closed boundaries for正式 deliverable content / publish / artifact paths
+- degraded mode boundaries for matter local fallback
+- manual re-sync / discard local fallback flow
+- retryable remote operations without fake local success
+
+### 5.6 Traceability
 - source to evidence
 - evidence to recommendation
 - recommendation to action item
 - decision context to deliverable
 
-### 5.6 Registry / Resolver Foundation
+### 5.7 Registry / Resolver Foundation
 - capability archetype taxonomy
 - pack registry / resolver
 - agent registry / resolver

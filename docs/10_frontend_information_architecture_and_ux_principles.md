@@ -189,6 +189,8 @@ Infinite Pro 的正式第一層主導覽應為：
 - 承接 related tasks、related deliverables、related artifacts / source materials 的最小連續性
 - 讓顧問感受到自己是在操作案件世界，而不是一堆彼此孤立的 task detail
 - 在 `來源與證據` 頁籤中，至少要看見材料數量、補件入口，以及少量最近材料與其格式 / retention 狀態
+- matter degraded mode 若發生，必須有清楚的 `待同步 / 同步中 / 同步失敗 / 需要人工確認` 狀態提示
+- matter 正文的 revision 歷史與 rollback 入口，應位於案件 detail workspace 內，而不是藏在 debug metadata
 
 ### C. 交付物
 
@@ -205,6 +207,8 @@ Infinite Pro 的正式第一層主導覽應為：
 正式責任：
 - 呈現 deliverable class、適用範圍、限制與可信度
 - 呈現對 matter、decision context、evidence、recommendation、risk、action 的正式回鏈
+- 清楚區分正文 revision、version event、publish record 與 artifact record
+- 正式匯出 / 發布按鈕若失敗，必須明確報錯；不可做成本機假成功
 
 ### D. 代理管理
 
@@ -278,6 +282,10 @@ Infinite Pro 的正式第一層主導覽應為：
 
 6. **輔助說明不要形成第二條主內容流**
    - 提示、補充說明與治理 notes 應支援主內容，不可反客為主
+
+7. **degraded mode 與正式成功必須可被區分**
+   - 若內容只是本機 fallback、待同步或需要人工確認，不可用看起來像正式保存成功的文案
+   - 對 fail-closed 的正式發布 / 匯出 / 交付物正文操作，錯誤提示應比漂亮文案更重要
 
 7. **介面應偏正式產品感**
    - 不應呈現聊天工具拼裝感

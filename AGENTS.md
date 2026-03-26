@@ -25,11 +25,15 @@ Before making any structural, product, ontology, agent, or UI decisions, read th
 9. `docs/06_system_architecture.md`
 10. `docs/07_implementation_order.md`
 11. `docs/08_codex_handoff.md`
+12. `docs/11_intake_storage_architecture.md` when touching intake, source materials, storage, retention, purge, or artifact file lifecycle
+13. `docs/12_runtime_persistence_and_release_integrity.md` when touching revision, rollback, publish, artifact registry, fallback, degraded mode, or sync recovery
 
 If implementation ideas conflict with the documents, prefer the documents over assumptions.
 
 If naming, product positioning, ontology modeling, or product drift questions appear, treat `docs/09_infinite_pro_core_definition.md` as a high-priority guide.
 If homepage, navigation, workspace surface, management surface, history page, or Traditional Chinese UI copy decisions appear, treat `docs/10_frontend_information_architecture_and_ux_principles.md` as the primary governance guide.
+If intake modes, source material ingestion, storage boundaries, retention, or purge lifecycle questions appear, treat `docs/11_intake_storage_architecture.md` as the primary governance guide.
+If正文 persistence、revision、rollback、publish / artifact record、fail-closed、degraded mode、re-sync 邊界 questions appear, treat `docs/12_runtime_persistence_and_release_integrity.md` as the primary governance guide.
 
 ---
 

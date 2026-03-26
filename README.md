@@ -12,7 +12,7 @@ That means:
 - capability boundaries should **not** be artificially reduced into a smaller product definition
 - multi-user, multi-company, multi-tenant, and team-governance concerns are later system layers
 
-The highest-priority product definition lives in [`docs/09_infinite_pro_core_definition.md`](/Users/tonytien/Desktop/Infinite%20Pro/docs/09_infinite_pro_core_definition.md). Governance and implementation documents in [`docs/02_product_scope.md`](/Users/tonytien/Desktop/Infinite%20Pro/docs/02_product_scope.md) through [`docs/08_codex_handoff.md`](/Users/tonytien/Desktop/Infinite%20Pro/docs/08_codex_handoff.md) should be read as the official full-scope planning baseline.
+The highest-priority product definition lives in [`docs/09_infinite_pro_core_definition.md`](/Users/tonytien/Desktop/Infinite%20Pro/docs/09_infinite_pro_core_definition.md). Governance and implementation documents in [`docs/02_product_scope.md`](/Users/tonytien/Desktop/Infinite%20Pro/docs/02_product_scope.md) through [`docs/12_runtime_persistence_and_release_integrity.md`](/Users/tonytien/Desktop/Infinite%20Pro/docs/12_runtime_persistence_and_release_integrity.md) should be read as the official full-scope planning baseline.
 
 ## Product positioning
 
@@ -171,6 +171,10 @@ Within the single-consultant scope, the `Deliverable Workspace` should now also 
 - consultants can move from matter workspace, task detail, and artifact/evidence workspace into a formal deliverable work surface
 - deliverable class, evidence basis, ontology linkage, limitations, and applicability are visible as first-class workbench responsibilities rather than being buried in task-result blobs
 
+Two additional runtime governance files now matter for day-to-day development:
+- [`docs/11_intake_storage_architecture.md`](/Users/tonytien/Desktop/Infinite%20Pro/docs/11_intake_storage_architecture.md) for intake modes, source materials, storage, retention, purge, and storage cost boundaries
+- [`docs/12_runtime_persistence_and_release_integrity.md`](/Users/tonytien/Desktop/Infinite%20Pro/docs/12_runtime_persistence_and_release_integrity.md) for revision history, rollback, publish / artifact records, fail-closed rules, and degraded-mode re-sync
+
 ## Core ontology objects
 
 The system should be planned around objects such as:
@@ -210,7 +214,17 @@ The repository currently contains a working early implementation slice within th
 - a formal `Matter / Engagement Workspace` for single-consultant case continuity
 - a formal `Artifact / Evidence Workspace` for source, evidence, support-chain, and gap governance
 - a formal `Deliverable Workspace` for deliverable identity, linkage, limitations, and continuity
+- three formal intake modes on `/new`:
+  - `一句話問題`
+  - `單文件進件`
+  - `多材料案件`
+- matter-level supplement flow for additional files, URLs, and pasted text
+- source material metadata with support level, ingest strategy, retention, purge state, and availability state
+- storage separation for raw intake files, derived extracts, and released artifacts
+- matter正文 remote-first persistence with degraded-mode local fallback and manual re-sync
+- deliverable正文 remote-only persistence with revision history, rollback, version events, publish records, and artifact registry
 - structured deliverable rendering
+- Markdown and DOCX artifact export with backend artifact records
 - provider abstraction with `mock` and `openai`
 - Traditional Chinese as the default UI language
 
@@ -227,7 +241,10 @@ The implementation is **not yet complete relative to the full-scope product boun
 ├── docs/
 ├── frontend/
 ├── backend/
-└── storage/uploads/
+└── storage/
+    ├── uploads/
+    ├── derived/
+    └── releases/
 ```
 
 ## Environment variables
@@ -244,6 +261,8 @@ Copy [`.env.example`](/Users/tonytien/Desktop/Infinite%20Pro/.env.example) to `.
 | `FRONTEND_PORT` | Host port for Next.js | `3000` |
 | `DATABASE_URL` | Backend SQLAlchemy connection string | `postgresql+psycopg://postgres:postgres@db:5432/ai_advisory_os` |
 | `UPLOAD_DIR` | Backend upload storage path inside the container | `/app/storage/uploads` |
+| `DERIVED_DIR` | Backend derived extract storage path inside the container | `/app/storage/derived` |
+| `RELEASE_DIR` | Backend release artifact storage path inside the container | `/app/storage/releases` |
 | `MODEL_PROVIDER` | Active model router provider | `mock` |
 | `OPENAI_API_KEY` | Backend-only API key for the OpenAI provider | empty |
 | `OPENAI_MODEL` | OpenAI model name used when `MODEL_PROVIDER=openai` | `gpt-4o-mini` |
@@ -251,12 +270,18 @@ Copy [`.env.example`](/Users/tonytien/Desktop/Infinite%20Pro/.env.example) to `.
 | `OPENAI_TIMEOUT_SECONDS` | Timeout for OpenAI API calls in seconds | `60` |
 | `MODEL_PROVIDER_FAILURE_MODE` | Optional test-only failure switch for the mock provider | empty |
 | `CORS_ORIGINS` | Allowed frontend origins | `http://localhost:3000,http://127.0.0.1:3000` |
+| `RAW_UPLOAD_RETENTION_DAYS` | Default retention for raw intake files | `30` |
+| `ACTIVE_RAW_UPLOAD_RETENTION_DAYS` | Extended raw retention for active matters | `90` |
+| `DERIVED_RETENTION_DAYS` | Retention for derived extracts | `180` |
+| `RELEASE_RETENTION_DAYS` | Retention for release artifacts | `365` |
+| `FAILED_UPLOAD_RETENTION_DAYS` | Retention for failed or unfinished uploads | `7` |
 | `NEXT_PUBLIC_API_BASE_URL` | Frontend API base URL | `http://localhost:8000/api/v1` |
 
 Notes:
 - The default `DATABASE_URL` is Docker-oriented because the backend container reaches PostgreSQL at host `db`.
-- The default `UPLOAD_DIR=/app/storage/uploads` is also Docker-oriented.
+- The default `UPLOAD_DIR=/app/storage/uploads`, `DERIVED_DIR=/app/storage/derived`, and `RELEASE_DIR=/app/storage/releases` are also Docker-oriented.
 - If `MODEL_PROVIDER=openai` but `OPENAI_API_KEY` is empty, the backend logs a warning and falls back to the mock provider automatically.
+- Retention days define purge boundaries and availability states, but they do not yet schedule automatic purge jobs by themselves.
 
 ## Model provider switching
 
@@ -335,11 +360,17 @@ npm run typecheck
 - local HTTP through-end acceptance for specialist and multi-agent paths
 - Host remains the orchestration center for multi-agent runs
 - upload ingestion creates usable `Evidence`
+- `/new` three-mode intake flow and matter-level supplement flow
+- deliverable publish / artifact record path
+- matter degraded-mode fallback and manual re-sync path
 
 ### Not fully verified as a production deployment posture
 - hardened external deployment
 - access control for public internet exposure
 - multi-user / multi-tenant system layers
+- production-grade object storage serving / signed URLs
+- scheduled purge / lifecycle jobs
+- OCR-heavy parsing and scanned-PDF ingestion at scale
 
 ## Governance note
 
