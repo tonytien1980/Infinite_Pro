@@ -6,7 +6,11 @@ import { useEffect, useMemo, useState } from "react";
 import { buildTaskListWorkspaceSummary } from "@/lib/advisory-workflow";
 import { getMatterWorkspace } from "@/lib/api";
 import { truncateText } from "@/lib/text-format";
-import type { MatterWorkspace, TaskListItem } from "@/lib/types";
+import type {
+  MatterWorkspace,
+  MatterWorkspaceContentSections,
+  TaskListItem,
+} from "@/lib/types";
 import {
   formatDisplayDate,
   labelForDeliverableClass,
@@ -15,12 +19,13 @@ import {
 } from "@/lib/ui-labels";
 import {
   type MatterLifecycleStatus,
+  type MatterWorkspaceRecord,
   useMatterWorkspaceRecords,
 } from "@/lib/workbench-store";
 import {
   buildMatterSaveFeedback,
   isLocalFallbackMatterRecord,
-  persistMatterWorkspaceMetadata,
+  persistMatterWorkspace,
 } from "@/lib/workspace-persistence";
 
 type MatterTab = "overview" | "decision" | "evidence" | "deliverables" | "history";
@@ -92,6 +97,40 @@ function buildNextStepNotes(matter: MatterWorkspace, evidenceCount: number) {
   return Array.from(new Set(nextSteps)).slice(0, 4);
 }
 
+function splitMultilineContent(value: string) {
+  return value
+    .split(/\n+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function buildResolvedMatterContentSections(
+  matter: MatterWorkspace,
+  fallbackRecord?: MatterWorkspaceRecord | null,
+): MatterWorkspaceContentSections {
+  const evidenceCount = matter.related_tasks.reduce(
+    (total, task) => total + task.evidence_count,
+    0,
+  );
+  const storedSections = fallbackRecord?.contentSections || matter.content_sections;
+
+  return {
+    core_question:
+      storedSections.core_question ||
+      matter.current_decision_context?.judgment_to_make ||
+      matter.current_decision_context?.title ||
+      matter.summary.current_decision_context_title ||
+      "",
+    analysis_focus:
+      storedSections.analysis_focus || buildAnalysisFocus(matter).join("\n"),
+    constraints_and_risks:
+      storedSections.constraints_and_risks ||
+      buildConstraintNotes(matter, evidenceCount).join("\n"),
+    next_steps:
+      storedSections.next_steps || buildNextStepNotes(matter, evidenceCount).join("\n"),
+  };
+}
+
 export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
   const [matter, setMatter] = useState<MatterWorkspace | null>(null);
   const [activeTab, setActiveTab] = useState<MatterTab>("overview");
@@ -99,8 +138,14 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
   const [draftTitle, setDraftTitle] = useState("");
   const [draftSummary, setDraftSummary] = useState("");
   const [draftStatus, setDraftStatus] = useState<MatterLifecycleStatus>("active");
+  const [draftContentSections, setDraftContentSections] = useState<MatterWorkspaceContentSections>({
+    core_question: "",
+    analysis_focus: "",
+    constraints_and_risks: "",
+    next_steps: "",
+  });
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
-  const [saveMode, setSaveMode] = useState<"remote" | "local-fallback" | null>(null);
+  const [saveTone, setSaveTone] = useState<"success" | "warning" | "error" | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -135,6 +180,7 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
         "",
     );
     setDraftStatus(fallbackRecord?.status || defaultMatterStatus(matter));
+    setDraftContentSections(buildResolvedMatterContentSections(matter, fallbackRecord));
   }, [fallbackRecord, matter, matterId]);
 
   const matterStatus = matter
@@ -169,38 +215,71 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
   const nextStepNotes = matter ? buildNextStepNotes(matter, evidenceCount) : [];
   const recentTask = matter?.related_tasks[0] ?? null;
   const recentTaskSummary = recentTask ? buildTaskListWorkspaceSummary(recentTask) : null;
+  const resolvedContentSections = matter
+    ? buildResolvedMatterContentSections(matter, fallbackRecord)
+    : draftContentSections;
+  const coreQuestion =
+    resolvedContentSections.core_question ||
+    matter?.current_decision_context?.judgment_to_make ||
+    matter?.summary.current_decision_context_title ||
+    "目前尚未形成清楚的決策問題。";
+  const analysisFocusItems =
+    splitMultilineContent(resolvedContentSections.analysis_focus).length > 0
+      ? splitMultilineContent(resolvedContentSections.analysis_focus)
+      : analysisFocus;
+  const constraintItems =
+    splitMultilineContent(resolvedContentSections.constraints_and_risks).length > 0
+      ? splitMultilineContent(resolvedContentSections.constraints_and_risks)
+      : constraintNotes;
+  const nextStepItems =
+    splitMultilineContent(resolvedContentSections.next_steps).length > 0
+      ? splitMultilineContent(resolvedContentSections.next_steps)
+      : nextStepNotes;
 
   async function handleSave() {
     if (!matter) {
       return;
     }
 
-    const payload = {
-      title: draftTitle.trim() || matter.summary.title,
-      summary: draftSummary.trim(),
-      status: draftStatus,
-    } as const;
+    try {
+      const payload = {
+        title: draftTitle.trim() || matter.summary.title,
+        summary: draftSummary.trim(),
+        status: draftStatus,
+        content_sections: {
+          core_question: draftContentSections.core_question.trim(),
+          analysis_focus: draftContentSections.analysis_focus.trim(),
+          constraints_and_risks: draftContentSections.constraints_and_risks.trim(),
+          next_steps: draftContentSections.next_steps.trim(),
+        },
+      } as const;
 
-    const result = await persistMatterWorkspaceMetadata(matterId, payload);
+      const result = await persistMatterWorkspace(matterId, payload);
 
-    if (result.source === "remote") {
-      setMatter(result.workspace);
-      setMatterRecords((current) => {
-        const next = { ...current };
-        delete next[matterId];
-        return next;
-      });
-      setSaveMode("remote");
-      setSaveMessage(buildMatterSaveFeedback("remote", result.workspace));
-      return;
+      if (result.source === "remote") {
+        setMatter(result.workspace);
+        setMatterRecords((current) => {
+          const next = { ...current };
+          delete next[matterId];
+          return next;
+        });
+        setSaveTone("success");
+        setSaveMessage(buildMatterSaveFeedback("remote", result.workspace));
+        return;
+      }
+
+      setMatterRecords((current) => ({
+        ...current,
+        [matterId]: result.fallbackRecord,
+      }));
+      setSaveTone("warning");
+      setSaveMessage(buildMatterSaveFeedback("local-fallback"));
+    } catch (saveError) {
+      setSaveTone("error");
+      setSaveMessage(
+        saveError instanceof Error ? saveError.message : "儲存案件工作內容失敗。",
+      );
     }
-
-    setMatterRecords((current) => ({
-      ...current,
-      [matterId]: result.fallbackRecord,
-    }));
-    setSaveMode("local-fallback");
-    setSaveMessage(buildMatterSaveFeedback("local-fallback"));
   }
 
   return (
@@ -240,12 +319,7 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
 
                 <div className="deliverable-focus-card workspace-focus-card">
                   <span className="pill">目前主線</span>
-                  <p className="deliverable-focus-lead">
-                    {matter.current_decision_context?.judgment_to_make ||
-                      matter.current_decision_context?.title ||
-                      matter.summary.current_decision_context_title ||
-                      "目前尚未形成清楚的決策問題。"}
-                  </p>
+                  <p className="deliverable-focus-lead">{coreQuestion}</p>
                 </div>
 
                 <div className="summary-grid" style={{ marginTop: "16px" }}>
@@ -255,9 +329,9 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
                   </div>
                   <div className="section-card">
                     <h4>分析焦點</h4>
-                    {analysisFocus.length > 0 ? (
+                    {analysisFocusItems.length > 0 ? (
                       <ul className="list-content">
-                        {analysisFocus.slice(0, 4).map((item) => (
+                        {analysisFocusItems.slice(0, 4).map((item) => (
                           <li key={item}>{item}</li>
                         ))}
                       </ul>
@@ -267,9 +341,9 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
                   </div>
                   <div className="section-card">
                     <h4>下一步</h4>
-                    {nextStepNotes.length > 0 ? (
+                    {nextStepItems.length > 0 ? (
                       <ul className="list-content">
-                        {nextStepNotes.map((item) => (
+                        {nextStepItems.map((item) => (
                           <li key={item}>{item}</li>
                         ))}
                       </ul>
@@ -330,9 +404,9 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
 
                 <div className="section-card">
                   <h4>主要限制 / 風險</h4>
-                  {constraintNotes.length > 0 ? (
+                  {constraintItems.length > 0 ? (
                     <ul className="list-content">
-                      {constraintNotes.map((item) => (
+                      {constraintItems.map((item) => (
                         <li key={item}>{item}</li>
                       ))}
                     </ul>
@@ -419,7 +493,15 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
                     </button>
                   </div>
                   {saveMessage ? (
-                    <p className={saveMode === "remote" ? "success-text" : "muted-text"}>
+                    <p
+                      className={
+                        saveTone === "error"
+                          ? "error-text"
+                          : saveTone === "success"
+                            ? "success-text"
+                            : "muted-text"
+                      }
+                    >
                       {saveMessage}
                     </p>
                   ) : null}
@@ -487,11 +569,31 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
                   <div className="detail-list">
                     <div className="detail-item">
                       <h3>目前主線</h3>
-                      <p className="content-block">
-                        {matter.current_decision_context?.judgment_to_make ||
-                          matter.summary.current_decision_context_title ||
-                          "目前尚未形成清楚主線。"}
-                      </p>
+                      <p className="content-block">{coreQuestion}</p>
+                    </div>
+                    <div className="detail-item">
+                      <h3>分析焦點</h3>
+                      {analysisFocusItems.length > 0 ? (
+                        <ul className="list-content">
+                          {analysisFocusItems.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="empty-text">目前尚未整理出分析焦點。</p>
+                      )}
+                    </div>
+                    <div className="detail-item">
+                      <h3>限制 / 風險</h3>
+                      {constraintItems.length > 0 ? (
+                        <ul className="list-content">
+                          {constraintItems.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="empty-text">目前沒有額外限制或風險。</p>
+                      )}
                     </div>
                     <div className="detail-item">
                       <h3>最近工作脈絡</h3>
@@ -503,9 +605,9 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
                     </div>
                     <div className="detail-item">
                       <h3>下一步建議</h3>
-                      {nextStepNotes.length > 0 ? (
+                      {nextStepItems.length > 0 ? (
                         <ul className="list-content">
-                          {nextStepNotes.map((item) => (
+                          {nextStepItems.map((item) => (
                             <li key={item}>{item}</li>
                           ))}
                         </ul>
@@ -526,56 +628,91 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
                   <div className="panel-header">
                     <div>
                       <h2 className="panel-title">核心問題</h2>
-                      <p className="panel-copy">穩定承接這個案件目前要回答的核心判斷，而不是只顯示一段長摘要。</p>
+                      <p className="panel-copy">把案件正文穩定寫回正式資料，讓核心問題、分析焦點、限制與下一步不再只停在即時摘要。</p>
                     </div>
                   </div>
 
-                  <div className="summary-grid">
-                    <div className="section-card">
-                      <h4>目前核心問題</h4>
-                      <p className="content-block">
-                        {matter.current_decision_context?.judgment_to_make ||
-                          matter.current_decision_context?.title ||
-                          "目前還沒有足夠資料形成清楚的核心問題。"}
-                      </p>
+                  <div className="form-grid">
+                    <div className="field">
+                      <label htmlFor="matter-core-question">目前核心問題</label>
+                      <textarea
+                        id="matter-core-question"
+                        value={draftContentSections.core_question}
+                        onChange={(event) => {
+                          setDraftContentSections((current) => ({
+                            ...current,
+                            core_question: event.target.value,
+                          }));
+                          setSaveMessage(null);
+                        }}
+                        placeholder="這個案件目前真正要回答的核心判斷是什麼？"
+                      />
                     </div>
-                    <div className="section-card">
-                      <h4>分析焦點</h4>
-                      {analysisFocus.length > 0 ? (
-                        <ul className="list-content">
-                          {analysisFocus.slice(0, 5).map((item) => (
-                            <li key={item}>{item}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="empty-text">目前還沒有整理好的分析焦點。</p>
-                      )}
+                    <div className="field">
+                      <label htmlFor="matter-analysis-focus">分析焦點</label>
+                      <textarea
+                        id="matter-analysis-focus"
+                        value={draftContentSections.analysis_focus}
+                        onChange={(event) => {
+                          setDraftContentSections((current) => ({
+                            ...current,
+                            analysis_focus: event.target.value,
+                          }));
+                          setSaveMessage(null);
+                        }}
+                        placeholder="可用換行列出分析焦點、工作流與重要 lens。"
+                      />
                     </div>
-                    <div className="section-card">
-                      <h4>限制 / 風險</h4>
-                      {constraintNotes.length > 0 ? (
-                        <ul className="list-content">
-                          {constraintNotes.map((item) => (
-                            <li key={item}>{item}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="empty-text">目前還沒有明確限制或風險。</p>
-                      )}
+                    <div className="field">
+                      <label htmlFor="matter-constraints-risks">限制 / 風險</label>
+                      <textarea
+                        id="matter-constraints-risks"
+                        value={draftContentSections.constraints_and_risks}
+                        onChange={(event) => {
+                          setDraftContentSections((current) => ({
+                            ...current,
+                            constraints_and_risks: event.target.value,
+                          }));
+                          setSaveMessage(null);
+                        }}
+                        placeholder="目前最需要留意的限制、待補與風險。"
+                      />
                     </div>
-                    <div className="section-card">
-                      <h4>下一步建議</h4>
-                      {nextStepNotes.length > 0 ? (
-                        <ul className="list-content">
-                          {nextStepNotes.map((item) => (
-                            <li key={item}>{item}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="empty-text">目前沒有額外的下一步建議。</p>
-                      )}
+                    <div className="field">
+                      <label htmlFor="matter-next-steps">下一步建議</label>
+                      <textarea
+                        id="matter-next-steps"
+                        value={draftContentSections.next_steps}
+                        onChange={(event) => {
+                          setDraftContentSections((current) => ({
+                            ...current,
+                            next_steps: event.target.value,
+                          }));
+                          setSaveMessage(null);
+                        }}
+                        placeholder="下一步建議、補件方向、應回看的工作面。"
+                      />
                     </div>
                   </div>
+
+                  <div className="button-row" style={{ marginTop: "16px" }}>
+                    <button className="button-primary" type="button" onClick={handleSave}>
+                      儲存案件正文
+                    </button>
+                  </div>
+                  {saveMessage ? (
+                    <p
+                      className={
+                        saveTone === "error"
+                          ? "error-text"
+                          : saveTone === "success"
+                            ? "success-text"
+                            : "muted-text"
+                      }
+                    >
+                      {saveMessage}
+                    </p>
+                  ) : null}
                 </section>
               </div>
 
@@ -589,6 +726,46 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
                   </div>
 
                   <div className="detail-list">
+                    <div className="detail-item">
+                      <h3>目前核心問題</h3>
+                      <p className="content-block">{coreQuestion}</p>
+                    </div>
+                    <div className="detail-item">
+                      <h3>分析焦點</h3>
+                      {analysisFocusItems.length > 0 ? (
+                        <ul className="list-content">
+                          {analysisFocusItems.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="empty-text">目前還沒有整理好的分析焦點。</p>
+                      )}
+                    </div>
+                    <div className="detail-item">
+                      <h3>限制 / 風險</h3>
+                      {constraintItems.length > 0 ? (
+                        <ul className="list-content">
+                          {constraintItems.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="empty-text">目前還沒有明確限制或風險。</p>
+                      )}
+                    </div>
+                    <div className="detail-item">
+                      <h3>下一步建議</h3>
+                      {nextStepItems.length > 0 ? (
+                        <ul className="list-content">
+                          {nextStepItems.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="empty-text">目前沒有額外的下一步建議。</p>
+                      )}
+                    </div>
                     {matter.decision_trajectory.length > 0 ? (
                       matter.decision_trajectory.map((item) => (
                         <div

@@ -53,12 +53,14 @@ def _ensure_incremental_schema_updates() -> None:
         "matter_workspaces": {
             "summary": "TEXT NOT NULL DEFAULT ''",
             "status": "VARCHAR(50)",
+            "content_sections": "JSON NOT NULL DEFAULT '{}'",
             "title_override_active": "BOOLEAN NOT NULL DEFAULT FALSE",
         },
         "deliverables": {
             "summary": "TEXT NOT NULL DEFAULT ''",
             "status": "VARCHAR(50)",
             "version_tag": "VARCHAR(50)",
+            "content_sections": "JSON NOT NULL DEFAULT '{}'",
         },
         "deliverable_version_events": {
             "event_key": "VARCHAR(255)",
@@ -85,15 +87,25 @@ def _ensure_incremental_schema_updates() -> None:
 
 def _normalize_incremental_data() -> None:
     from app.domain import models
-    from app.services.deliverable_records import normalize_deliverable_version_events
+    from app.services.deliverable_records import (
+        ensure_deliverable_release_records,
+        normalize_deliverable_version_events,
+    )
 
     session = SessionLocal()
     try:
+        deliverables = session.scalars(select(models.Deliverable)).all()
         deliverable_ids = session.scalars(
             select(models.DeliverableVersionEvent.deliverable_id).distinct()
         ).all()
         for deliverable_id in deliverable_ids:
             normalize_deliverable_version_events(session, deliverable_id)
+        for deliverable in deliverables:
+            ensure_deliverable_release_records(
+                session,
+                deliverable,
+                fallback_status=deliverable.status,
+            )
     finally:
         session.close()
 

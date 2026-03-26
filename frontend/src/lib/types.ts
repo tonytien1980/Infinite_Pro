@@ -559,6 +559,7 @@ export interface MatterWorkspace {
   engagement: Engagement | null;
   workstream: Workstream | null;
   current_decision_context: DecisionContext | null;
+  content_sections: MatterWorkspaceContentSections;
   decision_trajectory: MatterDecisionPoint[];
   related_tasks: TaskListItem[];
   related_deliverables: MatterDeliverableSummary[];
@@ -643,7 +644,10 @@ export interface DeliverableWorkspace {
   linked_action_items: ActionItem[];
   related_deliverables: MatterDeliverableSummary[];
   continuity_notes: string[];
+  content_sections: DeliverableContentSections;
   version_events: DeliverableVersionEvent[];
+  artifact_records: DeliverableArtifactRecord[];
+  publish_records: DeliverablePublishRecord[];
 }
 
 export interface DeliverableVersionEvent {
@@ -656,6 +660,53 @@ export interface DeliverableVersionEvent {
   summary: string;
   event_payload: Record<string, unknown>;
   created_at: string;
+}
+
+export interface MatterWorkspaceContentSections {
+  core_question: string;
+  analysis_focus: string;
+  constraints_and_risks: string;
+  next_steps: string;
+}
+
+export interface DeliverableContentSections {
+  executive_summary: string;
+  recommendations: string[];
+  risks: string[];
+  action_items: string[];
+  evidence_basis: string[];
+}
+
+export interface DeliverableArtifactRecord {
+  id: string;
+  deliverable_id: string;
+  task_id: string;
+  publish_record_id: string | null;
+  source_version_event_id: string | null;
+  artifact_kind: string;
+  artifact_format: string;
+  version_tag: string;
+  deliverable_status: string | null;
+  file_name: string;
+  mime_type: string;
+  artifact_key: string;
+  availability_state: string;
+  artifact_digest: string | null;
+  file_size: number;
+  created_at: string;
+}
+
+export interface DeliverablePublishRecord {
+  id: string;
+  deliverable_id: string;
+  task_id: string;
+  source_version_event_id: string | null;
+  version_tag: string;
+  deliverable_status: string | null;
+  publish_note: string;
+  artifact_formats: string[];
+  created_at: string;
+  artifact_records: DeliverableArtifactRecord[];
 }
 
 export interface UploadBatchResponse {
@@ -739,10 +790,27 @@ export interface MatterWorkspaceMetadataUpdatePayload {
   status: "active" | "paused" | "archived";
 }
 
+export interface MatterWorkspaceUpdatePayload extends MatterWorkspaceMetadataUpdatePayload {
+  content_sections: MatterWorkspaceContentSections;
+}
+
 export interface DeliverableMetadataUpdatePayload {
   title: string;
   summary: string;
   status: "draft" | "pending_confirmation" | "final" | "archived";
   version_tag: string;
   event_note?: string;
+}
+
+export interface DeliverableWorkspaceUpdatePayload extends DeliverableMetadataUpdatePayload {
+  content_sections: DeliverableContentSections;
+}
+
+export interface DeliverablePublishPayload {
+  title: string;
+  summary: string;
+  version_tag: string;
+  publish_note: string;
+  artifact_formats: Array<"markdown" | "docx">;
+  content_sections: DeliverableContentSections;
 }

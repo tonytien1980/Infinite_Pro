@@ -22,15 +22,22 @@ from app.extensions.registry import ExtensionRegistry
 from app.extensions.resolver import AgentResolver, PackResolver, resolve_runtime_agent_binding
 from app.extensions.schemas import AgentResolverInput, AgentSpec, PackResolverInput, PackSpec, PackType
 from app.services.deliverable_records import (
+    DELIVERABLE_ARTIFACT_KIND_EXPORT,
+    DELIVERABLE_ARTIFACT_KIND_RELEASE,
     DELIVERABLE_EVENT_CONTENT_UPDATED,
     DELIVERABLE_EVENT_EXPORTED,
     DELIVERABLE_EVENT_NOTE_ADDED,
     DELIVERABLE_EVENT_PUBLISHED,
+    DELIVERABLE_EVENT_SOURCE_CONTENT_UPDATE,
     DELIVERABLE_EVENT_SOURCE_EXPORT,
     DELIVERABLE_EVENT_SOURCE_METADATA_UPDATE,
+    DELIVERABLE_EVENT_SOURCE_PUBLISH,
     DELIVERABLE_EVENT_STATUS_CHANGED,
     DELIVERABLE_EVENT_VERSION_TAG_UPDATED,
+    create_deliverable_artifact_record,
+    create_deliverable_publish_record,
     default_deliverable_version_tag,
+    ensure_deliverable_release_records,
     ensure_deliverable_version_events,
     label_for_deliverable_status,
     record_deliverable_version_event,
@@ -1860,6 +1867,70 @@ def _resolve_deliverable_summary_text(deliverable: models.Deliverable) -> str:
     return deliverable.title
 
 
+def _normalize_multiline_text(value: str | None) -> str:
+    if not isinstance(value, str):
+        return ""
+    return value.strip()
+
+
+def _normalize_string_list_payload(values: list[str] | tuple[str, ...] | None) -> list[str]:
+    if not isinstance(values, (list, tuple)):
+        return []
+    return [item.strip() for item in values if isinstance(item, str) and item.strip()]
+
+
+def _read_json_sections(value: object) -> dict:
+    return value if isinstance(value, dict) else {}
+
+
+def _normalize_matter_content_sections(
+    value: object,
+) -> schemas.MatterWorkspaceContentSectionsRead:
+    sections = _read_json_sections(value)
+    return schemas.MatterWorkspaceContentSectionsRead(
+        core_question=_normalize_multiline_text(sections.get("core_question")),
+        analysis_focus=_normalize_multiline_text(sections.get("analysis_focus")),
+        constraints_and_risks=_normalize_multiline_text(sections.get("constraints_and_risks")),
+        next_steps=_normalize_multiline_text(sections.get("next_steps")),
+    )
+
+
+def _serialize_matter_content_sections(
+    payload: schemas.MatterWorkspaceContentSectionsRequest,
+) -> dict[str, str]:
+    return {
+        "core_question": payload.core_question.strip(),
+        "analysis_focus": payload.analysis_focus.strip(),
+        "constraints_and_risks": payload.constraints_and_risks.strip(),
+        "next_steps": payload.next_steps.strip(),
+    }
+
+
+def _normalize_deliverable_content_sections(
+    value: object,
+) -> schemas.DeliverableContentSectionsRead:
+    sections = _read_json_sections(value)
+    return schemas.DeliverableContentSectionsRead(
+        executive_summary=_normalize_multiline_text(sections.get("executive_summary")),
+        recommendations=_normalize_string_list_payload(sections.get("recommendations")),
+        risks=_normalize_string_list_payload(sections.get("risks")),
+        action_items=_normalize_string_list_payload(sections.get("action_items")),
+        evidence_basis=_normalize_string_list_payload(sections.get("evidence_basis")),
+    )
+
+
+def _serialize_deliverable_content_sections(
+    payload: schemas.DeliverableContentSectionsRequest,
+) -> dict[str, object]:
+    return {
+        "executive_summary": payload.executive_summary.strip(),
+        "recommendations": _normalize_string_list_payload(payload.recommendations),
+        "risks": _normalize_string_list_payload(payload.risks),
+        "action_items": _normalize_string_list_payload(payload.action_items),
+        "evidence_basis": _normalize_string_list_payload(payload.evidence_basis),
+    }
+
+
 def _load_tasks_for_matter_workspaces(
     db: Session,
     matter_workspace_ids: list[str],
@@ -2789,6 +2860,7 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
         engagement=engagement,
         workstream=workstream,
         current_decision_context=current_decision_context,
+        content_sections=_normalize_matter_content_sections(matter_workspace.content_sections),
         decision_trajectory=decision_trajectory[:8],
         related_tasks=related_task_items,
         related_deliverables=related_deliverables[:8],
@@ -2807,6 +2879,28 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
     )
 
 
+def update_matter_workspace(
+    db: Session,
+    matter_id: str,
+    payload: schemas.MatterWorkspaceUpdateRequest,
+) -> schemas.MatterWorkspaceResponse:
+    matter_workspace = db.scalars(
+        select(models.MatterWorkspace).where(models.MatterWorkspace.id == matter_id)
+    ).one_or_none()
+    if matter_workspace is None:
+        raise HTTPException(status_code=404, detail="找不到指定案件工作面。")
+
+    matter_workspace.title = payload.title.strip()
+    matter_workspace.summary = payload.summary.strip()
+    matter_workspace.status = payload.status
+    matter_workspace.content_sections = _serialize_matter_content_sections(payload.content_sections)
+    matter_workspace.title_override_active = True
+    db.add(matter_workspace)
+    db.commit()
+
+    return get_matter_workspace(db, matter_id)
+
+
 def update_matter_workspace_metadata(
     db: Session,
     matter_id: str,
@@ -2818,14 +2912,29 @@ def update_matter_workspace_metadata(
     if matter_workspace is None:
         raise HTTPException(status_code=404, detail="找不到指定案件工作面。")
 
-    matter_workspace.title = payload.title.strip()
-    matter_workspace.summary = payload.summary.strip()
-    matter_workspace.status = payload.status
-    matter_workspace.title_override_active = True
-    db.add(matter_workspace)
-    db.commit()
-
-    return get_matter_workspace(db, matter_id)
+    return update_matter_workspace(
+        db,
+        matter_id,
+        schemas.MatterWorkspaceUpdateRequest(
+            title=payload.title,
+            summary=payload.summary,
+            status=payload.status,
+            content_sections=schemas.MatterWorkspaceContentSectionsRequest(
+                core_question=_normalize_matter_content_sections(
+                    matter_workspace.content_sections
+                ).core_question,
+                analysis_focus=_normalize_matter_content_sections(
+                    matter_workspace.content_sections
+                ).analysis_focus,
+                constraints_and_risks=_normalize_matter_content_sections(
+                    matter_workspace.content_sections
+                ).constraints_and_risks,
+                next_steps=_normalize_matter_content_sections(
+                    matter_workspace.content_sections
+                ).next_steps,
+            ),
+        ),
+    )
 
 
 def _material_role_label(
@@ -3415,6 +3524,11 @@ def get_deliverable_workspace(
             fallback_status=deliverable.status,
         )
     ]
+    artifact_records, publish_records = ensure_deliverable_release_records(
+        db,
+        deliverable_row,
+        fallback_status=deliverable.status,
+    )
 
     content = _get_content_record(deliverable)
     readiness_governance = content.get("readiness_governance")
@@ -3550,15 +3664,23 @@ def get_deliverable_workspace(
         linked_action_items=_dedupe_schema_items(linked_action_items)[:8],
         related_deliverables=related_deliverables,
         continuity_notes=_unique_preserve_order(continuity_notes),
+        content_sections=_normalize_deliverable_content_sections(deliverable_row.content_sections),
         version_events=version_events,
+        artifact_records=[
+            schemas.DeliverableArtifactRecordRead.model_validate(item)
+            for item in artifact_records[:12]
+        ],
+        publish_records=[
+            schemas.DeliverablePublishRecordRead.model_validate(item)
+            for item in publish_records[:8]
+        ],
     )
 
 
-def update_deliverable_metadata(
+def _load_deliverable_and_task(
     db: Session,
     deliverable_id: str,
-    payload: schemas.DeliverableMetadataUpdateRequest,
-) -> schemas.DeliverableWorkspaceResponse:
+) -> tuple[models.Deliverable, models.Task]:
     deliverable = db.scalars(
         select(models.Deliverable).where(models.Deliverable.id == deliverable_id)
     ).one_or_none()
@@ -3569,26 +3691,56 @@ def update_deliverable_metadata(
     if task is None:
         raise HTTPException(status_code=404, detail="找不到交付物對應的任務。")
 
+    return deliverable, task
+
+
+def _apply_deliverable_workspace_update(
+    db: Session,
+    deliverable: models.Deliverable,
+    task: models.Task,
+    *,
+    title: str,
+    summary: str,
+    status: str,
+    version_tag: str,
+    content_sections: dict[str, object] | None = None,
+    event_note: str = "",
+) -> dict[str, object]:
     previous_title = deliverable.title
     previous_summary = deliverable.summary or ""
     previous_status = _default_deliverable_status(task, deliverable)
     previous_version_tag = default_deliverable_version_tag(deliverable)
-    next_title = payload.title.strip()
-    next_summary = payload.summary.strip()
-    next_status = payload.status
-    next_version_tag = payload.version_tag.strip()
-    event_note = payload.event_note.strip()
+    previous_content_sections = _normalize_deliverable_content_sections(deliverable.content_sections)
+
+    next_title = title.strip() or deliverable.title
+    next_summary = summary.strip()
+    next_status = status.strip() or previous_status
+    next_version_tag = version_tag.strip() or previous_version_tag
+    next_content_sections = _normalize_deliverable_content_sections(content_sections or {})
+    next_content_sections_payload = _serialize_deliverable_content_sections(next_content_sections)
 
     title_changed = next_title != previous_title
     summary_changed = next_summary != previous_summary
     status_changed = next_status != previous_status
     version_tag_changed = next_version_tag != previous_version_tag
-    has_changes = title_changed or summary_changed or status_changed or version_tag_changed or bool(event_note)
+    content_changed = next_content_sections_payload != _serialize_deliverable_content_sections(
+        previous_content_sections
+    )
+    has_changes = (
+        title_changed
+        or summary_changed
+        or status_changed
+        or version_tag_changed
+        or content_changed
+        or bool(event_note.strip())
+    )
 
     deliverable.title = next_title
     deliverable.summary = next_summary
     deliverable.status = next_status
     deliverable.version_tag = next_version_tag
+    if content_sections is not None:
+        deliverable.content_sections = next_content_sections_payload
     if has_changes:
         task.updated_at = models.utc_now()
     db.add_all([deliverable, task])
@@ -3599,7 +3751,7 @@ def update_deliverable_metadata(
         if title_changed:
             changed_fields.append("標題")
         if summary_changed:
-            changed_fields.append("摘要")
+            changed_fields.append("簡短摘要")
         record_deliverable_version_event(
             db,
             deliverable,
@@ -3614,6 +3766,32 @@ def update_deliverable_metadata(
                 "previous_summary": previous_summary,
                 "next_title": next_title,
                 "next_summary": next_summary,
+            },
+        )
+
+    if content_changed:
+        changed_sections: list[str] = []
+        if next_content_sections.executive_summary != previous_content_sections.executive_summary:
+            changed_sections.append("摘要")
+        if next_content_sections.recommendations != previous_content_sections.recommendations:
+            changed_sections.append("建議")
+        if next_content_sections.risks != previous_content_sections.risks:
+            changed_sections.append("風險")
+        if next_content_sections.action_items != previous_content_sections.action_items:
+            changed_sections.append("行動項目")
+        if next_content_sections.evidence_basis != previous_content_sections.evidence_basis:
+            changed_sections.append("依據來源")
+        record_deliverable_version_event(
+            db,
+            deliverable,
+            DELIVERABLE_EVENT_CONTENT_UPDATED,
+            version_tag=next_version_tag,
+            deliverable_status=next_status,
+            summary=f"更新交付物正文：{'、'.join(changed_sections)}",
+            event_payload={
+                "source": DELIVERABLE_EVENT_SOURCE_CONTENT_UPDATE,
+                "changed_sections": changed_sections,
+                "content_scope": "workspace_sections",
             },
         )
 
@@ -3649,39 +3827,81 @@ def update_deliverable_metadata(
                 "to_status": next_status,
             },
         )
-    if next_status == "final" and (status_changed or version_tag_changed):
-        record_deliverable_version_event(
-            db,
-            deliverable,
-            DELIVERABLE_EVENT_PUBLISHED,
-            version_tag=next_version_tag,
-            deliverable_status=next_status,
-            summary=f"發布 {next_version_tag} 定稿版",
-            event_payload={
-                "source": DELIVERABLE_EVENT_SOURCE_METADATA_UPDATE,
-                "published_from_status": previous_status,
-                "published_to_status": next_status,
-                "version_tag_changed": version_tag_changed,
-            },
-        )
 
-    if event_note:
+    normalized_event_note = event_note.strip()
+    if normalized_event_note:
         record_deliverable_version_event(
             db,
             deliverable,
             DELIVERABLE_EVENT_NOTE_ADDED,
             version_tag=next_version_tag,
             deliverable_status=next_status,
-            summary=event_note[:280],
+            summary=normalized_event_note[:280],
             event_payload={
                 "source": DELIVERABLE_EVENT_SOURCE_METADATA_UPDATE,
-                "note": event_note,
+                "note": normalized_event_note,
             },
         )
 
-    db.commit()
+    return {
+        "deliverable": deliverable,
+        "task": task,
+        "version_tag": next_version_tag,
+        "status": next_status,
+        "status_changed": status_changed,
+        "version_tag_changed": version_tag_changed,
+        "content_changed": content_changed,
+        "event_note": normalized_event_note,
+        "previous_status": previous_status,
+    }
 
+
+def update_deliverable_workspace(
+    db: Session,
+    deliverable_id: str,
+    payload: schemas.DeliverableWorkspaceUpdateRequest,
+) -> schemas.DeliverableWorkspaceResponse:
+    deliverable, task = _load_deliverable_and_task(db, deliverable_id)
+    _apply_deliverable_workspace_update(
+        db,
+        deliverable,
+        task,
+        title=payload.title,
+        summary=payload.summary,
+        status=payload.status,
+        version_tag=payload.version_tag,
+        content_sections=_serialize_deliverable_content_sections(payload.content_sections),
+        event_note=payload.event_note,
+    )
+    db.commit()
     return get_deliverable_workspace(db, deliverable_id)
+
+
+def update_deliverable_metadata(
+    db: Session,
+    deliverable_id: str,
+    payload: schemas.DeliverableMetadataUpdateRequest,
+) -> schemas.DeliverableWorkspaceResponse:
+    deliverable, _ = _load_deliverable_and_task(db, deliverable_id)
+    current_sections = _normalize_deliverable_content_sections(deliverable.content_sections)
+    return update_deliverable_workspace(
+        db,
+        deliverable_id,
+        schemas.DeliverableWorkspaceUpdateRequest(
+            title=payload.title,
+            summary=payload.summary,
+            status=payload.status,
+            version_tag=payload.version_tag,
+            event_note=payload.event_note,
+            content_sections=schemas.DeliverableContentSectionsRequest(
+                executive_summary=current_sections.executive_summary,
+                recommendations=current_sections.recommendations,
+                risks=current_sections.risks,
+                action_items=current_sections.action_items,
+                evidence_basis=current_sections.evidence_basis,
+            ),
+        ),
+    )
 
 
 def _build_deliverable_export_filename(
@@ -3697,6 +3917,36 @@ def _build_deliverable_export_filename(
     return f"{filename_base or 'deliverable-export'}.{extension}"
 
 
+def _build_resolved_deliverable_content_sections(
+    workspace: schemas.DeliverableWorkspaceResponse,
+) -> schemas.DeliverableContentSectionsRead:
+    stored = workspace.content_sections
+    deliverable = workspace.deliverable
+
+    return schemas.DeliverableContentSectionsRead(
+        executive_summary=(
+            stored.executive_summary
+            or _coerce_text(_get_content_record(deliverable).get("executive_summary"))
+            or deliverable.summary
+            or deliverable.title
+        ),
+        recommendations=stored.recommendations
+        or [item.summary for item in workspace.linked_recommendations[:8]],
+        risks=stored.risks
+        or [
+            *[f"{item.title}：{item.description}" for item in workspace.linked_risks[:8]],
+            *[f"高影響缺口：{item}" for item in workspace.high_impact_gaps[:5]],
+        ],
+        action_items=stored.action_items
+        or [item.description for item in workspace.linked_action_items[:8]],
+        evidence_basis=stored.evidence_basis
+        or [
+            f"{item.title}｜{item.source_type or item.evidence_type or 'evidence'}"
+            for item in workspace.linked_evidence[:8]
+        ],
+    )
+
+
 def _build_deliverable_export_lists(
     workspace: schemas.DeliverableWorkspaceResponse,
 ) -> tuple[str, str, str, str, str, list[str], list[str], list[str], list[str], list[str]]:
@@ -3705,11 +3955,8 @@ def _build_deliverable_export_lists(
     version_tag = deliverable.version_tag or f"v{deliverable.version}"
     matter_title = workspace.matter_workspace.title if workspace.matter_workspace else "未掛案件"
     matter_path = workspace.matter_workspace.object_path if workspace.matter_workspace else "未掛案件"
-    executive_summary = (
-        _coerce_text(_get_content_record(deliverable).get("executive_summary"))
-        or deliverable.summary
-        or deliverable.title
-    )
+    content_sections = _build_resolved_deliverable_content_sections(workspace)
+    executive_summary = content_sections.executive_summary
 
     def _bullet_lines(items: list[str], empty_text: str) -> list[str]:
         if not items:
@@ -3717,23 +3964,19 @@ def _build_deliverable_export_lists(
         return items
 
     recommendation_lines = _bullet_lines(
-        [item.summary for item in workspace.linked_recommendations[:8]],
+        content_sections.recommendations,
         "目前沒有額外的建議項目。",
     )
     risk_lines = _bullet_lines(
-        [f"{item.title}：{item.description}" for item in workspace.linked_risks[:8]]
-        + [f"高影響缺口：{item}" for item in workspace.high_impact_gaps[:5]],
+        content_sections.risks,
         "目前沒有額外的風險與缺口項目。",
     )
     action_item_lines = _bullet_lines(
-        [item.description for item in workspace.linked_action_items[:8]],
+        content_sections.action_items,
         "目前沒有額外的行動項目。",
     )
     evidence_lines = _bullet_lines(
-        [
-            f"{item.title}｜{item.source_type or item.evidence_type or 'evidence'}"
-            for item in workspace.linked_evidence[:8]
-        ],
+        content_sections.evidence_basis,
         "目前沒有額外的依據來源。",
     )
     version_event_lines = _bullet_lines(
@@ -3757,11 +4000,110 @@ def _build_deliverable_export_lists(
     )
 
 
-def build_deliverable_markdown_export(
+def publish_deliverable_release(
     db: Session,
     deliverable_id: str,
-) -> tuple[str, str, str]:
+    payload: schemas.DeliverablePublishRequest,
+) -> schemas.DeliverableWorkspaceResponse:
+    deliverable, task = _load_deliverable_and_task(db, deliverable_id)
+    update_result = _apply_deliverable_workspace_update(
+        db,
+        deliverable,
+        task,
+        title=payload.title,
+        summary=payload.summary,
+        status="final",
+        version_tag=payload.version_tag,
+        content_sections=_serialize_deliverable_content_sections(payload.content_sections),
+        event_note="",
+    )
+
     workspace = get_deliverable_workspace(db, deliverable_id)
+    version_tag = str(update_result["version_tag"])
+    publish_note = payload.publish_note.strip()
+    artifact_formats = _unique_preserve_order(
+        [item.strip() for item in payload.artifact_formats if item.strip()]
+    ) or ["markdown", "docx"]
+
+    rendered_artifacts: list[tuple[str, str, str, bytes]] = []
+    markdown_filename, markdown_content, _ = _render_deliverable_markdown_artifact(workspace)
+    if "markdown" in artifact_formats:
+        rendered_artifacts.append(
+            (
+                "markdown",
+                "text/markdown; charset=utf-8",
+                markdown_filename,
+                markdown_content.encode("utf-8"),
+            )
+        )
+    if "docx" in artifact_formats:
+        docx_filename, docx_content, _ = _render_deliverable_docx_artifact(workspace)
+        rendered_artifacts.append(
+            (
+                "docx",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                docx_filename,
+                docx_content,
+            )
+        )
+
+    publish_event = record_deliverable_version_event(
+        db,
+        deliverable,
+        DELIVERABLE_EVENT_PUBLISHED,
+        version_tag=version_tag,
+        deliverable_status="final",
+        summary=f"正式發布 {version_tag} 定稿版",
+        event_payload={
+            "source": DELIVERABLE_EVENT_SOURCE_PUBLISH,
+            "artifact_formats": artifact_formats,
+            "publish_note": publish_note,
+        },
+    )
+    publish_record = create_deliverable_publish_record(
+        db,
+        deliverable,
+        version_tag=version_tag,
+        deliverable_status="final",
+        publish_note=publish_note,
+        artifact_formats=artifact_formats,
+        source_version_event=publish_event,
+    )
+
+    artifact_record_ids: list[str] = []
+    for artifact_format, mime_type, file_name, content_bytes in rendered_artifacts:
+        artifact_record = create_deliverable_artifact_record(
+            db,
+            deliverable,
+            artifact_kind=DELIVERABLE_ARTIFACT_KIND_RELEASE,
+            artifact_format=artifact_format,
+            version_tag=version_tag,
+            deliverable_status="final",
+            file_name=file_name,
+            mime_type=mime_type,
+            content_bytes=content_bytes,
+            publish_record=publish_record,
+        )
+        artifact_record_ids.append(artifact_record.id)
+
+    publish_event.event_payload = {
+        "source": DELIVERABLE_EVENT_SOURCE_PUBLISH,
+        "artifact_formats": artifact_formats,
+        "artifact_record_ids": artifact_record_ids,
+        "publish_record_id": publish_record.id,
+        "publish_note": publish_note,
+        "status_changed": bool(update_result["status_changed"]),
+        "version_tag_changed": bool(update_result["version_tag_changed"]),
+    }
+    db.add(publish_event)
+    db.commit()
+
+    return get_deliverable_workspace(db, deliverable_id)
+
+
+def _render_deliverable_markdown_artifact(
+    workspace: schemas.DeliverableWorkspaceResponse,
+) -> tuple[str, str, str]:
     deliverable = workspace.deliverable
     (
         version_tag,
@@ -3776,6 +4118,9 @@ def build_deliverable_markdown_export(
         version_event_lines,
     ) = _build_deliverable_export_lists(workspace)
 
+    publish_record = workspace.publish_records[0] if workspace.publish_records else None
+    latest_publish_note = publish_record.publish_note if publish_record else ""
+
     content = "\n".join(
         [
             f"# {deliverable.title}",
@@ -3787,6 +4132,7 @@ def build_deliverable_markdown_export(
             f"- 案件：{matter_title}",
             f"- 路徑：{matter_path}",
             f"- 最近更新：{updated_at}",
+            *( [f"- 最近發布說明：{latest_publish_note}"] if latest_publish_note else [] ),
             "",
             "## 簡短摘要",
             executive_summary,
@@ -3811,35 +4157,61 @@ def build_deliverable_markdown_export(
             "",
         ]
     )
-
-    deliverable_row = db.scalars(
-        select(models.Deliverable).where(models.Deliverable.id == deliverable_id)
-    ).one_or_none()
-    if deliverable_row is None:
-        raise HTTPException(status_code=404, detail="找不到指定交付物。")
     filename = _build_deliverable_export_filename(deliverable.title, version_tag, "md")
-    record_deliverable_version_event(
+    return filename, content, version_tag
+
+
+def build_deliverable_markdown_export(
+    db: Session,
+    deliverable_id: str,
+) -> tuple[str, str, str]:
+    workspace = get_deliverable_workspace(db, deliverable_id)
+    deliverable_row, _ = _load_deliverable_and_task(db, deliverable_id)
+    filename, content, version_tag = _render_deliverable_markdown_artifact(workspace)
+    export_event = record_deliverable_version_event(
         db,
         deliverable_row,
         DELIVERABLE_EVENT_EXPORTED,
         version_tag=version_tag,
-        deliverable_status=deliverable.status,
+        deliverable_status=workspace.deliverable.status,
         summary=f"匯出 Markdown｜{version_tag}",
         event_payload={
             "source": DELIVERABLE_EVENT_SOURCE_EXPORT,
+            "artifact_kind": DELIVERABLE_ARTIFACT_KIND_EXPORT,
             "artifact_format": "markdown",
             "file_name": filename,
+            "mime_type": "text/markdown; charset=utf-8",
         },
     )
+    artifact_record = create_deliverable_artifact_record(
+        db,
+        deliverable_row,
+        artifact_kind=DELIVERABLE_ARTIFACT_KIND_EXPORT,
+        artifact_format="markdown",
+        version_tag=version_tag,
+        deliverable_status=workspace.deliverable.status,
+        file_name=filename,
+        mime_type="text/markdown; charset=utf-8",
+        content_bytes=content.encode("utf-8"),
+        source_version_event=export_event,
+    )
+    export_event.event_payload = {
+        "source": DELIVERABLE_EVENT_SOURCE_EXPORT,
+        "artifact_kind": DELIVERABLE_ARTIFACT_KIND_EXPORT,
+        "artifact_format": "markdown",
+        "file_name": filename,
+        "mime_type": "text/markdown; charset=utf-8",
+        "artifact_record_id": artifact_record.id,
+        "artifact_key": artifact_record.artifact_key,
+    }
+    db.add(export_event)
     db.commit()
     return filename, content, version_tag
 
 
-def build_deliverable_docx_export(
-    db: Session,
-    deliverable_id: str,
+def _render_deliverable_docx_artifact(
+    workspace: schemas.DeliverableWorkspaceResponse,
 ) -> tuple[str, bytes, str]:
-    workspace = get_deliverable_workspace(db, deliverable_id)
     deliverable = workspace.deliverable
     (
         version_tag,
@@ -3891,28 +4263,84 @@ def build_deliverable_docx_export(
 
     buffer = BytesIO()
     document.save(buffer)
-
-    deliverable_row = db.scalars(
-        select(models.Deliverable).where(models.Deliverable.id == deliverable_id)
-    ).one_or_none()
-    if deliverable_row is None:
-        raise HTTPException(status_code=404, detail="找不到指定交付物。")
     filename = _build_deliverable_export_filename(deliverable.title, version_tag, "docx")
-    record_deliverable_version_event(
+    return filename, buffer.getvalue(), version_tag
+
+
+def build_deliverable_docx_export(
+    db: Session,
+    deliverable_id: str,
+) -> tuple[str, bytes, str]:
+    workspace = get_deliverable_workspace(db, deliverable_id)
+    deliverable_row, _ = _load_deliverable_and_task(db, deliverable_id)
+    filename, content, version_tag = _render_deliverable_docx_artifact(workspace)
+    export_event = record_deliverable_version_event(
         db,
         deliverable_row,
         DELIVERABLE_EVENT_EXPORTED,
         version_tag=version_tag,
-        deliverable_status=deliverable.status,
+        deliverable_status=workspace.deliverable.status,
         summary=f"匯出 DOCX｜{version_tag}",
         event_payload={
             "source": DELIVERABLE_EVENT_SOURCE_EXPORT,
+            "artifact_kind": DELIVERABLE_ARTIFACT_KIND_EXPORT,
             "artifact_format": "docx",
             "file_name": filename,
+            "mime_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         },
     )
+    artifact_record = create_deliverable_artifact_record(
+        db,
+        deliverable_row,
+        artifact_kind=DELIVERABLE_ARTIFACT_KIND_EXPORT,
+        artifact_format="docx",
+        version_tag=version_tag,
+        deliverable_status=workspace.deliverable.status,
+        file_name=filename,
+        mime_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        content_bytes=content,
+        source_version_event=export_event,
+    )
+    export_event.event_payload = {
+        "source": DELIVERABLE_EVENT_SOURCE_EXPORT,
+        "artifact_kind": DELIVERABLE_ARTIFACT_KIND_EXPORT,
+        "artifact_format": "docx",
+        "file_name": filename,
+        "mime_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "artifact_record_id": artifact_record.id,
+        "artifact_key": artifact_record.artifact_key,
+    }
+    db.add(export_event)
     db.commit()
-    return filename, buffer.getvalue(), version_tag
+    return filename, content, version_tag
+
+
+def download_deliverable_artifact(
+    db: Session,
+    deliverable_id: str,
+    artifact_id: str,
+) -> tuple[str, bytes, str, str, str]:
+    artifact_record = db.scalars(
+        select(models.DeliverableArtifactRecord).where(
+            models.DeliverableArtifactRecord.id == artifact_id,
+            models.DeliverableArtifactRecord.deliverable_id == deliverable_id,
+        )
+    ).one_or_none()
+    if artifact_record is None:
+        raise HTTPException(status_code=404, detail="找不到指定 artifact。")
+    if artifact_record.availability_state != "available" or artifact_record.artifact_blob is None:
+        raise HTTPException(
+            status_code=409,
+            detail="這份 artifact 目前只有 metadata backfill，尚無可下載的正式內容。",
+        )
+
+    return (
+        artifact_record.file_name,
+        artifact_record.artifact_blob,
+        artifact_record.version_tag,
+        artifact_record.artifact_format,
+        artifact_record.mime_type,
+    )
 
 
 def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:

@@ -7,6 +7,7 @@ import type {
   DensityPreference,
   DeliverableSortPreference,
   HomepageDisplayPreference,
+  MatterWorkspaceContentSections,
   PackCatalogEntry,
   WorkbenchSettings,
 } from "@/lib/types";
@@ -29,6 +30,7 @@ export interface MatterWorkspaceRecord {
   title: string;
   summary: string;
   status: MatterLifecycleStatus;
+  contentSections: MatterWorkspaceContentSections;
   updatedAt: string;
   persistenceSource?: "local-fallback";
 }

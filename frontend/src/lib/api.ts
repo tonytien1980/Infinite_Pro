@@ -1,14 +1,18 @@
 import {
   ArtifactEvidenceWorkspace,
   AgentCatalogEntryUpdatePayload,
+  DeliverableArtifactRecord,
+  DeliverablePublishPayload,
   DeliverableWorkspace,
   DeliverableMetadataUpdatePayload,
+  DeliverableWorkspaceUpdatePayload,
   ExtensionManagerSnapshot,
   HistoryVisibilityState,
   HistoryVisibilityUpdatePayload,
   MatterWorkspace,
   MatterWorkspaceMetadataUpdatePayload,
   MatterWorkspaceSummary,
+  MatterWorkspaceUpdatePayload,
   PackCatalogEntryUpdatePayload,
   ResearchRunResponse,
   SourceIngestBatchResponse,
@@ -216,6 +220,20 @@ export async function updateMatterWorkspaceMetadata(
   return parseResponse<MatterWorkspace>(response);
 }
 
+export async function updateMatterWorkspace(
+  matterId: string,
+  payload: MatterWorkspaceUpdatePayload,
+): Promise<MatterWorkspace> {
+  const response = await fetch(`${getApiBaseUrl()}/matters/${matterId}/workspace`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  return parseResponse<MatterWorkspace>(response);
+}
+
 export async function getArtifactEvidenceWorkspace(
   matterId: string,
 ): Promise<ArtifactEvidenceWorkspace> {
@@ -249,6 +267,60 @@ export async function updateDeliverableMetadata(
   return parseResponse<DeliverableWorkspace>(response);
 }
 
+export async function updateDeliverableWorkspace(
+  deliverableId: string,
+  payload: DeliverableWorkspaceUpdatePayload,
+): Promise<DeliverableWorkspace> {
+  const response = await fetch(`${getApiBaseUrl()}/deliverables/${deliverableId}/workspace`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  return parseResponse<DeliverableWorkspace>(response);
+}
+
+export async function publishDeliverableRelease(
+  deliverableId: string,
+  payload: DeliverablePublishPayload,
+): Promise<DeliverableWorkspace> {
+  const response = await fetch(`${getApiBaseUrl()}/deliverables/${deliverableId}/publish`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  return parseResponse<DeliverableWorkspace>(response);
+}
+
+async function parseBlobResponse(
+  response: Response,
+  fallbackFileName: string,
+  fallbackArtifactFormat: string,
+) {
+  if (!response.ok) {
+    const rawText = await response.text();
+    const error = new Error(rawText || "下載交付物 artifact 失敗。") as Error & {
+      status?: number;
+    };
+    error.status = response.status;
+    throw error;
+  }
+
+  const disposition = response.headers.get("Content-Disposition") ?? "";
+  const fileNameMatch = disposition.match(/filename=\"?([^"]+)\"?/);
+  const blob = await response.blob();
+  return {
+    fileName: fileNameMatch?.[1] ?? fallbackFileName,
+    blob,
+    versionTag: response.headers.get("X-Infinite-Pro-Version") ?? "",
+    artifactFormat:
+      response.headers.get("X-Infinite-Pro-Artifact-Format") ?? fallbackArtifactFormat,
+  };
+}
+
 export async function exportDeliverableArtifact(
   deliverableId: string,
   format: "markdown" | "docx",
@@ -260,26 +332,12 @@ export async function exportDeliverableArtifact(
   const response = await fetch(exportPath, {
     cache: "no-store",
   });
-
-  if (!response.ok) {
-    const rawText = await response.text();
-    const error = new Error(rawText || "匯出交付物失敗。") as Error & { status?: number };
-    error.status = response.status;
-    throw error;
-  }
-
-  const disposition = response.headers.get("Content-Disposition") ?? "";
-  const fileNameMatch = disposition.match(/filename=\"?([^"]+)\"?/);
   const fallbackExtension = format === "docx" ? "docx" : "md";
-  const fileName = fileNameMatch?.[1] ?? `deliverable-${deliverableId}.${fallbackExtension}`;
-  const blob = await response.blob();
-  return {
-    fileName,
-    blob,
-    versionTag: response.headers.get("X-Infinite-Pro-Version") ?? "",
-    artifactFormat:
-      response.headers.get("X-Infinite-Pro-Artifact-Format") ?? format,
-  };
+  return parseBlobResponse(
+    response,
+    `deliverable-${deliverableId}.${fallbackExtension}`,
+    format,
+  );
 }
 
 export async function exportDeliverableMarkdown(deliverableId: string) {
@@ -288,6 +346,19 @@ export async function exportDeliverableMarkdown(deliverableId: string) {
 
 export async function exportDeliverableDocx(deliverableId: string) {
   return exportDeliverableArtifact(deliverableId, "docx");
+}
+
+export async function downloadDeliverableArtifact(
+  deliverableId: string,
+  artifact: Pick<DeliverableArtifactRecord, "id" | "file_name" | "artifact_format">,
+) {
+  const response = await fetch(
+    `${getApiBaseUrl()}/deliverables/${deliverableId}/artifacts/${artifact.id}`,
+    {
+      cache: "no-store",
+    },
+  );
+  return parseBlobResponse(response, artifact.file_name, artifact.artifact_format);
 }
 
 export async function createTask(payload: TaskCreatePayload): Promise<TaskAggregate> {

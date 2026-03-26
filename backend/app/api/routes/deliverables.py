@@ -9,8 +9,11 @@ from app.domain import schemas
 from app.services.tasks import (
     build_deliverable_docx_export,
     build_deliverable_markdown_export,
+    download_deliverable_artifact,
     get_deliverable_workspace,
+    publish_deliverable_release,
     update_deliverable_metadata,
+    update_deliverable_workspace,
 )
 
 router = APIRouter(prefix="/deliverables", tags=["deliverables"])
@@ -31,6 +34,24 @@ def update_deliverable_metadata_route(
     db: Session = Depends(get_db),
 ) -> schemas.DeliverableWorkspaceResponse:
     return update_deliverable_metadata(db, deliverable_id, payload)
+
+
+@router.put("/{deliverable_id}/workspace", response_model=schemas.DeliverableWorkspaceResponse)
+def update_deliverable_workspace_route(
+    deliverable_id: str,
+    payload: schemas.DeliverableWorkspaceUpdateRequest,
+    db: Session = Depends(get_db),
+) -> schemas.DeliverableWorkspaceResponse:
+    return update_deliverable_workspace(db, deliverable_id, payload)
+
+
+@router.post("/{deliverable_id}/publish", response_model=schemas.DeliverableWorkspaceResponse)
+def publish_deliverable_release_route(
+    deliverable_id: str,
+    payload: schemas.DeliverablePublishRequest,
+    db: Session = Depends(get_db),
+) -> schemas.DeliverableWorkspaceResponse:
+    return publish_deliverable_release(db, deliverable_id, payload)
 
 
 @router.get("/{deliverable_id}/export")
@@ -63,5 +84,27 @@ def export_deliverable_docx_route(
             "Content-Disposition": f'attachment; filename="{filename}"',
             "X-Infinite-Pro-Version": version_tag,
             "X-Infinite-Pro-Artifact-Format": "docx",
+        },
+    )
+
+
+@router.get("/{deliverable_id}/artifacts/{artifact_id}")
+def download_deliverable_artifact_route(
+    deliverable_id: str,
+    artifact_id: str,
+    db: Session = Depends(get_db),
+) -> Response:
+    filename, content, version_tag, artifact_format, mime_type = download_deliverable_artifact(
+        db,
+        deliverable_id,
+        artifact_id,
+    )
+    return Response(
+        content=content,
+        media_type=mime_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "X-Infinite-Pro-Version": version_tag,
+            "X-Infinite-Pro-Artifact-Format": artifact_format,
         },
     )

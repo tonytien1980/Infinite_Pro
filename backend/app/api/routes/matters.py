@@ -9,6 +9,7 @@ from app.services.tasks import (
     get_artifact_evidence_workspace,
     get_matter_workspace,
     list_matter_workspaces,
+    update_matter_workspace,
     update_matter_workspace_metadata,
 )
 
@@ -37,6 +38,15 @@ def update_matter_workspace_metadata_route(
     db: Session = Depends(get_db),
 ) -> schemas.MatterWorkspaceResponse:
     return update_matter_workspace_metadata(db, matter_id, payload)
+
+
+@router.put("/{matter_id}/workspace", response_model=schemas.MatterWorkspaceResponse)
+def update_matter_workspace_route(
+    matter_id: str,
+    payload: schemas.MatterWorkspaceUpdateRequest,
+    db: Session = Depends(get_db),
+) -> schemas.MatterWorkspaceResponse:
+    return update_matter_workspace(db, matter_id, payload)
 
 
 @router.get(

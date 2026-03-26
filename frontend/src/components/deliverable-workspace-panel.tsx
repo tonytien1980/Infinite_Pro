@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import {
+  downloadDeliverableArtifact,
   exportDeliverableDocx,
   exportDeliverableMarkdown,
   getDeliverableWorkspace,
+  publishDeliverableRelease,
 } from "@/lib/api";
 import {
   assessTaskReadiness,
@@ -29,13 +31,13 @@ import {
   labelForDeliverableEventType,
   labelForDeliverableStatus,
   labelForEvidenceType,
-  labelForPriority,
   labelForSourceType,
 } from "@/lib/ui-labels";
 import { type DeliverableLifecycleStatus } from "@/lib/workbench-store";
 import {
   buildDeliverableSaveFeedback,
-  persistDeliverableMetadata,
+  isRetriableWorkspaceError,
+  persistDeliverableWorkspace,
 } from "@/lib/workspace-persistence";
 
 function CompactList({
@@ -71,6 +73,88 @@ function buildDeliverableStatusHint(status: DeliverableLifecycleStatus) {
   return "這個版本仍在草稿階段，適合繼續修摘要、建議與風險。";
 }
 
+function splitLineItems(value: string) {
+  return value
+    .split(/\n+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function joinLineItems(items: string[]) {
+  return items.join("\n");
+}
+
+function buildResolvedDeliverableSections(
+  workspace: DeliverableWorkspace,
+  derivedSummary: string,
+  recommendationItems: string[],
+  riskItems: string[],
+  actionItemEntries: string[],
+) {
+  const stored = workspace.content_sections;
+
+  return {
+    executive_summary:
+      stored.executive_summary ||
+      workspace.deliverable.summary ||
+      derivedSummary ||
+      workspace.deliverable.title,
+    recommendations:
+      stored.recommendations.length > 0
+        ? stored.recommendations
+        : recommendationItems,
+    risks:
+      stored.risks.length > 0
+        ? stored.risks
+        : riskItems,
+    action_items:
+      stored.action_items.length > 0
+        ? stored.action_items
+        : actionItemEntries,
+    evidence_basis:
+      stored.evidence_basis.length > 0
+        ? stored.evidence_basis
+        : workspace.linked_evidence.map(
+            (item) => `${item.title}｜${item.source_type || item.evidence_type || "evidence"}`,
+          ),
+  };
+}
+
+function formatArtifactFileSize(fileSize: number) {
+  if (fileSize >= 1024 * 1024) {
+    return `${(fileSize / (1024 * 1024)).toFixed(1)} MB`;
+  }
+  if (fileSize >= 1024) {
+    return `${(fileSize / 1024).toFixed(1)} KB`;
+  }
+  return `${fileSize} B`;
+}
+
+function buildDeliverableEventDetail(
+  event: DeliverableWorkspace["version_events"][number],
+) {
+  const payload = event.event_payload || {};
+  const artifactFormat =
+    typeof payload.artifact_format === "string" ? payload.artifact_format : "";
+  const publishNote =
+    typeof payload.publish_note === "string" ? payload.publish_note.trim() : "";
+  const changedSections = Array.isArray(payload.changed_sections)
+    ? payload.changed_sections.filter((item): item is string => typeof item === "string")
+    : [];
+
+  if (event.event_type === "exported" && artifactFormat) {
+    return `artifact：${artifactFormat.toUpperCase()}`;
+  }
+  if (event.event_type === "published") {
+    return publishNote || "已建立正式發布紀錄與 release artifact。";
+  }
+  if (event.event_type === "content_updated" && changedSections.length > 0) {
+    return `更新區塊：${changedSections.join("、")}`;
+  }
+
+  return "";
+}
+
 export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: string }) {
   const [workspace, setWorkspace] = useState<DeliverableWorkspace | null>(null);
   const [draftTitle, setDraftTitle] = useState("");
@@ -78,9 +162,28 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const [draftStatus, setDraftStatus] = useState<DeliverableLifecycleStatus>("draft");
   const [draftVersionTag, setDraftVersionTag] = useState("");
   const [draftEventNote, setDraftEventNote] = useState("");
+  const [draftPublishNote, setDraftPublishNote] = useState("");
+  const [draftContentSections, setDraftContentSections] = useState({
+    executive_summary: "",
+    recommendations: "",
+    risks: "",
+    action_items: "",
+    evidence_basis: "",
+  });
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [saveTone, setSaveTone] = useState<"success" | "error" | null>(null);
   const [exportMessage, setExportMessage] = useState<string | null>(null);
+  const [exportTone, setExportTone] = useState<"success" | "error" | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [activeExportFormat, setActiveExportFormat] = useState<"markdown" | "docx" | null>(null);
+  const [activeArtifactDownloadId, setActiveArtifactDownloadId] = useState<string | null>(null);
+  const [retryAction, setRetryAction] = useState<
+    | null
+    | { kind: "save"; status?: DeliverableLifecycleStatus }
+    | { kind: "publish" }
+    | { kind: "export"; format: "markdown" | "docx" }
+  >(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -104,11 +207,28 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
     }
 
     const defaultStatus = workspace.deliverable.status as DeliverableLifecycleStatus;
+    const nextResolvedSections = buildResolvedDeliverableSections(
+      workspace,
+      workspace.deliverable.summary || workspace.deliverable.title,
+      workspace.linked_recommendations.map((item) => item.summary),
+      workspace.linked_risks.map((item) =>
+        item.title ? `${item.title}：${item.description}` : item.description,
+      ),
+      workspace.linked_action_items.map((item) => item.description),
+    );
     setDraftTitle(workspace.deliverable.title);
     setDraftSummary(workspace.deliverable.summary || "");
     setDraftStatus(defaultStatus);
     setDraftVersionTag(workspace.deliverable.version_tag || `v${workspace.deliverable.version}`);
     setDraftEventNote("");
+    setDraftPublishNote("");
+    setDraftContentSections({
+      executive_summary: nextResolvedSections.executive_summary,
+      recommendations: joinLineItems(nextResolvedSections.recommendations),
+      risks: joinLineItems(nextResolvedSections.risks),
+      action_items: joinLineItems(nextResolvedSections.action_items),
+      evidence_basis: joinLineItems(nextResolvedSections.evidence_basis),
+    });
   }, [deliverableId, workspace]);
 
   const task = workspace?.task ?? null;
@@ -134,8 +254,44 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const selectedPackNames = packSelection
     ? [...packSelection.domainPacks, ...packSelection.industryPacks]
     : [];
+  const resolvedSections = workspace
+    ? buildResolvedDeliverableSections(
+        workspace,
+        executiveSummary?.summary || workspace.deliverable.summary || workspace.deliverable.title,
+        recommendations.map((item) => item.content),
+        risks.map((item) => item.content),
+        actionItems.map((item) => item.content),
+      )
+    : null;
+  const effectiveExecutiveSummary =
+    resolvedSections?.executive_summary ||
+    displaySummary ||
+    executiveSummary?.summary ||
+    "";
+  const effectiveRecommendations = resolvedSections?.recommendations || [];
+  const effectiveRisks = resolvedSections?.risks || [];
+  const effectiveActionItems = resolvedSections?.action_items || [];
+  const effectiveEvidenceBasis = resolvedSections?.evidence_basis || [];
+  const hasUnsavedChanges = Boolean(
+    workspace &&
+      resolvedSections &&
+      (
+        draftTitle !== workspace.deliverable.title ||
+        draftSummary !== (workspace.deliverable.summary || "") ||
+        draftStatus !==
+          (workspace.deliverable.status as DeliverableLifecycleStatus) ||
+        draftVersionTag !==
+          (workspace.deliverable.version_tag || `v${workspace.deliverable.version}`) ||
+        draftEventNote.trim().length > 0 ||
+        draftContentSections.executive_summary !== resolvedSections.executive_summary ||
+        draftContentSections.recommendations !== joinLineItems(resolvedSections.recommendations) ||
+        draftContentSections.risks !== joinLineItems(resolvedSections.risks) ||
+        draftContentSections.action_items !== joinLineItems(resolvedSections.action_items) ||
+        draftContentSections.evidence_basis !== joinLineItems(resolvedSections.evidence_basis)
+      )
+  );
 
-  async function handleSaveMetadata(nextStatus?: DeliverableLifecycleStatus) {
+  async function handleSaveWorkspace(nextStatus?: DeliverableLifecycleStatus) {
     if (!deliverable) {
       return;
     }
@@ -144,23 +300,39 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
     const nextSummary = draftSummary.trim();
     const nextVersionTag =
       draftVersionTag.trim() || deliverable.version_tag || `v${deliverable.version}`;
+    setIsSaving(true);
+    setRetryAction(null);
     try {
-      const result = await persistDeliverableMetadata(deliverableId, {
+      const result = await persistDeliverableWorkspace(deliverableId, {
         title: nextTitle,
         summary: nextSummary,
         status: nextStatus ?? draftStatus,
         version_tag: nextVersionTag,
         event_note: draftEventNote.trim(),
+        content_sections: {
+          executive_summary: draftContentSections.executive_summary.trim(),
+          recommendations: splitLineItems(draftContentSections.recommendations),
+          risks: splitLineItems(draftContentSections.risks),
+          action_items: splitLineItems(draftContentSections.action_items),
+          evidence_basis: splitLineItems(draftContentSections.evidence_basis),
+        },
       });
       setWorkspace(result.workspace);
       setDraftStatus(result.workspace.deliverable.status as DeliverableLifecycleStatus);
       setDraftVersionTag(result.workspace.deliverable.version_tag || nextVersionTag);
       setDraftEventNote("");
+      setDraftPublishNote("");
       setSaveTone("success");
       setSaveMessage(buildDeliverableSaveFeedback("remote", result.workspace));
+      setRetryAction(null);
     } catch (saveError) {
       setSaveTone("error");
       setSaveMessage(saveError instanceof Error ? saveError.message : "儲存交付物資訊失敗。");
+      if (isRetriableWorkspaceError(saveError)) {
+        setRetryAction({ kind: "save", status: nextStatus });
+      }
+    } finally {
+      setIsSaving(false);
     }
     setExportMessage(null);
   }
@@ -169,7 +341,14 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
     if (!deliverable || typeof window === "undefined") {
       return;
     }
+    if (hasUnsavedChanges) {
+      setExportTone("error");
+      setExportMessage("請先儲存正式內容，再進行匯出或發布，避免把尚未落盤的內容誤當成正式版本。");
+      return;
+    }
 
+    setActiveExportFormat(format);
+    setRetryAction(null);
     try {
       const exportResult =
         format === "docx"
@@ -184,6 +363,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
       anchor.remove();
       window.setTimeout(() => window.URL.revokeObjectURL(objectUrl), 0);
       setWorkspace(await getDeliverableWorkspace(deliverableId));
+      setExportTone("success");
       setExportMessage(
         `已下載 ${exportResult.fileName}；目前匯出對應 ${exportResult.versionTag || versionTag}。${
           format === "docx"
@@ -192,10 +372,111 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
         }`,
       );
     } catch (exportError) {
-      setExportMessage(
-        exportError instanceof Error ? exportError.message : "匯出交付物失敗。",
-      );
+      setExportTone("error");
+      setExportMessage(exportError instanceof Error ? exportError.message : "匯出交付物失敗。");
+      if (isRetriableWorkspaceError(exportError)) {
+        setRetryAction({ kind: "export", format });
+      }
+    } finally {
+      setActiveExportFormat(null);
     }
+  }
+
+  async function handlePublishRelease() {
+    if (!deliverable) {
+      return;
+    }
+
+    setIsPublishing(true);
+    setRetryAction(null);
+    try {
+      const result = await publishDeliverableRelease(deliverableId, {
+        title: draftTitle.trim() || deliverable.title,
+        summary: draftSummary.trim(),
+        version_tag:
+          draftVersionTag.trim() || deliverable.version_tag || `v${deliverable.version}`,
+        publish_note: draftPublishNote.trim() || draftEventNote.trim(),
+        artifact_formats: ["markdown", "docx"],
+        content_sections: {
+          executive_summary: draftContentSections.executive_summary.trim(),
+          recommendations: splitLineItems(draftContentSections.recommendations),
+          risks: splitLineItems(draftContentSections.risks),
+          action_items: splitLineItems(draftContentSections.action_items),
+          evidence_basis: splitLineItems(draftContentSections.evidence_basis),
+        },
+      });
+      setWorkspace(result);
+      setDraftStatus(result.deliverable.status as DeliverableLifecycleStatus);
+      setDraftVersionTag(result.deliverable.version_tag || draftVersionTag);
+      setDraftPublishNote("");
+      setDraftEventNote("");
+      setExportTone("success");
+      setExportMessage(
+        `已正式發布 ${result.deliverable.version_tag || draftVersionTag}，並建立 Markdown 與 DOCX release artifact。`,
+      );
+    } catch (publishError) {
+      setExportTone("error");
+      setExportMessage(
+        publishError instanceof Error ? publishError.message : "正式發布交付物失敗。",
+      );
+      if (isRetriableWorkspaceError(publishError)) {
+        setRetryAction({ kind: "publish" });
+      }
+    } finally {
+      setIsPublishing(false);
+    }
+  }
+
+  async function handleArtifactDownload(
+    artifactId: string,
+    fileName: string,
+    artifactFormat: string,
+  ) {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    setActiveArtifactDownloadId(artifactId);
+    try {
+      const result = await downloadDeliverableArtifact(deliverableId, {
+        id: artifactId,
+        file_name: fileName,
+        artifact_format: artifactFormat,
+      });
+      const objectUrl = window.URL.createObjectURL(result.blob);
+      const anchor = window.document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = result.fileName;
+      window.document.body.append(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => window.URL.revokeObjectURL(objectUrl), 0);
+      setExportTone("success");
+      setExportMessage(`已下載 artifact ${result.fileName}。`);
+    } catch (downloadError) {
+      setExportTone("error");
+      setExportMessage(
+        downloadError instanceof Error ? downloadError.message : "下載 artifact 失敗。",
+      );
+    } finally {
+      setActiveArtifactDownloadId(null);
+    }
+  }
+
+  function handleRetryAction() {
+    if (!retryAction) {
+      return;
+    }
+
+    if (retryAction.kind === "save") {
+      void handleSaveWorkspace(retryAction.status);
+      return;
+    }
+    if (retryAction.kind === "publish") {
+      void handlePublishRelease();
+      return;
+    }
+    void handleExportEntry(retryAction.format);
   }
 
   return (
@@ -262,7 +543,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                     <h4>簡短摘要</h4>
                     <p className="content-block">
                       {truncateText(
-                        displaySummary || executiveSummary?.summary || decisionSnapshot?.conclusion,
+                        displaySummary || effectiveExecutiveSummary || decisionSnapshot?.conclusion,
                         156,
                       )}
                     </p>
@@ -278,7 +559,8 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                   <div className="section-card deliverable-focus-panel">
                     <h4>最重要建議</h4>
                     <p className="content-block">
-                      {decisionSnapshot?.primaryRecommendation ||
+                      {effectiveRecommendations[0] ||
+                        decisionSnapshot?.primaryRecommendation ||
                         executiveSummary?.bullets[1] ||
                         "目前沒有額外的首要建議。"}
                     </p>
@@ -305,6 +587,16 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                     <div className="detail-item">
                       <h3>版本說明</h3>
                       <p className="content-block">{buildDeliverableStatusHint(deliverableStatus)}</p>
+                    </div>
+                    <div className="detail-item">
+                      <h3>發布紀錄</h3>
+                      <p className="content-block">
+                        {workspace.publish_records[0]
+                          ? `${workspace.publish_records[0].version_tag}｜${formatDisplayDate(
+                              workspace.publish_records[0].created_at,
+                            )}`
+                          : "目前尚未建立正式發布紀錄。"}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -492,7 +784,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
               </div>
 
               <div className="field">
-                <label htmlFor="deliverable-event-note">版本備註 / 發布說明</label>
+                <label htmlFor="deliverable-event-note">版本備註</label>
                 <textarea
                   id="deliverable-event-note"
                   value={draftEventNote}
@@ -504,32 +796,126 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                 />
               </div>
 
+              <div className="summary-grid">
+                <div className="field">
+                  <label htmlFor="deliverable-executive-summary">摘要</label>
+                  <textarea
+                    id="deliverable-executive-summary"
+                    value={draftContentSections.executive_summary}
+                    onChange={(event) => {
+                      setDraftContentSections((current) => ({
+                        ...current,
+                        executive_summary: event.target.value,
+                      }));
+                      setSaveMessage(null);
+                    }}
+                    placeholder="用正式交付物口徑整理這個版本的摘要。"
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="deliverable-recommendations">建議與風險</label>
+                  <textarea
+                    id="deliverable-recommendations"
+                    value={draftContentSections.recommendations}
+                    onChange={(event) => {
+                      setDraftContentSections((current) => ({
+                        ...current,
+                        recommendations: event.target.value,
+                      }));
+                      setSaveMessage(null);
+                    }}
+                    placeholder="每行一則建議。"
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="deliverable-risks">缺口與風險</label>
+                  <textarea
+                    id="deliverable-risks"
+                    value={draftContentSections.risks}
+                    onChange={(event) => {
+                      setDraftContentSections((current) => ({
+                        ...current,
+                        risks: event.target.value,
+                      }));
+                      setSaveMessage(null);
+                    }}
+                    placeholder="每行一則風險或待補缺口。"
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="deliverable-action-items">行動項目</label>
+                  <textarea
+                    id="deliverable-action-items"
+                    value={draftContentSections.action_items}
+                    onChange={(event) => {
+                      setDraftContentSections((current) => ({
+                        ...current,
+                        action_items: event.target.value,
+                      }));
+                      setSaveMessage(null);
+                    }}
+                    placeholder="每行一項行動建議。"
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="deliverable-evidence-basis">依據來源</label>
+                  <textarea
+                    id="deliverable-evidence-basis"
+                    value={draftContentSections.evidence_basis}
+                    onChange={(event) => {
+                      setDraftContentSections((current) => ({
+                        ...current,
+                        evidence_basis: event.target.value,
+                      }));
+                      setSaveMessage(null);
+                    }}
+                    placeholder="每行一則依據來源、證據或工作物件。"
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="deliverable-publish-note">發布說明</label>
+                  <textarea
+                    id="deliverable-publish-note"
+                    value={draftPublishNote}
+                    onChange={(event) => {
+                      setDraftPublishNote(event.target.value);
+                      setExportMessage(null);
+                    }}
+                    placeholder="正式發布時要一起寫入 publish record 的說明。"
+                  />
+                </div>
+              </div>
+
               <div className="button-row">
                 <button
                   className="button-primary"
                   type="button"
-                  onClick={() => void handleSaveMetadata()}
+                  onClick={() => void handleSaveWorkspace()}
+                  disabled={isSaving || isPublishing}
                 >
-                  儲存目前內容
+                  {isSaving ? "儲存中..." : "儲存正式內容"}
                 </button>
                 <button
                   className="button-secondary"
                   type="button"
-                  onClick={() => void handleSaveMetadata("pending_confirmation")}
+                  onClick={() => void handleSaveWorkspace("pending_confirmation")}
+                  disabled={isSaving || isPublishing}
                 >
                   送往待確認
                 </button>
                 <button
                   className="button-secondary"
                   type="button"
-                  onClick={() => void handleSaveMetadata("final")}
+                  onClick={() => void handlePublishRelease()}
+                  disabled={isSaving || isPublishing}
                 >
-                  發布定稿版
+                  {isPublishing ? "發布中..." : "正式發布"}
                 </button>
                 <button
                   className="button-secondary"
                   type="button"
-                  onClick={() => void handleSaveMetadata("archived")}
+                  onClick={() => void handleSaveWorkspace("archived")}
+                  disabled={isSaving || isPublishing}
                 >
                   封存版本
                 </button>
@@ -540,23 +926,42 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                   className="button-secondary"
                   type="button"
                   onClick={() => void handleExportEntry("markdown")}
+                  disabled={Boolean(activeExportFormat) || isSaving || isPublishing || hasUnsavedChanges}
                 >
-                  匯出 Markdown
+                  {activeExportFormat === "markdown" ? "匯出中..." : "匯出 Markdown"}
                 </button>
                 <button
                   className="button-secondary"
                   type="button"
                   onClick={() => void handleExportEntry("docx")}
+                  disabled={Boolean(activeExportFormat) || isSaving || isPublishing || hasUnsavedChanges}
                 >
-                  匯出 DOCX
+                  {activeExportFormat === "docx" ? "匯出中..." : "匯出 DOCX"}
                 </button>
               </div>
+              <p className="muted-text">
+                正式版本紀錄、artifact 與 publish record 只會寫入後端；若後端暫時不可用，這裡會直接報錯並保留目前內容，不會假裝成功。
+              </p>
+              {hasUnsavedChanges ? (
+                <p className="muted-text">目前有未儲存變更；匯出會先要求你把內容落盤，正式發布則會直接把目前內容寫入後端並建立發布紀錄。</p>
+              ) : null}
               {saveMessage ? (
                 <p className={saveTone === "error" ? "error-text" : "success-text"}>
                   {saveMessage}
                 </p>
               ) : null}
-              {exportMessage ? <p className="muted-text">{exportMessage}</p> : null}
+              {exportMessage ? (
+                <p className={exportTone === "error" ? "error-text" : "success-text"}>
+                  {exportMessage}
+                </p>
+              ) : null}
+              {retryAction ? (
+                <div className="button-row">
+                  <button className="button-secondary" type="button" onClick={handleRetryAction}>
+                    重試上一個正式操作
+                  </button>
+                </div>
+              ) : null}
             </div>
           </section>
 
@@ -625,19 +1030,21 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                   </div>
                 ) : null}
 
-                {executiveSummary ? (
+                {executiveSummary || effectiveExecutiveSummary ? (
                   <div className="detail-item" style={{ marginTop: "16px" }}>
                     <h3>工作摘要</h3>
-                    <p className="content-block">
-                      {displaySummary || executiveSummary.summary}
-                    </p>
-                    <h3 style={{ marginTop: "16px" }}>執行摘要</h3>
-                    <p className="content-block">{executiveSummary.summary}</p>
-                    {executiveSummary.bullets.length > 0 ? (
+                    <p className="content-block">{displaySummary || effectiveExecutiveSummary}</p>
+                    <h3 style={{ marginTop: "16px" }}>正式摘要</h3>
+                    <p className="content-block">{effectiveExecutiveSummary}</p>
+                    {(executiveSummary?.bullets?.length || effectiveRecommendations.length) > 0 ? (
                       <>
                         <h3 style={{ marginTop: "16px" }}>重點摘要</h3>
                         <CompactList
-                          items={executiveSummary.bullets}
+                          items={
+                            executiveSummary?.bullets?.length
+                              ? executiveSummary.bullets
+                              : effectiveRecommendations.slice(0, 4)
+                          }
                           emptyText="目前沒有額外的執行摘要重點。"
                         />
                       </>
@@ -663,18 +1070,11 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                 <div className="detail-list">
                   <div className="detail-item">
                     <h3>建議</h3>
-                    {recommendations.length > 0 ? (
-                      <div className="section-list">
-                        {recommendations.map((item) => (
-                          <div className="section-card" key={item.content}>
-                            <h4>{item.content}</h4>
-                            <p className="muted-text">
-                              {labelForPriority(item.priority)}｜{item.expectedEffect}
-                            </p>
-                            <p className="content-block">{item.rationale}</p>
-                          </div>
-                        ))}
-                      </div>
+                    {effectiveRecommendations.length > 0 ? (
+                      <CompactList
+                        items={effectiveRecommendations}
+                        emptyText="目前沒有可顯示的建議。"
+                      />
                     ) : (
                       <p className="empty-text">目前沒有可顯示的建議。</p>
                     )}
@@ -682,18 +1082,11 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
 
                   <div className="detail-item">
                     <h3>風險</h3>
-                    {risks.length > 0 ? (
-                      <div className="section-list">
-                        {risks.map((item) => (
-                          <div className="section-card" key={item.content}>
-                            <h4>{item.content}</h4>
-                            <p className="muted-text">
-                              {item.severity}｜{item.likelihood}
-                            </p>
-                            <p className="content-block">{item.impactExplanation}</p>
-                          </div>
-                        ))}
-                      </div>
+                    {effectiveRisks.length > 0 ? (
+                      <CompactList
+                        items={effectiveRisks}
+                        emptyText="目前沒有可顯示的風險。"
+                      />
                     ) : (
                       <p className="empty-text">目前沒有可顯示的風險。</p>
                     )}
@@ -701,23 +1094,11 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
 
                   <div className="detail-item">
                     <h3>行動項目</h3>
-                    {actionItems.length > 0 ? (
-                      <div className="section-list">
-                        {actionItems.map((item) => (
-                          <div className="section-card" key={item.content}>
-                            <h4>{item.content}</h4>
-                            <p className="muted-text">
-                              {labelForPriority(item.priority)}｜{item.ownerRole}｜{item.sequence}
-                            </p>
-                            {item.dependencies.length > 0 ? (
-                              <CompactList
-                                items={item.dependencies}
-                                emptyText="目前沒有額外的相依條件。"
-                              />
-                            ) : null}
-                          </div>
-                        ))}
-                      </div>
+                    {effectiveActionItems.length > 0 ? (
+                      <CompactList
+                        items={effectiveActionItems}
+                        emptyText="目前沒有可顯示的行動項目。"
+                      />
                     ) : (
                       <p className="empty-text">目前沒有可顯示的行動項目。</p>
                     )}
@@ -746,7 +1127,9 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                     </div>
                     <div className="section-card">
                       <h4>依據來源</h4>
-                      <p className="content-block">{deliverableBacklink.evidenceBasis}</p>
+                      <p className="content-block">
+                        {effectiveEvidenceBasis[0] || deliverableBacklink.evidenceBasis}
+                      </p>
                     </div>
                     <div className="section-card">
                       <h4>寫回的決策鏈</h4>
@@ -760,6 +1143,13 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
 
                 <div className="detail-grid" style={{ marginTop: "20px" }}>
                   <div className="detail-stack">
+                    <div className="detail-item">
+                      <h3>正式依據來源</h3>
+                      <CompactList
+                        items={effectiveEvidenceBasis}
+                        emptyText="目前尚未寫入正式依據來源。"
+                      />
+                    </div>
                     <div className="detail-item">
                       <h3>已連結來源材料</h3>
                       {workspace.linked_source_materials.length > 0 ? (
@@ -902,7 +1292,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                 <div className="panel-header">
                   <div>
                     <h2 className="panel-title">版本紀錄</h2>
-                    <p className="panel-copy">這裡直接讀正式 backend 版本事件，保留狀態切換、版本標記、匯出與發布紀錄；目前已支援 Markdown 與 DOCX 匯出。</p>
+                    <p className="panel-copy">這裡直接讀正式 backend 版本事件、artifact registry 與 publish record，清楚區分內容更新、匯出與正式發布。</p>
                   </div>
                 </div>
                 <div className="detail-list">
@@ -927,9 +1317,112 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                           <span>{formatDisplayDate(item.created_at)}</span>
                         </div>
                         <h3>{item.summary}</h3>
+                        {buildDeliverableEventDetail(item) ? (
+                          <p className="muted-text">{buildDeliverableEventDetail(item)}</p>
+                        ) : null}
                       </div>
                     ))
                   ) : null}
+                  <div className="detail-item">
+                    <h3>正式發布紀錄</h3>
+                    {workspace.publish_records.length > 0 ? (
+                      <div className="section-list">
+                        {workspace.publish_records.map((record) => (
+                          <div className="section-card" key={record.id}>
+                            <h4>
+                              {record.version_tag}｜{labelForDeliverableStatus(record.deliverable_status || "final")}
+                            </h4>
+                            <p className="muted-text">
+                              {formatDisplayDate(record.created_at)}｜{record.artifact_formats
+                                .map((item) => item.toUpperCase())
+                                .join(" / ") || "未列出 artifact"}
+                            </p>
+                            <p className="content-block">
+                              {record.publish_note || "這次發布沒有額外備註。"}
+                            </p>
+                            {record.artifact_records.length > 0 ? (
+                              <div className="button-row" style={{ marginTop: "12px" }}>
+                                {record.artifact_records.map((artifact) => (
+                                  <button
+                                    key={artifact.id}
+                                    className="button-secondary"
+                                    type="button"
+                                    onClick={() =>
+                                      void handleArtifactDownload(
+                                        artifact.id,
+                                        artifact.file_name,
+                                        artifact.artifact_format,
+                                      )
+                                    }
+                                    disabled={
+                                      artifact.availability_state !== "available" ||
+                                      activeArtifactDownloadId === artifact.id
+                                    }
+                                  >
+                                    {activeArtifactDownloadId === artifact.id
+                                      ? "下載中..."
+                                      : `下載 ${artifact.artifact_format.toUpperCase()}`}
+                                  </button>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="muted-text">這筆舊發布紀錄目前只有 metadata backfill，尚無可下載 artifact。</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="empty-text">目前尚未建立正式發布紀錄。</p>
+                    )}
+                  </div>
+                  <div className="detail-item">
+                    <h3>Artifact Registry</h3>
+                    {workspace.artifact_records.length > 0 ? (
+                      <div className="section-list">
+                        {workspace.artifact_records.map((artifact) => (
+                          <div className="section-card" key={artifact.id}>
+                            <h4>
+                              {artifact.file_name}
+                            </h4>
+                            <p className="muted-text">
+                              {artifact.artifact_kind === "release" ? "正式發布 artifact" : "匯出 artifact"}｜
+                              {artifact.artifact_format.toUpperCase()}｜
+                              {artifact.version_tag}｜
+                              {formatDisplayDate(artifact.created_at)}
+                            </p>
+                            <p className="content-block">
+                              {artifact.availability_state === "available"
+                                ? `可下載｜${formatArtifactFileSize(artifact.file_size)}`
+                                : "目前只有 metadata backfill，尚無可下載內容。"}
+                            </p>
+                            <div className="button-row" style={{ marginTop: "12px" }}>
+                              <button
+                                className="button-secondary"
+                                type="button"
+                                onClick={() =>
+                                  void handleArtifactDownload(
+                                    artifact.id,
+                                    artifact.file_name,
+                                    artifact.artifact_format,
+                                  )
+                                }
+                                disabled={
+                                  artifact.availability_state !== "available" ||
+                                  activeArtifactDownloadId === artifact.id
+                                }
+                              >
+                                {activeArtifactDownloadId === artifact.id
+                                  ? "下載中..."
+                                  : "下載 artifact"}
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="empty-text">目前尚未建立 artifact registry 紀錄。</p>
+                    )}
+                  </div>
                   {workspace.related_deliverables.length > 0 ? (
                     workspace.related_deliverables.slice(0, 4).map((item) => (
                       <div className="detail-item" key={`related-${item.deliverable_id}`}>

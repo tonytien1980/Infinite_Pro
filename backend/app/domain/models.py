@@ -3,7 +3,17 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Integer,
+    JSON,
+    LargeBinary,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -150,6 +160,7 @@ class MatterWorkspace(Base):
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     summary: Mapped[str] = mapped_column(Text, default="")
     status: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    content_sections: Mapped[dict] = mapped_column(JSON, default=dict)
     title_override_active: Mapped[bool] = mapped_column(Boolean, default=False)
     client_name: Mapped[str] = mapped_column(String(255), default="")
     engagement_name: Mapped[str] = mapped_column(String(255), default="")
@@ -494,6 +505,7 @@ class Deliverable(Base):
     summary: Mapped[str] = mapped_column(Text, default="")
     status: Mapped[str | None] = mapped_column(String(50), nullable=True)
     version_tag: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    content_sections: Mapped[dict] = mapped_column(JSON, default=dict)
     content_structure: Mapped[dict] = mapped_column(JSON, default=dict)
     version: Mapped[int] = mapped_column(Integer, default=1)
     generated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
@@ -507,6 +519,16 @@ class Deliverable(Base):
         back_populates="deliverable",
         cascade="all, delete-orphan",
         order_by="DeliverableVersionEvent.created_at.desc()",
+    )
+    artifact_records: Mapped[list["DeliverableArtifactRecord"]] = relationship(
+        back_populates="deliverable",
+        cascade="all, delete-orphan",
+        order_by="DeliverableArtifactRecord.created_at.desc()",
+    )
+    publish_records: Mapped[list["DeliverablePublishRecord"]] = relationship(
+        back_populates="deliverable",
+        cascade="all, delete-orphan",
+        order_by="DeliverablePublishRecord.created_at.desc()",
     )
 
 
@@ -533,6 +555,78 @@ class DeliverableVersionEvent(Base):
 
     deliverable: Mapped["Deliverable"] = relationship(back_populates="version_events")
     task: Mapped["Task"] = relationship()
+
+
+class DeliverablePublishRecord(Base):
+    __tablename__ = "deliverable_publish_records"
+    __table_args__ = (
+        UniqueConstraint(
+            "source_version_event_id",
+            name="uq_deliverable_publish_record_source_event",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    deliverable_id: Mapped[str] = mapped_column(ForeignKey("deliverables.id"), nullable=False)
+    task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    source_version_event_id: Mapped[str | None] = mapped_column(
+        ForeignKey("deliverable_version_events.id"),
+        nullable=True,
+    )
+    version_tag: Mapped[str] = mapped_column(String(50), default="")
+    deliverable_status: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    publish_note: Mapped[str] = mapped_column(Text, default="")
+    artifact_formats: Mapped[list[str]] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    deliverable: Mapped["Deliverable"] = relationship(back_populates="publish_records")
+    task: Mapped["Task"] = relationship()
+    artifact_records: Mapped[list["DeliverableArtifactRecord"]] = relationship(
+        back_populates="publish_record",
+        order_by="DeliverableArtifactRecord.created_at.desc()",
+    )
+    source_version_event: Mapped["DeliverableVersionEvent | None"] = relationship()
+
+
+class DeliverableArtifactRecord(Base):
+    __tablename__ = "deliverable_artifact_records"
+    __table_args__ = (
+        UniqueConstraint(
+            "source_version_event_id",
+            name="uq_deliverable_artifact_record_source_event",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    deliverable_id: Mapped[str] = mapped_column(ForeignKey("deliverables.id"), nullable=False)
+    task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    publish_record_id: Mapped[str | None] = mapped_column(
+        ForeignKey("deliverable_publish_records.id"),
+        nullable=True,
+    )
+    source_version_event_id: Mapped[str | None] = mapped_column(
+        ForeignKey("deliverable_version_events.id"),
+        nullable=True,
+    )
+    artifact_kind: Mapped[str] = mapped_column(String(20), default="export")
+    artifact_format: Mapped[str] = mapped_column(String(20), nullable=False)
+    version_tag: Mapped[str] = mapped_column(String(50), default="")
+    deliverable_status: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    file_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    mime_type: Mapped[str] = mapped_column(String(255), default="application/octet-stream")
+    artifact_key: Mapped[str] = mapped_column(String(1024), nullable=False)
+    availability_state: Mapped[str] = mapped_column(String(30), default="available")
+    artifact_digest: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    file_size: Mapped[int] = mapped_column(Integer, default=0)
+    artifact_blob: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    deliverable: Mapped["Deliverable"] = relationship(back_populates="artifact_records")
+    publish_record: Mapped["DeliverablePublishRecord | None"] = relationship(
+        back_populates="artifact_records"
+    )
+    task: Mapped["Task"] = relationship()
+    source_version_event: Mapped["DeliverableVersionEvent | None"] = relationship()
 
 
 class RecommendationEvidenceLink(Base):

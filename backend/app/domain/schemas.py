@@ -67,12 +67,60 @@ class MatterWorkspaceMetadataUpdateRequest(BaseModel):
     status: Literal["active", "paused", "archived"]
 
 
+class MatterWorkspaceContentSectionsRequest(BaseModel):
+    core_question: str = ""
+    analysis_focus: str = ""
+    constraints_and_risks: str = ""
+    next_steps: str = ""
+
+
+class MatterWorkspaceUpdateRequest(BaseModel):
+    title: str = Field(min_length=1, max_length=255)
+    summary: str = ""
+    status: Literal["active", "paused", "archived"]
+    content_sections: MatterWorkspaceContentSectionsRequest = Field(
+        default_factory=MatterWorkspaceContentSectionsRequest
+    )
+
+
 class DeliverableMetadataUpdateRequest(BaseModel):
     title: str = Field(min_length=1, max_length=255)
     summary: str = ""
     status: Literal["draft", "pending_confirmation", "final", "archived"]
     version_tag: str = Field(min_length=1, max_length=50)
     event_note: str = ""
+
+
+class DeliverableContentSectionsRequest(BaseModel):
+    executive_summary: str = ""
+    recommendations: list[str] = Field(default_factory=list)
+    risks: list[str] = Field(default_factory=list)
+    action_items: list[str] = Field(default_factory=list)
+    evidence_basis: list[str] = Field(default_factory=list)
+
+
+class DeliverableWorkspaceUpdateRequest(BaseModel):
+    title: str = Field(min_length=1, max_length=255)
+    summary: str = ""
+    status: Literal["draft", "pending_confirmation", "final", "archived"]
+    version_tag: str = Field(min_length=1, max_length=50)
+    event_note: str = ""
+    content_sections: DeliverableContentSectionsRequest = Field(
+        default_factory=DeliverableContentSectionsRequest
+    )
+
+
+class DeliverablePublishRequest(BaseModel):
+    title: str = Field(min_length=1, max_length=255)
+    summary: str = ""
+    version_tag: str = Field(min_length=1, max_length=50)
+    publish_note: str = ""
+    artifact_formats: list[Literal["markdown", "docx"]] = Field(
+        default_factory=lambda: ["markdown", "docx"]
+    )
+    content_sections: DeliverableContentSectionsRequest = Field(
+        default_factory=DeliverableContentSectionsRequest
+    )
 
 
 class TaskContextRead(ORMModel):
@@ -396,6 +444,46 @@ class DeliverableVersionEventRead(ORMModel):
     created_at: datetime
 
 
+class DeliverableContentSectionsRead(BaseModel):
+    executive_summary: str = ""
+    recommendations: list[str] = Field(default_factory=list)
+    risks: list[str] = Field(default_factory=list)
+    action_items: list[str] = Field(default_factory=list)
+    evidence_basis: list[str] = Field(default_factory=list)
+
+
+class DeliverableArtifactRecordRead(ORMModel):
+    id: str
+    deliverable_id: str
+    task_id: str
+    publish_record_id: str | None = None
+    source_version_event_id: str | None = None
+    artifact_kind: str
+    artifact_format: str
+    version_tag: str
+    deliverable_status: str | None = None
+    file_name: str
+    mime_type: str
+    artifact_key: str
+    availability_state: str
+    artifact_digest: str | None = None
+    file_size: int
+    created_at: datetime
+
+
+class DeliverablePublishRecordRead(ORMModel):
+    id: str
+    deliverable_id: str
+    task_id: str
+    source_version_event_id: str | None = None
+    version_tag: str
+    deliverable_status: str | None = None
+    publish_note: str = ""
+    artifact_formats: list[str] = Field(default_factory=list)
+    created_at: datetime
+    artifact_records: list[DeliverableArtifactRecordRead] = Field(default_factory=list)
+
+
 class TaskRunRead(ORMModel):
     id: str
     task_id: str
@@ -495,6 +583,13 @@ class MatterDeliverableSummaryRead(BaseModel):
     decision_context_title: str | None = None
 
 
+class MatterWorkspaceContentSectionsRead(BaseModel):
+    core_question: str = ""
+    analysis_focus: str = ""
+    constraints_and_risks: str = ""
+    next_steps: str = ""
+
+
 class MatterMaterialSummaryRead(BaseModel):
     object_id: str
     task_id: str
@@ -511,6 +606,9 @@ class MatterWorkspaceResponse(BaseModel):
     engagement: EngagementRead | None = None
     workstream: WorkstreamRead | None = None
     current_decision_context: DecisionContextRead | None = None
+    content_sections: MatterWorkspaceContentSectionsRead = Field(
+        default_factory=MatterWorkspaceContentSectionsRead
+    )
     decision_trajectory: list[MatterDecisionPointRead] = Field(default_factory=list)
     related_tasks: list[TaskListItemResponse] = Field(default_factory=list)
     related_deliverables: list[MatterDeliverableSummaryRead] = Field(default_factory=list)
@@ -638,7 +736,12 @@ class DeliverableWorkspaceResponse(BaseModel):
     linked_action_items: list[ActionItemRead] = Field(default_factory=list)
     related_deliverables: list[MatterDeliverableSummaryRead] = Field(default_factory=list)
     continuity_notes: list[str] = Field(default_factory=list)
+    content_sections: DeliverableContentSectionsRead = Field(
+        default_factory=DeliverableContentSectionsRead
+    )
     version_events: list[DeliverableVersionEventRead] = Field(default_factory=list)
+    artifact_records: list[DeliverableArtifactRecordRead] = Field(default_factory=list)
+    publish_records: list[DeliverablePublishRecordRead] = Field(default_factory=list)
 
 
 class UploadResultItem(BaseModel):
