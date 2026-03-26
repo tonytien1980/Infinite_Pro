@@ -33,6 +33,7 @@ export interface MatterWorkspaceRecord {
   summary: string;
   status: MatterLifecycleStatus;
   updatedAt: string;
+  persistenceSource?: "local-fallback";
 }
 
 export interface DeliverableVersionRecord {
@@ -44,10 +45,12 @@ export interface DeliverableVersionRecord {
 
 export interface DeliverableWorkspaceRecord {
   title: string;
+  summary: string;
   status: DeliverableLifecycleStatus;
   versionTag: string;
   updatedAt: string;
   versions: DeliverableVersionRecord[];
+  persistenceSource?: "local-fallback";
 }
 
 export interface AgentManagerState {

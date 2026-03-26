@@ -1,8 +1,10 @@
 import {
   ArtifactEvidenceWorkspace,
   DeliverableWorkspace,
+  DeliverableMetadataUpdatePayload,
   ExtensionManagerSnapshot,
   MatterWorkspace,
+  MatterWorkspaceMetadataUpdatePayload,
   MatterWorkspaceSummary,
   ResearchRunResponse,
   SourceIngestBatchResponse,
@@ -70,6 +72,20 @@ export async function getMatterWorkspace(matterId: string): Promise<MatterWorksp
   return parseResponse<MatterWorkspace>(response);
 }
 
+export async function updateMatterWorkspaceMetadata(
+  matterId: string,
+  payload: MatterWorkspaceMetadataUpdatePayload,
+): Promise<MatterWorkspace> {
+  const response = await fetch(`${API_BASE_URL}/matters/${matterId}/metadata`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  return parseResponse<MatterWorkspace>(response);
+}
+
 export async function getArtifactEvidenceWorkspace(
   matterId: string,
 ): Promise<ArtifactEvidenceWorkspace> {
@@ -84,6 +100,20 @@ export async function getDeliverableWorkspace(
 ): Promise<DeliverableWorkspace> {
   const response = await fetch(`${API_BASE_URL}/deliverables/${deliverableId}`, {
     cache: "no-store",
+  });
+  return parseResponse<DeliverableWorkspace>(response);
+}
+
+export async function updateDeliverableMetadata(
+  deliverableId: string,
+  payload: DeliverableMetadataUpdatePayload,
+): Promise<DeliverableWorkspace> {
+  const response = await fetch(`${API_BASE_URL}/deliverables/${deliverableId}/metadata`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
   });
   return parseResponse<DeliverableWorkspace>(response);
 }

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { buildTaskListWorkspaceSummary } from "@/lib/advisory-workflow";
 import { listTasks } from "@/lib/api";
+import { truncateText } from "@/lib/text-format";
 import type { TaskListItem } from "@/lib/types";
 import {
   formatDisplayDate,
@@ -312,8 +313,10 @@ export function HistoryPagePanel() {
                     <h3>{task.title}</h3>
                     <p className="workspace-object-path">{summary.objectPath}</p>
                     <p className="muted-text">案件：{task.matter_workspace?.title || "未掛案件"}</p>
-                    <p className="muted-text">決策問題：{summary.decisionContext}</p>
-                    <p className="content-block">{task.description}</p>
+                    <p className="muted-text">
+                      決策問題：{truncateText(summary.decisionContext, 84)}
+                    </p>
+                    <p className="content-block">{truncateText(task.description, 118)}</p>
                     <div className="button-row" style={{ marginTop: "12px" }}>
                       <Link className="button-secondary" href={`/tasks/${task.id}`}>
                         打開工作紀錄

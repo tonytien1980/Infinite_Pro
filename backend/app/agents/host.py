@@ -2560,6 +2560,13 @@ class HostOrchestrator:
             task_run_id=run.id,
             deliverable_type=result.deliverable.deliverable_type,
             title=result.deliverable.title,
+            summary=(
+                self._coerce_text(result.deliverable.content_structure.get("executive_summary"))
+                or self._coerce_text(result.deliverable.content_structure.get("summary"))
+                or result.deliverable.title
+            )[:2000],
+            status="final",
+            version_tag=f"v{next_version}",
             content_structure=result.deliverable.content_structure,
             version=next_version,
         )

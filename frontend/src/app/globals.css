@@ -436,7 +436,12 @@ button {
 
 .management-card {
   display: grid;
-  gap: 10px;
+  gap: 8px;
+}
+
+.management-card .content-block,
+.management-card .muted-text {
+  line-height: 1.6;
 }
 
 .history-item-button {
@@ -629,6 +634,31 @@ button {
   border: 1px solid var(--border);
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.7);
+}
+
+.workspace-hero-card {
+  overflow: hidden;
+}
+
+.workspace-hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.85fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.workspace-hero-main,
+.workspace-hero-rail {
+  min-width: 0;
+}
+
+.workspace-hero-rail {
+  display: grid;
+  gap: 16px;
+}
+
+.workspace-focus-card {
+  margin-top: 18px;
 }
 
 .matter-hero-link {
@@ -1033,6 +1063,10 @@ html[data-density="compact"] .toolbar-grid {
   gap: 12px;
 }
 
+html[data-density="compact"] .workspace-hero-grid {
+  gap: 16px;
+}
+
 @media (max-width: 940px) {
   .app-header {
     padding: 12px 14px 0;
@@ -1095,6 +1129,7 @@ html[data-density="compact"] .toolbar-grid {
     flex-direction: column;
   }
 
+  .workspace-hero-grid,
   .deliverable-hero-grid,
   .deliverable-focus-grid,
   .deliverable-metric-grid {

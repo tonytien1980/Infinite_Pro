@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from sqlalchemy import DateTime, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -87,6 +87,9 @@ class MatterWorkspace(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
     matter_key: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
+    summary: Mapped[str] = mapped_column(Text, default="")
+    status: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    title_override_active: Mapped[bool] = mapped_column(Boolean, default=False)
     client_name: Mapped[str] = mapped_column(String(255), default="")
     engagement_name: Mapped[str] = mapped_column(String(255), default="")
     workstream_name: Mapped[str] = mapped_column(String(255), default="")
@@ -427,6 +430,9 @@ class Deliverable(Base):
     task_run_id: Mapped[str | None] = mapped_column(ForeignKey("task_runs.id"), nullable=True)
     deliverable_type: Mapped[str] = mapped_column(String(100), default="research_synthesis")
     title: Mapped[str] = mapped_column(String(255), nullable=False)
+    summary: Mapped[str] = mapped_column(Text, default="")
+    status: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    version_tag: Mapped[str | None] = mapped_column(String(50), nullable=True)
     content_structure: Mapped[dict] = mapped_column(JSON, default=dict)
     version: Mapped[int] = mapped_column(Integer, default=1)
     generated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)

@@ -159,6 +159,8 @@ export interface ExtensionManagerSnapshot {
 export interface MatterWorkspaceSummary {
   id: string;
   title: string;
+  workspace_summary: string;
+  status: string;
   object_path: string;
   client_name: string;
   engagement_name: string;
@@ -196,6 +198,9 @@ export interface MatterDeliverableSummary {
   task_id: string;
   task_title: string;
   title: string;
+  summary: string;
+  status: string;
+  version_tag: string;
   deliverable_type: string;
   version: number;
   generated_at: string;
@@ -414,6 +419,9 @@ export interface Deliverable {
   task_run_id: string | null;
   deliverable_type: string;
   title: string;
+  summary: string;
+  status: string;
+  version_tag: string;
   content_structure: Record<string, unknown>;
   version: number;
   linked_objects: DeliverableObjectLink[];
@@ -505,6 +513,9 @@ export interface TaskListItem {
   run_count: number;
   latest_deliverable_id: string | null;
   latest_deliverable_title: string | null;
+  latest_deliverable_summary: string | null;
+  latest_deliverable_status: string | null;
+  latest_deliverable_version_tag: string | null;
   matter_workspace: MatterWorkspaceSummary | null;
 }
 
@@ -673,4 +684,17 @@ export interface TaskCreatePayload {
 export interface TaskExtensionOverridePayload {
   pack_override_ids: string[];
   agent_override_ids: string[];
+}
+
+export interface MatterWorkspaceMetadataUpdatePayload {
+  title: string;
+  summary: string;
+  status: "active" | "paused" | "archived";
+}
+
+export interface DeliverableMetadataUpdatePayload {
+  title: string;
+  summary: string;
+  status: "draft" | "pending_confirmation" | "final" | "archived";
+  version_tag: string;
 }

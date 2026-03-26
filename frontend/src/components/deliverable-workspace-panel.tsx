@@ -17,6 +17,7 @@ import {
   buildRecommendationCards,
   buildRiskCards,
 } from "@/lib/advisory-workflow";
+import { truncateText } from "@/lib/text-format";
 import type { DeliverableWorkspace } from "@/lib/types";
 import {
   formatDisplayDate,
@@ -31,6 +32,11 @@ import {
   nowIsoString,
   useDeliverableWorkspaceRecords,
 } from "@/lib/workbench-store";
+import {
+  buildDeliverableSaveFeedback,
+  isLocalFallbackDeliverableRecord,
+  persistDeliverableMetadata,
+} from "@/lib/workspace-persistence";
 
 function CompactList({
   items,
@@ -56,9 +62,11 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const [workspace, setWorkspace] = useState<DeliverableWorkspace | null>(null);
   const [deliverableRecords, setDeliverableRecords] = useDeliverableWorkspaceRecords();
   const [draftTitle, setDraftTitle] = useState("");
+  const [draftSummary, setDraftSummary] = useState("");
   const [draftStatus, setDraftStatus] = useState<DeliverableLifecycleStatus>("draft");
   const [draftVersionTag, setDraftVersionTag] = useState("");
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [saveMode, setSaveMode] = useState<"remote" | "local-fallback" | null>(null);
   const [exportMessage, setExportMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -82,12 +90,14 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
       return;
     }
 
-    const record = deliverableRecords[deliverableId];
-    const defaultStatus: DeliverableLifecycleStatus =
-      workspace.task.status === "completed" ? "final" : "pending_confirmation";
+    const record = isLocalFallbackDeliverableRecord(deliverableRecords[deliverableId])
+      ? deliverableRecords[deliverableId]
+      : null;
+    const defaultStatus = workspace.deliverable.status as DeliverableLifecycleStatus;
     setDraftTitle(record?.title || workspace.deliverable.title);
+    setDraftSummary(record?.summary || workspace.deliverable.summary || "");
     setDraftStatus(record?.status || defaultStatus);
-    setDraftVersionTag(record?.versionTag || `v${workspace.deliverable.version}`);
+    setDraftVersionTag(record?.versionTag || workspace.deliverable.version_tag || `v${workspace.deliverable.version}`);
   }, [deliverableId, deliverableRecords, workspace]);
 
   const task = workspace?.task ?? null;
@@ -105,46 +115,79 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const packSelection = task && deliverable ? buildPackSelectionView(task, deliverable) : null;
   const deliverableBacklink = task && deliverable ? buildDeliverableBacklinkView(task, deliverable) : null;
   const deliverableRecord = deliverableRecords[deliverableId];
+  const fallbackRecord = isLocalFallbackDeliverableRecord(deliverableRecord)
+    ? deliverableRecord
+    : null;
   const deliverableStatus =
-    deliverableRecord?.status || (task?.status === "completed" ? "final" : "pending_confirmation");
-  const versionTag =
-    deliverableRecord?.versionTag || (deliverable ? `v${deliverable.version}` : "v1");
-  const displayTitle = deliverableRecord?.title || deliverable?.title || "";
+    fallbackRecord?.status ||
+    ((deliverable?.status as DeliverableLifecycleStatus | undefined) ??
+      (task?.status === "completed" ? "final" : "pending_confirmation"));
+  const versionTag = fallbackRecord?.versionTag || deliverable?.version_tag || (deliverable ? `v${deliverable.version}` : "v1");
+  const displayTitle = fallbackRecord?.title || deliverable?.title || "";
+  const displaySummary = fallbackRecord?.summary || deliverable?.summary || "";
+  const selectedPackNames = packSelection
+    ? [...packSelection.domainPacks, ...packSelection.industryPacks]
+    : [];
 
-  function handleSaveMetadata() {
+  async function handleSaveMetadata() {
     if (!deliverable) {
       return;
     }
 
     const timestamp = nowIsoString();
-    setDeliverableRecords((current) => {
-      const previous = current[deliverableId];
-      const currentVersionTag = draftVersionTag.trim() || `v${deliverable.version}`;
-      const shouldAddVersion =
-        !previous || previous.versionTag !== currentVersionTag || previous.title !== draftTitle.trim();
+    const nextTitle = draftTitle.trim() || deliverable.title;
+    const nextSummary = draftSummary.trim();
+    const nextVersionTag = draftVersionTag.trim() || deliverable.version_tag || `v${deliverable.version}`;
+    const previousVersions = deliverableRecord?.versions ?? [];
+    const shouldAddVersion =
+      nextVersionTag !== (deliverable.version_tag || `v${deliverable.version}`) ||
+      nextTitle !== deliverable.title ||
+      nextSummary !== (deliverable.summary || "");
+    const nextVersions = shouldAddVersion
+      ? [
+          {
+            id: `${deliverableId}-${timestamp}`,
+            versionTag: nextVersionTag,
+            timestamp,
+            note: `更新為「${nextTitle}」`,
+          },
+          ...previousVersions,
+        ].slice(0, 12)
+      : previousVersions;
 
-      return {
+    const result = await persistDeliverableMetadata(deliverableId, {
+      title: nextTitle,
+      summary: nextSummary,
+      status: draftStatus,
+      version_tag: nextVersionTag,
+    });
+
+    if (result.source === "remote") {
+      setWorkspace(result.workspace);
+      setDeliverableRecords((current) => ({
         ...current,
         [deliverableId]: {
-          title: draftTitle.trim() || deliverable.title,
-          status: draftStatus,
-          versionTag: currentVersionTag,
+          title: result.workspace.deliverable.title,
+          summary: result.workspace.deliverable.summary,
+          status: result.workspace.deliverable.status as DeliverableLifecycleStatus,
+          versionTag: result.workspace.deliverable.version_tag,
           updatedAt: timestamp,
-          versions: shouldAddVersion
-            ? [
-                {
-                  id: `${deliverableId}-${timestamp}`,
-                  versionTag: currentVersionTag,
-                  timestamp,
-                  note: `更新為「${draftTitle.trim() || deliverable.title}」`,
-                },
-                ...(previous?.versions ?? []),
-              ].slice(0, 12)
-            : previous?.versions ?? [],
+          versions: nextVersions,
         },
-      };
-    });
-    setSaveMessage("交付物基本資訊已更新。");
+      }));
+      setSaveMode("remote");
+      setSaveMessage(buildDeliverableSaveFeedback("remote", result.workspace));
+    } else {
+      setDeliverableRecords((current) => ({
+        ...current,
+        [deliverableId]: {
+          ...result.fallbackRecord,
+          versions: nextVersions,
+        },
+      }));
+      setSaveMode("local-fallback");
+      setSaveMessage(buildDeliverableSaveFeedback("local-fallback"));
+    }
     setExportMessage(null);
   }
 
@@ -209,7 +252,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                   <span>{labelForDeliverableStatus(deliverableStatus)}</span>
                   <span>{workspaceView.workspaceStatusLabel}</span>
                   <span>{versionTag}</span>
-                  <span>{formatDisplayDate(deliverable.generated_at)}</span>
+                  <span>更新於 {formatDisplayDate(task.updated_at)}</span>
                 </div>
 
                 {decisionSnapshot ? (
@@ -220,6 +263,15 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                 ) : null}
 
                 <div className="deliverable-focus-grid">
+                  <div className="section-card deliverable-focus-panel">
+                    <h4>簡短摘要</h4>
+                    <p className="content-block">
+                      {truncateText(
+                        displaySummary || executiveSummary?.summary || decisionSnapshot?.conclusion,
+                        156,
+                      )}
+                    </p>
+                  </div>
                   <div className="section-card deliverable-focus-panel">
                     <h4>決策問題</h4>
                     <p className="content-block">
@@ -284,6 +336,37 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                     </p>
                   ) : null}
                 </div>
+
+                <div className="section-card deliverable-rail-card">
+                  <h4>關聯脈絡</h4>
+                  <div className="detail-list">
+                    <div className="detail-item">
+                      <h3>所屬案件</h3>
+                      <p className="content-block">
+                        {workspace.matter_workspace?.title || task.engagement?.name || "未掛案件"}
+                      </p>
+                    </div>
+                    <div className="detail-item">
+                      <h3>關聯代理</h3>
+                      <p className="content-block">
+                        {capabilityFrame?.selectedAgentDetails.length
+                          ? capabilityFrame.selectedAgentDetails
+                              .map((item) => item.agentName)
+                              .slice(0, 4)
+                              .join("、")
+                          : "目前沒有可顯示的代理脈絡。"}
+                      </p>
+                    </div>
+                    <div className="detail-item">
+                      <h3>關聯模組包</h3>
+                      <p className="content-block">
+                        {selectedPackNames.length > 0
+                          ? selectedPackNames.slice(0, 4).join("、")
+                          : "目前沒有可顯示的模組包脈絡。"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </aside>
             </div>
           </section>
@@ -306,6 +389,18 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                       setDraftTitle(event.target.value);
                       setSaveMessage(null);
                     }}
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="deliverable-summary">簡短摘要</label>
+                  <textarea
+                    id="deliverable-summary"
+                    value={draftSummary}
+                    onChange={(event) => {
+                      setDraftSummary(event.target.value);
+                      setSaveMessage(null);
+                    }}
+                    placeholder="用一句短摘要說明這份交付物目前的主要結論或用途。"
                   />
                 </div>
                 <div className="field">
@@ -344,6 +439,14 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                     readOnly
                   />
                 </div>
+                <div className="field">
+                  <label htmlFor="deliverable-updated-at">最近更新</label>
+                  <input
+                    id="deliverable-updated-at"
+                    value={formatDisplayDate(task.updated_at)}
+                    readOnly
+                  />
+                </div>
               </div>
 
               <div className="button-row">
@@ -355,6 +458,9 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                 </button>
               </div>
               {saveMessage ? <p className="success-text">{saveMessage}</p> : null}
+              {saveMessage && saveMode === "local-fallback" ? (
+                <p className="muted-text">目前顯示的是本機暫存版本，待後端可用後再寫回正式資料。</p>
+              ) : null}
               {exportMessage ? <p className="muted-text">{exportMessage}</p> : null}
             </div>
           </section>
@@ -426,7 +532,11 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
 
                 {executiveSummary ? (
                   <div className="detail-item" style={{ marginTop: "16px" }}>
-                    <h3>執行摘要</h3>
+                    <h3>工作摘要</h3>
+                    <p className="content-block">
+                      {displaySummary || executiveSummary.summary}
+                    </p>
+                    <h3 style={{ marginTop: "16px" }}>執行摘要</h3>
                     <p className="content-block">{executiveSummary.summary}</p>
                     {executiveSummary.bullets.length > 0 ? (
                       <>
@@ -437,6 +547,11 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                         />
                       </>
                     ) : null}
+                  </div>
+                ) : displaySummary ? (
+                  <div className="detail-item" style={{ marginTop: "16px" }}>
+                    <h3>執行摘要</h3>
+                    <p className="content-block">{displaySummary}</p>
                   </div>
                 ) : null}
               </section>

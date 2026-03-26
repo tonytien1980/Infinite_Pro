@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -59,6 +59,19 @@ class TaskCreateRequest(BaseModel):
 class TaskExtensionOverrideRequest(BaseModel):
     pack_override_ids: list[str] = Field(default_factory=list)
     agent_override_ids: list[str] = Field(default_factory=list)
+
+
+class MatterWorkspaceMetadataUpdateRequest(BaseModel):
+    title: str = Field(min_length=1, max_length=255)
+    summary: str = ""
+    status: Literal["active", "paused", "archived"]
+
+
+class DeliverableMetadataUpdateRequest(BaseModel):
+    title: str = Field(min_length=1, max_length=255)
+    summary: str = ""
+    status: Literal["draft", "pending_confirmation", "final", "archived"]
+    version_tag: str = Field(min_length=1, max_length=50)
 
 
 class TaskContextRead(ORMModel):
@@ -361,6 +374,9 @@ class DeliverableRead(ORMModel):
     task_run_id: str | None
     deliverable_type: str
     title: str
+    summary: str
+    status: str
+    version_tag: str
     content_structure: dict[str, Any]
     version: int
     linked_objects: list[DeliverableObjectLinkRead] = Field(default_factory=list)
@@ -382,6 +398,8 @@ class TaskRunRead(ORMModel):
 class MatterWorkspaceSummaryRead(BaseModel):
     id: str
     title: str
+    workspace_summary: str = ""
+    status: str = "active"
     object_path: str
     client_name: str
     engagement_name: str
@@ -433,6 +451,9 @@ class TaskListItemResponse(BaseModel):
     run_count: int
     latest_deliverable_id: str | None = None
     latest_deliverable_title: str | None
+    latest_deliverable_summary: str | None = None
+    latest_deliverable_status: str | None = None
+    latest_deliverable_version_tag: str | None = None
     matter_workspace: MatterWorkspaceSummaryRead | None = None
 
 
@@ -452,6 +473,9 @@ class MatterDeliverableSummaryRead(BaseModel):
     task_id: str
     task_title: str
     title: str
+    summary: str
+    status: str
+    version_tag: str
     deliverable_type: str
     version: int
     generated_at: datetime

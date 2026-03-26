@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { buildTaskListWorkspaceSummary } from "@/lib/advisory-workflow";
 import { listTasks } from "@/lib/api";
+import { truncateText } from "@/lib/text-format";
 import type { TaskListItem } from "@/lib/types";
 import {
   formatDisplayDate,
@@ -16,6 +17,7 @@ import {
   useDeliverableWorkspaceRecords,
   useWorkbenchSettings,
 } from "@/lib/workbench-store";
+import { isLocalFallbackDeliverableRecord } from "@/lib/workspace-persistence";
 
 type DeliverableCardView = {
   id: string;
@@ -96,20 +98,30 @@ export function DeliverablesPagePanel() {
           const record = task.latest_deliverable_id
             ? deliverableRecords[task.latest_deliverable_id]
             : undefined;
+          const fallbackRecord = isLocalFallbackDeliverableRecord(record) ? record : null;
           const summary = buildTaskListWorkspaceSummary(task);
 
           return {
             id: task.latest_deliverable_id || task.id,
             taskId: task.id,
-            title: record?.title || task.latest_deliverable_title || task.title,
+            title: fallbackRecord?.title || task.latest_deliverable_title || task.title,
             deliverableClass: task.deliverable_class_hint,
             matterTitle: task.matter_workspace?.title || task.engagement_name || "未掛案件",
             matterId: task.matter_workspace?.id ?? null,
-            status: record?.status || defaultDeliverableStatus(task),
-            versionTag: record?.versionTag || `v${Math.max(task.deliverable_count, 1)}`,
+            status:
+              fallbackRecord?.status ||
+              (task.latest_deliverable_status as DeliverableLifecycleStatus | null) ||
+              defaultDeliverableStatus(task),
+            versionTag:
+              fallbackRecord?.versionTag ||
+              task.latest_deliverable_version_tag ||
+              `v${Math.max(task.deliverable_count, 1)}`,
             updatedAt: task.updated_at,
             decisionContext: task.decision_context_title || "目前未標示決策問題",
-            summary: summary.workspaceState,
+            summary:
+              fallbackRecord?.summary ||
+              task.latest_deliverable_summary ||
+              summary.workspaceState,
           };
         }),
     [deliverableRecords, tasks],
@@ -237,8 +249,8 @@ export function DeliverablesPagePanel() {
                   </div>
                   <h3>{item.title}</h3>
                   <p className="workspace-object-path">所屬案件：{item.matterTitle}</p>
-                  <p className="muted-text">決策問題：{item.decisionContext}</p>
-                  <p className="content-block">{item.summary}</p>
+                  <p className="muted-text">決策問題：{truncateText(item.decisionContext, 84)}</p>
+                  <p className="content-block">{truncateText(item.summary, 116)}</p>
                   <div className="button-row" style={{ marginTop: "12px" }}>
                     <Link className="button-secondary" href={`/deliverables/${item.id}`}>
                       打開交付物工作面

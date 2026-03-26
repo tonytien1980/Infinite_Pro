@@ -8,13 +8,22 @@ import {
   buildTaskListWorkspaceSummary,
 } from "@/lib/advisory-workflow";
 import { getExtensionManager, listMatterWorkspaces, listTasks } from "@/lib/api";
+import { truncateText } from "@/lib/text-format";
 import type {
   ExtensionManagerSnapshot,
   MatterWorkspaceSummary,
   TaskListItem,
 } from "@/lib/types";
 import { formatDisplayDate, labelForDeliverableClass } from "@/lib/ui-labels";
-import { useWorkbenchSettings } from "@/lib/workbench-store";
+import {
+  useDeliverableWorkspaceRecords,
+  useMatterWorkspaceRecords,
+  useWorkbenchSettings,
+} from "@/lib/workbench-store";
+import {
+  isLocalFallbackDeliverableRecord,
+  isLocalFallbackMatterRecord,
+} from "@/lib/workspace-persistence";
 
 function collectTopItems(items: string[], limit = 4) {
   const counts = new Map<string, number>();
@@ -60,6 +69,8 @@ export function WorkbenchHome() {
   const [tasks, setTasks] = useState<TaskListItem[]>([]);
   const [matters, setMatters] = useState<MatterWorkspaceSummary[]>([]);
   const [extensionManager, setExtensionManager] = useState<ExtensionManagerSnapshot | null>(null);
+  const [matterRecords] = useMatterWorkspaceRecords();
+  const [deliverableRecords] = useDeliverableWorkspaceRecords();
   const [settings] = useWorkbenchSettings();
   const [loading, setLoading] = useState(true);
   const [matterLoading, setMatterLoading] = useState(true);
@@ -149,6 +160,17 @@ export function WorkbenchHome() {
   const primaryMatter = visibleMatters[0] ?? null;
   const primaryDeliverable = recentDeliverables[0] ?? null;
   const primaryEvidenceTask = pendingEvidenceTasks[0] ?? null;
+  const primaryMatterRecord =
+    primaryMatter && isLocalFallbackMatterRecord(matterRecords[primaryMatter.id])
+      ? matterRecords[primaryMatter.id]
+      : null;
+  const primaryDeliverableRecord =
+    primaryDeliverable?.latest_deliverable_id &&
+    isLocalFallbackDeliverableRecord(
+      deliverableRecords[primaryDeliverable.latest_deliverable_id],
+    )
+      ? deliverableRecords[primaryDeliverable.latest_deliverable_id]
+      : null;
 
   return (
     <main className="page-shell home-page-shell">
@@ -162,20 +184,64 @@ export function WorkbenchHome() {
             <h3>{pickFocusLabel(settings.homepageDisplayPreference)}</h3>
             <p className="content-block">
               {settings.homepageDisplayPreference === "deliverables"
-                ? primaryDeliverable?.latest_deliverable_title || "目前還沒有可直接回看的交付物。"
+                ? primaryDeliverableRecord?.title ||
+                  primaryDeliverable?.latest_deliverable_title ||
+                  "目前還沒有可直接回看的交付物。"
                 : settings.homepageDisplayPreference === "evidence"
                   ? primaryEvidenceTask?.title || "目前沒有明顯待補資料。"
-                  : primaryMatter?.title || "目前還沒有進行中的案件。"}
+                  : primaryMatterRecord?.title ||
+                    primaryMatter?.title ||
+                    "目前還沒有進行中的案件。"}
             </p>
             <p className="muted-text">
               {settings.homepageDisplayPreference === "deliverables"
-                ? primaryDeliverable?.decision_context_title || "交付物 detail workspace 會顯示這次判斷的摘要與版本。"
+                ? truncateText(
+                    primaryDeliverableRecord?.summary ||
+                      primaryDeliverable?.latest_deliverable_summary ||
+                      primaryDeliverable?.decision_context_title ||
+                      "交付物 detail workspace 會顯示這次判斷的摘要與版本。",
+                    88,
+                  )
                 : settings.homepageDisplayPreference === "evidence"
                   ? primaryEvidenceTask
                     ? buildGapNote(primaryEvidenceTask)
                     : "建立第一個案件後，待補資料入口會出現在這裡。"
-                  : primaryMatter?.current_decision_context_title || "案件 detail workspace 會承接目前的決策問題。"}
+                  : truncateText(
+                      primaryMatterRecord?.summary ||
+                        primaryMatter?.workspace_summary ||
+                        primaryMatter?.current_decision_context_title ||
+                        "案件 detail workspace 會承接目前的決策問題。",
+                      88,
+                    )}
             </p>
+            <div className="button-row" style={{ marginTop: "12px" }}>
+              {settings.homepageDisplayPreference === "deliverables" &&
+              primaryDeliverable?.latest_deliverable_id ? (
+                <Link
+                  className="button-secondary"
+                  href={`/deliverables/${primaryDeliverable.latest_deliverable_id}`}
+                >
+                  打開交付物工作面
+                </Link>
+              ) : null}
+              {settings.homepageDisplayPreference === "evidence" && primaryEvidenceTask ? (
+                <Link
+                  className="button-secondary"
+                  href={
+                    primaryEvidenceTask.matter_workspace
+                      ? `/matters/${primaryEvidenceTask.matter_workspace.id}/evidence`
+                      : `/tasks/${primaryEvidenceTask.id}`
+                  }
+                >
+                  打開待補資料
+                </Link>
+              ) : null}
+              {settings.homepageDisplayPreference === "matters" && primaryMatter ? (
+                <Link className="button-secondary" href={`/matters/${primaryMatter.id}`}>
+                  打開案件工作面
+                </Link>
+              ) : null}
+            </div>
           </div>
 
           <div className="section-card overview-metric-card">
@@ -232,6 +298,9 @@ export function WorkbenchHome() {
                 {visibleMatters.length > 0 ? (
                   visibleMatters.map((matter) => {
                     const workspaceCard = buildMatterWorkspaceCard(matter);
+                    const fallbackRecord = isLocalFallbackMatterRecord(matterRecords[matter.id])
+                      ? matterRecords[matter.id]
+                      : null;
 
                     return (
                       <Link className="history-item" href={`/matters/${matter.id}`} key={matter.id}>
@@ -239,9 +308,17 @@ export function WorkbenchHome() {
                           <span className="pill">{matter.active_task_count > 0 ? "進行中案件" : "回看案件"}</span>
                           <span>更新於 {formatDisplayDate(matter.latest_updated_at)}</span>
                         </div>
-                        <h3>{workspaceCard.title}</h3>
+                        <h3>{fallbackRecord?.title || workspaceCard.title}</h3>
                         <p className="workspace-object-path">{workspaceCard.objectPath}</p>
-                        <p className="content-block">{matter.active_work_summary || workspaceCard.continuity}</p>
+                        <p className="content-block">
+                          {truncateText(
+                            fallbackRecord?.summary ||
+                              matter.workspace_summary ||
+                              matter.active_work_summary ||
+                              workspaceCard.continuity,
+                            112,
+                          )}
+                        </p>
                         <div className="meta-row">
                           <span>交付物 {matter.deliverable_count}</span>
                           <span>來源 {matter.source_material_count}</span>
@@ -271,6 +348,13 @@ export function WorkbenchHome() {
                 {recentDeliverables.length > 0 ? (
                   recentDeliverables.map((task) => {
                     const summary = buildTaskListWorkspaceSummary(task);
+                    const fallbackRecord =
+                      task.latest_deliverable_id &&
+                      isLocalFallbackDeliverableRecord(
+                        deliverableRecords[task.latest_deliverable_id],
+                      )
+                        ? deliverableRecords[task.latest_deliverable_id]
+                        : null;
 
                     return (
                       <Link
@@ -286,9 +370,16 @@ export function WorkbenchHome() {
                           <span className="pill">{labelForDeliverableClass(task.deliverable_class_hint)}</span>
                           <span>{formatDisplayDate(task.updated_at)}</span>
                         </div>
-                        <h3>{task.latest_deliverable_title || task.title}</h3>
+                        <h3>{fallbackRecord?.title || task.latest_deliverable_title || task.title}</h3>
                         <p className="workspace-object-path">{summary.objectPath}</p>
-                        <p className="muted-text">{summary.decisionContext}</p>
+                        <p className="muted-text">
+                          {truncateText(
+                            fallbackRecord?.summary ||
+                              task.latest_deliverable_summary ||
+                              summary.decisionContext,
+                            90,
+                          )}
+                        </p>
                       </Link>
                     );
                   })

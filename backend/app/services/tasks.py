@@ -1765,8 +1765,13 @@ def ensure_matter_workspace_for_task(
         db.flush()
         changed = True
     else:
+        if not matter_workspace.title_override_active:
+            incoming_title = identity["title"]
+            if incoming_title and matter_workspace.title != incoming_title:
+                matter_workspace.title = incoming_title
+                changed = True
+
         for field in (
-            "title",
             "client_name",
             "engagement_name",
             "workstream_name",
@@ -1807,6 +1812,37 @@ def ensure_matter_workspace_for_task(
         db.flush()
 
     return matter_workspace, changed
+
+
+def _default_matter_workspace_status(matter_workspace: models.MatterWorkspace, related_tasks: list[models.Task]) -> str:
+    if matter_workspace.status:
+        return matter_workspace.status
+
+    active_task_count = sum(1 for task in related_tasks if task.status != TaskStatus.COMPLETED.value)
+    return "active" if active_task_count > 0 else "paused"
+
+
+def _default_deliverable_status(task: models.Task, deliverable: models.Deliverable) -> str:
+    if deliverable.status:
+        return deliverable.status
+    if task.status == TaskStatus.DRAFT.value:
+        return "draft"
+    if task.status == TaskStatus.COMPLETED.value:
+        return "final"
+    return "pending_confirmation"
+
+
+def _resolve_deliverable_summary_text(deliverable: models.Deliverable) -> str:
+    if deliverable.summary.strip():
+        return deliverable.summary.strip()
+
+    content = deliverable.content_structure if isinstance(deliverable.content_structure, dict) else {}
+    for key in ("executive_summary", "summary", "final_recommendation", "recommended_path"):
+        value = content.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+
+    return deliverable.title
 
 
 def _load_tasks_for_matter_workspaces(
@@ -1856,6 +1892,7 @@ def _build_matter_workspace_summary_from_tasks(
 ) -> schemas.MatterWorkspaceSummaryRead:
     latest_task = related_tasks[0] if related_tasks else None
     active_task_count = sum(1 for task in related_tasks if task.status != TaskStatus.COMPLETED.value)
+    workspace_status = _default_matter_workspace_status(matter_workspace, related_tasks)
     deliverable_count = sum(len(task.deliverables) for task in related_tasks)
     artifact_count = 0
     source_material_count = 0
@@ -1932,6 +1969,8 @@ def _build_matter_workspace_summary_from_tasks(
     return schemas.MatterWorkspaceSummaryRead(
         id=matter_workspace.id,
         title=matter_workspace.title,
+        workspace_summary=(matter_workspace.summary or "").strip(),
+        status=workspace_status,
         object_path=_build_matter_workspace_object_path(
             matter_workspace.client_name,
             matter_workspace.engagement_name,
@@ -1958,7 +1997,11 @@ def _build_matter_workspace_summary_from_tasks(
         deliverable_count=deliverable_count,
         artifact_count=artifact_count,
         source_material_count=source_material_count,
-        latest_updated_at=latest_task.updated_at if latest_task else matter_workspace.updated_at,
+        latest_updated_at=(
+            max(latest_task.updated_at, matter_workspace.updated_at)
+            if latest_task
+            else matter_workspace.updated_at
+        ),
         continuity_summary=continuity_summary,
         active_work_summary=active_work_summary,
         selected_pack_names=_unique_preserve_order(
@@ -2189,6 +2232,9 @@ def _serialize_deliverables(
                 task_run_id=item.task_run_id,
                 deliverable_type=item.deliverable_type,
                 title=item.title,
+                summary=_resolve_deliverable_summary_text(item),
+                status=_default_deliverable_status(task, item),
+                version_tag=(item.version_tag or f"v{item.version}"),
                 content_structure=item.content_structure,
                 version=item.version,
                 linked_objects=linked_objects,
@@ -2504,6 +2550,21 @@ def _build_task_list_item_response(
         run_count=len(task.runs),
         latest_deliverable_id=latest_deliverable.id if latest_deliverable else None,
         latest_deliverable_title=latest_deliverable.title if latest_deliverable else None,
+        latest_deliverable_summary=(
+            _resolve_deliverable_summary_text(latest_deliverable)
+            if latest_deliverable
+            else None
+        ),
+        latest_deliverable_status=(
+            _default_deliverable_status(task, latest_deliverable)
+            if latest_deliverable
+            else None
+        ),
+        latest_deliverable_version_tag=(
+            latest_deliverable.version_tag or f"v{latest_deliverable.version}"
+            if latest_deliverable
+            else None
+        ),
         matter_workspace=matter_workspace,
     )
 
@@ -2650,6 +2711,9 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
                     task_id=task.id,
                     task_title=task.title,
                     title=deliverable.title,
+                    summary=_resolve_deliverable_summary_text(deliverable),
+                    status=_default_deliverable_status(task, deliverable),
+                    version_tag=(deliverable.version_tag or f"v{deliverable.version}"),
                     deliverable_type=deliverable.deliverable_type,
                     version=deliverable.version,
                     generated_at=deliverable.generated_at,
@@ -2726,6 +2790,27 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
         readiness_hint=readiness_hint,
         continuity_notes=continuity_notes,
     )
+
+
+def update_matter_workspace_metadata(
+    db: Session,
+    matter_id: str,
+    payload: schemas.MatterWorkspaceMetadataUpdateRequest,
+) -> schemas.MatterWorkspaceResponse:
+    matter_workspace = db.scalars(
+        select(models.MatterWorkspace).where(models.MatterWorkspace.id == matter_id)
+    ).one_or_none()
+    if matter_workspace is None:
+        raise HTTPException(status_code=404, detail="找不到指定案件工作面。")
+
+    matter_workspace.title = payload.title.strip()
+    matter_workspace.summary = payload.summary.strip()
+    matter_workspace.status = payload.status
+    matter_workspace.title_override_active = True
+    db.add(matter_workspace)
+    db.commit()
+
+    return get_matter_workspace(db, matter_id)
 
 
 def _material_role_label(
@@ -3420,6 +3505,32 @@ def get_deliverable_workspace(
         related_deliverables=related_deliverables,
         continuity_notes=_unique_preserve_order(continuity_notes),
     )
+
+
+def update_deliverable_metadata(
+    db: Session,
+    deliverable_id: str,
+    payload: schemas.DeliverableMetadataUpdateRequest,
+) -> schemas.DeliverableWorkspaceResponse:
+    deliverable = db.scalars(
+        select(models.Deliverable).where(models.Deliverable.id == deliverable_id)
+    ).one_or_none()
+    if deliverable is None:
+        raise HTTPException(status_code=404, detail="找不到指定交付物工作面。")
+
+    task = db.scalars(select(models.Task).where(models.Task.id == deliverable.task_id)).one_or_none()
+    if task is None:
+        raise HTTPException(status_code=404, detail="找不到交付物對應的任務。")
+
+    deliverable.title = payload.title.strip()
+    deliverable.summary = payload.summary.strip()
+    deliverable.status = payload.status
+    deliverable.version_tag = payload.version_tag.strip()
+    task.updated_at = models.utc_now()
+    db.add_all([deliverable, task])
+    db.commit()
+
+    return get_deliverable_workspace(db, deliverable_id)
 
 
 def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:

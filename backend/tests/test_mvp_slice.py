@@ -397,6 +397,132 @@ def test_deliverable_workspace_route_returns_formal_deliverable_context(
     assert workspace["continuity_notes"] is not None
 
 
+def test_matter_workspace_metadata_update_persists_and_survives_workspace_sync(
+    client: TestClient,
+) -> None:
+    shared_payload = create_task_payload("Matter metadata sync")
+    shared_payload.update(
+        {
+            "client_name": "Northwind Studio",
+            "client_type": "中小企業",
+            "client_stage": "制度化階段",
+            "engagement_name": "Northwind Growth Sprint",
+            "workstream_name": "提案重組與銷售收斂",
+            "decision_title": "Northwind matter metadata",
+            "judgment_to_make": "先判斷提案重組是否要先收斂核心成交主張。",
+            "domain_lenses": ["銷售", "行銷"],
+        }
+    )
+
+    first_task = client.post("/api/v1/tasks", json=shared_payload).json()
+    matter = client.get("/api/v1/matters").json()[0]
+
+    update_response = client.put(
+        f"/api/v1/matters/{matter['id']}/metadata",
+        json={
+            "title": "北風提案收斂案",
+            "summary": "先聚焦提案主張、來源厚度與下一份交付物改版。",
+            "status": "paused",
+        },
+    )
+
+    assert update_response.status_code == 200
+    updated_workspace = update_response.json()
+    assert updated_workspace["summary"]["title"] == "北風提案收斂案"
+    assert updated_workspace["summary"]["workspace_summary"] == "先聚焦提案主張、來源厚度與下一份交付物改版。"
+    assert updated_workspace["summary"]["status"] == "paused"
+
+    follow_up_payload = create_task_payload("Matter metadata follow-up")
+    follow_up_payload.update(
+        {
+            "client_name": "Northwind Studio",
+            "client_type": "中小企業",
+            "client_stage": "制度化階段",
+            "engagement_name": "Northwind Growth Sprint",
+            "workstream_name": "提案重組與銷售收斂",
+            "decision_title": "Northwind matter metadata follow-up",
+            "judgment_to_make": "再確認提案摘要是否要補強價格與成交風險。",
+            "domain_lenses": ["銷售", "行銷"],
+        }
+    )
+    client.post("/api/v1/tasks", json=follow_up_payload).json()
+
+    matter_after = next(
+        item for item in client.get("/api/v1/matters").json() if item["id"] == matter["id"]
+    )
+    assert matter_after["title"] == "北風提案收斂案"
+    assert matter_after["workspace_summary"] == "先聚焦提案主張、來源厚度與下一份交付物改版。"
+    assert matter_after["status"] == "paused"
+    assert first_task["matter_workspace"]["id"] == matter["id"]
+
+
+def test_deliverable_metadata_update_persists_to_workspace_and_task_list(
+    client: TestClient,
+) -> None:
+    payload = create_task_payload("Deliverable metadata update")
+    payload.update(
+        {
+            "description": "請先判斷是否該優先調整通路組合與 SKU 結構，並形成正式交付物。",
+            "client_name": "Northwind Commerce",
+            "client_type": "中小企業",
+            "client_stage": "制度化階段",
+            "engagement_name": "Northwind Commerce Sprint",
+            "workstream_name": "通路與毛利決策",
+            "decision_title": "Northwind deliverable metadata",
+            "judgment_to_make": "先判斷目前是否該優先調整通路組合與 SKU 結構。",
+            "domain_lenses": ["營運", "財務", "行銷"],
+        }
+    )
+
+    task = client.post("/api/v1/tasks", json=payload).json()
+    client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[
+            (
+                "files",
+                (
+                    "commerce-notes.txt",
+                    b"Repeat purchase is falling while marketplace commissions are rising.",
+                    "text/plain",
+                ),
+            )
+        ],
+    )
+    run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
+    deliverable_id = run_response.json()["deliverable"]["id"]
+
+    update_response = client.put(
+        f"/api/v1/deliverables/{deliverable_id}/metadata",
+        json={
+            "title": "正式通路調整備忘錄",
+            "summary": "先收斂通路結構，再處理 SKU 與回購節奏。",
+            "status": "pending_confirmation",
+            "version_tag": "v1.1",
+        },
+    )
+
+    assert update_response.status_code == 200
+    updated_workspace = update_response.json()
+    assert updated_workspace["deliverable"]["title"] == "正式通路調整備忘錄"
+    assert updated_workspace["deliverable"]["summary"] == "先收斂通路結構，再處理 SKU 與回購節奏。"
+    assert updated_workspace["deliverable"]["status"] == "pending_confirmation"
+    assert updated_workspace["deliverable"]["version_tag"] == "v1.1"
+
+    reloaded_workspace = client.get(f"/api/v1/deliverables/{deliverable_id}").json()
+    assert reloaded_workspace["deliverable"]["title"] == "正式通路調整備忘錄"
+    assert reloaded_workspace["deliverable"]["summary"] == "先收斂通路結構，再處理 SKU 與回購節奏。"
+    assert reloaded_workspace["deliverable"]["status"] == "pending_confirmation"
+    assert reloaded_workspace["deliverable"]["version_tag"] == "v1.1"
+
+    task_list_item = next(
+        item for item in client.get("/api/v1/tasks").json() if item["id"] == task["id"]
+    )
+    assert task_list_item["latest_deliverable_title"] == "正式通路調整備忘錄"
+    assert task_list_item["latest_deliverable_summary"] == "先收斂通路結構，再處理 SKU 與回購節奏。"
+    assert task_list_item["latest_deliverable_status"] == "pending_confirmation"
+    assert task_list_item["latest_deliverable_version_tag"] == "v1.1"
+
+
 def test_task_aggregate_includes_pack_resolution_from_context_spine(client: TestClient) -> None:
     payload = create_task_payload("Pack-aware aggregate")
     payload.update(

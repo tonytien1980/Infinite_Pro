@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { buildTaskListWorkspaceSummary } from "@/lib/advisory-workflow";
 import { listMatterWorkspaces, listTasks } from "@/lib/api";
+import { truncateText } from "@/lib/text-format";
 import type { MatterWorkspaceSummary, TaskListItem } from "@/lib/types";
 import {
   formatDisplayDate,
@@ -15,6 +16,7 @@ import {
   type MatterLifecycleStatus,
   useMatterWorkspaceRecords,
 } from "@/lib/workbench-store";
+import { isLocalFallbackMatterRecord } from "@/lib/workspace-persistence";
 
 type MatterCardView = {
   id: string;
@@ -34,7 +36,7 @@ type MatterCardView = {
 };
 
 function defaultMatterStatus(matter: MatterWorkspaceSummary): MatterLifecycleStatus {
-  return matter.active_task_count > 0 ? "active" : "paused";
+  return (matter.status as MatterLifecycleStatus) || (matter.active_task_count > 0 ? "active" : "paused");
 }
 
 function buildMatterTaskMap(tasks: TaskListItem[]) {
@@ -113,10 +115,12 @@ export function MattersPagePanel() {
 
           return {
             id: matter.id,
-            title: record?.title || matter.title,
+            title:
+              (isLocalFallbackMatterRecord(record) ? record.title : "") || matter.title,
             objectPath: matter.object_path,
             summary:
-              record?.summary ||
+              (isLocalFallbackMatterRecord(record) ? record.summary : "") ||
+              matter.workspace_summary ||
               matter.active_work_summary ||
               matter.continuity_summary ||
               "目前尚未補上案件摘要。",
@@ -124,7 +128,9 @@ export function MattersPagePanel() {
               matter.current_decision_context_title ||
               matter.current_decision_context_summary ||
               "目前尚未形成清楚的決策問題。",
-            status: record?.status || defaultMatterStatus(matter),
+            status:
+              (isLocalFallbackMatterRecord(record) ? record.status : undefined) ||
+              defaultMatterStatus(matter),
             updatedAt: matter.latest_updated_at,
             sourceCount: matter.source_material_count,
             evidenceCount: metrics?.evidenceCount ?? 0,
@@ -263,10 +269,12 @@ export function MattersPagePanel() {
                       </div>
                       <h3>{matter.title}</h3>
                       <p className="workspace-object-path">{matter.objectPath}</p>
-                      <p className="content-block">{matter.summary}</p>
-                      <p className="muted-text">決策問題：{matter.decisionContext}</p>
-                      <p className="muted-text">使用中的代理：{matter.agentSummary}</p>
-                      <p className="muted-text">使用中的模組包：{matter.packSummary}</p>
+                      <p className="content-block">{truncateText(matter.summary, 116)}</p>
+                      <p className="muted-text">
+                        決策問題：{truncateText(matter.decisionContext, 84)}
+                      </p>
+                      <p className="muted-text">代理：{truncateText(matter.agentSummary, 72)}</p>
+                      <p className="muted-text">模組包：{truncateText(matter.packSummary, 72)}</p>
                       <div className="meta-row">
                         <span>來源 {matter.sourceCount}</span>
                         <span>證據 {matter.evidenceCount}</span>
@@ -320,7 +328,7 @@ export function MattersPagePanel() {
                         </div>
                         <h3>{task.latest_deliverable_title || task.title}</h3>
                         <p className="workspace-object-path">{summary.objectPath}</p>
-                        <p className="muted-text">{summary.decisionContext}</p>
+                        <p className="muted-text">{truncateText(summary.decisionContext, 84)}</p>
                       </Link>
                     );
                   })
@@ -354,7 +362,7 @@ export function MattersPagePanel() {
                         </div>
                         <h3>{task.title}</h3>
                         <p className="workspace-object-path">{summary.objectPath}</p>
-                        <p className="muted-text">{summary.decisionContext}</p>
+                        <p className="muted-text">{truncateText(summary.decisionContext, 84)}</p>
                       </Link>
                     );
                   })
