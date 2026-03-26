@@ -27,6 +27,16 @@ export type DeliverableSortPreference =
   | "updated_desc"
   | "title_asc"
   | "version_desc";
+export type ProviderId = "openai" | "anthropic" | "gemini" | "xai" | "minimax";
+export type ProviderModelLevel = "high_quality" | "balanced" | "low_cost";
+export type ProviderValidationStatus =
+  | "success"
+  | "invalid_api_key"
+  | "base_url_unreachable"
+  | "model_unavailable"
+  | "timeout"
+  | "unknown_error"
+  | "not_validated";
 
 export interface WorkbenchSettings {
   interfaceLanguage: "zh-Hant" | "en";
@@ -37,6 +47,70 @@ export interface WorkbenchSettings {
   newTaskDefaultInputMode: InputEntryMode;
   density: DensityPreference;
   deliverableSortPreference: DeliverableSortPreference;
+}
+
+export interface ProviderPreset {
+  providerId: ProviderId;
+  displayName: string;
+  defaultBaseUrl: string;
+  defaultTimeoutSeconds: number;
+  authSchemeType: string;
+  adapterKind: string;
+  runtimeSupportLevel: "verified" | "beta";
+  validationSupportLevel: "verified" | "beta";
+  recommendedModels: Record<ProviderModelLevel, string>;
+}
+
+export interface ProviderValidationResult {
+  providerId: string;
+  providerDisplayName: string;
+  modelId: string;
+  validationStatus: ProviderValidationStatus;
+  message: string;
+  detail: string;
+  validatedAt: string | null;
+}
+
+export interface CurrentProviderConfig {
+  source: "runtime_config" | "env_baseline";
+  providerId: string;
+  providerDisplayName: string;
+  modelLevel: ProviderModelLevel;
+  actualModelId: string;
+  customModelId: string | null;
+  baseUrl: string;
+  timeoutSeconds: number;
+  apiKeyConfigured: boolean;
+  apiKeyMasked: string | null;
+  lastValidationStatus: ProviderValidationStatus;
+  lastValidationMessage: string;
+  lastValidatedAt: string | null;
+  updatedAt: string | null;
+  keyUpdatedAt: string | null;
+  presetRuntimeSupportLevel: "verified" | "beta" | "development";
+  usingEnvBaseline: boolean;
+}
+
+export interface SystemProviderSettingsSnapshot {
+  current: CurrentProviderConfig;
+  envBaseline: CurrentProviderConfig;
+  presets: ProviderPreset[];
+}
+
+export interface SystemProviderSettingsPayload {
+  providerId: ProviderId;
+  modelLevel: ProviderModelLevel;
+  modelId: string;
+  customModelId: string;
+  baseUrl: string;
+  timeoutSeconds: number;
+  apiKey: string;
+  keepExistingKey: boolean;
+}
+
+export interface SystemProviderSettingsUpdatePayload extends SystemProviderSettingsPayload {
+  validateBeforeSave: boolean;
+  forceSaveWithoutValidation: boolean;
 }
 
 export interface PresenceStateItem {

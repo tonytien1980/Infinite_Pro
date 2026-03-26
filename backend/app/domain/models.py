@@ -114,6 +114,50 @@ class WorkbenchPreference(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
 
+class SystemProviderConfig(Base):
+    __tablename__ = "system_provider_configs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    scope_key: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    provider_id: Mapped[str] = mapped_column(String(50), nullable=False)
+    model_level: Mapped[str] = mapped_column(String(30), default="balanced")
+    model_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    custom_model_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    base_url: Mapped[str] = mapped_column(String(1024), nullable=False)
+    timeout_seconds: Mapped[int] = mapped_column(Integer, default=60)
+    api_key_secret: Mapped[str | None] = mapped_column(Text, nullable=True)
+    api_key_masked: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    config_source: Mapped[str] = mapped_column(String(30), default="runtime_config")
+    last_validation_status: Mapped[str] = mapped_column(String(50), default="not_validated")
+    last_validation_message: Mapped[str] = mapped_column(Text, default="")
+    last_validated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    key_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+    events: Mapped[list["SystemProviderConfigEvent"]] = relationship(
+        back_populates="config",
+        order_by="SystemProviderConfigEvent.created_at.desc()",
+    )
+
+
+class SystemProviderConfigEvent(Base):
+    __tablename__ = "system_provider_config_events"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    scope_key: Mapped[str] = mapped_column(String(100), nullable=False)
+    config_id: Mapped[str | None] = mapped_column(
+        ForeignKey("system_provider_configs.id"),
+        nullable=True,
+    )
+    event_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    summary: Mapped[str] = mapped_column(Text, default="")
+    payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    config: Mapped["SystemProviderConfig | None"] = relationship(back_populates="events")
+
+
 class WorkbenchExtensionState(Base):
     __tablename__ = "workbench_extension_states"
     __table_args__ = (

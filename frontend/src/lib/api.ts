@@ -12,11 +12,15 @@ import {
   MatterWorkspace,
   MatterWorkspaceMetadataUpdatePayload,
   MatterWorkspaceSummary,
+  ProviderValidationResult,
   MatterWorkspaceUpdatePayload,
   PackCatalogEntryUpdatePayload,
   ResearchRunResponse,
   SourceIngestBatchResponse,
   SourceIngestPayload,
+  SystemProviderSettingsPayload,
+  SystemProviderSettingsSnapshot,
+  SystemProviderSettingsUpdatePayload,
   TaskAggregate,
   TaskCreatePayload,
   TaskExtensionOverridePayload,
@@ -137,6 +141,73 @@ export async function updateWorkbenchPreferences(
   return getWorkbenchPreferencesFromPayload(await parseWorkbenchPreferencesPayload(response));
 }
 
+export async function getSystemProviderSettings(): Promise<SystemProviderSettingsSnapshot> {
+  const response = await fetch(`${getApiBaseUrl()}/workbench/provider-settings`, {
+    cache: "no-store",
+  });
+  return parseSystemProviderSettingsPayload(await parseResponse<any>(response));
+}
+
+export async function validateSystemProviderSettings(
+  payload: SystemProviderSettingsPayload,
+): Promise<ProviderValidationResult> {
+  const response = await fetch(`${getApiBaseUrl()}/workbench/provider-settings/validate`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      provider_id: payload.providerId,
+      model_level: payload.modelLevel,
+      model_id: payload.modelId,
+      custom_model_id: payload.customModelId,
+      base_url: payload.baseUrl,
+      timeout_seconds: payload.timeoutSeconds,
+      api_key: payload.apiKey,
+      keep_existing_key: payload.keepExistingKey,
+    }),
+  });
+  return parseProviderValidationPayload(await parseResponse<any>(response));
+}
+
+export async function updateSystemProviderSettings(
+  payload: SystemProviderSettingsUpdatePayload,
+): Promise<SystemProviderSettingsSnapshot> {
+  const response = await fetch(`${getApiBaseUrl()}/workbench/provider-settings`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      provider_id: payload.providerId,
+      model_level: payload.modelLevel,
+      model_id: payload.modelId,
+      custom_model_id: payload.customModelId,
+      base_url: payload.baseUrl,
+      timeout_seconds: payload.timeoutSeconds,
+      api_key: payload.apiKey,
+      keep_existing_key: payload.keepExistingKey,
+      validate_before_save: payload.validateBeforeSave,
+      force_save_without_validation: payload.forceSaveWithoutValidation,
+    }),
+  });
+  return parseSystemProviderSettingsPayload(await parseResponse<any>(response));
+}
+
+export async function revalidateSystemProviderSettings(): Promise<SystemProviderSettingsSnapshot> {
+  const response = await fetch(`${getApiBaseUrl()}/workbench/provider-settings/revalidate`, {
+    method: "POST",
+  });
+  return parseSystemProviderSettingsPayload(await parseResponse<any>(response));
+}
+
+export async function resetSystemProviderSettingsToEnv(): Promise<SystemProviderSettingsSnapshot> {
+  const response = await fetch(`${getApiBaseUrl()}/workbench/provider-settings/reset-to-env`, {
+    method: "POST",
+  });
+  return parseSystemProviderSettingsPayload(await parseResponse<any>(response));
+}
+
 async function parseWorkbenchPreferencesPayload(response: Response) {
   return parseResponse<{
     interface_language: WorkbenchSettings["interfaceLanguage"];
@@ -169,6 +240,62 @@ function getWorkbenchPreferencesFromPayload(payload: {
     newTaskDefaultInputMode: payload.new_task_default_input_mode,
     density: payload.density,
     deliverableSortPreference: payload.deliverable_sort_preference,
+  };
+}
+
+function parseProviderValidationPayload(payload: any): ProviderValidationResult {
+  return {
+    providerId: payload.provider_id,
+    providerDisplayName: payload.provider_display_name,
+    modelId: payload.model_id,
+    validationStatus: payload.validation_status,
+    message: payload.message,
+    detail: payload.detail,
+    validatedAt: payload.validated_at,
+  };
+}
+
+function parseCurrentProviderConfigPayload(payload: any) {
+  return {
+    source: payload.source,
+    providerId: payload.provider_id,
+    providerDisplayName: payload.provider_display_name,
+    modelLevel: payload.model_level,
+    actualModelId: payload.actual_model_id,
+    customModelId: payload.custom_model_id,
+    baseUrl: payload.base_url,
+    timeoutSeconds: payload.timeout_seconds,
+    apiKeyConfigured: payload.api_key_configured,
+    apiKeyMasked: payload.api_key_masked,
+    lastValidationStatus: payload.last_validation_status,
+    lastValidationMessage: payload.last_validation_message,
+    lastValidatedAt: payload.last_validated_at,
+    updatedAt: payload.updated_at,
+    keyUpdatedAt: payload.key_updated_at,
+    presetRuntimeSupportLevel: payload.preset_runtime_support_level,
+    usingEnvBaseline: payload.using_env_baseline,
+  };
+}
+
+function parseSystemProviderSettingsPayload(payload: any): SystemProviderSettingsSnapshot {
+  return {
+    current: parseCurrentProviderConfigPayload(payload.current),
+    envBaseline: parseCurrentProviderConfigPayload(payload.env_baseline),
+    presets: (payload.presets || []).map((preset: any) => ({
+      providerId: preset.provider_id,
+      displayName: preset.display_name,
+      defaultBaseUrl: preset.default_base_url,
+      defaultTimeoutSeconds: preset.default_timeout_seconds,
+      authSchemeType: preset.auth_scheme_type,
+      adapterKind: preset.adapter_kind,
+      runtimeSupportLevel: preset.runtime_support_level,
+      validationSupportLevel: preset.validation_support_level,
+      recommendedModels: {
+        high_quality: preset.recommended_models.high_quality,
+        balanced: preset.recommended_models.balanced,
+        low_cost: preset.recommended_models.low_cost,
+      },
+    })),
   };
 }
 

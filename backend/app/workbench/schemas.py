@@ -4,6 +4,17 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+ProviderModelLevel = Literal["high_quality", "balanced", "low_cost"]
+ProviderValidationStatus = Literal[
+    "success",
+    "invalid_api_key",
+    "base_url_unreachable",
+    "model_unavailable",
+    "timeout",
+    "unknown_error",
+    "not_validated",
+]
+
 
 class WorkbenchPreferenceResponse(BaseModel):
     interface_language: Literal["zh-Hant", "en"] = "zh-Hant"
@@ -26,6 +37,76 @@ class WorkbenchPreferenceResponse(BaseModel):
 
 class WorkbenchPreferenceUpdateRequest(WorkbenchPreferenceResponse):
     pass
+
+
+class ProviderPresetModelsResponse(BaseModel):
+    high_quality: str
+    balanced: str
+    low_cost: str
+
+
+class ProviderPresetResponse(BaseModel):
+    provider_id: Literal["openai", "anthropic", "gemini", "xai", "minimax"]
+    display_name: str
+    default_base_url: str
+    default_timeout_seconds: int
+    auth_scheme_type: str
+    adapter_kind: str
+    runtime_support_level: Literal["verified", "beta"]
+    validation_support_level: Literal["verified", "beta"]
+    recommended_models: ProviderPresetModelsResponse
+
+
+class ProviderValidationResponse(BaseModel):
+    provider_id: str
+    provider_display_name: str
+    model_id: str
+    validation_status: ProviderValidationStatus = "not_validated"
+    message: str = ""
+    detail: str = ""
+    validated_at: str | None = None
+
+
+class CurrentProviderConfigResponse(BaseModel):
+    source: Literal["runtime_config", "env_baseline"]
+    provider_id: str
+    provider_display_name: str
+    model_level: ProviderModelLevel
+    actual_model_id: str
+    custom_model_id: str | None = None
+    base_url: str
+    timeout_seconds: int
+    api_key_configured: bool = False
+    api_key_masked: str | None = None
+    last_validation_status: ProviderValidationStatus = "not_validated"
+    last_validation_message: str = ""
+    last_validated_at: str | None = None
+    updated_at: str | None = None
+    key_updated_at: str | None = None
+    preset_runtime_support_level: Literal["verified", "beta", "development"] = "beta"
+    using_env_baseline: bool = False
+
+
+class SystemProviderSettingsResponse(BaseModel):
+    current: CurrentProviderConfigResponse
+    env_baseline: CurrentProviderConfigResponse
+    presets: list[ProviderPresetResponse] = Field(default_factory=list)
+
+
+class SystemProviderSettingsValidateRequest(BaseModel):
+    provider_id: Literal["openai", "anthropic", "gemini", "xai", "minimax"]
+    model_level: ProviderModelLevel = "balanced"
+    model_id: str = ""
+    custom_model_id: str = ""
+    base_url: str = ""
+    timeout_seconds: int = 60
+    api_key: str = ""
+    keep_existing_key: bool = False
+
+
+class SystemProviderSettingsUpdateRequest(SystemProviderSettingsValidateRequest):
+    validate_before_save: bool = True
+    force_save_without_validation: bool = False
 
 
 class AgentCatalogEntryUpdateRequest(BaseModel):

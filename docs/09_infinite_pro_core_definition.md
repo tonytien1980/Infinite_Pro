@@ -387,7 +387,43 @@ Infinite Pro 不應退化成：
 
 ---
 
-## 10. 文件結論
+## 10. 單人版 system provider settings 的正式定位
+
+在單人正式 beta 中，system-level provider settings 已屬於正式產品能力的一部分。
+
+正式定位：
+
+- 它屬於 `Workbench / UI Layer` 下的系統設定責任
+- 它服務的是單一 owner 的 system-level runtime config
+- 它不是 multi-user credential layer
+- 它不是 enterprise admin console
+
+正式規則：
+
+- 同一時間只允許一個 active provider config
+- 所有模型呼叫仍必須走 internal router / provider abstraction
+- credential storage、provider validation、runtime precedence 應留在 backend responsibility
+- frontend 只負責輸入、遮罩顯示、測試連線、儲存並套用
+
+這一層目前正式承接的是：
+
+- provider
+- API key
+- model level
+- actual model id
+- base URL
+- timeout
+- runtime config source（DB / env）
+
+若後續調整這一層，應同步查看：
+
+- `docs/10_frontend_information_architecture_and_ux_principles.md`
+- `docs/12_runtime_persistence_and_release_integrity.md`
+- `docs/13_system_provider_settings_and_credentials.md`
+
+---
+
+## 11. 文件結論
 
 Infinite Pro 的正式核心，不是做出更會回答問題的 AI，而是：
 

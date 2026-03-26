@@ -227,7 +227,8 @@ The repository currently contains a working early implementation slice within th
 - deliverable正文 remote-only persistence with revision history, rollback, version events, publish records, and artifact registry
 - structured deliverable rendering
 - Markdown and DOCX artifact export with backend artifact records
-- provider abstraction with `mock` and `openai`
+- system-level provider settings UI with single active runtime config, backend credential storage, validation, and `DB -> env` precedence
+- provider abstraction with `mock` env baseline plus first-wave provider presets for `openai / anthropic / gemini / xai / minimax`
 - Traditional Chinese as the default UI language
 
 The implementation is **not yet complete relative to the full-scope product boundary**. That gap should be understood as an implementation-order gap inside a full-scope architecture, not as a smaller product definition.
@@ -265,11 +266,15 @@ Copy [`.env.example`](/Users/tonytien/Desktop/Infinite%20Pro/.env.example) to `.
 | `UPLOAD_DIR` | Backend upload storage path inside the container | `/app/storage/uploads` |
 | `DERIVED_DIR` | Backend derived extract storage path inside the container | `/app/storage/derived` |
 | `RELEASE_DIR` | Backend release artifact storage path inside the container | `/app/storage/releases` |
-| `MODEL_PROVIDER` | Active model router provider | `mock` |
-| `OPENAI_API_KEY` | Backend-only API key for the OpenAI provider | empty |
-| `OPENAI_MODEL` | OpenAI model name used when `MODEL_PROVIDER=openai` | `gpt-4o-mini` |
-| `OPENAI_BASE_URL` | OpenAI API base URL | `https://api.openai.com/v1` |
-| `OPENAI_TIMEOUT_SECONDS` | Timeout for OpenAI API calls in seconds | `60` |
+| `MODEL_PROVIDER` | Env baseline provider id used only when DB runtime config is absent | `mock` |
+| `MODEL_PROVIDER_API_KEY` | Generic env baseline API key for the active provider | empty |
+| `MODEL_PROVIDER_MODEL` | Generic env baseline model id | empty |
+| `MODEL_PROVIDER_BASE_URL` | Generic env baseline base URL | empty |
+| `MODEL_PROVIDER_TIMEOUT_SECONDS` | Generic env baseline timeout in seconds | empty |
+| `OPENAI_API_KEY` | Legacy OpenAI env baseline key for backward compatibility when `MODEL_PROVIDER=openai` | empty |
+| `OPENAI_MODEL` | Legacy OpenAI env baseline model for backward compatibility | `gpt-4o-mini` |
+| `OPENAI_BASE_URL` | Legacy OpenAI env baseline base URL for backward compatibility | `https://api.openai.com/v1` |
+| `OPENAI_TIMEOUT_SECONDS` | Legacy OpenAI env baseline timeout for backward compatibility | `60` |
 | `MODEL_PROVIDER_FAILURE_MODE` | Optional test-only failure switch for the mock provider | empty |
 | `CORS_ORIGINS` | Allowed frontend origins | `http://localhost:3000,http://127.0.0.1:3000` |
 | `RAW_UPLOAD_RETENTION_DAYS` | Default retention for raw intake files | `30` |
@@ -282,15 +287,28 @@ Copy [`.env.example`](/Users/tonytien/Desktop/Infinite%20Pro/.env.example) to `.
 Notes:
 - The default `DATABASE_URL` is Docker-oriented because the backend container reaches PostgreSQL at host `db`.
 - The default `UPLOAD_DIR=/app/storage/uploads`, `DERIVED_DIR=/app/storage/derived`, and `RELEASE_DIR=/app/storage/releases` are also Docker-oriented.
-- If `MODEL_PROVIDER=openai` but `OPENAI_API_KEY` is empty, the backend logs a warning and falls back to the mock provider automatically.
+- Provider config precedence is `DB runtime config -> env baseline`.
+- `.env` is now bootstrap / emergency baseline, not the primary long-term active config path.
+- System provider credentials are backend-only and do not go through the frontend workbench preference fallback path.
 - Retention days define purge boundaries and availability states, but they do not yet schedule automatic purge jobs by themselves.
 
 ## Model provider switching
 
-- Default provider: `mock`
-- Optional real provider: `openai`
+- Default env baseline provider: `mock`
+- System-level owner settings page can now persist one active provider config at a time.
+- First-wave selectable providers in `/settings`: `openai`, `anthropic`, `gemini`, `xai`, `minimax`
+- Verified runtime path today: `openai`
+- Beta compatibility path today: `anthropic`, `gemini`, `xai`, `minimax`
 
-To switch to OpenAI:
+If you want to bootstrap from `.env`, you can still do:
+
+```env
+MODEL_PROVIDER=openai
+MODEL_PROVIDER_API_KEY=your_real_key_here
+MODEL_PROVIDER_MODEL=gpt-4.1-mini
+```
+
+OpenAI legacy env keys also still work for backward compatibility:
 
 ```env
 MODEL_PROVIDER=openai
@@ -298,11 +316,17 @@ OPENAI_API_KEY=your_real_key_here
 OPENAI_MODEL=gpt-4o-mini
 ```
 
-If you want to stay on the deterministic local router:
+If you want to stay on the deterministic local env baseline router:
 
 ```env
 MODEL_PROVIDER=mock
 ```
+
+Formal rules:
+- owner-level provider / model / key / base URL / timeout should now be managed from `/settings`
+- credentials are stored backend-side and masked in the UI
+- saving or validating provider settings is fail-closed
+- frontend never calls third-party model providers directly
 
 ## Local startup
 

@@ -27,6 +27,7 @@ Before making any structural, product, ontology, agent, or UI decisions, read th
 11. `docs/08_codex_handoff.md`
 12. `docs/11_intake_storage_architecture.md` when touching intake, source materials, storage, retention, purge, or artifact file lifecycle
 13. `docs/12_runtime_persistence_and_release_integrity.md` when touching revision, rollback, publish, artifact registry, fallback, degraded mode, or sync recovery
+14. `docs/13_system_provider_settings_and_credentials.md` when touching system provider settings, model runtime config, credential storage, provider validation, or env precedence
 
 If implementation ideas conflict with the documents, prefer the documents over assumptions.
 
@@ -34,6 +35,7 @@ If naming, product positioning, ontology modeling, or product drift questions ap
 If homepage, navigation, workspace surface, management surface, history page, or Traditional Chinese UI copy decisions appear, treat `docs/10_frontend_information_architecture_and_ux_principles.md` as the primary governance guide.
 If intake modes, source material ingestion, storage boundaries, retention, or purge lifecycle questions appear, treat `docs/11_intake_storage_architecture.md` as the primary governance guide.
 If正文 persistence、revision、rollback、publish / artifact record、fail-closed、degraded mode、re-sync 邊界 questions appear, treat `docs/12_runtime_persistence_and_release_integrity.md` as the primary governance guide.
+If系統級 provider 設定、credential storage、active runtime config、provider validation、env precedence questions appear, treat `docs/13_system_provider_settings_and_credentials.md` as the primary governance guide.
 
 ---
 

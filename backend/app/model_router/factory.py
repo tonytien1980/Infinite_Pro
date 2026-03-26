@@ -2,32 +2,32 @@ from __future__ import annotations
 
 import logging
 
-from app.core.config import settings
-from app.model_router.base import ModelProvider
+from app.model_router.base import ModelProvider, ModelProviderError
 from app.model_router.mock import MockModelProvider
 from app.model_router.openai_provider import OpenAIModelProvider
+from app.services.system_provider_settings import resolve_effective_provider_config
 
 logger = logging.getLogger(__name__)
 
 
 def get_model_provider() -> ModelProvider:
-    provider_name = settings.model_provider.lower()
+    config = resolve_effective_provider_config()
+    provider_name = config.provider_id.lower()
 
-    if provider_name == "openai":
-        if settings.openai_api_key:
+    if provider_name == "mock":
+        return MockModelProvider()
+
+    if provider_name in {"openai", "anthropic", "gemini", "xai", "minimax"}:
+        if config.api_key:
             return OpenAIModelProvider(
-                api_key=settings.openai_api_key,
-                model=settings.openai_model,
-                base_url=settings.openai_base_url,
-                timeout_seconds=settings.openai_timeout_seconds,
+                api_key=config.api_key,
+                model=config.actual_model_id,
+                base_url=config.base_url,
+                timeout_seconds=config.timeout_seconds,
             )
-        logger.warning(
-            "MODEL_PROVIDER=openai was requested but OPENAI_API_KEY is not configured. Falling back to mock provider."
+
+        raise ModelProviderError(
+            f"系統級 provider 設定目前缺少 {provider_name} 的 API key，無法正式啟用。"
         )
-        return MockModelProvider()
 
-    if settings.model_provider == "mock":
-        return MockModelProvider()
-
-    logger.warning("Unknown MODEL_PROVIDER=%s. Falling back to mock provider.", settings.model_provider)
-    return MockModelProvider()
+    raise ModelProviderError(f"目前不支援供應商「{provider_name}」的正式 runtime path。")

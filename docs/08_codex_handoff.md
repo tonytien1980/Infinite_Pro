@@ -333,3 +333,27 @@ Codex 應把 Infinite Pro 視為：
 > **一套正式定義完整能力邊界、但按施工順序分批落地的單人顧問完整工作台。**
 
 從這一刻起，應以完整單人顧問工作台思維規劃這個產品。
+
+---
+
+## 13. 系統級 provider 設定的正式邊界
+
+目前單人正式 beta 已建立：
+
+- `/settings` 的 `模型與服務設定`
+- 單一 active provider config
+- backend persisted runtime config
+- `DB runtime config -> env baseline` precedence
+- backend-side credential storage 與 validation
+
+正式規則：
+
+- 這一層是 system-level owner setting，不是 user-level credential management
+- 目前不做多人 / per-user / org / tenant credential scope
+- frontend 不能直接呼叫 provider
+- Host / agent / deliverable runtime path 仍必須透過 internal router / provider abstraction
+
+若後續調整 provider preset、credential 邊界、驗證流程、env precedence 或 settings page 正式責任，應同步查看：
+
+- `docs/12_runtime_persistence_and_release_integrity.md`
+- `docs/13_system_provider_settings_and_credentials.md`

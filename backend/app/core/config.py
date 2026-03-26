@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     derived_dir: str = "/app/storage/derived"
     release_dir: str = "/app/storage/releases"
     model_provider: str = "mock"
+    model_provider_api_key: str | None = None
+    model_provider_model: str | None = None
+    model_provider_base_url: str | None = None
+    model_provider_timeout_seconds: int | None = None
     openai_api_key: str | None = None
     openai_model: str = "gpt-4o-mini"
     openai_base_url: str = "https://api.openai.com/v1"
