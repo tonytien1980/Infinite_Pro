@@ -16,12 +16,10 @@ import type {
 } from "@/lib/types";
 import { formatDisplayDate, labelForDeliverableClass } from "@/lib/ui-labels";
 import {
-  useDeliverableWorkspaceRecords,
   useMatterWorkspaceRecords,
   useWorkbenchSettings,
 } from "@/lib/workbench-store";
 import {
-  isLocalFallbackDeliverableRecord,
   isLocalFallbackMatterRecord,
 } from "@/lib/workspace-persistence";
 
@@ -70,7 +68,6 @@ export function WorkbenchHome() {
   const [matters, setMatters] = useState<MatterWorkspaceSummary[]>([]);
   const [extensionManager, setExtensionManager] = useState<ExtensionManagerSnapshot | null>(null);
   const [matterRecords] = useMatterWorkspaceRecords();
-  const [deliverableRecords] = useDeliverableWorkspaceRecords();
   const [settings] = useWorkbenchSettings();
   const [loading, setLoading] = useState(true);
   const [matterLoading, setMatterLoading] = useState(true);
@@ -164,13 +161,6 @@ export function WorkbenchHome() {
     primaryMatter && isLocalFallbackMatterRecord(matterRecords[primaryMatter.id])
       ? matterRecords[primaryMatter.id]
       : null;
-  const primaryDeliverableRecord =
-    primaryDeliverable?.latest_deliverable_id &&
-    isLocalFallbackDeliverableRecord(
-      deliverableRecords[primaryDeliverable.latest_deliverable_id],
-    )
-      ? deliverableRecords[primaryDeliverable.latest_deliverable_id]
-      : null;
 
   return (
     <main className="page-shell home-page-shell">
@@ -184,9 +174,7 @@ export function WorkbenchHome() {
             <h3>{pickFocusLabel(settings.homepageDisplayPreference)}</h3>
             <p className="content-block">
               {settings.homepageDisplayPreference === "deliverables"
-                ? primaryDeliverableRecord?.title ||
-                  primaryDeliverable?.latest_deliverable_title ||
-                  "目前還沒有可直接回看的交付物。"
+                ? primaryDeliverable?.latest_deliverable_title || "目前還沒有可直接回看的交付物。"
                 : settings.homepageDisplayPreference === "evidence"
                   ? primaryEvidenceTask?.title || "目前沒有明顯待補資料。"
                   : primaryMatterRecord?.title ||
@@ -196,8 +184,7 @@ export function WorkbenchHome() {
             <p className="muted-text">
               {settings.homepageDisplayPreference === "deliverables"
                 ? truncateText(
-                    primaryDeliverableRecord?.summary ||
-                      primaryDeliverable?.latest_deliverable_summary ||
+                    primaryDeliverable?.latest_deliverable_summary ||
                       primaryDeliverable?.decision_context_title ||
                       "交付物 detail workspace 會顯示這次判斷的摘要與版本。",
                     88,
@@ -348,13 +335,6 @@ export function WorkbenchHome() {
                 {recentDeliverables.length > 0 ? (
                   recentDeliverables.map((task) => {
                     const summary = buildTaskListWorkspaceSummary(task);
-                    const fallbackRecord =
-                      task.latest_deliverable_id &&
-                      isLocalFallbackDeliverableRecord(
-                        deliverableRecords[task.latest_deliverable_id],
-                      )
-                        ? deliverableRecords[task.latest_deliverable_id]
-                        : null;
 
                     return (
                       <Link
@@ -370,13 +350,11 @@ export function WorkbenchHome() {
                           <span className="pill">{labelForDeliverableClass(task.deliverable_class_hint)}</span>
                           <span>{formatDisplayDate(task.updated_at)}</span>
                         </div>
-                        <h3>{fallbackRecord?.title || task.latest_deliverable_title || task.title}</h3>
+                        <h3>{task.latest_deliverable_title || task.title}</h3>
                         <p className="workspace-object-path">{summary.objectPath}</p>
                         <p className="muted-text">
                           {truncateText(
-                            fallbackRecord?.summary ||
-                              task.latest_deliverable_summary ||
-                              summary.decisionContext,
+                            task.latest_deliverable_summary || summary.decisionContext,
                             90,
                           )}
                         </p>

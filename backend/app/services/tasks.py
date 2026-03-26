@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import re
+from io import BytesIO
 
 from fastapi import HTTPException
 from sqlalchemy import select
@@ -20,6 +21,20 @@ from app.domain.enums import (
 from app.extensions.registry import ExtensionRegistry
 from app.extensions.resolver import AgentResolver, PackResolver, resolve_runtime_agent_binding
 from app.extensions.schemas import AgentResolverInput, AgentSpec, PackResolverInput, PackSpec, PackType
+from app.services.deliverable_records import (
+    DELIVERABLE_EVENT_CONTENT_UPDATED,
+    DELIVERABLE_EVENT_EXPORTED,
+    DELIVERABLE_EVENT_NOTE_ADDED,
+    DELIVERABLE_EVENT_PUBLISHED,
+    DELIVERABLE_EVENT_SOURCE_EXPORT,
+    DELIVERABLE_EVENT_SOURCE_METADATA_UPDATE,
+    DELIVERABLE_EVENT_STATUS_CHANGED,
+    DELIVERABLE_EVENT_VERSION_TAG_UPDATED,
+    default_deliverable_version_tag,
+    ensure_deliverable_version_events,
+    label_for_deliverable_status,
+    record_deliverable_version_event,
+)
 from app.services.source_materials import build_source_material_summary, infer_artifact_type
 
 logger = logging.getLogger(__name__)
@@ -3392,6 +3407,15 @@ def get_deliverable_workspace(
     if deliverable is None:
         raise HTTPException(status_code=404, detail="找不到指定交付物工作面。")
 
+    version_events = [
+        schemas.DeliverableVersionEventRead.model_validate(item)
+        for item in ensure_deliverable_version_events(
+            db,
+            deliverable_row,
+            fallback_status=deliverable.status,
+        )
+    ]
+
     content = _get_content_record(deliverable)
     readiness_governance = content.get("readiness_governance")
     if not isinstance(readiness_governance, dict):
@@ -3526,6 +3550,7 @@ def get_deliverable_workspace(
         linked_action_items=_dedupe_schema_items(linked_action_items)[:8],
         related_deliverables=related_deliverables,
         continuity_notes=_unique_preserve_order(continuity_notes),
+        version_events=version_events,
     )
 
 
@@ -3544,22 +3569,137 @@ def update_deliverable_metadata(
     if task is None:
         raise HTTPException(status_code=404, detail="找不到交付物對應的任務。")
 
-    deliverable.title = payload.title.strip()
-    deliverable.summary = payload.summary.strip()
-    deliverable.status = payload.status
-    deliverable.version_tag = payload.version_tag.strip()
-    task.updated_at = models.utc_now()
+    previous_title = deliverable.title
+    previous_summary = deliverable.summary or ""
+    previous_status = _default_deliverable_status(task, deliverable)
+    previous_version_tag = default_deliverable_version_tag(deliverable)
+    next_title = payload.title.strip()
+    next_summary = payload.summary.strip()
+    next_status = payload.status
+    next_version_tag = payload.version_tag.strip()
+    event_note = payload.event_note.strip()
+
+    title_changed = next_title != previous_title
+    summary_changed = next_summary != previous_summary
+    status_changed = next_status != previous_status
+    version_tag_changed = next_version_tag != previous_version_tag
+    has_changes = title_changed or summary_changed or status_changed or version_tag_changed or bool(event_note)
+
+    deliverable.title = next_title
+    deliverable.summary = next_summary
+    deliverable.status = next_status
+    deliverable.version_tag = next_version_tag
+    if has_changes:
+        task.updated_at = models.utc_now()
     db.add_all([deliverable, task])
+    db.flush()
+
+    if title_changed or summary_changed:
+        changed_fields: list[str] = []
+        if title_changed:
+            changed_fields.append("標題")
+        if summary_changed:
+            changed_fields.append("摘要")
+        record_deliverable_version_event(
+            db,
+            deliverable,
+            DELIVERABLE_EVENT_CONTENT_UPDATED,
+            version_tag=next_version_tag,
+            deliverable_status=next_status,
+            summary=f"更新交付物{'與'.join(changed_fields)}",
+            event_payload={
+                "source": DELIVERABLE_EVENT_SOURCE_METADATA_UPDATE,
+                "changed_fields": changed_fields,
+                "previous_title": previous_title,
+                "previous_summary": previous_summary,
+                "next_title": next_title,
+                "next_summary": next_summary,
+            },
+        )
+
+    if version_tag_changed:
+        record_deliverable_version_event(
+            db,
+            deliverable,
+            DELIVERABLE_EVENT_VERSION_TAG_UPDATED,
+            version_tag=next_version_tag,
+            deliverable_status=next_status,
+            summary=f"版本標記更新為 {next_version_tag}",
+            event_payload={
+                "source": DELIVERABLE_EVENT_SOURCE_METADATA_UPDATE,
+                "previous_version_tag": previous_version_tag,
+                "next_version_tag": next_version_tag,
+            },
+        )
+
+    if status_changed:
+        record_deliverable_version_event(
+            db,
+            deliverable,
+            DELIVERABLE_EVENT_STATUS_CHANGED,
+            version_tag=next_version_tag,
+            deliverable_status=next_status,
+            summary=(
+                f"狀態由 {label_for_deliverable_status(previous_status)} "
+                f"變更為 {label_for_deliverable_status(next_status)}"
+            ),
+            event_payload={
+                "source": DELIVERABLE_EVENT_SOURCE_METADATA_UPDATE,
+                "from_status": previous_status,
+                "to_status": next_status,
+            },
+        )
+    if next_status == "final" and (status_changed or version_tag_changed):
+        record_deliverable_version_event(
+            db,
+            deliverable,
+            DELIVERABLE_EVENT_PUBLISHED,
+            version_tag=next_version_tag,
+            deliverable_status=next_status,
+            summary=f"發布 {next_version_tag} 定稿版",
+            event_payload={
+                "source": DELIVERABLE_EVENT_SOURCE_METADATA_UPDATE,
+                "published_from_status": previous_status,
+                "published_to_status": next_status,
+                "version_tag_changed": version_tag_changed,
+            },
+        )
+
+    if event_note:
+        record_deliverable_version_event(
+            db,
+            deliverable,
+            DELIVERABLE_EVENT_NOTE_ADDED,
+            version_tag=next_version_tag,
+            deliverable_status=next_status,
+            summary=event_note[:280],
+            event_payload={
+                "source": DELIVERABLE_EVENT_SOURCE_METADATA_UPDATE,
+                "note": event_note,
+            },
+        )
+
     db.commit()
 
     return get_deliverable_workspace(db, deliverable_id)
 
 
-def build_deliverable_markdown_export(
-    db: Session,
-    deliverable_id: str,
-) -> tuple[str, str, str]:
-    workspace = get_deliverable_workspace(db, deliverable_id)
+def _build_deliverable_export_filename(
+    title: str,
+    version_tag: str,
+    extension: str,
+) -> str:
+    filename_base = re.sub(
+        r"[^a-z0-9]+",
+        "-",
+        f"{title}-{version_tag}".lower(),
+    ).strip("-")
+    return f"{filename_base or 'deliverable-export'}.{extension}"
+
+
+def _build_deliverable_export_lists(
+    workspace: schemas.DeliverableWorkspaceResponse,
+) -> tuple[str, str, str, str, str, list[str], list[str], list[str], list[str], list[str]]:
     deliverable = workspace.deliverable
     task = workspace.task
     version_tag = deliverable.version_tag or f"v{deliverable.version}"
@@ -3573,16 +3713,17 @@ def build_deliverable_markdown_export(
 
     def _bullet_lines(items: list[str], empty_text: str) -> list[str]:
         if not items:
-            return [f"- {empty_text}"]
-        return [f"- {item}" for item in items]
+            return [empty_text]
+        return items
 
     recommendation_lines = _bullet_lines(
         [item.summary for item in workspace.linked_recommendations[:8]],
         "目前沒有額外的建議項目。",
     )
     risk_lines = _bullet_lines(
-        [f"{item.title}：{item.description}" for item in workspace.linked_risks[:8]],
-        "目前沒有額外的風險項目。",
+        [f"{item.title}：{item.description}" for item in workspace.linked_risks[:8]]
+        + [f"高影響缺口：{item}" for item in workspace.high_impact_gaps[:5]],
+        "目前沒有額外的風險與缺口項目。",
     )
     action_item_lines = _bullet_lines(
         [item.description for item in workspace.linked_action_items[:8]],
@@ -3595,7 +3736,45 @@ def build_deliverable_markdown_export(
         ],
         "目前沒有額外的依據來源。",
     )
-    note_lines = _bullet_lines(workspace.continuity_notes[:6], "目前沒有額外的版本備註。")
+    version_event_lines = _bullet_lines(
+        [
+            f"{item.created_at.isoformat()}｜{item.version_tag}｜{item.summary}"
+            for item in workspace.version_events[:8]
+        ],
+        "目前沒有額外的版本事件。",
+    )
+    return (
+        version_tag,
+        matter_title,
+        matter_path,
+        executive_summary,
+        task.updated_at.isoformat(),
+        recommendation_lines,
+        risk_lines,
+        action_item_lines,
+        evidence_lines,
+        version_event_lines,
+    )
+
+
+def build_deliverable_markdown_export(
+    db: Session,
+    deliverable_id: str,
+) -> tuple[str, str, str]:
+    workspace = get_deliverable_workspace(db, deliverable_id)
+    deliverable = workspace.deliverable
+    (
+        version_tag,
+        matter_title,
+        matter_path,
+        executive_summary,
+        updated_at,
+        recommendation_lines,
+        risk_lines,
+        action_item_lines,
+        evidence_lines,
+        version_event_lines,
+    ) = _build_deliverable_export_lists(workspace)
 
     content = "\n".join(
         [
@@ -3603,11 +3782,11 @@ def build_deliverable_markdown_export(
             "",
             "## 匯出資訊",
             f"- 版本：{version_tag}",
-            f"- 狀態：{deliverable.status or 'draft'}",
+            f"- 狀態：{label_for_deliverable_status(deliverable.status)}",
             f"- 交付物類型：{deliverable.deliverable_type}",
             f"- 案件：{matter_title}",
             f"- 路徑：{matter_path}",
-            f"- 最近更新：{task.updated_at.isoformat()}",
+            f"- 最近更新：{updated_at}",
             "",
             "## 簡短摘要",
             executive_summary,
@@ -3616,34 +3795,124 @@ def build_deliverable_markdown_export(
             workspace.confidence_summary,
             "",
             "## 建議",
-            *recommendation_lines,
+            *[f"- {item}" for item in recommendation_lines],
             "",
             "## 風險與缺口",
-            *risk_lines,
-            *[
-                f"- 高影響缺口：{item}"
-                for item in workspace.high_impact_gaps[:5]
-            ],
+            *[f"- {item}" for item in risk_lines],
             "",
             "## 行動項目",
-            *action_item_lines,
+            *[f"- {item}" for item in action_item_lines],
             "",
             "## 依據來源",
-            *evidence_lines,
+            *[f"- {item}" for item in evidence_lines],
             "",
-            "## 版本與延續脈絡",
-            *note_lines,
+            "## 版本事件",
+            *[f"- {item}" for item in version_event_lines],
             "",
         ]
     )
 
-    filename_base = re.sub(
-        r"[^a-z0-9]+",
-        "-",
-        f"{deliverable.title}-{version_tag}".lower(),
-    ).strip("-")
-    filename = f"{filename_base or 'deliverable-export'}.md"
+    deliverable_row = db.scalars(
+        select(models.Deliverable).where(models.Deliverable.id == deliverable_id)
+    ).one_or_none()
+    if deliverable_row is None:
+        raise HTTPException(status_code=404, detail="找不到指定交付物。")
+    filename = _build_deliverable_export_filename(deliverable.title, version_tag, "md")
+    record_deliverable_version_event(
+        db,
+        deliverable_row,
+        DELIVERABLE_EVENT_EXPORTED,
+        version_tag=version_tag,
+        deliverable_status=deliverable.status,
+        summary=f"匯出 Markdown｜{version_tag}",
+        event_payload={
+            "source": DELIVERABLE_EVENT_SOURCE_EXPORT,
+            "artifact_format": "markdown",
+            "file_name": filename,
+        },
+    )
+    db.commit()
     return filename, content, version_tag
+
+
+def build_deliverable_docx_export(
+    db: Session,
+    deliverable_id: str,
+) -> tuple[str, bytes, str]:
+    workspace = get_deliverable_workspace(db, deliverable_id)
+    deliverable = workspace.deliverable
+    (
+        version_tag,
+        matter_title,
+        matter_path,
+        executive_summary,
+        updated_at,
+        recommendation_lines,
+        risk_lines,
+        action_item_lines,
+        evidence_lines,
+        version_event_lines,
+    ) = _build_deliverable_export_lists(workspace)
+
+    try:
+        from docx import Document
+    except ImportError as error:  # pragma: no cover - depends on runtime env
+        raise HTTPException(
+            status_code=503,
+            detail="目前的後端環境尚未安裝 docx 匯出依賴。",
+        ) from error
+
+    document = Document()
+    document.add_heading(deliverable.title, level=0)
+    metadata_lines = [
+        f"版本：{version_tag}",
+        f"狀態：{label_for_deliverable_status(deliverable.status)}",
+        f"交付物類型：{deliverable.deliverable_type}",
+        f"案件：{matter_title}",
+        f"路徑：{matter_path}",
+        f"最近更新：{updated_at}",
+    ]
+    for line in metadata_lines:
+        document.add_paragraph(line)
+
+    def _add_section(title: str, lines: list[str] | None = None, paragraph: str | None = None) -> None:
+        document.add_heading(title, level=1)
+        if paragraph:
+            document.add_paragraph(paragraph)
+        for line in lines or []:
+            document.add_paragraph(line, style="List Bullet")
+
+    _add_section("簡短摘要", paragraph=executive_summary)
+    _add_section("一句話結論", paragraph=workspace.confidence_summary)
+    _add_section("建議與風險", lines=[*recommendation_lines, *risk_lines])
+    _add_section("行動項目", lines=action_item_lines)
+    _add_section("依據來源", lines=evidence_lines)
+    _add_section("版本事件", lines=version_event_lines)
+
+    buffer = BytesIO()
+    document.save(buffer)
+
+    deliverable_row = db.scalars(
+        select(models.Deliverable).where(models.Deliverable.id == deliverable_id)
+    ).one_or_none()
+    if deliverable_row is None:
+        raise HTTPException(status_code=404, detail="找不到指定交付物。")
+    filename = _build_deliverable_export_filename(deliverable.title, version_tag, "docx")
+    record_deliverable_version_event(
+        db,
+        deliverable_row,
+        DELIVERABLE_EVENT_EXPORTED,
+        version_tag=version_tag,
+        deliverable_status=deliverable.status,
+        summary=f"匯出 DOCX｜{version_tag}",
+        event_payload={
+            "source": DELIVERABLE_EVENT_SOURCE_EXPORT,
+            "artifact_format": "docx",
+            "file_name": filename,
+        },
+    )
+    db.commit()
+    return filename, buffer.getvalue(), version_tag
 
 
 def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:

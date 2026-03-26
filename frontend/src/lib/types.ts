@@ -643,6 +643,19 @@ export interface DeliverableWorkspace {
   linked_action_items: ActionItem[];
   related_deliverables: MatterDeliverableSummary[];
   continuity_notes: string[];
+  version_events: DeliverableVersionEvent[];
+}
+
+export interface DeliverableVersionEvent {
+  id: string;
+  deliverable_id: string;
+  task_id: string;
+  event_type: string;
+  version_tag: string;
+  deliverable_status: string | null;
+  summary: string;
+  event_payload: Record<string, unknown>;
+  created_at: string;
 }
 
 export interface UploadBatchResponse {
@@ -731,4 +744,5 @@ export interface DeliverableMetadataUpdatePayload {
   summary: string;
   status: "draft" | "pending_confirmation" | "final" | "archived";
   version_tag: string;
+  event_note?: string;
 }

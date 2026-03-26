@@ -249,8 +249,15 @@ export async function updateDeliverableMetadata(
   return parseResponse<DeliverableWorkspace>(response);
 }
 
-export async function exportDeliverableMarkdown(deliverableId: string) {
-  const response = await fetch(`${getApiBaseUrl()}/deliverables/${deliverableId}/export`, {
+export async function exportDeliverableArtifact(
+  deliverableId: string,
+  format: "markdown" | "docx",
+) {
+  const exportPath =
+    format === "docx"
+      ? `${getApiBaseUrl()}/deliverables/${deliverableId}/export/docx`
+      : `${getApiBaseUrl()}/deliverables/${deliverableId}/export`;
+  const response = await fetch(exportPath, {
     cache: "no-store",
   });
 
@@ -263,13 +270,24 @@ export async function exportDeliverableMarkdown(deliverableId: string) {
 
   const disposition = response.headers.get("Content-Disposition") ?? "";
   const fileNameMatch = disposition.match(/filename=\"?([^"]+)\"?/);
-  const fileName = fileNameMatch?.[1] ?? `deliverable-${deliverableId}.md`;
+  const fallbackExtension = format === "docx" ? "docx" : "md";
+  const fileName = fileNameMatch?.[1] ?? `deliverable-${deliverableId}.${fallbackExtension}`;
   const blob = await response.blob();
   return {
     fileName,
     blob,
     versionTag: response.headers.get("X-Infinite-Pro-Version") ?? "",
+    artifactFormat:
+      response.headers.get("X-Infinite-Pro-Artifact-Format") ?? format,
   };
+}
+
+export async function exportDeliverableMarkdown(deliverableId: string) {
+  return exportDeliverableArtifact(deliverableId, "markdown");
+}
+
+export async function exportDeliverableDocx(deliverableId: string) {
+  return exportDeliverableArtifact(deliverableId, "docx");
 }
 
 export async function createTask(payload: TaskCreatePayload): Promise<TaskAggregate> {

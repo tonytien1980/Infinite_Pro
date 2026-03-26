@@ -14,10 +14,8 @@ import {
 } from "@/lib/ui-labels";
 import {
   type DeliverableLifecycleStatus,
-  useDeliverableWorkspaceRecords,
   useWorkbenchSettings,
 } from "@/lib/workbench-store";
-import { isLocalFallbackDeliverableRecord } from "@/lib/workspace-persistence";
 
 type DeliverableCardView = {
   id: string;
@@ -65,7 +63,6 @@ export function DeliverablesPagePanel() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | DeliverableLifecycleStatus>("all");
   const [settings] = useWorkbenchSettings();
-  const [deliverableRecords] = useDeliverableWorkspaceRecords();
   const [sortOrder, setSortOrder] = useState(settings.deliverableSortPreference);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -95,36 +92,25 @@ export function DeliverablesPagePanel() {
       tasks
         .filter((task) => Boolean(task.latest_deliverable_id))
         .map((task) => {
-          const record = task.latest_deliverable_id
-            ? deliverableRecords[task.latest_deliverable_id]
-            : undefined;
-          const fallbackRecord = isLocalFallbackDeliverableRecord(record) ? record : null;
           const summary = buildTaskListWorkspaceSummary(task);
 
           return {
             id: task.latest_deliverable_id || task.id,
             taskId: task.id,
-            title: fallbackRecord?.title || task.latest_deliverable_title || task.title,
+            title: task.latest_deliverable_title || task.title,
             deliverableClass: task.deliverable_class_hint,
             matterTitle: task.matter_workspace?.title || task.engagement_name || "未掛案件",
             matterId: task.matter_workspace?.id ?? null,
             status:
-              fallbackRecord?.status ||
               (task.latest_deliverable_status as DeliverableLifecycleStatus | null) ||
               defaultDeliverableStatus(task),
-            versionTag:
-              fallbackRecord?.versionTag ||
-              task.latest_deliverable_version_tag ||
-              `v${Math.max(task.deliverable_count, 1)}`,
+            versionTag: task.latest_deliverable_version_tag || `v${Math.max(task.deliverable_count, 1)}`,
             updatedAt: task.updated_at,
             decisionContext: task.decision_context_title || "目前未標示決策問題",
-            summary:
-              fallbackRecord?.summary ||
-              task.latest_deliverable_summary ||
-              summary.workspaceState,
+            summary: task.latest_deliverable_summary || summary.workspaceState,
           };
         }),
-    [deliverableRecords, tasks],
+    [tasks],
   );
 
   const filteredDeliverables = useMemo(() => {

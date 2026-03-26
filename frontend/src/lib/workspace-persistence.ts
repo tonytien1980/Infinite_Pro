@@ -10,10 +10,7 @@ import type {
   MatterWorkspace,
   MatterWorkspaceMetadataUpdatePayload,
 } from "@/lib/types";
-import type {
-  DeliverableWorkspaceRecord,
-  MatterWorkspaceRecord,
-} from "@/lib/workbench-store";
+import type { MatterWorkspaceRecord } from "@/lib/workbench-store";
 import { nowIsoString } from "@/lib/workbench-store";
 
 export type PersistenceSource = "remote" | "local-fallback";
@@ -29,6 +26,10 @@ export async function persistMatterWorkspaceMetadata(
       workspace,
     };
   } catch (error) {
+    const status = (error as Error & { status?: number }).status;
+    if (typeof status === "number" && status < 500) {
+      throw error;
+    }
     const fallbackRecord: MatterWorkspaceRecord = {
       title: payload.title,
       summary: payload.summary,
@@ -56,29 +57,19 @@ export async function persistDeliverableMetadata(
       workspace,
     };
   } catch (error) {
-    const fallbackRecord: DeliverableWorkspaceRecord = {
-      title: payload.title,
-      summary: payload.summary,
-      status: payload.status,
-      versionTag: payload.version_tag,
-      updatedAt: nowIsoString(),
-      versions: [],
-      persistenceSource: "local-fallback",
-    };
-
-    return {
-      source: "local-fallback" as const,
-      fallbackRecord,
-      error: error instanceof Error ? error : new Error("交付物資訊暫時無法寫入後端。"),
-    };
+    const status = (error as Error & { status?: number }).status;
+    const fallbackError =
+      error instanceof Error ? error : new Error("交付物資訊暫時無法寫入後端。");
+    if (typeof status === "number" && status < 500) {
+      throw error;
+    }
+    throw new Error(
+      `${fallbackError.message} 交付物版本紀錄與發布事件必須寫入正式資料，因此這次不會改寫本機假資料。`,
+    );
   }
 }
 
 export function isLocalFallbackMatterRecord(record?: MatterWorkspaceRecord | null) {
-  return record?.persistenceSource === "local-fallback";
-}
-
-export function isLocalFallbackDeliverableRecord(record?: DeliverableWorkspaceRecord | null) {
   return record?.persistenceSource === "local-fallback";
 }
 

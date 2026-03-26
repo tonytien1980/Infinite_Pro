@@ -153,6 +153,112 @@ const AGENT_TYPE_LABELS: Record<string, string> = {
   specialist: "專家代理",
 };
 
+const DELIVERABLE_EVENT_LABELS: Record<string, string> = {
+  draft_created: "建立草稿",
+  content_updated: "更新內容",
+  status_changed: "狀態切換",
+  version_tag_updated: "版本標記更新",
+  exported: "匯出交付物",
+  published: "發布定稿",
+  note_added: "版本備註",
+};
+
+const AGENT_CANONICAL_NAMES: Record<string, string> = {
+  host_agent: "Host Agent",
+  strategy_decision_agent: "Strategy / Decision Agent",
+  operations_agent: "Operations Agent",
+  finance_agent: "Finance Agent",
+  legal_risk_agent: "Legal / Risk Agent",
+  marketing_growth_agent: "Marketing / Growth Agent",
+  sales_business_development_agent: "Sales / Business Development Agent",
+  research_intelligence_agent: "Research / Intelligence Agent",
+  document_communication_agent: "Document / Communication Agent",
+  contract_review_specialist: "Contract Review Specialist",
+  research_synthesis_specialist: "Research Synthesis Specialist",
+  document_restructuring_specialist: "Document Restructuring Specialist",
+};
+
+const AGENT_PRIMARY_DESCRIPTIONS: Record<string, string> = {
+  host_agent: "唯一正式協調中心，負責判讀工作流、代理選擇、就緒度治理與交付收斂。",
+  strategy_decision_agent: "負責 framing、選項比較、優先順序與決策收斂。",
+  operations_agent: "負責可行性、流程影響、相依關係與執行順序判斷。",
+  finance_agent: "負責經濟性、資本、現金流與募資相關推理。",
+  legal_risk_agent: "負責法務邊界、法遵風險與契約影響盤點。",
+  marketing_growth_agent: "負責定位、需求生成、成長敘事與獲客分析。",
+  sales_business_development_agent: "負責 pipeline、商務動作、夥伴結構與機會開發。",
+  research_intelligence_agent: "負責外部訊號、研究資料與多來源證據綜整。",
+  document_communication_agent: "負責文件 shaping、敘事整理與溝通型交付物。",
+  contract_review_specialist: "專注合約審閱、條款風險盤點與 redline 型輸出。",
+  research_synthesis_specialist: "專注研究材料綜整，整理成可判讀的決策 brief。",
+  document_restructuring_specialist: "專注提案、備忘錄與文件草稿重構，對齊目標受眾。",
+};
+
+const PACK_PRIMARY_NAMES: Record<string, string> = {
+  operations_pack: "營運模組包",
+  finance_fundraising_pack: "財務 / 募資模組包",
+  legal_risk_pack: "法務 / 風險模組包",
+  marketing_sales_pack: "行銷 / 銷售模組包",
+  business_development_pack: "商務開發模組包",
+  research_intelligence_pack: "研究 / 情報模組包",
+  organization_people_pack: "組織 / 人力模組包",
+  product_service_pack: "產品 / 服務模組包",
+  online_education_pack: "線上教育模組包",
+  ecommerce_pack: "電商模組包",
+  gaming_pack: "遊戲模組包",
+  funeral_services_pack: "殯葬服務模組包",
+  health_supplements_pack: "保健品模組包",
+  energy_pack: "能源模組包",
+  saas_pack: "SaaS 模組包",
+  media_creator_pack: "自媒體 / 創作者模組包",
+  professional_services_pack: "專業服務模組包",
+  manufacturing_pack: "製造業模組包",
+  healthcare_clinic_pack: "醫療 / 診所模組包",
+};
+
+const PACK_CANONICAL_NAMES: Record<string, string> = {
+  operations_pack: "Operations Pack",
+  finance_fundraising_pack: "Finance / Fundraising Pack",
+  legal_risk_pack: "Legal / Risk Pack",
+  marketing_sales_pack: "Marketing / Sales Pack",
+  business_development_pack: "Business Development Pack",
+  research_intelligence_pack: "Research / Intelligence Pack",
+  organization_people_pack: "Organization / People Pack",
+  product_service_pack: "Product / Service Pack",
+  online_education_pack: "Online Education Pack",
+  ecommerce_pack: "Ecommerce Pack",
+  gaming_pack: "Gaming Pack",
+  funeral_services_pack: "Funeral Services Pack",
+  health_supplements_pack: "Health Supplements Pack",
+  energy_pack: "Energy Pack",
+  saas_pack: "SaaS Pack",
+  media_creator_pack: "Media / Creator Pack",
+  professional_services_pack: "Professional Services Pack",
+  manufacturing_pack: "Manufacturing Pack",
+  healthcare_clinic_pack: "Healthcare / Clinic Pack",
+};
+
+const PACK_PRIMARY_DESCRIPTIONS: Record<string, string> = {
+  operations_pack: "聚焦營運治理、流程瓶頸、交付能力、資源配置與執行節奏。",
+  finance_fundraising_pack: "聚焦財務結構、現金流、單位經濟、資金規劃與募資判斷。",
+  legal_risk_pack: "聚焦法務邊界、契約條款、法遵責任與正式風險挑戰。",
+  marketing_sales_pack: "聚焦市場定位、需求生成、漏斗設計、成交流程與 GTM 收斂。",
+  business_development_pack: "聚焦策略合作、通路拓展、夥伴結構與商務機會開發。",
+  research_intelligence_pack: "聚焦市場情報、外部訊號、競爭研究與不確定性盤點。",
+  organization_people_pack: "聚焦組織設計、權責分工、人力配置與管理機制治理。",
+  product_service_pack: "聚焦產品 / 服務設計、價值主張、定價與 offer architecture。",
+  online_education_pack: "聚焦數位課程、cohort、會員與教育交付系統的經營脈絡。",
+  ecommerce_pack: "聚焦 DTC、平台電商、社群電商與多通路銷售模型。",
+  gaming_pack: "聚焦 launch readiness、live ops、留存、變現與產品組合波動。",
+  funeral_services_pack: "聚焦殯葬服務裡的信任、法遵、轉介紹渠道與高敏感營運節奏。",
+  health_supplements_pack: "聚焦保健品場景裡的宣稱合規、回購、信任與 SKU economics。",
+  energy_pack: "聚焦能源、電力、儲能與能源服務裡的法規、資本密度與專案節奏。",
+  saas_pack: "聚焦 SaaS / 訂閱軟體的 activation、retention、pricing、pipeline 與 time-to-value。",
+  media_creator_pack: "聚焦內容創作者與 audience-led business 的平台依賴、收入組合與受眾轉化。",
+  professional_services_pack: "聚焦專業服務、顧問與代理模式的利用率、報價與 client delivery economics。",
+  manufacturing_pack: "聚焦製造業的產能、品質、成本、供應鏈、交付與工作資本。",
+  healthcare_clinic_pack: "聚焦診所與醫療服務的專業容量、排程、服務組合、法遵與病患體驗。",
+};
+
 const CAPABILITY_LABELS: Record<string, string> = {
   diagnose_assess: "診斷 / 評估",
   decide_converge: "決策 / 收斂",
@@ -288,6 +394,10 @@ export function labelForAgentType(value: string) {
   return AGENT_TYPE_LABELS[value] ?? fallbackLabel(value);
 }
 
+export function labelForDeliverableEventType(value: string) {
+  return DELIVERABLE_EVENT_LABELS[value] ?? fallbackLabel(value);
+}
+
 export function labelForCapability(value: string) {
   return CAPABILITY_LABELS[value] ?? fallbackLabel(value);
 }
@@ -330,6 +440,40 @@ export function labelForDeliverableWorkspaceStatus(value: string) {
 
 export function labelForStructuredField(value: string) {
   return STRUCTURED_FIELD_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function getAgentCatalogDisplay(agent: {
+  agent_id: string;
+  agent_name: string;
+  description: string;
+}) {
+  const primaryName = AGENT_LABELS[agent.agent_id] ?? agent.agent_name;
+  const secondaryName = AGENT_CANONICAL_NAMES[agent.agent_id] ?? null;
+  const primaryDescription =
+    AGENT_PRIMARY_DESCRIPTIONS[agent.agent_id] ?? agent.description;
+  return {
+    primaryName,
+    secondaryName:
+      secondaryName && secondaryName !== primaryName ? secondaryName : null,
+    primaryDescription,
+  };
+}
+
+export function getPackCatalogDisplay(pack: {
+  pack_id: string;
+  pack_name: string;
+  description: string;
+}) {
+  const primaryName = PACK_PRIMARY_NAMES[pack.pack_id] ?? pack.pack_name;
+  const secondaryName = PACK_CANONICAL_NAMES[pack.pack_id] ?? null;
+  const primaryDescription =
+    PACK_PRIMARY_DESCRIPTIONS[pack.pack_id] ?? pack.description;
+  return {
+    primaryName,
+    secondaryName:
+      secondaryName && secondaryName !== primaryName ? secondaryName : null,
+    primaryDescription,
+  };
 }
 
 export function translateStructuredValue(label: string, value: unknown) {

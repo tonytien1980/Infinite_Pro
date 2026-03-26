@@ -11,6 +11,7 @@ import {
 } from "@/lib/workbench-persistence";
 import type { ExtensionManagerSnapshot, PackCatalogEntry, TaskListItem } from "@/lib/types";
 import {
+  getPackCatalogDisplay,
   labelForExtensionStatus,
   labelForPackType,
 } from "@/lib/ui-labels";
@@ -127,7 +128,16 @@ export function PackManagementPanel() {
       return true;
     }
 
-    return [pack.pack_name, pack.description, ...pack.common_problem_patterns, ...pack.key_kpis]
+    const display = getPackCatalogDisplay(pack);
+    return [
+      pack.pack_name,
+      display.primaryName,
+      display.secondaryName ?? "",
+      display.primaryDescription,
+      pack.description,
+      ...pack.common_problem_patterns,
+      ...pack.key_kpis,
+    ]
       .join(" ")
       .toLowerCase()
       .includes(query);
@@ -303,57 +313,70 @@ export function PackManagementPanel() {
               <div className="history-list" style={{ marginTop: "18px" }}>
                 {visiblePacks.length > 0 ? (
                   visiblePacks.map((pack) => (
-                    <article className="history-item management-card" key={pack.pack_id}>
-                      <div className="meta-row">
-                        <span className="pill">{labelForPackType(pack.pack_type)}</span>
-                        <span>{labelForExtensionStatus(pack.status)}</span>
-                        <span>v{pack.version}</span>
-                        <span>{pack.source === "local" ? "自訂模組包" : "系統模組包"}</span>
-                      </div>
-                      <h3>{pack.pack_name}</h3>
-                      <p className="muted-text">
-                        最近使用：
-                        {pack.usageCount > 0 && pack.lastUsedAt
-                          ? `${pack.usageCount} 次，最近於 ${new Intl.DateTimeFormat("zh-TW", {
-                              dateStyle: "medium",
-                            }).format(new Date(pack.lastUsedAt))}`
-                          : "目前沒有使用紀錄"}
-                      </p>
-                      <p className="muted-text">
-                        關鍵模式：
-                        {pack.common_problem_patterns.length > 0
-                          ? pack.common_problem_patterns.slice(0, 3).join("、")
-                          : "目前未標示"}
-                      </p>
-                      <details className="inline-disclosure">
-                        <summary className="inline-disclosure-summary">查看說明與 KPI</summary>
-                        <div className="expandable-copy">
-                          <p className="content-block">{pack.description || "目前沒有額外說明。"}</p>
+                    (() => {
+                      const display = getPackCatalogDisplay(pack);
+                      return (
+                        <article className="history-item management-card" key={pack.pack_id}>
+                          <div className="meta-row">
+                            <span className="pill">{labelForPackType(pack.pack_type)}</span>
+                            <span>{labelForExtensionStatus(pack.status)}</span>
+                            <span>v{pack.version}</span>
+                            <span>{pack.source === "local" ? "自訂模組包" : "系統模組包"}</span>
+                          </div>
+                          <h3>{display.primaryName}</h3>
+                          {display.secondaryName ? (
+                            <p className="muted-text">
+                              {display.secondaryName}｜{pack.pack_id}
+                            </p>
+                          ) : null}
+                          <p className="content-block">{display.primaryDescription}</p>
                           <p className="muted-text">
-                            KPI：
-                            {pack.key_kpis.length > 0
-                              ? pack.key_kpis.slice(0, 4).join("、")
+                            最近使用：
+                            {pack.usageCount > 0 && pack.lastUsedAt
+                              ? `${pack.usageCount} 次，最近於 ${new Intl.DateTimeFormat("zh-TW", {
+                                  dateStyle: "medium",
+                                }).format(new Date(pack.lastUsedAt))}`
+                              : "目前沒有使用紀錄"}
+                          </p>
+                          <p className="muted-text">
+                            關鍵模式：
+                            {pack.common_problem_patterns.length > 0
+                              ? pack.common_problem_patterns.slice(0, 2).join("、")
                               : "目前未標示"}
                           </p>
-                        </div>
-                      </details>
-                      <div className="button-row" style={{ marginTop: "12px" }}>
-                        <button
-                          className="button-secondary"
-                          type="button"
-                          onClick={() => startEdit(pack)}
-                        >
-                          編輯
-                        </button>
-                        <button
-                          className="button-secondary"
-                          type="button"
-                          onClick={() => handleToggle(pack)}
-                        >
-                          {pack.status === "active" ? "停用" : "啟用"}
-                        </button>
-                      </div>
-                    </article>
+                          <details className="inline-disclosure">
+                            <summary className="inline-disclosure-summary">查看細節與 KPI</summary>
+                            <div className="expandable-copy">
+                              <p className="content-block">
+                                {pack.description || "目前沒有額外說明。"}
+                              </p>
+                              <p className="muted-text">
+                                KPI：
+                                {pack.key_kpis.length > 0
+                                  ? pack.key_kpis.slice(0, 4).join("、")
+                                  : "目前未標示"}
+                              </p>
+                            </div>
+                          </details>
+                          <div className="button-row" style={{ marginTop: "12px" }}>
+                            <button
+                              className="button-secondary"
+                              type="button"
+                              onClick={() => startEdit(pack)}
+                            >
+                              編輯
+                            </button>
+                            <button
+                              className="button-secondary"
+                              type="button"
+                              onClick={() => handleToggle(pack)}
+                            >
+                              {pack.status === "active" ? "停用" : "啟用"}
+                            </button>
+                          </div>
+                        </article>
+                      );
+                    })()
                   ))
                 ) : (
                   <p className="empty-text">目前沒有符合條件的模組包。</p>
@@ -368,6 +391,18 @@ export function PackManagementPanel() {
                 <div>
                   <h2 className="panel-title">{editingPackId ? "編輯模組包" : "新增模組包"}</h2>
                   <p className="panel-copy">分類、版本與常改欄位會優先寫入正式 persistence；只有後端暫時不可用時才退回本機 fallback。</p>
+                  {editingPackId ? (
+                    <p className="muted-text">
+                      顯示名稱：
+                      {getPackCatalogDisplay(
+                        managedPacks.find((pack) => pack.pack_id === editingPackId) ?? {
+                          pack_id: editingPackId ?? "",
+                          pack_name: draft.pack_name,
+                          description: draft.description,
+                        },
+                      ).primaryName}
+                    </p>
+                  ) : null}
                 </div>
               </div>
 

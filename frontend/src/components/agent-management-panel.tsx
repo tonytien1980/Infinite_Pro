@@ -12,6 +12,7 @@ import {
 import { truncateText } from "@/lib/text-format";
 import type { AgentCatalogEntry, ExtensionManagerSnapshot, TaskListItem } from "@/lib/types";
 import {
+  getAgentCatalogDisplay,
   labelForAgentType,
   labelForCapability,
   labelForExtensionStatus,
@@ -136,7 +137,15 @@ export function AgentManagementPanel() {
         return true;
       }
 
-      return [agent.agent_name, agent.description, ...agent.supported_capabilities]
+      const display = getAgentCatalogDisplay(agent);
+      return [
+        agent.agent_name,
+        display.primaryName,
+        display.secondaryName ?? "",
+        display.primaryDescription,
+        agent.description,
+        ...agent.supported_capabilities,
+      ]
         .join(" ")
         .toLowerCase()
         .includes(query);
@@ -319,54 +328,66 @@ export function AgentManagementPanel() {
               <div className="history-list" style={{ marginTop: "18px" }}>
                 {filteredAgents.length > 0 ? (
                   filteredAgents.map((agent) => (
-                    <article className="history-item management-card" key={agent.agent_id}>
-                      <div className="meta-row">
-                        <span className="pill">{labelForAgentType(agent.agent_type)}</span>
-                        <span>{labelForExtensionStatus(agent.status)}</span>
-                        <span>v{agent.version}</span>
-                        <span>{agent.source === "local" ? "自訂代理" : "系統代理"}</span>
-                      </div>
-                      <h3>{agent.agent_name}</h3>
-                      <p className="content-block">{truncateText(agent.description, 98)}</p>
-                      <p className="muted-text">
-                        適用工作類型：
-                        {agent.supported_capabilities.length > 0
-                          ? agent.supported_capabilities
-                              .slice(0, 4)
-                              .map((item) => labelForCapability(item))
-                              .join("、")
-                          : "目前未標示"}
-                      </p>
-                      <p className="muted-text">
-                        最近使用：
-                        {agent.usageCount > 0 && agent.lastUsedAt
-                          ? `${agent.usageCount} 次，最近於 ${new Intl.DateTimeFormat("zh-TW", {
-                              dateStyle: "medium",
-                            }).format(new Date(agent.lastUsedAt))}`
-                          : "目前沒有使用紀錄"}
-                      </p>
-                      <div className="button-row" style={{ marginTop: "12px" }}>
-                        <button
-                          className="button-secondary"
-                          type="button"
-                          onClick={() => startEdit(agent)}
-                        >
-                          編輯
-                        </button>
-                        <button
-                          className="button-secondary"
-                          type="button"
-                          disabled={agent.agent_type === "host"}
-                          onClick={() => handleToggle(agent)}
-                        >
-                          {agent.agent_type === "host"
-                            ? "Host 固定啟用"
-                            : agent.status === "active"
-                              ? "停用"
-                              : "啟用"}
-                        </button>
-                      </div>
-                    </article>
+                    (() => {
+                      const display = getAgentCatalogDisplay(agent);
+                      return (
+                        <article className="history-item management-card" key={agent.agent_id}>
+                          <div className="meta-row">
+                            <span className="pill">{labelForAgentType(agent.agent_type)}</span>
+                            <span>{labelForExtensionStatus(agent.status)}</span>
+                            <span>v{agent.version}</span>
+                            <span>{agent.source === "local" ? "自訂代理" : "系統代理"}</span>
+                          </div>
+                          <h3>{display.primaryName}</h3>
+                          {display.secondaryName ? (
+                            <p className="muted-text">
+                              {display.secondaryName}｜{agent.agent_id}
+                            </p>
+                          ) : null}
+                          <p className="content-block">
+                            {truncateText(display.primaryDescription, 72)}
+                          </p>
+                          <p className="muted-text">
+                            適用工作類型：
+                            {agent.supported_capabilities.length > 0
+                              ? agent.supported_capabilities
+                                  .slice(0, 4)
+                                  .map((item) => labelForCapability(item))
+                                  .join("、")
+                              : "目前未標示"}
+                          </p>
+                          <p className="muted-text">
+                            最近使用：
+                            {agent.usageCount > 0 && agent.lastUsedAt
+                              ? `${agent.usageCount} 次，最近於 ${new Intl.DateTimeFormat("zh-TW", {
+                                  dateStyle: "medium",
+                                }).format(new Date(agent.lastUsedAt))}`
+                              : "目前沒有使用紀錄"}
+                          </p>
+                          <div className="button-row" style={{ marginTop: "12px" }}>
+                            <button
+                              className="button-secondary"
+                              type="button"
+                              onClick={() => startEdit(agent)}
+                            >
+                              編輯
+                            </button>
+                            <button
+                              className="button-secondary"
+                              type="button"
+                              disabled={agent.agent_type === "host"}
+                              onClick={() => handleToggle(agent)}
+                            >
+                              {agent.agent_type === "host"
+                                ? "Host 固定啟用"
+                                : agent.status === "active"
+                                  ? "停用"
+                                  : "啟用"}
+                            </button>
+                          </div>
+                        </article>
+                      );
+                    })()
                   ))
                 ) : (
                   <p className="empty-text">目前沒有符合條件的代理。</p>
@@ -381,6 +402,14 @@ export function AgentManagementPanel() {
                 <div>
                   <h2 className="panel-title">{editingAgentId ? "編輯代理" : "新增代理"}</h2>
                   <p className="panel-copy">版本、狀態與常改欄位會優先寫入正式 persistence；只有後端暫時不可用時才退回本機 fallback。</p>
+                  {editingAgent ? (
+                    <p className="muted-text">
+                      顯示名稱：{getAgentCatalogDisplay(editingAgent).primaryName}
+                      {getAgentCatalogDisplay(editingAgent).secondaryName
+                        ? `｜${getAgentCatalogDisplay(editingAgent).secondaryName}`
+                        : ""}
+                    </p>
+                  ) : null}
                 </div>
               </div>
 

@@ -3,7 +3,11 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { exportDeliverableMarkdown, getDeliverableWorkspace } from "@/lib/api";
+import {
+  exportDeliverableDocx,
+  exportDeliverableMarkdown,
+  getDeliverableWorkspace,
+} from "@/lib/api";
 import {
   assessTaskReadiness,
   buildActionItemCards,
@@ -22,19 +26,15 @@ import type { DeliverableWorkspace } from "@/lib/types";
 import {
   formatDisplayDate,
   labelForAgentId,
+  labelForDeliverableEventType,
   labelForDeliverableStatus,
   labelForEvidenceType,
   labelForPriority,
   labelForSourceType,
 } from "@/lib/ui-labels";
-import {
-  type DeliverableLifecycleStatus,
-  nowIsoString,
-  useDeliverableWorkspaceRecords,
-} from "@/lib/workbench-store";
+import { type DeliverableLifecycleStatus } from "@/lib/workbench-store";
 import {
   buildDeliverableSaveFeedback,
-  isLocalFallbackDeliverableRecord,
   persistDeliverableMetadata,
 } from "@/lib/workspace-persistence";
 
@@ -58,23 +58,6 @@ function CompactList({
   );
 }
 
-function buildVersionRecordNote(
-  status: DeliverableLifecycleStatus,
-  versionTag: string,
-  title: string,
-) {
-  if (status === "final") {
-    return `發布 ${versionTag} 定稿版｜${title}`;
-  }
-  if (status === "pending_confirmation") {
-    return `送出 ${versionTag} 待確認版｜${title}`;
-  }
-  if (status === "archived") {
-    return `封存 ${versionTag}｜${title}`;
-  }
-  return `更新 ${versionTag} 草稿｜${title}`;
-}
-
 function buildDeliverableStatusHint(status: DeliverableLifecycleStatus) {
   if (status === "final") {
     return "這個版本已是可正式匯出與回看的定稿版。";
@@ -90,13 +73,13 @@ function buildDeliverableStatusHint(status: DeliverableLifecycleStatus) {
 
 export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: string }) {
   const [workspace, setWorkspace] = useState<DeliverableWorkspace | null>(null);
-  const [deliverableRecords, setDeliverableRecords] = useDeliverableWorkspaceRecords();
   const [draftTitle, setDraftTitle] = useState("");
   const [draftSummary, setDraftSummary] = useState("");
   const [draftStatus, setDraftStatus] = useState<DeliverableLifecycleStatus>("draft");
   const [draftVersionTag, setDraftVersionTag] = useState("");
+  const [draftEventNote, setDraftEventNote] = useState("");
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
-  const [saveMode, setSaveMode] = useState<"remote" | "local-fallback" | null>(null);
+  const [saveTone, setSaveTone] = useState<"success" | "error" | null>(null);
   const [exportMessage, setExportMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -120,15 +103,13 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
       return;
     }
 
-    const record = isLocalFallbackDeliverableRecord(deliverableRecords[deliverableId])
-      ? deliverableRecords[deliverableId]
-      : null;
     const defaultStatus = workspace.deliverable.status as DeliverableLifecycleStatus;
-    setDraftTitle(record?.title || workspace.deliverable.title);
-    setDraftSummary(record?.summary || workspace.deliverable.summary || "");
-    setDraftStatus(record?.status || defaultStatus);
-    setDraftVersionTag(record?.versionTag || workspace.deliverable.version_tag || `v${workspace.deliverable.version}`);
-  }, [deliverableId, deliverableRecords, workspace]);
+    setDraftTitle(workspace.deliverable.title);
+    setDraftSummary(workspace.deliverable.summary || "");
+    setDraftStatus(defaultStatus);
+    setDraftVersionTag(workspace.deliverable.version_tag || `v${workspace.deliverable.version}`);
+    setDraftEventNote("");
+  }, [deliverableId, workspace]);
 
   const task = workspace?.task ?? null;
   const deliverable = workspace?.deliverable ?? null;
@@ -144,91 +125,56 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const capabilityFrame = task && deliverable ? buildCapabilityFrame(task, deliverable) : null;
   const packSelection = task && deliverable ? buildPackSelectionView(task, deliverable) : null;
   const deliverableBacklink = task && deliverable ? buildDeliverableBacklinkView(task, deliverable) : null;
-  const deliverableRecord = deliverableRecords[deliverableId];
-  const fallbackRecord = isLocalFallbackDeliverableRecord(deliverableRecord)
-    ? deliverableRecord
-    : null;
   const deliverableStatus =
-    fallbackRecord?.status ||
     ((deliverable?.status as DeliverableLifecycleStatus | undefined) ??
       (task?.status === "completed" ? "final" : "pending_confirmation"));
-  const versionTag = fallbackRecord?.versionTag || deliverable?.version_tag || (deliverable ? `v${deliverable.version}` : "v1");
-  const displayTitle = fallbackRecord?.title || deliverable?.title || "";
-  const displaySummary = fallbackRecord?.summary || deliverable?.summary || "";
+  const versionTag = deliverable?.version_tag || (deliverable ? `v${deliverable.version}` : "v1");
+  const displayTitle = deliverable?.title || "";
+  const displaySummary = deliverable?.summary || "";
   const selectedPackNames = packSelection
     ? [...packSelection.domainPacks, ...packSelection.industryPacks]
     : [];
 
-  async function handleSaveMetadata() {
+  async function handleSaveMetadata(nextStatus?: DeliverableLifecycleStatus) {
     if (!deliverable) {
       return;
     }
 
-    const timestamp = nowIsoString();
     const nextTitle = draftTitle.trim() || deliverable.title;
     const nextSummary = draftSummary.trim();
-    const nextVersionTag = draftVersionTag.trim() || deliverable.version_tag || `v${deliverable.version}`;
-    const previousVersions = deliverableRecord?.versions ?? [];
-    const shouldAddVersion =
-      nextVersionTag !== (deliverable.version_tag || `v${deliverable.version}`) ||
-      nextTitle !== deliverable.title ||
-      nextSummary !== (deliverable.summary || "") ||
-      draftStatus !== deliverableStatus;
-    const nextVersions = shouldAddVersion
-      ? [
-          {
-            id: `${deliverableId}-${timestamp}`,
-            versionTag: nextVersionTag,
-            timestamp,
-            note: buildVersionRecordNote(draftStatus, nextVersionTag, nextTitle),
-          },
-          ...previousVersions,
-        ].slice(0, 12)
-      : previousVersions;
-
-    const result = await persistDeliverableMetadata(deliverableId, {
-      title: nextTitle,
-      summary: nextSummary,
-      status: draftStatus,
-      version_tag: nextVersionTag,
-    });
-
-    if (result.source === "remote") {
+    const nextVersionTag =
+      draftVersionTag.trim() || deliverable.version_tag || `v${deliverable.version}`;
+    try {
+      const result = await persistDeliverableMetadata(deliverableId, {
+        title: nextTitle,
+        summary: nextSummary,
+        status: nextStatus ?? draftStatus,
+        version_tag: nextVersionTag,
+        event_note: draftEventNote.trim(),
+      });
       setWorkspace(result.workspace);
-      setDeliverableRecords((current) => ({
-        ...current,
-        [deliverableId]: {
-          title: result.workspace.deliverable.title,
-          summary: result.workspace.deliverable.summary,
-          status: result.workspace.deliverable.status as DeliverableLifecycleStatus,
-          versionTag: result.workspace.deliverable.version_tag,
-          updatedAt: timestamp,
-          versions: nextVersions,
-        },
-      }));
-      setSaveMode("remote");
+      setDraftStatus(result.workspace.deliverable.status as DeliverableLifecycleStatus);
+      setDraftVersionTag(result.workspace.deliverable.version_tag || nextVersionTag);
+      setDraftEventNote("");
+      setSaveTone("success");
       setSaveMessage(buildDeliverableSaveFeedback("remote", result.workspace));
-    } else {
-      setDeliverableRecords((current) => ({
-        ...current,
-        [deliverableId]: {
-          ...result.fallbackRecord,
-          versions: nextVersions,
-        },
-      }));
-      setSaveMode("local-fallback");
-      setSaveMessage(buildDeliverableSaveFeedback("local-fallback"));
+    } catch (saveError) {
+      setSaveTone("error");
+      setSaveMessage(saveError instanceof Error ? saveError.message : "儲存交付物資訊失敗。");
     }
     setExportMessage(null);
   }
 
-  async function handleExportEntry() {
+  async function handleExportEntry(format: "markdown" | "docx") {
     if (!deliverable || typeof window === "undefined") {
       return;
     }
 
     try {
-      const exportResult = await exportDeliverableMarkdown(deliverableId);
+      const exportResult =
+        format === "docx"
+          ? await exportDeliverableDocx(deliverableId)
+          : await exportDeliverableMarkdown(deliverableId);
       const objectUrl = window.URL.createObjectURL(exportResult.blob);
       const anchor = window.document.createElement("a");
       anchor.href = objectUrl;
@@ -237,8 +183,13 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
       anchor.click();
       anchor.remove();
       window.setTimeout(() => window.URL.revokeObjectURL(objectUrl), 0);
+      setWorkspace(await getDeliverableWorkspace(deliverableId));
       setExportMessage(
-        `已下載 ${exportResult.fileName}；目前先提供 Markdown 匯出，完整 docx / pdf 發布流程仍待後端接手。`,
+        `已下載 ${exportResult.fileName}；目前匯出對應 ${exportResult.versionTag || versionTag}。${
+          format === "docx"
+            ? "DOCX 已可作為 beta release artifact，完整 PDF 發布流程仍待後端補齊。"
+            : "Markdown 匯出會保留穩定的 metadata 與 section ordering。"
+        }`,
       );
     } catch (exportError) {
       setExportMessage(
@@ -357,6 +308,17 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                     </div>
                   </div>
                 </div>
+
+                {workspace.version_events[0] ? (
+                  <div className="section-card deliverable-rail-card">
+                    <h4>最新版本事件</h4>
+                    <p className="content-block">{workspace.version_events[0].summary}</p>
+                    <p className="muted-text">
+                      {labelForDeliverableEventType(workspace.version_events[0].event_type)}｜
+                      {formatDisplayDate(workspace.version_events[0].created_at)}
+                    </p>
+                  </div>
+                ) : null}
 
                 <div className="section-card deliverable-rail-card">
                   <h4>工作面快讀</h4>
@@ -529,64 +491,70 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                 </div>
               </div>
 
+              <div className="field">
+                <label htmlFor="deliverable-event-note">版本備註 / 發布說明</label>
+                <textarea
+                  id="deliverable-event-note"
+                  value={draftEventNote}
+                  onChange={(event) => {
+                    setDraftEventNote(event.target.value);
+                    setSaveMessage(null);
+                  }}
+                  placeholder="可選填：記下這次版本更新、送審說明或定稿備註。"
+                />
+              </div>
+
               <div className="button-row">
                 <button
-                  className="button-secondary"
+                  className="button-primary"
                   type="button"
-                  onClick={() => {
-                    setDraftStatus("draft");
-                    setSaveMessage(null);
-                    setExportMessage(null);
-                  }}
+                  onClick={() => void handleSaveMetadata()}
                 >
-                  標記為草稿
+                  儲存目前內容
                 </button>
                 <button
                   className="button-secondary"
                   type="button"
-                  onClick={() => {
-                    setDraftStatus("pending_confirmation");
-                    setSaveMessage(null);
-                    setExportMessage(null);
-                  }}
+                  onClick={() => void handleSaveMetadata("pending_confirmation")}
                 >
                   送往待確認
                 </button>
                 <button
                   className="button-secondary"
                   type="button"
-                  onClick={() => {
-                    setDraftStatus("final");
-                    setSaveMessage(null);
-                    setExportMessage(null);
-                  }}
+                  onClick={() => void handleSaveMetadata("final")}
                 >
-                  標記為定稿
+                  發布定稿版
                 </button>
                 <button
                   className="button-secondary"
                   type="button"
-                  onClick={() => {
-                    setDraftStatus("archived");
-                    setSaveMessage(null);
-                    setExportMessage(null);
-                  }}
+                  onClick={() => void handleSaveMetadata("archived")}
                 >
                   封存版本
                 </button>
               </div>
 
               <div className="button-row">
-                <button className="button-primary" type="button" onClick={handleSaveMetadata}>
-                  儲存交付物資訊
-                </button>
-                <button className="button-secondary" type="button" onClick={handleExportEntry}>
+                <button
+                  className="button-secondary"
+                  type="button"
+                  onClick={() => void handleExportEntry("markdown")}
+                >
                   匯出 Markdown
                 </button>
+                <button
+                  className="button-secondary"
+                  type="button"
+                  onClick={() => void handleExportEntry("docx")}
+                >
+                  匯出 DOCX
+                </button>
               </div>
-              {saveMessage ? <p className="success-text">{saveMessage}</p> : null}
-              {saveMessage && saveMode === "local-fallback" ? (
-                <p className="muted-text">目前顯示的是本機暫存版本，待後端可用後再寫回正式資料。</p>
+              {saveMessage ? (
+                <p className={saveTone === "error" ? "error-text" : "success-text"}>
+                  {saveMessage}
+                </p>
               ) : null}
               {exportMessage ? <p className="muted-text">{exportMessage}</p> : null}
             </div>
@@ -934,7 +902,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                 <div className="panel-header">
                   <div>
                     <h2 className="panel-title">版本紀錄</h2>
-                    <p className="panel-copy">目前會保留狀態切換與版本標記的編修痕跡；匯出先提供 Markdown，完整 docx / pdf 發布流程仍待後端接手。</p>
+                    <p className="panel-copy">這裡直接讀正式 backend 版本事件，保留狀態切換、版本標記、匯出與發布紀錄；目前已支援 Markdown 與 DOCX 匯出。</p>
                   </div>
                 </div>
                 <div className="detail-list">
@@ -947,14 +915,18 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                     <h3>{displayTitle || deliverable.title}</h3>
                     <p className="muted-text">目前版本</p>
                   </div>
-                  {deliverableRecord?.versions.length ? (
-                    deliverableRecord.versions.map((item) => (
+                  {workspace.version_events.length ? (
+                    workspace.version_events.map((item) => (
                       <div className="detail-item" key={item.id}>
                         <div className="meta-row">
-                          <span className="pill">{item.versionTag}</span>
-                          <span>{formatDisplayDate(item.timestamp)}</span>
+                          <span className="pill">{labelForDeliverableEventType(item.event_type)}</span>
+                          <span>{item.version_tag}</span>
+                          {item.deliverable_status ? (
+                            <span>{labelForDeliverableStatus(item.deliverable_status)}</span>
+                          ) : null}
+                          <span>{formatDisplayDate(item.created_at)}</span>
                         </div>
-                        <h3>{item.note}</h3>
+                        <h3>{item.summary}</h3>
                       </div>
                     ))
                   ) : null}

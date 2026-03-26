@@ -503,6 +503,36 @@ class Deliverable(Base):
     object_links: Mapped[list["DeliverableObjectLink"]] = relationship(
         back_populates="deliverable", cascade="all, delete-orphan"
     )
+    version_events: Mapped[list["DeliverableVersionEvent"]] = relationship(
+        back_populates="deliverable",
+        cascade="all, delete-orphan",
+        order_by="DeliverableVersionEvent.created_at.desc()",
+    )
+
+
+class DeliverableVersionEvent(Base):
+    __tablename__ = "deliverable_version_events"
+    __table_args__ = (
+        UniqueConstraint(
+            "deliverable_id",
+            "event_key",
+            name="uq_deliverable_version_event_key",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    deliverable_id: Mapped[str] = mapped_column(ForeignKey("deliverables.id"), nullable=False)
+    task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    event_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    event_key: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    version_tag: Mapped[str] = mapped_column(String(50), default="")
+    deliverable_status: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    summary: Mapped[str] = mapped_column(Text, default="")
+    event_payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    deliverable: Mapped["Deliverable"] = relationship(back_populates="version_events")
+    task: Mapped["Task"] = relationship()
 
 
 class RecommendationEvidenceLink(Base):

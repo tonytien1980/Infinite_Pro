@@ -33,23 +33,6 @@ export interface MatterWorkspaceRecord {
   persistenceSource?: "local-fallback";
 }
 
-export interface DeliverableVersionRecord {
-  id: string;
-  versionTag: string;
-  timestamp: string;
-  note: string;
-}
-
-export interface DeliverableWorkspaceRecord {
-  title: string;
-  summary: string;
-  status: DeliverableLifecycleStatus;
-  versionTag: string;
-  updatedAt: string;
-  versions: DeliverableVersionRecord[];
-  persistenceSource?: "local-fallback";
-}
-
 export interface AgentManagerState {
   customAgents: AgentCatalogEntry[];
   overrides: Record<string, Partial<AgentCatalogEntry>>;
@@ -67,7 +50,6 @@ export interface HistoryManagerState {
 const STORAGE_KEYS = {
   settings: "infinite-pro.workbench.settings",
   matters: "infinite-pro.workbench.matters",
-  deliverables: "infinite-pro.workbench.deliverables",
   agents: "infinite-pro.workbench.agents",
   packs: "infinite-pro.workbench.packs",
   history: "infinite-pro.workbench.history",
@@ -157,13 +139,6 @@ export function useWorkbenchSettings() {
 
 export function useMatterWorkspaceRecords() {
   return usePersistentState<Record<string, MatterWorkspaceRecord>>(STORAGE_KEYS.matters, {});
-}
-
-export function useDeliverableWorkspaceRecords() {
-  return usePersistentState<Record<string, DeliverableWorkspaceRecord>>(
-    STORAGE_KEYS.deliverables,
-    {},
-  );
 }
 
 export function useAgentManagerState() {

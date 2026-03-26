@@ -72,6 +72,7 @@ class DeliverableMetadataUpdateRequest(BaseModel):
     summary: str = ""
     status: Literal["draft", "pending_confirmation", "final", "archived"]
     version_tag: str = Field(min_length=1, max_length=50)
+    event_note: str = ""
 
 
 class TaskContextRead(ORMModel):
@@ -383,6 +384,18 @@ class DeliverableRead(ORMModel):
     generated_at: datetime
 
 
+class DeliverableVersionEventRead(ORMModel):
+    id: str
+    deliverable_id: str
+    task_id: str
+    event_type: str
+    version_tag: str
+    deliverable_status: str | None = None
+    summary: str
+    event_payload: dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime
+
+
 class TaskRunRead(ORMModel):
     id: str
     task_id: str
@@ -625,6 +638,7 @@ class DeliverableWorkspaceResponse(BaseModel):
     linked_action_items: list[ActionItemRead] = Field(default_factory=list)
     related_deliverables: list[MatterDeliverableSummaryRead] = Field(default_factory=list)
     continuity_notes: list[str] = Field(default_factory=list)
+    version_events: list[DeliverableVersionEventRead] = Field(default_factory=list)
 
 
 class UploadResultItem(BaseModel):

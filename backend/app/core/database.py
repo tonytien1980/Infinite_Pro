@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Generator
 
-from sqlalchemy import create_engine, inspect, text
+from sqlalchemy import create_engine, inspect, select, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.core.config import settings
@@ -26,6 +26,8 @@ def initialize_database() -> None:
 
     Base.metadata.create_all(bind=engine)
     _ensure_incremental_schema_updates()
+    _normalize_incremental_data()
+    _ensure_incremental_indexes()
 
 
 def _ensure_incremental_schema_updates() -> None:
@@ -58,6 +60,9 @@ def _ensure_incremental_schema_updates() -> None:
             "status": "VARCHAR(50)",
             "version_tag": "VARCHAR(50)",
         },
+        "deliverable_version_events": {
+            "event_key": "VARCHAR(255)",
+        },
     }
 
     inspector = inspect(engine)
@@ -76,6 +81,32 @@ def _ensure_incremental_schema_updates() -> None:
                         f"ADD COLUMN {column_name} {column_definition}"
                     )
                 )
+
+
+def _normalize_incremental_data() -> None:
+    from app.domain import models
+    from app.services.deliverable_records import normalize_deliverable_version_events
+
+    session = SessionLocal()
+    try:
+        deliverable_ids = session.scalars(
+            select(models.DeliverableVersionEvent.deliverable_id).distinct()
+        ).all()
+        for deliverable_id in deliverable_ids:
+            normalize_deliverable_version_events(session, deliverable_id)
+    finally:
+        session.close()
+
+
+def _ensure_incremental_indexes() -> None:
+    index_statements = [
+        "CREATE UNIQUE INDEX IF NOT EXISTS uq_deliverable_version_event_key "
+        "ON deliverable_version_events (deliverable_id, event_key)",
+    ]
+
+    with engine.begin() as connection:
+        for statement in index_statements:
+            connection.execute(text(statement))
 
 
 def get_db() -> Generator[Session, None, None]:

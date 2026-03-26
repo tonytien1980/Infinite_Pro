@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
@@ -32,6 +32,13 @@ from app.extensions.registry import ExtensionRegistry
 from app.extensions.resolver import AgentResolver, resolve_runtime_agent_binding
 from app.extensions.schemas import AgentResolverInput
 from app.model_router.factory import get_model_provider
+from app.services.deliverable_records import (
+    DELIVERABLE_EVENT_DRAFT_CREATED,
+    DELIVERABLE_EVENT_PUBLISHED,
+    DELIVERABLE_EVENT_SOURCE_HOST_BOOTSTRAP,
+    DELIVERABLE_EVENT_STATUS_CHANGED,
+    record_deliverable_version_event,
+)
 from app.services.external_search import search_external_sources
 from app.services.sources import ingest_remote_urls_for_task
 from app.services.tasks import (
@@ -2572,6 +2579,41 @@ class HostOrchestrator:
         )
         self.db.add(deliverable)
         self.db.flush()
+        initial_version_tag = deliverable.version_tag or f"v{deliverable.version}"
+        record_deliverable_version_event(
+            self.db,
+            deliverable,
+            DELIVERABLE_EVENT_DRAFT_CREATED,
+            version_tag=initial_version_tag,
+            deliverable_status="draft",
+            summary=f"建立 {initial_version_tag} 初始草稿",
+            event_payload={"source": DELIVERABLE_EVENT_SOURCE_HOST_BOOTSTRAP},
+            created_at=deliverable.generated_at,
+        )
+        record_deliverable_version_event(
+            self.db,
+            deliverable,
+            DELIVERABLE_EVENT_STATUS_CHANGED,
+            version_tag=initial_version_tag,
+            deliverable_status=deliverable.status,
+            summary="狀態由 草稿 變更為 定稿",
+            event_payload={
+                "source": DELIVERABLE_EVENT_SOURCE_HOST_BOOTSTRAP,
+                "from_status": "draft",
+                "to_status": deliverable.status,
+            },
+            created_at=deliverable.generated_at + timedelta(milliseconds=1),
+        )
+        record_deliverable_version_event(
+            self.db,
+            deliverable,
+            DELIVERABLE_EVENT_PUBLISHED,
+            version_tag=initial_version_tag,
+            deliverable_status=deliverable.status,
+            summary=f"發布 {initial_version_tag} 定稿版",
+            event_payload={"source": DELIVERABLE_EVENT_SOURCE_HOST_BOOTSTRAP},
+            created_at=deliverable.generated_at + timedelta(milliseconds=2),
+        )
 
         if payload.client:
             self._add_deliverable_object_link(

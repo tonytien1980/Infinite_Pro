@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.domain import schemas
 from app.services.tasks import (
+    build_deliverable_docx_export,
     build_deliverable_markdown_export,
     get_deliverable_workspace,
     update_deliverable_metadata,
@@ -44,5 +45,23 @@ def export_deliverable_markdown_route(
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
             "X-Infinite-Pro-Version": version_tag,
+            "X-Infinite-Pro-Artifact-Format": "markdown",
+        },
+    )
+
+
+@router.get("/{deliverable_id}/export/docx")
+def export_deliverable_docx_route(
+    deliverable_id: str,
+    db: Session = Depends(get_db),
+) -> Response:
+    filename, content, version_tag = build_deliverable_docx_export(db, deliverable_id)
+    return Response(
+        content=content,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "X-Infinite-Pro-Version": version_tag,
+            "X-Infinite-Pro-Artifact-Format": "docx",
         },
     )
