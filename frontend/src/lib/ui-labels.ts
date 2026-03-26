@@ -97,6 +97,41 @@ const SOURCE_TYPE_LABELS: Record<string, string> = {
   external_search: "外部搜尋補充",
 };
 
+const SOURCE_SUPPORT_LEVEL_LABELS: Record<string, string> = {
+  full: "正式支援",
+  limited: "有限支援",
+  unsupported: "尚未正式支援",
+};
+
+const SOURCE_INGEST_STRATEGY_LABELS: Record<string, string> = {
+  text_extract: "文字擷取",
+  document_text_extract: "文件文字擷取",
+  worksheet_snapshot: "工作表快照",
+  table_snapshot: "表格快照",
+  text_first_pdf: "PDF 文字優先擷取",
+  pdf_metadata_only: "PDF metadata-only",
+  reference_image: "影像 reference",
+  inline_text_extract: "手動文字擷取",
+  remote_text_extract: "遠端文字擷取",
+  unsupported: "尚未正式支援",
+};
+
+const STORAGE_AVAILABILITY_LABELS: Record<string, string> = {
+  available: "可用",
+  metadata_only: "只有 metadata",
+  reference_only: "僅保留 reference",
+  pending_purge: "待清理",
+  purged: "已清理",
+};
+
+const RETENTION_POLICY_LABELS: Record<string, string> = {
+  raw_default_30d: "原始檔 30 天",
+  raw_active_90d: "原始檔 90 天",
+  derived_180d: "衍生資料 180 天",
+  release_365d: "正式 artifact 365 天",
+  failed_7d: "失敗上傳 7 天",
+};
+
 const EXTERNAL_DATA_STRATEGY_LABELS: Record<string, string> = {
   strict: "僅使用我提供的資料",
   supplemental: "視需要補充外部資料",
@@ -413,6 +448,69 @@ export function labelForDeliverableStatus(value: string) {
 
 export function labelForSourceType(value: string) {
   return SOURCE_TYPE_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForSourceSupportLevel(value: string | null | undefined) {
+  if (!value) {
+    return "未標示支援層級";
+  }
+  return SOURCE_SUPPORT_LEVEL_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForSourceIngestStrategy(value: string | null | undefined) {
+  if (!value) {
+    return "未標示擷取策略";
+  }
+  return SOURCE_INGEST_STRATEGY_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForStorageAvailability(value: string | null | undefined) {
+  if (!value) {
+    return "未標示可用狀態";
+  }
+  return STORAGE_AVAILABILITY_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForRetentionPolicy(value: string | null | undefined) {
+  if (!value) {
+    return "未設定保留規則";
+  }
+  return RETENTION_POLICY_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForFileExtension(value: string | null | undefined) {
+  if (!value) {
+    return "未標示格式";
+  }
+  return value.replace(/^\./, "").toUpperCase();
+}
+
+export function formatFileSize(size: number | null | undefined) {
+  if (!size || size <= 0) {
+    return "0 B";
+  }
+  if (size >= 1024 * 1024) {
+    return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+  }
+  if (size >= 1024) {
+    return `${(size / 1024).toFixed(1)} KB`;
+  }
+  return `${size} B`;
+}
+
+export function labelForRetentionState(purgeAt: string | null | undefined) {
+  if (!purgeAt) {
+    return "record-only";
+  }
+  const purgeDate = new Date(purgeAt).getTime();
+  const now = Date.now();
+  if (purgeDate <= now) {
+    return "已過期";
+  }
+  if (purgeDate <= now + 1000 * 60 * 60 * 24 * 3) {
+    return "即將過期";
+  }
+  return "保留中";
 }
 
 export function labelForExternalDataStrategy(value: string) {

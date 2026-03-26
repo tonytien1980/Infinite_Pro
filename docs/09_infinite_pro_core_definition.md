@@ -59,6 +59,7 @@ Infinite Pro 的核心原則是：
 6. **consulting workbench UI**
    - 介面應反映顧問在操作的 objects、relationships、actions、workflows 與 deliverables，而不是 generic AI workspace。
    - 前端資訊架構、頁面角色、中文化規則與 UX 驗收原則，正式由 `docs/10_frontend_information_architecture_and_ux_principles.md` 承接。
+   - 正式進件模式、multi-source ingestion、storage / retention / purge 邊界，正式由 `docs/11_intake_storage_architecture.md` 承接。
 
 ---
 
@@ -104,6 +105,7 @@ Infinite Pro 的工作世界至少應圍繞以下主鏈理解：
 - Deliverable 不是自由文字的終點
 - Recommendation / Risk / ActionItem 不是獨立散落的欄位
 - 每一段輸出都應儘量能回到 shared objects 與 links
+- `/new` 的一句話問題、單文件進件、多材料案件，都必須匯進這同一條主鏈，而不是三套互不相容的 intake 流程
 
 正式核心物件至少包括：
 - Client
@@ -220,6 +222,7 @@ Infinite Pro 的工作世界至少應圍繞以下主鏈理解：
 - evidence 對 recommendation / risk / action item 的最小正式支撐鏈
 - evidence sufficiency、high-impact gaps、deliverable limitations 的可見治理
 - matter workspace、task detail 與 deliverable lane 對來源 / 證據工作面的正式回跳與連續性
+- 同一案件的正式補件主鏈、多材料清單與 retention / purge 狀態
 
 ### Deliverable Workspace 的正式地位
 在單人版範圍內，`Deliverable Workspace` 也已是正式工作面，而不是 generic result page 或 task detail 結果區的延伸。
@@ -229,6 +232,23 @@ Infinite Pro 的工作世界至少應圍繞以下主鏈理解：
 - deliverable class、confidence / applicability、limitations、high-impact gaps 的可見治理
 - deliverable 對 matter、decision context、artifact、source material、evidence、recommendation、risk、action item 的正式回鏈
 - matter workspace、artifact / evidence workspace、task detail 與 deliverable workspace 的正式銜接與連續性
+
+### Intake / Storage 邊界的正式地位
+在目前單人正式 beta 階段，以下能力也應被視為正式 architecture responsibility：
+- 三種進件模式：
+  - 一句話問題
+  - 單文件進件
+  - 多材料案件
+- multi-source ingestion
+- raw / derived / released storage 分層
+- retention / purge metadata
+- metadata-only / limited support / unsupported 的正式邊界
+
+正式規則是：
+- DB 負責 structured metadata、關聯、狀態、publish / artifact record
+- object storage 負責 raw materials、derived extracts、released artifacts
+- raw intake file 不預設永久保存
+- publish / artifact / audit record 不可跟 raw file retention 混成同一層
 
 ### LLM / Provider
 負責語言理解、推理與生成，但不應取代 ontology、Host 與 workbench 的結構化治理角色。

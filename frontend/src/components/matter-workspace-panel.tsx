@@ -13,9 +13,15 @@ import type {
   TaskListItem,
 } from "@/lib/types";
 import {
+  formatFileSize,
   formatDisplayDate,
   labelForDeliverableClass,
+  labelForFileExtension,
   labelForMatterStatus,
+  labelForRetentionPolicy,
+  labelForRetentionState,
+  labelForSourceSupportLevel,
+  labelForStorageAvailability,
   labelForTaskStatus,
 } from "@/lib/ui-labels";
 import {
@@ -1125,10 +1131,10 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
                   <div className="panel-header">
                     <div>
                       <h2 className="panel-title">來源與證據</h2>
-                      <p className="panel-copy">先掌握目前依據厚度與待補程度，再決定要不要進完整的來源與證據工作面。</p>
+                      <p className="panel-copy">先掌握目前依據厚度、材料狀態與保留期限，再決定要不要進完整的來源與證據工作面。</p>
                     </div>
                     <Link className="button-secondary" href={`/matters/${matterId}/evidence`}>
-                      打開來源與證據工作面
+                      打開完整來源與證據工作面
                     </Link>
                   </div>
 
@@ -1171,11 +1177,31 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
                         <div className="detail-item" key={`${item.object_type}-${item.object_id}`}>
                           <div className="meta-row">
                             <span className="pill">{item.object_type === "artifact" ? "工作物件" : "來源材料"}</span>
+                            {item.support_level ? <span>{labelForSourceSupportLevel(item.support_level)}</span> : null}
                             <span>{formatDisplayDate(item.created_at)}</span>
                           </div>
                           <h3>{item.title}</h3>
-                          <p className="muted-text">{item.task_title}</p>
+                          <p className="muted-text">
+                            {item.task_title}
+                            {item.file_extension ? `｜${labelForFileExtension(item.file_extension)}` : ""}
+                            {item.file_size ? `｜${formatFileSize(item.file_size)}` : ""}
+                          </p>
                           <p className="content-block">{truncateText(item.summary || "目前沒有額外摘要。", 118)}</p>
+                          {item.object_type !== "artifact" ? (
+                            <div className="meta-row">
+                              {item.availability_state ? (
+                                <span>{labelForStorageAvailability(item.availability_state)}</span>
+                              ) : null}
+                              {item.retention_policy ? (
+                                <span>{labelForRetentionPolicy(item.retention_policy)}</span>
+                              ) : null}
+                              {item.purge_at ? (
+                                <span>
+                                  {labelForRetentionState(item.purge_at)}｜{formatDisplayDate(item.purge_at)}
+                                </span>
+                              ) : null}
+                            </div>
+                          ) : null}
                         </div>
                       ))
                     ) : (

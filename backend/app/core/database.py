@@ -31,6 +31,11 @@ def initialize_database() -> None:
 
 
 def _ensure_incremental_schema_updates() -> None:
+    datetime_column_type = (
+        "DATETIME"
+        if settings.database_url.startswith("sqlite")
+        else "TIMESTAMP WITH TIME ZONE"
+    )
     schema_patches = {
         "workbench_preferences": {
             "interface_language": "VARCHAR(20) NOT NULL DEFAULT 'zh-Hant'",
@@ -48,7 +53,7 @@ def _ensure_incremental_schema_updates() -> None:
         },
         "task_visibility_states": {
             "visibility_state": "VARCHAR(20) NOT NULL DEFAULT 'visible'",
-            "hidden_at": "DATETIME",
+            "hidden_at": datetime_column_type,
         },
         "matter_workspaces": {
             "summary": "TEXT NOT NULL DEFAULT ''",
@@ -64,6 +69,43 @@ def _ensure_incremental_schema_updates() -> None:
         },
         "deliverable_version_events": {
             "event_key": "VARCHAR(255)",
+        },
+        "source_documents": {
+            "canonical_display_name": "VARCHAR(255) NOT NULL DEFAULT ''",
+            "file_extension": "VARCHAR(20)",
+            "storage_key": "VARCHAR(1024)",
+            "storage_kind": "VARCHAR(50) NOT NULL DEFAULT 'raw_intake'",
+            "storage_provider": "VARCHAR(50) NOT NULL DEFAULT 'local_fs'",
+            "content_digest": "VARCHAR(128)",
+            "ingest_strategy": "VARCHAR(100) NOT NULL DEFAULT 'text_extract'",
+            "support_level": "VARCHAR(30) NOT NULL DEFAULT 'full'",
+            "retention_policy": "VARCHAR(100) NOT NULL DEFAULT 'raw_default_30d'",
+            "purge_at": datetime_column_type,
+            "availability_state": "VARCHAR(30) NOT NULL DEFAULT 'available'",
+            "metadata_only": "BOOLEAN NOT NULL DEFAULT FALSE",
+            "derived_storage_key": "VARCHAR(1024)",
+            "updated_at": f"{datetime_column_type} NOT NULL DEFAULT CURRENT_TIMESTAMP",
+        },
+        "source_materials": {
+            "canonical_display_name": "VARCHAR(255) NOT NULL DEFAULT ''",
+            "file_extension": "VARCHAR(20)",
+            "file_size": "INTEGER NOT NULL DEFAULT 0",
+            "storage_key": "VARCHAR(1024)",
+            "storage_kind": "VARCHAR(50) NOT NULL DEFAULT 'raw_intake'",
+            "storage_provider": "VARCHAR(50) NOT NULL DEFAULT 'local_fs'",
+            "content_digest": "VARCHAR(128)",
+            "ingest_strategy": "VARCHAR(100) NOT NULL DEFAULT 'text_extract'",
+            "support_level": "VARCHAR(30) NOT NULL DEFAULT 'full'",
+            "retention_policy": "VARCHAR(100) NOT NULL DEFAULT 'raw_default_30d'",
+            "purge_at": datetime_column_type,
+            "availability_state": "VARCHAR(30) NOT NULL DEFAULT 'available'",
+            "metadata_only": "BOOLEAN NOT NULL DEFAULT FALSE",
+            "updated_at": f"{datetime_column_type} NOT NULL DEFAULT CURRENT_TIMESTAMP",
+        },
+        "deliverable_artifact_records": {
+            "storage_provider": "VARCHAR(50) NOT NULL DEFAULT 'local_fs'",
+            "retention_policy": "VARCHAR(100) NOT NULL DEFAULT 'release_365d'",
+            "purge_at": datetime_column_type,
         },
     }
 
@@ -87,6 +129,7 @@ def _ensure_incremental_schema_updates() -> None:
 
 def _normalize_incremental_data() -> None:
     from app.domain import models
+    from app.services.artifact_storage import backfill_deliverable_artifact_storage
     from app.services.content_revisions import (
         ensure_deliverable_content_revisions,
         ensure_matter_content_revisions,
@@ -95,6 +138,7 @@ def _normalize_incremental_data() -> None:
         ensure_deliverable_release_records,
         normalize_deliverable_version_events,
     )
+    from app.services.material_storage import normalize_source_storage_metadata
 
     session = SessionLocal()
     try:
@@ -104,6 +148,7 @@ def _normalize_incremental_data() -> None:
         ).all()
         for deliverable_id in deliverable_ids:
             normalize_deliverable_version_events(session, deliverable_id)
+        normalize_source_storage_metadata(session)
         matter_workspaces = session.scalars(select(models.MatterWorkspace)).all()
         for matter_workspace in matter_workspaces:
             ensure_matter_content_revisions(session, matter_workspace)
@@ -114,6 +159,7 @@ def _normalize_incremental_data() -> None:
                 deliverable,
                 fallback_status=deliverable.status,
             )
+            backfill_deliverable_artifact_storage(session, deliverable.id)
     finally:
         session.close()
 
@@ -122,6 +168,8 @@ def _ensure_incremental_indexes() -> None:
     index_statements = [
         "CREATE UNIQUE INDEX IF NOT EXISTS uq_deliverable_version_event_key "
         "ON deliverable_version_events (deliverable_id, event_key)",
+        "CREATE INDEX IF NOT EXISTS ix_source_documents_content_digest "
+        "ON source_documents (content_digest)",
     ]
 
     with engine.begin() as connection:

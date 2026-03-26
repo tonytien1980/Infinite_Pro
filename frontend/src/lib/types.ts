@@ -248,6 +248,15 @@ export interface MatterMaterialSummary {
   object_type: string;
   title: string;
   summary: string;
+  file_extension: string | null;
+  content_type: string | null;
+  file_size: number;
+  ingest_status: string | null;
+  support_level: string | null;
+  retention_policy: string | null;
+  purge_at: string | null;
+  availability_state: string | null;
+  metadata_only: boolean;
   created_at: string;
 }
 
@@ -341,12 +350,27 @@ export interface SourceDocument {
   task_id: string;
   source_type: string;
   file_name: string;
+  canonical_display_name: string;
+  file_extension: string | null;
   content_type: string | null;
+  storage_key: string | null;
   storage_path: string;
+  storage_kind: string;
+  storage_provider: string;
   file_size: number;
+  content_digest: string | null;
   ingest_status: string;
+  ingest_strategy: string;
+  support_level: string;
+  retention_policy: string;
+  purge_at: string | null;
+  availability_state: string;
+  metadata_only: boolean;
+  derived_storage_key: string | null;
   extracted_text: string | null;
+  ingestion_error: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 export interface SourceMaterial {
@@ -355,11 +379,25 @@ export interface SourceMaterial {
   source_document_id: string | null;
   source_type: string;
   title: string;
+  canonical_display_name: string;
   source_ref: string;
+  file_extension: string | null;
   content_type: string | null;
+  file_size: number;
+  storage_key: string | null;
+  storage_kind: string;
+  storage_provider: string;
+  content_digest: string | null;
   ingest_status: string;
+  ingest_strategy: string;
+  support_level: string;
+  retention_policy: string;
+  purge_at: string | null;
+  availability_state: string;
+  metadata_only: boolean;
   summary: string;
   created_at: string;
+  updated_at: string;
 }
 
 export interface Artifact {
@@ -581,7 +619,17 @@ export interface ArtifactEvidenceMaterial {
   presence_state: PresenceState;
   source_type: string | null;
   ingest_status: string | null;
+  support_level: string | null;
+  ingest_strategy: string | null;
   source_ref: string | null;
+  file_extension: string | null;
+  content_type: string | null;
+  file_size: number;
+  storage_key: string | null;
+  retention_policy: string | null;
+  purge_at: string | null;
+  availability_state: string | null;
+  metadata_only: boolean;
   linked_evidence_count: number;
   linked_output_count: number;
   created_at: string;
@@ -732,6 +780,9 @@ export interface DeliverableArtifactRecord {
   file_name: string;
   mime_type: string;
   artifact_key: string;
+  storage_provider: string;
+  retention_policy: string;
+  purge_at: string | null;
   availability_state: string;
   artifact_digest: string | null;
   file_size: number;

@@ -93,6 +93,35 @@ const INPUT_MODE_OPTIONS: Array<{
   },
 ];
 
+const INPUT_MODE_GUIDANCE: Record<
+  InputEntryMode,
+  {
+    requirement: string;
+    workflowNote: string;
+    materialHint: string;
+    submitLabel: string;
+  }
+> = {
+  one_line_inquiry: {
+    requirement: "只要一句核心問題就能開案，不要求先上傳材料。",
+    workflowNote: "系統會先建立 task / decision context 骨架，再由 Host 決定後續補證與工作流。",
+    materialHint: "可先空手開案，之後再到案件世界補檔案、網址或補充文字。",
+    submitLabel: "先建立案件骨架",
+  },
+  single_document_intake: {
+    requirement: "建立當下需附上一份主文件，作為第一份正式 source material。",
+    workflowNote: "系統會先圍繞這份主文件建立案件主線，後續仍可回案件世界補件。",
+    materialHint: "本模式建立時僅接受一份檔案，不混入多個網址或額外補充文字。",
+    submitLabel: "用主文件建立案件",
+  },
+  multi_material_case: {
+    requirement: "建立當下至少要掛兩份材料，可混合檔案、網址與補充文字。",
+    workflowNote: "所有材料都會進到同一個案件世界，不拆成互不相容的子流程。",
+    materialHint: "適合已知要一起整理多份檔案、外部網址與內部補充說明的案件。",
+    submitLabel: "建立多材料案件",
+  },
+};
+
 function labelForExternalDataStrategy(value: ExternalDataStrategy) {
   return (
     EXTERNAL_DATA_STRATEGY_OPTIONS.find((item) => item.value === value)?.label ??
@@ -225,6 +254,7 @@ function inferDomainLenses({
 
 function buildConsultantBrief({
   flowLabel,
+  inputModeLabel,
   title,
   description,
   subjectName,
@@ -235,6 +265,7 @@ function buildConsultantBrief({
   externalDataStrategy,
 }: {
   flowLabel: string;
+  inputModeLabel: string;
   title: string;
   description: string;
   subjectName: string;
@@ -245,6 +276,7 @@ function buildConsultantBrief({
   externalDataStrategy: ExternalDataStrategy;
 }) {
   return [
+    `正式進件模式：${inputModeLabel}`,
     `工作流程：${flowLabel}`,
     `任務名稱：${title.trim()}`,
     `核心問題：${description.trim()}`,
@@ -289,10 +321,13 @@ export function TaskCreateForm({
       : workflowPreference;
   const flow = FLOW_OPTIONS.find((item) => item.value === resolvedFlowValue) ?? FLOW_OPTIONS[0];
   const derivedTitle = useMemo(() => deriveTaskTitle(description), [description]);
+  const selectedInputMode =
+    INPUT_MODE_OPTIONS.find((option) => option.value === inputMode) ?? INPUT_MODE_OPTIONS[0];
   const consultantBrief = useMemo(
     () =>
       buildConsultantBrief({
         flowLabel: flow.label,
+        inputModeLabel: selectedInputMode.label,
         title: derivedTitle,
         description,
         subjectName,
@@ -308,20 +343,44 @@ export function TaskCreateForm({
       description,
       externalDataStrategy,
       flow.label,
+      selectedInputMode.label,
       scopeNotes,
       subjectName,
       targetReader,
       derivedTitle,
     ],
   );
-  const selectedInputMode =
-    INPUT_MODE_OPTIONS.find((option) => option.value === inputMode) ?? INPUT_MODE_OPTIONS[0];
+  const inputModeGuidance = INPUT_MODE_GUIDANCE[inputMode];
+  const normalizedUrls = useMemo(
+    () =>
+      urlsText
+        .split("\n")
+        .map((item) => item.trim())
+        .filter(Boolean),
+    [urlsText],
+  );
+  const hasPastedContent = Boolean(pastedContent.trim());
+  const materialUnitCount = files.length + normalizedUrls.length + (hasPastedContent ? 1 : 0);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
     setError(null);
     setSuccess(null);
+
+    if (inputMode === "single_document_intake") {
+      if (files.length !== 1 || normalizedUrls.length > 0 || hasPastedContent) {
+        setSubmitting(false);
+        setError("單文件進件建立時需附上一份主文件，且不可同時混入網址或額外補充文字。");
+        return;
+      }
+    }
+
+    if (inputMode === "multi_material_case" && materialUnitCount < 2) {
+      setSubmitting(false);
+      setError("多材料案件建立時，至少要掛兩份材料，可混合檔案、網址或補充文字。");
+      return;
+    }
 
     const payload: TaskCreatePayload = {
       title: derivedTitle,
@@ -344,6 +403,9 @@ export function TaskCreateForm({
       decision_summary: description || undefined,
       judgment_to_make: analysisDepth || undefined,
       background_text: consultantBrief,
+      notes: [`正式進件模式：${selectedInputMode.label}`, inputModeGuidance.workflowNote]
+        .filter(Boolean)
+        .join("\n"),
       assumptions: assumptions || undefined,
       subject_name: subjectName || undefined,
       goal_description: analysisDepth || undefined,
@@ -364,19 +426,15 @@ export function TaskCreateForm({
         await uploadTaskFiles(task.id, files);
       }
 
-      const urls = urlsText
-        .split("\n")
-        .map((item) => item.trim())
-        .filter(Boolean);
-      if (urls.length > 0 || pastedContent.trim()) {
+      if (normalizedUrls.length > 0 || hasPastedContent) {
         await ingestTaskSources(task.id, {
-          urls,
+          urls: normalizedUrls,
           pasted_text: pastedContent,
           pasted_title: pastedContent.trim() ? "手動貼上內容" : undefined,
         });
       }
 
-      setSuccess("任務已建立。接下來可在任務頁查看建議補充、來源 ingestion 與分析結果。");
+      setSuccess("案件已建立，接下來會直接回到案件工作台；來源材料、證據與交付物會沿著同一條正式主鏈累積。");
       onCreated(task);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "建立任務失敗。");
@@ -400,7 +458,7 @@ export function TaskCreateForm({
         <section className="intake-section">
           <div className="section-heading">
             <h3>輸入模式</h3>
-            <p>這會決定新案件頁的預設節奏；你仍可在同一頁補充更多來源與限制。</p>
+            <p>這三種都是正式進件模式，會匯進同一條案件主鏈，而不是三套互不相容的流程。</p>
           </div>
 
           <div className="page-tabs" role="tablist" aria-label="新案件輸入模式">
@@ -424,6 +482,24 @@ export function TaskCreateForm({
           <div className="setting-note-card">
             <h3>{selectedInputMode.label}</h3>
             <p className="content-block">{selectedInputMode.description}</p>
+            <div className="meta-row" style={{ marginTop: "12px" }}>
+              <span>{inputModeGuidance.requirement}</span>
+            </div>
+          </div>
+
+          <div className="summary-grid">
+            <div className="section-card">
+              <h4>建立要求</h4>
+              <p className="content-block">{inputModeGuidance.requirement}</p>
+            </div>
+            <div className="section-card">
+              <h4>工作流節奏</h4>
+              <p className="content-block">{inputModeGuidance.workflowNote}</p>
+            </div>
+            <div className="section-card">
+              <h4>材料規則</h4>
+              <p className="content-block">{inputModeGuidance.materialHint}</p>
+            </div>
           </div>
         </section>
 
@@ -451,7 +527,7 @@ export function TaskCreateForm({
 
           <div className="button-row" style={{ justifyContent: "flex-start", marginTop: "12px" }}>
             <button className="button-primary" type="submit" disabled={submitting}>
-              {submitting ? "開始分析中..." : "開始分析"}
+              {submitting ? "建立案件中..." : inputModeGuidance.submitLabel}
             </button>
           </div>
 
@@ -462,7 +538,9 @@ export function TaskCreateForm({
         <section className="intake-section">
           <div className="section-heading">
             <h3 style={{ fontSize: "1rem", marginBottom: "6px" }}>（選填）補充資料</h3>
-            <p style={{ marginTop: 0 }}>如果你手上已有資料，可直接貼網址、上傳檔案或貼上原始內容。</p>
+            <p style={{ marginTop: 0 }}>
+              正式支援：MD、TXT、DOCX、XLSX、CSV、text-based PDF、URL、補充文字。有限支援：JPG / JPEG、PNG、WEBP、掃描型 PDF 目前只建立 metadata / reference，不預設 OCR。
+            </p>
           </div>
 
           <div className="field">
@@ -474,9 +552,11 @@ export function TaskCreateForm({
               placeholder={"每行一個網址，例如：\nhttps://example.com/article\nhttps://docs.google.com/document/d/..."}
             />
             <small>
-              {inputMode === "multi_material_case"
-                ? "可一次整理多個來源網址，適合把外部研究、客戶文件與背景材料一起帶進來。"
-                : "支援網頁、新聞、部落格、PDF 網址與 Google Docs。"}
+              {inputMode === "single_document_intake"
+                ? "單文件進件建立時不接受網址；若後續需要補件，請先開案後再到案件世界追加。"
+                : inputMode === "multi_material_case"
+                  ? "可一次整理多個來源網址，適合把外部研究、客戶文件與背景材料一起帶進來。"
+                  : "支援網頁、新聞、部落格、PDF 網址與 Google Docs。"}
             </small>
           </div>
 
@@ -486,13 +566,15 @@ export function TaskCreateForm({
               id="source-files"
               type="file"
               multiple
-              accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown"
+              accept=".md,.txt,.docx,.xlsx,.csv,.pdf,.jpg,.jpeg,.png,.webp,text/plain,text/markdown,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/jpeg,image/png,image/webp"
               onChange={(event) => setFiles(Array.from(event.target.files ?? []))}
             />
             <small>
               {inputMode === "single_document_intake"
-                ? "單文件進件會優先把這份主文件整理成案件工作底稿。"
-                : "目前支援 PDF、DOCX、TXT、MD。"}
+                ? "單文件進件會優先把這份主文件整理成案件工作底稿，建立時請只附上一份檔案。"
+                : inputMode === "multi_material_case"
+                  ? "多材料案件可同時掛多份檔案，之後也能持續補件。"
+                  : "若你手上已有檔案，也可一開始就一起帶進案件世界。"}
             </small>
           </div>
 
@@ -504,6 +586,26 @@ export function TaskCreateForm({
               onChange={(event) => setPastedContent(event.target.value)}
               placeholder="直接貼上會議摘要、研究摘錄、內部筆記或任何可供分析的原始內容"
             />
+            <small>
+              {inputMode === "single_document_intake"
+                ? "單文件進件建立時不混用補充文字；請先用主文件開案，之後再進案件世界補件。"
+                : "補充文字會被當成正式 source material 掛回同一個案件。"}
+            </small>
+          </div>
+
+          <div className="summary-grid">
+            <div className="section-card">
+              <h4>目前材料數</h4>
+              <p className="content-block">{materialUnitCount} 個材料單位</p>
+            </div>
+            <div className="section-card">
+              <h4>原始檔保留</h4>
+              <p className="content-block">原始進件檔預設短期保存；正式 artifact 保留較久，但 publish / audit record 不會跟著 raw file 一起消失。</p>
+            </div>
+            <div className="section-card">
+              <h4>建立後可做什麼</h4>
+              <p className="content-block">完成後會直接進入案件工作台，後續可在來源與證據工作面補檔、補網址、補文字，不會中斷同一案件脈絡。</p>
+            </div>
           </div>
 
           <div className="field">

@@ -412,11 +412,39 @@ export async function uploadTaskFiles(
   return parseResponse<UploadBatchResponse>(response);
 }
 
+export async function uploadMatterFiles(
+  matterId: string,
+  files: File[],
+): Promise<UploadBatchResponse> {
+  const formData = new FormData();
+  files.forEach((file) => formData.append("files", file));
+
+  const response = await fetch(`${getApiBaseUrl()}/matters/${matterId}/uploads`, {
+    method: "POST",
+    body: formData,
+  });
+  return parseResponse<UploadBatchResponse>(response);
+}
+
 export async function ingestTaskSources(
   taskId: string,
   payload: SourceIngestPayload,
 ): Promise<SourceIngestBatchResponse> {
   const response = await fetch(`${getApiBaseUrl()}/tasks/${taskId}/sources`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  return parseResponse<SourceIngestBatchResponse>(response);
+}
+
+export async function ingestMatterSources(
+  matterId: string,
+  payload: SourceIngestPayload,
+): Promise<SourceIngestBatchResponse> {
+  const response = await fetch(`${getApiBaseUrl()}/matters/${matterId}/sources`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

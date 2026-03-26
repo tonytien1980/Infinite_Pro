@@ -299,13 +299,27 @@ class SourceDocumentRead(ORMModel):
     task_id: str
     source_type: str
     file_name: str
+    canonical_display_name: str
+    file_extension: str | None
     content_type: str | None
+    storage_key: str | None
     storage_path: str
+    storage_kind: str
+    storage_provider: str
     file_size: int
+    content_digest: str | None
     ingest_status: str
+    ingest_strategy: str
+    support_level: str
+    retention_policy: str
+    purge_at: datetime | None
+    availability_state: str
+    metadata_only: bool
+    derived_storage_key: str | None
     extracted_text: str | None
     ingestion_error: str | None
     created_at: datetime
+    updated_at: datetime
 
 
 class SourceMaterialRead(ORMModel):
@@ -314,11 +328,25 @@ class SourceMaterialRead(ORMModel):
     source_document_id: str | None = None
     source_type: str
     title: str
+    canonical_display_name: str
     source_ref: str
+    file_extension: str | None
     content_type: str | None
+    file_size: int
+    storage_key: str | None
+    storage_kind: str
+    storage_provider: str
+    content_digest: str | None
     ingest_status: str
+    ingest_strategy: str
+    support_level: str
+    retention_policy: str
+    purge_at: datetime | None
+    availability_state: str
+    metadata_only: bool
     summary: str
     created_at: datetime
+    updated_at: datetime
 
 
 class ArtifactRead(ORMModel):
@@ -509,6 +537,9 @@ class DeliverableArtifactRecordRead(ORMModel):
     file_name: str
     mime_type: str
     artifact_key: str
+    storage_provider: str
+    retention_policy: str
+    purge_at: datetime | None
     availability_state: str
     artifact_digest: str | None = None
     file_size: int
@@ -641,6 +672,15 @@ class MatterMaterialSummaryRead(BaseModel):
     object_type: str
     title: str
     summary: str
+    file_extension: str | None = None
+    content_type: str | None = None
+    file_size: int = 0
+    ingest_status: str | None = None
+    support_level: str | None = None
+    retention_policy: str | None = None
+    purge_at: datetime | None = None
+    availability_state: str | None = None
+    metadata_only: bool = False
     created_at: datetime
 
 
@@ -674,7 +714,17 @@ class ArtifactEvidenceMaterialRead(BaseModel):
     presence_state: PresenceState
     source_type: str | None = None
     ingest_status: str | None = None
+    support_level: str | None = None
+    ingest_strategy: str | None = None
     source_ref: str | None = None
+    file_extension: str | None = None
+    content_type: str | None = None
+    file_size: int = 0
+    storage_key: str | None = None
+    retention_policy: str | None = None
+    purge_at: datetime | None = None
+    availability_state: str | None = None
+    metadata_only: bool = False
     linked_evidence_count: int = 0
     linked_output_count: int = 0
     created_at: datetime

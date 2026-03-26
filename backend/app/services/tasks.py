@@ -21,6 +21,7 @@ from app.domain.enums import (
 from app.extensions.registry import ExtensionRegistry
 from app.extensions.resolver import AgentResolver, PackResolver, resolve_runtime_agent_binding
 from app.extensions.schemas import AgentResolverInput, AgentSpec, PackResolverInput, PackSpec, PackType
+from app.services.artifact_storage import load_artifact_content
 from app.services.content_revisions import (
     CONTENT_REVISION_SOURCE_MANUAL_EDIT,
     CONTENT_REVISION_SOURCE_ROLLBACK,
@@ -635,12 +636,26 @@ def _build_legacy_source_material_read(source_document: models.SourceDocument) -
         task_id=source_document.task_id,
         source_document_id=source_document.id,
         source_type=source_document.source_type,
-        title=source_document.file_name,
+        title=source_document.canonical_display_name or source_document.file_name,
+        canonical_display_name=source_document.canonical_display_name or source_document.file_name,
         source_ref=source_document.storage_path,
+        file_extension=source_document.file_extension,
         content_type=source_document.content_type,
+        file_size=source_document.file_size,
+        storage_key=source_document.storage_key,
+        storage_kind=source_document.storage_kind,
+        storage_provider=source_document.storage_provider,
+        content_digest=source_document.content_digest,
         ingest_status=source_document.ingest_status,
+        ingest_strategy=source_document.ingest_strategy,
+        support_level=source_document.support_level,
+        retention_policy=source_document.retention_policy,
+        purge_at=source_document.purge_at,
+        availability_state=source_document.availability_state,
+        metadata_only=source_document.metadata_only,
         summary=_normalize_whitespace(build_source_material_summary(source_document)),
         created_at=source_document.created_at,
+        updated_at=source_document.updated_at,
     )
 
 
@@ -703,7 +718,12 @@ def _meaningful_source_materials(
     return [
         item
         for item in source_materials
-        if item.ingest_status == "processed" and _normalize_whitespace(item.summary)
+        if item.ingest_status in {"processed", "metadata_only"}
+        and (
+            _normalize_whitespace(item.summary)
+            or item.metadata_only
+            or _normalize_whitespace(item.canonical_display_name)
+        )
     ]
 
 
@@ -2045,6 +2065,27 @@ def _load_tasks_for_matter_workspaces(
     return tasks_by_workspace
 
 
+def get_primary_task_for_matter(
+    db: Session,
+    matter_id: str,
+) -> models.Task:
+    matter_workspace = db.scalars(
+        select(models.MatterWorkspace).where(models.MatterWorkspace.id == matter_id)
+    ).one_or_none()
+    if matter_workspace is None:
+        raise HTTPException(status_code=404, detail="找不到指定案件。")
+
+    related_tasks = _load_tasks_for_matter_workspaces(db, [matter_id]).get(matter_id, [])
+    if not related_tasks:
+        raise HTTPException(status_code=404, detail="這個案件目前還沒有可補件的任務。")
+
+    active_task = next(
+        (item for item in related_tasks if item.status in {TaskStatus.READY.value, TaskStatus.RUNNING.value}),
+        None,
+    )
+    return active_task or related_tasks[0]
+
+
 def _build_matter_workspace_summary_from_tasks(
     matter_workspace: models.MatterWorkspace,
     related_tasks: list[models.Task],
@@ -2909,6 +2950,15 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
                     object_type="source_material",
                     title=source_material.title,
                     summary=source_material.summary,
+                    file_extension=source_material.file_extension,
+                    content_type=source_material.content_type,
+                    file_size=source_material.file_size,
+                    ingest_status=source_material.ingest_status,
+                    support_level=source_material.support_level,
+                    retention_policy=source_material.retention_policy,
+                    purge_at=source_material.purge_at,
+                    availability_state=source_material.availability_state,
+                    metadata_only=source_material.metadata_only,
                     created_at=source_material.created_at,
                 )
             )
@@ -3347,7 +3397,17 @@ def get_artifact_evidence_workspace(
                     presence_state=presence_state,
                     source_type=source_material.source_type,
                     ingest_status=source_material.ingest_status,
+                    support_level=source_material.support_level,
+                    ingest_strategy=source_material.ingest_strategy,
                     source_ref=source_material.source_ref,
+                    file_extension=source_material.file_extension,
+                    content_type=source_material.content_type,
+                    file_size=source_material.file_size,
+                    storage_key=source_material.storage_key,
+                    retention_policy=source_material.retention_policy,
+                    purge_at=source_material.purge_at,
+                    availability_state=source_material.availability_state,
+                    metadata_only=source_material.metadata_only,
                     linked_evidence_count=len(linked_evidence),
                     linked_output_count=linked_output_count,
                     created_at=source_material.created_at,
@@ -4555,7 +4615,8 @@ def download_deliverable_artifact(
     ).one_or_none()
     if artifact_record is None:
         raise HTTPException(status_code=404, detail="找不到指定 artifact。")
-    if artifact_record.availability_state != "available" or artifact_record.artifact_blob is None:
+    content_bytes = load_artifact_content(artifact_record)
+    if artifact_record.availability_state != "available" or content_bytes is None:
         raise HTTPException(
             status_code=409,
             detail="這份 artifact 目前只有 metadata backfill，尚無可下載的正式內容。",
@@ -4563,7 +4624,7 @@ def download_deliverable_artifact(
 
     return (
         artifact_record.file_name,
-        artifact_record.artifact_blob,
+        content_bytes,
         artifact_record.version_tag,
         artifact_record.artifact_format,
         artifact_record.mime_type,

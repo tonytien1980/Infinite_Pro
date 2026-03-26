@@ -1,20 +1,31 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 
 import {
   buildArtifactEvidenceWorkspaceView,
   buildMatterWorkspaceCard,
 } from "@/lib/advisory-workflow";
-import { getArtifactEvidenceWorkspace } from "@/lib/api";
+import {
+  getArtifactEvidenceWorkspace,
+  ingestMatterSources,
+  uploadMatterFiles,
+} from "@/lib/api";
 import type { ArtifactEvidenceWorkspace } from "@/lib/types";
 import {
+  formatFileSize,
   formatDisplayDate,
   labelForEvidenceStrength,
   labelForEvidenceType,
+  labelForFileExtension,
   labelForPresenceState,
+  labelForRetentionPolicy,
+  labelForRetentionState,
+  labelForSourceIngestStrategy,
+  labelForSourceSupportLevel,
   labelForSourceType,
+  labelForStorageAvailability,
   labelForTaskStatus,
 } from "@/lib/ui-labels";
 
@@ -42,25 +53,82 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
   const [workspace, setWorkspace] = useState<ArtifactEvidenceWorkspace | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [urlsText, setUrlsText] = useState("");
+  const [pastedText, setPastedText] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [supplementMessage, setSupplementMessage] = useState<string | null>(null);
+  const [supplementError, setSupplementError] = useState<string | null>(null);
+
+  async function loadWorkspace() {
+    try {
+      setLoading(true);
+      setError(null);
+      setWorkspace(await getArtifactEvidenceWorkspace(matterId));
+    } catch (loadError) {
+      setError(
+        loadError instanceof Error ? loadError.message : "載入來源 / 證據工作面失敗。",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    void (async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        setWorkspace(await getArtifactEvidenceWorkspace(matterId));
-      } catch (loadError) {
-        setError(
-          loadError instanceof Error ? loadError.message : "載入來源 / 證據工作面失敗。",
-        );
-      } finally {
-        setLoading(false);
-      }
-    })();
+    void loadWorkspace();
   }, [matterId]);
 
   const matterCard = workspace ? buildMatterWorkspaceCard(workspace.matter_summary) : null;
   const workspaceView = workspace ? buildArtifactEvidenceWorkspaceView(workspace) : null;
+
+  async function handleSupplementSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitting(true);
+    setSupplementMessage(null);
+    setSupplementError(null);
+
+    const urls = urlsText
+      .split("\n")
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    if (files.length === 0 && urls.length === 0 && !pastedText.trim()) {
+      setSupplementError("請至少補上一份檔案、一個網址或一段補充文字。");
+      setSubmitting(false);
+      return;
+    }
+
+    try {
+      const notes: string[] = [];
+      if (files.length > 0) {
+        const uploadResult = await uploadMatterFiles(matterId, files);
+        notes.push(`已掛接 ${uploadResult.uploaded.length} 份檔案材料`);
+      }
+      if (urls.length > 0 || pastedText.trim()) {
+        const ingestResult = await ingestMatterSources(matterId, {
+          urls,
+          pasted_text: pastedText,
+          pasted_title: pastedText.trim() ? "案件補充說明" : undefined,
+        });
+        notes.push(`已新增 ${ingestResult.ingested.length} 則網址 / 文字材料`);
+      }
+      setFiles([]);
+      setUrlsText("");
+      setPastedText("");
+      setSupplementMessage(`${notes.join("；")}。案件來源世界已更新。`);
+      await loadWorkspace();
+    } catch (submitError) {
+      setSupplementError(
+        submitError instanceof Error ? submitError.message : "補件失敗，請稍後重試。",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    setFiles(Array.from(event.target.files ?? []));
+  }
 
   return (
     <main className="page-shell">
@@ -148,6 +216,81 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
             ) : null}
           </section>
 
+          <section className="panel">
+            <div className="panel-header">
+              <div>
+                <h2 className="panel-title">補件與新增來源</h2>
+                <p className="panel-copy">
+                  這裡承接同一個案件的正式補件主鏈。你可以補檔案、網址或補充文字，系統會把它們掛回同一個案件世界，而不是拆成新的孤立流程。
+                </p>
+              </div>
+            </div>
+
+            <form className="detail-stack" onSubmit={handleSupplementSubmit}>
+              <div className="summary-grid">
+                <div className="section-card">
+                  <h4>正式支援</h4>
+                  <p className="content-block">
+                    MD、TXT、DOCX、XLSX、CSV、text-based PDF、URL、補充文字
+                  </p>
+                </div>
+                <div className="section-card">
+                  <h4>有限支援</h4>
+                  <p className="content-block">
+                    JPG / JPEG、PNG、WEBP、掃描型 PDF 目前只建立 metadata / reference，不預設 OCR。
+                  </p>
+                </div>
+                <div className="section-card">
+                  <h4>原始檔保留</h4>
+                  <p className="content-block">
+                    原始進件檔預設短期保存；正式 artifact 保留較久，但 publish / audit record 不會跟著 raw file 一起消失。
+                  </p>
+                </div>
+              </div>
+
+              <div className="field">
+                <label htmlFor="matter-files">上傳檔案</label>
+                <input
+                  id="matter-files"
+                  type="file"
+                  multiple
+                  accept=".md,.txt,.docx,.xlsx,.csv,.pdf,.jpg,.jpeg,.png,.webp,text/plain,text/markdown,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/jpeg,image/png,image/webp"
+                  onChange={handleFileChange}
+                />
+                <small>支援一次掛多份材料；若同一內容重複上傳，storage 會先走 digest 邊界。</small>
+              </div>
+
+              <div className="field">
+                <label htmlFor="matter-urls">網址</label>
+                <textarea
+                  id="matter-urls"
+                  value={urlsText}
+                  onChange={(event) => setUrlsText(event.target.value)}
+                  placeholder={"每行一個網址，例如：\nhttps://example.com/report\nhttps://docs.google.com/document/d/..."}
+                />
+              </div>
+
+              <div className="field">
+                <label htmlFor="matter-text">補充文字</label>
+                <textarea
+                  id="matter-text"
+                  value={pastedText}
+                  onChange={(event) => setPastedText(event.target.value)}
+                  placeholder="可直接貼上會議摘要、客戶補充說明、原始筆記或任何需要掛回案件的文字材料。"
+                />
+              </div>
+
+              <div className="button-row">
+                <button className="button-primary" type="submit" disabled={submitting}>
+                  {submitting ? "補件中..." : "掛接到目前案件"}
+                </button>
+              </div>
+
+              {supplementMessage ? <p className="success-text">{supplementMessage}</p> : null}
+              {supplementError ? <p className="error-text">{supplementError}</p> : null}
+            </form>
+          </section>
+
           <div className="detail-grid">
             <div className="detail-stack">
               <section className="panel">
@@ -167,17 +310,27 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                           <span className="pill">{item.role_label}</span>
                           <span>{labelForPresenceState(item.presence_state)}</span>
                           <span>{item.ingest_status || "未標示匯入狀態"}</span>
+                          <span>{labelForSourceSupportLevel(item.support_level)}</span>
                           <span>{formatDisplayDate(item.created_at)}</span>
                         </div>
                         <h3>{item.title}</h3>
                         <p className="muted-text">
                           {labelForSourceType(item.source_type || "manual_input")}
+                          {item.file_extension ? `｜${labelForFileExtension(item.file_extension)}` : ""}
+                          {item.file_size ? `｜${formatFileSize(item.file_size)}` : ""}
                           {item.source_ref ? `｜${item.source_ref}` : ""}
                         </p>
                         <p className="content-block">{item.summary || "目前沒有可顯示的來源摘要。"}</p>
                         <div className="meta-row">
                           <span>{item.linked_evidence_count} 則已連結證據</span>
                           <span>{item.linked_output_count} 項已連結輸出</span>
+                          <span>{labelForSourceIngestStrategy(item.ingest_strategy)}</span>
+                          <span>{labelForStorageAvailability(item.availability_state)}</span>
+                        </div>
+                        <div className="meta-row">
+                          <span>{labelForRetentionPolicy(item.retention_policy)}</span>
+                          <span>{labelForRetentionState(item.purge_at)}</span>
+                          {item.purge_at ? <span>預計清理：{formatDisplayDate(item.purge_at)}</span> : null}
                         </div>
                         <Link className="back-link" href={`/tasks/${item.task_id}`}>
                           打開來源工作紀錄：{item.task_title}

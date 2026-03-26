@@ -1,22 +1,38 @@
 from __future__ import annotations
 
 import logging
-from pathlib import Path
 from uuid import uuid4
 
 from fastapi import HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
 from app.domain import models, schemas
-from app.ingestion.files import extract_text_from_upload
+from app.domain.enums import TaskStatus
+from app.ingestion.files import analyze_upload_content
 from app.ingestion.preprocess import normalize_text
 from app.ingestion.sources import ManualUploadConnector
+from app.services.material_storage import preview_extracted_text
 from app.services.source_materials import (
     build_failed_evidence_item,
     build_source_objects_for_document,
     build_processed_evidence_items,
     build_unparsed_evidence_item,
+)
+from app.services.storage_manager import (
+    AVAILABILITY_AVAILABLE,
+    AVAILABILITY_METADATA_ONLY,
+    RAW_STORAGE_KIND,
+    RETENTION_POLICY_FAILED,
+    RETENTION_POLICY_RAW_ACTIVE,
+    RETENTION_POLICY_RAW_DEFAULT,
+    STORAGE_PROVIDER_LOCAL,
+    build_derived_storage_key,
+    build_raw_storage_key,
+    calculate_purge_at,
+    compute_digest,
+    normalize_extension,
+    write_bytes,
+    write_text,
 )
 from app.services.tasks import get_loaded_task
 
@@ -33,32 +49,66 @@ def save_uploads_for_task(
 
     task = get_loaded_task(db, task_id)
     connector = ManualUploadConnector()
-    task_upload_dir = settings.upload_path / task.id
-    task_upload_dir.mkdir(parents=True, exist_ok=True)
-
     uploaded: list[schemas.UploadResultItem] = []
 
     for file in files:
         content = file.file.read()
-        extension = Path(file.filename or "").suffix
-        stored_name = f"{uuid4()}{extension}"
-        storage_path = task_upload_dir / stored_name
-        storage_path.write_bytes(content)
+        extension = normalize_extension(file.filename or "", "")
+        stored_name = file.filename or f"{uuid4()}{extension}"
         extracted_text = ""
         ingest_status = "metadata_only"
         ingestion_error: str | None = None
+        support_level = "full"
+        ingest_strategy = "text_extract"
+        metadata_only = False
 
         if not content:
             ingest_status = "failed"
             ingestion_error = "上傳檔案為空白內容。"
+            support_level = "unsupported"
+            ingest_strategy = "unsupported"
+            metadata_only = True
         else:
             try:
-                extracted_text = extract_text_from_upload(file.filename or stored_name, content)
-                extracted_text = normalize_text(extracted_text)
-                ingest_status = "processed" if extracted_text else "metadata_only"
+                analyzed = analyze_upload_content(file.filename or stored_name, content)
+                extracted_text = normalize_text(analyzed.text)
+                support_level = analyzed.support_level
+                ingest_strategy = analyzed.ingest_strategy
+                metadata_only = analyzed.metadata_only
+                ingestion_error = analyzed.message
+                if support_level == "unsupported":
+                    ingest_status = "unsupported"
+                elif extracted_text:
+                    ingest_status = "processed"
+                else:
+                    ingest_status = "metadata_only"
             except Exception as exc:
                 ingest_status = "failed"
                 ingestion_error = str(exc)
+                support_level = "unsupported"
+                ingest_strategy = "unsupported"
+                metadata_only = True
+
+        stored = (
+            write_bytes(
+                build_raw_storage_key(
+                    digest=compute_digest(content),
+                    extension=extension or ".bin",
+                ),
+                content,
+            )
+            if content
+            else None
+        )
+        retention_policy = (
+            RETENTION_POLICY_FAILED
+            if ingest_status in {"failed", "unsupported"}
+            else (
+                RETENTION_POLICY_RAW_ACTIVE
+                if task.status in {TaskStatus.READY.value, TaskStatus.RUNNING.value}
+                else RETENTION_POLICY_RAW_DEFAULT
+            )
+        )
 
         logger.info(
             "Processed upload task_id=%s file=%s ingest_status=%s",
@@ -71,15 +121,39 @@ def save_uploads_for_task(
             task_id=task.id,
             source_type=connector.source_type,
             file_name=file.filename or stored_name,
+            canonical_display_name=file.filename or stored_name,
+            file_extension=extension or None,
             content_type=file.content_type,
-            storage_path=str(storage_path),
-            file_size=len(content),
+            storage_key=stored.storage_key if stored is not None else None,
+            storage_path=stored.absolute_path if stored is not None else f"failed://task/{task.id}/{stored_name}",
+            storage_kind=RAW_STORAGE_KIND,
+            storage_provider=STORAGE_PROVIDER_LOCAL,
+            file_size=stored.file_size if stored is not None else 0,
+            content_digest=stored.digest if stored is not None else None,
             ingest_status=ingest_status,
-            extracted_text=extracted_text or None,
+            ingest_strategy=ingest_strategy,
+            support_level=support_level,
+            retention_policy=retention_policy,
+            purge_at=calculate_purge_at(
+                created_at=models.utc_now(),
+                retention_policy=retention_policy,
+            ),
+            availability_state=AVAILABILITY_AVAILABLE if stored is not None else AVAILABILITY_METADATA_ONLY,
+            metadata_only=metadata_only,
+            extracted_text=preview_extracted_text(extracted_text) or None,
             ingestion_error=ingestion_error,
         )
         db.add(source_document)
         db.flush()
+        if extracted_text:
+            derived_storage_key = build_derived_storage_key(
+                source_document_id=source_document.id,
+                file_name=file.filename or stored_name,
+            )
+            write_text(derived_storage_key, extracted_text)
+            source_document.derived_storage_key = derived_storage_key
+            db.add(source_document)
+            db.flush()
 
         source_material, artifact = build_source_objects_for_document(
             task_id=task.id,
@@ -119,6 +193,21 @@ def save_uploads_for_task(
                 f"不確定性說明：{ingestion_error or '未知的擷取錯誤'}。"
             )
             db.add(evidence)
+        elif ingest_status == "unsupported":
+            evidence = build_failed_evidence_item(
+                task_id=task.id,
+                source_document_id=source_document.id,
+                source_type=connector.source_type,
+                source_ref=source_ref,
+                title=file.filename or stored_name,
+                error_message=ingestion_error or "這種格式尚未正式支援。",
+            )
+            evidence.evidence_type = "uploaded_file_ingestion_issue"
+            evidence.excerpt_or_summary = (
+                f"上傳檔案「{file.filename or stored_name}」目前只建立 metadata。"
+                f"支援狀態：{ingestion_error or '尚未正式支援這種格式。'}"
+            )
+            db.add(evidence)
         else:
             evidence = build_unparsed_evidence_item(
                 task_id=task.id,
@@ -129,8 +218,8 @@ def save_uploads_for_task(
             )
             evidence.evidence_type = "uploaded_file_unparsed"
             evidence.excerpt_or_summary = (
-                f"上傳檔案「{file.filename or stored_name}」已附加，但系統尚未自動擷取出可用文字。"
-                "在提供可支援的文字格式前，這份來源應視為暫時不可用。"
+                f"上傳檔案「{file.filename or stored_name}」已附加，但目前只建立 reference / metadata。"
+                f"{ingestion_error or '這份來源尚未抽出可直接分析的文字內容。'}"
             )
             db.add(evidence)
         db.flush()

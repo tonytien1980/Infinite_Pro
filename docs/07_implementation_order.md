@@ -76,6 +76,14 @@ Infinite Pro 的施工原則應改為：
 ### Wave 2：Workbench surfaces
 先讓 intake、decision workspace、artifact/evidence workspace、deliverable workspace 成形。
 
+此波次現在也正式包含：
+- `/new` 的三種進件模式
+- 多材料案件與 matter-level 補件主鏈
+- raw / derived / released 的 storage 邊界
+- retention / purge metadata 與成本控制邊界
+
+若施工觸及 intake、source material、artifact storage、retention 或 purge lifecycle，應同步參考 `docs/11_intake_storage_architecture.md`。
+
 ### Wave 3：Host orchestration reset
 把 Host 的 task framing、decision context framing、routing 與 readiness 治理正式接起來。
 
@@ -131,6 +139,8 @@ Infinite Pro 的施工原則應改為：
 - evidence creation
 - source metadata
 - history writeback
+- 三種正式進件模式共用同一條 task / matter / source / evidence 主鏈
+- raw / derived / released storage metadata 與 retention 邊界
 
 ---
 

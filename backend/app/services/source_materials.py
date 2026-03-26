@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from app.domain import models
 from app.ingestion.preprocess import build_text_chunks, infer_relevance_label, summarize_evidence_text
+from app.services.material_storage import build_source_reference, sync_source_material_from_document
 
 
 def _task_query_parts(task: models.Task) -> list[str]:
@@ -37,19 +38,33 @@ def build_source_objects_for_document(
         task_id=task_id,
         source_document_id=source_document.id,
         source_type=source_document.source_type,
-        title=source_document.file_name,
-        source_ref=source_document.storage_path,
+        title=source_document.canonical_display_name or source_document.file_name,
+        canonical_display_name=source_document.canonical_display_name or source_document.file_name,
+        source_ref=build_source_reference(source_document),
+        file_extension=source_document.file_extension,
         content_type=source_document.content_type,
+        file_size=source_document.file_size,
+        storage_key=source_document.storage_key,
+        storage_kind=source_document.storage_kind,
+        storage_provider=source_document.storage_provider,
+        content_digest=source_document.content_digest,
         ingest_status=source_document.ingest_status,
+        ingest_strategy=source_document.ingest_strategy,
+        support_level=source_document.support_level,
+        retention_policy=source_document.retention_policy,
+        purge_at=source_document.purge_at,
+        availability_state=source_document.availability_state,
+        metadata_only=source_document.metadata_only,
         summary=summary,
     )
     artifact = models.Artifact(
         task_id=task_id,
         source_document_id=source_document.id,
-        title=source_document.file_name,
+        title=source_document.canonical_display_name or source_document.file_name,
         artifact_type=infer_artifact_type(source_document),
         description=summary[:280],
     )
+    sync_source_material_from_document(source_material, source_document)
     return source_material, artifact
 
 

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import re
 from datetime import datetime, timedelta
 
@@ -9,6 +8,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.domain import models
+from app.services.artifact_storage import persist_artifact_content
+from app.services.storage_manager import RETENTION_POLICY_RELEASE, calculate_purge_at
 
 DELIVERABLE_EVENT_DRAFT_CREATED = "draft_created"
 DELIVERABLE_EVENT_CONTENT_UPDATED = "content_updated"
@@ -317,6 +318,20 @@ def create_deliverable_artifact_record(
         artifact_kind,
         file_name,
     )
+    stored_storage_key = build_deliverable_artifact_key(
+        deliverable.id,
+        version_tag,
+        artifact_kind,
+        file_name,
+    )
+    stored_digest = None
+    stored_size = 0
+    if content_bytes is not None:
+        stored_storage_key, stored_digest, stored_size = persist_artifact_content(
+            artifact_key,
+            content_bytes,
+        )
+
     artifact_record = models.DeliverableArtifactRecord(
         deliverable_id=deliverable.id,
         task_id=deliverable.task_id,
@@ -328,13 +343,17 @@ def create_deliverable_artifact_record(
         deliverable_status=deliverable_status,
         file_name=file_name,
         mime_type=mime_type,
-        artifact_key=artifact_key,
-        availability_state=availability_state,
-        artifact_digest=(
-            hashlib.sha256(content_bytes).hexdigest() if content_bytes is not None else None
+        artifact_key=stored_storage_key,
+        storage_provider="local_fs",
+        retention_policy=RETENTION_POLICY_RELEASE,
+        purge_at=calculate_purge_at(
+            created_at=created_at or models.utc_now(),
+            retention_policy=RETENTION_POLICY_RELEASE,
         ),
-        file_size=len(content_bytes) if content_bytes is not None else 0,
-        artifact_blob=content_bytes,
+        availability_state=availability_state,
+        artifact_digest=stored_digest,
+        file_size=stored_size,
+        artifact_blob=None,
         created_at=created_at or models.utc_now(),
     )
     db.add(artifact_record)

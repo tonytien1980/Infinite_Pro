@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from urllib import error, parse, request
 
-from app.ingestion.files import extract_text_from_upload
+from app.ingestion.files import analyze_upload_content
 from app.ingestion.preprocess import normalize_text
 
 GOOGLE_DOCS_RE = re.compile(r"https?://docs\.google\.com/document/d/([a-zA-Z0-9_-]+)")
@@ -19,6 +19,10 @@ class RemoteSourceContent:
     title: str
     content_type: str | None
     normalized_text: str
+    support_level: str
+    ingest_strategy: str
+    metadata_only: bool
+    message: str | None = None
 
 
 def _extract_html_title(raw_html: str, fallback: str) -> str:
@@ -97,25 +101,43 @@ def fetch_remote_source(url: str, timeout_seconds: int = 20) -> RemoteSourceCont
     if source_type == "google_docs":
         extracted_text = content.decode("utf-8", errors="ignore")
         title = "Google Docs 文件"
-    elif content_type == "application/pdf" or final_url.lower().endswith(".pdf"):
-        extracted_text = extract_text_from_upload(file_name or "remote.pdf", content)
-        title = file_name or "遠端 PDF"
+        analyzed = None
     elif content_type in {
+        "application/pdf",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "application/msword",
-    } or final_url.lower().endswith(".docx"):
-        extracted_text = extract_text_from_upload(file_name or "remote.docx", content)
-        title = file_name or "遠端 DOCX"
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "text/csv",
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+    } or any(final_url.lower().endswith(suffix) for suffix in (".pdf", ".docx", ".xlsx", ".csv", ".jpg", ".jpeg", ".png", ".webp")):
+        analyzed = analyze_upload_content(file_name or "remote-source", content)
+        extracted_text = analyzed.text
+        title = file_name or "遠端來源"
     elif content_type == "text/html":
         raw_html = content.decode("utf-8", errors="ignore")
         extracted_text = _extract_text_from_html(raw_html)
         title = _extract_html_title(raw_html, file_name or "網頁來源")
+        analyzed = None
     else:
         extracted_text = content.decode("utf-8", errors="ignore")
         title = file_name or "文字來源"
+        analyzed = None
 
     normalized_text = normalize_text(extracted_text)
-    if not normalized_text:
+    support_level = "full"
+    ingest_strategy = "remote_text_extract"
+    metadata_only = False
+    message: str | None = None
+
+    if analyzed is not None:
+        support_level = analyzed.support_level
+        ingest_strategy = analyzed.ingest_strategy
+        metadata_only = analyzed.metadata_only
+        message = analyzed.message
+
+    if not normalized_text and not metadata_only:
         raise RuntimeError("已抓取來源內容，但未能抽出可用文字。")
 
     if source_type == "manual_url" and "docs.google.com" in final_url:
@@ -127,4 +149,8 @@ def fetch_remote_source(url: str, timeout_seconds: int = 20) -> RemoteSourceCont
         title=title,
         content_type=content_type,
         normalized_text=normalized_text,
+        support_level=support_level,
+        ingest_strategy=ingest_strategy,
+        metadata_only=metadata_only,
+        message=message,
     )

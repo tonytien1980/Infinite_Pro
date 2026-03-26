@@ -15,10 +15,26 @@ from app.ingestion.sources import (
     ManualTextConnector,
     ManualUrlConnector,
 )
+from app.services.material_storage import preview_extracted_text
 from app.services.source_materials import (
     build_failed_evidence_item,
     build_processed_evidence_items,
     build_source_objects_for_document,
+    build_unparsed_evidence_item,
+)
+from app.services.storage_manager import (
+    AVAILABILITY_AVAILABLE,
+    AVAILABILITY_METADATA_ONLY,
+    AVAILABILITY_REFERENCE_ONLY,
+    DERIVED_STORAGE_KIND,
+    RETENTION_POLICY_DERIVED,
+    RETENTION_POLICY_FAILED,
+    STORAGE_PROVIDER_LOCAL,
+    build_derived_storage_key,
+    calculate_purge_at,
+    compute_digest,
+    normalize_extension,
+    write_text,
 )
 from app.services.tasks import get_loaded_task
 
@@ -35,21 +51,54 @@ def _persist_processed_source(
     content_type: str | None,
     storage_path: str,
     extracted_text: str,
+    support_level: str = "full",
+    ingest_strategy: str = "text_extract",
+    metadata_only: bool = False,
+    message: str | None = None,
     reliability_level: str = "user_provided",
 ) -> tuple[models.SourceDocument, models.SourceMaterial, models.Artifact, models.Evidence]:
+    retention_policy = RETENTION_POLICY_DERIVED
+    extension = normalize_extension(title, "")
     source_document = models.SourceDocument(
         task_id=task.id,
         source_type=connector_source_type,
         file_name=title,
+        canonical_display_name=title,
+        file_extension=extension or None,
         content_type=content_type,
+        storage_key=None,
         storage_path=storage_path,
-        file_size=len(extracted_text.encode("utf-8")),
-        ingest_status="processed",
-        extracted_text=extracted_text,
-        ingestion_error=None,
+        storage_kind=DERIVED_STORAGE_KIND,
+        storage_provider=STORAGE_PROVIDER_LOCAL,
+        file_size=len(extracted_text.encode("utf-8")) if extracted_text else 0,
+        content_digest=compute_digest(extracted_text.encode("utf-8")) if extracted_text else None,
+        ingest_status="metadata_only" if metadata_only and not extracted_text else "processed",
+        ingest_strategy=ingest_strategy,
+        support_level=support_level,
+        retention_policy=retention_policy,
+        purge_at=calculate_purge_at(
+            created_at=models.utc_now(),
+            retention_policy=retention_policy,
+        ),
+        availability_state=(
+            AVAILABILITY_REFERENCE_ONLY if metadata_only and not extracted_text else AVAILABILITY_AVAILABLE
+        ),
+        metadata_only=metadata_only,
+        extracted_text=preview_extracted_text(extracted_text) or None,
+        ingestion_error=message,
     )
     db.add(source_document)
     db.flush()
+    if extracted_text:
+        derived_storage_key = build_derived_storage_key(
+            source_document_id=source_document.id,
+            file_name=title,
+        )
+        write_text(derived_storage_key, extracted_text)
+        source_document.derived_storage_key = derived_storage_key
+        source_document.storage_key = derived_storage_key
+        db.add(source_document)
+        db.flush()
     source_material, artifact = build_source_objects_for_document(
         task_id=task.id,
         source_document=source_document,
@@ -69,10 +118,27 @@ def _persist_processed_source(
         text=extracted_text,
         primary_evidence_type="source_excerpt",
         reliability_level=reliability_level,
+    ) if extracted_text else (
+        build_unparsed_evidence_item(
+            task_id=task.id,
+            source_document_id=source_document.id,
+            source_type=connector_source_type,
+            source_ref=source_ref,
+            title=title,
+        ),
+        [],
     )
-    db.add(primary_evidence)
-    for chunk_item in chunk_items:
-        db.add(chunk_item)
+    if extracted_text:
+        db.add(primary_evidence)
+        for chunk_item in chunk_items:
+            db.add(chunk_item)
+    else:
+        primary_evidence.evidence_type = "source_unparsed"
+        primary_evidence.excerpt_or_summary = (
+            f"來源「{title}」目前只建立 reference / metadata。"
+            f"{message or '這份來源尚未抽出可直接分析的文字內容。'}"
+        )
+        db.add(primary_evidence)
     db.flush()
     return source_document, source_material, artifact, primary_evidence
 
@@ -86,15 +152,31 @@ def _persist_failed_source(
     title: str,
     storage_path: str,
     error_message: str,
+    support_level: str = "unsupported",
+    ingest_strategy: str = "unsupported",
 ) -> tuple[models.SourceDocument, models.SourceMaterial, models.Artifact, models.Evidence]:
     source_document = models.SourceDocument(
         task_id=task.id,
         source_type=connector_source_type,
         file_name=title,
+        canonical_display_name=title,
+        file_extension=normalize_extension(title, "") or None,
         content_type=None,
+        storage_key=None,
         storage_path=storage_path,
+        storage_kind=DERIVED_STORAGE_KIND,
+        storage_provider=STORAGE_PROVIDER_LOCAL,
         file_size=0,
         ingest_status="failed",
+        ingest_strategy=ingest_strategy,
+        support_level=support_level,
+        retention_policy=RETENTION_POLICY_FAILED,
+        purge_at=calculate_purge_at(
+            created_at=models.utc_now(),
+            retention_policy=RETENTION_POLICY_FAILED,
+        ),
+        availability_state=AVAILABILITY_METADATA_ONLY,
+        metadata_only=True,
         extracted_text=None,
         ingestion_error=error_message,
     )
@@ -182,6 +264,10 @@ def ingest_remote_urls_for_task(
                 content_type=remote_source.content_type,
                 storage_path=normalized_url,
                 extracted_text=remote_source.normalized_text,
+                support_level=remote_source.support_level,
+                ingest_strategy=remote_source.ingest_strategy,
+                metadata_only=remote_source.metadata_only,
+                message=remote_source.message,
                 reliability_level="externally_retrieved" if origin == "external_search" else "user_provided",
             )
         except Exception as exc:  # noqa: BLE001
@@ -236,6 +322,8 @@ def ingest_sources_for_task(
             content_type="text/plain",
             storage_path=f"inline://task/{task.id}/pasted/{uuid4()}",
             extracted_text=pasted_text,
+            support_level="full",
+            ingest_strategy="inline_text_extract",
         )
         ingested.append(_serialize_upload_item(source_document, source_material, artifact, evidence))
         db.commit()

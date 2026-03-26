@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, File, UploadFile
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.domain import schemas
+from app.services.sources import ingest_sources_for_task
+from app.services.tasks import get_primary_task_for_matter
 from app.services.tasks import (
     get_artifact_evidence_workspace,
     get_matter_workspace,
@@ -13,6 +15,7 @@ from app.services.tasks import (
     update_matter_workspace,
     update_matter_workspace_metadata,
 )
+from app.services.uploads import save_uploads_for_task
 
 router = APIRouter(prefix="/matters", tags=["matters"])
 
@@ -68,3 +71,23 @@ def get_artifact_evidence_workspace_route(
     db: Session = Depends(get_db),
 ) -> schemas.ArtifactEvidenceWorkspaceResponse:
     return get_artifact_evidence_workspace(db, matter_id)
+
+
+@router.post("/{matter_id}/uploads", response_model=schemas.UploadBatchResponse)
+def upload_matter_files_route(
+    matter_id: str,
+    files: list[UploadFile] = File(...),
+    db: Session = Depends(get_db),
+) -> schemas.UploadBatchResponse:
+    task = get_primary_task_for_matter(db, matter_id)
+    return save_uploads_for_task(db=db, task_id=task.id, files=files)
+
+
+@router.post("/{matter_id}/sources", response_model=schemas.SourceIngestBatchResponse)
+def ingest_matter_sources_route(
+    matter_id: str,
+    payload: schemas.SourceIngestRequest,
+    db: Session = Depends(get_db),
+) -> schemas.SourceIngestBatchResponse:
+    task = get_primary_task_for_matter(db, matter_id)
+    return ingest_sources_for_task(db=db, task_id=task.id, payload=payload)
