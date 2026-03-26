@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
+
+import { useWorkbenchSettings } from "@/lib/workbench-store";
 
 const PRIMARY_NAV_ITEMS = [
   { href: "/", label: "總覽" },
@@ -24,6 +26,13 @@ function isActivePath(pathname: string, href: string) {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const [settings] = useWorkbenchSettings();
+
+  useEffect(() => {
+    document.documentElement.dataset.density = settings.density;
+    document.documentElement.lang =
+      settings.interfaceLanguage === "en" ? "en" : "zh-Hant";
+  }, [settings.density, settings.interfaceLanguage]);
 
   return (
     <div className="app-shell">

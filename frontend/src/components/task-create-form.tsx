@@ -5,11 +5,13 @@ import { FormEvent, useMemo, useState } from "react";
 import { createTask, ingestTaskSources, uploadTaskFiles } from "@/lib/api";
 import type {
   ExternalDataStrategy,
+  InputEntryMode,
   TaskAggregate,
   TaskCreatePayload,
 } from "@/lib/types";
 
 interface TaskCreateFormProps {
+  defaultInputMode: InputEntryMode;
   onCreated: (task: TaskAggregate) => void;
 }
 
@@ -66,6 +68,28 @@ const EXTERNAL_DATA_STRATEGY_OPTIONS: Array<{
     value: "latest",
     label: "幫我找最新的資訊",
     description: "Host 會優先補外部搜尋來源，適合需要最新公開資訊的研究任務。",
+  },
+];
+
+const INPUT_MODE_OPTIONS: Array<{
+  value: InputEntryMode;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: "one_line_inquiry",
+    label: "一句話問題",
+    description: "先從核心問題開始，適合快速開案。",
+  },
+  {
+    value: "single_document_intake",
+    label: "單文件進件",
+    description: "你已有一份主文件，先上傳或貼上內容再展開分析。",
+  },
+  {
+    value: "multi_material_case",
+    label: "多材料案件",
+    description: "你有多個來源、網址或背景限制，需要一次整理進案件。",
   },
 ];
 
@@ -235,7 +259,11 @@ function buildConsultantBrief({
     .join("\n");
 }
 
-export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
+export function TaskCreateForm({
+  defaultInputMode,
+  onCreated,
+}: TaskCreateFormProps) {
+  const [inputMode, setInputMode] = useState<InputEntryMode>(defaultInputMode);
   const [workflowPreference, setWorkflowPreference] = useState<WorkflowPreference>("auto");
   const [description, setDescription] = useState("");
   const [subjectName, setSubjectName] = useState("");
@@ -244,7 +272,8 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
   const [files, setFiles] = useState<File[]>([]);
   const [externalDataStrategy, setExternalDataStrategy] =
     useState<ExternalDataStrategy>("supplemental");
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showAdvanced, setShowAdvanced] =
+    useState(defaultInputMode === "multi_material_case");
   const [analysisDepth, setAnalysisDepth] = useState("");
   const [constraintInput, setConstraintInput] = useState("");
   const [assumptions, setAssumptions] = useState("");
@@ -285,6 +314,8 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
       derivedTitle,
     ],
   );
+  const selectedInputMode =
+    INPUT_MODE_OPTIONS.find((option) => option.value === inputMode) ?? INPUT_MODE_OPTIONS[0];
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -368,8 +399,42 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
       <form className="form-grid" onSubmit={handleSubmit}>
         <section className="intake-section">
           <div className="section-heading">
+            <h3>輸入模式</h3>
+            <p>這會決定新案件頁的預設節奏；你仍可在同一頁補充更多來源與限制。</p>
+          </div>
+
+          <div className="page-tabs" role="tablist" aria-label="新案件輸入模式">
+            {INPUT_MODE_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                className={`page-tab${inputMode === option.value ? " page-tab-active" : ""}`}
+                type="button"
+                onClick={() => {
+                  setInputMode(option.value);
+                  if (option.value === "multi_material_case") {
+                    setShowAdvanced(true);
+                  }
+                }}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="setting-note-card">
+            <h3>{selectedInputMode.label}</h3>
+            <p className="content-block">{selectedInputMode.description}</p>
+          </div>
+        </section>
+
+        <section className="intake-section">
+          <div className="section-heading">
             <h3>從問題開始</h3>
-            <p>先用一句話描述你想判斷的問題。系統會自動產生任務名稱，並預設自動判斷工作流程。</p>
+            <p>
+              {inputMode === "one_line_inquiry"
+                ? "先用一句話描述你想判斷的問題，系統會自動生成任務名稱與工作流程。"
+                : "先把這次要判斷的核心問題定清楚，再補上文件、網址或多份來源。"}
+            </p>
           </div>
 
           <div className="field">
@@ -408,7 +473,11 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
               onChange={(event) => setUrlsText(event.target.value)}
               placeholder={"每行一個網址，例如：\nhttps://example.com/article\nhttps://docs.google.com/document/d/..."}
             />
-            <small>支援網頁、新聞、部落格、PDF 網址與 Google Docs。</small>
+            <small>
+              {inputMode === "multi_material_case"
+                ? "可一次整理多個來源網址，適合把外部研究、客戶文件與背景材料一起帶進來。"
+                : "支援網頁、新聞、部落格、PDF 網址與 Google Docs。"}
+            </small>
           </div>
 
           <div className="field">
@@ -420,7 +489,11 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
               accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown"
               onChange={(event) => setFiles(Array.from(event.target.files ?? []))}
             />
-            <small>目前支援 PDF、DOCX、TXT、MD。</small>
+            <small>
+              {inputMode === "single_document_intake"
+                ? "單文件進件會優先把這份主文件整理成案件工作底稿。"
+                : "目前支援 PDF、DOCX、TXT、MD。"}
+            </small>
           </div>
 
           <div className="field">

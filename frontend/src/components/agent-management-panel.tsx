@@ -3,33 +3,80 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { getExtensionManager, listTasks } from "@/lib/api";
-import type { ExtensionManagerSnapshot, TaskListItem } from "@/lib/types";
+import type { AgentCatalogEntry, ExtensionManagerSnapshot, TaskListItem } from "@/lib/types";
 import {
   labelForAgentType,
+  labelForCapability,
   labelForExtensionStatus,
 } from "@/lib/ui-labels";
+import {
+  createLocalId,
+  mergeManagedAgents,
+  useAgentManagerState,
+} from "@/lib/workbench-store";
 
-function summarizeUsage(tasks: TaskListItem[]) {
-  const usage = new Map<string, { name: string; count: number }>();
+type AgentFilterStatus = "all" | "active" | "inactive";
+type AgentFilterType = "all" | "host" | "general";
+
+type AgentDraft = {
+  agent_name: string;
+  agent_type: string;
+  description: string;
+  supported_capabilities: string;
+  version: string;
+  status: string;
+};
+
+function buildUsageMap(tasks: TaskListItem[]) {
+  const usage = new Map<string, { count: number; lastUsedAt: string; lastName: string }>();
 
   tasks.forEach((task) => {
     task.selected_agent_ids.forEach((agentId, index) => {
-      const name = task.selected_agent_names[index] ?? agentId;
-      const entry = usage.get(agentId) ?? { name, count: 0 };
+      const entry = usage.get(agentId) ?? {
+        count: 0,
+        lastUsedAt: task.updated_at,
+        lastName: task.selected_agent_names[index] ?? agentId,
+      };
       entry.count += 1;
+      if (new Date(task.updated_at).getTime() > new Date(entry.lastUsedAt).getTime()) {
+        entry.lastUsedAt = task.updated_at;
+      }
+      entry.lastName = task.selected_agent_names[index] ?? entry.lastName;
       usage.set(agentId, entry);
     });
   });
 
-  return Array.from(usage.entries())
-    .map(([agentId, value]) => ({ agentId, ...value }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 6);
+  return usage;
+}
+
+function splitLines(value: string) {
+  return value
+    .split("\n")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function buildDraft(agent?: AgentCatalogEntry): AgentDraft {
+  return {
+    agent_name: agent?.agent_name ?? "",
+    agent_type: agent?.agent_type ?? "specialist",
+    description: agent?.description ?? "",
+    supported_capabilities: agent?.supported_capabilities.join("\n") ?? "",
+    version: agent?.version ?? "1.0.0",
+    status: agent?.status ?? "active",
+  };
 }
 
 export function AgentManagementPanel() {
   const [snapshot, setSnapshot] = useState<ExtensionManagerSnapshot | null>(null);
   const [tasks, setTasks] = useState<TaskListItem[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<AgentFilterStatus>("all");
+  const [typeFilter, setTypeFilter] = useState<AgentFilterType>("all");
+  const [editingAgentId, setEditingAgentId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<AgentDraft>(buildDraft());
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [agentState, setAgentState] = useAgentManagerState();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,33 +101,158 @@ export function AgentManagementPanel() {
     void refresh();
   }, []);
 
-  const agents = snapshot?.agent_registry.agents ?? [];
-  const activeCount = snapshot?.agent_registry.active_agent_ids.length ?? 0;
-  const usage = useMemo(() => summarizeUsage(tasks), [tasks]);
+  const usageMap = useMemo(() => buildUsageMap(tasks), [tasks]);
+  const managedAgents = useMemo(
+    () =>
+      mergeManagedAgents(snapshot?.agent_registry.agents ?? [], agentState).map((agent) => ({
+        ...agent,
+        usageCount: usageMap.get(agent.agent_id)?.count ?? 0,
+        lastUsedAt: usageMap.get(agent.agent_id)?.lastUsedAt ?? null,
+      })),
+    [agentState, snapshot?.agent_registry.agents, usageMap],
+  );
+
+  const filteredAgents = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    return managedAgents.filter((agent) => {
+      const matchesStatus = statusFilter === "all" || agent.status === statusFilter;
+      const matchesType =
+        typeFilter === "all" ||
+        (typeFilter === "host" ? agent.agent_type === "host" : agent.agent_type !== "host");
+
+      if (!matchesStatus || !matchesType) {
+        return false;
+      }
+
+      if (!query) {
+        return true;
+      }
+
+      return [agent.agent_name, agent.description, ...agent.supported_capabilities]
+        .join(" ")
+        .toLowerCase()
+        .includes(query);
+    });
+  }, [managedAgents, searchQuery, statusFilter, typeFilter]);
+
+  const hostCount = managedAgents.filter((agent) => agent.agent_type === "host").length;
+  const activeCount = managedAgents.filter((agent) => agent.status === "active").length;
+
+  function startCreate() {
+    setEditingAgentId(null);
+    setDraft(buildDraft());
+    setSaveMessage(null);
+  }
+
+  function startEdit(agent: AgentCatalogEntry) {
+    setEditingAgentId(agent.agent_id);
+    setDraft(buildDraft(agent));
+    setSaveMessage(null);
+  }
+
+  function handleSave() {
+    const payload: AgentCatalogEntry = {
+      agent_id: editingAgentId ?? createLocalId("local-agent"),
+      agent_name: draft.agent_name.trim(),
+      agent_type: draft.agent_type,
+      description: draft.description.trim(),
+      supported_capabilities: splitLines(draft.supported_capabilities),
+      relevant_domain_packs: [],
+      relevant_industry_packs: [],
+      version: draft.version.trim() || "1.0.0",
+      status: draft.status,
+    };
+
+    if (!payload.agent_name) {
+      setSaveMessage("請先填寫代理名稱。");
+      return;
+    }
+
+    setAgentState((current) => {
+      const isSystemAgent = snapshot?.agent_registry.agents.some(
+        (agent) => agent.agent_id === payload.agent_id,
+      );
+
+      if (isSystemAgent) {
+        return {
+          ...current,
+          overrides: {
+            ...current.overrides,
+            [payload.agent_id]: payload,
+          },
+        };
+      }
+
+      const existingIndex = current.customAgents.findIndex(
+        (agent) => agent.agent_id === payload.agent_id,
+      );
+      const nextCustomAgents = [...current.customAgents];
+
+      if (existingIndex >= 0) {
+        nextCustomAgents[existingIndex] = payload;
+      } else {
+        nextCustomAgents.unshift(payload);
+      }
+
+      return {
+        ...current,
+        customAgents: nextCustomAgents,
+      };
+    });
+
+    setEditingAgentId(payload.agent_id);
+    setSaveMessage("代理設定已更新。");
+  }
+
+  function handleToggle(agent: AgentCatalogEntry & { source: "system" | "local" }) {
+    const nextStatus = agent.status === "active" ? "inactive" : "active";
+    const nextPayload = {
+      ...agent,
+      status: nextStatus,
+    };
+
+    setAgentState((current) => {
+      if (agent.source === "system") {
+        return {
+          ...current,
+          overrides: {
+            ...current.overrides,
+            [agent.agent_id]: nextPayload,
+          },
+        };
+      }
+
+      return {
+        ...current,
+        customAgents: current.customAgents.map((item) =>
+          item.agent_id === agent.agent_id ? nextPayload : item,
+        ),
+      };
+    });
+  }
 
   return (
     <main className="page-shell">
       <section className="hero-card">
         <span className="eyebrow">代理管理</span>
-        <h1 className="page-title">代理管理是正式工作面，不是附屬小功能。</h1>
-        <p className="page-subtitle">
-          這裡集中查看目前可用代理、版本、狀態與基本職責。單人版先承接可視化與理解，不做多人治理或代理市集。
-        </p>
+        <h1 className="page-title">代理管理</h1>
+        <p className="page-subtitle">管理代理狀態、版本、適用工作類型與最近使用情況。</p>
         <div className="workbench-overview-grid" style={{ marginTop: "20px" }}>
           <div className="section-card">
-            <h3>可用代理</h3>
-            <p className="workbench-metric">{agents.length}</p>
-            <p className="muted-text">已進入 registry 的正式代理數量。</p>
+            <h3>全部代理</h3>
+            <p className="workbench-metric">{managedAgents.length}</p>
+            <p className="muted-text">目前已在工作台管理中的代理。</p>
           </div>
           <div className="section-card">
             <h3>啟用中</h3>
             <p className="workbench-metric">{activeCount}</p>
-            <p className="muted-text">目前狀態為可用的代理。</p>
+            <p className="muted-text">目前可被工作流選入的代理。</p>
           </div>
           <div className="section-card">
-            <h3>Host 代理</h3>
-            <p className="workbench-metric">1</p>
-            <p className="muted-text">Host 仍是唯一正式協調中心。</p>
+            <h3>Host</h3>
+            <p className="workbench-metric">{hostCount}</p>
+            <p className="muted-text">仍由 Host 代理維持正式協調中心。</p>
           </div>
         </div>
       </section>
@@ -95,33 +267,103 @@ export function AgentManagementPanel() {
               <div className="panel-header">
                 <div>
                   <h2 className="panel-title">代理列表</h2>
-                  <p className="panel-copy">這裡以正式管理面查看代理類型、版本、狀態與職責，避免它們只藏在任務資料層裡。</p>
+                  <p className="panel-copy">先找出當前可用代理，再決定要新增、編輯或停用哪一個。</p>
+                </div>
+                <button className="button-primary" type="button" onClick={startCreate}>
+                  新增代理
+                </button>
+              </div>
+
+              <div className="toolbar-grid">
+                <div className="field">
+                  <label htmlFor="agent-search">搜尋代理</label>
+                  <input
+                    id="agent-search"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder="搜尋名稱、描述或適用工作類型"
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="agent-status-filter">狀態篩選</label>
+                  <select
+                    id="agent-status-filter"
+                    value={statusFilter}
+                    onChange={(event) =>
+                      setStatusFilter(event.target.value as AgentFilterStatus)
+                    }
+                  >
+                    <option value="all">全部狀態</option>
+                    <option value="active">啟用中</option>
+                    <option value="inactive">已停用</option>
+                  </select>
+                </div>
+
+                <div className="field">
+                  <label htmlFor="agent-type-filter">類型篩選</label>
+                  <select
+                    id="agent-type-filter"
+                    value={typeFilter}
+                    onChange={(event) => setTypeFilter(event.target.value as AgentFilterType)}
+                  >
+                    <option value="all">全部代理</option>
+                    <option value="host">Host</option>
+                    <option value="general">一般代理</option>
+                  </select>
                 </div>
               </div>
-              <div className="detail-list">
-                {agents.map((agent) => (
-                  <div className="detail-item" key={agent.agent_id}>
-                    <div className="meta-row">
-                      <span className="pill">{labelForAgentType(agent.agent_type)}</span>
-                      <span>{labelForExtensionStatus(agent.status)}</span>
-                      <span>v{agent.version}</span>
-                    </div>
-                    <h3>{agent.agent_name}</h3>
-                    <p className="content-block">{agent.description}</p>
-                    <p className="muted-text">
-                      可支援工作類型：
-                      {agent.supported_capabilities.length > 0
-                        ? agent.supported_capabilities.join("、")
-                        : "目前未標示"}
-                    </p>
-                    <p className="muted-text">
-                      相關模組包：
-                      {[...agent.relevant_domain_packs, ...agent.relevant_industry_packs].length > 0
-                        ? [...agent.relevant_domain_packs, ...agent.relevant_industry_packs].join("、")
-                        : "目前未標示"}
-                    </p>
-                  </div>
-                ))}
+
+              <div className="history-list" style={{ marginTop: "18px" }}>
+                {filteredAgents.length > 0 ? (
+                  filteredAgents.map((agent) => (
+                    <article className="history-item management-card" key={agent.agent_id}>
+                      <div className="meta-row">
+                        <span className="pill">{labelForAgentType(agent.agent_type)}</span>
+                        <span>{labelForExtensionStatus(agent.status)}</span>
+                        <span>v{agent.version}</span>
+                        <span>{agent.source === "local" ? "自訂代理" : "系統代理"}</span>
+                      </div>
+                      <h3>{agent.agent_name}</h3>
+                      <p className="content-block">{agent.description}</p>
+                      <p className="muted-text">
+                        適用工作類型：
+                        {agent.supported_capabilities.length > 0
+                          ? agent.supported_capabilities
+                              .slice(0, 4)
+                              .map((item) => labelForCapability(item))
+                              .join("、")
+                          : "目前未標示"}
+                      </p>
+                      <p className="muted-text">
+                        最近使用：
+                        {agent.usageCount > 0 && agent.lastUsedAt
+                          ? `${agent.usageCount} 次，最近於 ${new Intl.DateTimeFormat("zh-TW", {
+                              dateStyle: "medium",
+                            }).format(new Date(agent.lastUsedAt))}`
+                          : "目前沒有使用紀錄"}
+                      </p>
+                      <div className="button-row" style={{ marginTop: "12px" }}>
+                        <button
+                          className="button-secondary"
+                          type="button"
+                          onClick={() => startEdit(agent)}
+                        >
+                          編輯
+                        </button>
+                        <button
+                          className="button-secondary"
+                          type="button"
+                          onClick={() => handleToggle(agent)}
+                        >
+                          {agent.status === "active" ? "停用" : "啟用"}
+                        </button>
+                      </div>
+                    </article>
+                  ))
+                ) : (
+                  <p className="empty-text">目前沒有符合條件的代理。</p>
+                )}
               </div>
             </section>
           </div>
@@ -130,41 +372,97 @@ export function AgentManagementPanel() {
             <section className="panel">
               <div className="panel-header">
                 <div>
-                  <h2 className="panel-title">最近常用代理</h2>
-                  <p className="panel-copy">依目前案件工作紀錄回看最近較常被 Host 選入的代理。</p>
+                  <h2 className="panel-title">{editingAgentId ? "編輯代理" : "新增代理"}</h2>
+                  <p className="panel-copy">這一輪先站穩單人版可管理能力，版本與狀態會保存到目前瀏覽器。</p>
                 </div>
               </div>
-              <div className="detail-list">
-                {usage.length > 0 ? (
-                  usage.map((item) => (
-                    <div className="detail-item" key={item.agentId}>
-                      <div className="meta-row">
-                        <span className="pill">近期使用</span>
-                        <span>{item.count} 次</span>
-                      </div>
-                      <h3>{item.name}</h3>
-                      <p className="muted-text">{item.agentId}</p>
-                    </div>
-                  ))
-                ) : (
-                  <p className="empty-text">目前還沒有足夠的使用紀錄可回看。</p>
-                )}
-              </div>
-            </section>
 
-            <section className="panel">
-              <div className="panel-header">
-                <div>
-                  <h2 className="panel-title">管理面邊界</h2>
-                  <p className="panel-copy">單人版先處理理解、回看與可視狀態，不提前擴成代理市集或多人治理後台。</p>
+              <div className="form-grid">
+                <div className="field">
+                  <label htmlFor="agent-name">代理名稱</label>
+                  <input
+                    id="agent-name"
+                    value={draft.agent_name}
+                    onChange={(event) =>
+                      setDraft((current) => ({ ...current, agent_name: event.target.value }))
+                    }
+                  />
                 </div>
-              </div>
-              <div className="detail-item">
-                <ul className="list-content">
-                  <li>這裡是正式工作台內的管理面，不是第七層架構。</li>
-                  <li>任務層覆寫仍留在各工作紀錄的擴充管理面處理。</li>
-                  <li>多人權限、核准與發布流程屬於後續系統層。</li>
-                </ul>
+
+                <div className="field">
+                  <label htmlFor="agent-type">代理類型</label>
+                  <select
+                    id="agent-type"
+                    value={draft.agent_type}
+                    onChange={(event) =>
+                      setDraft((current) => ({ ...current, agent_type: event.target.value }))
+                    }
+                  >
+                    <option value="host">Host 代理</option>
+                    <option value="reasoning">推理代理</option>
+                    <option value="specialist">專家代理</option>
+                  </select>
+                </div>
+
+                <div className="field">
+                  <label htmlFor="agent-version">版本</label>
+                  <input
+                    id="agent-version"
+                    value={draft.version}
+                    onChange={(event) =>
+                      setDraft((current) => ({ ...current, version: event.target.value }))
+                    }
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="agent-status">狀態</label>
+                  <select
+                    id="agent-status"
+                    value={draft.status}
+                    onChange={(event) =>
+                      setDraft((current) => ({ ...current, status: event.target.value }))
+                    }
+                  >
+                    <option value="active">啟用中</option>
+                    <option value="inactive">停用中</option>
+                    <option value="draft">草稿</option>
+                  </select>
+                </div>
+
+                <div className="field">
+                  <label htmlFor="agent-description">代理說明</label>
+                  <textarea
+                    id="agent-description"
+                    value={draft.description}
+                    onChange={(event) =>
+                      setDraft((current) => ({ ...current, description: event.target.value }))
+                    }
+                    placeholder="描述這個代理負責的工作範圍與角色。"
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="agent-capabilities">適用工作類型</label>
+                  <textarea
+                    id="agent-capabilities"
+                    value={draft.supported_capabilities}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        supported_capabilities: event.target.value,
+                      }))
+                    }
+                    placeholder={"每行一個 capability，例如：\ndiagnose_assess\nreview_challenge"}
+                  />
+                </div>
+
+                <div className="button-row">
+                  <button className="button-primary" type="button" onClick={handleSave}>
+                    儲存代理
+                  </button>
+                </div>
+                {saveMessage ? <p className="success-text">{saveMessage}</p> : null}
               </div>
             </section>
           </div>

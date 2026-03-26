@@ -153,6 +153,30 @@ const AGENT_TYPE_LABELS: Record<string, string> = {
   specialist: "專家代理",
 };
 
+const CAPABILITY_LABELS: Record<string, string> = {
+  diagnose_assess: "診斷 / 評估",
+  decide_converge: "決策 / 收斂",
+  review_challenge: "審閱 / 挑戰",
+  synthesize_brief: "綜整 / 簡報",
+  restructure_reframe: "重構 / 重塑",
+  plan_roadmap: "規劃 / 路線圖",
+  scenario_comparison: "情境比較",
+  risk_surfacing: "風險盤點",
+};
+
+const MATTER_STATUS_LABELS: Record<string, string> = {
+  active: "進行中",
+  paused: "暫停",
+  archived: "封存",
+};
+
+const DELIVERABLE_STATUS_LABELS: Record<string, string> = {
+  draft: "草稿",
+  pending_confirmation: "待確認",
+  final: "定稿",
+  archived: "封存",
+};
+
 const STRUCTURED_FIELD_LABELS: Record<string, string> = {
   executive_summary: "執行摘要",
   core_judgment: "核心判斷",
@@ -262,6 +286,18 @@ export function labelForPackType(value: string) {
 
 export function labelForAgentType(value: string) {
   return AGENT_TYPE_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForCapability(value: string) {
+  return CAPABILITY_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForMatterStatus(value: string) {
+  return MATTER_STATUS_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForDeliverableStatus(value: string) {
+  return DELIVERABLE_STATUS_LABELS[value] ?? fallbackLabel(value);
 }
 
 export function labelForSourceType(value: string) {

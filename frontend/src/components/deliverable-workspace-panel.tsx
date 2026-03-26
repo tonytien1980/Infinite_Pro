@@ -21,10 +21,16 @@ import type { DeliverableWorkspace } from "@/lib/types";
 import {
   formatDisplayDate,
   labelForAgentId,
+  labelForDeliverableStatus,
   labelForEvidenceType,
   labelForPriority,
   labelForSourceType,
 } from "@/lib/ui-labels";
+import {
+  type DeliverableLifecycleStatus,
+  nowIsoString,
+  useDeliverableWorkspaceRecords,
+} from "@/lib/workbench-store";
 
 function CompactList({
   items,
@@ -48,6 +54,12 @@ function CompactList({
 
 export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: string }) {
   const [workspace, setWorkspace] = useState<DeliverableWorkspace | null>(null);
+  const [deliverableRecords, setDeliverableRecords] = useDeliverableWorkspaceRecords();
+  const [draftTitle, setDraftTitle] = useState("");
+  const [draftStatus, setDraftStatus] = useState<DeliverableLifecycleStatus>("draft");
+  const [draftVersionTag, setDraftVersionTag] = useState("");
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [exportMessage, setExportMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -65,6 +77,19 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
     })();
   }, [deliverableId]);
 
+  useEffect(() => {
+    if (!workspace) {
+      return;
+    }
+
+    const record = deliverableRecords[deliverableId];
+    const defaultStatus: DeliverableLifecycleStatus =
+      workspace.task.status === "completed" ? "final" : "pending_confirmation";
+    setDraftTitle(record?.title || workspace.deliverable.title);
+    setDraftStatus(record?.status || defaultStatus);
+    setDraftVersionTag(record?.versionTag || `v${workspace.deliverable.version}`);
+  }, [deliverableId, deliverableRecords, workspace]);
+
   const task = workspace?.task ?? null;
   const deliverable = workspace?.deliverable ?? null;
   const workspaceView = workspace ? buildDeliverableWorkspaceView(workspace) : null;
@@ -79,31 +104,87 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const capabilityFrame = task && deliverable ? buildCapabilityFrame(task, deliverable) : null;
   const packSelection = task && deliverable ? buildPackSelectionView(task, deliverable) : null;
   const deliverableBacklink = task && deliverable ? buildDeliverableBacklinkView(task, deliverable) : null;
+  const deliverableRecord = deliverableRecords[deliverableId];
+  const deliverableStatus =
+    deliverableRecord?.status || (task?.status === "completed" ? "final" : "pending_confirmation");
+  const versionTag =
+    deliverableRecord?.versionTag || (deliverable ? `v${deliverable.version}` : "v1");
+  const displayTitle = deliverableRecord?.title || deliverable?.title || "";
+
+  function handleSaveMetadata() {
+    if (!deliverable) {
+      return;
+    }
+
+    const timestamp = nowIsoString();
+    setDeliverableRecords((current) => {
+      const previous = current[deliverableId];
+      const currentVersionTag = draftVersionTag.trim() || `v${deliverable.version}`;
+      const shouldAddVersion =
+        !previous || previous.versionTag !== currentVersionTag || previous.title !== draftTitle.trim();
+
+      return {
+        ...current,
+        [deliverableId]: {
+          title: draftTitle.trim() || deliverable.title,
+          status: draftStatus,
+          versionTag: currentVersionTag,
+          updatedAt: timestamp,
+          versions: shouldAddVersion
+            ? [
+                {
+                  id: `${deliverableId}-${timestamp}`,
+                  versionTag: currentVersionTag,
+                  timestamp,
+                  note: `更新為「${draftTitle.trim() || deliverable.title}」`,
+                },
+                ...(previous?.versions ?? []),
+              ].slice(0, 12)
+            : previous?.versions ?? [],
+        },
+      };
+    });
+    setSaveMessage("交付物基本資訊已更新。");
+    setExportMessage(null);
+  }
+
+  function handleExportEntry() {
+    setExportMessage("匯出入口已保留；本輪先完成前端入口與狀態說明，完整檔案輸出仍待後端串接。");
+  }
 
   return (
-    <main className="page-shell">
-      <div className="back-link-group">
-        <Link className="back-link" href="/">
-          ← 返回總覽
-        </Link>
-        <Link className="back-link" href="/deliverables">
-          ← 返回交付物
-        </Link>
-        {workspace?.matter_workspace ? (
-          <Link className="back-link" href={`/matters/${workspace.matter_workspace.id}`}>
-            ← 返回案件工作面
+    <main className="page-shell deliverable-page-shell">
+      <div className="back-link-group deliverable-backtrack">
+        <span className="eyebrow deliverable-backtrack-label">工作鏈返回</span>
+        <div className="deliverable-backtrack-links">
+          <Link className="back-link deliverable-back-link" href="/">
+            ← 返回總覽
           </Link>
-        ) : null}
-        {task ? (
-          <Link className="back-link" href={`/tasks/${task.id}`}>
-            ← 返回來源工作紀錄
+          <Link className="back-link deliverable-back-link" href="/deliverables">
+            ← 返回交付物
           </Link>
-        ) : null}
-        {workspace?.matter_workspace ? (
-          <Link className="back-link" href={`/matters/${workspace.matter_workspace.id}/evidence`}>
-            ← 返回來源 / 證據工作面
-          </Link>
-        ) : null}
+          {workspace?.matter_workspace ? (
+            <Link
+              className="back-link deliverable-back-link"
+              href={`/matters/${workspace.matter_workspace.id}`}
+            >
+              ← 返回案件工作面
+            </Link>
+          ) : null}
+          {task ? (
+            <Link className="back-link deliverable-back-link" href={`/tasks/${task.id}`}>
+              ← 返回來源工作紀錄
+            </Link>
+          ) : null}
+          {workspace?.matter_workspace ? (
+            <Link
+              className="back-link deliverable-back-link"
+              href={`/matters/${workspace.matter_workspace.id}/evidence`}
+            >
+              ← 返回來源 / 證據工作面
+            </Link>
+          ) : null}
+        </div>
       </div>
 
       {loading ? <p className="status-text">正在載入交付物工作面...</p> : null}
@@ -111,30 +192,170 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
 
       {workspace && workspaceView && task && deliverable ? (
         <>
-          <section className="hero-card">
-            <span className="eyebrow">交付物工作面</span>
-            <h1 className="page-title">{workspaceView.title}</h1>
-            <p className="page-subtitle">
-              {workspace.matter_workspace?.object_path ||
-                [task.client?.name, task.engagement?.name, task.workstream?.name].filter(Boolean).join(" / ")}
-            </p>
-            <div className="meta-row" style={{ marginTop: "16px" }}>
-              <span className="pill">{workspaceView.deliverableClassLabel}</span>
-              <span>{workspaceView.deliverableTypeLabel}</span>
-              <span>{workspaceView.workspaceStatusLabel}</span>
-              <span>版本 {deliverable.version}</span>
-              <span>{formatDisplayDate(deliverable.generated_at)}</span>
-            </div>
-            <div className="matter-hero-strip">
-              <div>
-                <span className="pill">決策問題</span>
-                <p className="workspace-object-path" style={{ marginTop: "10px" }}>
-                  {task.decision_context?.judgment_to_make ||
-                    task.decision_context?.title ||
-                    "目前尚未形成清楚的決策問題。"}
+          <section className="hero-card deliverable-hero">
+            <div className="deliverable-hero-grid">
+              <div className="deliverable-hero-main">
+                <span className="eyebrow">交付物工作面</span>
+                <h1 className="page-title deliverable-title">{displayTitle || workspaceView.title}</h1>
+                <p className="page-subtitle deliverable-subtitle">
+                  {workspace.matter_workspace?.object_path ||
+                    [task.client?.name, task.engagement?.name, task.workstream?.name]
+                      .filter(Boolean)
+                      .join(" / ")}
                 </p>
-                <p className="muted-text">{workspaceView.summary}</p>
+                <div className="meta-row deliverable-meta-row" style={{ marginTop: "16px" }}>
+                  <span className="pill">{workspaceView.deliverableClassLabel}</span>
+                  <span>{workspaceView.deliverableTypeLabel}</span>
+                  <span>{labelForDeliverableStatus(deliverableStatus)}</span>
+                  <span>{workspaceView.workspaceStatusLabel}</span>
+                  <span>{versionTag}</span>
+                  <span>{formatDisplayDate(deliverable.generated_at)}</span>
+                </div>
+
+                {decisionSnapshot ? (
+                  <div className="deliverable-focus-card">
+                    <span className="pill">一句話結論</span>
+                    <p className="deliverable-focus-lead">{decisionSnapshot.conclusion}</p>
+                  </div>
+                ) : null}
+
+                <div className="deliverable-focus-grid">
+                  <div className="section-card deliverable-focus-panel">
+                    <h4>決策問題</h4>
+                    <p className="content-block">
+                      {task.decision_context?.judgment_to_make ||
+                        task.decision_context?.title ||
+                        "目前尚未形成清楚的決策問題。"}
+                    </p>
+                  </div>
+                  <div className="section-card deliverable-focus-panel">
+                    <h4>最重要建議</h4>
+                    <p className="content-block">
+                      {decisionSnapshot?.primaryRecommendation ||
+                        executiveSummary?.bullets[1] ||
+                        "目前沒有額外的首要建議。"}
+                    </p>
+                  </div>
+                </div>
               </div>
+
+              <aside className="deliverable-hero-rail">
+                <div className="section-card deliverable-rail-card">
+                  <h4>工作面快讀</h4>
+                  <div className="deliverable-metric-grid">
+                    <div className="deliverable-metric-card">
+                      <span className="deliverable-metric-label">證據</span>
+                      <strong className="deliverable-metric-value">
+                        {workspace.linked_evidence.length}
+                      </strong>
+                    </div>
+                    <div className="deliverable-metric-card">
+                      <span className="deliverable-metric-label">來源材料</span>
+                      <strong className="deliverable-metric-value">
+                        {workspace.linked_source_materials.length}
+                      </strong>
+                    </div>
+                    <div className="deliverable-metric-card">
+                      <span className="deliverable-metric-label">建議</span>
+                      <strong className="deliverable-metric-value">{recommendations.length}</strong>
+                    </div>
+                    <div className="deliverable-metric-card">
+                      <span className="deliverable-metric-label">高影響缺口</span>
+                      <strong className="deliverable-metric-value">
+                        {workspace.high_impact_gaps.length}
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="section-card deliverable-rail-card">
+                  <h4>可信度與適用範圍</h4>
+                  <p className="content-block">{workspaceView.confidenceSummary}</p>
+                </div>
+
+                <div className="section-card deliverable-rail-card">
+                  <h4>下一個高影響缺口</h4>
+                  <p className="content-block">
+                    {workspace.high_impact_gaps[0] || "目前沒有額外高影響缺口。"}
+                  </p>
+                  {readinessGovernance ? (
+                    <p className="muted-text" style={{ marginTop: "12px" }}>
+                      {readinessGovernance.summary}
+                    </p>
+                  ) : null}
+                </div>
+              </aside>
+            </div>
+          </section>
+
+          <section className="panel">
+            <div className="panel-header">
+              <div>
+                <h2 className="panel-title">交付物管理</h2>
+                <p className="panel-copy">先把標題、狀態與版本標記整理乾淨，再繼續修摘要、風險與行動項目。</p>
+              </div>
+            </div>
+            <div className="form-grid">
+              <div className="field-grid">
+                <div className="field">
+                  <label htmlFor="deliverable-title">交付物標題</label>
+                  <input
+                    id="deliverable-title"
+                    value={draftTitle}
+                    onChange={(event) => {
+                      setDraftTitle(event.target.value);
+                      setSaveMessage(null);
+                    }}
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="deliverable-status">狀態</label>
+                  <select
+                    id="deliverable-status"
+                    value={draftStatus}
+                    onChange={(event) => {
+                      setDraftStatus(event.target.value as DeliverableLifecycleStatus);
+                      setSaveMessage(null);
+                    }}
+                  >
+                    <option value="draft">草稿</option>
+                    <option value="pending_confirmation">待確認</option>
+                    <option value="final">定稿</option>
+                    <option value="archived">封存</option>
+                  </select>
+                </div>
+                <div className="field">
+                  <label htmlFor="deliverable-version-tag">版本標記</label>
+                  <input
+                    id="deliverable-version-tag"
+                    value={draftVersionTag}
+                    onChange={(event) => {
+                      setDraftVersionTag(event.target.value);
+                      setSaveMessage(null);
+                    }}
+                    placeholder="例如：v2.1"
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="deliverable-matter">所屬案件</label>
+                  <input
+                    id="deliverable-matter"
+                    value={workspace.matter_workspace?.title || task.engagement?.name || "未掛案件"}
+                    readOnly
+                  />
+                </div>
+              </div>
+
+              <div className="button-row">
+                <button className="button-primary" type="button" onClick={handleSaveMetadata}>
+                  儲存交付物資訊
+                </button>
+                <button className="button-secondary" type="button" onClick={handleExportEntry}>
+                  匯出入口
+                </button>
+              </div>
+              {saveMessage ? <p className="success-text">{saveMessage}</p> : null}
+              {exportMessage ? <p className="muted-text">{exportMessage}</p> : null}
             </div>
           </section>
 
@@ -463,6 +684,53 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                         emptyText="目前沒有可顯示的代理脈絡。"
                       />
                     </div>
+                  ) : null}
+                </div>
+              </section>
+
+              <section className="panel">
+                <div className="panel-header">
+                  <div>
+                    <h2 className="panel-title">版本紀錄</h2>
+                    <p className="panel-copy">先保留最小可用的版本管理與編修痕跡，完整匯出與版本發布流程留待後端接手。</p>
+                  </div>
+                </div>
+                <div className="detail-list">
+                  <div className="detail-item">
+                    <div className="meta-row">
+                      <span className="pill">{labelForDeliverableStatus(deliverableStatus)}</span>
+                      <span>{versionTag}</span>
+                      <span>{formatDisplayDate(deliverable.generated_at)}</span>
+                    </div>
+                    <h3>{displayTitle || deliverable.title}</h3>
+                    <p className="muted-text">目前版本</p>
+                  </div>
+                  {deliverableRecord?.versions.length ? (
+                    deliverableRecord.versions.map((item) => (
+                      <div className="detail-item" key={item.id}>
+                        <div className="meta-row">
+                          <span className="pill">{item.versionTag}</span>
+                          <span>{formatDisplayDate(item.timestamp)}</span>
+                        </div>
+                        <h3>{item.note}</h3>
+                      </div>
+                    ))
+                  ) : null}
+                  {workspace.related_deliverables.length > 0 ? (
+                    workspace.related_deliverables.slice(0, 4).map((item) => (
+                      <div className="detail-item" key={`related-${item.deliverable_id}`}>
+                        <div className="meta-row">
+                          <span className="pill">歷史版本參考</span>
+                          <span>v{item.version}</span>
+                          <span>{formatDisplayDate(item.generated_at)}</span>
+                        </div>
+                        <h3>{item.title}</h3>
+                        <p className="muted-text">{item.task_title}</p>
+                        <Link className="back-link" href={`/deliverables/${item.deliverable_id}`}>
+                          打開這份交付物
+                        </Link>
+                      </div>
+                    ))
                   ) : null}
                 </div>
               </section>

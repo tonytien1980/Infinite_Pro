@@ -14,6 +14,7 @@ import type {
   TaskListItem,
 } from "@/lib/types";
 import { formatDisplayDate, labelForDeliverableClass } from "@/lib/ui-labels";
+import { useWorkbenchSettings } from "@/lib/workbench-store";
 
 function collectTopItems(items: string[], limit = 4) {
   const counts = new Map<string, number>();
@@ -39,46 +40,27 @@ function buildGapNote(task: TaskListItem) {
   }
 
   if (task.external_research_heavy_candidate) {
-    notes.push("需補外部事件脈絡");
+    notes.push("需補外部脈絡");
   }
 
-  return notes.length > 0 ? notes.join("、") : "這輪工作仍值得補強背景或來源厚度。";
+  return notes.join("、") || "目前仍值得再補一輪背景或來源厚度。";
 }
 
-function buildTodayFocusItems(
-  matters: MatterWorkspaceSummary[],
-  tasks: TaskListItem[],
-  pendingTasks: TaskListItem[],
-) {
-  const focus: string[] = [];
-
-  matters.slice(0, 2).forEach((matter) => {
-    focus.push(
-      `回到「${matter.title}」案件工作台，續推 ${
-        matter.current_decision_context_title || "目前主要決策問題"
-      }。`,
-    );
-  });
-
-  tasks.slice(0, 1).forEach((task) => {
-    focus.push(`優先處理「${task.title}」，確認本輪交付與工作流是否已收斂。`);
-  });
-
-  pendingTasks.slice(0, 1).forEach((task) => {
-    focus.push(`補齊「${task.title}」的資料 / 證據缺口，避免交付物等級被迫降級。`);
-  });
-
-  if (focus.length === 0) {
-    focus.push("目前還沒有進行中的案件，可從「建立新案件」開始第一個顧問工作流。");
+function pickFocusLabel(preference: "matters" | "deliverables" | "evidence") {
+  if (preference === "deliverables") {
+    return "先回到最近交付物";
   }
-
-  return focus.slice(0, 3);
+  if (preference === "evidence") {
+    return "先補待補資料";
+  }
+  return "先回到最近案件";
 }
 
 export function WorkbenchHome() {
   const [tasks, setTasks] = useState<TaskListItem[]>([]);
   const [matters, setMatters] = useState<MatterWorkspaceSummary[]>([]);
   const [extensionManager, setExtensionManager] = useState<ExtensionManagerSnapshot | null>(null);
+  const [settings] = useWorkbenchSettings();
   const [loading, setLoading] = useState(true);
   const [matterLoading, setMatterLoading] = useState(true);
   const [extensionLoading, setExtensionLoading] = useState(true);
@@ -162,43 +144,59 @@ export function WorkbenchHome() {
     )
     .slice(0, 4);
   const recentActivities = sortedTasks.slice(0, 4);
-  const frequentAgents = collectTopItems(
-    sortedTasks.flatMap((task) => task.selected_agent_names),
-    4,
-  );
-  const frequentPacks = collectTopItems(
-    sortedTasks.flatMap((task) => task.selected_pack_names),
-    4,
-  );
-  const todayFocusItems = buildTodayFocusItems(
-    visibleMatters,
-    recentActivities,
-    pendingEvidenceTasks,
-  );
+  const frequentAgents = collectTopItems(sortedTasks.flatMap((task) => task.selected_agent_names));
+  const frequentPacks = collectTopItems(sortedTasks.flatMap((task) => task.selected_pack_names));
+  const primaryMatter = visibleMatters[0] ?? null;
+  const primaryDeliverable = recentDeliverables[0] ?? null;
+  const primaryEvidenceTask = pendingEvidenceTasks[0] ?? null;
 
   return (
-    <main className="page-shell">
-      <section className="hero-card">
+    <main className="page-shell home-page-shell">
+      <section className="hero-card overview-hero">
         <span className="eyebrow">總覽</span>
-        <h1 className="page-title">今天先回到這些正式工作面。</h1>
-        <p className="page-subtitle">
-          首頁只負責總覽目前最值得先處理的工作：進行中案件、最近交付物、待補資料 / 待補證據、最近活動與常用代理 / 模組包。建立新案件已獨立成正式入口，不再佔據首頁主體。
-        </p>
+        <h1 className="page-title">總覽</h1>
+        <p className="page-subtitle">先決定現在要回到哪個工作面，再繼續推進案件、交付物與證據整理。</p>
 
         <div className="summary-grid overview-summary-grid" style={{ marginTop: "20px" }}>
-          <div className="section-card">
-            <h3>今日工作總覽</h3>
-            <ul className="list-content">
-              {todayFocusItems.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          </div>
-          <div className="section-card quick-start-card">
-            <h3>快速開始</h3>
+          <div className="section-card overview-focus-card">
+            <h3>{pickFocusLabel(settings.homepageDisplayPreference)}</h3>
             <p className="content-block">
-              建立新案件 / 新任務現在是獨立工作頁。若你要開始新的顧問問題，請直接走正式進件入口，而不是從首頁大表單往下填。
+              {settings.homepageDisplayPreference === "deliverables"
+                ? primaryDeliverable?.latest_deliverable_title || "目前還沒有可直接回看的交付物。"
+                : settings.homepageDisplayPreference === "evidence"
+                  ? primaryEvidenceTask?.title || "目前沒有明顯待補資料。"
+                  : primaryMatter?.title || "目前還沒有進行中的案件。"}
             </p>
+            <p className="muted-text">
+              {settings.homepageDisplayPreference === "deliverables"
+                ? primaryDeliverable?.decision_context_title || "交付物 detail workspace 會顯示這次判斷的摘要與版本。"
+                : settings.homepageDisplayPreference === "evidence"
+                  ? primaryEvidenceTask
+                    ? buildGapNote(primaryEvidenceTask)
+                    : "建立第一個案件後，待補資料入口會出現在這裡。"
+                  : primaryMatter?.current_decision_context_title || "案件 detail workspace 會承接目前的決策問題。"}
+            </p>
+          </div>
+
+          <div className="section-card overview-metric-card">
+            <h3>最近交付物</h3>
+            <p className="workbench-metric">{recentDeliverables.length}</p>
+            <p className="muted-text">
+              {primaryDeliverable?.latest_deliverable_title || "目前還沒有正式交付成果。"}
+            </p>
+          </div>
+
+          <div className="section-card overview-metric-card">
+            <h3>待補資料</h3>
+            <p className="workbench-metric">{pendingEvidenceTasks.length}</p>
+            <p className="muted-text">
+              {primaryEvidenceTask ? buildGapNote(primaryEvidenceTask) : "目前沒有急需補齊的資料缺口。"}
+            </p>
+          </div>
+
+          <div className="section-card quick-start-card">
+            <h3>建立新案件</h3>
+            <p className="content-block">開始新的顧問工作流時，直接走正式進件頁，完成後會接回案件工作台。</p>
             <div className="button-row" style={{ marginTop: "12px" }}>
               <Link className="button-primary" href="/new">
                 建立新案件
@@ -207,24 +205,6 @@ export function WorkbenchHome() {
                 打開案件工作台
               </Link>
             </div>
-          </div>
-        </div>
-
-        <div className="workbench-overview-grid" style={{ marginTop: "20px" }}>
-          <div className="section-card">
-            <h3>進行中案件</h3>
-            <p className="workbench-metric">{activeMatters.length}</p>
-            <p className="muted-text">目前仍有持續進行工作中的案件工作台。</p>
-          </div>
-          <div className="section-card">
-            <h3>最近交付物</h3>
-            <p className="workbench-metric">{recentDeliverables.length}</p>
-            <p className="muted-text">最近可直接回看的正式交付成果。</p>
-          </div>
-          <div className="section-card">
-            <h3>待補資料 / 證據</h3>
-            <p className="workbench-metric">{pendingEvidenceTasks.length}</p>
-            <p className="muted-text">目前最需要補齊資料厚度的工作項目。</p>
           </div>
         </div>
       </section>
@@ -240,10 +220,8 @@ export function WorkbenchHome() {
             <section className="panel">
               <div className="panel-header">
                 <div>
-                  <h2 className="panel-title">進行中案件</h2>
-                  <p className="panel-copy">
-                    先回到案件世界，再決定要沿著哪個決策問題、哪份交付物或哪條來源 / 證據鏈繼續推進。
-                  </p>
+                  <h2 className="panel-title">繼續工作</h2>
+                  <p className="panel-copy">從進行中案件直接回到工作面，先處理最接近現在的主線任務。</p>
                 </div>
                 <Link className="button-secondary" href="/matters">
                   查看全部案件
@@ -263,10 +241,12 @@ export function WorkbenchHome() {
                         </div>
                         <h3>{workspaceCard.title}</h3>
                         <p className="workspace-object-path">{workspaceCard.objectPath}</p>
-                        <p className="muted-text">{workspaceCard.decisionContext}</p>
-                        <p className="muted-text">{workspaceCard.continuity}</p>
-                        <p className="muted-text">{workspaceCard.packSummary}</p>
-                        <p className="muted-text">{workspaceCard.agentSummary}</p>
+                        <p className="content-block">{matter.active_work_summary || workspaceCard.continuity}</p>
+                        <div className="meta-row">
+                          <span>交付物 {matter.deliverable_count}</span>
+                          <span>來源 {matter.source_material_count}</span>
+                          <span>工作紀錄 {matter.total_task_count}</span>
+                        </div>
                       </Link>
                     );
                   })
@@ -280,7 +260,7 @@ export function WorkbenchHome() {
               <div className="panel-header">
                 <div>
                   <h2 className="panel-title">最近交付物</h2>
-                  <p className="panel-copy">交付物已是正式獨立頁。這裡只保留最近最值得回看的成果入口。</p>
+                  <p className="panel-copy">保留少量最值得先回看的交付物入口，不讓首頁變成長列表。</p>
                 </div>
                 <Link className="button-secondary" href="/deliverables">
                   查看全部交付物
@@ -309,23 +289,20 @@ export function WorkbenchHome() {
                         <h3>{task.latest_deliverable_title || task.title}</h3>
                         <p className="workspace-object-path">{summary.objectPath}</p>
                         <p className="muted-text">{summary.decisionContext}</p>
-                        <p className="muted-text">{summary.workspaceState}</p>
                       </Link>
                     );
                   })
                 ) : (
-                  <p className="empty-text">目前還沒有最近交付物，新的正式交付成果會出現在這裡。</p>
+                  <p className="empty-text">目前還沒有最近交付物。</p>
                 )}
               </div>
             </section>
-          </div>
 
-          <div className="detail-stack">
             <section className="panel">
               <div className="panel-header">
                 <div>
-                  <h2 className="panel-title">待補資料 / 待補證據</h2>
-                  <p className="panel-copy">這裡只抓最需要先補資料厚度的工作，不讓證據缺口被埋在任務細節裡。</p>
+                  <h2 className="panel-title">待補資料 / 證據</h2>
+                  <p className="panel-copy">先抓最需要補資料厚度的工作，再決定是否進到來源與證據工作面。</p>
                 </div>
               </div>
 
@@ -341,11 +318,11 @@ export function WorkbenchHome() {
                       <Link className="detail-item" href={href} key={`gap-${task.id}`}>
                         <div className="meta-row">
                           <span className="pill">待補資料</span>
-                          <span>{task.evidence_count} 筆證據</span>
+                          <span>{task.evidence_count} 則證據</span>
                         </div>
                         <h3>{task.title}</h3>
                         <p className="workspace-object-path">{summary.objectPath}</p>
-                        <p className="content-block">{buildGapNote(task)}</p>
+                        <p className="muted-text">{buildGapNote(task)}</p>
                       </Link>
                     );
                   })
@@ -354,94 +331,100 @@ export function WorkbenchHome() {
                 )}
               </div>
             </section>
+          </div>
 
-            <section className="panel">
-              <div className="panel-header">
-                <div>
-                  <h2 className="panel-title">最近活動</h2>
-                  <p className="panel-copy">首頁只保留少量最近活動摘要；完整回看已抽離為正式歷史紀錄頁。</p>
+          <div className="detail-stack">
+            {settings.showRecentActivity ? (
+              <section className="panel">
+                <div className="panel-header">
+                  <div>
+                    <h2 className="panel-title">最近活動</h2>
+                    <p className="panel-copy">首頁只保留少量最近活動摘要，完整整理請到歷史紀錄頁。</p>
+                  </div>
+                  <Link className="button-secondary" href="/history">
+                    查看全部歷史紀錄
+                  </Link>
                 </div>
-                <Link className="button-secondary" href="/history">
-                  查看全部歷史紀錄
-                </Link>
-              </div>
 
-              <div className="detail-list">
-                {recentActivities.length > 0 ? (
-                  recentActivities.map((task) => {
-                    const summary = buildTaskListWorkspaceSummary(task);
+                <div className="detail-list">
+                  {recentActivities.length > 0 ? (
+                    recentActivities.map((task) => {
+                      const summary = buildTaskListWorkspaceSummary(task);
 
-                    return (
-                      <Link className="detail-item" href={`/tasks/${task.id}`} key={`activity-${task.id}`}>
-                        <div className="meta-row">
-                          <span className="pill">工作更新</span>
-                          <span>{formatDisplayDate(task.updated_at)}</span>
-                        </div>
-                        <h3>{task.title}</h3>
-                        <p className="workspace-object-path">{summary.objectPath}</p>
-                        <p className="muted-text">{summary.decisionContext}</p>
+                      return (
+                        <Link className="detail-item" href={`/tasks/${task.id}`} key={`activity-${task.id}`}>
+                          <div className="meta-row">
+                            <span className="pill">工作更新</span>
+                            <span>{formatDisplayDate(task.updated_at)}</span>
+                          </div>
+                          <h3>{task.title}</h3>
+                          <p className="workspace-object-path">{summary.objectPath}</p>
+                          <p className="muted-text">{summary.decisionContext}</p>
+                        </Link>
+                      );
+                    })
+                  ) : (
+                    <p className="empty-text">目前還沒有最近活動可顯示。</p>
+                  )}
+                </div>
+              </section>
+            ) : null}
+
+            {settings.showFrequentExtensions ? (
+              <section className="panel">
+                <div className="panel-header">
+                  <div>
+                    <h2 className="panel-title">常用代理 / 模組包</h2>
+                    <p className="panel-copy">高頻摘要只留在首頁；正式管理仍在代理管理與模組包管理頁。</p>
+                  </div>
+                </div>
+
+                <div className="summary-grid">
+                  <div className="section-card">
+                    <h4>常用代理</h4>
+                    {frequentAgents.length > 0 ? (
+                      <ul className="list-content">
+                        {frequentAgents.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="empty-text">目前還沒有常用代理摘要。</p>
+                    )}
+                    <div className="button-row" style={{ marginTop: "12px" }}>
+                      <Link className="button-secondary" href="/agents">
+                        進入代理管理
                       </Link>
-                    );
-                  })
-                ) : (
-                  <p className="empty-text">目前還沒有最近活動可顯示。</p>
-                )}
-              </div>
-            </section>
-
-            <section className="panel">
-              <div className="panel-header">
-                <div>
-                  <h2 className="panel-title">常用代理 / 模組包</h2>
-                  <p className="panel-copy">首頁只顯示高頻使用摘要；正式目錄與狀態可到代理管理、模組包管理頁查看。</p>
-                </div>
-              </div>
-
-              <div className="summary-grid">
-                <div className="section-card">
-                  <h4>常用代理</h4>
-                  {frequentAgents.length > 0 ? (
-                    <ul className="list-content">
-                      {frequentAgents.map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="empty-text">目前還沒有常用代理摘要。</p>
-                  )}
-                  <div className="button-row" style={{ marginTop: "12px" }}>
-                    <Link className="button-secondary" href="/agents">
-                      進入代理管理
-                    </Link>
+                    </div>
+                  </div>
+                  <div className="section-card">
+                    <h4>常用模組包</h4>
+                    {frequentPacks.length > 0 ? (
+                      <ul className="list-content">
+                        {frequentPacks.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="empty-text">目前還沒有常用模組包摘要。</p>
+                    )}
+                    <div className="button-row" style={{ marginTop: "12px" }}>
+                      <Link className="button-secondary" href="/packs">
+                        進入模組包管理
+                      </Link>
+                    </div>
                   </div>
                 </div>
-                <div className="section-card">
-                  <h4>常用模組包</h4>
-                  {frequentPacks.length > 0 ? (
-                    <ul className="list-content">
-                      {frequentPacks.map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="empty-text">目前還沒有常用模組包摘要。</p>
-                  )}
-                  <div className="button-row" style={{ marginTop: "12px" }}>
-                    <Link className="button-secondary" href="/packs">
-                      進入模組包管理
-                    </Link>
-                  </div>
-                </div>
-              </div>
 
-              {extensionLoading ? <p className="status-text">正在整理代理與模組包摘要...</p> : null}
-              {!extensionLoading && extensionManager ? (
-                <div className="meta-row" style={{ marginTop: "16px" }}>
-                  <span>{extensionManager.agent_registry.active_agent_ids.length} 個可用代理</span>
-                  <span>{extensionManager.pack_registry.active_pack_ids.length} 個啟用中模組包</span>
-                </div>
-              ) : null}
-            </section>
+                {extensionLoading ? <p className="status-text">正在整理代理與模組包摘要...</p> : null}
+                {!extensionLoading && extensionManager ? (
+                  <div className="meta-row" style={{ marginTop: "16px" }}>
+                    <span>{extensionManager.agent_registry.active_agent_ids.length} 個可用代理</span>
+                    <span>{extensionManager.pack_registry.active_pack_ids.length} 個啟用中模組包</span>
+                  </div>
+                ) : null}
+              </section>
+            ) : null}
           </div>
         </div>
       ) : null}

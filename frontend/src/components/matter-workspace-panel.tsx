@@ -1,16 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import {
-  buildMatterWorkspaceCard,
-  buildMatterWorkspaceContinuity,
-  buildTaskListWorkspaceSummary,
-} from "@/lib/advisory-workflow";
+import { buildTaskListWorkspaceSummary } from "@/lib/advisory-workflow";
 import { getMatterWorkspace } from "@/lib/api";
-import type { MatterWorkspace } from "@/lib/types";
-import { formatDisplayDate, labelForTaskStatus } from "@/lib/ui-labels";
+import type { MatterWorkspace, TaskListItem } from "@/lib/types";
+import {
+  formatDisplayDate,
+  labelForDeliverableClass,
+  labelForMatterStatus,
+  labelForTaskStatus,
+} from "@/lib/ui-labels";
+import {
+  type MatterLifecycleStatus,
+  nowIsoString,
+  useMatterWorkspaceRecords,
+} from "@/lib/workbench-store";
 
 type MatterTab = "overview" | "decision" | "evidence" | "deliverables" | "history";
 
@@ -22,9 +28,26 @@ const MATTER_TABS: Array<{ key: MatterTab; label: string }> = [
   { key: "history", label: "工作紀錄" },
 ];
 
+function defaultMatterStatus(matter: MatterWorkspace) {
+  return matter.summary.active_task_count > 0 ? "active" : "paused";
+}
+
+function collectNames(tasks: TaskListItem[], key: "selected_agent_names" | "selected_pack_names") {
+  return Array.from(
+    new Set(
+      tasks.flatMap((task) => task[key]).filter(Boolean),
+    ),
+  );
+}
+
 export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
   const [matter, setMatter] = useState<MatterWorkspace | null>(null);
   const [activeTab, setActiveTab] = useState<MatterTab>("overview");
+  const [matterRecords, setMatterRecords] = useMatterWorkspaceRecords();
+  const [draftTitle, setDraftTitle] = useState("");
+  const [draftSummary, setDraftSummary] = useState("");
+  const [draftStatus, setDraftStatus] = useState<MatterLifecycleStatus>("active");
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,12 +65,59 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
     })();
   }, [matterId]);
 
-  const matterCard = matter ? buildMatterWorkspaceCard(matter.summary) : null;
-  const continuity = matter ? buildMatterWorkspaceContinuity(matter) : null;
-  const visibleHistoryItems = matter?.related_tasks.slice(0, 3) ?? [];
+  useEffect(() => {
+    if (!matter) {
+      return;
+    }
+
+    const record = matterRecords[matterId];
+    setDraftTitle(record?.title || matter.summary.title);
+    setDraftSummary(
+      record?.summary ||
+        matter.summary.active_work_summary ||
+        matter.summary.continuity_summary ||
+        "",
+    );
+    setDraftStatus(record?.status || defaultMatterStatus(matter));
+  }, [matter, matterId, matterRecords]);
+
+  const matterStatus = matter
+    ? matterRecords[matterId]?.status || defaultMatterStatus(matter)
+    : "active";
+  const displayTitle = matter ? matterRecords[matterId]?.title || matter.summary.title : "";
+  const displaySummary = matter
+    ? matterRecords[matterId]?.summary ||
+      matter.summary.active_work_summary ||
+      matter.summary.continuity_summary ||
+      "目前尚未補上案件摘要。"
+    : "";
+  const evidenceCount = matter
+    ? matter.related_tasks.reduce((total, task) => total + task.evidence_count, 0)
+    : 0;
+  const agentNames = matter ? collectNames(matter.related_tasks, "selected_agent_names") : [];
+  const packNames = matter ? collectNames(matter.related_tasks, "selected_pack_names") : [];
+  const visibleHistoryItems = matter?.related_tasks.slice(0, 5) ?? [];
   const visibleMaterials = matter
     ? [...matter.related_artifacts, ...matter.related_source_materials].slice(0, 6)
     : [];
+  const latestDeliverable = matter?.related_deliverables[0] ?? null;
+
+  function handleSave() {
+    if (!matter) {
+      return;
+    }
+
+    setMatterRecords((current) => ({
+      ...current,
+      [matterId]: {
+        title: draftTitle.trim() || matter.summary.title,
+        summary: draftSummary.trim() || matter.summary.active_work_summary,
+        status: draftStatus,
+        updatedAt: nowIsoString(),
+      },
+    }));
+    setSaveMessage("案件基本資訊已更新。");
+  }
 
   return (
     <main className="page-shell">
@@ -63,18 +133,21 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
       {loading ? <p className="status-text">正在載入案件工作台...</p> : null}
       {error ? <p className="error-text">{error}</p> : null}
 
-      {matter && matterCard && continuity ? (
+      {matter ? (
         <>
           <section className="hero-card">
             <span className="eyebrow">案件工作台</span>
-            <h1 className="page-title">{matterCard.title}</h1>
-            <p className="page-subtitle">{matterCard.objectPath}</p>
+            <h1 className="page-title">{displayTitle}</h1>
+            <p className="page-subtitle">管理這個案件的決策問題、來源與證據、交付物與工作紀錄。</p>
             <div className="meta-row" style={{ marginTop: "16px" }}>
-              {matterCard.counts.map((count) => (
-                <span key={count}>{count}</span>
-              ))}
+              <span className="pill">{labelForMatterStatus(matterStatus)}</span>
               <span>更新於 {formatDisplayDate(matter.summary.latest_updated_at)}</span>
+              <span>來源 {matter.summary.source_material_count}</span>
+              <span>證據 {evidenceCount}</span>
+              <span>交付物 {matter.summary.deliverable_count}</span>
+              <span>工作紀錄 {matter.summary.total_task_count}</span>
             </div>
+
             <div className="matter-hero-strip">
               <div>
                 <span className="pill">目前主要決策問題</span>
@@ -84,15 +157,24 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
                     matter.summary.current_decision_context_title ||
                     "目前尚未形成清楚的決策問題。"}
                 </p>
-                <p className="muted-text">{matter.summary.active_work_summary}</p>
+                <p className="muted-text">{displaySummary}</p>
               </div>
               <div className="button-row">
                 <Link className="button-secondary matter-hero-link" href={`/matters/${matterId}/evidence`}>
                   打開來源與證據
                 </Link>
-                <Link className="button-secondary matter-hero-link" href="/deliverables">
-                  查看交付物
-                </Link>
+                {latestDeliverable ? (
+                  <Link
+                    className="button-secondary matter-hero-link"
+                    href={`/deliverables/${latestDeliverable.deliverable_id}`}
+                  >
+                    打開最近交付物
+                  </Link>
+                ) : (
+                  <Link className="button-secondary matter-hero-link" href="/deliverables">
+                    查看交付物
+                  </Link>
+                )}
               </div>
             </div>
           </section>
@@ -116,27 +198,73 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
                 <section className="panel">
                   <div className="panel-header">
                     <div>
-                      <h2 className="panel-title">案件概覽</h2>
-                      <p className="panel-copy">
-                        這裡承接客戶、案件委託、工作流與目前案件世界的主判斷脈絡，讓你先抓到整體工作位置，再決定要進哪個子工作面。
-                      </p>
+                      <h2 className="panel-title">案件基本資訊</h2>
+                      <p className="panel-copy">先把案件名稱、摘要與狀態維持乾淨，之後再沿著各個工作面往下做。</p>
                     </div>
                   </div>
+
+                  <div className="form-grid">
+                    <div className="field">
+                      <label htmlFor="matter-title">案件名稱</label>
+                      <input
+                        id="matter-title"
+                        value={draftTitle}
+                        onChange={(event) => {
+                          setDraftTitle(event.target.value);
+                          setSaveMessage(null);
+                        }}
+                      />
+                    </div>
+
+                    <div className="field">
+                      <label htmlFor="matter-status">狀態</label>
+                      <select
+                        id="matter-status"
+                        value={draftStatus}
+                        onChange={(event) => {
+                          setDraftStatus(event.target.value as MatterLifecycleStatus);
+                          setSaveMessage(null);
+                        }}
+                      >
+                        <option value="active">進行中</option>
+                        <option value="paused">暫停</option>
+                        <option value="archived">封存</option>
+                      </select>
+                    </div>
+
+                    <div className="field">
+                      <label htmlFor="matter-summary">簡短摘要</label>
+                      <textarea
+                        id="matter-summary"
+                        value={draftSummary}
+                        onChange={(event) => {
+                          setDraftSummary(event.target.value);
+                          setSaveMessage(null);
+                        }}
+                        placeholder="這個案件目前正在處理的核心狀況、範圍或下一步。"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="button-row" style={{ marginTop: "16px" }}>
+                    <button className="button-primary" type="button" onClick={handleSave}>
+                      儲存案件資訊
+                    </button>
+                  </div>
+                  {saveMessage ? <p className="success-text">{saveMessage}</p> : null}
+                </section>
+
+                <section className="panel">
+                  <div className="panel-header">
+                    <div>
+                      <h2 className="panel-title">工作面摘要</h2>
+                      <p className="panel-copy">用一眼可掃的骨架確認現在這個案件有哪些可直接進入的工作面。</p>
+                    </div>
+                  </div>
+
                   <div className="summary-grid">
                     <div className="section-card">
-                      <h4>客戶</h4>
-                      <p className="content-block">{matter.client?.name ?? "尚未明確標示"}</p>
-                    </div>
-                    <div className="section-card">
-                      <h4>案件委託</h4>
-                      <p className="content-block">{matter.engagement?.name ?? "尚未明確標示"}</p>
-                    </div>
-                    <div className="section-card">
-                      <h4>工作流</h4>
-                      <p className="content-block">{matter.workstream?.name ?? "尚未明確標示"}</p>
-                    </div>
-                    <div className="section-card">
-                      <h4>目前主要決策問題</h4>
+                      <h4>決策問題</h4>
                       <p className="content-block">
                         {matter.current_decision_context?.title ||
                           matter.summary.current_decision_context_title ||
@@ -144,20 +272,32 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
                       </p>
                     </div>
                     <div className="section-card">
-                      <h4>連續性摘要</h4>
-                      <p className="content-block">{continuity.summary}</p>
+                      <h4>客戶 / 案件路徑</h4>
+                      <p className="content-block">{matter.summary.object_path}</p>
                     </div>
                     <div className="section-card">
-                      <h4>當前工作提示</h4>
-                      <p className="content-block">{continuity.readinessHint}</p>
+                      <h4>使用中的代理</h4>
+                      <p className="content-block">
+                        {agentNames.length > 0 ? agentNames.slice(0, 5).join("、") : "目前尚未顯示代理。"}
+                      </p>
                     </div>
                     <div className="section-card">
-                      <h4>模組包脈絡</h4>
-                      <p className="content-block">{matterCard.packSummary}</p>
+                      <h4>使用中的模組包</h4>
+                      <p className="content-block">
+                        {packNames.length > 0 ? packNames.slice(0, 5).join("、") : "目前尚未顯示模組包。"}
+                      </p>
                     </div>
                     <div className="section-card">
-                      <h4>代理脈絡</h4>
-                      <p className="content-block">{matterCard.agentSummary}</p>
+                      <h4>來源與證據</h4>
+                      <p className="content-block">
+                        {matter.summary.source_material_count} 份來源材料，{evidenceCount} 則證據。
+                      </p>
+                    </div>
+                    <div className="section-card">
+                      <h4>交付物與紀錄</h4>
+                      <p className="content-block">
+                        {matter.summary.deliverable_count} 份交付物，{matter.summary.total_task_count} 筆工作紀錄。
+                      </p>
                     </div>
                   </div>
                 </section>
@@ -167,20 +307,28 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
                 <section className="panel">
                   <div className="panel-header">
                     <div>
-                      <h2 className="panel-title">案件世界提示</h2>
-                      <p className="panel-copy">這些提示幫你理解這個案件目前的工作連續性與主要壓力點。</p>
+                      <h2 className="panel-title">案件概覽</h2>
+                      <p className="panel-copy">先掌握這個案件現在卡在哪裡，再決定往哪個頁籤深入。</p>
                     </div>
                   </div>
-                  <div className="detail-item">
-                    {matter.continuity_notes.length > 0 ? (
-                      <ul className="list-content">
-                        {matter.continuity_notes.map((note) => (
-                          <li key={note}>{note}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="empty-text">目前沒有額外的案件世界提示。</p>
-                    )}
+
+                  <div className="detail-list">
+                    <div className="detail-item">
+                      <h3>客戶</h3>
+                      <p className="content-block">{matter.client?.name ?? "尚未明確標示"}</p>
+                    </div>
+                    <div className="detail-item">
+                      <h3>案件委託</h3>
+                      <p className="content-block">{matter.engagement?.name ?? "尚未明確標示"}</p>
+                    </div>
+                    <div className="detail-item">
+                      <h3>工作流</h3>
+                      <p className="content-block">{matter.workstream?.name ?? "尚未明確標示"}</p>
+                    </div>
+                    <div className="detail-item">
+                      <h3>工作提示</h3>
+                      <p className="content-block">{matter.readiness_hint}</p>
+                    </div>
                   </div>
                 </section>
               </div>
@@ -194,7 +342,7 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
                   <div className="panel-header">
                     <div>
                       <h2 className="panel-title">當前決策問題</h2>
-                      <p className="panel-copy">這裡集中回看目前案件世界最重要的判斷問題、目標與限制，不讓它只散落在單一工作細節裡。</p>
+                      <p className="panel-copy">這個區塊用來穩定承接案件目前的判斷主線。</p>
                     </div>
                   </div>
                   <div className="detail-item">
@@ -216,7 +364,7 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
                   <div className="panel-header">
                     <div>
                       <h2 className="panel-title">決策脈絡</h2>
-                      <p className="panel-copy">回看這個案件世界最近的決策脈絡，理解不同工作紀錄如何沿著同一條問題主線推進。</p>
+                      <p className="panel-copy">用最近幾筆 decision trajectory 回看這個案件是怎麼一路推進過來的。</p>
                     </div>
                   </div>
                   <div className="detail-list">
@@ -228,6 +376,7 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
                         >
                           <div className="meta-row">
                             <span className="pill">{labelForTaskStatus(item.task_status)}</span>
+                            <span>{labelForDeliverableClass(item.deliverable_class_hint)}</span>
                             <span>{formatDisplayDate(item.updated_at)}</span>
                           </div>
                           <h3>{item.decision_context_title}</h3>
@@ -253,33 +402,30 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
                 <section className="panel">
                   <div className="panel-header">
                     <div>
-                      <h2 className="panel-title">來源與證據摘要</h2>
-                      <p className="panel-copy">案件工作台只保留來源與證據的主摘要；完整來源角色、支撐鏈與缺口治理由獨立工作面承接。</p>
+                      <h2 className="panel-title">來源與證據</h2>
+                      <p className="panel-copy">先看總量與最近材料，再決定要不要進完整的來源與證據工作面整理。</p>
                     </div>
                     <Link className="button-secondary" href={`/matters/${matterId}/evidence`}>
                       打開來源與證據工作面
                     </Link>
                   </div>
+
                   <div className="summary-grid">
                     <div className="section-card">
-                      <h4>工作物件</h4>
-                      <p className="content-block">{matter.related_artifacts.length} 份</p>
-                    </div>
-                    <div className="section-card">
                       <h4>來源材料</h4>
-                      <p className="content-block">{matter.related_source_materials.length} 份</p>
+                      <p className="content-block">{matter.summary.source_material_count} 份</p>
                     </div>
                     <div className="section-card">
-                      <h4>就緒度 / 連續性提示</h4>
+                      <h4>工作物件</h4>
+                      <p className="content-block">{matter.summary.artifact_count} 份</p>
+                    </div>
+                    <div className="section-card">
+                      <h4>證據</h4>
+                      <p className="content-block">{evidenceCount} 則</p>
+                    </div>
+                    <div className="section-card">
+                      <h4>目前提醒</h4>
                       <p className="content-block">{matter.readiness_hint}</p>
-                    </div>
-                    <div className="section-card">
-                      <h4>當前判斷脈絡</h4>
-                      <p className="content-block">
-                        {continuity.materialHighlights.length > 0
-                          ? continuity.materialHighlights.join("、")
-                          : "目前還沒有可顯示的來源與證據脈絡。"}
-                      </p>
                     </div>
                   </div>
                 </section>
@@ -289,8 +435,8 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
                 <section className="panel">
                   <div className="panel-header">
                     <div>
-                      <h2 className="panel-title">最近相關來源</h2>
-                      <p className="panel-copy">這裡只保留最近 6 筆相關 materials，幫你快速定位案件世界中的主要來源工作物件。</p>
+                      <h2 className="panel-title">最近相關材料</h2>
+                      <p className="panel-copy">保留少量最近材料，讓你快速回到案件的主依據。</p>
                     </div>
                   </div>
                   <div className="detail-list">
@@ -322,7 +468,7 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
                   <div className="panel-header">
                     <div>
                       <h2 className="panel-title">交付物</h2>
-                      <p className="panel-copy">交付物已有獨立正式頁；案件工作台只保留與此案件世界有關的最近交付入口與脈絡。</p>
+                      <p className="panel-copy">從這裡直接進到交付物 detail workspace，繼續編修狀態、版本與內容判讀。</p>
                     </div>
                     <Link className="button-secondary" href="/deliverables">
                       查看全部交付物
@@ -342,8 +488,8 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
                           <p className="content-block">
                             {item.decision_context_title || "目前沒有可顯示的決策問題摘要。"}
                           </p>
-                          <Link className="back-link" href={`/deliverables/${item.deliverable_id}`}>
-                            打開這份交付物
+                          <Link className="button-secondary" href={`/deliverables/${item.deliverable_id}`}>
+                            打開交付物工作面
                           </Link>
                         </div>
                       ))
@@ -362,17 +508,18 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
                 <section className="panel">
                   <div className="panel-header">
                     <div>
-                      <h2 className="panel-title">最近 3 筆工作紀錄</h2>
-                      <p className="panel-copy">案件頁只保留少量最近工作紀錄，完整回看已抽離到正式歷史紀錄頁。</p>
+                      <h2 className="panel-title">工作紀錄</h2>
+                      <p className="panel-copy">案件 detail 先保留最近幾筆工作紀錄，完整整理仍回到歷史紀錄頁進行。</p>
                     </div>
                     <Link className="button-secondary" href="/history">
-                      查看全部
+                      查看全部歷史紀錄
                     </Link>
                   </div>
                   <div className="detail-list">
                     {visibleHistoryItems.length > 0 ? (
                       visibleHistoryItems.map((task) => {
-                        const taskSummary = buildTaskListWorkspaceSummary(task);
+                        const summary = buildTaskListWorkspaceSummary(task);
+
                         return (
                           <Link className="detail-item" href={`/tasks/${task.id}`} key={task.id}>
                             <div className="meta-row">
@@ -380,9 +527,9 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
                               <span>{formatDisplayDate(task.updated_at)}</span>
                             </div>
                             <h3>{task.title}</h3>
-                            <p className="workspace-object-path">{taskSummary.objectPath}</p>
-                            <p className="muted-text">{taskSummary.decisionContext}</p>
-                            <p className="muted-text">{taskSummary.packSummary}</p>
+                            <p className="workspace-object-path">{summary.objectPath}</p>
+                            <p className="muted-text">{summary.decisionContext}</p>
+                            <p className="muted-text">{summary.packSummary}</p>
                           </Link>
                         );
                       })
