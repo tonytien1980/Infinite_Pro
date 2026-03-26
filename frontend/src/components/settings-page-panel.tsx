@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { buildWorkbenchPreferenceFeedback, persistWorkbenchPreferences } from "@/lib/workbench-persistence";
 import {
   DEFAULT_WORKBENCH_SETTINGS,
   type WorkbenchSettings,
@@ -14,6 +15,7 @@ export function SettingsPagePanel() {
   const [settings, setSettings] = useWorkbenchSettings();
   const [draft, setDraft] = useState<WorkbenchSettings>(settings);
   const [success, setSuccess] = useState<string | null>(null);
+  const [saveMode, setSaveMode] = useState<"remote" | "local-fallback" | null>(null);
 
   useEffect(() => {
     setDraft(settings);
@@ -30,15 +32,31 @@ export function SettingsPagePanel() {
     setSuccess(null);
   }
 
-  function handleSave() {
-    setSettings(draft);
-    setSuccess("設定已套用，並已保存到目前瀏覽器。");
+  async function handleSave() {
+    try {
+      const result = await persistWorkbenchPreferences(draft);
+      setSettings(result.settings);
+      setSaveMode(result.source);
+      setSuccess(buildWorkbenchPreferenceFeedback(result.source));
+    } catch (saveError) {
+      setSaveMode(null);
+      setSuccess(saveError instanceof Error ? saveError.message : "保存設定失敗。");
+    }
   }
 
-  function handleReset() {
+  async function handleReset() {
     setDraft(DEFAULT_WORKBENCH_SETTINGS);
-    setSettings(DEFAULT_WORKBENCH_SETTINGS);
-    setSuccess("已恢復為預設設定。");
+    try {
+      const result = await persistWorkbenchPreferences(DEFAULT_WORKBENCH_SETTINGS);
+      setSettings(result.settings);
+      setSaveMode(result.source);
+      setSuccess(
+        result.source === "remote" ? "已恢復預設設定，並同步寫入正式工作台偏好。" : "已恢復預設設定，並先保存到目前瀏覽器。",
+      );
+    } catch (saveError) {
+      setSaveMode(null);
+      setSuccess(saveError instanceof Error ? saveError.message : "恢復預設設定失敗。");
+    }
   }
 
   return (
@@ -221,7 +239,7 @@ export function SettingsPagePanel() {
               <div className="setting-note-card">
                 <h3>保存方式</h3>
                 <p className="content-block">
-                  這一輪設定先以前端持久化保存到目前瀏覽器，單人版已可穩定使用；未來若接入後端設定檔，可沿用同一組欄位結構。
+                  這一輪已優先把高價值偏好寫入正式 persistence；若後端暫時不可用，才會退回目前瀏覽器作為單人版 fallback。
                 </p>
               </div>
             </div>
@@ -244,6 +262,9 @@ export function SettingsPagePanel() {
               </button>
             </div>
             {success ? <p className="success-text">{success}</p> : null}
+            {saveMode === "local-fallback" ? (
+              <p className="muted-text">目前顯示的是 local fallback 狀態，後續可再嘗試同步正式資料。</p>
+            ) : null}
           </section>
         </div>
       </div>

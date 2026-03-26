@@ -3274,6 +3274,28 @@ def _get_content_record(deliverable: schemas.DeliverableRead) -> dict:
     return deliverable.content_structure if isinstance(deliverable.content_structure, dict) else {}
 
 
+def _coerce_text(value: object) -> str:
+    if isinstance(value, str):
+        return value.strip()
+    if isinstance(value, list):
+        lines = [item.strip() for item in value if isinstance(item, str) and item.strip()]
+        return "\n".join(lines)
+    if isinstance(value, dict):
+        for key in ("summary", "text", "content", "value"):
+            nested = value.get(key)
+            if isinstance(nested, str) and nested.strip():
+                return nested.strip()
+            if isinstance(nested, list):
+                lines = [
+                    item.strip()
+                    for item in nested
+                    if isinstance(item, str) and item.strip()
+                ]
+                if lines:
+                    return "\n".join(lines)
+    return ""
+
+
 def _get_content_string(content: dict, key: str) -> str:
     value = content.get(key)
     return value.strip() if isinstance(value, str) else ""
@@ -3531,6 +3553,97 @@ def update_deliverable_metadata(
     db.commit()
 
     return get_deliverable_workspace(db, deliverable_id)
+
+
+def build_deliverable_markdown_export(
+    db: Session,
+    deliverable_id: str,
+) -> tuple[str, str, str]:
+    workspace = get_deliverable_workspace(db, deliverable_id)
+    deliverable = workspace.deliverable
+    task = workspace.task
+    version_tag = deliverable.version_tag or f"v{deliverable.version}"
+    matter_title = workspace.matter_workspace.title if workspace.matter_workspace else "未掛案件"
+    matter_path = workspace.matter_workspace.object_path if workspace.matter_workspace else "未掛案件"
+    executive_summary = (
+        _coerce_text(_get_content_record(deliverable).get("executive_summary"))
+        or deliverable.summary
+        or deliverable.title
+    )
+
+    def _bullet_lines(items: list[str], empty_text: str) -> list[str]:
+        if not items:
+            return [f"- {empty_text}"]
+        return [f"- {item}" for item in items]
+
+    recommendation_lines = _bullet_lines(
+        [item.summary for item in workspace.linked_recommendations[:8]],
+        "目前沒有額外的建議項目。",
+    )
+    risk_lines = _bullet_lines(
+        [f"{item.title}：{item.description}" for item in workspace.linked_risks[:8]],
+        "目前沒有額外的風險項目。",
+    )
+    action_item_lines = _bullet_lines(
+        [item.description for item in workspace.linked_action_items[:8]],
+        "目前沒有額外的行動項目。",
+    )
+    evidence_lines = _bullet_lines(
+        [
+            f"{item.title}｜{item.source_type or item.evidence_type or 'evidence'}"
+            for item in workspace.linked_evidence[:8]
+        ],
+        "目前沒有額外的依據來源。",
+    )
+    note_lines = _bullet_lines(workspace.continuity_notes[:6], "目前沒有額外的版本備註。")
+
+    content = "\n".join(
+        [
+            f"# {deliverable.title}",
+            "",
+            "## 匯出資訊",
+            f"- 版本：{version_tag}",
+            f"- 狀態：{deliverable.status or 'draft'}",
+            f"- 交付物類型：{deliverable.deliverable_type}",
+            f"- 案件：{matter_title}",
+            f"- 路徑：{matter_path}",
+            f"- 最近更新：{task.updated_at.isoformat()}",
+            "",
+            "## 簡短摘要",
+            executive_summary,
+            "",
+            "## 一句話結論",
+            workspace.confidence_summary,
+            "",
+            "## 建議",
+            *recommendation_lines,
+            "",
+            "## 風險與缺口",
+            *risk_lines,
+            *[
+                f"- 高影響缺口：{item}"
+                for item in workspace.high_impact_gaps[:5]
+            ],
+            "",
+            "## 行動項目",
+            *action_item_lines,
+            "",
+            "## 依據來源",
+            *evidence_lines,
+            "",
+            "## 版本與延續脈絡",
+            *note_lines,
+            "",
+        ]
+    )
+
+    filename_base = re.sub(
+        r"[^a-z0-9]+",
+        "-",
+        f"{deliverable.title}-{version_tag}".lower(),
+    ).strip("-")
+    filename = f"{filename_base or 'deliverable-export'}.md"
+    return filename, content, version_tag
 
 
 def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:

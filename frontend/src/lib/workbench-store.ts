@@ -2,7 +2,21 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import type { AgentCatalogEntry, InputEntryMode, PackCatalogEntry } from "@/lib/types";
+import type {
+  AgentCatalogEntry,
+  DensityPreference,
+  DeliverableSortPreference,
+  HomepageDisplayPreference,
+  PackCatalogEntry,
+  WorkbenchSettings,
+} from "@/lib/types";
+
+export type {
+  DensityPreference,
+  DeliverableSortPreference,
+  HomepageDisplayPreference,
+  WorkbenchSettings,
+} from "@/lib/types";
 
 export type MatterLifecycleStatus = "active" | "paused" | "archived";
 export type DeliverableLifecycleStatus =
@@ -10,23 +24,6 @@ export type DeliverableLifecycleStatus =
   | "pending_confirmation"
   | "final"
   | "archived";
-export type HomepageDisplayPreference = "matters" | "deliverables" | "evidence";
-export type DensityPreference = "standard" | "compact";
-export type DeliverableSortPreference =
-  | "updated_desc"
-  | "title_asc"
-  | "version_desc";
-
-export interface WorkbenchSettings {
-  interfaceLanguage: "zh-Hant" | "en";
-  homepageDisplayPreference: HomepageDisplayPreference;
-  historyDefaultPageSize: number;
-  showRecentActivity: boolean;
-  showFrequentExtensions: boolean;
-  newTaskDefaultInputMode: InputEntryMode;
-  density: DensityPreference;
-  deliverableSortPreference: DeliverableSortPreference;
-}
 
 export interface MatterWorkspaceRecord {
   title: string;

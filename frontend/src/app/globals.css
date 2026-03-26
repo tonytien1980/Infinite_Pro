@@ -436,7 +436,7 @@ button {
 
 .management-card {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .management-card .content-block,
@@ -560,6 +560,29 @@ button {
 .workspace-object-path {
   font-weight: 600;
   color: var(--ink);
+}
+
+.workspace-breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.workspace-breadcrumb-link {
+  color: var(--muted);
+}
+
+.workspace-breadcrumb-separator {
+  opacity: 0.55;
+}
+
+.workspace-breadcrumb-current {
+  color: var(--ink);
+  font-weight: 700;
 }
 
 .workspace-section-intro {

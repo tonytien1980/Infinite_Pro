@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 
+import { hydrateWorkbenchPreferences } from "@/lib/workbench-persistence";
 import { useWorkbenchSettings } from "@/lib/workbench-store";
 
 const PRIMARY_NAV_ITEMS = [
@@ -26,7 +27,33 @@ function isActivePath(pathname: string, href: string) {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const [settings] = useWorkbenchSettings();
+  const [settings, setSettings, hydrated] = useWorkbenchSettings();
+
+  useEffect(() => {
+    if (!hydrated) {
+      return;
+    }
+
+    let cancelled = false;
+
+    void (async () => {
+      const result = await hydrateWorkbenchPreferences();
+      if (cancelled || result.source !== "remote") {
+        return;
+      }
+
+      setSettings((current) => {
+        if (JSON.stringify(current) === JSON.stringify(result.settings)) {
+          return current;
+        }
+        return result.settings;
+      });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hydrated, setSettings]);
 
   useEffect(() => {
     document.documentElement.dataset.density = settings.density;

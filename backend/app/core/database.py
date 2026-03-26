@@ -30,6 +30,24 @@ def initialize_database() -> None:
 
 def _ensure_incremental_schema_updates() -> None:
     schema_patches = {
+        "workbench_preferences": {
+            "interface_language": "VARCHAR(20) NOT NULL DEFAULT 'zh-Hant'",
+            "homepage_display_preference": "VARCHAR(50) NOT NULL DEFAULT 'matters'",
+            "history_default_page_size": "INTEGER NOT NULL DEFAULT 20",
+            "show_recent_activity": "BOOLEAN NOT NULL DEFAULT TRUE",
+            "show_frequent_extensions": "BOOLEAN NOT NULL DEFAULT TRUE",
+            "new_task_default_input_mode": "VARCHAR(50) NOT NULL DEFAULT 'one_line_inquiry'",
+            "density": "VARCHAR(20) NOT NULL DEFAULT 'standard'",
+            "deliverable_sort_preference": "VARCHAR(50) NOT NULL DEFAULT 'updated_desc'",
+        },
+        "workbench_extension_states": {
+            "is_custom": "BOOLEAN NOT NULL DEFAULT FALSE",
+            "payload": "JSON NOT NULL DEFAULT '{}'",
+        },
+        "task_visibility_states": {
+            "visibility_state": "VARCHAR(20) NOT NULL DEFAULT 'visible'",
+            "hidden_at": "DATETIME",
+        },
         "matter_workspaces": {
             "summary": "TEXT NOT NULL DEFAULT ''",
             "status": "VARCHAR(50)",

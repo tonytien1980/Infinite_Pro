@@ -81,6 +81,67 @@ class Task(Base):
     runs: Mapped[list["TaskRun"]] = relationship(back_populates="task", cascade="all, delete-orphan")
 
 
+class WorkbenchPreference(Base):
+    __tablename__ = "workbench_preferences"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    profile_key: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    interface_language: Mapped[str] = mapped_column(String(20), default="zh-Hant")
+    homepage_display_preference: Mapped[str] = mapped_column(String(50), default="matters")
+    history_default_page_size: Mapped[int] = mapped_column(Integer, default=20)
+    show_recent_activity: Mapped[bool] = mapped_column(Boolean, default=True)
+    show_frequent_extensions: Mapped[bool] = mapped_column(Boolean, default=True)
+    new_task_default_input_mode: Mapped[str] = mapped_column(
+        String(50),
+        default="one_line_inquiry",
+    )
+    density: Mapped[str] = mapped_column(String(20), default="standard")
+    deliverable_sort_preference: Mapped[str] = mapped_column(
+        String(50),
+        default="updated_desc",
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+
+class WorkbenchExtensionState(Base):
+    __tablename__ = "workbench_extension_states"
+    __table_args__ = (
+        UniqueConstraint(
+            "profile_key",
+            "extension_kind",
+            "extension_id",
+            name="uq_workbench_extension_state",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    profile_key: Mapped[str] = mapped_column(String(100), nullable=False)
+    extension_kind: Mapped[str] = mapped_column(String(20), nullable=False)
+    extension_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    is_custom: Mapped[bool] = mapped_column(Boolean, default=False)
+    payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+
+class TaskVisibilityState(Base):
+    __tablename__ = "task_visibility_states"
+    __table_args__ = (
+        UniqueConstraint("profile_key", "task_id", name="uq_task_visibility_state"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    profile_key: Mapped[str] = mapped_column(String(100), nullable=False)
+    task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    visibility_state: Mapped[str] = mapped_column(String(20), default="visible")
+    hidden_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+    task: Mapped["Task"] = relationship()
+
+
 class MatterWorkspace(Base):
     __tablename__ = "matter_workspaces"
 

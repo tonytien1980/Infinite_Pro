@@ -269,12 +269,12 @@ export function MattersPagePanel() {
                       </div>
                       <h3>{matter.title}</h3>
                       <p className="workspace-object-path">{matter.objectPath}</p>
-                      <p className="content-block">{truncateText(matter.summary, 116)}</p>
+                      <p className="content-block">{truncateText(matter.summary, 92)}</p>
                       <p className="muted-text">
-                        決策問題：{truncateText(matter.decisionContext, 84)}
+                        決策問題：{truncateText(matter.decisionContext, 72)}
                       </p>
-                      <p className="muted-text">代理：{truncateText(matter.agentSummary, 72)}</p>
-                      <p className="muted-text">模組包：{truncateText(matter.packSummary, 72)}</p>
+                      <p className="muted-text">代理：{truncateText(matter.agentSummary, 56)}</p>
+                      <p className="muted-text">模組包：{truncateText(matter.packSummary, 56)}</p>
                       <div className="meta-row">
                         <span>來源 {matter.sourceCount}</span>
                         <span>證據 {matter.evidenceCount}</span>

@@ -249,8 +249,8 @@ export function DeliverablesPagePanel() {
                   </div>
                   <h3>{item.title}</h3>
                   <p className="workspace-object-path">所屬案件：{item.matterTitle}</p>
-                  <p className="muted-text">決策問題：{truncateText(item.decisionContext, 84)}</p>
-                  <p className="content-block">{truncateText(item.summary, 116)}</p>
+                  <p className="muted-text">決策問題：{truncateText(item.decisionContext, 72)}</p>
+                  <p className="content-block">{truncateText(item.summary, 92)}</p>
                   <div className="button-row" style={{ marginTop: "12px" }}>
                     <Link className="button-secondary" href={`/deliverables/${item.id}`}>
                       打開交付物工作面

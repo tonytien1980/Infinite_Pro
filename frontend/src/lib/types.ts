@@ -21,6 +21,23 @@ export type TaskType =
   | "contract_review"
   | "document_restructuring"
   | "complex_convergence";
+export type HomepageDisplayPreference = "matters" | "deliverables" | "evidence";
+export type DensityPreference = "standard" | "compact";
+export type DeliverableSortPreference =
+  | "updated_desc"
+  | "title_asc"
+  | "version_desc";
+
+export interface WorkbenchSettings {
+  interfaceLanguage: "zh-Hant" | "en";
+  homepageDisplayPreference: HomepageDisplayPreference;
+  historyDefaultPageSize: number;
+  showRecentActivity: boolean;
+  showFrequentExtensions: boolean;
+  newTaskDefaultInputMode: InputEntryMode;
+  density: DensityPreference;
+  deliverableSortPreference: DeliverableSortPreference;
+}
 
 export interface PresenceStateItem {
   state: PresenceState;
@@ -154,6 +171,23 @@ export interface AgentRegistrySnapshot {
 export interface ExtensionManagerSnapshot {
   pack_registry: PackRegistrySnapshot;
   agent_registry: AgentRegistrySnapshot;
+}
+
+export interface HistoryVisibilityState {
+  hidden_task_ids: string[];
+}
+
+export interface HistoryVisibilityUpdatePayload {
+  task_ids: string[];
+  visibility_state: "visible" | "hidden";
+}
+
+export interface AgentCatalogEntryUpdatePayload extends AgentCatalogEntry {
+  is_custom: boolean;
+}
+
+export interface PackCatalogEntryUpdatePayload extends PackCatalogEntry {
+  is_custom: boolean;
 }
 
 export interface MatterWorkspaceSummary {

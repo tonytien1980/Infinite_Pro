@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { getDeliverableWorkspace } from "@/lib/api";
+import { exportDeliverableMarkdown, getDeliverableWorkspace } from "@/lib/api";
 import {
   assessTaskReadiness,
   buildActionItemCards,
@@ -56,6 +56,36 @@ function CompactList({
       ))}
     </ul>
   );
+}
+
+function buildVersionRecordNote(
+  status: DeliverableLifecycleStatus,
+  versionTag: string,
+  title: string,
+) {
+  if (status === "final") {
+    return `發布 ${versionTag} 定稿版｜${title}`;
+  }
+  if (status === "pending_confirmation") {
+    return `送出 ${versionTag} 待確認版｜${title}`;
+  }
+  if (status === "archived") {
+    return `封存 ${versionTag}｜${title}`;
+  }
+  return `更新 ${versionTag} 草稿｜${title}`;
+}
+
+function buildDeliverableStatusHint(status: DeliverableLifecycleStatus) {
+  if (status === "final") {
+    return "這個版本已是可正式匯出與回看的定稿版。";
+  }
+  if (status === "pending_confirmation") {
+    return "這個版本已整理成待確認狀態，適合送審或回到案件內核對。";
+  }
+  if (status === "archived") {
+    return "這個版本目前已封存，主要作為歷史回看與脈絡參照。";
+  }
+  return "這個版本仍在草稿階段，適合繼續修摘要、建議與風險。";
 }
 
 export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: string }) {
@@ -142,14 +172,15 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
     const shouldAddVersion =
       nextVersionTag !== (deliverable.version_tag || `v${deliverable.version}`) ||
       nextTitle !== deliverable.title ||
-      nextSummary !== (deliverable.summary || "");
+      nextSummary !== (deliverable.summary || "") ||
+      draftStatus !== deliverableStatus;
     const nextVersions = shouldAddVersion
       ? [
           {
             id: `${deliverableId}-${timestamp}`,
             versionTag: nextVersionTag,
             timestamp,
-            note: `更新為「${nextTitle}」`,
+            note: buildVersionRecordNote(draftStatus, nextVersionTag, nextTitle),
           },
           ...previousVersions,
         ].slice(0, 12)
@@ -191,44 +222,57 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
     setExportMessage(null);
   }
 
-  function handleExportEntry() {
-    setExportMessage("匯出入口已保留；本輪先完成前端入口與狀態說明，完整檔案輸出仍待後端串接。");
+  async function handleExportEntry() {
+    if (!deliverable || typeof window === "undefined") {
+      return;
+    }
+
+    try {
+      const exportResult = await exportDeliverableMarkdown(deliverableId);
+      const objectUrl = window.URL.createObjectURL(exportResult.blob);
+      const anchor = window.document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = exportResult.fileName;
+      window.document.body.append(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => window.URL.revokeObjectURL(objectUrl), 0);
+      setExportMessage(
+        `已下載 ${exportResult.fileName}；目前先提供 Markdown 匯出，完整 docx / pdf 發布流程仍待後端接手。`,
+      );
+    } catch (exportError) {
+      setExportMessage(
+        exportError instanceof Error ? exportError.message : "匯出交付物失敗。",
+      );
+    }
   }
 
   return (
     <main className="page-shell deliverable-page-shell">
-      <div className="back-link-group deliverable-backtrack">
-        <span className="eyebrow deliverable-backtrack-label">工作鏈返回</span>
-        <div className="deliverable-backtrack-links">
-          <Link className="back-link deliverable-back-link" href="/">
-            ← 返回總覽
-          </Link>
-          <Link className="back-link deliverable-back-link" href="/deliverables">
-            ← 返回交付物
-          </Link>
-          {workspace?.matter_workspace ? (
+      <nav className="workspace-breadcrumb" aria-label="工作面層級">
+        <Link className="workspace-breadcrumb-link" href="/">
+          總覽
+        </Link>
+        <span className="workspace-breadcrumb-separator">/</span>
+        <Link className="workspace-breadcrumb-link" href="/deliverables">
+          交付物
+        </Link>
+        {workspace?.matter_workspace ? (
+          <>
+            <span className="workspace-breadcrumb-separator">/</span>
             <Link
-              className="back-link deliverable-back-link"
+              className="workspace-breadcrumb-link"
               href={`/matters/${workspace.matter_workspace.id}`}
             >
-              ← 返回案件工作面
+              {workspace.matter_workspace.title}
             </Link>
-          ) : null}
-          {task ? (
-            <Link className="back-link deliverable-back-link" href={`/tasks/${task.id}`}>
-              ← 返回來源工作紀錄
-            </Link>
-          ) : null}
-          {workspace?.matter_workspace ? (
-            <Link
-              className="back-link deliverable-back-link"
-              href={`/matters/${workspace.matter_workspace.id}/evidence`}
-            >
-              ← 返回來源 / 證據工作面
-            </Link>
-          ) : null}
-        </div>
-      </div>
+          </>
+        ) : null}
+        <span className="workspace-breadcrumb-separator">/</span>
+        <span className="workspace-breadcrumb-current">
+          {displayTitle || workspace?.deliverable.title || "交付物工作面"}
+        </span>
+      </nav>
 
       {loading ? <p className="status-text">正在載入交付物工作面...</p> : null}
       {error ? <p className="error-text">{error}</p> : null}
@@ -292,6 +336,28 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
               </div>
 
               <aside className="deliverable-hero-rail">
+                <div className="section-card deliverable-rail-card">
+                  <h4>目前檢視版本</h4>
+                  <div className="detail-list">
+                    <div className="detail-item">
+                      <h3>版本 / 狀態</h3>
+                      <p className="content-block">
+                        {versionTag}｜{labelForDeliverableStatus(deliverableStatus)}
+                      </p>
+                    </div>
+                    <div className="detail-item">
+                      <h3>所屬案件</h3>
+                      <p className="content-block">
+                        {workspace.matter_workspace?.title || task.engagement?.name || "未掛案件"}
+                      </p>
+                    </div>
+                    <div className="detail-item">
+                      <h3>版本說明</h3>
+                      <p className="content-block">{buildDeliverableStatusHint(deliverableStatus)}</p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="section-card deliverable-rail-card">
                   <h4>工作面快讀</h4>
                   <div className="deliverable-metric-grid">
@@ -375,10 +441,23 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
             <div className="panel-header">
               <div>
                 <h2 className="panel-title">交付物管理</h2>
-                <p className="panel-copy">先把標題、狀態與版本標記整理乾淨，再繼續修摘要、風險與行動項目。</p>
+                <p className="panel-copy">先把標題、版本與發布狀態整理乾淨，再繼續修摘要、建議、風險與行動項目。</p>
               </div>
             </div>
             <div className="form-grid">
+              <div className="summary-grid">
+                <div className="section-card">
+                  <h4>目前版本</h4>
+                  <p className="content-block">{versionTag}</p>
+                  <p className="muted-text">{workspace.is_latest_for_task ? "這是目前 task 最新版本。" : "這份交付物已不是最新版本。"}</p>
+                </div>
+                <div className="section-card">
+                  <h4>發布狀態</h4>
+                  <p className="content-block">{labelForDeliverableStatus(deliverableStatus)}</p>
+                  <p className="muted-text">{buildDeliverableStatusHint(deliverableStatus)}</p>
+                </div>
+              </div>
+
               <div className="field-grid">
                 <div className="field">
                   <label htmlFor="deliverable-title">交付物標題</label>
@@ -418,6 +497,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                     <option value="final">定稿</option>
                     <option value="archived">封存</option>
                   </select>
+                  <small>草稿 → 待確認 → 定稿 → 封存，讓版本標記與發布狀態保持一致。</small>
                 </div>
                 <div className="field">
                   <label htmlFor="deliverable-version-tag">版本標記</label>
@@ -450,11 +530,58 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
               </div>
 
               <div className="button-row">
+                <button
+                  className="button-secondary"
+                  type="button"
+                  onClick={() => {
+                    setDraftStatus("draft");
+                    setSaveMessage(null);
+                    setExportMessage(null);
+                  }}
+                >
+                  標記為草稿
+                </button>
+                <button
+                  className="button-secondary"
+                  type="button"
+                  onClick={() => {
+                    setDraftStatus("pending_confirmation");
+                    setSaveMessage(null);
+                    setExportMessage(null);
+                  }}
+                >
+                  送往待確認
+                </button>
+                <button
+                  className="button-secondary"
+                  type="button"
+                  onClick={() => {
+                    setDraftStatus("final");
+                    setSaveMessage(null);
+                    setExportMessage(null);
+                  }}
+                >
+                  標記為定稿
+                </button>
+                <button
+                  className="button-secondary"
+                  type="button"
+                  onClick={() => {
+                    setDraftStatus("archived");
+                    setSaveMessage(null);
+                    setExportMessage(null);
+                  }}
+                >
+                  封存版本
+                </button>
+              </div>
+
+              <div className="button-row">
                 <button className="button-primary" type="button" onClick={handleSaveMetadata}>
                   儲存交付物資訊
                 </button>
                 <button className="button-secondary" type="button" onClick={handleExportEntry}>
-                  匯出入口
+                  匯出 Markdown
                 </button>
               </div>
               {saveMessage ? <p className="success-text">{saveMessage}</p> : null}
@@ -807,7 +934,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                 <div className="panel-header">
                   <div>
                     <h2 className="panel-title">版本紀錄</h2>
-                    <p className="panel-copy">先保留最小可用的版本管理與編修痕跡，完整匯出與版本發布流程留待後端接手。</p>
+                    <p className="panel-copy">目前會保留狀態切換與版本標記的編修痕跡；匯出先提供 Markdown，完整 docx / pdf 發布流程仍待後端接手。</p>
                   </div>
                 </div>
                 <div className="detail-list">

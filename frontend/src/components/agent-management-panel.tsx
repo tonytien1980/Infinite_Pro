@@ -3,6 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { getExtensionManager, listTasks } from "@/lib/api";
+import {
+  applyAgentFallbackState,
+  buildAgentPersistenceFeedback,
+  clearLocalAgentEntry,
+  persistAgentCatalogEntry,
+} from "@/lib/workbench-persistence";
+import { truncateText } from "@/lib/text-format";
 import type { AgentCatalogEntry, ExtensionManagerSnapshot, TaskListItem } from "@/lib/types";
 import {
   labelForAgentType,
@@ -138,10 +145,13 @@ export function AgentManagementPanel() {
 
   const hostCount = managedAgents.filter((agent) => agent.agent_type === "host").length;
   const activeCount = managedAgents.filter((agent) => agent.status === "active").length;
+  const editingAgent =
+    editingAgentId ? managedAgents.find((agent) => agent.agent_id === editingAgentId) ?? null : null;
+  const editingSystemHost = editingAgent?.agent_type === "host" && editingAgent.source === "system";
 
   function startCreate() {
     setEditingAgentId(null);
-    setDraft(buildDraft());
+    setDraft(buildDraft({ agent_type: "specialist" } as AgentCatalogEntry));
     setSaveMessage(null);
   }
 
@@ -151,7 +161,7 @@ export function AgentManagementPanel() {
     setSaveMessage(null);
   }
 
-  function handleSave() {
+  async function handleSave() {
     const payload: AgentCatalogEntry = {
       agent_id: editingAgentId ?? createLocalId("local-agent"),
       agent_name: draft.agent_name.trim(),
@@ -169,67 +179,59 @@ export function AgentManagementPanel() {
       return;
     }
 
-    setAgentState((current) => {
-      const isSystemAgent = snapshot?.agent_registry.agents.some(
-        (agent) => agent.agent_id === payload.agent_id,
-      );
+    if (!editingAgentId && payload.agent_type === "host") {
+      setSaveMessage("Host 代理維持系統協調中心，本輪不新增第二個 Host。");
+      return;
+    }
 
-      if (isSystemAgent) {
-        return {
-          ...current,
-          overrides: {
-            ...current.overrides,
-            [payload.agent_id]: payload,
-          },
-        };
-      }
+    const isSystemAgent = snapshot?.agent_registry.agents.some(
+      (agent) => agent.agent_id === payload.agent_id,
+    ) ?? false;
+    try {
+      const result = await persistAgentCatalogEntry(payload, !isSystemAgent);
 
-      const existingIndex = current.customAgents.findIndex(
-        (agent) => agent.agent_id === payload.agent_id,
-      );
-      const nextCustomAgents = [...current.customAgents];
-
-      if (existingIndex >= 0) {
-        nextCustomAgents[existingIndex] = payload;
+      if (result.source === "remote") {
+        setSnapshot(result.snapshot);
+        setAgentState((current) => clearLocalAgentEntry(current, payload.agent_id));
       } else {
-        nextCustomAgents.unshift(payload);
+        setAgentState((current) => applyAgentFallbackState(current, payload, isSystemAgent));
       }
 
-      return {
-        ...current,
-        customAgents: nextCustomAgents,
-      };
-    });
-
-    setEditingAgentId(payload.agent_id);
-    setSaveMessage("代理設定已更新。");
+      setEditingAgentId(payload.agent_id);
+      setSaveMessage(buildAgentPersistenceFeedback(result.source, payload.agent_name));
+    } catch (saveError) {
+      setSaveMessage(saveError instanceof Error ? saveError.message : "保存代理失敗。");
+    }
   }
 
-  function handleToggle(agent: AgentCatalogEntry & { source: "system" | "local" }) {
+  async function handleToggle(agent: AgentCatalogEntry & { source: "system" | "local" }) {
+    if (agent.agent_type === "host") {
+      setSaveMessage("Host 代理維持正式協調中心，本輪不提供停用。");
+      return;
+    }
+
     const nextStatus = agent.status === "active" ? "inactive" : "active";
     const nextPayload = {
       ...agent,
       status: nextStatus,
     };
 
-    setAgentState((current) => {
-      if (agent.source === "system") {
-        return {
-          ...current,
-          overrides: {
-            ...current.overrides,
-            [agent.agent_id]: nextPayload,
-          },
-        };
+    try {
+      const result = await persistAgentCatalogEntry(nextPayload, agent.source === "local");
+
+      if (result.source === "remote") {
+        setSnapshot(result.snapshot);
+        setAgentState((current) => clearLocalAgentEntry(current, agent.agent_id));
+      } else {
+        setAgentState((current) =>
+          applyAgentFallbackState(current, nextPayload, agent.source === "system"),
+        );
       }
 
-      return {
-        ...current,
-        customAgents: current.customAgents.map((item) =>
-          item.agent_id === agent.agent_id ? nextPayload : item,
-        ),
-      };
-    });
+      setSaveMessage(buildAgentPersistenceFeedback(result.source, nextPayload.agent_name));
+    } catch (saveError) {
+      setSaveMessage(saveError instanceof Error ? saveError.message : "更新代理狀態失敗。");
+    }
   }
 
   return (
@@ -325,7 +327,7 @@ export function AgentManagementPanel() {
                         <span>{agent.source === "local" ? "自訂代理" : "系統代理"}</span>
                       </div>
                       <h3>{agent.agent_name}</h3>
-                      <p className="content-block">{agent.description}</p>
+                      <p className="content-block">{truncateText(agent.description, 98)}</p>
                       <p className="muted-text">
                         適用工作類型：
                         {agent.supported_capabilities.length > 0
@@ -354,9 +356,14 @@ export function AgentManagementPanel() {
                         <button
                           className="button-secondary"
                           type="button"
+                          disabled={agent.agent_type === "host"}
                           onClick={() => handleToggle(agent)}
                         >
-                          {agent.status === "active" ? "停用" : "啟用"}
+                          {agent.agent_type === "host"
+                            ? "Host 固定啟用"
+                            : agent.status === "active"
+                              ? "停用"
+                              : "啟用"}
                         </button>
                       </div>
                     </article>
@@ -373,7 +380,7 @@ export function AgentManagementPanel() {
               <div className="panel-header">
                 <div>
                   <h2 className="panel-title">{editingAgentId ? "編輯代理" : "新增代理"}</h2>
-                  <p className="panel-copy">這一輪先站穩單人版可管理能力，版本與狀態會保存到目前瀏覽器。</p>
+                  <p className="panel-copy">版本、狀態與常改欄位會優先寫入正式 persistence；只有後端暫時不可用時才退回本機 fallback。</p>
                 </div>
               </div>
 
@@ -394,11 +401,12 @@ export function AgentManagementPanel() {
                   <select
                     id="agent-type"
                     value={draft.agent_type}
+                    disabled={editingSystemHost}
                     onChange={(event) =>
                       setDraft((current) => ({ ...current, agent_type: event.target.value }))
                     }
                   >
-                    <option value="host">Host 代理</option>
+                    {editingSystemHost ? <option value="host">Host 代理</option> : null}
                     <option value="reasoning">推理代理</option>
                     <option value="specialist">專家代理</option>
                   </select>
@@ -420,12 +428,13 @@ export function AgentManagementPanel() {
                   <select
                     id="agent-status"
                     value={draft.status}
+                    disabled={editingSystemHost}
                     onChange={(event) =>
                       setDraft((current) => ({ ...current, status: event.target.value }))
                     }
                   >
                     <option value="active">啟用中</option>
-                    <option value="inactive">停用中</option>
+                    {!editingSystemHost ? <option value="inactive">停用中</option> : null}
                     <option value="draft">草稿</option>
                   </select>
                 </div>
@@ -463,6 +472,9 @@ export function AgentManagementPanel() {
                   </button>
                 </div>
                 {saveMessage ? <p className="success-text">{saveMessage}</p> : null}
+                {editingSystemHost ? (
+                  <p className="muted-text">Host 代理維持唯一正式協調中心，本輪只允許更新說明與版本，不允許停用或改型別。</p>
+                ) : null}
               </div>
             </section>
           </div>

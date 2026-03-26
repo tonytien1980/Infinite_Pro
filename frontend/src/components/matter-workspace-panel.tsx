@@ -205,19 +205,17 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
 
   return (
     <main className="page-shell">
-      <div className="back-link-group">
-        <Link className="back-link" href="/">
-          ← 返回總覽
+      <nav className="workspace-breadcrumb" aria-label="工作面層級">
+        <Link className="workspace-breadcrumb-link" href="/">
+          總覽
         </Link>
-        <Link className="back-link" href="/matters">
-          ← 返回案件工作台
+        <span className="workspace-breadcrumb-separator">/</span>
+        <Link className="workspace-breadcrumb-link" href="/matters">
+          案件工作台
         </Link>
-        {latestDeliverable ? (
-          <Link className="back-link" href={`/deliverables/${latestDeliverable.deliverable_id}`}>
-            ← 最近交付物
-          </Link>
-        ) : null}
-      </div>
+        <span className="workspace-breadcrumb-separator">/</span>
+        <span className="workspace-breadcrumb-current">{displayTitle || "案件工作面"}</span>
+      </nav>
 
       {loading ? <p className="status-text">正在載入案件工作台...</p> : null}
       {error ? <p className="error-text">{error}</p> : null}
@@ -229,7 +227,8 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
               <div className="workspace-hero-main">
                 <span className="eyebrow">案件工作台</span>
                 <h1 className="page-title">{displayTitle}</h1>
-                <p className="page-subtitle">先掌握這個案件現在是什麼、正在處理什麼，再決定下一步要進證據、交付物還是工作紀錄。</p>
+                <p className="page-subtitle">先掌握案件現在狀態、主線與下一步，再決定往哪個工作面深入。</p>
+                <p className="workspace-object-path">{matter.summary.object_path}</p>
                 <div className="meta-row" style={{ marginTop: "16px" }}>
                   <span className="pill">{labelForMatterStatus(matterStatus)}</span>
                   <span>更新於 {formatDisplayDate(fallbackRecord?.updatedAt || matter.summary.latest_updated_at)}</span>
@@ -240,17 +239,20 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
                 </div>
 
                 <div className="deliverable-focus-card workspace-focus-card">
-                  <span className="pill">目前正在處理</span>
+                  <span className="pill">目前主線</span>
                   <p className="deliverable-focus-lead">
                     {matter.current_decision_context?.judgment_to_make ||
                       matter.current_decision_context?.title ||
                       matter.summary.current_decision_context_title ||
                       "目前尚未形成清楚的決策問題。"}
                   </p>
-                  <p className="muted-text">{truncateText(displaySummary, 180)}</p>
                 </div>
 
                 <div className="summary-grid" style={{ marginTop: "16px" }}>
+                  <div className="section-card">
+                    <h4>案件現在狀態</h4>
+                    <p className="content-block">{truncateText(displaySummary, 140)}</p>
+                  </div>
                   <div className="section-card">
                     <h4>分析焦點</h4>
                     {analysisFocus.length > 0 ? (
@@ -306,7 +308,7 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
                 </div>
 
                 <div className="section-card">
-                  <h4>快速入口</h4>
+                  <h4>下一步入口</h4>
                   <div className="button-row">
                     <Link className="button-secondary" href={`/matters/${matterId}/evidence`}>
                       來源與證據
@@ -323,11 +325,6 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
                         查看交付物
                       </Link>
                     )}
-                    {recentTask ? (
-                      <Link className="button-secondary" href={`/tasks/${recentTask.id}`}>
-                        最近工作紀錄
-                      </Link>
-                    ) : null}
                   </div>
                 </div>
 
@@ -736,7 +733,7 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
                   <div className="panel-header">
                     <div>
                       <h2 className="panel-title">工作紀錄</h2>
-                      <p className="panel-copy">案件 detail 只保留高度相關的近端紀錄，完整整理仍回到歷史紀錄頁。</p>
+                      <p className="panel-copy">這裡只保留案件內高度相關的近端活動摘要，完整整理仍回到歷史紀錄頁。</p>
                     </div>
                     <Link className="button-secondary" href="/history">
                       查看全部歷史紀錄

@@ -3,6 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { getExtensionManager, listTasks } from "@/lib/api";
+import {
+  applyPackFallbackState,
+  buildPackPersistenceFeedback,
+  clearLocalPackEntry,
+  persistPackCatalogEntry,
+} from "@/lib/workbench-persistence";
 import type { ExtensionManagerSnapshot, PackCatalogEntry, TaskListItem } from "@/lib/types";
 import {
   labelForExtensionStatus,
@@ -139,7 +145,7 @@ export function PackManagementPanel() {
     setSaveMessage(null);
   }
 
-  function handleSave() {
+  async function handleSave() {
     const payload: PackCatalogEntry = {
       pack_id: editingPackId ?? createLocalId("local-pack"),
       pack_type: draft.pack_type,
@@ -161,64 +167,49 @@ export function PackManagementPanel() {
       return;
     }
 
-    setPackState((current) => {
-      const isSystemPack = snapshot?.pack_registry.packs.some((pack) => pack.pack_id === payload.pack_id);
+    const isSystemPack =
+      snapshot?.pack_registry.packs.some((pack) => pack.pack_id === payload.pack_id) ?? false;
+    try {
+      const result = await persistPackCatalogEntry(payload, !isSystemPack);
 
-      if (isSystemPack) {
-        return {
-          ...current,
-          overrides: {
-            ...current.overrides,
-            [payload.pack_id]: payload,
-          },
-        };
-      }
-
-      const existingIndex = current.customPacks.findIndex((pack) => pack.pack_id === payload.pack_id);
-      const nextCustomPacks = [...current.customPacks];
-
-      if (existingIndex >= 0) {
-        nextCustomPacks[existingIndex] = payload;
+      if (result.source === "remote") {
+        setSnapshot(result.snapshot);
+        setPackState((current) => clearLocalPackEntry(current, payload.pack_id));
       } else {
-        nextCustomPacks.unshift(payload);
+        setPackState((current) => applyPackFallbackState(current, payload, isSystemPack));
       }
 
-      return {
-        ...current,
-        customPacks: nextCustomPacks,
-      };
-    });
-
-    setEditingPackId(payload.pack_id);
-    setActiveTab(draft.pack_type);
-    setSaveMessage("模組包設定已更新。");
+      setEditingPackId(payload.pack_id);
+      setActiveTab(draft.pack_type);
+      setSaveMessage(buildPackPersistenceFeedback(result.source, payload.pack_name));
+    } catch (saveError) {
+      setSaveMessage(saveError instanceof Error ? saveError.message : "保存模組包失敗。");
+    }
   }
 
-  function handleToggle(pack: PackCatalogEntry & { source: "system" | "local" }) {
+  async function handleToggle(pack: PackCatalogEntry & { source: "system" | "local" }) {
     const nextStatus = pack.status === "active" ? "inactive" : "active";
     const nextPayload = {
       ...pack,
       status: nextStatus,
     };
 
-    setPackState((current) => {
-      if (pack.source === "system") {
-        return {
-          ...current,
-          overrides: {
-            ...current.overrides,
-            [pack.pack_id]: nextPayload,
-          },
-        };
+    try {
+      const result = await persistPackCatalogEntry(nextPayload, pack.source === "local");
+
+      if (result.source === "remote") {
+        setSnapshot(result.snapshot);
+        setPackState((current) => clearLocalPackEntry(current, pack.pack_id));
+      } else {
+        setPackState((current) =>
+          applyPackFallbackState(current, nextPayload, pack.source === "system"),
+        );
       }
 
-      return {
-        ...current,
-        customPacks: current.customPacks.map((item) =>
-          item.pack_id === pack.pack_id ? nextPayload : item,
-        ),
-      };
-    });
+      setSaveMessage(buildPackPersistenceFeedback(result.source, nextPayload.pack_name));
+    } catch (saveError) {
+      setSaveMessage(saveError instanceof Error ? saveError.message : "更新模組包狀態失敗。");
+    }
   }
 
   return (
@@ -376,7 +367,7 @@ export function PackManagementPanel() {
               <div className="panel-header">
                 <div>
                   <h2 className="panel-title">{editingPackId ? "編輯模組包" : "新增模組包"}</h2>
-                  <p className="panel-copy">這一輪先完成單人版可管理能力，狀態與版本會先保存到目前瀏覽器。</p>
+                  <p className="panel-copy">分類、版本與常改欄位會優先寫入正式 persistence；只有後端暫時不可用時才退回本機 fallback。</p>
                 </div>
               </div>
 

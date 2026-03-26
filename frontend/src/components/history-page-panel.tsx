@@ -5,6 +5,13 @@ import { useEffect, useMemo, useState } from "react";
 
 import { buildTaskListWorkspaceSummary } from "@/lib/advisory-workflow";
 import { listTasks } from "@/lib/api";
+import {
+  applyHistoryFallbackState,
+  buildHistoryVisibilityFeedback,
+  hydrateHistoryVisibility,
+  persistHistoryVisibility,
+  syncHistoryStateFromRemote,
+} from "@/lib/workbench-persistence";
 import { truncateText } from "@/lib/text-format";
 import type { TaskListItem } from "@/lib/types";
 import {
@@ -33,6 +40,7 @@ export function HistoryPagePanel() {
   const [pageSize, setPageSize] = useState(settings.historyDefaultPageSize);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [historyMessage, setHistoryMessage] = useState<string | null>(null);
 
   useEffect(() => {
     setPageSize(settings.historyDefaultPageSize);
@@ -42,7 +50,14 @@ export function HistoryPagePanel() {
     try {
       setLoading(true);
       setError(null);
-      setTasks(await listTasks());
+      const [taskResponse, visibilityResponse] = await Promise.all([
+        listTasks(),
+        hydrateHistoryVisibility(),
+      ]);
+      setTasks(taskResponse);
+      if (visibilityResponse.source === "remote") {
+        setHistoryState((current) => syncHistoryStateFromRemote(current, visibilityResponse.state));
+      }
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "載入歷史紀錄失敗。");
     } finally {
@@ -122,22 +137,38 @@ export function HistoryPagePanel() {
     );
   }
 
-  function hideTasks(taskIds: string[]) {
+  async function hideTasks(taskIds: string[], visibilityState: "hidden" | "visible" = "hidden") {
     if (taskIds.length === 0) {
       return;
     }
 
-    setHistoryState((current) => ({
-      ...current,
-      hiddenTaskIds: Array.from(new Set([...current.hiddenTaskIds, ...taskIds])),
-    }));
+    try {
+      const result = await persistHistoryVisibility(taskIds, visibilityState);
+      if (result.source === "remote") {
+        const nextState = syncHistoryStateFromRemote(historyState, result.state);
+        setHistoryState(nextState);
+        setHistoryMessage(
+          buildHistoryVisibilityFeedback(result.source, nextState.hiddenTaskIds.length),
+        );
+      } else {
+        const nextState = applyHistoryFallbackState(historyState, taskIds, visibilityState);
+        setHistoryState(nextState);
+        setHistoryMessage(
+          buildHistoryVisibilityFeedback(result.source, nextState.hiddenTaskIds.length),
+        );
+      }
+    } catch (visibilityError) {
+      setHistoryMessage(
+        visibilityError instanceof Error ? visibilityError.message : "更新歷史可見性失敗。",
+      );
+    }
     setSelectedIds((current) => current.filter((id) => !taskIds.includes(id)));
   }
 
-  function handleClearAll() {
+  async function handleClearAll() {
     if (typeof window !== "undefined") {
       const confirmed = window.confirm(
-        "這會把目前所有歷史紀錄先從前端工作台隱藏，確定要繼續嗎？",
+        "這會把目前所有歷史入口標記為隱藏，不會硬刪除正式工作紀錄，確定要繼續嗎？",
       );
 
       if (!confirmed) {
@@ -145,7 +176,7 @@ export function HistoryPagePanel() {
       }
     }
 
-    hideTasks(tasks.map((task) => task.id));
+    await hideTasks(tasks.map((task) => task.id));
   }
 
   return (
@@ -154,7 +185,7 @@ export function HistoryPagePanel() {
         <span className="eyebrow">歷史紀錄</span>
         <h1 className="page-title">歷史紀錄</h1>
         <p className="page-subtitle">查找、整理並收納工作歷史，快速找回某段案件脈絡。</p>
-        <div className="workbench-overview-grid" style={{ marginTop: "20px" }}>
+          <div className="workbench-overview-grid" style={{ marginTop: "20px" }}>
           <div className="section-card">
             <h3>可回看紀錄</h3>
             <p className="workbench-metric">{visibleTasks.length}</p>
@@ -163,7 +194,7 @@ export function HistoryPagePanel() {
           <div className="section-card">
             <h3>已隱藏</h3>
             <p className="workbench-metric">{historyState.hiddenTaskIds.length}</p>
-            <p className="muted-text">這一輪先以前端隱藏方式清理歷史。</p>
+            <p className="muted-text">已正式記錄為 soft-hide，不做硬刪除。</p>
           </div>
           <div className="section-card">
             <h3>案件數</h3>
@@ -267,7 +298,7 @@ export function HistoryPagePanel() {
             <button
               className="button-secondary"
               type="button"
-              onClick={() => hideTasks(selectedIds)}
+              onClick={() => void hideTasks(selectedIds)}
               disabled={selectedIds.length === 0}
             >
               隱藏已選項目
@@ -275,15 +306,16 @@ export function HistoryPagePanel() {
             <button
               className="button-secondary"
               type="button"
-              onClick={() => hideTasks(pagedTasks.map((task) => task.id))}
+              onClick={() => void hideTasks(pagedTasks.map((task) => task.id))}
               disabled={pagedTasks.length === 0}
             >
               清理本頁
             </button>
-            <button className="button-secondary" type="button" onClick={handleClearAll}>
+            <button className="button-secondary" type="button" onClick={() => void handleClearAll()}>
               清空全部歷史入口
             </button>
           </div>
+          {historyMessage ? <p className="success-text">{historyMessage}</p> : null}
 
           <div className="meta-row" style={{ marginTop: "12px" }}>
             <span>目前顯示 {filteredTasks.length} 筆</span>
@@ -314,9 +346,9 @@ export function HistoryPagePanel() {
                     <p className="workspace-object-path">{summary.objectPath}</p>
                     <p className="muted-text">案件：{task.matter_workspace?.title || "未掛案件"}</p>
                     <p className="muted-text">
-                      決策問題：{truncateText(summary.decisionContext, 84)}
+                      決策問題：{truncateText(summary.decisionContext, 72)}
                     </p>
-                    <p className="content-block">{truncateText(task.description, 118)}</p>
+                    <p className="content-block">{truncateText(task.description, 90)}</p>
                     <div className="button-row" style={{ marginTop: "12px" }}>
                       <Link className="button-secondary" href={`/tasks/${task.id}`}>
                         打開工作紀錄
@@ -332,7 +364,7 @@ export function HistoryPagePanel() {
                       <button
                         className="button-secondary"
                         type="button"
-                        onClick={() => hideTasks([task.id])}
+                        onClick={() => void hideTasks([task.id])}
                       >
                         隱藏這筆
                       </button>
