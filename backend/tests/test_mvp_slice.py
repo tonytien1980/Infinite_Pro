@@ -1778,3 +1778,94 @@ def test_openai_provider_parses_structured_response(
 
     assert result.findings == ["Finding one"]
     assert result.recommendations == ["Recommendation one"]
+
+
+def test_openai_provider_retries_once_after_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.model_router import openai_provider
+    from app.model_router.base import ResearchSynthesisRequest
+    from app.model_router.openai_provider import OpenAIModelProvider
+
+    class FakeResponse:
+        def __init__(self, payload: dict):
+            self.payload = payload
+
+        def read(self) -> bytes:
+            return json.dumps(self.payload).encode("utf-8")
+
+        def __enter__(self):  # noqa: ANN204
+            return self
+
+        def __exit__(self, exc_type, exc, tb):  # noqa: ANN001, ANN204
+            return False
+
+    attempts: list[int] = []
+
+    def fake_urlopen(http_request, timeout):  # noqa: ANN001
+        attempts.append(timeout)
+        if len(attempts) == 1:
+            raise TimeoutError("The read operation timed out")
+        return FakeResponse(
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "content": json.dumps(
+                                {
+                                    "problem_definition": "Retry test",
+                                    "background_summary": "Retried successfully",
+                                    "findings": ["Recovered finding"],
+                                    "risks": ["Recovered risk"],
+                                    "recommendations": ["Recovered recommendation"],
+                                    "action_items": ["Recovered action"],
+                                    "missing_information": [],
+                                }
+                            )
+                        }
+                    }
+                ]
+            }
+        )
+
+    monkeypatch.setattr(openai_provider.request, "urlopen", fake_urlopen)
+    provider = OpenAIModelProvider(
+        api_key="test-key",
+        model="gpt-5.4",
+        base_url="https://api.openai.com/v1",
+        timeout_seconds=60,
+    )
+
+    result = provider.generate_research_synthesis(
+        ResearchSynthesisRequest(
+            task_title="Retry timeout task",
+            task_description="Retry timeout description",
+            background_text="Background",
+            goals=["Goal"],
+            constraints=["Constraint"],
+            evidence=[{"id": "e1", "title": "Evidence", "content": "Useful evidence"}],
+        )
+    )
+
+    assert attempts == [60, 120]
+    assert result.findings == ["Recovered finding"]
+
+
+def test_specialist_run_fails_closed_when_model_provider_errors(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    payload = create_task_payload("Provider failure should fail closed")
+    payload["external_data_strategy"] = "strict"
+    task = client.post("/api/v1/tasks", json=payload).json()
+    monkeypatch.setenv("MODEL_PROVIDER_FAILURE_MODE", "always_fail")
+
+    response = client.post(f"/api/v1/tasks/{task['id']}/run")
+
+    assert response.status_code == 503
+    assert "Mock 模型供應器的失敗模式目前已啟用" in response.json()["detail"]
+
+    refreshed = client.get(f"/api/v1/tasks/{task['id']}").json()
+    assert refreshed["status"] == "failed"
+    assert refreshed["runs"][0]["status"] == "failed"
+    assert refreshed["deliverables"] == []

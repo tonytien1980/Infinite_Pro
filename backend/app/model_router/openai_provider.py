@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import socket
 from typing import Any
 from urllib import error, request
 
@@ -22,6 +23,18 @@ from app.model_router.structured_tasks import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _is_timeout_error(exc: BaseException) -> bool:
+    if isinstance(exc, (TimeoutError, socket.timeout)):
+        return True
+    if isinstance(exc, error.URLError):
+        reason = getattr(exc, "reason", exc)
+        if isinstance(reason, (TimeoutError, socket.timeout)):
+            return True
+        if isinstance(reason, str) and "timed out" in reason.lower():
+            return True
+    return "timed out" in str(exc).lower()
 
 
 def _extract_message_content(response_payload: dict[str, Any]) -> str:
@@ -98,21 +111,54 @@ class OpenAIModelProvider(ModelProvider):
             method="POST",
         )
 
-        try:
-            with request.urlopen(http_request, timeout=self.timeout_seconds) as response:
-                raw_payload = json.loads(response.read().decode("utf-8"))
-        except error.HTTPError as exc:
+        timeout_attempts = [self.timeout_seconds]
+        retry_timeout_seconds = max(self.timeout_seconds * 2, self.timeout_seconds + 60, 120)
+        if retry_timeout_seconds > self.timeout_seconds:
+            timeout_attempts.append(retry_timeout_seconds)
+
+        raw_payload: dict[str, Any] | None = None
+        for attempt_index, timeout_seconds in enumerate(timeout_attempts, start=1):
             try:
-                error_body = exc.read().decode("utf-8")
-            except Exception:  # noqa: BLE001
-                error_body = ""
-            raise ModelProviderError(
-                f"OpenAI provider 回傳 HTTP {exc.code}：{error_body or exc.reason}"
-            ) from exc
-        except error.URLError as exc:
-            raise ModelProviderError(f"OpenAI provider 連線失敗：{exc.reason}") from exc
-        except json.JSONDecodeError as exc:
-            raise ModelProviderError("OpenAI provider 回傳了無效 JSON。") from exc
+                with request.urlopen(http_request, timeout=timeout_seconds) as response:
+                    raw_payload = json.loads(response.read().decode("utf-8"))
+                break
+            except error.HTTPError as exc:
+                try:
+                    error_body = exc.read().decode("utf-8")
+                except Exception:  # noqa: BLE001
+                    error_body = ""
+                raise ModelProviderError(
+                    f"OpenAI provider 回傳 HTTP {exc.code}：{error_body or exc.reason}"
+                ) from exc
+            except error.URLError as exc:
+                if _is_timeout_error(exc) and attempt_index < len(timeout_attempts):
+                    logger.warning(
+                        "OpenAI provider timed out for schema=%s on attempt=%s timeout=%ss; retrying with timeout=%ss",
+                        spec.schema_name,
+                        attempt_index,
+                        timeout_seconds,
+                        timeout_attempts[attempt_index],
+                    )
+                    continue
+                if _is_timeout_error(exc):
+                    raise ModelProviderError(f"OpenAI provider 請求逾時：{exc.reason}") from exc
+                raise ModelProviderError(f"OpenAI provider 連線失敗：{exc.reason}") from exc
+            except (TimeoutError, socket.timeout) as exc:
+                if attempt_index < len(timeout_attempts):
+                    logger.warning(
+                        "OpenAI provider timed out for schema=%s on attempt=%s timeout=%ss; retrying with timeout=%ss",
+                        spec.schema_name,
+                        attempt_index,
+                        timeout_seconds,
+                        timeout_attempts[attempt_index],
+                    )
+                    continue
+                raise ModelProviderError(f"OpenAI provider 請求逾時：{exc}") from exc
+            except json.JSONDecodeError as exc:
+                raise ModelProviderError("OpenAI provider 回傳了無效 JSON。") from exc
+
+        if raw_payload is None:
+            raise ModelProviderError("OpenAI provider 沒有回傳可用結果。")
 
         try:
             parsed = json.loads(_extract_message_content(raw_payload))

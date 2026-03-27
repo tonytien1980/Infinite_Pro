@@ -127,6 +127,11 @@ matter local fallback 至少應有以下狀態：
 - 使用者可重試
 - 不得在本機製造「看起來像已正式發布」的假資料
 
+若 task / specialist / model router 在正式執行期間失敗：
+- 該次 run 應標示為失敗
+- task 不應被寫成 completed
+- 不應為了掩蓋 provider timeout / runtime error 而自動產出看起來像正式完成的降級交付物
+
 ### 4.2 正式發布與正式匯出
 deliverable 正式發布至少要留下：
 - deliverable id

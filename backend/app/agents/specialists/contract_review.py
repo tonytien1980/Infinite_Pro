@@ -111,30 +111,23 @@ class ContractReviewAgent(SpecialistAgent):
                 usable_evidence_count=0,
             )
 
-        try:
-            review = self.model_provider.generate_contract_review(
-                ContractReviewRequest(
-                    task_title=payload.title,
-                    task_description=payload.description,
-                    background_text=payload.background_text,
-                    goals=[goal.description for goal in payload.goals],
-                    constraints=[constraint.description for constraint in payload.constraints],
-                    evidence=[
-                        {
-                            "id": evidence.id,
-                            "title": evidence.title,
-                            "content": evidence.excerpt_or_summary,
-                        }
-                        for evidence in usable_evidence
-                    ],
-                )
+        review = self.model_provider.generate_contract_review(
+            ContractReviewRequest(
+                task_title=payload.title,
+                task_description=payload.description,
+                background_text=payload.background_text,
+                goals=[goal.description for goal in payload.goals],
+                constraints=[constraint.description for constraint in payload.constraints],
+                evidence=[
+                    {
+                        "id": evidence.id,
+                        "title": evidence.title,
+                        "content": evidence.excerpt_or_summary,
+                    }
+                    for evidence in usable_evidence
+                ],
             )
-        except Exception as exc:
-            return self._fallback_result(
-                payload,
-                reason=f"模型路由失敗：{exc}",
-                usable_evidence_count=len(usable_evidence),
-            )
+        )
 
         evidence_refs = [item.id for item in usable_evidence][:4]
         risks = [
