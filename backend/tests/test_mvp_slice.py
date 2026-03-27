@@ -1687,7 +1687,7 @@ def test_factory_returns_openai_provider_when_configured(
 
     monkeypatch.setattr(settings, "model_provider", "openai")
     monkeypatch.setattr(settings, "openai_api_key", "test-key")
-    monkeypatch.setattr(settings, "openai_model", "gpt-4o-mini")
+    monkeypatch.setattr(settings, "openai_model", "gpt-5.4")
     monkeypatch.setattr(settings, "openai_base_url", "https://api.openai.com/v1")
     monkeypatch.setattr(settings, "openai_timeout_seconds", 30)
 
@@ -1696,19 +1696,18 @@ def test_factory_returns_openai_provider_when_configured(
     assert isinstance(provider, OpenAIModelProvider)
 
 
-def test_factory_falls_back_to_mock_when_openai_key_is_missing(
+def test_factory_raises_when_openai_key_is_missing(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from app.core.config import settings
     from app.model_router.factory import get_model_provider
-    from app.model_router.mock import MockModelProvider
+    from app.model_router.base import ModelProviderError
 
     monkeypatch.setattr(settings, "model_provider", "openai")
     monkeypatch.setattr(settings, "openai_api_key", None)
 
-    provider = get_model_provider()
-
-    assert isinstance(provider, MockModelProvider)
+    with pytest.raises(ModelProviderError):
+        get_model_provider()
 
 
 def test_openai_provider_parses_structured_response(
@@ -1733,7 +1732,7 @@ def test_openai_provider_parses_structured_response(
 
     def fake_urlopen(http_request, timeout):  # noqa: ANN001
         request_body = json.loads(http_request.data.decode("utf-8"))
-        assert request_body["model"] == "gpt-4o-mini"
+        assert request_body["model"] == "gpt-5.4-mini"
         assert request_body["response_format"]["json_schema"]["name"] == "research_synthesis_output"
         assert timeout == 15
         return FakeResponse(
@@ -1761,7 +1760,7 @@ def test_openai_provider_parses_structured_response(
     monkeypatch.setattr(openai_provider.request, "urlopen", fake_urlopen)
     provider = OpenAIModelProvider(
         api_key="test-key",
-        model="gpt-4o-mini",
+        model="gpt-5.4-mini",
         base_url="https://api.openai.com/v1",
         timeout_seconds=15,
     )

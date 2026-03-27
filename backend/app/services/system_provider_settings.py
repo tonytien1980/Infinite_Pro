@@ -280,18 +280,33 @@ def _classify_http_error(
     return "unknown_error", f"供應商回傳 HTTP {status_code}。"
 
 
+def _anthropic_messages_endpoint(base_url: str) -> str:
+    normalized = base_url.rstrip("/")
+    if normalized.endswith("/messages"):
+        return normalized
+    return f"{normalized}/messages"
+
+
+def _gemini_generate_content_endpoint(base_url: str, model_id: str) -> str:
+    normalized = base_url.rstrip("/")
+    sanitized_model = model_id.removeprefix("models/")
+    return f"{normalized}/models/{sanitized_model}:generateContent"
+
+
 def _validate_openai_compatible_provider(
     *,
     api_key: str,
     base_url: str,
     model_id: str,
     timeout_seconds: int,
+    token_field: str = "max_tokens",
+    token_value: int = 16,
 ) -> tuple[schemas.ProviderValidationStatus, str, str]:
     payload = {
         "model": model_id,
         "messages": [{"role": "user", "content": "ping"}],
-        "max_tokens": 1,
     }
+    payload[token_field] = token_value
     http_request = request.Request(
         f"{base_url.rstrip('/')}/chat/completions",
         data=json.dumps(payload).encode("utf-8"),
@@ -329,6 +344,104 @@ def _validate_openai_compatible_provider(
         return "unknown_error", "發生未預期錯誤，請檢查詳細訊息。", str(exc)
 
 
+def _validate_anthropic_native_provider(
+    *,
+    api_key: str,
+    base_url: str,
+    model_id: str,
+    timeout_seconds: int,
+) -> tuple[schemas.ProviderValidationStatus, str, str]:
+    payload = {
+        "model": model_id,
+        "max_tokens": 1,
+        "messages": [{"role": "user", "content": "ping"}],
+    }
+    http_request = request.Request(
+        _anthropic_messages_endpoint(base_url),
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "x-api-key": api_key,
+            "anthropic-version": "2023-06-01",
+        },
+        method="POST",
+    )
+
+    try:
+        with request.urlopen(http_request, timeout=timeout_seconds) as response:
+            raw_payload = json.loads(response.read().decode("utf-8"))
+        content = raw_payload.get("content")
+        if not isinstance(content, list):
+            return "unknown_error", "Anthropic 回傳格式不符合預期。", json.dumps(raw_payload)[:500]
+        return "success", "測試連線成功，key、Base URL 與 model 目前可用。", ""
+    except error.HTTPError as exc:
+        try:
+            body = exc.read().decode("utf-8")
+        except Exception:  # noqa: BLE001
+            body = exc.reason if isinstance(exc.reason, str) else ""
+        status, message = _classify_http_error(exc.code, body)
+        return status, message, body[:800]
+    except error.URLError as exc:
+        reason = getattr(exc, "reason", exc)
+        if isinstance(reason, socket.timeout):
+            return "timeout", "請求逾時，供應商在限定時間內沒有回應。", str(reason)
+        return "base_url_unreachable", "Base URL 無法連線，請確認 endpoint 與網路狀態。", str(reason)
+    except TimeoutError as exc:
+        return "timeout", "請求逾時，供應商在限定時間內沒有回應。", str(exc)
+    except json.JSONDecodeError as exc:
+        return "unknown_error", "供應商回傳了無法解析的資料。", str(exc)
+    except Exception as exc:  # noqa: BLE001
+        return "unknown_error", "發生未預期錯誤，請檢查詳細訊息。", str(exc)
+
+
+def _validate_gemini_native_provider(
+    *,
+    api_key: str,
+    base_url: str,
+    model_id: str,
+    timeout_seconds: int,
+) -> tuple[schemas.ProviderValidationStatus, str, str]:
+    payload = {
+        "contents": [{"role": "user", "parts": [{"text": "ping"}]}],
+        "generationConfig": {"maxOutputTokens": 1},
+    }
+    http_request = request.Request(
+        _gemini_generate_content_endpoint(base_url, model_id),
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "x-goog-api-key": api_key,
+        },
+        method="POST",
+    )
+
+    try:
+        with request.urlopen(http_request, timeout=timeout_seconds) as response:
+            raw_payload = json.loads(response.read().decode("utf-8"))
+        candidates = raw_payload.get("candidates")
+        if not isinstance(candidates, list):
+            return "unknown_error", "Gemini 回傳格式不符合預期。", json.dumps(raw_payload)[:500]
+        return "success", "測試連線成功，key、Base URL 與 model 目前可用。", ""
+    except error.HTTPError as exc:
+        try:
+            body = exc.read().decode("utf-8")
+        except Exception:  # noqa: BLE001
+            body = exc.reason if isinstance(exc.reason, str) else ""
+        status, message = _classify_http_error(exc.code, body)
+        return status, message, body[:800]
+    except error.URLError as exc:
+        reason = getattr(exc, "reason", exc)
+        if isinstance(reason, socket.timeout):
+            return "timeout", "請求逾時，供應商在限定時間內沒有回應。", str(reason)
+        return "base_url_unreachable", "Base URL 無法連線，請確認 endpoint 與網路狀態。", str(reason)
+    except TimeoutError as exc:
+        return "timeout", "請求逾時，供應商在限定時間內沒有回應。", str(exc)
+    except json.JSONDecodeError as exc:
+        return "unknown_error", "供應商回傳了無法解析的資料。", str(exc)
+    except Exception as exc:  # noqa: BLE001
+        return "unknown_error", "發生未預期錯誤，請檢查詳細訊息。", str(exc)
+
+
 def validate_system_provider_settings(
     db: Session,
     payload: schemas.SystemProviderSettingsValidateRequest,
@@ -336,9 +449,6 @@ def validate_system_provider_settings(
     preset = get_provider_preset(payload.provider_id)
     if preset is None:
         raise HTTPException(status_code=400, detail="目前不支援指定的供應商。")
-
-    if preset.adapter_kind != "openai_compatible":
-        raise HTTPException(status_code=400, detail="目前不支援此供應商的正式驗證路徑。")
 
     api_key = _resolve_secret_for_payload(db, payload)
     actual_model_id, _ = _get_effective_model_id(
@@ -349,12 +459,37 @@ def validate_system_provider_settings(
     )
     base_url = (payload.base_url.strip() or preset.default_base_url).rstrip("/")
     timeout_seconds = payload.timeout_seconds or preset.default_timeout_seconds
-    validation_status, message, detail = _validate_openai_compatible_provider(
-        api_key=api_key,
-        base_url=base_url,
-        model_id=actual_model_id,
-        timeout_seconds=timeout_seconds,
-    )
+    if preset.adapter_kind == "openai_native":
+        validation_status, message, detail = _validate_openai_compatible_provider(
+            api_key=api_key,
+            base_url=base_url,
+            model_id=actual_model_id,
+            timeout_seconds=timeout_seconds,
+            token_field="max_completion_tokens",
+        )
+    elif preset.adapter_kind == "openai_compatible":
+        validation_status, message, detail = _validate_openai_compatible_provider(
+            api_key=api_key,
+            base_url=base_url,
+            model_id=actual_model_id,
+            timeout_seconds=timeout_seconds,
+        )
+    elif preset.adapter_kind == "anthropic_native":
+        validation_status, message, detail = _validate_anthropic_native_provider(
+            api_key=api_key,
+            base_url=base_url,
+            model_id=actual_model_id,
+            timeout_seconds=timeout_seconds,
+        )
+    elif preset.adapter_kind == "gemini_native":
+        validation_status, message, detail = _validate_gemini_native_provider(
+            api_key=api_key,
+            base_url=base_url,
+            model_id=actual_model_id,
+            timeout_seconds=timeout_seconds,
+        )
+    else:
+        raise HTTPException(status_code=400, detail="目前不支援此供應商的正式驗證路徑。")
 
     return schemas.ProviderValidationResponse(
         provider_id=payload.provider_id,

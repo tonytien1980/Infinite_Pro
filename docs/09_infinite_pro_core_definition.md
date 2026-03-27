@@ -414,6 +414,8 @@ Infinite Pro 不應退化成：
 - base URL
 - timeout
 - runtime config source（DB / env）
+- backend-maintained provider preset 與 model mapping
+- native provider route 或 compatibility route 的正式選擇
 
 若後續調整這一層，應同步查看：
 

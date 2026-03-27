@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     model_provider_base_url: str | None = None
     model_provider_timeout_seconds: int | None = None
     openai_api_key: str | None = None
-    openai_model: str = "gpt-4o-mini"
+    openai_model: str = "gpt-5.4"
     openai_base_url: str = "https://api.openai.com/v1"
     openai_timeout_seconds: int = 60
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"

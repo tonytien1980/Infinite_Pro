@@ -138,6 +138,7 @@ Infinite Pro 的正式第一層主導覽應為：
    - 正式設定頁
    - 單人版主要承接個人設定、預設偏好、模型與系統層設定
    - `模型與服務設定` 應作為正式區塊存在，承接單一 active provider config，而不是把 credential 分散在開發說明或 `.env` 提示裡
+   - provider、模型層級、實際 model id、base URL 與 timeout 應由 backend preset 自動帶入合理預設，不應讓使用者從空白開始猜
    - 它不是 enterprise admin console
    - provider / credential / runtime precedence 的正式 backend 邊界應回到 `docs/13_system_provider_settings_and_credentials.md`
 

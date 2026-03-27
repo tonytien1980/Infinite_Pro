@@ -229,6 +229,12 @@ The repository currently contains a working early implementation slice within th
 - Markdown and DOCX artifact export with backend artifact records
 - system-level provider settings UI with single active runtime config, backend credential storage, validation, and `DB -> env` precedence
 - provider abstraction with `mock` env baseline plus first-wave provider presets for `openai / anthropic / gemini / xai / minimax`
+- latest provider presets aligned to current official model families:
+  - OpenAI: `gpt-5.4 / gpt-5.4-mini / gpt-5.4-nano`
+  - Anthropic native Claude API: `claude-opus-4-6 / claude-sonnet-4-6 / claude-haiku-4-5`
+  - Gemini native API: `gemini-2.5-pro / gemini-2.5-flash / gemini-2.5-flash-lite`
+  - xAI compatibility path: `grok-4.20-reasoning / grok-4-1-fast-reasoning / grok-4-1-fast-non-reasoning`
+  - MiniMax compatibility path: `MiniMax-M2.7 / MiniMax-M2.7-highspeed / MiniMax-M2.1`
 - Traditional Chinese as the default UI language
 
 The implementation is **not yet complete relative to the full-scope product boundary**. That gap should be understood as an implementation-order gap inside a full-scope architecture, not as a smaller product definition.
@@ -272,7 +278,7 @@ Copy [`.env.example`](/Users/tonytien/Desktop/Infinite%20Pro/.env.example) to `.
 | `MODEL_PROVIDER_BASE_URL` | Generic env baseline base URL | empty |
 | `MODEL_PROVIDER_TIMEOUT_SECONDS` | Generic env baseline timeout in seconds | empty |
 | `OPENAI_API_KEY` | Legacy OpenAI env baseline key for backward compatibility when `MODEL_PROVIDER=openai` | empty |
-| `OPENAI_MODEL` | Legacy OpenAI env baseline model for backward compatibility | `gpt-4o-mini` |
+| `OPENAI_MODEL` | Legacy OpenAI env baseline model for backward compatibility | `gpt-5.4` |
 | `OPENAI_BASE_URL` | Legacy OpenAI env baseline base URL for backward compatibility | `https://api.openai.com/v1` |
 | `OPENAI_TIMEOUT_SECONDS` | Legacy OpenAI env baseline timeout for backward compatibility | `60` |
 | `MODEL_PROVIDER_FAILURE_MODE` | Optional test-only failure switch for the mock provider | empty |
@@ -298,14 +304,15 @@ Notes:
 - System-level owner settings page can now persist one active provider config at a time.
 - First-wave selectable providers in `/settings`: `openai`, `anthropic`, `gemini`, `xai`, `minimax`
 - Verified runtime path today: `openai`
-- Beta compatibility path today: `anthropic`, `gemini`, `xai`, `minimax`
+- Native beta runtime path today: `anthropic`, `gemini`
+- Compatibility beta runtime path today: `xai`, `minimax`
 
 If you want to bootstrap from `.env`, you can still do:
 
 ```env
 MODEL_PROVIDER=openai
 MODEL_PROVIDER_API_KEY=your_real_key_here
-MODEL_PROVIDER_MODEL=gpt-4.1-mini
+MODEL_PROVIDER_MODEL=gpt-5.4-mini
 ```
 
 OpenAI legacy env keys also still work for backward compatibility:
@@ -313,7 +320,7 @@ OpenAI legacy env keys also still work for backward compatibility:
 ```env
 MODEL_PROVIDER=openai
 OPENAI_API_KEY=your_real_key_here
-OPENAI_MODEL=gpt-4o-mini
+OPENAI_MODEL=gpt-5.4
 ```
 
 If you want to stay on the deterministic local env baseline router:
@@ -327,6 +334,10 @@ Formal rules:
 - credentials are stored backend-side and masked in the UI
 - saving or validating provider settings is fail-closed
 - frontend never calls third-party model providers directly
+- `openai` uses the official OpenAI API path
+- `anthropic` uses the native Claude Messages API path, with the preset default base URL pointed at the Messages API endpoint
+- `gemini` uses the native Gemini API path, with the preset default base URL pointed at the native Gemini API root
+- `xai` and `minimax` currently remain on officially documented compatibility paths
 
 ## Local startup
 

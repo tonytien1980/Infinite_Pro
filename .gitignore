@@ -15,6 +15,10 @@ frontend/.turbo/
 
 storage/uploads/*
 !storage/uploads/.gitkeep
+storage/derived/*
+!storage/derived/.gitkeep
+storage/releases/*
+!storage/releases/.gitkeep
 
 backend/.ruff_cache/
 backend/.pytest_cache/

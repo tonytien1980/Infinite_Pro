@@ -227,19 +227,68 @@
 - `openai`
   - backend validator 正式接通
   - runtime path 為正式主路徑
+  - 官方 OpenAI API 路徑
+  - 推薦模型：
+    - `gpt-5.4`
+    - `gpt-5.4-mini`
+    - `gpt-5.4-nano`
 
-### 11.2 Beta compatibility path
+### 11.2 Native beta runtime path
 
 - `anthropic`
 - `gemini`
+
+目前狀態：
+
+- `anthropic` 走原生 Claude Messages API
+- `gemini` 走原生 Gemini API
+- UI / preset / backend validation path / backend runtime path 都已成立
+- 目前仍應誠實標示為 beta，直到對應 provider 在正式環境完成 end-to-end runtime 驗證
+
+目前建議模型：
+
+- `anthropic`
+  - `claude-opus-4-6`
+  - `claude-sonnet-4-6`
+  - `claude-haiku-4-5`
+- `gemini`
+  - `gemini-2.5-pro`
+  - `gemini-2.5-flash`
+  - `gemini-2.5-flash-lite`
+
+### 11.3 Compatibility beta runtime path
+
 - `xai`
 - `minimax`
 
 目前狀態：
 
 - UI / preset / backend validation path 已成立
-- runtime path 依 OpenAI-compatible provider boundary 接入
+- runtime path 依官方文件可用的相容路徑接入
+- `xai` 目前走官方 OpenAI-compatible 路徑
+- `minimax` 目前走官方 OpenAI-compatible 路徑
 - 但在目前單人 beta 文件中，仍應誠實標記為 beta 相容路徑，而非宣稱每一家都已 production-verified
+
+目前建議模型：
+
+- `xai`
+  - `grok-4.20-reasoning`
+  - `grok-4-1-fast-reasoning`
+  - `grok-4-1-fast-non-reasoning`
+- `minimax`
+  - `MiniMax-M2.7`
+  - `MiniMax-M2.7-highspeed`
+  - `MiniMax-M2.1`
+
+### 11.4 Provider preset 的正式規則
+
+- provider preset 與 model level mapping 必須由 backend 維護
+- OpenAI 使用官方 OpenAI API
+- Anthropic / Gemini 優先使用官方原生 API
+- xAI / MiniMax 目前維持官方相容 API 路徑
+- `anthropic` 的預設 Base URL 應直接對齊 Claude Messages API
+- `gemini` 的預設 Base URL 應對齊 Gemini 原生 API root，再由 backend 補完整模型 action endpoint
+- 若某家 provider 的最新型號尚未被官方 API 文件明確列出，不應硬寫進正式 preset
 
 ---
 

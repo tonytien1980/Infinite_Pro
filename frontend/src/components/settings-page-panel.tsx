@@ -78,6 +78,21 @@ function labelForProviderSource(config: CurrentProviderConfig | null) {
   return config.source === "runtime_config" ? "正式 runtime config" : "env baseline";
 }
 
+function labelForProviderRuntimeSupport(
+  preset: SystemProviderSettingsSnapshot["presets"][number] | null,
+) {
+  if (!preset) {
+    return "未指定";
+  }
+  if (preset.runtimeSupportLevel === "verified") {
+    return "正式可用";
+  }
+  if (preset.adapterKind === "anthropic_native" || preset.adapterKind === "gemini_native") {
+    return "beta 原生路徑";
+  }
+  return "beta 相容路徑";
+}
+
 function buildProviderDraft(
   snapshot: SystemProviderSettingsSnapshot | null,
 ): ProviderDraft {
@@ -674,9 +689,7 @@ export function SettingsPagePanel() {
                         <strong>{getProviderPreset(providerDraft.providerId)?.displayName || providerDraft.providerId}</strong>
                         <p className="muted-text">
                           runtime 支援層級：
-                          {getProviderPreset(providerDraft.providerId)?.runtimeSupportLevel === "verified"
-                            ? "正式可用"
-                            : "beta 相容路徑"}
+                          {labelForProviderRuntimeSupport(getProviderPreset(providerDraft.providerId))}
                         </p>
                       </div>
                       <div className="section-card">

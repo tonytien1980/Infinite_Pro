@@ -4,7 +4,7 @@
 >
 > 本文件用於正式定義 **Infinite Pro** 在單人正式 beta 階段的正文 persistence、revision history、rollback、deliverable version events、publish / artifact records、fail-closed 邊界，以及 matter degraded mode / re-sync 流程。若後續調整 `revision / rollback / publish / artifact registry / fallback / degraded mode / sync recovery`，應優先同步更新本文件。
 
-若後續調整的是 system-level provider settings、credential storage、active runtime config、provider validation 或 env precedence，則應改以 `docs/13_system_provider_settings_and_credentials.md` 為 primary guide，並同步檢查本文件中的 fail-closed 邊界是否仍一致。
+若後續調整的是 system-level provider settings、credential storage、active runtime config、provider validation、native / compatibility provider adapter 或 env precedence，則應改以 `docs/13_system_provider_settings_and_credentials.md` 為 primary guide，並同步檢查本文件中的 fail-closed 邊界是否仍一致。
 
 ---
 

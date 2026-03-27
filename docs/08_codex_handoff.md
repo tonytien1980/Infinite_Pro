@@ -345,6 +345,10 @@ Codex 應把 Infinite Pro 視為：
 - backend persisted runtime config
 - `DB runtime config -> env baseline` precedence
 - backend-side credential storage 與 validation
+- backend-maintained provider preset 與 model level mapping
+- OpenAI 官方 API 路徑
+- Anthropic / Gemini 原生 API 路徑
+- xAI / MiniMax 官方相容 API 路徑
 
 正式規則：
 
@@ -352,6 +356,7 @@ Codex 應把 Infinite Pro 視為：
 - 目前不做多人 / per-user / org / tenant credential scope
 - frontend 不能直接呼叫 provider
 - Host / agent / deliverable runtime path 仍必須透過 internal router / provider abstraction
+- provider preset 的最新官方模型映射與 native / compatibility adapter 選擇，應由 backend 集中維護
 
 若後續調整 provider preset、credential 邊界、驗證流程、env precedence 或 settings page 正式責任，應同步查看：
 
