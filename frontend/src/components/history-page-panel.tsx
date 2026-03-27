@@ -128,6 +128,21 @@ export function HistoryPagePanel() {
 
   const totalPages = Math.max(1, Math.ceil(filteredTasks.length / pageSize));
   const pagedTasks = filteredTasks.slice((page - 1) * pageSize, page * pageSize);
+  const historyActionTitle =
+    selectedIds.length > 0 ? "你已選取歷史紀錄，可以直接整理" : "先縮小範圍，再決定是否整理";
+  const historyActionSummary =
+    selectedIds.length > 0
+      ? "這一頁的主操作是整理與收納歷史入口，而不是推進案件主線。你已經選了紀錄，可以直接做批次清理。"
+      : "先用搜尋與篩選把範圍縮小，再決定要打開原始工作紀錄，或把不需要的入口收起來。";
+  const historyActionChecklist = [
+    "先確認你現在是在回看歷史，還是在試圖推進主線；若要推進主線，應回案件或交付物工作面。",
+    selectedIds.length > 0
+      ? `目前已選取 ${selectedIds.length} 筆紀錄，可直接做批次隱藏。`
+      : "目前尚未選取任何紀錄；若你只是要找資料，先搜尋與篩選會比直接逐頁翻更快。",
+    filteredTasks.length > 0
+      ? `目前篩出 ${filteredTasks.length} 筆紀錄，正在看第 ${page} / ${totalPages} 頁。`
+      : "目前沒有符合條件的歷史紀錄，可先調整搜尋或篩選條件。",
+  ];
 
   function toggleSelection(taskId: string) {
     setSelectedIds((current) =>
@@ -213,6 +228,21 @@ export function HistoryPagePanel() {
             <div>
               <h2 className="panel-title">歷史整理工具</h2>
               <p className="panel-copy">先用搜尋與篩選縮小範圍，再決定要隱藏單筆、批次清理或打開原始工作紀錄。</p>
+            </div>
+          </div>
+
+          <div className="summary-grid">
+            <div className="section-card">
+              <h4>{historyActionTitle}</h4>
+              <p className="content-block">{historyActionSummary}</p>
+            </div>
+            <div className="section-card">
+              <h4>目前可操作範圍</h4>
+              <ul className="list-content">
+                {historyActionChecklist.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
             </div>
           </div>
 

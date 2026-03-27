@@ -20,19 +20,23 @@ Before making any structural, product, ontology, agent, or UI decisions, read th
 4. `docs/03_system_overview.md`
 5. `docs/09_infinite_pro_core_definition.md`
 6. `docs/10_frontend_information_architecture_and_ux_principles.md`
-7. `docs/04_ontology_core.md`
-8. `docs/05_agent_architecture.md`
-9. `docs/06_system_architecture.md`
-10. `docs/07_implementation_order.md`
-11. `docs/08_codex_handoff.md`
-12. `docs/11_intake_storage_architecture.md` when touching intake, source materials, storage, retention, purge, or artifact file lifecycle
-13. `docs/12_runtime_persistence_and_release_integrity.md` when touching revision, rollback, publish, artifact registry, fallback, degraded mode, or sync recovery
-14. `docs/13_system_provider_settings_and_credentials.md` when touching system provider settings, model runtime config, credential storage, provider validation, or env precedence
+7. `docs/14_workbench_ui_ux_operating_principles.md` when touching UI 操作邏輯、資訊密度、primary action、progressive disclosure、detail workspace hierarchy
+8. `docs/15_page_level_ui_inventory_and_flow_rules.md` when touching page-level first-screen content, page roles, page transitions, or cross-page action flow
+9. `docs/04_ontology_core.md`
+10. `docs/05_agent_architecture.md`
+11. `docs/06_system_architecture.md`
+12. `docs/07_implementation_order.md`
+13. `docs/08_codex_handoff.md`
+14. `docs/11_intake_storage_architecture.md` when touching intake, source materials, storage, retention, purge, or artifact file lifecycle
+15. `docs/12_runtime_persistence_and_release_integrity.md` when touching revision, rollback, publish, artifact registry, fallback, degraded mode, or sync recovery
+16. `docs/13_system_provider_settings_and_credentials.md` when touching system provider settings, model runtime config, credential storage, provider validation, or env precedence
 
 If implementation ideas conflict with the documents, prefer the documents over assumptions.
 
 If naming, product positioning, ontology modeling, or product drift questions appear, treat `docs/09_infinite_pro_core_definition.md` as a high-priority guide.
 If homepage, navigation, workspace surface, management surface, history page, or Traditional Chinese UI copy decisions appear, treat `docs/10_frontend_information_architecture_and_ux_principles.md` as the primary governance guide.
+If page-level 操作邏輯、資訊密度、使用者下一步導引、primary action hierarchy、progressive disclosure 或 detail workspace readability questions appear, treat `docs/14_workbench_ui_ux_operating_principles.md` as the primary governance guide.
+If要判斷某一頁面第一屏應顯示什麼、主按鈕是什麼、哪些資訊要延後揭露、或哪個工作面要接回哪個頁面, treat `docs/15_page_level_ui_inventory_and_flow_rules.md` as the primary governance guide.
 If intake modes, source material ingestion, storage boundaries, retention, or purge lifecycle questions appear, treat `docs/11_intake_storage_architecture.md` as the primary governance guide.
 If正文 persistence、revision、rollback、publish / artifact record、fail-closed、degraded mode、re-sync 邊界 questions appear, treat `docs/12_runtime_persistence_and_release_integrity.md` as the primary governance guide.
 If系統級 provider 設定、credential storage、active runtime config、provider validation、env precedence questions appear, treat `docs/13_system_provider_settings_and_credentials.md` as the primary governance guide.

@@ -54,6 +54,7 @@ import {
   labelForTaskType,
   translateStructuredValue,
 } from "@/lib/ui-labels";
+import { WorkspaceSectionGuide } from "@/components/workspace-section-guide";
 
 function buildRunMeta(task: TaskAggregate) {
   return {
@@ -216,16 +217,18 @@ function ModeSectionList({
 }
 
 function DisclosurePanel({
+  id,
   title,
   description,
   children,
 }: {
+  id?: string;
   title: string;
   description: string;
   children: ReactNode;
 }) {
   return (
-    <details className="panel disclosure-panel">
+    <details className="panel disclosure-panel" id={id}>
       <summary className="disclosure-summary">
         <div>
           <h2 className="section-title">{title}</h2>
@@ -437,6 +440,69 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
         task?.external_data_strategy !== "strict"),
   );
   const hasSystemTrace = Boolean(task?.runs.length || task?.evidence.length || latestDeliverable);
+  const hasThinTaskEvidence = Boolean(
+    task && task.evidence.length < 2 && task.source_materials.length < 2,
+  );
+  const taskActionTitle = latestDeliverable
+    ? "這筆工作已有可回看的正式交付物"
+    : hasThinTaskEvidence
+      ? "先補資料，或直接先跑第一版"
+      : "這筆工作可以直接執行分析";
+  const taskActionSummary = latestDeliverable
+    ? "你現在可以直接打開交付物工作面，也可以先回看來源 / 證據與執行框架，再決定要不要重跑。"
+    : hasThinTaskEvidence
+      ? "目前資料仍偏薄，但不用卡住。你可以先補來源與證據，或直接讓 Host 先產出一版可回看的工作成果。"
+      : "這筆工作已具備基本資料厚度，現在最有效率的做法是直接執行分析，再回到交付物工作面整理版本。";
+  const taskActionChecklist = [
+    "先確認上方的原始問題與決策問題是否對準你現在真正要判斷的事。",
+    hasThinTaskEvidence
+      ? "如果你手上有文件、網址或摘要，先補到來源 / 證據工作面；如果沒有，也可以直接先跑第一版。"
+      : "目前資料已達基本可運作狀態，執行分析會比繼續空看頁面更有幫助。",
+    latestDeliverable
+      ? `最新結果已整理成「${latestDeliverable.title}」，可以直接進入正式交付物工作面。`
+      : "真正會產出結果的是這頁的執行分析，不是只停在閱讀摘要。",
+  ];
+  const taskSectionGuideItems = task
+    ? [
+        {
+          href: "#decision-context",
+          eyebrow: "先對齊判斷",
+          title: "原始問題與決策問題",
+          copy: "先確認這輪到底要判斷什麼，避免把後面的摘要與建議看成另一個問題的答案。",
+          meta: taskFraming?.analysisFocus || "先對齊這輪工作真正的主問題。",
+          tone: "accent" as const,
+        },
+        {
+          href: "#readiness-governance",
+          eyebrow: "先看能不能跑",
+          title: "可信度與資料缺口",
+          copy: "確認目前資料厚度、主要缺口與執行風險，再決定是先補件還是直接跑。",
+          meta: readinessGovernance?.summary || "先判斷這輪工作的就緒度。",
+          tone:
+            readinessGovernance?.level === "degraded" || hasThinTaskEvidence
+              ? ("warm" as const)
+              : ("default" as const),
+        },
+        {
+          href: "#deliverable-surface",
+          eyebrow: "先看結果",
+          title: latestDeliverable ? "正式交付結果" : "結果會寫到哪裡",
+          copy: latestDeliverable
+            ? "這裡是最接近正式顧問交付物的閱讀主線，先看結論、建議與風險。"
+            : "執行分析後，結果會先寫回這個交付結果區，再往正式交付物工作面延伸。",
+          meta: latestDeliverable ? latestDeliverable.title : "目前尚未形成正式交付物。",
+          tone: "accent" as const,
+        },
+        {
+          href: "#workspace-lane",
+          eyebrow: "要補資料時",
+          title: "工作鏈與來源 / 證據",
+          copy: "當你想確認這輪憑什麼得出結論，或需要補件時，這裡是回到證據主鏈的入口。",
+          meta: `${task.source_materials.length} 份來源材料 / ${task.evidence.length} 則證據`,
+          tone: "default" as const,
+        },
+      ]
+    : [];
 
   return (
     <main className="page-shell">
@@ -471,27 +537,66 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
               <span>{labelForFlowMode(task.mode)}</span>
               <span>更新於 {formatDisplayDate(task.updated_at)}</span>
             </div>
-            {matterWorkspaceCard ? (
-              <div className="matter-hero-strip">
-                <div>
-                  <span className="pill">案件工作台</span>
-                  <p className="workspace-object-path" style={{ marginTop: "10px" }}>
-                    {matterWorkspaceCard.objectPath}
-                  </p>
-                  <p className="muted-text">{matterWorkspaceCard.continuity}</p>
-                </div>
-                <Link className="button-secondary matter-hero-link" href={`/matters/${task.matter_workspace?.id}`}>
-                  進入案件工作面
-                </Link>
-              </div>
-            ) : null}
           </section>
 
+          <section className="panel">
+            <div className="panel-header">
+              <div>
+                <h2 className="panel-title">{taskActionTitle}</h2>
+                <p className="panel-copy">{taskActionSummary}</p>
+              </div>
+            </div>
+            <div className="meta-row" style={{ marginTop: "4px" }}>
+              <span>{labelForTaskStatus(task.status)}｜{labelForFlowMode(task.mode)}</span>
+              <span>{task.source_materials.length} 份來源材料／{task.evidence.length} 則證據</span>
+              <span>{latestDeliverable ? "已形成正式交付物" : "尚未形成正式交付物"}</span>
+              {matterWorkspaceCard ? <span>{matterWorkspaceCard.objectPath}</span> : null}
+            </div>
+            <ul className="list-content" style={{ marginTop: "16px" }}>
+              {taskActionChecklist.slice(0, 2).map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+            <div className="button-row" style={{ marginTop: "16px" }}>
+              {latestDeliverable ? (
+                <Link className="button-primary" href={`/deliverables/${latestDeliverable.id}`}>
+                  打開正式交付物
+                </Link>
+              ) : (
+                <button
+                  className="button-primary"
+                  type="button"
+                  onClick={handleRun}
+                  disabled={running}
+                >
+                  {running ? runMeta?.buttonRunning ?? "執行中..." : runMeta?.buttonIdle}
+                </button>
+              )}
+              {task.matter_workspace ? (
+                <Link
+                  className="button-secondary"
+                  href={`/matters/${task.matter_workspace.id}/evidence`}
+                >
+                  先補來源與證據
+                </Link>
+              ) : null}
+            </div>
+          </section>
+
+          <WorkspaceSectionGuide
+            title="這頁怎麼讀最快"
+            description="不要整頁一路往下刷。先選你現在要做的是對齊判斷、確認能不能跑、還是直接回看結果。"
+            items={taskSectionGuideItems}
+          />
+
           {matterWorkspaceCard ? (
-            <section className="panel">
+            <DisclosurePanel
+              title="案件世界連續性"
+              description="只有在你要確認這筆工作掛在哪個案件、DecisionContext 與工作鏈上時，再展開這層。"
+            >
               <div className="panel-header">
                 <div>
-                  <h2 className="panel-title">案件世界連續性</h2>
+                  <h3 className="panel-title">案件世界連續性</h3>
                   <p className="panel-copy">
                     這筆工作現在已正式掛在案件世界下。你可以回到同一個案件工作台，看跨工作紀錄的決策脈絡、交付物與材料累積。
                   </p>
@@ -539,14 +644,18 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                 {matterWorkspaceCard.packSummary}
               </p>
               <p className="muted-text">{matterWorkspaceCard.agentSummary}</p>
-            </section>
+            </DisclosurePanel>
           ) : null}
 
           {objectNavigationStrip ? (
-            <section className="panel object-nav-panel">
+            <DisclosurePanel
+              id="object-navigation"
+              title="完整物件導覽列"
+              description="只有在你要核對完整 object path、entry mode 與掛載關係時，再展開這一層；主線閱讀可先看下方段落導覽。"
+            >
               <div className="panel-header">
                 <div>
-                  <h2 className="panel-title">物件導覽列</h2>
+                  <h3 className="panel-title">物件導覽列</h3>
                   <p className="panel-copy">
                     先確認這輪工作掛在哪個客戶 / 案件委託 / 工作流 / 決策問題上，再決定要往哪條工作面繼續下鑽。
                   </p>
@@ -578,17 +687,21 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                   </a>
                 ))}
               </div>
-            </section>
+            </DisclosurePanel>
           ) : null}
 
           <div className="detail-grid">
             <div className="detail-stack">
-              <section className="panel" id="workspace-lane">
+              <DisclosurePanel
+                id="workspace-lane"
+                title="工作鏈與來源 / 證據"
+                description="當你要 debug 這輪判斷憑什麼成立，或需要補件時，再展開這層；平常先看主問題、可信度與交付結果。"
+              >
                 <div className="panel-header">
                   <div>
-                    <h2 className="panel-title">工作物件 / 來源材料 / 證據工作面</h2>
+                    <h3 className="panel-title">工作物件 / 來源材料 / 證據工作面</h3>
                     <p className="panel-copy">
-                    這裡不是單純補充資料，而是這輪判斷真正依附的工作鏈。若要完整回看來源角色、支撐鏈與高影響缺口，現在可直接進入正式的來源 / 證據工作面。
+                      這裡不是單純補充資料，而是這輪判斷真正依附的工作鏈。若要完整回看來源角色、支撐鏈與高影響缺口，現在可直接進入正式的來源 / 證據工作面。
                     </p>
                   </div>
                   {task.matter_workspace ? (
@@ -669,9 +782,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                 ) : (
                   <p className="empty-text">尚未形成可讀的工作物件 / 來源材料 / 證據工作面。</p>
                 )}
-              </section>
+              </DisclosurePanel>
 
-              <section className="panel" id="decision-context">
+              <section className="panel section-anchor" id="decision-context">
                 <div className="panel-header">
                   <div>
                     <h2 className="panel-title">原始問題與決策問題</h2>
@@ -721,10 +834,14 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                 )}
               </section>
 
-              <section className="panel">
+              <DisclosurePanel
+                id="capability-frame"
+                title="分析框架、代理與模組包"
+                description="這些是系統如何決定這輪要怎麼跑的治理資訊。需要核對 routing / packs / agents 時再展開。"
+              >
                 <div className="panel-header">
                   <div>
-                    <h2 className="panel-title">這輪分析框架</h2>
+                    <h3 className="panel-title">這輪分析框架</h3>
                     <p className="panel-copy">
                       這裡對齊 Host 已採用的 capability frame，確認這輪是用什麼顧問能力原型、資料優先順序與執行方式在推進。
                     </p>
@@ -1032,9 +1149,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     ) : null}
                   </>
                 ) : null}
-              </section>
+              </DisclosurePanel>
 
-              <section className="panel">
+              <section className="panel section-anchor" id="readiness-governance">
                 <div className="panel-header">
                   <div>
                     <h2 className="panel-title">判斷可信度與資料缺口</h2>
@@ -1179,7 +1296,11 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                   </>
                 ) : null}
 
-                <div className="panel-header" style={{ marginTop: "18px", marginBottom: 0 }}>
+                <div
+                  className="panel-header"
+                  id="run-panel"
+                  style={{ marginTop: "18px", marginBottom: 0 }}
+                >
                   <div>
                     <h3 className="panel-title">{runMeta?.title ?? "執行任務流程"}</h3>
                     <p className="panel-copy">{runMeta?.copy}</p>
@@ -1195,7 +1316,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                 </div>
               </section>
 
-              <section className="panel" id="deliverable-surface">
+              <section className="panel section-anchor" id="deliverable-surface">
                 <div className="panel-header">
                   <div>
                     <h2 className="panel-title">正式交付結果</h2>
@@ -1327,6 +1448,10 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                 </div>
               </section>
 
+              <DisclosurePanel
+                title="交付細節與場景延伸"
+                description="如果你已經看完上方正式交付結果，只有在你要細讀建議卡、風險卡、行動項與場景專業區塊時，再展開。"
+              >
               <section className="panel">
                 <h2 className="section-title">主要建議</h2>
                 <div className="detail-list">
@@ -1432,15 +1557,20 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                   translateAsAgentIds={section.translateAsAgentIds}
                 />
               ))}
+              </DisclosurePanel>
             </div>
 
             <div className="detail-stack">
-              <section className="panel">
+              <DisclosurePanel
+                id="extension-manager"
+                title="擴充管理面"
+                description="這裡承接本次任務的模組包 / 代理覆寫與目錄查看。主線閱讀先看左側決策內容，需要調整 extension 時再展開。"
+              >
                 <div className="panel-header">
                   <div>
-                    <h2 className="panel-title">擴充管理面</h2>
+                    <h3 className="panel-title">任務層級擴充管理</h3>
                     <p className="panel-copy">
-                    這裡用最小正式管理面承接本次任務的模組包 / 代理脈絡。你可以查看目錄、理解這輪選用的擴充，並對單一任務覆寫模組包或代理提示。
+                      你可以查看這輪選用的擴充，並對單一任務覆寫模組包或代理提示。
                     </p>
                   </div>
                   <div className="button-row">
@@ -1460,17 +1590,12 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                   saving={savingOverrides}
                   onSaveOverrides={handleSaveOverrides}
                 />
-              </section>
+              </DisclosurePanel>
 
-              <section className="panel">
-                <div className="panel-header">
-                  <div>
-                    <h2 className="panel-title">補充脈絡</h2>
-                    <p className="panel-copy">
-                      這一欄只保留幫助你理解結論來源的補充內容，不讓 supporting info 抢走主交付主線。
-                    </p>
-                  </div>
-                </div>
+              <DisclosurePanel
+                title="補充脈絡"
+                description="只有在你要回看物件鏈摘要或再次核對決策問題時，再展開這層 supporting info。"
+              >
                 {ontologyChainSummary ? (
                   <div className="summary-grid">
                     <div className="section-card">
@@ -1495,7 +1620,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     </div>
                   </div>
                 ) : null}
-              </section>
+              </DisclosurePanel>
 
               {latestDeliverable ? (
                 <DisclosurePanel

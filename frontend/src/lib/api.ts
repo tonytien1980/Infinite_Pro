@@ -35,10 +35,12 @@ function getApiBaseUrl() {
   }
 
   if (typeof window !== "undefined") {
-    return `${window.location.protocol}//${window.location.hostname}:8000/api/v1`;
+    const resolvedHost =
+      window.location.hostname === "localhost" ? "127.0.0.1" : window.location.hostname;
+    return `${window.location.protocol}//${resolvedHost}:8000/api/v1`;
   }
 
-  return "http://localhost:8000/api/v1";
+  return "http://127.0.0.1:8000/api/v1";
 }
 
 async function parseResponse<T>(response: Response): Promise<T> {

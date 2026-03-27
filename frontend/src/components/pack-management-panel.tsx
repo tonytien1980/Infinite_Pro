@@ -142,6 +142,20 @@ export function PackManagementPanel() {
       .toLowerCase()
       .includes(query);
   });
+  const packActionTitle =
+    editingPackId ? "現在正處於模組包編輯模式" : "先決定是問題面向，還是產業模組包";
+  const packActionSummary = editingPackId
+    ? "當你已進入編輯模式，這頁的 primary action 就是把分類、狀態與描述整理乾淨後正式儲存。"
+    : "這頁不該一開始就落入表單。先確認你要管的是哪一種 pack family，再看現有目錄是否已能滿足需求。";
+  const packActionChecklist = [
+    `目前共有 ${domainPacks.length} 個問題面向模組包、${industryPacks.length} 個產業模組包。`,
+    activeTab === "domain"
+      ? "現在正在看問題面向模組包；適合先用它們處理顧問工作類型與企業問題脈絡。"
+      : "現在正在看產業模組包；適合先用它們處理產業脈絡、商業模式與共通限制。",
+    editingPackId
+      ? `正在編輯「${draft.pack_name || editingPackId}」。`
+      : "若只是查看現況，先搜尋與切換 tab，不要直接進入新增。",
+  ];
 
   function startCreate() {
     setEditingPackId(null);
@@ -264,6 +278,21 @@ export function PackManagementPanel() {
                 <button className="button-primary" type="button" onClick={startCreate}>
                   新增模組包
                 </button>
+              </div>
+
+              <div className="summary-grid" style={{ marginBottom: "18px" }}>
+                <div className="section-card">
+                  <h4>{packActionTitle}</h4>
+                  <p className="content-block">{packActionSummary}</p>
+                </div>
+                <div className="section-card">
+                  <h4>這頁現在先看什麼</h4>
+                  <ul className="list-content">
+                    {packActionChecklist.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
               </div>
 
               <div className="page-tabs" role="tablist" aria-label="模組包類型">

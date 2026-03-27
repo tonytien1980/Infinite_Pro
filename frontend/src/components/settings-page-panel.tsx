@@ -418,6 +418,19 @@ export function SettingsPagePanel() {
     providerValidation?.validationStatus || currentProvider?.lastValidationStatus || "not_validated";
   const latestValidationMessage =
     providerValidation?.message || currentProvider?.lastValidationMessage || "目前尚未驗證正式設定。";
+  const settingsActionTitle = providerEditing ? "現在先完成正式設定編輯" : "先分清楚：你是在調系統模型，還是調介面偏好";
+  const settingsActionSummary = providerEditing
+    ? "當你進入 provider 編輯模式，這頁的 primary action 是完成驗證並正式套用，不應同時分心去調別的偏好。"
+    : "這頁同時承接兩種責任：系統級 provider 設定，以及個人 workbench 偏好。先確認你現在要改的是哪一種。";
+  const settingsActionChecklist = [
+    currentProvider
+      ? `目前生效來源是 ${labelForProviderSource(currentProvider)}，供應商為 ${currentProvider.providerDisplayName}。`
+      : "目前正式 provider 設定尚未載入。",
+    providerEditing
+      ? "若正在編輯 provider，請先測試連線或正式套用，再回頭調其他顯示偏好。"
+      : "若只是想讓頁面更順手，優先調整介面偏好與新案件預設，不必進到 provider 編輯模式。",
+    "credential、驗證與正式 runtime config 屬 fail-closed；不可把它們和一般偏好變更混成同一個成功心智。",
+  ];
 
   return (
     <main className="page-shell">
@@ -427,6 +440,33 @@ export function SettingsPagePanel() {
         <p className="page-subtitle">
           管理目前單人版工作台的顯示偏好、建立新案件預設，以及正式生效的模型與服務設定。
         </p>
+      </section>
+
+      <section className="panel" style={{ marginBottom: "24px" }}>
+        <div className="panel-header">
+          <div>
+            <h2 className="panel-title">{settingsActionTitle}</h2>
+            <p className="panel-copy">{settingsActionSummary}</p>
+          </div>
+        </div>
+        <div className="summary-grid">
+          <div className="section-card">
+            <h4>這頁現在先看什麼</h4>
+            <ul className="list-content">
+              {settingsActionChecklist.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </div>
+          <div className="section-card">
+            <h4>主操作分流</h4>
+            <p className="content-block">
+              provider 設定：編輯設定 / 測試連線 / 儲存並套用
+              {"\n"}
+              介面偏好：儲存並套用 / 回復預設
+            </p>
+          </div>
+        </div>
       </section>
 
       <section className="panel" style={{ marginBottom: "24px" }}>

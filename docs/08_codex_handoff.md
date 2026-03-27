@@ -45,18 +45,22 @@
 4. `docs/03_system_overview.md`
 5. `docs/09_infinite_pro_core_definition.md`
 6. `docs/10_frontend_information_architecture_and_ux_principles.md`
-7. `docs/04_ontology_core.md`
-8. `docs/05_agent_architecture.md`
-9. `docs/06_system_architecture.md`
-10. `docs/07_implementation_order.md`
-11. `docs/11_intake_storage_architecture.md` when touching intake / source / storage / retention
-12. `docs/12_runtime_persistence_and_release_integrity.md` when touching revision / publish / fallback / sync recovery
-13. `AGENTS.md`
+7. `docs/14_workbench_ui_ux_operating_principles.md`
+8. `docs/15_page_level_ui_inventory_and_flow_rules.md`
+9. `docs/04_ontology_core.md`
+10. `docs/05_agent_architecture.md`
+11. `docs/06_system_architecture.md`
+12. `docs/07_implementation_order.md`
+13. `docs/11_intake_storage_architecture.md` when touching intake / source / storage / retention
+14. `docs/12_runtime_persistence_and_release_integrity.md` when touching revision / publish / fallback / sync recovery
+15. `AGENTS.md`
 
 如果想法與上述文件衝突，以文件為準。
 
 另外，前端改版不得再把 Infinite Pro 做回 generic AI workspace。
 首頁、導覽、工作面、管理面、歷史紀錄與繁體中文化規則，現在正式由 `docs/10_frontend_information_architecture_and_ux_principles.md` 承接。
+若施工觸及 page-level 操作邏輯、資訊密度、primary action、progressive disclosure、detail workspace readability 或「現在要先做什麼」類型導引，需補讀 `docs/14_workbench_ui_ux_operating_principles.md`。
+若施工觸及具體頁面的第一屏內容、頁面主任務、主按鈕、次級操作、延後揭露內容與跨頁跳轉，需補讀 `docs/15_page_level_ui_inventory_and_flow_rules.md`。
 若施工觸及三種進件模式、multi-source ingestion、storage / retention / purge 邊界，需補讀 `docs/11_intake_storage_architecture.md`。
 若施工觸及正文 persistence、revision、rollback、publish / artifact records、fallback、degraded mode 或 sync recovery，需補讀 `docs/12_runtime_persistence_and_release_integrity.md`。
 

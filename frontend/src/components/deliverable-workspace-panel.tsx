@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 
 import {
   downloadDeliverableArtifact,
@@ -40,6 +40,7 @@ import {
   isRetriableWorkspaceError,
   persistDeliverableWorkspace,
 } from "@/lib/workspace-persistence";
+import { WorkspaceSectionGuide } from "@/components/workspace-section-guide";
 
 function CompactList({
   items,
@@ -58,6 +59,31 @@ function CompactList({
         <li key={item}>{item}</li>
       ))}
     </ul>
+  );
+}
+
+function DisclosurePanel({
+  id,
+  title,
+  description,
+  children,
+}: {
+  id?: string;
+  title: string;
+  description: string;
+  children: ReactNode;
+}) {
+  return (
+    <details className="panel disclosure-panel section-anchor" id={id}>
+      <summary className="disclosure-summary">
+        <div>
+          <h2 className="section-title">{title}</h2>
+          <p className="panel-copy">{description}</p>
+        </div>
+        <span className="pill">展開</span>
+      </summary>
+      <div className="disclosure-body">{children}</div>
+    </details>
   );
 }
 
@@ -207,6 +233,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const [draftVersionTag, setDraftVersionTag] = useState("");
   const [draftEventNote, setDraftEventNote] = useState("");
   const [draftPublishNote, setDraftPublishNote] = useState("");
+  const [draftInitialized, setDraftInitialized] = useState(false);
   const [draftContentSections, setDraftContentSections] = useState({
     executive_summary: "",
     recommendations: "",
@@ -253,9 +280,11 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
 
   useEffect(() => {
     if (!workspace) {
+      setDraftInitialized(false);
       return;
     }
 
+    setDraftInitialized(false);
     const defaultStatus = workspace.deliverable.status as DeliverableLifecycleStatus;
     const nextResolvedSections = buildResolvedDeliverableSections(
       workspace,
@@ -278,6 +307,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
       action_items: joinLineItems(nextResolvedSections.action_items),
       evidence_basis: joinLineItems(nextResolvedSections.evidence_basis),
     });
+    setDraftInitialized(true);
   }, [deliverableId, workspace]);
 
   const task = workspace?.task ?? null;
@@ -327,10 +357,26 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
     latestContentRevision &&
       latestPublishRecord &&
       new Date(latestContentRevision.created_at).getTime() >
-        new Date(latestPublishRecord.created_at).getTime(),
+      new Date(latestPublishRecord.created_at).getTime(),
+  );
+  const hasPendingFormalSave = Boolean(
+    workspace &&
+      resolvedSections &&
+      (
+        (workspace.content_sections.executive_summary || "") !== resolvedSections.executive_summary ||
+        joinLineItems(workspace.content_sections.recommendations) !==
+          joinLineItems(resolvedSections.recommendations) ||
+        joinLineItems(workspace.content_sections.risks) !==
+          joinLineItems(resolvedSections.risks) ||
+        joinLineItems(workspace.content_sections.action_items) !==
+          joinLineItems(resolvedSections.action_items) ||
+        joinLineItems(workspace.content_sections.evidence_basis) !==
+          joinLineItems(resolvedSections.evidence_basis)
+      ),
   );
   const hasUnsavedChanges = Boolean(
-    workspace &&
+    draftInitialized &&
+      workspace &&
       resolvedSections &&
       (
         draftTitle !== workspace.deliverable.title ||
@@ -347,6 +393,84 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
         draftContentSections.evidence_basis !== joinLineItems(resolvedSections.evidence_basis)
       )
   );
+  const requiresSaveBeforeFormalActions = hasPendingFormalSave || hasUnsavedChanges;
+  const deliverableActionTitle =
+    requiresSaveBeforeFormalActions
+      ? "先把正式內容落盤，再匯出或發布"
+      : deliverableStatus === "final"
+      ? "這份交付物已可匯出與回看"
+      : deliverableStatus === "archived"
+        ? "這是歷史版本，主要用來回看"
+        : "先整理版本，再決定是否正式發布";
+  const deliverableActionSummary =
+    requiresSaveBeforeFormalActions
+      ? hasPendingFormalSave
+        ? "系統已先幫你整理出一版可用的正式草稿，但這些內容還沒正式寫回 deliverable workspace。先儲存，之後再匯出或發布會比較安全。"
+        : "你目前有尚未儲存的修改。先把正式內容落盤，再做匯出、發布或版本比對，整體工作流會更穩。"
+      : deliverableStatus === "final"
+      ? "現在最有效率的做法是匯出正式版本，或回到下方檢查依據來源、版本紀錄與連續性。"
+      : deliverableStatus === "archived"
+        ? "這份交付物目前以歷史回看為主；若要繼續推進，通常會回到較新的版本或原始工作紀錄。"
+        : "先把版本標記、摘要與正文整理乾淨，再做正式發布；這樣會比直接在長頁面裡來回找區塊順手很多。";
+  const deliverableActionChecklist = [
+    "先確認這份交付物的標題、版本標記與狀態，避免在未整理版本時就直接發布。",
+    hasPendingFormalSave
+      ? "系統已先幫你整理出正式草稿，但還沒寫回正式內容；先儲存，再考慮匯出或發布。"
+      : hasUnsavedChanges
+        ? "你目前有尚未儲存的修改；先儲存，再考慮發布或匯出。"
+        : "目前沒有尚未儲存的修改，可以直接回看依據來源、版本紀錄或做發布動作。",
+    workspace
+      ? `目前關聯 ${workspace.linked_evidence.length} 則證據、${workspace.high_impact_gaps.length} 個高影響缺口；發布前最好先看一眼依據鏈與限制。`
+      : "目前沒有可讀的交付脈絡。",
+  ];
+  const deliverableSectionGuideItems = workspace
+    ? [
+        {
+          href: "#deliverable-management",
+          eyebrow: "先整理版本",
+          title: "管理版本與正式內容",
+          copy: "先把標題、版本標記、摘要與正文整理乾淨，再做發布或匯出。",
+          meta: hasPendingFormalSave
+            ? "系統已整理正式草稿，尚未落盤。"
+            : hasUnsavedChanges
+              ? "目前有未儲存修改。"
+              : "目前沒有未儲存修改。",
+          tone: requiresSaveBeforeFormalActions ? ("warm" as const) : ("accent" as const),
+        },
+        {
+          href: "#deliverable-reading",
+          eyebrow: "先看結果",
+          title: "交付摘要",
+          copy: "用正式交付物口徑回看結論、建議、風險與行動，而不是只看原任務結果。",
+          meta: decisionSnapshot?.conclusion || effectiveExecutiveSummary || "先看這份交付物的核心結論。",
+          tone: "accent" as const,
+        },
+        {
+          href: "#deliverable-evidence",
+          eyebrow: "回看依據",
+          title: "依據來源與 ontology 回鏈",
+          copy: "當你要確認這份交付物憑什麼成立，就回到這裡看來源、artifact 與 evidence。",
+          meta: `${workspace.linked_source_materials.length} 份來源材料 / ${workspace.linked_evidence.length} 則證據`,
+          tone: "default" as const,
+        },
+        {
+          href: "#deliverable-confidence",
+          eyebrow: "核對適用範圍",
+          title: "可信度、限制與缺口",
+          copy: "發布前先檢查這份交付物目前能支撐到什麼程度，以及還有哪些高影響缺口。",
+          meta: workspace.confidence_summary,
+          tone: workspace.high_impact_gaps.length > 0 ? ("warm" as const) : ("default" as const),
+        },
+        {
+          href: "#deliverable-history",
+          eyebrow: "需要回看時",
+          title: "修訂與版本紀錄",
+          copy: "只有在你要比較版本、rollback 或確認發布 artifact 時，再往下看這層歷史。",
+          meta: workspace.version_events[0]?.summary || "可回看正文修訂與正式發布紀錄。",
+          tone: "default" as const,
+        },
+      ]
+    : [];
 
   async function handleSaveWorkspace(nextStatus?: DeliverableLifecycleStatus) {
     if (!deliverable) {
@@ -797,110 +921,219 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
           <section className="panel">
             <div className="panel-header">
               <div>
-                <h2 className="panel-title">交付物管理</h2>
+                <h2 className="panel-title">{deliverableActionTitle}</h2>
+                <p className="panel-copy">{deliverableActionSummary}</p>
+              </div>
+            </div>
+            <div className="summary-grid">
+              <div className="section-card">
+                <h4>目前版本</h4>
+                <p className="content-block">
+                  {versionTag}｜{labelForDeliverableStatus(deliverableStatus)}
+                </p>
+              </div>
+              <div className="section-card">
+                <h4>證據與缺口</h4>
+                <p className="content-block">
+                  {workspace.linked_evidence.length} 則證據／{workspace.high_impact_gaps.length} 個高影響缺口
+                </p>
+              </div>
+              <div className="section-card">
+                <h4>儲存狀態</h4>
+                <p className="content-block">
+                  {hasPendingFormalSave
+                    ? "系統已整理正式草稿，尚未落盤"
+                    : hasUnsavedChanges
+                      ? "有未儲存修改"
+                      : "目前沒有未儲存修改"}
+                </p>
+              </div>
+            </div>
+            <ul className="list-content" style={{ marginTop: "16px" }}>
+              {deliverableActionChecklist.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+            <div className="button-row" style={{ marginTop: "16px" }}>
+              {requiresSaveBeforeFormalActions ? (
+                <button
+                  className="button-primary"
+                  type="button"
+                  onClick={() => void handleSaveWorkspace()}
+                  disabled={isSaving || isPublishing}
+                >
+                  {isSaving
+                    ? "儲存中..."
+                    : hasPendingFormalSave
+                      ? "先儲存正式草稿"
+                      : "儲存正式內容"}
+                </button>
+              ) : deliverableStatus === "final" ? (
+                <button
+                  className="button-primary"
+                  type="button"
+                  onClick={() => void handleExportEntry("docx")}
+                  disabled={activeExportFormat === "docx"}
+                >
+                  {activeExportFormat === "docx" ? "匯出中..." : "匯出 DOCX"}
+                </button>
+              ) : deliverableStatus !== "archived" ? (
+                <button
+                  className="button-primary"
+                  type="button"
+                  onClick={() => void handlePublishRelease()}
+                  disabled={isPublishing}
+                >
+                  {isPublishing ? "發布中..." : "正式發布這個版本"}
+                </button>
+              ) : null}
+              <Link className="button-secondary" href="#deliverable-management">
+                整理版本與摘要
+              </Link>
+              <Link className="button-secondary" href="#deliverable-reading">
+                查看交付摘要
+              </Link>
+              <Link className="button-secondary" href="#deliverable-evidence">
+                回看依據來源
+              </Link>
+            </div>
+          </section>
+
+          <WorkspaceSectionGuide
+            title="這份交付物怎麼讀最快"
+            description="先決定你現在要整理版本、回看結果、檢查依據，還是確認可發布程度。歷史與 artifact registry 放在較後面，需要時再下鑽。"
+            items={deliverableSectionGuideItems}
+          />
+
+          <DisclosurePanel
+            id="deliverable-management"
+            title="整理版本與發布"
+            description="平常先看交付結果；只有在你要改標題、正文、版本或正式發布時，再展開這層。"
+          >
+            <div className="panel-header">
+              <div>
+                <h3 className="panel-title">交付物管理</h3>
                 <p className="panel-copy">先把標題、版本與發布狀態整理乾淨，再繼續修摘要、建議、風險與行動項目。</p>
               </div>
             </div>
-            <div className="form-grid">
-              <div className="summary-grid">
-                <div className="section-card">
-                  <h4>目前版本</h4>
-                  <p className="content-block">{versionTag}</p>
-                  <p className="muted-text">{workspace.is_latest_for_task ? "這是目前 task 最新版本。" : "這份交付物已不是最新版本。"}</p>
+            <div className="form-grid deliverable-management-grid">
+              <div className="deliverable-management-section">
+                <div className="deliverable-management-section-header">
+                  <div>
+                    <span className="eyebrow">版本狀態</span>
+                    <h3>先確認這個版本現在的位置</h3>
+                    <p className="muted-text">先看版本身份、發布狀態與所屬案件，避免在還沒搞清楚這份交付物的角色前就直接改正文。</p>
+                  </div>
                 </div>
-                <div className="section-card">
-                  <h4>發布狀態</h4>
-                  <p className="content-block">{labelForDeliverableStatus(deliverableStatus)}</p>
-                  <p className="muted-text">{buildDeliverableStatusHint(deliverableStatus)}</p>
-                </div>
-              </div>
-
-              <div className="field-grid">
-                <div className="field">
-                  <label htmlFor="deliverable-title">交付物標題</label>
-                  <input
-                    id="deliverable-title"
-                    value={draftTitle}
-                    onChange={(event) => {
-                      setDraftTitle(event.target.value);
-                      setSaveMessage(null);
-                    }}
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor="deliverable-summary">簡短摘要</label>
-                  <textarea
-                    id="deliverable-summary"
-                    value={draftSummary}
-                    onChange={(event) => {
-                      setDraftSummary(event.target.value);
-                      setSaveMessage(null);
-                    }}
-                    placeholder="用一句短摘要說明這份交付物目前的主要結論或用途。"
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor="deliverable-status">狀態</label>
-                  <select
-                    id="deliverable-status"
-                    value={draftStatus}
-                    onChange={(event) => {
-                      setDraftStatus(event.target.value as DeliverableLifecycleStatus);
-                      setSaveMessage(null);
-                    }}
-                  >
-                    <option value="draft">草稿</option>
-                    <option value="pending_confirmation">待確認</option>
-                    <option value="final">定稿</option>
-                    <option value="archived">封存</option>
-                  </select>
-                  <small>草稿 → 待確認 → 定稿 → 封存，讓版本標記與發布狀態保持一致。</small>
-                </div>
-                <div className="field">
-                  <label htmlFor="deliverable-version-tag">版本標記</label>
-                  <input
-                    id="deliverable-version-tag"
-                    value={draftVersionTag}
-                    onChange={(event) => {
-                      setDraftVersionTag(event.target.value);
-                      setSaveMessage(null);
-                    }}
-                    placeholder="例如：v2.1"
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor="deliverable-matter">所屬案件</label>
-                  <input
-                    id="deliverable-matter"
-                    value={workspace.matter_workspace?.title || task.engagement?.name || "未掛案件"}
-                    readOnly
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor="deliverable-updated-at">最近更新</label>
-                  <input
-                    id="deliverable-updated-at"
-                    value={formatDisplayDate(task.updated_at)}
-                    readOnly
-                  />
+                <div className="deliverable-management-meta-grid">
+                  <div className="deliverable-management-meta">
+                    <span className="deliverable-management-meta-label">目前版本</span>
+                    <strong>{versionTag}</strong>
+                    <p className="muted-text">{workspace.is_latest_for_task ? "這是目前 task 最新版本。" : "這份交付物已不是最新版本。"}</p>
+                  </div>
+                  <div className="deliverable-management-meta">
+                    <span className="deliverable-management-meta-label">發布狀態</span>
+                    <strong>{labelForDeliverableStatus(deliverableStatus)}</strong>
+                    <p className="muted-text">{buildDeliverableStatusHint(deliverableStatus)}</p>
+                  </div>
+                  <div className="deliverable-management-meta">
+                    <span className="deliverable-management-meta-label">所屬案件</span>
+                    <strong>{workspace.matter_workspace?.title || task.engagement?.name || "未掛案件"}</strong>
+                    <p className="muted-text">這裡是唯讀定位資訊，不是在這裡改案件歸屬。</p>
+                  </div>
+                  <div className="deliverable-management-meta">
+                    <span className="deliverable-management-meta-label">最近更新</span>
+                    <strong>{formatDisplayDate(task.updated_at)}</strong>
+                    <p className="muted-text">用來快速判斷這份版本是不是剛剛才被更新過。</p>
+                  </div>
                 </div>
               </div>
 
-              <div className="field">
-                <label htmlFor="deliverable-event-note">版本備註</label>
-                <textarea
-                  id="deliverable-event-note"
-                  value={draftEventNote}
-                  onChange={(event) => {
-                    setDraftEventNote(event.target.value);
-                    setSaveMessage(null);
-                  }}
-                  placeholder="可選填：記下這次版本更新、送審說明或定稿備註。"
-                />
+              <div className="deliverable-management-section">
+                <div className="deliverable-management-section-header">
+                  <div>
+                    <span className="eyebrow">封面資訊</span>
+                    <h3>整理標題、短摘要與版本標記</h3>
+                    <p className="muted-text">這一層處理使用者最先看到的交付身份，不要把它和正文編修混成同一堆欄位。</p>
+                  </div>
+                </div>
+                <div className="deliverable-management-cover-grid">
+                  <div className="field field-wide">
+                    <label htmlFor="deliverable-title">交付物標題</label>
+                    <input
+                      id="deliverable-title"
+                      value={draftTitle}
+                      onChange={(event) => {
+                        setDraftTitle(event.target.value);
+                        setSaveMessage(null);
+                      }}
+                    />
+                  </div>
+                  <div className="field">
+                    <label htmlFor="deliverable-status">狀態</label>
+                    <select
+                      id="deliverable-status"
+                      value={draftStatus}
+                      onChange={(event) => {
+                        setDraftStatus(event.target.value as DeliverableLifecycleStatus);
+                        setSaveMessage(null);
+                      }}
+                    >
+                      <option value="draft">草稿</option>
+                      <option value="pending_confirmation">待確認</option>
+                      <option value="final">定稿</option>
+                      <option value="archived">封存</option>
+                    </select>
+                    <small>草稿 → 待確認 → 定稿 → 封存，讓版本標記與發布狀態保持一致。</small>
+                  </div>
+                  <div className="field">
+                    <label htmlFor="deliverable-version-tag">版本標記</label>
+                    <input
+                      id="deliverable-version-tag"
+                      value={draftVersionTag}
+                      onChange={(event) => {
+                        setDraftVersionTag(event.target.value);
+                        setSaveMessage(null);
+                      }}
+                      placeholder="例如：v2.1"
+                    />
+                  </div>
+                  <div className="field field-wide field-editor field-editor-note">
+                    <label htmlFor="deliverable-summary">簡短摘要</label>
+                    <textarea
+                      id="deliverable-summary"
+                      value={draftSummary}
+                      onChange={(event) => {
+                        setDraftSummary(event.target.value);
+                        setSaveMessage(null);
+                      }}
+                      placeholder="用一句短摘要說明這份交付物目前的主要結論或用途。"
+                    />
+                  </div>
+                  <div className="field field-wide field-editor field-editor-note">
+                    <label htmlFor="deliverable-event-note">版本備註</label>
+                    <textarea
+                      id="deliverable-event-note"
+                      value={draftEventNote}
+                      onChange={(event) => {
+                        setDraftEventNote(event.target.value);
+                        setSaveMessage(null);
+                      }}
+                      placeholder="可選填：記下這次版本更新、送審說明或定稿備註。"
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div className="summary-grid">
-                <div className="field">
+              <div className="deliverable-management-section">
+                <div className="deliverable-management-section-header">
+                  <div>
+                    <span className="eyebrow">正式內容</span>
+                    <h3>用編修工作面的方式整理正文</h3>
+                    <p className="muted-text">摘要應該先完整展開，再分別編建議、風險、行動與依據來源，不要把長內容壓成一排窄小欄位。</p>
+                  </div>
+                </div>
+                <div className="field field-editor field-wide field-editor-hero">
                   <label htmlFor="deliverable-executive-summary">摘要</label>
                   <textarea
                     id="deliverable-executive-summary"
@@ -915,67 +1148,79 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                     placeholder="用正式交付物口徑整理這個版本的摘要。"
                   />
                 </div>
-                <div className="field">
-                  <label htmlFor="deliverable-recommendations">建議與風險</label>
-                  <textarea
-                    id="deliverable-recommendations"
-                    value={draftContentSections.recommendations}
-                    onChange={(event) => {
-                      setDraftContentSections((current) => ({
-                        ...current,
-                        recommendations: event.target.value,
-                      }));
-                      setSaveMessage(null);
-                    }}
-                    placeholder="每行一則建議。"
-                  />
+                <div className="deliverable-editor-grid">
+                  <div className="field field-editor">
+                    <label htmlFor="deliverable-recommendations">建議</label>
+                    <textarea
+                      id="deliverable-recommendations"
+                      value={draftContentSections.recommendations}
+                      onChange={(event) => {
+                        setDraftContentSections((current) => ({
+                          ...current,
+                          recommendations: event.target.value,
+                        }));
+                        setSaveMessage(null);
+                      }}
+                      placeholder="每行一則建議。"
+                    />
+                  </div>
+                  <div className="field field-editor">
+                    <label htmlFor="deliverable-risks">風險與缺口</label>
+                    <textarea
+                      id="deliverable-risks"
+                      value={draftContentSections.risks}
+                      onChange={(event) => {
+                        setDraftContentSections((current) => ({
+                          ...current,
+                          risks: event.target.value,
+                        }));
+                        setSaveMessage(null);
+                      }}
+                      placeholder="每行一則風險或待補缺口。"
+                    />
+                  </div>
+                  <div className="field field-editor">
+                    <label htmlFor="deliverable-action-items">行動項目</label>
+                    <textarea
+                      id="deliverable-action-items"
+                      value={draftContentSections.action_items}
+                      onChange={(event) => {
+                        setDraftContentSections((current) => ({
+                          ...current,
+                          action_items: event.target.value,
+                        }));
+                        setSaveMessage(null);
+                      }}
+                      placeholder="每行一項行動建議。"
+                    />
+                  </div>
+                  <div className="field field-editor">
+                    <label htmlFor="deliverable-evidence-basis">依據來源</label>
+                    <textarea
+                      id="deliverable-evidence-basis"
+                      value={draftContentSections.evidence_basis}
+                      onChange={(event) => {
+                        setDraftContentSections((current) => ({
+                          ...current,
+                          evidence_basis: event.target.value,
+                        }));
+                        setSaveMessage(null);
+                      }}
+                      placeholder="每行一則依據來源、證據或工作物件。"
+                    />
+                  </div>
                 </div>
-                <div className="field">
-                  <label htmlFor="deliverable-risks">缺口與風險</label>
-                  <textarea
-                    id="deliverable-risks"
-                    value={draftContentSections.risks}
-                    onChange={(event) => {
-                      setDraftContentSections((current) => ({
-                        ...current,
-                        risks: event.target.value,
-                      }));
-                      setSaveMessage(null);
-                    }}
-                    placeholder="每行一則風險或待補缺口。"
-                  />
+              </div>
+
+              <div className="deliverable-management-section">
+                <div className="deliverable-management-section-header">
+                  <div>
+                    <span className="eyebrow">發布與動作</span>
+                    <h3>先落盤，再決定送審、發布或匯出</h3>
+                    <p className="muted-text">這裡只放版本動作，不再把編修欄位和所有按鈕塞在同一層，避免像控制台而不是交付物工作面。</p>
+                  </div>
                 </div>
-                <div className="field">
-                  <label htmlFor="deliverable-action-items">行動項目</label>
-                  <textarea
-                    id="deliverable-action-items"
-                    value={draftContentSections.action_items}
-                    onChange={(event) => {
-                      setDraftContentSections((current) => ({
-                        ...current,
-                        action_items: event.target.value,
-                      }));
-                      setSaveMessage(null);
-                    }}
-                    placeholder="每行一項行動建議。"
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor="deliverable-evidence-basis">依據來源</label>
-                  <textarea
-                    id="deliverable-evidence-basis"
-                    value={draftContentSections.evidence_basis}
-                    onChange={(event) => {
-                      setDraftContentSections((current) => ({
-                        ...current,
-                        evidence_basis: event.target.value,
-                      }));
-                      setSaveMessage(null);
-                    }}
-                    placeholder="每行一則依據來源、證據或工作物件。"
-                  />
-                </div>
-                <div className="field">
+                <div className="field field-wide field-editor field-editor-note">
                   <label htmlFor="deliverable-publish-note">發布說明</label>
                   <textarea
                     id="deliverable-publish-note"
@@ -987,65 +1232,95 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                     placeholder="正式發布時要一起寫入 publish record 的說明。"
                   />
                 </div>
-              </div>
 
-              <div className="button-row">
-                <button
-                  className="button-primary"
-                  type="button"
-                  onClick={() => void handleSaveWorkspace()}
-                  disabled={isSaving || isPublishing}
-                >
-                  {isSaving ? "儲存中..." : "儲存正式內容"}
-                </button>
-                <button
-                  className="button-secondary"
-                  type="button"
-                  onClick={() => void handleSaveWorkspace("pending_confirmation")}
-                  disabled={isSaving || isPublishing}
-                >
-                  送往待確認
-                </button>
-                <button
-                  className="button-secondary"
-                  type="button"
-                  onClick={() => void handlePublishRelease()}
-                  disabled={isSaving || isPublishing}
-                >
-                  {isPublishing ? "發布中..." : "正式發布"}
-                </button>
-                <button
-                  className="button-secondary"
-                  type="button"
-                  onClick={() => void handleSaveWorkspace("archived")}
-                  disabled={isSaving || isPublishing}
-                >
-                  封存版本
-                </button>
-              </div>
+                <div className="deliverable-management-actions">
+                  <div className="deliverable-action-group">
+                    <p className="deliverable-action-group-label">先落盤</p>
+                    <div className="button-row">
+                      <button
+                        className="button-primary"
+                        type="button"
+                        onClick={() => void handleSaveWorkspace()}
+                        disabled={isSaving || isPublishing}
+                      >
+                        {isSaving
+                          ? "儲存中..."
+                          : hasPendingFormalSave
+                            ? "先儲存正式草稿"
+                            : "儲存正式內容"}
+                      </button>
+                      <button
+                        className="button-secondary"
+                        type="button"
+                        onClick={() => void handleSaveWorkspace("pending_confirmation")}
+                        disabled={isSaving || isPublishing}
+                      >
+                        送往待確認
+                      </button>
+                    </div>
+                  </div>
 
-              <div className="button-row">
-                <button
-                  className="button-secondary"
-                  type="button"
-                  onClick={() => void handleExportEntry("markdown")}
-                  disabled={Boolean(activeExportFormat) || isSaving || isPublishing || hasUnsavedChanges}
-                >
-                  {activeExportFormat === "markdown" ? "匯出中..." : "匯出 Markdown"}
-                </button>
-                <button
-                  className="button-secondary"
-                  type="button"
-                  onClick={() => void handleExportEntry("docx")}
-                  disabled={Boolean(activeExportFormat) || isSaving || isPublishing || hasUnsavedChanges}
-                >
-                  {activeExportFormat === "docx" ? "匯出中..." : "匯出 DOCX"}
-                </button>
-              </div>
+                  <div className="deliverable-action-group">
+                    <p className="deliverable-action-group-label">正式版本</p>
+                    <div className="button-row">
+                      <button
+                        className="button-secondary"
+                        type="button"
+                        onClick={() => void handlePublishRelease()}
+                        disabled={isSaving || isPublishing}
+                      >
+                        {isPublishing ? "發布中..." : "正式發布"}
+                      </button>
+                      <button
+                        className="button-secondary"
+                        type="button"
+                        onClick={() => void handleSaveWorkspace("archived")}
+                        disabled={isSaving || isPublishing}
+                      >
+                        封存版本
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="deliverable-action-group">
+                    <p className="deliverable-action-group-label">匯出</p>
+                    <div className="button-row">
+                      <button
+                        className="button-secondary"
+                        type="button"
+                        onClick={() => void handleExportEntry("markdown")}
+                        disabled={
+                          Boolean(activeExportFormat) ||
+                          isSaving ||
+                          isPublishing ||
+                          requiresSaveBeforeFormalActions
+                        }
+                      >
+                        {activeExportFormat === "markdown" ? "匯出中..." : "匯出 Markdown"}
+                      </button>
+                      <button
+                        className="button-secondary"
+                        type="button"
+                        onClick={() => void handleExportEntry("docx")}
+                        disabled={
+                          Boolean(activeExportFormat) ||
+                          isSaving ||
+                          isPublishing ||
+                          requiresSaveBeforeFormalActions
+                        }
+                      >
+                        {activeExportFormat === "docx" ? "匯出中..." : "匯出 DOCX"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
               <p className="muted-text">
                 正式版本紀錄、artifact 與 publish record 只會寫入後端；若後端暫時不可用，這裡會直接報錯並保留目前內容，不會假裝成功。
               </p>
-              {hasUnsavedChanges ? (
+              {hasPendingFormalSave ? (
+                <p className="muted-text">目前系統已整理出可寫入的正式草稿，但還沒正式落盤；請先儲存，再進行匯出或版本回退。</p>
+              ) : hasUnsavedChanges ? (
                 <p className="muted-text">目前有未儲存變更；匯出會先要求你把內容落盤，正式發布則會直接把目前內容寫入後端並建立發布紀錄。</p>
               ) : null}
               {hasUnpublishedContentChanges ? (
@@ -1068,18 +1343,14 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                   </button>
                 </div>
               ) : null}
-            </div>
-          </section>
-
-          <section className="panel">
-            <div className="panel-header">
-              <div>
-                <h2 className="panel-title">交付物工作面摘要</h2>
-                <p className="panel-copy">
-                  這裡是正式的交付物工作面，不是一般結果頁。你可以在這裡回看這份交付物的類型、依據鏈、限制、適用範圍與相關工作脈絡。
-                </p>
               </div>
             </div>
+          </DisclosurePanel>
+
+          <DisclosurePanel
+            title="交付脈絡與工作面背景"
+            description="當你要理解這份交付物在整個案件世界中的定位時，再展開這層；日常閱讀先看結論本身。"
+          >
             <div className="summary-grid">
               <div className="section-card">
                 <h4>交付層級與定位</h4>
@@ -1101,11 +1372,11 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                 />
               </div>
             </div>
-          </section>
+          </DisclosurePanel>
 
           <div className="detail-grid">
             <div className="detail-stack">
-              <section className="panel">
+              <section className="panel section-anchor" id="deliverable-reading">
                 <div className="panel-header">
                   <div>
                     <h2 className="panel-title">交付摘要</h2>
@@ -1212,7 +1483,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                 </div>
               </section>
 
-              <section className="panel">
+              <section className="panel section-anchor" id="deliverable-evidence">
                 <div className="panel-header">
                   <div>
                     <h2 className="panel-title">依據來源與 ontology 回鏈</h2>
@@ -1247,78 +1518,83 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                   </div>
                 ) : null}
 
-                <div className="detail-grid" style={{ marginTop: "20px" }}>
-                  <div className="detail-stack">
-                    <div className="detail-item">
-                      <h3>正式依據來源</h3>
-                      <CompactList
-                        items={effectiveEvidenceBasis}
-                        emptyText="目前尚未寫入正式依據來源。"
-                      />
-                    </div>
-                    <div className="detail-item">
-                      <h3>已連結來源材料</h3>
-                      {workspace.linked_source_materials.length > 0 ? (
-                        <div className="section-list">
-                          {workspace.linked_source_materials.map((item) => (
-                            <div className="section-card" key={item.id}>
-                              <h4>{item.title}</h4>
-                              <p className="muted-text">
-                                {labelForSourceType(item.source_type)}{item.source_ref ? `｜${item.source_ref}` : ""}
-                              </p>
-                              <p className="content-block">{item.summary || "目前沒有可顯示的來源摘要。"}</p>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="empty-text">目前沒有可顯示的來源材料。</p>
-                      )}
+                <DisclosurePanel
+                  title="完整回鏈與支撐明細"
+                  description="只有在你要 debug 結論、逐條核對來源，或確認 evidence chain 時，再展開這層。"
+                >
+                  <div className="detail-grid" style={{ marginTop: "4px" }}>
+                    <div className="detail-stack">
+                      <div className="detail-item">
+                        <h3>正式依據來源</h3>
+                        <CompactList
+                          items={effectiveEvidenceBasis}
+                          emptyText="目前尚未寫入正式依據來源。"
+                        />
+                      </div>
+                      <div className="detail-item">
+                        <h3>已連結來源材料</h3>
+                        {workspace.linked_source_materials.length > 0 ? (
+                          <div className="section-list">
+                            {workspace.linked_source_materials.map((item) => (
+                              <div className="section-card" key={item.id}>
+                                <h4>{item.title}</h4>
+                                <p className="muted-text">
+                                  {labelForSourceType(item.source_type)}{item.source_ref ? `｜${item.source_ref}` : ""}
+                                </p>
+                                <p className="content-block">{item.summary || "目前沒有可顯示的來源摘要。"}</p>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="empty-text">目前沒有可顯示的來源材料。</p>
+                        )}
+                      </div>
+
+                      <div className="detail-item">
+                        <h3>已連結工作物件</h3>
+                        {workspace.linked_artifacts.length > 0 ? (
+                          <div className="section-list">
+                            {workspace.linked_artifacts.map((item) => (
+                              <div className="section-card" key={item.id}>
+                                <h4>{item.title}</h4>
+                                <p className="muted-text">{item.artifact_type || "未分類工作物件"}</p>
+                                <p className="content-block">{item.description || "目前沒有工作物件摘要。"}</p>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="empty-text">目前沒有可顯示的工作物件。</p>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="detail-item">
-                      <h3>已連結工作物件</h3>
-                      {workspace.linked_artifacts.length > 0 ? (
-                        <div className="section-list">
-                          {workspace.linked_artifacts.map((item) => (
-                            <div className="section-card" key={item.id}>
-                              <h4>{item.title}</h4>
-                              <p className="muted-text">{item.artifact_type || "未分類工作物件"}</p>
-                              <p className="content-block">{item.description || "目前沒有工作物件摘要。"}</p>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="empty-text">目前沒有可顯示的工作物件。</p>
-                      )}
+                    <div className="detail-stack">
+                      <div className="detail-item">
+                        <h3>已連結證據</h3>
+                        {workspace.linked_evidence.length > 0 ? (
+                          <div className="section-list">
+                            {workspace.linked_evidence.map((item) => (
+                              <div className="section-card" key={item.id}>
+                                <h4>{item.title}</h4>
+                                <p className="muted-text">
+                                  {labelForEvidenceType(item.evidence_type)}｜{item.reliability_level}
+                                </p>
+                                <p className="content-block">{item.excerpt_or_summary}</p>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="empty-text">目前沒有可顯示的證據。</p>
+                        )}
+                      </div>
                     </div>
                   </div>
-
-                  <div className="detail-stack">
-                    <div className="detail-item">
-                      <h3>已連結證據</h3>
-                      {workspace.linked_evidence.length > 0 ? (
-                        <div className="section-list">
-                          {workspace.linked_evidence.map((item) => (
-                            <div className="section-card" key={item.id}>
-                              <h4>{item.title}</h4>
-                              <p className="muted-text">
-                                {labelForEvidenceType(item.evidence_type)}｜{item.reliability_level}
-                              </p>
-                              <p className="content-block">{item.excerpt_or_summary}</p>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="empty-text">目前沒有可顯示的證據。</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                </DisclosurePanel>
               </section>
             </div>
 
             <div className="detail-stack">
-              <section className="panel">
+              <section className="panel section-anchor" id="deliverable-confidence">
                 <div className="panel-header">
                   <div>
                     <h2 className="panel-title">可信度、限制與缺口</h2>
@@ -1394,13 +1670,11 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                 </div>
               </section>
 
-              <section className="panel">
-                <div className="panel-header">
-                  <div>
-                    <h2 className="panel-title">正文修訂</h2>
-                    <p className="panel-copy">這裡只追摘要、建議、風險、行動項目與依據來源的正文演進，不和發布紀錄混在一起。</p>
-                  </div>
-                </div>
+              <DisclosurePanel
+                id="deliverable-history"
+                title="正文修訂"
+                description="這裡只追摘要、建議、風險、行動項目與依據來源的正文演進。平常不用先讀，只有在你要比較版本或 rollback 時再展開。"
+              >
                 {workspace.content_revisions.length > 0 ? (
                   <div className="detail-list">
                     {workspace.content_revisions.map((revision) => (
@@ -1446,15 +1720,12 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                 ) : (
                   <p className="empty-text">目前尚未建立正式正文修訂紀錄。</p>
                 )}
-              </section>
+              </DisclosurePanel>
 
-              <section className="panel">
-                <div className="panel-header">
-                  <div>
-                    <h2 className="panel-title">版本紀錄</h2>
-                    <p className="panel-copy">這裡直接讀正式 backend 版本事件、artifact registry 與 publish record，清楚區分內容更新、匯出與正式發布。</p>
-                  </div>
-                </div>
+              <DisclosurePanel
+                title="版本紀錄"
+                description="這裡直接讀正式 backend 版本事件、artifact registry 與 publish record。平常先看上方交付主線，需要追歷史時再展開。"
+              >
                 <div className="detail-list">
                   <div className="detail-item">
                     <div className="meta-row">
@@ -1600,7 +1871,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                     ))
                   ) : null}
                 </div>
-              </section>
+              </DisclosurePanel>
 
               <section className="panel">
                 <div className="panel-header">
