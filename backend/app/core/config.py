@@ -22,7 +22,12 @@ class Settings(BaseSettings):
     openai_model: str = "gpt-5.4"
     openai_base_url: str = "https://api.openai.com/v1"
     openai_timeout_seconds: int = 60
-    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
+    cors_origins: str = (
+        "http://localhost:3000,"
+        "http://127.0.0.1:3000,"
+        "http://localhost:3001,"
+        "http://127.0.0.1:3001"
+    )
     raw_upload_retention_days: int = 30
     active_raw_upload_retention_days: int = 90
     derived_retention_days: int = 180

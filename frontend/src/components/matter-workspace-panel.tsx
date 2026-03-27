@@ -1,15 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { buildTaskListWorkspaceSummary } from "@/lib/advisory-workflow";
-import { getMatterWorkspace, rollbackMatterContentRevision } from "@/lib/api";
+import { getMatterWorkspace, rollbackMatterContentRevision, runTask } from "@/lib/api";
 import { truncateText } from "@/lib/text-format";
 import type {
   MatterContentRevision,
   MatterWorkspace,
   MatterWorkspaceContentSections,
+  MatterDeliverableSummary,
   TaskListItem,
 } from "@/lib/types";
 import {
@@ -105,6 +107,75 @@ function buildNextStepNotes(matter: MatterWorkspace, evidenceCount: number) {
   }
 
   return Array.from(new Set(nextSteps)).slice(0, 4);
+}
+
+type MatterAdvanceGuide = {
+  title: string;
+  summary: string;
+  checklist: string[];
+  primaryActionLabel: string | null;
+};
+
+function buildMatterAdvanceGuide({
+  arrivedFromNew,
+  focusTask,
+  latestDeliverable,
+  sourceMaterialCount,
+  evidenceCount,
+}: {
+  arrivedFromNew: boolean;
+  focusTask: TaskListItem | null;
+  latestDeliverable: MatterDeliverableSummary | null;
+  sourceMaterialCount: number;
+  evidenceCount: number;
+}): MatterAdvanceGuide {
+  const checklist = [
+    "先確認這個案件頁面上的「目前主線」是否就是你真正想要系統幫你收斂的判斷。",
+    sourceMaterialCount === 0
+      ? "如果你手上已有檔案、網址或會議摘要，先到來源與證據補件；如果還沒有，也可以直接先跑第一版骨架。"
+      : evidenceCount < 2
+        ? "目前已有一些材料，但證據仍偏薄；你可以先補件，也可以先產出第一版交付物再回來補強。"
+        : "目前材料與證據已有基本厚度，可以直接執行分析，讓 Host 產出正式交付物。",
+    latestDeliverable
+      ? `最新交付物「${latestDeliverable.title}」已形成，現在可以直接回看摘要、風險與行動項目。`
+      : focusTask
+        ? `真正會產出結果的是工作紀錄「${focusTask.title}」的執行分析；完成後會生成正式交付物。`
+        : "目前尚未找到可直接推進的工作紀錄。",
+  ];
+
+  if (latestDeliverable) {
+    return {
+      title: arrivedFromNew ? "案件已建立，現在已有可回看的結果" : "目前已有可回看的結果",
+      summary: "這個案件已經形成交付物；如果要繼續推進，通常是回看交付物、補件後再改版，或切回工作紀錄重跑分析。",
+      checklist,
+      primaryActionLabel: null,
+    };
+  }
+
+  if (!focusTask) {
+    return {
+      title: arrivedFromNew ? "案件已建立，下一步先回到工作紀錄" : "先回到工作紀錄",
+      summary: "案件骨架已建立，但目前沒有可直接執行的焦點工作。請先打開工作紀錄，確認這輪分析的主線。",
+      checklist,
+      primaryActionLabel: null,
+    };
+  }
+
+  if (sourceMaterialCount === 0 || evidenceCount < 2) {
+    return {
+      title: arrivedFromNew ? "案件已建立，現在先補件或先跑第一版" : "現在先補件或先跑第一版",
+      summary: "建立案件只代表主鏈已成立，不代表結果已產出。你可以先補來源與證據，也可以直接讓系統先做一版可回看的交付物骨架。",
+      checklist,
+      primaryActionLabel: "直接產出第一版交付物",
+    };
+  }
+
+  return {
+    title: arrivedFromNew ? "案件已建立，現在可以直接產出結果" : "現在可以直接產出結果",
+    summary: "這個案件已具備基本材料與證據厚度。直接執行分析後，系統會把結果寫成正式交付物並帶你進入交付物工作面。",
+    checklist,
+    primaryActionLabel: "執行分析並打開交付物",
+  };
 }
 
 function splitMultilineContent(value: string) {
@@ -213,7 +284,16 @@ function buildMatterFallbackDiffItems(record: MatterWorkspaceRecord, matter: Mat
   return items;
 }
 
-export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
+export function MatterWorkspacePanel({
+  matterId,
+  createdTaskId = null,
+  arrivedFromNew = false,
+}: {
+  matterId: string;
+  createdTaskId?: string | null;
+  arrivedFromNew?: boolean;
+}) {
+  const router = useRouter();
   const [matter, setMatter] = useState<MatterWorkspace | null>(null);
   const [activeTab, setActiveTab] = useState<MatterTab>("overview");
   const [matterRecords, setMatterRecords] = useMatterWorkspaceRecords();
@@ -228,23 +308,28 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
   });
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [saveTone, setSaveTone] = useState<"success" | "warning" | "error" | null>(null);
+  const [advanceMessage, setAdvanceMessage] = useState<string | null>(null);
+  const [advanceTone, setAdvanceTone] = useState<"success" | "warning" | "error" | null>(null);
+  const [runningFocusTask, setRunningFocusTask] = useState(false);
   const [isResyncing, setIsResyncing] = useState(false);
   const [rollingBackRevisionId, setRollingBackRevisionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  async function loadMatterWorkspace() {
+    try {
+      setLoading(true);
+      setError(null);
+      setMatter(await getMatterWorkspace(matterId));
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "載入案件工作台失敗。");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   useEffect(() => {
-    void (async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        setMatter(await getMatterWorkspace(matterId));
-      } catch (loadError) {
-        setError(loadError instanceof Error ? loadError.message : "載入案件工作台失敗。");
-      } finally {
-        setLoading(false);
-      }
-    })();
+    void loadMatterWorkspace();
   }, [matterId]);
 
   const fallbackRecord =
@@ -305,10 +390,12 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
     ? [...matter.related_artifacts, ...matter.related_source_materials].slice(0, 6)
     : [];
   const latestDeliverable = matter?.related_deliverables[0] ?? null;
+  const recentTask = matter?.related_tasks[0] ?? null;
+  const focusTask =
+    matter?.related_tasks.find((task) => task.id === createdTaskId) ?? recentTask ?? null;
   const analysisFocus = matter ? buildAnalysisFocus(matter) : [];
   const constraintNotes = matter ? buildConstraintNotes(matter, evidenceCount) : [];
   const nextStepNotes = matter ? buildNextStepNotes(matter, evidenceCount) : [];
-  const recentTask = matter?.related_tasks[0] ?? null;
   const recentTaskSummary = recentTask ? buildTaskListWorkspaceSummary(recentTask) : null;
   const resolvedContentSections = matter
     ? buildResolvedMatterContentSections(matter, fallbackRecord)
@@ -330,6 +417,44 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
     splitMultilineContent(resolvedContentSections.next_steps).length > 0
       ? splitMultilineContent(resolvedContentSections.next_steps)
       : nextStepNotes;
+  const advanceGuide = buildMatterAdvanceGuide({
+    arrivedFromNew,
+    focusTask,
+    latestDeliverable,
+    sourceMaterialCount: matter?.summary.source_material_count ?? 0,
+    evidenceCount,
+  });
+
+  async function handleAdvanceMatter() {
+    if (latestDeliverable) {
+      router.push(`/deliverables/${latestDeliverable.deliverable_id}`);
+      return;
+    }
+
+    if (!focusTask) {
+      setAdvanceTone("warning");
+      setAdvanceMessage("目前找不到可直接推進的工作紀錄，請先打開工作紀錄確認這輪主線。");
+      return;
+    }
+
+    try {
+      setRunningFocusTask(true);
+      setAdvanceTone(null);
+      setAdvanceMessage(
+        evidenceCount < 2
+          ? "正在先產出一版可回看的交付物骨架..."
+          : "正在執行分析並產出正式交付物...",
+      );
+      const result = await runTask(focusTask.id);
+      await loadMatterWorkspace();
+      router.push(`/deliverables/${result.deliverable.id}`);
+    } catch (runError) {
+      setAdvanceTone("error");
+      setAdvanceMessage(runError instanceof Error ? runError.message : "執行分析失敗。");
+    } finally {
+      setRunningFocusTask(false);
+    }
+  }
 
   async function handleSave() {
     if (!matter) {
@@ -595,24 +720,59 @@ export function MatterWorkspacePanel({ matterId }: { matterId: string }) {
                 </div>
 
                 <div className="section-card">
-                  <h4>下一步入口</h4>
-                  <div className="button-row">
-                    <Link className="button-secondary" href={`/matters/${matterId}/evidence`}>
-                      來源與證據
-                    </Link>
+                  <h4>{advanceGuide.title}</h4>
+                  <p className="content-block">{advanceGuide.summary}</p>
+                  {focusTask ? (
+                    <p className="muted-text" style={{ marginTop: "8px" }}>
+                      焦點工作紀錄：{focusTask.title}｜{labelForTaskStatus(focusTask.status)}
+                    </p>
+                  ) : null}
+                  <ul className="list-content" style={{ marginTop: "12px" }}>
+                    {advanceGuide.checklist.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                  <div className="button-row" style={{ marginTop: "12px" }}>
                     {latestDeliverable ? (
                       <Link
-                        className="button-secondary"
+                        className="button-primary"
                         href={`/deliverables/${latestDeliverable.deliverable_id}`}
                       >
-                        最近交付物
+                        打開最近交付物
                       </Link>
-                    ) : (
-                      <Link className="button-secondary" href="/deliverables">
-                        查看交付物
+                    ) : advanceGuide.primaryActionLabel ? (
+                      <button
+                        className="button-primary"
+                        type="button"
+                        onClick={() => void handleAdvanceMatter()}
+                        disabled={runningFocusTask}
+                      >
+                        {runningFocusTask ? "正在產出中..." : advanceGuide.primaryActionLabel}
+                      </button>
+                    ) : null}
+                    <Link className="button-secondary" href={`/matters/${matterId}/evidence`}>
+                      先補資料
+                    </Link>
+                    {focusTask ? (
+                      <Link className="button-secondary" href={`/tasks/${focusTask.id}`}>
+                        打開工作紀錄
                       </Link>
-                    )}
+                    ) : null}
                   </div>
+                  {advanceMessage ? (
+                    <p
+                      className={
+                        advanceTone === "error"
+                          ? "error-text"
+                          : advanceTone === "success"
+                            ? "success-text"
+                            : "muted-text"
+                      }
+                      style={{ marginTop: "12px" }}
+                    >
+                      {advanceMessage}
+                    </p>
+                  ) : null}
                 </div>
 
                 <div className="section-card">

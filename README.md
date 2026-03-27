@@ -388,6 +388,15 @@ npm run build
 npm run typecheck
 ```
 
+Notes:
+- development and production still both use the standard Next output directory name, `frontend/.next`
+- the Docker Compose frontend service now mounts a dedicated `frontend_next` volume for `/app/frontend/.next`, so containerized `next dev` no longer shares the same build output directory as host-side `npm run build`
+- if the dev server ever behaves oddly after a crash, recreate the frontend service instead of deleting production build output:
+
+```bash
+docker compose restart frontend
+```
+
 ## Verification status
 
 ### Verified in this environment
