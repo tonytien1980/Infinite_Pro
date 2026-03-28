@@ -53,11 +53,21 @@
 - `task_visibility_states`
 - matter local fallback record
 
+### 2.5 continuity / writeback records
+- `case_world_drafts`
+- `evidence_gaps`
+- `research_runs`
+- `decision_records`
+- `action_plans`
+- `action_executions`
+- `outcome_records`
+
 正式規則：
 - metadata 不能和正文內容混成單一模糊欄位
 - revision record 不能假裝是 publish note
 - export event 不等於 publish record
 - UI preference / visibility state 不應寫進正式 audit / publish record
+- continuity / writeback record 不等於 deliverable revision history
 
 ---
 
@@ -132,6 +142,11 @@ matter local fallback 至少應有以下狀態：
 - task 不應被寫成 completed
 - 不應為了掩蓋 provider timeout / runtime error 而自動產出看起來像正式完成的降級交付物
 
+若 research / external completion 在正式執行期間失敗：
+- research run 應標示為失敗
+- 不可把失敗的外部補完結果偷塞成正式 evidence
+- 若只建立了 metadata / reference-level record，必須誠實標示 provenance 與 support level
+
 ### 4.2 正式發布與正式匯出
 deliverable 正式發布至少要留下：
 - deliverable id
@@ -202,6 +217,27 @@ publish / artifact records 用來描述正式發布與正式輸出物。
 - `deliverable_publish_records`
 - `deliverable_artifact_records`
 
+### 5.4 Decision / Action / Outcome Writeback
+這一層不屬於 revision history，而屬於 continuity-aware writeback。
+
+正式責任：
+- `DecisionRecord`
+  - 保留 decision checkpoint、evidence basis、deliverable lineage
+- `ActionPlan`
+  - 把 decision 轉成可治理的行動方案
+- `ActionExecution`
+  - 追蹤 action 是否啟動、卡住、完成
+- `OutcomeRecord`
+  - 把 follow-up 訊號、後續結果與 outcome observation 寫回同一個案件世界
+
+正式規則：
+- `minimal`
+  - 至少保留 history + evidence basis + deliverable lineage
+- `milestone`
+  - 在 `minimal` 基礎上再保留 decision checkpoints
+- `full`
+  - 在 `milestone` 基礎上再保留 action execution + outcome records
+
 ---
 
 ## 6. Revision 與 Rollback 的正式規則
@@ -254,7 +290,44 @@ publish / artifact records 用來描述正式發布與正式輸出物。
 
 ---
 
-## 8. 舊資料相容、lazy init 與 runtime backfill
+## 8. continuity / writeback policy 的正式規則
+
+### 8.1 Formal fields
+- `engagement_continuity_mode`
+  - `one_off`
+  - `follow_up`
+  - `continuous`
+- `writeback_depth`
+  - `minimal`
+  - `milestone`
+  - `full`
+
+### 8.2 one_off
+- 建立案件世界
+- 建立 evidence chain
+- 產出 deliverable
+- 保留最小 history / traceability
+- 不強迫建立完整 action-outcome loop
+
+### 8.3 follow_up
+- 在 `one_off` 基礎上
+- 允許 decision checkpoints
+- 允許 milestone-level writeback
+- 允許後續追蹤，但不要求完整 continuous loop
+
+### 8.4 continuous
+- 在 `follow_up` 基礎上
+- 正式支援 decision -> action -> outcome 閉環
+- 支援長期更新案件世界
+
+正式規則：
+- 所有案件都至少要保留最小 history / traceability
+- 並非所有案件都應被污染成 continuous UX
+- 但 `continuous` 案件的 writeback 痕跡不可消失在 revision history 裡
+
+---
+
+## 9. 舊資料相容、lazy init 與 runtime backfill
 
 目前正式 beta 採：
 - runtime schema patch
@@ -272,7 +345,7 @@ publish / artifact records 用來描述正式發布與正式輸出物。
 
 ---
 
-## 9. 與其他正式文件的關係
+## 10. 與其他正式文件的關係
 
 - intake、storage、retention、purge 與成本治理，正式由 `docs/11_intake_storage_architecture.md` 承接
 - 前端工作面角色、頁面責任與 detail workspace UX 原則，正式由 `docs/10_frontend_information_architecture_and_ux_principles.md` 承接
@@ -286,7 +359,7 @@ publish / artifact records 用來描述正式發布與正式輸出物。
 
 ---
 
-## 10. 目前仍屬 beta 的部分
+## 11. 目前仍屬 beta 的部分
 
 以下能力目前仍屬 beta，可用但未到 production-ready：
 - matter fallback 後的自動 conflict merge

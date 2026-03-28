@@ -27,8 +27,8 @@ Before making any structural, product, ontology, agent, or UI decisions, read th
 11. `docs/06_system_architecture.md`
 12. `docs/07_implementation_order.md`
 13. `docs/08_codex_handoff.md`
-14. `docs/11_intake_storage_architecture.md` when touching intake, source materials, storage, retention, purge, or artifact file lifecycle
-15. `docs/12_runtime_persistence_and_release_integrity.md` when touching revision, rollback, publish, artifact registry, fallback, degraded mode, or sync recovery
+14. `docs/11_intake_storage_architecture.md` when touching intake, canonical intake pipeline, entry presets, source materials, storage, retention, purge, or artifact file lifecycle
+15. `docs/12_runtime_persistence_and_release_integrity.md` when touching continuity mode, writeback depth, revision, rollback, publish, artifact registry, fallback, degraded mode, or sync recovery
 16. `docs/13_system_provider_settings_and_credentials.md` when touching system provider settings, model runtime config, credential storage, provider validation, or env precedence
 
 If implementation ideas conflict with the documents, prefer the documents over assumptions.
@@ -37,8 +37,8 @@ If naming, product positioning, ontology modeling, or product drift questions ap
 If homepage, navigation, workspace surface, management surface, history page, or Traditional Chinese UI copy decisions appear, treat `docs/10_frontend_information_architecture_and_ux_principles.md` as the primary governance guide.
 If page-level 操作邏輯、資訊密度、使用者下一步導引、primary action hierarchy、progressive disclosure 或 detail workspace readability questions appear, treat `docs/14_workbench_ui_ux_operating_principles.md` as the primary governance guide.
 If要判斷某一頁面第一屏應顯示什麼、主按鈕是什麼、哪些資訊要延後揭露、或哪個工作面要接回哪個頁面, treat `docs/15_page_level_ui_inventory_and_flow_rules.md` as the primary governance guide.
-If intake modes, source material ingestion, storage boundaries, retention, or purge lifecycle questions appear, treat `docs/11_intake_storage_architecture.md` as the primary governance guide.
-If正文 persistence、revision、rollback、publish / artifact record、fail-closed、degraded mode、re-sync 邊界 questions appear, treat `docs/12_runtime_persistence_and_release_integrity.md` as the primary governance guide.
+If intake modes, canonical intake pipeline, case world compilation entry semantics, source material ingestion, storage boundaries, retention, or purge lifecycle questions appear, treat `docs/11_intake_storage_architecture.md` as the primary governance guide.
+If正文 persistence、continuity mode、writeback depth、decision writeback、revision、rollback、publish / artifact record、fail-closed、degraded mode、re-sync 邊界 questions appear, treat `docs/12_runtime_persistence_and_release_integrity.md` as the primary governance guide.
 If系統級 provider 設定、credential storage、active runtime config、provider validation、env precedence questions appear, treat `docs/13_system_provider_settings_and_credentials.md` as the primary governance guide.
 
 ---
@@ -469,6 +469,15 @@ Before considering a change done, verify at least:
 If a change touches orchestration, ontology, or context modeling, test both:
 - a convergence-style path
 - at least one specialist path
+
+If a change touches intake semantics, verify:
+- one-line inquiry still enters the same canonical intake pipeline
+- single-document and multi-material entry remain entry presets rather than different ontology worlds
+
+If a change touches continuity / writeback behavior, test at least:
+- `one_off` minimal traceability
+- `follow_up` milestone checkpoint behavior
+- `continuous` decision -> action -> outcome writeback visibility
 
 If a change affects workbench structure, validate:
 - main work surface readability

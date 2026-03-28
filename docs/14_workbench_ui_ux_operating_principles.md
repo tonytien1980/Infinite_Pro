@@ -92,6 +92,9 @@ Infinite Pro 是顧問工作台，不是系統內部模型瀏覽器。
 - agent / pack routing
 - revision / publish / artifact record
 - raw trace / 大量 supporting context
+- case world draft 全量欄位
+- research provenance 全量明細
+- decision / outcome records 全量列表
 
 這些都應屬於 `debug / trace / audit` 層，而不是主工作面首屏。
 
@@ -225,6 +228,9 @@ Infinite Pro 應正式使用以下漸進揭露方式：
 
 5. **深層內容**
    - 正文、證據鏈、修訂、版本事件、artifact、trace
+   - case world draft 全量欄位
+   - research provenance
+   - decision / action / outcome writeback 記錄
 
 ### 9.1 第一屏之後的段落導引
 
@@ -249,6 +255,17 @@ Infinite Pro 應正式使用以下漸進揭露方式：
 - 完整摘要重述
 - 長段落論述
 - 全量事件與版本歷史
+- 全量 case world draft
+- 全量 decision / outcome writeback 記錄
+
+### 9.4 新增可見規則：canonical intake / continuity / writeback
+
+正式規則：
+- `/new` 第一屏應明確說明「現在只是選 entry preset，背後仍是同一條 canonical intake pipeline」
+- `Task detail` 應可見最小 `case world draft` 摘要，但全量 facts / assumptions / evidence gaps 應預設收合
+- `Matter workspace` 應可見 `engagement_continuity_mode / writeback_depth`，但不應把所有 writeback records 攤成主頁主線
+- `Artifact / Evidence workspace` 應可見 research provenance 與 evidence gaps，但不應退回 debug dashboard
+- `Deliverable workspace` 應可見這份交付物如何被寫回案件世界，但 writeback 細節應維持按需展開
 
 ### 9.3 長列表與歷史區塊規則
 

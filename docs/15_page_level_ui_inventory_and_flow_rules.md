@@ -96,13 +96,14 @@
 - 建立案件骨架 / 用材料建立案件
 
 **Secondary actions**
-- 切換進件模式
+- 切換 entry preset
 - 補上可選材料
 - 展開進階設定
 
 **首屏必顯**
-- 進件模式
-- 當前模式規則
+- canonical intake pipeline 說明
+- 當前 entry preset 規則
+- continuity strategy / writeback depth（若已展開進階設定）
 - 建立後流程說明
 - 核心輸入欄位
 
@@ -178,12 +179,15 @@
 - object path
 - 狀態 / 來源 / 證據 / 交付物 / 工作紀錄指標
 - 目前主線
+- continuity mode / writeback depth 摘要
 - 案件推進導引
 
 **延後揭露**
 - 正文修訂列表
 - 大量工作紀錄細節
 - 所有 related items 全量清單
+- case world draft 全量欄位
+- decision / outcome writeback 記錄
 
 **正式跳轉**
 - `/matters/[matterId]/evidence`
@@ -214,6 +218,7 @@
 - 來源材料數
 - 證據支撐鏈數
 - 高影響缺口數
+- research provenance 摘要
 - 補件導引
 - 段落導覽
 
@@ -222,6 +227,8 @@
 - 全量工作物件清單
 - 長篇證據鏈細節
 - 證據期待、保留邊界、進件規則等 supporting / debug 資訊
+- evidence gap records
+- research provenance 明細
 
 **正式跳轉**
 - `/tasks/[taskId]`
@@ -251,6 +258,7 @@
 **首屏必顯**
 - task 身份與狀態
 - 目前工作導引
+- case world draft 摘要
 - 來源厚度 / 結果狀態
 - 主按鈕
 - 段落導覽
@@ -261,6 +269,9 @@
 - system trace
 - 擴充管理面
 - 案件世界連續性與 supporting context
+- facts / assumptions / evidence gaps 全量列表
+- research provenance 全量列表
+- decision / outcome writeback 記錄
 
 **正式跳轉**
 - `/deliverables/[deliverableId]`
@@ -327,6 +338,7 @@
 - deliverable 身份
 - 一句話結論
 - 版本 / 狀態 / 所屬案件
+- continuity mode / writeback depth 摘要
 - 導引層
 - 段落導覽
 
@@ -338,6 +350,8 @@
 - publish records
 - 相關交付物
 - 完整 evidence / ontology 回鏈明細
+- decision / outcome writeback 記錄
+- research provenance 細節
 
 **交付物管理段落規則**
 - 交付物管理不應把唯讀 metadata、版本控制與正文編修塞成同一排密集表單

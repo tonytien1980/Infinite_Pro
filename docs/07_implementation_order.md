@@ -73,12 +73,20 @@ Infinite Pro 的施工原則應改為：
 ### Wave 1：Governance / Ontology / Context spine
 先把治理語言、objects、links、context layers 對齊。
 
-### Wave 2：Workbench surfaces
-先讓 intake、decision workspace、artifact/evidence workspace、deliverable workspace 成形。
+此波次現在正式包含：
+- canonical intake pipeline 與 entry preset 語義一致化
+- `Case World Compiler / case_world_draft`
+- `engagement_continuity_mode / writeback_depth`
+- research provenance 與 decision writeback 邊界
+
+### Wave 2：Ontology contracts / persistence
+先讓正式物件、contracts、persistence 邊界與歷史 / writeback 分層成形。
 
 此波次現在也正式包含：
-- `/new` 的三種進件模式
-- 多材料案件與 matter-level 補件主鏈
+- `/new` 的三種 entry presets
+- one canonical intake pipeline
+- `CaseWorldDraft / EvidenceGap / ResearchRun / DecisionRecord / ActionPlan / ActionExecution / OutcomeRecord` 的最小 contract
+- continuity policy 與 writeback depth 的正式 persistence
 - raw / derived / released 的 storage 邊界
 - retention / purge metadata 與成本控制邊界
 
@@ -86,15 +94,18 @@ Infinite Pro 的施工原則應改為：
 若施工觸及正文 persistence、revision、rollback、publish、artifact registry、fallback、degraded mode 或 sync recovery，應同步參考 `docs/12_runtime_persistence_and_release_integrity.md`。
 
 ### Wave 3：Host orchestration reset
-把 Host 的 task framing、decision context framing、routing 與 readiness 治理正式接起來。
+把 Host 的 task framing、case world compilation、routing、research 與 writeback 治理正式接起來。
 
-### Wave 4：Agent families expansion
+### Wave 4：Workbench surfaces
+讓 intake、decision workspace、artifact/evidence workspace、deliverable workspace 在不退回 debug dashboard 的前提下，可見化新的 ontology / writeback 主鏈。
+
+### Wave 5：Agent families expansion
 讓 reasoning agents 與 specialist agents 形成正式能力層。
 
-### Wave 5：Pack integration
-讓 Pack Layer 進入 ontology-aware context、routing、deliverable shaping。
+### Wave 6：Pack integration deepen
+讓 Pack Layer 更深地進入 case world compilation、research strategy、deliverable shaping 與 writeback interpretation。
 
-### Wave 6：Multi-user system layer
+### Wave 7：Multi-user system layer
 最後才進入多人登入、權限、多租戶與協作治理。
 
 ---
@@ -120,10 +131,12 @@ Infinite Pro 的施工原則應改為：
 第一波應優先落地：
 - task interpretation
 - decision framing
+- case world compilation
 - readiness governance
 - execution mode selection
 - specialist / reasoning routing
 - deliverable convergence
+- continuity / writeback policy selection
 
 ### 5.3 Workbench spine
 第一波應優先落地：
@@ -140,8 +153,9 @@ Infinite Pro 的施工原則應改為：
 - evidence creation
 - source metadata
 - history writeback
-- 三種正式進件模式共用同一條 task / matter / source / evidence 主鏈
+- 三種 entry presets 共用同一條 task / matter / source / evidence 主鏈
 - raw / derived / released storage metadata 與 retention 邊界
+- research 結果回到同一條 source / evidence 主鏈
 
 ---
 
@@ -156,11 +170,14 @@ Infinite Pro 的施工原則應改為：
 - Metric
 - Timeline
 - richer links and traceability
+- EvidenceGap / ResearchRun / DecisionRecord / ActionPlan / ActionExecution / OutcomeRecord 的完整深化
 
 ### 6.2 Agent deepen
 - 更完整 reasoning families
 - 更完整 specialist families
 - pack-aware routing
+- pack-aware research strategy
+- continuity-aware writeback governance
 
 ### 6.3 UI deepen
 - object-aware navigation
@@ -177,6 +194,8 @@ Infinite Pro 的施工原則應改為：
 - risk libraries
 - deliverable templates
 - evidence expectations
+- research focus
+- writeback interpretation
 
 ---
 

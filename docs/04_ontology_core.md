@@ -43,6 +43,12 @@ Ontology 是：
 - workbench UI 的共同語義底座
 - deliverable generation 的來源底座
 
+它也必須正式承接：
+- canonical intake 進入同一個案件世界
+- case world compilation
+- evidence gaps 與 research provenance
+- continuity / writeback policy 下的 decision feedback loop
+
 它至少要同時支撐：
 - 顧問案件的上下文
 - 決策問題的 framing
@@ -196,6 +202,28 @@ Ontology 不只定義物件名稱，也要定義：
 ### Deliverable
 代表顧問級交付成果，是可保存、回看、討論與後續使用的正式物件。
 
+### CaseWorldDraft
+代表 Host 在正式 orchestration 前，先把 intake 編譯成可治理案件世界草稿的第一階段輸出。
+
+### EvidenceGap
+代表目前案件世界中仍缺少、但對判斷有高影響的資訊缺口。
+
+### ResearchRun / ExternalResearchRun
+代表正式 research / external completion 執行紀錄。
+它不是直接塞進答案的外部片段，而是會再進入 `SourceMaterial / Artifact / Evidence` 鏈的補完執行物件。
+
+### DecisionRecord
+代表正式 decision writeback 的節點，而不是一般 revision history。
+
+### ActionPlan
+代表 decision 被轉成可管理的行動方案。
+
+### ActionExecution
+代表 action plan 中某個行動的正式執行狀態。
+
+### OutcomeRecord
+代表後續觀察、結果訊號與 outcomes 的正式寫回物件。
+
 ---
 
 ### 5.5 Context extension objects
@@ -265,6 +293,13 @@ Ontology runtime state 可以攜帶：
 - DomainLens
 - ClientStage
 - ClientType
+- CaseWorldDraft
+- EvidenceGap
+- ResearchRun / ExternalResearchRun
+- DecisionRecord
+- ActionPlan
+- ActionExecution
+- OutcomeRecord
 
 ---
 
@@ -283,10 +318,16 @@ Infinite Pro 的 ontology 不只是一組 objects，還需要明確 links。
 - Evidence **supports / weakens** Insight
 - Evidence **supports / weakens** Risk
 - Evidence **supports / weakens** Option
+- EvidenceGap **expresses** missing facts / missing proof
+- ResearchRun **produces** SourceMaterial / Artifact / Evidence
 - DecisionContext **evaluates** Option
 - Recommendation **addresses** DecisionContext
 - Recommendation **responds_to** Risk
 - ActionItem **operationalizes** Recommendation
+- DecisionRecord **captures** Deliverable + Evidence basis + continuity intent
+- ActionPlan **operationalizes** DecisionRecord
+- ActionExecution **tracks** ActionPlan
+- OutcomeRecord **feeds_back_into** DecisionContext / Evidence / Deliverable
 - Deliverable **summarizes** DecisionContext + Evidence + Recommendation + Risk + ActionItem
 - DomainLens / ClientStage / ClientType / selected Packs **shape** DecisionContext and Deliverable
 
@@ -304,6 +345,14 @@ Infinite Pro 的 ontology 不只是一組 objects，還需要明確 links。
 
 這才更符合顧問工作的真實世界。
 
+在本次正式補完後，這條主鏈還要再加上兩個前後責任：
+
+> Intake → CaseWorldDraft → Client / Engagement / Workstream / Task / DecisionContext → Artifact / SourceMaterial → Evidence → Insight / Risk / Option → Recommendation → ActionItem → Deliverable → DecisionRecord / ActionPlan / ActionExecution / OutcomeRecord
+
+也就是說：
+- intake 不再是 mode taxonomy，而是同一條 canonical pipeline 的不同 entry presets
+- writeback 不再只等於 deliverable revision history
+
 ---
 
 ## 9. 第一波實作與第二波實作的正確區分
@@ -320,6 +369,9 @@ Infinite Pro 的 ontology 不只是一組 objects，還需要明確 links。
 - Deliverable
 - Goal / Constraint / Assumption
 - ClientStage / ClientType / DomainLens 的基本掛載方式
+- CaseWorldDraft
+- EvidenceGap
+- continuity / writeback policy 的正式欄位
 
 ### 9.2 第二波實作可再深化
 - Client
@@ -328,6 +380,8 @@ Infinite Pro 的 ontology 不只是一組 objects，還需要明確 links。
 - Stakeholder / Audience / Metric / Timeline 的完整物件化
 - Pack resolver outputs 與 pack-aware links 的正式掛接
 - 更細的 traceability links
+- ResearchRun / ExternalResearchRun 的更完整治理
+- DecisionRecord / ActionPlan / ActionExecution / OutcomeRecord 的更細 object 化
 
 注意：
 - 第二波不代表不屬於正式架構
@@ -350,6 +404,17 @@ UI 應逐步反映：
 
 ### 10.3 對 deliverable 的約束
 Deliverable 應被視為 ontology chain 的正式成果，而不是任意長文。
+
+### 10.4 對 intake 的約束
+- `一句話問題`、`單文件進件`、`多材料案件` 只應是 entry presets
+- 不可被視為 ontology 上不同案件型別
+- 任何 intake 都必須先進入同一個 `CaseWorldDraft`
+
+### 10.5 對 continuity / writeback 的約束
+- `one_off`、`follow_up`、`continuous` 是案件世界的 continuity 策略，不是 UI 文案
+- `minimal`、`milestone`、`full` 是正式 writeback depth，不是單純偏好設定
+- 所有案件都至少要保有最小 history / traceability
+- 只有 follow-up 與 continuous 案件才應逐步加深 decision feedback loop
 
 ---
 

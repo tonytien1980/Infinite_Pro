@@ -63,6 +63,9 @@ pack 不能只是標籤，應能正式影響：
 - decision framing
 - specialist routing
 - deliverable shaping
+- case world compilation
+- research strategy
+- writeback interpretation
 
 ---
 
@@ -92,27 +95,40 @@ Host Agent 一開始就必須負責：
 2. **ontology mapping**
    - 把使用者原始問題映射進 shared objects / links / actions / decision context
 
-3. **workflow orchestration**
+3. **case world compilation**
+   - 所有 intake 都必須先形成 `case_world_draft`
+   - `一句話問題 / 單文件進件 / 多材料案件` 只應是 entry presets，不可當成三種 ontology worlds
+
+4. **workflow orchestration**
    - 判斷應採用什麼工作 archetype
    - 判斷應用哪種 execution mode
 
-4. **specialist / reasoning routing**
+5. **specialist / reasoning routing**
    - 決定需要哪些 agent 參與
    - 決定輸入 payload 與協作順序
 
-5. **readiness governance**
+6. **readiness governance**
    - 判斷背景、artifact、evidence 是否足夠
    - 明確標記不確定性與資料缺口
 
-6. **domain / pack / stage awareness**
+7. **domain / pack / stage awareness**
    - 結合 DomainLens、ClientStage、ClientType、selected domain packs、selected industry packs 調整分析重心
 
-7. **convergence**
+8. **research trigger governance**
+   - 根據 evidence gaps、pack expectations 與外部補完需求決定是否啟動 research
+   - research 不可直接偷塞進最終答案，而要先落回 `SourceMaterial / Artifact / Evidence` 鏈
+
+9. **convergence**
    - 整理 Insight、Risk、Option、Recommendation、ActionItem
    - 形成 deliverable-centric output
    - 但 deliverable generation 的來源底座仍是 ontology，而不是 Host 臨時拼裝的自由文字
 
-8. **history writeback**
+10. **continuity / writeback policy control**
+   - 根據 `engagement_continuity_mode` 與 `writeback_depth` 控制 decision writeback 深度
+   - `one_off` 不應被強迫建立完整 continuous loop
+   - `continuous` 必須能支撐 decision -> action -> outcome 的最小閉環
+
+11. **history writeback**
    - 將本輪執行與交付結果寫回系統歷史
 
 Host Agent 不是最後才來做摘要的總結員，而是全流程治理者。
@@ -234,6 +250,8 @@ Agent 架構不應再把 mode 與產品分類混在一起。
 同樣地，也不應把 mode taxonomy 誤當成 ontology 本身。
 mode 與 capability 是在 ontology world model 上執行的工作方式，不是世界模型本體。
 
+同樣地，`一句話問題 / 單文件進件 / 多材料案件` 也不應再被視為 ontology modes，而只能是 canonical intake pipeline 的 entry presets。
+
 應區分：
 
 ### 8.1 Consulting capability archetypes
@@ -310,8 +328,17 @@ Packs 必須能正式影響 agent behavior，例如：
 - 哪些 deliverable sections 要優先形成
 - 哪些 specialists 應被優先調用
 - 哪些 decision criteria 要被套用
+- research 要先補哪些方向
+- writeback 要保留哪些 continuity 節點
 
 所以 Agent Layer 要能讀取 pack-aware context，而不是永遠只跑通用 prompt。
+
+Pack 也必須正式進入以下五個核心能力：
+1. case world compilation
+2. evidence expectations
+3. readiness governance
+4. research trigger / focus
+5. deliverable shaping 與 writeback interpretation
 
 ---
 
@@ -394,6 +421,9 @@ Host 應根據以下輸入決定 agent 組合：
 - 少數 specialist agents
 - 基本 pack-aware hooks
 - 基本 execution modes
+- Case World Compiler
+- research provenance writeback
+- continuity / writeback policy hooks
 
 ### 10.2 第二波實作可再擴充
 - 更完整的 reasoning families
@@ -417,6 +447,7 @@ Host 應根據以下輸入決定 agent 組合：
 - 讓 Host 真正控制能力選擇與收斂
 - 讓 agent families 與 ontology / context / pack 結構對齊
 - 讓 specialist agents 成為正式可擴充能力，而不是零散功能
+- 讓 research、decision writeback 與 continuity policy 一起進入 Host 的正式責任範圍
 
 ---
 
