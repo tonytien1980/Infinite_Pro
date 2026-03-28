@@ -5,6 +5,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.agents.base import (
@@ -21,12 +22,14 @@ from app.domain import models, schemas
 from app.domain.enums import (
     CapabilityArchetype,
     DeliverableClass,
+    EngagementContinuityMode,
     ExternalDataStrategy,
     FlowMode,
     InputEntryMode,
     PresenceState,
     RunStatus,
     TaskStatus,
+    WritebackDepth,
 )
 from app.extensions.registry import ExtensionRegistry
 from app.extensions.resolver import AgentResolver, resolve_runtime_agent_binding
@@ -46,6 +49,7 @@ from app.services.tasks import (
     EXTERNAL_DATA_STRATEGY_CONSTRAINT_TYPE,
     get_external_data_strategy_for_task,
     get_loaded_task,
+    resolve_continuity_policy_for_task,
     serialize_task,
 )
 
@@ -214,10 +218,14 @@ class HostOrchestrator:
             decision_context=aggregate.decision_context,
             domain_lenses=aggregate.domain_lenses,
             assumptions=aggregate.assumptions,
+            entry_preset=aggregate.entry_preset,
             input_entry_mode=aggregate.input_entry_mode,
+            engagement_continuity_mode=aggregate.engagement_continuity_mode,
+            writeback_depth=aggregate.writeback_depth,
             deliverable_class_hint=aggregate.deliverable_class_hint,
             external_research_heavy_candidate=aggregate.external_research_heavy_candidate,
             sparse_input_summary=aggregate.sparse_input_summary,
+            case_world_draft=aggregate.case_world_draft,
             presence_state_summary=aggregate.presence_state_summary,
             pack_resolution=aggregate.pack_resolution,
             agent_selection=aggregate.agent_selection,
@@ -294,6 +302,71 @@ class HostOrchestrator:
             return len(processed_internal_sources) < 1 or len(usable_evidence) < 1
         return False
 
+    def _start_research_run(
+        self,
+        task: models.Task,
+        payload: AgentInputPayload,
+        capability_frame: CapabilityFrame,
+        query: str,
+    ) -> models.ResearchRun:
+        matter_workspace = next(
+            (
+                link.matter_workspace
+                for link in task.matter_workspace_links
+                if link.matter_workspace is not None
+            ),
+            None,
+        )
+        research_run = models.ResearchRun(
+            task_id=task.id,
+            matter_workspace_id=matter_workspace.id if matter_workspace else None,
+            status=RunStatus.RUNNING.value,
+            query=query,
+            trigger_reason="；".join(
+                [
+                    *capability_frame.pack_resolver_notes[:2],
+                    *capability_frame.routing_rationale[:2],
+                    "Host 判定 evidence gaps 仍需外部補完。",
+                ]
+            )
+            or "Host 判定 evidence gaps 仍需外部補完。",
+            research_scope="host_external_completion",
+            freshness_policy="latest_public_web",
+            confidence_note="外部 research 結果必須先回到 source / evidence 鏈，不能直接視為最終結論。",
+            source_trace_summary=(
+                f"Domain packs：{'、'.join([item.pack_name for item in payload.pack_resolution.selected_domain_packs]) or '未選用'}；"
+                f"Industry packs：{'、'.join([item.pack_name for item in payload.pack_resolution.selected_industry_packs]) or '未選用'}"
+            ),
+            selected_domain_pack_ids=[
+                item.pack_id for item in payload.pack_resolution.selected_domain_packs
+            ],
+            selected_industry_pack_ids=[
+                item.pack_id for item in payload.pack_resolution.selected_industry_packs
+            ],
+        )
+        self.db.add(research_run)
+        self.db.commit()
+        self.db.refresh(research_run)
+        return research_run
+
+    def _finalize_research_run(
+        self,
+        research_run: models.ResearchRun,
+        *,
+        status: RunStatus,
+        source_count: int,
+        result_summary: str,
+        error_message: str | None = None,
+    ) -> None:
+        research_run.status = status.value
+        research_run.source_count = source_count
+        research_run.result_summary = result_summary
+        research_run.error_message = error_message
+        research_run.completed_at = datetime.now(timezone.utc)
+        self.db.add(research_run)
+        self.db.commit()
+        self.db.refresh(research_run)
+
     def _prepare_external_data_usage(
         self,
         task: models.Task,
@@ -330,6 +403,7 @@ class HostOrchestrator:
 
         report.search_attempted = True
         search_query = self._build_search_query(payload)
+        research_run = self._start_research_run(task, payload, capability_frame, search_query)
         logger.info(
             "Host considering external search for task %s strategy=%s capability=%s query=%s",
             task.id,
@@ -346,12 +420,32 @@ class HostOrchestrator:
                     task_id=task.id,
                     urls=[item.url for item in results],
                     origin="external_search",
+                    research_run_id=research_run.id,
+                )
+                self._finalize_research_run(
+                    research_run,
+                    status=RunStatus.COMPLETED,
+                    source_count=len(results),
+                    result_summary=f"Host 已補入 {len(results)} 筆外部公開來源。",
                 )
             else:
                 report.missing_information.append("Host 已嘗試補充外部搜尋，但目前沒有找到可用的公開來源。")
+                self._finalize_research_run(
+                    research_run,
+                    status=RunStatus.COMPLETED,
+                    source_count=0,
+                    result_summary="Host 已執行外部搜尋，但未找到可用公開來源。",
+                )
         except Exception as exc:  # noqa: BLE001
             logger.warning("External search degraded for task %s: %s", task.id, exc)
             report.missing_information.append(f"外部搜尋目前不可用或擷取失敗：{exc}")
+            self._finalize_research_run(
+                research_run,
+                status=RunStatus.FAILED,
+                source_count=0,
+                result_summary="外部搜尋失敗，未能形成可用 research provenance。",
+                error_message=str(exc),
+            )
 
         refreshed_task = get_loaded_task(self.db, task.id)
         refreshed_external_sources = [
@@ -1711,10 +1805,16 @@ class HostOrchestrator:
             else None,
             "domain_lenses": payload.domain_lenses,
             "assumptions": payload.assumptions,
+            "entry_preset": payload.entry_preset.value,
             "input_entry_mode": payload.input_entry_mode.value,
+            "engagement_continuity_mode": payload.engagement_continuity_mode.value,
+            "writeback_depth": payload.writeback_depth.value,
             "deliverable_class_hint": payload.deliverable_class_hint.value,
             "external_research_heavy_candidate": payload.external_research_heavy_candidate,
             "sparse_input_summary": payload.sparse_input_summary,
+            "case_world_draft": payload.case_world_draft.model_dump(mode="json")
+            if payload.case_world_draft
+            else None,
             "presence_state_summary": payload.presence_state_summary.model_dump(mode="json"),
             "pack_resolution": payload.pack_resolution.model_dump(mode="json"),
             "source_materials": [item.model_dump(mode="json") for item in payload.source_materials],
@@ -1826,6 +1926,18 @@ class HostOrchestrator:
             "deferred_agent_notes": deferred_agent_notes,
             "escalation_notes": escalation_notes,
             "runtime_agents": runtime_agents,
+        }
+        content["case_world_draft"] = (
+            payload.case_world_draft.model_dump(mode="json")
+            if payload.case_world_draft
+            else None
+        )
+        content["continuity_policy"] = {
+            "engagement_continuity_mode": payload.engagement_continuity_mode.value,
+            "writeback_depth": payload.writeback_depth.value,
+            "summary": (
+                f"本案目前採 {payload.engagement_continuity_mode.value} / {payload.writeback_depth.value} 策略。"
+            ),
         }
         content["input_entry_mode"] = payload.input_entry_mode.value
         content["deliverable_class"] = readiness.supported_deliverable_class.value
@@ -2060,6 +2172,11 @@ class HostOrchestrator:
             "search_used": report.search_used,
             "sources": sources,
             "analysis_dependency_note": report.dependency_note,
+        }
+        content["research_provenance"] = {
+            "source_trace": [item["url"] for item in sources],
+            "freshness_policy": "latest_public_web" if report.search_attempted else "not_used",
+            "confidence_boundary": "research results must first enter source / evidence chain before affecting deliverable shaping",
         }
         content["external_data_strategy"] = report.strategy.value
         content["external_search_used"] = report.search_used
@@ -2432,6 +2549,106 @@ class HostOrchestrator:
             action_items=new_action_items,
         )
 
+    @staticmethod
+    def _linked_matter_workspace(task: models.Task) -> models.MatterWorkspace | None:
+        for link in task.matter_workspace_links:
+            if link.matter_workspace is not None:
+                return link.matter_workspace
+        return None
+
+    def _create_writeback_records(
+        self,
+        *,
+        task: models.Task,
+        run: models.TaskRun,
+        deliverable: models.Deliverable,
+        payload: AgentInputPayload,
+        linked_evidence_ids: list[str],
+        persisted_recommendations: list[models.Recommendation],
+        persisted_risks: list[models.Risk],
+        persisted_action_items: list[models.ActionItem],
+    ) -> None:
+        matter_workspace = self._linked_matter_workspace(task)
+        continuity_mode, writeback_depth = resolve_continuity_policy_for_task(task, matter_workspace)
+
+        if writeback_depth == WritebackDepth.MINIMAL:
+            return
+
+        decision_record = models.DecisionRecord(
+            task_id=task.id,
+            matter_workspace_id=matter_workspace.id if matter_workspace else None,
+            deliverable_id=deliverable.id,
+            task_run_id=run.id,
+            continuity_mode=continuity_mode.value,
+            writeback_depth=writeback_depth.value,
+            title=deliverable.title,
+            decision_summary=(
+                self._coerce_text(deliverable.content_structure.get("executive_summary"))
+                or deliverable.summary
+                or deliverable.title
+            ),
+            evidence_basis_ids=linked_evidence_ids[:12],
+            recommendation_ids=[item.id for item in persisted_recommendations],
+            risk_ids=[item.id for item in persisted_risks],
+            action_item_ids=[item.id for item in persisted_action_items],
+        )
+        self.db.add(decision_record)
+        self.db.flush()
+
+        action_plan = models.ActionPlan(
+            task_id=task.id,
+            matter_workspace_id=matter_workspace.id if matter_workspace else None,
+            decision_record_id=decision_record.id,
+            title=f"{deliverable.title}｜Action Plan",
+            summary="把本輪 decision output 轉成可持續追蹤的後續行動方案。",
+            status="planned",
+            action_item_ids=[item.id for item in persisted_action_items],
+        )
+        self.db.add(action_plan)
+        self.db.flush()
+
+        if writeback_depth != WritebackDepth.FULL:
+            return
+
+        previous_open_executions = self.db.scalars(
+            select(models.ActionExecution)
+            .where(models.ActionExecution.task_id == task.id)
+            .where(models.ActionExecution.status.in_(["planned", "in_progress", "review_required"]))
+        ).all()
+
+        for execution in previous_open_executions:
+            self.db.add(
+                models.OutcomeRecord(
+                    task_id=task.id,
+                    matter_workspace_id=matter_workspace.id if matter_workspace else None,
+                    decision_record_id=decision_record.id,
+                    action_execution_id=execution.id,
+                    deliverable_id=deliverable.id,
+                    status="observed",
+                    signal_type="follow_up_run",
+                    summary="後續補件 / 再分析已形成新的交付物，請回看這次更新如何影響既有 action execution。",
+                    evidence_note=f"對應最新 deliverable：{deliverable.title}（{deliverable.version_tag or f'v{deliverable.version}'}）。",
+                )
+            )
+            execution.status = "review_required"
+            execution.execution_note = (
+                execution.execution_note or "後續已有新 deliverable，請重新檢查此 action execution。"
+            )
+            self.db.add(execution)
+
+        for action_item in persisted_action_items:
+            self.db.add(
+                models.ActionExecution(
+                    task_id=task.id,
+                    action_plan_id=action_plan.id,
+                    action_item_id=action_item.id,
+                    status="planned",
+                    owner_hint=action_item.suggested_owner,
+                    execution_note="由 continuous writeback 自動建立的待追蹤行動 execution。",
+                )
+            )
+        self.db.flush()
+
     def persist_result(
         self,
         task: models.Task,
@@ -2732,6 +2949,16 @@ class HostOrchestrator:
             "selected_pack_ids": self._pack_ids(payload),
         }
         deliverable.content_structure = content
+        self._create_writeback_records(
+            task=task,
+            run=run,
+            deliverable=deliverable,
+            payload=payload,
+            linked_evidence_ids=linked_evidence_ids,
+            persisted_recommendations=persisted_recommendations,
+            persisted_risks=persisted_risks,
+            persisted_action_items=persisted_action_items,
+        )
 
         run.status = RunStatus.COMPLETED.value
         run.summary = (

@@ -56,11 +56,13 @@ def _persist_processed_source(
     metadata_only: bool = False,
     message: str | None = None,
     reliability_level: str = "user_provided",
+    research_run_id: str | None = None,
 ) -> tuple[models.SourceDocument, models.SourceMaterial, models.Artifact, models.Evidence]:
     retention_policy = RETENTION_POLICY_DERIVED
     extension = normalize_extension(title, "")
     source_document = models.SourceDocument(
         task_id=task.id,
+        research_run_id=research_run_id,
         source_type=connector_source_type,
         file_name=title,
         canonical_display_name=title,
@@ -154,9 +156,11 @@ def _persist_failed_source(
     error_message: str,
     support_level: str = "unsupported",
     ingest_strategy: str = "unsupported",
+    research_run_id: str | None = None,
 ) -> tuple[models.SourceDocument, models.SourceMaterial, models.Artifact, models.Evidence]:
     source_document = models.SourceDocument(
         task_id=task.id,
+        research_run_id=research_run_id,
         source_type=connector_source_type,
         file_name=title,
         canonical_display_name=title,
@@ -238,6 +242,7 @@ def ingest_remote_urls_for_task(
     urls: list[str],
     *,
     origin: str = "manual",
+    research_run_id: str | None = None,
 ) -> list[schemas.UploadResultItem]:
     task = get_loaded_task(db, task_id)
     existing_storage_paths = {item.storage_path for item in task.uploads}
@@ -269,6 +274,7 @@ def ingest_remote_urls_for_task(
                 metadata_only=remote_source.metadata_only,
                 message=remote_source.message,
                 reliability_level="externally_retrieved" if origin == "external_search" else "user_provided",
+                research_run_id=research_run_id,
             )
         except Exception as exc:  # noqa: BLE001
             logger.warning(
@@ -286,6 +292,7 @@ def ingest_remote_urls_for_task(
                 title=title,
                 storage_path=normalized_url,
                 error_message=str(exc),
+                research_run_id=research_run_id,
             )
 
         existing_storage_paths.add(normalized_url)

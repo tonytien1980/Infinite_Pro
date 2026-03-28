@@ -31,6 +31,7 @@ class Task(Base):
     description: Mapped[str] = mapped_column(Text, default="")
     task_type: Mapped[str] = mapped_column(String(100), default="research_synthesis")
     mode: Mapped[str] = mapped_column(String(50), default="specialist")
+    entry_preset: Mapped[str] = mapped_column(String(50), default="one_line_inquiry")
     status: Mapped[str] = mapped_column(String(50), default="draft")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
@@ -72,6 +73,27 @@ class Task(Base):
     )
     deliverables: Mapped[list["Deliverable"]] = relationship(
         back_populates="task", cascade="all, delete-orphan"
+    )
+    case_world_drafts: Mapped[list["CaseWorldDraft"]] = relationship(
+        back_populates="task", cascade="all, delete-orphan", order_by="CaseWorldDraft.updated_at.desc()"
+    )
+    evidence_gaps: Mapped[list["EvidenceGap"]] = relationship(
+        back_populates="task", cascade="all, delete-orphan", order_by="EvidenceGap.updated_at.desc()"
+    )
+    research_runs: Mapped[list["ResearchRun"]] = relationship(
+        back_populates="task", cascade="all, delete-orphan", order_by="ResearchRun.started_at.desc()"
+    )
+    decision_records: Mapped[list["DecisionRecord"]] = relationship(
+        back_populates="task", cascade="all, delete-orphan", order_by="DecisionRecord.created_at.desc()"
+    )
+    action_plans: Mapped[list["ActionPlan"]] = relationship(
+        back_populates="task", cascade="all, delete-orphan", order_by="ActionPlan.created_at.desc()"
+    )
+    action_executions: Mapped[list["ActionExecution"]] = relationship(
+        back_populates="task", cascade="all, delete-orphan", order_by="ActionExecution.updated_at.desc()"
+    )
+    outcome_records: Mapped[list["OutcomeRecord"]] = relationship(
+        back_populates="task", cascade="all, delete-orphan", order_by="OutcomeRecord.created_at.desc()"
     )
     recommendation_evidence_links: Mapped[list["RecommendationEvidenceLink"]] = relationship(
         back_populates="task", cascade="all, delete-orphan"
@@ -214,6 +236,8 @@ class MatterWorkspace(Base):
     domain_lenses: Mapped[list[str]] = mapped_column(JSON, default=list)
     current_decision_context_title: Mapped[str | None] = mapped_column(String(255), nullable=True)
     current_decision_context_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    engagement_continuity_mode: Mapped[str] = mapped_column(String(30), default="one_off")
+    writeback_depth: Mapped[str] = mapped_column(String(30), default="minimal")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
@@ -226,6 +250,30 @@ class MatterWorkspace(Base):
         back_populates="matter_workspace",
         cascade="all, delete-orphan",
         order_by="MatterContentRevision.created_at.desc()",
+    )
+    case_world_drafts: Mapped[list["CaseWorldDraft"]] = relationship(
+        back_populates="matter_workspace",
+        order_by="CaseWorldDraft.updated_at.desc()",
+    )
+    evidence_gaps: Mapped[list["EvidenceGap"]] = relationship(
+        back_populates="matter_workspace",
+        order_by="EvidenceGap.updated_at.desc()",
+    )
+    research_runs: Mapped[list["ResearchRun"]] = relationship(
+        back_populates="matter_workspace",
+        order_by="ResearchRun.started_at.desc()",
+    )
+    decision_records: Mapped[list["DecisionRecord"]] = relationship(
+        back_populates="matter_workspace",
+        order_by="DecisionRecord.created_at.desc()",
+    )
+    action_plans: Mapped[list["ActionPlan"]] = relationship(
+        back_populates="matter_workspace",
+        order_by="ActionPlan.created_at.desc()",
+    )
+    outcome_records: Mapped[list["OutcomeRecord"]] = relationship(
+        back_populates="matter_workspace",
+        order_by="OutcomeRecord.created_at.desc()",
     )
 
 
@@ -264,6 +312,100 @@ class MatterWorkspaceTaskLink(Base):
 
     matter_workspace: Mapped["MatterWorkspace"] = relationship(back_populates="task_links")
     task: Mapped["Task"] = relationship(back_populates="matter_workspace_links")
+
+
+class CaseWorldDraft(Base):
+    __tablename__ = "case_world_drafts"
+    __table_args__ = (
+        UniqueConstraint("task_id", name="uq_case_world_draft_task"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    matter_workspace_id: Mapped[str | None] = mapped_column(
+        ForeignKey("matter_workspaces.id"),
+        nullable=True,
+    )
+    compiler_status: Mapped[str] = mapped_column(String(30), default="compiled")
+    entry_preset: Mapped[str] = mapped_column(String(50), default="one_line_inquiry")
+    continuity_mode: Mapped[str] = mapped_column(String(30), default="one_off")
+    writeback_depth: Mapped[str] = mapped_column(String(30), default="minimal")
+    canonical_intake_summary: Mapped[dict] = mapped_column(JSON, default=dict)
+    task_interpretation: Mapped[dict] = mapped_column(JSON, default=dict)
+    decision_context_payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    extracted_objects: Mapped[list[dict]] = mapped_column(JSON, default=list)
+    inferred_links: Mapped[list[dict]] = mapped_column(JSON, default=list)
+    facts: Mapped[list[dict]] = mapped_column(JSON, default=list)
+    assumptions_payload: Mapped[list[dict]] = mapped_column(JSON, default=list)
+    evidence_gaps_payload: Mapped[list[dict]] = mapped_column(JSON, default=list)
+    suggested_capabilities: Mapped[list[str]] = mapped_column(JSON, default=list)
+    suggested_domain_packs: Mapped[list[str]] = mapped_column(JSON, default=list)
+    suggested_industry_packs: Mapped[list[str]] = mapped_column(JSON, default=list)
+    suggested_agents: Mapped[list[str]] = mapped_column(JSON, default=list)
+    suggested_research_need: Mapped[bool] = mapped_column(Boolean, default=False)
+    next_best_actions: Mapped[list[str]] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+    task: Mapped["Task"] = relationship(back_populates="case_world_drafts")
+    matter_workspace: Mapped["MatterWorkspace | None"] = relationship(back_populates="case_world_drafts")
+
+
+class EvidenceGap(Base):
+    __tablename__ = "evidence_gaps"
+    __table_args__ = (
+        UniqueConstraint("task_id", "gap_key", name="uq_evidence_gap_task_key"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    matter_workspace_id: Mapped[str | None] = mapped_column(
+        ForeignKey("matter_workspaces.id"),
+        nullable=True,
+    )
+    gap_key: Mapped[str] = mapped_column(String(255), nullable=False)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    gap_type: Mapped[str] = mapped_column(String(100), default="evidence_gap")
+    description: Mapped[str] = mapped_column(Text, default="")
+    priority: Mapped[str] = mapped_column(String(30), default="medium")
+    status: Mapped[str] = mapped_column(String(30), default="open")
+    source: Mapped[str] = mapped_column(String(50), default="case_world_compiler")
+    supporting_pack_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
+    related_source_refs: Mapped[list[str]] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+    task: Mapped["Task"] = relationship(back_populates="evidence_gaps")
+    matter_workspace: Mapped["MatterWorkspace | None"] = relationship(back_populates="evidence_gaps")
+
+
+class ResearchRun(Base):
+    __tablename__ = "research_runs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    matter_workspace_id: Mapped[str | None] = mapped_column(
+        ForeignKey("matter_workspaces.id"),
+        nullable=True,
+    )
+    status: Mapped[str] = mapped_column(String(30), default="running")
+    query: Mapped[str] = mapped_column(Text, default="")
+    trigger_reason: Mapped[str] = mapped_column(Text, default="")
+    research_scope: Mapped[str] = mapped_column(String(50), default="host_external_completion")
+    freshness_policy: Mapped[str] = mapped_column(String(50), default="latest_public_web")
+    confidence_note: Mapped[str] = mapped_column(Text, default="")
+    source_trace_summary: Mapped[str] = mapped_column(Text, default="")
+    selected_domain_pack_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
+    selected_industry_pack_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
+    result_summary: Mapped[str] = mapped_column(Text, default="")
+    source_count: Mapped[int] = mapped_column(Integer, default=0)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    task: Mapped["Task"] = relationship(back_populates="research_runs")
+    matter_workspace: Mapped["MatterWorkspace | None"] = relationship(back_populates="research_runs")
+    source_documents: Mapped[list["SourceDocument"]] = relationship(back_populates="research_run")
 
 
 class Client(Base):
@@ -398,6 +540,7 @@ class SourceDocument(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
     task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    research_run_id: Mapped[str | None] = mapped_column(ForeignKey("research_runs.id"), nullable=True)
     source_type: Mapped[str] = mapped_column(String(100), default="manual_upload")
     file_name: Mapped[str] = mapped_column(String(255), nullable=False)
     canonical_display_name: Mapped[str] = mapped_column(String(255), default="")
@@ -423,6 +566,7 @@ class SourceDocument(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
     task: Mapped["Task"] = relationship(back_populates="uploads")
+    research_run: Mapped["ResearchRun | None"] = relationship(back_populates="source_documents")
     source_materials: Mapped[list["SourceMaterial"]] = relationship(back_populates="source_document")
     artifacts: Mapped[list["Artifact"]] = relationship(back_populates="source_document")
     evidence_items: Mapped[list["Evidence"]] = relationship(back_populates="source_document")
@@ -752,6 +896,121 @@ class DeliverableArtifactRecord(Base):
     )
     task: Mapped["Task"] = relationship()
     source_version_event: Mapped["DeliverableVersionEvent | None"] = relationship()
+
+
+class DecisionRecord(Base):
+    __tablename__ = "decision_records"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    matter_workspace_id: Mapped[str | None] = mapped_column(
+        ForeignKey("matter_workspaces.id"),
+        nullable=True,
+    )
+    deliverable_id: Mapped[str | None] = mapped_column(ForeignKey("deliverables.id"), nullable=True)
+    task_run_id: Mapped[str | None] = mapped_column(ForeignKey("task_runs.id"), nullable=True)
+    continuity_mode: Mapped[str] = mapped_column(String(30), default="one_off")
+    writeback_depth: Mapped[str] = mapped_column(String(30), default="minimal")
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    decision_summary: Mapped[str] = mapped_column(Text, default="")
+    evidence_basis_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
+    recommendation_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
+    risk_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
+    action_item_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    task: Mapped["Task"] = relationship(back_populates="decision_records")
+    matter_workspace: Mapped["MatterWorkspace | None"] = relationship(back_populates="decision_records")
+    deliverable: Mapped["Deliverable | None"] = relationship()
+    task_run: Mapped["TaskRun | None"] = relationship()
+    action_plans: Mapped[list["ActionPlan"]] = relationship(
+        back_populates="decision_record",
+        cascade="all, delete-orphan",
+        order_by="ActionPlan.created_at.desc()",
+    )
+    outcome_records: Mapped[list["OutcomeRecord"]] = relationship(
+        back_populates="decision_record",
+        order_by="OutcomeRecord.created_at.desc()",
+    )
+
+
+class ActionPlan(Base):
+    __tablename__ = "action_plans"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    matter_workspace_id: Mapped[str | None] = mapped_column(
+        ForeignKey("matter_workspaces.id"),
+        nullable=True,
+    )
+    decision_record_id: Mapped[str] = mapped_column(ForeignKey("decision_records.id"), nullable=False)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    summary: Mapped[str] = mapped_column(Text, default="")
+    status: Mapped[str] = mapped_column(String(30), default="planned")
+    action_item_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+    task: Mapped["Task"] = relationship(back_populates="action_plans")
+    matter_workspace: Mapped["MatterWorkspace | None"] = relationship(back_populates="action_plans")
+    decision_record: Mapped["DecisionRecord"] = relationship(back_populates="action_plans")
+    action_executions: Mapped[list["ActionExecution"]] = relationship(
+        back_populates="action_plan",
+        cascade="all, delete-orphan",
+        order_by="ActionExecution.updated_at.desc()",
+    )
+
+
+class ActionExecution(Base):
+    __tablename__ = "action_executions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    action_plan_id: Mapped[str] = mapped_column(ForeignKey("action_plans.id"), nullable=False)
+    action_item_id: Mapped[str | None] = mapped_column(ForeignKey("action_items.id"), nullable=True)
+    status: Mapped[str] = mapped_column(String(30), default="planned")
+    owner_hint: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    execution_note: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+    task: Mapped["Task"] = relationship(back_populates="action_executions")
+    action_plan: Mapped["ActionPlan"] = relationship(back_populates="action_executions")
+    outcome_records: Mapped[list["OutcomeRecord"]] = relationship(
+        back_populates="action_execution",
+        order_by="OutcomeRecord.created_at.desc()",
+    )
+
+
+class OutcomeRecord(Base):
+    __tablename__ = "outcome_records"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    matter_workspace_id: Mapped[str | None] = mapped_column(
+        ForeignKey("matter_workspaces.id"),
+        nullable=True,
+    )
+    decision_record_id: Mapped[str | None] = mapped_column(
+        ForeignKey("decision_records.id"),
+        nullable=True,
+    )
+    action_execution_id: Mapped[str | None] = mapped_column(
+        ForeignKey("action_executions.id"),
+        nullable=True,
+    )
+    deliverable_id: Mapped[str | None] = mapped_column(ForeignKey("deliverables.id"), nullable=True)
+    status: Mapped[str] = mapped_column(String(30), default="observed")
+    signal_type: Mapped[str] = mapped_column(String(50), default="follow_up_run")
+    summary: Mapped[str] = mapped_column(Text, default="")
+    evidence_note: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    task: Mapped["Task"] = relationship(back_populates="outcome_records")
+    matter_workspace: Mapped["MatterWorkspace | None"] = relationship(back_populates="outcome_records")
+    decision_record: Mapped["DecisionRecord | None"] = relationship(back_populates="outcome_records")
+    action_execution: Mapped["ActionExecution | None"] = relationship(back_populates="outcome_records")
+    deliverable: Mapped["Deliverable | None"] = relationship()
 
 
 class RecommendationEvidenceLink(Base):
