@@ -344,6 +344,7 @@ class SourceDocumentRead(ORMModel):
     derived_storage_key: str | None
     extracted_text: str | None
     ingestion_error: str | None
+    participation: ObjectParticipationRead | None = None
     created_at: datetime
     updated_at: datetime
 

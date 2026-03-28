@@ -57,7 +57,11 @@ from app.services.deliverable_records import (
     label_for_deliverable_status,
     record_deliverable_version_event,
 )
-from app.services.source_materials import build_source_material_summary, infer_artifact_type
+from app.services.source_materials import (
+    build_source_material_summary,
+    ensure_source_chain_participation_links,
+    infer_artifact_type,
+)
 
 logger = logging.getLogger(__name__)
 EXTERNAL_DATA_STRATEGY_CONSTRAINT_TYPE = "external_data_strategy"
@@ -76,6 +80,7 @@ SLICE_OVERLAY_IDENTITY_SCOPE = "slice_overlay"
 WORLD_AUTHORITY_IDENTITY_SCOPE = "world_authority"
 SLICE_PARTICIPATION_CONTINUITY_SCOPE = "slice_participation"
 WORLD_SHARED_CONTINUITY_SCOPE = "world_shared"
+OBJECT_TYPE_SOURCE_DOCUMENT = "source_document"
 OBJECT_TYPE_SOURCE_MATERIAL = "source_material"
 OBJECT_TYPE_ARTIFACT = "artifact"
 OBJECT_TYPE_EVIDENCE = "evidence"
@@ -787,8 +792,29 @@ def _build_legacy_source_material_read(source_document: models.SourceDocument) -
         availability_state=source_document.availability_state,
         metadata_only=source_document.metadata_only,
         summary=_normalize_whitespace(build_source_material_summary(source_document)),
+        participation=None,
         created_at=source_document.created_at,
         updated_at=source_document.updated_at,
+    )
+
+
+def _build_source_document_read(
+    source_document: models.SourceDocument,
+    *,
+    task: models.Task,
+    snapshot: _TaskObjectParticipationSnapshot,
+) -> schemas.SourceDocumentRead:
+    return schemas.SourceDocumentRead(
+        **schemas.SourceDocumentRead.model_validate(source_document).model_dump(exclude={"participation"}),
+        participation=_build_object_participation_read(
+            object_type=OBJECT_TYPE_SOURCE_DOCUMENT,
+            object_id=source_document.id,
+            object_task_id=source_document.task_id,
+            current_task_id=task.id,
+            matter_workspace_id=source_document.matter_workspace_id,
+            continuity_scope=source_document.continuity_scope,
+            snapshot=snapshot,
+        ),
     )
 
 
@@ -806,6 +832,7 @@ def _build_legacy_artifact_read(
         source_document_id=source_document.id,
         source_material_id=source_material_id,
         description=_normalize_whitespace(build_source_material_summary(source_document)[:280]),
+        participation=None,
         created_at=source_document.created_at,
     )
 
@@ -858,13 +885,14 @@ def _build_object_participation_read(
         key = (object_type, object_id)
         current_link = snapshot.current_links.get(key)
         participation_count = snapshot.participation_counts.get(key, 0)
+        fallback_to_task_ref = participation_count == 0 and object_task_id == current_task_id
         return schemas.ObjectParticipationRead(
             canonical_object_id=object_id,
-            current_task_participation=current_link is not None or object_task_id == current_task_id,
+            current_task_participation=current_link is not None or fallback_to_task_ref,
             participation_type=(
                 current_link.participation_type
                 if current_link is not None
-                else "direct_ingest" if object_task_id == current_task_id else None
+                else "direct_ingest" if fallback_to_task_ref else None
             ),
             participation_task_count=max(participation_count, 1),
         )
@@ -877,6 +905,107 @@ def _build_object_participation_read(
             participation_task_count=1,
         )
     return None
+
+
+def _backfill_world_shared_source_chain_participation_links(
+    db: Session,
+    *,
+    task: models.Task,
+    matter_workspace_id: str | None,
+) -> None:
+    if not matter_workspace_id:
+        return
+
+    for source_document in task.uploads:
+        if source_document.continuity_scope != WORLD_SHARED_CONTINUITY_SCOPE:
+            continue
+        ensure_source_chain_participation_links(
+            db,
+            task_id=task.id,
+            matter_workspace_id=matter_workspace_id,
+            source_document_id=source_document.id,
+            source_material_id=None,
+            artifact_id=None,
+            evidence_id=None,
+            participation_type="direct_ingest",
+        )
+    for source_material in task.source_materials:
+        if source_material.continuity_scope != WORLD_SHARED_CONTINUITY_SCOPE:
+            continue
+        ensure_source_chain_participation_links(
+            db,
+            task_id=task.id,
+            matter_workspace_id=matter_workspace_id,
+            source_document_id=source_material.source_document_id,
+            source_material_id=source_material.id,
+            artifact_id=None,
+            evidence_id=None,
+            participation_type="direct_ingest",
+        )
+    for artifact in task.artifacts:
+        if artifact.continuity_scope != WORLD_SHARED_CONTINUITY_SCOPE:
+            continue
+        ensure_source_chain_participation_links(
+            db,
+            task_id=task.id,
+            matter_workspace_id=matter_workspace_id,
+            source_document_id=artifact.source_document_id,
+            source_material_id=artifact.source_material_id,
+            artifact_id=artifact.id,
+            evidence_id=None,
+            participation_type="direct_ingest",
+        )
+    for evidence in task.evidence:
+        if evidence.continuity_scope != WORLD_SHARED_CONTINUITY_SCOPE:
+            continue
+        ensure_source_chain_participation_links(
+            db,
+            task_id=task.id,
+            matter_workspace_id=matter_workspace_id,
+            source_document_id=evidence.source_document_id,
+            source_material_id=evidence.source_material_id,
+            artifact_id=evidence.artifact_id,
+            evidence_id=evidence.id,
+            participation_type="direct_ingest",
+        )
+
+
+def _build_source_documents(task: models.Task) -> list[schemas.SourceDocumentRead]:
+    db = object_session(task)
+    matter_workspace = _get_linked_matter_workspace(task)
+    matter_workspace_id = matter_workspace.id if matter_workspace is not None else None
+    if db is not None and matter_workspace_id is not None:
+        _backfill_world_shared_source_chain_participation_links(
+            db,
+            task=task,
+            matter_workspace_id=matter_workspace_id,
+        )
+        db.flush()
+    participation_snapshot = _load_task_object_participation_snapshot(
+        db,
+        matter_workspace_id=matter_workspace_id,
+        task_id=task.id,
+    )
+    documents = [
+        _build_source_document_read(item, task=task, snapshot=participation_snapshot)
+        for item in task.uploads
+    ]
+    if db is not None and matter_workspace is not None:
+        world_documents = db.scalars(
+            select(models.SourceDocument)
+            .where(models.SourceDocument.matter_workspace_id == matter_workspace.id)
+            .where(models.SourceDocument.continuity_scope == WORLD_SHARED_CONTINUITY_SCOPE)
+            .order_by(models.SourceDocument.created_at)
+        ).all()
+        covered_ids = {item.id for item in documents}
+        for item in world_documents:
+            if item.id in covered_ids:
+                continue
+            documents.append(
+                _build_source_document_read(item, task=task, snapshot=participation_snapshot)
+            )
+            covered_ids.add(item.id)
+    return sorted(documents, key=lambda item: item.created_at)
 
 
 def _build_source_materials(task: models.Task) -> list[schemas.SourceMaterialRead]:
@@ -7515,7 +7644,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         subjects=[schemas.SubjectRead.model_validate(item) for item in task.subjects],
         goals=[schemas.GoalRead.model_validate(item) for item in task.goals],
         constraints=[schemas.ConstraintRead.model_validate(item) for item in task.constraints],
-        uploads=[schemas.SourceDocumentRead.model_validate(item) for item in task.uploads],
+        uploads=_build_source_documents(task),
         evidence=evidence,
         insights=[schemas.InsightRead.model_validate(item) for item in task.insights],
         risks=risks,

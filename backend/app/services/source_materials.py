@@ -9,6 +9,7 @@ from app.services.material_storage import build_source_reference, sync_source_ma
 
 WORLD_SHARED_CONTINUITY_SCOPE = "world_shared"
 SLICE_PARTICIPATION_CONTINUITY_SCOPE = "slice_participation"
+OBJECT_TYPE_SOURCE_DOCUMENT = "source_document"
 OBJECT_TYPE_SOURCE_MATERIAL = "source_material"
 OBJECT_TYPE_ARTIFACT = "artifact"
 OBJECT_TYPE_EVIDENCE = "evidence"
@@ -145,16 +146,27 @@ def ensure_task_object_participation_link(
     return link
 
 
-def ensure_material_evidence_participation_links(
+def ensure_source_chain_participation_links(
     db: Session,
     *,
     task_id: str,
     matter_workspace_id: str | None,
+    source_document_id: str | None,
     source_material_id: str | None,
     artifact_id: str | None,
     evidence_id: str | None,
     participation_type: str,
 ) -> None:
+    if source_document_id:
+        ensure_task_object_participation_link(
+            db,
+            task_id=task_id,
+            matter_workspace_id=matter_workspace_id,
+            object_type=OBJECT_TYPE_SOURCE_DOCUMENT,
+            object_id=source_document_id,
+            canonical_object_id=source_document_id,
+            participation_type=participation_type,
+        )
     if source_material_id:
         ensure_task_object_participation_link(
             db,

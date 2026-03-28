@@ -461,6 +461,7 @@ export interface SourceDocument {
   derived_storage_key: string | null;
   extracted_text: string | null;
   ingestion_error: string | null;
+  participation: ObjectParticipation | null;
   created_at: string;
   updated_at: string;
 }

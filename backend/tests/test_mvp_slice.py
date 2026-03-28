@@ -343,7 +343,9 @@ def test_slice_decision_context_only_surfaces_meaningful_overlay(client: TestCli
     assert refreshed_task["decision_context"]["identity_scope"] == "world_authority"
     assert refreshed_task["decision_context"]["summary"] != "這是只屬於目前 work slice 的暫時判斷。"
     assert refreshed_task["slice_decision_context"]["identity_scope"] == "slice_overlay"
+    assert refreshed_task["slice_decision_context"]["title"] == ""
     assert refreshed_task["slice_decision_context"]["summary"] == "這是只屬於目前 work slice 的暫時判斷。"
+    assert refreshed_task["slice_decision_context"]["judgment_to_make"] == ""
     assert refreshed_task["slice_decision_context"]["goals"] == ["先只在這個 slice 內檢查一輪。"]
 
 
@@ -506,6 +508,9 @@ def test_shared_materials_and_evidence_follow_world_spine_across_task_slices(
     assert upload_response.status_code == 200
 
     refreshed_first = client.get(f"/api/v1/tasks/{first_task['id']}").json()
+    shared_source_document = next(
+        item for item in refreshed_first["uploads"] if item["continuity_scope"] == "world_shared"
+    )
     shared_material = next(
         item for item in refreshed_first["source_materials"] if item["continuity_scope"] == "world_shared"
     )
@@ -518,6 +523,12 @@ def test_shared_materials_and_evidence_follow_world_spine_across_task_slices(
     second_task = client.post("/api/v1/tasks", json=follow_up_payload).json()
     refreshed_second = client.get(f"/api/v1/tasks/{second_task['id']}").json()
 
+    assert any(
+        item["id"] == shared_source_document["id"]
+        and item["matter_workspace_id"] == first_task["matter_workspace"]["id"]
+        and item["continuity_scope"] == "world_shared"
+        for item in refreshed_second["uploads"]
+    )
     assert any(
         item["id"] == shared_material["id"]
         and item["matter_workspace_id"] == first_task["matter_workspace"]["id"]
@@ -537,17 +548,25 @@ def test_shared_materials_and_evidence_follow_world_spine_across_task_slices(
     )
     assert second_upload_response.status_code == 200
     reused_item = second_upload_response.json()["uploaded"][0]
+    assert reused_item["source_document"]["id"] == shared_source_document["id"]
     assert reused_item["source_material"]["id"] == shared_material["id"]
     assert reused_item["evidence"]["id"] == shared_evidence["id"]
     assert reused_item["source_material"]["continuity_scope"] == "world_shared"
 
     refreshed_second_after_upload = client.get(f"/api/v1/tasks/{second_task['id']}").json()
+    reused_source_document = next(
+        item for item in refreshed_second_after_upload["uploads"] if item["id"] == shared_source_document["id"]
+    )
     reused_material = next(
         item for item in refreshed_second_after_upload["source_materials"] if item["id"] == shared_material["id"]
     )
     reused_evidence = next(
         item for item in refreshed_second_after_upload["evidence"] if item["id"] == shared_evidence["id"]
     )
+    assert reused_source_document["task_id"] == first_task["id"]
+    assert reused_source_document["participation"]["current_task_participation"] is True
+    assert reused_source_document["participation"]["participation_task_count"] == 2
+    assert reused_source_document["participation"]["participation_type"] == "shared_reuse"
     assert reused_material["participation"]["current_task_participation"] is True
     assert reused_material["participation"]["participation_task_count"] == 2
     assert reused_material["participation"]["participation_type"] == "shared_reuse"
@@ -596,6 +615,7 @@ def test_world_shared_materials_create_participation_links(client: TestClient) -
         assert task_row is not None
         link_types = {item.object_type for item in task_row.object_participation_links}
         assert {
+            "source_document",
             "source_material",
             "artifact",
             "evidence",

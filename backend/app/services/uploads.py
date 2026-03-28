@@ -17,7 +17,7 @@ from app.services.source_materials import (
     build_source_objects_for_document,
     build_processed_evidence_items,
     build_unparsed_evidence_item,
-    ensure_material_evidence_participation_links,
+    ensure_source_chain_participation_links,
     load_existing_world_shared_bundle,
     PARTICIPATION_TYPE_DIRECT_INGEST,
     PARTICIPATION_TYPE_SHARED_REUSE,
@@ -135,10 +135,11 @@ def save_uploads_for_task(
         )
         if existing_bundle is not None:
             source_document, source_material, artifact, evidence = existing_bundle
-            ensure_material_evidence_participation_links(
+            ensure_source_chain_participation_links(
                 db,
                 task_id=task.id,
                 matter_workspace_id=matter_workspace_id,
+                source_document_id=source_document.id,
                 source_material_id=source_material.id,
                 artifact_id=artifact.id,
                 evidence_id=evidence.id,
@@ -296,10 +297,11 @@ def save_uploads_for_task(
             )
             db.add(evidence)
         db.flush()
-        ensure_material_evidence_participation_links(
+        ensure_source_chain_participation_links(
             db,
             task_id=task.id,
             matter_workspace_id=matter_workspace_id,
+            source_document_id=source_document.id,
             source_material_id=source_material.id,
             artifact_id=artifact.id,
             evidence_id=evidence.id,

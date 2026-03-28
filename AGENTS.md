@@ -241,10 +241,10 @@ Implementation should also preserve:
   - mark what is already world-native
   - mark what is still transitional task-centric persistence
   - do not claim fully world-native identity if legacy task ownership still exists
-  - identity deepen phase 4 should explicitly distinguish:
+  - identity deepen phase 5 should explicitly distinguish:
     - canonical world rows
     - task-slice local overlays / derivative rows
-    - shared continuity rows and local participation mappings for materials / evidence
+    - shared continuity rows and local participation mappings for source / material / evidence chains
     - compatibility-only `task_id` references versus real ownership authority
 
 The exact persistence schema may evolve, but these objects are part of the architecture boundary.

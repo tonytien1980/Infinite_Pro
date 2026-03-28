@@ -131,16 +131,16 @@ function ExpandableList({
   return (
     <div className="section-list">
       <ul className="list-content">
-        {visibleItems.map((item) => (
-          <li key={item}>{renderItem(item)}</li>
+        {visibleItems.map((item, index) => (
+          <li key={`${item}-${index}`}>{renderItem(item)}</li>
         ))}
       </ul>
       {hiddenItems.length > 0 ? (
         <details className="inline-disclosure">
           <summary className="inline-disclosure-summary">展開其餘 {hiddenItems.length} 項</summary>
           <ul className="list-content">
-            {hiddenItems.map((item) => (
-              <li key={item}>{renderItem(item)}</li>
+            {hiddenItems.map((item, index) => (
+              <li key={`${item}-${initialCount + index}`}>{renderItem(item)}</li>
             ))}
           </ul>
         </details>
@@ -416,6 +416,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
   const sharedParticipationCount = task
     ? new Set(
         [
+          ...task.uploads
+            .filter((item) => (item.participation?.participation_task_count ?? 0) > 1)
+            .map((item) => item.id),
           ...task.source_materials
             .filter((item) => (item.participation?.participation_task_count ?? 0) > 1)
             .map((item) => item.id),
@@ -437,13 +440,14 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
       : "案件世界已建立，但底層 identity 仍在 bridge sync。"
     : "目前尚未形成正式案件世界 authority。";
   const sharedContinuitySummary = task
-    ? task.source_materials.some((item) => item.continuity_scope === "world_shared") ||
+    ? task.uploads.some((item) => item.continuity_scope === "world_shared") ||
+      task.source_materials.some((item) => item.continuity_scope === "world_shared") ||
       task.evidence.some((item) => item.continuity_scope === "world_shared")
       ? sharedParticipationCount > 0
-        ? `這筆工作已可回看同一案件世界下共享的 materials / evidence；目前至少有 ${sharedParticipationCount} 條 shared chains 被多個 work slices 共同使用。`
-        : "這筆工作已可回看同一案件世界下共享的 materials / evidence，不必把補件再拆成孤立流程。"
-      : "目前這筆工作還沒有顯示可跨 slice 共用的 materials / evidence。"
-    : "目前這筆工作還沒有顯示可跨 slice 共用的 materials / evidence。";
+        ? `這筆工作已可回看同一案件世界下共享的 source / material / evidence chains；目前至少有 ${sharedParticipationCount} 條 shared chains 被多個 work slices 共同使用。`
+        : "這筆工作已可回看同一案件世界下共享的 source / material / evidence chains，不必把補件再拆成孤立流程。"
+      : "目前這筆工作還沒有顯示可跨 slice 共用的 source / material / evidence chains。"
+    : "目前這筆工作還沒有顯示可跨 slice 共用的 source / material / evidence chains。";
   const localOverlaySummary = sliceDecisionContext
     ? "目前這筆 task 仍保留一個 local overlay decision context，供在途工作與相容層使用；正式主來源已優先回到案件世界。"
     : "目前沒有額外的 slice-local decision overlay。";
