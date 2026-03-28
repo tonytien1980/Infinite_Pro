@@ -18,6 +18,7 @@ from app.domain.schemas import (
     AgentSelectionRead,
     ArtifactRead,
     CaseWorldDraftRead,
+    CaseWorldStateRead,
     ClientRead,
     ConstraintRead,
     DecisionContextRead,
@@ -67,6 +68,7 @@ class AgentInputPayload(BaseModel):
     external_research_heavy_candidate: bool = False
     sparse_input_summary: str = ""
     case_world_draft: CaseWorldDraftRead | None = None
+    case_world_state: CaseWorldStateRead | None = None
     presence_state_summary: PresenceStateSummaryRead
     pack_resolution: PackResolutionRead = Field(default_factory=PackResolutionRead)
     agent_selection: AgentSelectionRead = Field(default_factory=AgentSelectionRead)

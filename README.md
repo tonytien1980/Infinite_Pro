@@ -201,6 +201,7 @@ Every intake path must first enter the same `case world compilation` stage. Host
 The first formal Host stage is therefore:
 - `Case World Compiler`
 - output: `case_world_draft`
+- promoted runtime state: `CaseWorldState`
 
 At minimum, `case_world_draft` should carry:
 - task interpretation
@@ -216,6 +217,25 @@ At minimum, `case_world_draft` should carry:
 - suggested agents
 - suggested research need
 - next-best actions
+
+After compilation, the runtime should promote or sync the result into a
+matter-level `CaseWorldState`.
+
+Formal interpretation:
+- `CaseWorldState` is the current consultant world model for one matter
+- `Task` is a work slice inside that world, not the world's main container
+- follow-up supplements should update the world first, then decide whether to
+  refresh a task slice, create a new one, or only deepen evidence / deliverable
+  context
+
+Current bridge architecture:
+- `CaseWorldState` is now the matter-level authority for world identity, continuity
+  framing, and active work slice summary
+- `Task` remains a required legacy access path for some persistence tables, but it
+  should no longer be treated as the sole identity owner
+- `Client / Engagement / Workstream / DecisionContext / SourceMaterial / Artifact / Evidence`
+  are expected to move progressively toward world-native continuity while legacy
+  `task_id` references coexist during migration
 
 ## Pack layer in the capability chain
 
@@ -293,6 +313,7 @@ These objects define the product boundary even if some of them are still being i
 
 Additional first-class objects now belong to the formal boundary:
 - `CaseWorldDraft`
+- `CaseWorldState`
 - `EvidenceGap`
 - `ResearchRun / ExternalResearchRun`
 - `DecisionRecord`

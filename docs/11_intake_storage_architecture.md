@@ -52,6 +52,10 @@ Infinite Pro 不再把 `/new` 的三種可見入口理解成三個不同 ontolog
 - `Case World Compiler`
 - 輸出：`case_world_draft`
 
+接著必須提升 / 同步成：
+- `CaseWorldState`
+- 作為同一個案件世界的正式工作底座
+
 Host 必須在這一階段判斷：
 - 現在只有一句話，還是已有少量 / 多份材料
 - 是否存在外部補完需求
@@ -64,17 +68,22 @@ Host 必須在這一階段判斷：
 
 所有 entry presets 都必須匯進同一條正式工作主鏈：
 
-> `Task → DecisionContext → Artifact / SourceMaterial → Evidence → Deliverable`
+> `CaseWorldState → Task slices / DecisionContext → Artifact / SourceMaterial → Evidence → Deliverable`
 
 正式規則：
 - 不可把 quick inquiry、single document、multi material 拆成三套 payload 或三套持久化世界
 - intake 的前半段必須先形成 `case_world_draft`
-- 補件必須回到既有案件世界，而不是開出新的孤立 intake 分支
+- 補件必須先更新既有 `CaseWorldState`，而不是開出新的孤立 intake 分支
 - 來源材料、證據、交付物與發布紀錄都必須保留最小 traceability
+
+在 deeper identity bridge 下：
+- `CaseWorldState` 應逐步成為材料 continuity 的正式 anchor
+- `SourceMaterial / Artifact / Evidence` 應逐步能以 matter/world spine 被直接回訪
+- legacy `task_id` 可暫時保留作為 slice-level access path，但不應再是唯一 continuity owner
 
 補完後，正式理解應是：
 
-> `canonical intake pipeline → case_world_draft → Task / DecisionContext → Artifact / SourceMaterial → Evidence → Deliverable`
+> `canonical intake pipeline → case_world_draft → CaseWorldState → Task(work slices) / DecisionContext → Artifact / SourceMaterial → Evidence → Deliverable`
 
 ---
 

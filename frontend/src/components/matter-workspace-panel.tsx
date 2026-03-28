@@ -451,6 +451,7 @@ export function MatterWorkspacePanel({
     sourceMaterialCount: matter?.summary.source_material_count ?? 0,
     evidenceCount,
   });
+  const caseWorldState = matter?.case_world_state ?? null;
   const latestCaseWorldDraft = matter?.case_world_drafts[0] ?? null;
   const openEvidenceGaps =
     matter?.evidence_gaps.filter((item) => item.status !== "resolved").slice(0, 5) ?? [];
@@ -459,6 +460,19 @@ export function MatterWorkspacePanel({
   const continuityStrategySummary = matter
     ? `${labelForEngagementContinuityMode(matter.summary.engagement_continuity_mode)} / ${labelForWritebackDepth(matter.summary.writeback_depth)}`
     : "";
+  const worldAuthoritySummary = caseWorldState
+    ? caseWorldState.client_id &&
+      caseWorldState.engagement_id &&
+      caseWorldState.workstream_id &&
+      caseWorldState.decision_context_id
+      ? "Client / Engagement / Workstream / DecisionContext 已正式掛在案件世界層；task 只負責承接 work slices。"
+      : "案件世界已建立，但底層 identity 仍在 bridge sync。"
+    : "目前尚未形成正式案件世界 authority。";
+  const sharedContinuitySummary = matter
+    ? matter.summary.source_material_count > 0 || matter.summary.artifact_count > 0
+      ? `目前已有 ${matter.summary.source_material_count} 份 source materials、${matter.summary.artifact_count} 份 artifacts 可跨 task slices 回看。`
+      : "目前還沒有可跨 task slices 重訪的共享材料。"
+    : "目前還沒有可顯示的共享材料連續性。";
 
   async function handleAdvanceMatter() {
     if (latestDeliverable) {
@@ -833,8 +847,8 @@ export function MatterWorkspacePanel({
               </section>
 
               <DisclosurePanel
-                title="案件世界草稿與寫回策略"
-                description="只有在你要 debug Host 現在怎麼理解這個案件，或確認這個案件會寫回到多深時，再展開這層。"
+                title="案件世界狀態與寫回策略"
+                description="只有在你要確認案件世界層的 identity authority、有哪些 task slices，以及會寫回到多深時，再展開這層。"
               >
                 <div className="summary-grid">
                   <div className="section-card">
@@ -842,15 +856,33 @@ export function MatterWorkspacePanel({
                     <p className="content-block">{continuityStrategySummary || "未設定"}</p>
                   </div>
                   <div className="section-card">
+                    <h4>World authority / task slices</h4>
+                    <p className="content-block">
+                      {caseWorldState
+                        ? `${caseWorldState.compiler_status}｜目前共有 ${caseWorldState.active_task_ids.length} 個 task slices`
+                        : "目前尚未形成正式案件世界狀態。"}
+                    </p>
+                  </div>
+                  <div className="section-card">
+                    <h4>世界身份 authority</h4>
+                    <p className="content-block">{worldAuthoritySummary}</p>
+                  </div>
+                  <div className="section-card">
                     <h4>Case world 主問題</h4>
                     <p className="content-block">
-                      {String(latestCaseWorldDraft?.canonical_intake_summary.problem_statement || coreQuestion)}
+                      {String(
+                        caseWorldState?.canonical_intake_summary.problem_statement ||
+                          latestCaseWorldDraft?.canonical_intake_summary.problem_statement ||
+                          coreQuestion,
+                      )}
                     </p>
                   </div>
                   <div className="section-card">
                     <h4>建議下一步</h4>
                     <p className="content-block">
-                      {latestCaseWorldDraft?.next_best_actions[0] || "目前沒有額外建議。"}
+                      {caseWorldState?.next_best_actions[0] ||
+                        latestCaseWorldDraft?.next_best_actions[0] ||
+                        "目前沒有額外建議。"}
                     </p>
                   </div>
                   <div className="section-card">
@@ -859,15 +891,19 @@ export function MatterWorkspacePanel({
                       {matter?.decision_records.length ?? 0} 筆 decision records / {matter?.outcome_records.length ?? 0} 筆 outcome records
                     </p>
                   </div>
+                  <div className="section-card">
+                    <h4>共享材料連續性</h4>
+                    <p className="content-block">{sharedContinuitySummary}</p>
+                  </div>
                 </div>
 
-                {latestCaseWorldDraft ? (
+                {caseWorldState || latestCaseWorldDraft ? (
                   <div className="detail-list" style={{ marginTop: "18px" }}>
                     <div className="detail-item">
                       <h3>目前已確認的 facts</h3>
-                      {latestCaseWorldDraft.facts.length > 0 ? (
+                      {(caseWorldState?.facts.length ?? latestCaseWorldDraft?.facts.length ?? 0) > 0 ? (
                         <ul className="list-content">
-                          {latestCaseWorldDraft.facts.slice(0, 5).map((item) => (
+                          {(caseWorldState?.facts ?? latestCaseWorldDraft?.facts ?? []).slice(0, 5).map((item) => (
                             <li key={`${item.title}-${item.detail}`}>{item.title}：{item.detail}</li>
                           ))}
                         </ul>
@@ -877,9 +913,9 @@ export function MatterWorkspacePanel({
                     </div>
                     <div className="detail-item">
                       <h3>仍在沿用的 assumptions</h3>
-                      {latestCaseWorldDraft.assumptions.length > 0 ? (
+                      {(caseWorldState?.assumptions.length ?? latestCaseWorldDraft?.assumptions.length ?? 0) > 0 ? (
                         <ul className="list-content">
-                          {latestCaseWorldDraft.assumptions.slice(0, 5).map((item) => (
+                          {(caseWorldState?.assumptions ?? latestCaseWorldDraft?.assumptions ?? []).slice(0, 5).map((item) => (
                             <li key={`${item.title}-${item.detail}`}>{item.title}：{item.detail}</li>
                           ))}
                         </ul>
@@ -901,6 +937,14 @@ export function MatterWorkspacePanel({
                         <p className="empty-text">目前沒有高優先 evidence gaps。</p>
                       )}
                     </div>
+                    {caseWorldState?.last_supplement_summary ? (
+                      <div className="detail-item">
+                        <h3>最近 world update</h3>
+                        <p className="content-block">
+                          這個案件世界最近一次補件先更新了 world state：{caseWorldState.last_supplement_summary}
+                        </p>
+                      </div>
+                    ) : null}
                     <div className="detail-item">
                       <h3>最近 decision / outcome</h3>
                       {recentDecisionRecords.length > 0 || recentOutcomeRecords.length > 0 ? (

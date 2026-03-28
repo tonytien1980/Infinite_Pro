@@ -483,6 +483,14 @@ export function TaskCreateForm({
           constraint_type: "general",
           severity: "medium",
         })),
+      initial_source_urls: normalizedUrls,
+      initial_pasted_text: pastedContent,
+      initial_pasted_title: hasPastedContent ? "手動貼上內容" : undefined,
+      initial_file_descriptors: files.map((file) => ({
+        file_name: file.name,
+        content_type: file.type || undefined,
+        file_size: file.size,
+      })),
     };
 
     try {
@@ -499,7 +507,7 @@ export function TaskCreateForm({
         });
       }
 
-      setSuccess("案件已建立，接下來會直接回到案件工作台；來源材料、證據與交付物會沿著同一條正式主鏈累積。");
+      setSuccess("案件世界已先建立，接下來會直接回到案件工作台；task 會作為同一個世界裡的 work slice 持續推進。");
       onCreated(task);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "建立任務失敗。");
@@ -514,7 +522,7 @@ export function TaskCreateForm({
         <div>
           <h2 className="panel-title">建立任務</h2>
           <p className="panel-copy">
-            先把你真正想判斷的問題寫下來，Infinite Pro 會先幫你補框，再把資料整理成可分析的案件。
+            先把你真正想判斷的問題寫下來，Infinite Pro 會先編譯案件世界，再把這輪工作掛成可推進的 work slice。
           </p>
         </div>
       </div>
@@ -523,7 +531,7 @@ export function TaskCreateForm({
         <section className="intake-section">
           <div className="section-heading">
             <h3>進件入口</h3>
-            <p>這三種只是進入同一條 canonical intake pipeline 的不同入口，建立後都會回到同一個案件世界。</p>
+            <p>這三種只是進入同一條 canonical intake pipeline 的不同入口；系統會先形成案件世界，再在其中開出第一個 task work slice。</p>
           </div>
 
           <div className="page-tabs" role="tablist" aria-label="新案件進件入口">

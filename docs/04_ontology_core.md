@@ -138,6 +138,11 @@ Ontology 不只定義物件名稱，也要定義：
 ### Task
 代表一次具體工作請求或執行單位。
 
+在正式 world-first 架構下：
+- `Task` 是案件世界中的 work slice
+- 它不應被理解成 consultant world 的唯一主容器
+- follow-up 補件不應預設先長出新 task，再回頭拼世界
+
 ### DecisionContext
 代表這次到底要幫使用者做什麼判斷。
 這是正式核心物件，不應只藏在 prompt 或自由文字裡。
@@ -204,6 +209,30 @@ Ontology 不只定義物件名稱，也要定義：
 
 ### CaseWorldDraft
 代表 Host 在正式 orchestration 前，先把 intake 編譯成可治理案件世界草稿的第一階段輸出。
+
+### CaseWorldState
+代表 matter-level 的正式案件世界狀態。
+
+它承接：
+- 目前案件世界的 identity / context spine
+- 最新 world compilation 後的 objects / links / facts / assumptions / gaps
+- 目前活躍的 task slices 與下一步建議
+
+正式規則：
+- `CaseWorldDraft` 是第一階段輸出
+- `CaseWorldState` 是被提升 / 同步後的案件世界工作底座
+- `Task` 是建立在 `CaseWorldState` 之上的工作切面
+
+### 5.4.1 Deeper identity bridge
+目前正式語義再往前推進為：
+- `CaseWorldState` 是案件世界的 identity authority center
+- `Client / Engagement / Workstream / DecisionContext` 應逐步脫離只能靠 `task_id` 才存在的狀態
+- `SourceMaterial / Artifact / Evidence` 應逐步可由案件世界直接掛載與回訪，而不只是某個 task 的附屬物
+
+本輪仍允許 bridge architecture：
+- world-native authority 先提升到 matter / `CaseWorldState`
+- legacy `task_id` references 可暫時保留
+- 但 `task_id` 應逐步退居 slice / access path，而不是唯一 identity owner
 
 ### EvidenceGap
 代表目前案件世界中仍缺少、但對判斷有高影響的資訊缺口。
@@ -347,11 +376,13 @@ Infinite Pro 的 ontology 不只是一組 objects，還需要明確 links。
 
 在本次正式補完後，這條主鏈還要再加上兩個前後責任：
 
-> Intake → CaseWorldDraft → Client / Engagement / Workstream / Task / DecisionContext → Artifact / SourceMaterial → Evidence → Insight / Risk / Option → Recommendation → ActionItem → Deliverable → DecisionRecord / ActionPlan / ActionExecution / OutcomeRecord
+> Intake → CaseWorldDraft → CaseWorldState → Client / Engagement / Workstream / DecisionContext → Task(work slice) → Artifact / SourceMaterial → Evidence → Insight / Risk / Option → Recommendation → ActionItem → Deliverable → DecisionRecord / ActionPlan / ActionExecution / OutcomeRecord
 
 也就是說：
 - intake 不再是 mode taxonomy，而是同一條 canonical pipeline 的不同 entry presets
+- 世界不再是 task 的附屬物，而是 task 所屬的工作底座
 - writeback 不再只等於 deliverable revision history
+- identity authority 應逐步從 task-local objects 轉向 `CaseWorldState -> matter/world spine`
 
 ---
 

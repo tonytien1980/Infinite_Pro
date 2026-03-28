@@ -159,6 +159,7 @@ Infinite Pro 應正式以六層架構理解：
 Infinite Pro 的工作主體不應只是 task。
 
 正式工作物件至少包括：
+- `CaseWorldState`
 - `Client`
 - `Engagement`
 - `Workstream`
@@ -177,6 +178,11 @@ Infinite Pro 的工作主體不應只是 task。
 這些 objects 才是系統的正式主角。
 頁面、workflow、agents，都應圍繞它們來組織。
 
+其中正式 runtime 理解應是：
+- `CaseWorldState` 是案件世界目前的工作底座
+- `Task` 是這個案件世界中的 work slice
+- follow-up 補件應先更新案件世界，再決定 task / evidence / deliverable 的變化
+
 ---
 
 ## 6. 工作台的主要工作面
@@ -193,8 +199,13 @@ Infinite Pro 的工作主體不應只是 task。
   - `單文件進件`
   - `多材料案件`
 - `Case World Compiler`
+- `CaseWorldState` 的最小正式世界狀態
 - 建立後回到同一條 matter / source material / evidence / deliverable 主鏈
 - matter-level 補件入口，而不是只存在一次性上傳流程
+
+正式理解應接近：
+
+> `Intake -> Case World Compiler -> CaseWorldDraft / CaseWorldState -> Task slices -> SourceMaterial / Evidence -> Deliverable`
 
 ### 6.2 Matter / Engagement workspace
 用來表示這次顧問案件本身與其工作脈絡。

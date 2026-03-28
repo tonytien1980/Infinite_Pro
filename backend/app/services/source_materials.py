@@ -31,12 +31,16 @@ def infer_artifact_type(source_document: models.SourceDocument) -> str:
 def build_source_objects_for_document(
     *,
     task_id: str,
+    matter_workspace_id: str | None,
     source_document: models.SourceDocument,
+    continuity_scope: str = "task_slice",
 ) -> tuple[models.SourceMaterial, models.Artifact]:
     summary = build_source_material_summary(source_document)
     source_material = models.SourceMaterial(
         task_id=task_id,
+        matter_workspace_id=matter_workspace_id,
         source_document_id=source_document.id,
+        continuity_scope=continuity_scope,
         source_type=source_document.source_type,
         title=source_document.canonical_display_name or source_document.file_name,
         canonical_display_name=source_document.canonical_display_name or source_document.file_name,
@@ -59,8 +63,10 @@ def build_source_objects_for_document(
     )
     artifact = models.Artifact(
         task_id=task_id,
+        matter_workspace_id=matter_workspace_id,
         source_document_id=source_document.id,
         title=source_document.canonical_display_name or source_document.file_name,
+        continuity_scope=continuity_scope,
         artifact_type=infer_artifact_type(source_document),
         description=summary[:280],
     )
@@ -71,18 +77,26 @@ def build_source_objects_for_document(
 def build_processed_evidence_items(
     *,
     task: models.Task,
+    matter_workspace_id: str | None,
     source_document: models.SourceDocument,
+    source_material_id: str | None,
+    artifact_id: str | None,
     source_ref: str,
     title: str,
     text: str,
     primary_evidence_type: str,
     reliability_level: str = "user_provided",
+    continuity_scope: str = "task_slice",
 ) -> tuple[models.Evidence, list[models.Evidence]]:
     relevance = infer_relevance_label(text, _task_query_parts(task))
     summary = summarize_evidence_text(text)
     primary = models.Evidence(
         task_id=task.id,
+        matter_workspace_id=matter_workspace_id,
         source_document_id=source_document.id,
+        source_material_id=source_material_id,
+        artifact_id=artifact_id,
+        continuity_scope=continuity_scope,
         evidence_type=primary_evidence_type,
         source_type=source_document.source_type,
         source_ref=source_ref,
@@ -97,7 +111,11 @@ def build_processed_evidence_items(
     chunk_items = [
         models.Evidence(
             task_id=task.id,
+            matter_workspace_id=matter_workspace_id,
             source_document_id=source_document.id,
+            source_material_id=source_material_id,
+            artifact_id=artifact_id,
+            continuity_scope=continuity_scope,
             evidence_type="source_chunk",
             source_type=source_document.source_type,
             source_ref=source_ref,
@@ -116,15 +134,23 @@ def build_processed_evidence_items(
 def build_failed_evidence_item(
     *,
     task_id: str,
+    matter_workspace_id: str | None,
     source_document_id: str,
+    source_material_id: str | None,
+    artifact_id: str | None,
     source_type: str,
     source_ref: str,
     title: str,
     error_message: str,
+    continuity_scope: str = "task_slice",
 ) -> models.Evidence:
     return models.Evidence(
         task_id=task_id,
+        matter_workspace_id=matter_workspace_id,
         source_document_id=source_document_id,
+        source_material_id=source_material_id,
+        artifact_id=artifact_id,
+        continuity_scope=continuity_scope,
         evidence_type="source_ingestion_issue",
         source_type=source_type,
         source_ref=source_ref,
@@ -137,14 +163,22 @@ def build_failed_evidence_item(
 def build_unparsed_evidence_item(
     *,
     task_id: str,
+    matter_workspace_id: str | None,
     source_document_id: str,
+    source_material_id: str | None,
+    artifact_id: str | None,
     source_type: str,
     source_ref: str,
     title: str,
+    continuity_scope: str = "task_slice",
 ) -> models.Evidence:
     return models.Evidence(
         task_id=task_id,
+        matter_workspace_id=matter_workspace_id,
         source_document_id=source_document_id,
+        source_material_id=source_material_id,
+        artifact_id=artifact_id,
+        continuity_scope=continuity_scope,
         evidence_type="source_unparsed",
         source_type=source_type,
         source_ref=source_ref,

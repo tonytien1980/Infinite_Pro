@@ -126,6 +126,10 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
       ? "目前還沒有正式來源材料，建議先補檔案、網址或補充文字。"
       : "目前已有來源材料，接著可回看證據支撐鏈是否真的支撐得住判斷。",
   ];
+  const sharedContinuitySummary =
+    workspace && (workspace.source_material_cards.length > 0 || workspace.evidence_chains.length > 0)
+      ? "補進來的材料與證據會優先掛回同一個案件世界，後續 task slices 可直接回看，不必再各自重傳。"
+      : "目前還沒有可跨 task slices 連續使用的正式材料 / 證據。";
   const evidenceSectionGuideItems = workspace
     ? [
         {
@@ -281,6 +285,10 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
               <div className="section-card">
                 <h4>高影響缺口</h4>
                 <p className="content-block">{workspace.high_impact_gaps.length} 個</p>
+              </div>
+              <div className="section-card">
+                <h4>跨 slice 共享鏈</h4>
+                <p className="content-block">{sharedContinuitySummary}</p>
               </div>
             </div>
             <ul className="list-content" style={{ marginTop: "16px" }}>

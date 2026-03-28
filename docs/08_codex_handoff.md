@@ -101,6 +101,10 @@ Infinite Pro 是：
 - objects / properties / links / actions / functions / decision context 的操作層
 - Host、agents、packs、workbench 與 deliverable generation 的共同語義底座
 
+目前正式施工主軸還必須多記住兩件事：
+- `Task` 是世界中的 work slice，不是 consultant world 的唯一主容器
+- `follow-up supplement` 應先更新既有案件世界，再決定 task / evidence / deliverable 的後續變化
+
 ---
 
 ## 5. Codex 必須維持的正式六層主架構
@@ -167,6 +171,7 @@ Host Agent 永遠是唯一 orchestration center。
 - task / decision framing
 - ontology mapping
 - case world compilation
+- case world state promotion / synchronization
 - workflow selection
 - agent routing
 - readiness governance

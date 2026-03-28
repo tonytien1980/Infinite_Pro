@@ -76,6 +76,7 @@ Infinite Pro 的施工原則應改為：
 此波次現在正式包含：
 - canonical intake pipeline 與 entry preset 語義一致化
 - `Case World Compiler / case_world_draft`
+- `CaseWorldState`
 - `engagement_continuity_mode / writeback_depth`
 - research provenance 與 decision writeback 邊界
 
@@ -85,7 +86,7 @@ Infinite Pro 的施工原則應改為：
 此波次現在也正式包含：
 - `/new` 的三種 entry presets
 - one canonical intake pipeline
-- `CaseWorldDraft / EvidenceGap / ResearchRun / DecisionRecord / ActionPlan / ActionExecution / OutcomeRecord` 的最小 contract
+- `CaseWorldDraft / CaseWorldState / EvidenceGap / ResearchRun / DecisionRecord / ActionPlan / ActionExecution / OutcomeRecord` 的最小 contract
 - continuity policy 與 writeback depth 的正式 persistence
 - raw / derived / released 的 storage 邊界
 - retention / purge metadata 與成本控制邊界
@@ -94,7 +95,12 @@ Infinite Pro 的施工原則應改為：
 若施工觸及正文 persistence、revision、rollback、publish、artifact registry、fallback、degraded mode 或 sync recovery，應同步參考 `docs/12_runtime_persistence_and_release_integrity.md`。
 
 ### Wave 3：Host orchestration reset
-把 Host 的 task framing、case world compilation、routing、research 與 writeback 治理正式接起來。
+把 Host 的 world-first orchestration 正式接起來。
+
+此波次應優先承接：
+- `intake -> case world compilation -> case world state -> task slices`
+- follow-up supplements 先更新世界，再決定 task / evidence / deliverable 變化
+- 在保留 transitional persistence 的前提下，把 runtime authority 從 task-first 推向 world-first
 
 ### Wave 4：Workbench surfaces
 讓 intake、decision workspace、artifact/evidence workspace、deliverable workspace 在不退回 debug dashboard 的前提下，可見化新的 ontology / writeback 主鏈。

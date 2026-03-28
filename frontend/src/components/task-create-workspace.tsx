@@ -29,7 +29,7 @@ export function TaskCreateWorkspace() {
         <span className="eyebrow">建立新案件</span>
         <h1 className="page-title">建立新案件</h1>
         <p className="page-subtitle">
-          從一句話問題、單文件進件或多材料案件開始都可以；它們都只是進入同一條案件主鏈的 entry preset，完成後會直接接回案件工作台，而不是停在孤立任務頁。
+          從一句話問題、單文件進件或多材料案件開始都可以；它們都只是進入同一條案件主鏈的 entry preset。系統會先建立案件世界，再把這輪工作掛成可推進的 task slice，而不是停在孤立任務頁。
         </p>
       </section>
 
@@ -47,7 +47,7 @@ export function TaskCreateWorkspace() {
           <div className="section-card">
             <h4>1. 確認案件主線</h4>
             <p className="content-block">
-              建立完成後會先回到同一個案件世界，直接看到目前主線、決策問題與下一步建議。
+              建立完成後會先回到同一個案件世界，直接看到目前主線、決策問題、世界狀態與下一步建議。
             </p>
           </div>
           <div className="section-card">

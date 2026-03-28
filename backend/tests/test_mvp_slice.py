@@ -151,8 +151,58 @@ def test_task_creation_builds_case_world_draft_and_continuity_policy(client: Tes
     assert body["case_world_draft"]["task_interpretation"]["capability"]
     assert body["case_world_draft"]["facts"]
     assert body["case_world_draft"]["next_best_actions"]
+    assert body["case_world_state"] is not None
+    assert body["case_world_state"]["active_task_ids"] == [body["id"]]
+    assert "work slice" in body["world_work_slice_summary"]
     assert body["matter_workspace"]["engagement_continuity_mode"] == "follow_up"
     assert body["matter_workspace"]["writeback_depth"] == "milestone"
+
+
+@pytest.mark.parametrize(
+    ("initial_payload", "expected_mode", "expected_count"),
+    [
+        ({}, "one_line_inquiry", 0),
+        (
+            {
+                "initial_source_urls": ["https://example.com/report"],
+            },
+            "single_document_intake",
+            1,
+        ),
+        (
+            {
+                "initial_source_urls": ["https://example.com/report"],
+                "initial_file_descriptors": [
+                    {
+                        "file_name": "notes.txt",
+                        "content_type": "text/plain",
+                        "file_size": 120,
+                    }
+                ],
+            },
+            "multi_material_case",
+            2,
+        ),
+    ],
+)
+def test_task_creation_compiles_world_first_from_initial_material_state(
+    client: TestClient,
+    initial_payload: dict,
+    expected_mode: str,
+    expected_count: int,
+) -> None:
+    payload = create_task_payload("World-first intake")
+    payload.update(initial_payload)
+
+    response = client.post("/api/v1/tasks", json=payload)
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["case_world_state"] is not None
+    assert body["case_world_state"]["canonical_intake_summary"]["resolved_input_state"] == expected_mode
+    assert body["case_world_state"]["canonical_intake_summary"]["planned_material_count"] == expected_count
+    assert body["case_world_state"]["latest_task_id"] == body["id"]
+    assert body["case_world_state"]["latest_task_title"] == body["title"]
 
 
 def test_task_creation_populates_explicit_ontology_context_spine(client: TestClient) -> None:
@@ -184,6 +234,43 @@ def test_task_creation_populates_explicit_ontology_context_spine(client: TestCli
     assert body["decision_context"]["summary"].startswith("這次要先判斷")
     assert body["decision_context"]["judgment_to_make"].startswith("先判斷成交流程")
     assert body["decision_context"]["domain_lenses"] == ["營運", "銷售"]
+
+
+def test_case_world_state_points_to_world_authority_spine(client: TestClient) -> None:
+    payload = create_task_payload("World authority spine")
+    payload.update(
+        {
+            "client_name": "Evergreen Consulting",
+            "client_type": "中小企業",
+            "client_stage": "制度化階段",
+            "engagement_name": "Evergreen 營運盤點",
+            "workstream_name": "營運效率優化",
+            "decision_title": "Evergreen decision context",
+            "judgment_to_make": "先判斷目前的營運效率瓶頸是否已足以支持流程重整。",
+            "domain_lenses": ["營運"],
+        }
+    )
+
+    response = client.post("/api/v1/tasks", json=payload)
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["case_world_state"]["client_id"]
+    assert body["case_world_state"]["engagement_id"]
+    assert body["case_world_state"]["workstream_id"]
+    assert body["case_world_state"]["decision_context_id"]
+
+    workspace_response = client.get(f"/api/v1/matters/{body['matter_workspace']['id']}")
+    assert workspace_response.status_code == 200
+    workspace = workspace_response.json()
+    assert workspace["client"]["identity_scope"] == "world_authority"
+    assert workspace["engagement"]["identity_scope"] == "world_authority"
+    assert workspace["workstream"]["identity_scope"] == "world_authority"
+    assert workspace["current_decision_context"]["identity_scope"] == "world_authority"
+    assert workspace["client"]["id"] == body["case_world_state"]["client_id"]
+    assert workspace["engagement"]["id"] == body["case_world_state"]["engagement_id"]
+    assert workspace["workstream"]["id"] == body["case_world_state"]["workstream_id"]
+    assert workspace["current_decision_context"]["id"] == body["case_world_state"]["decision_context_id"]
 
 
 def test_task_list_returns_object_aware_workspace_summary(client: TestClient) -> None:
@@ -305,6 +392,74 @@ def test_matter_workspace_routes_return_cross_task_continuity(client: TestClient
         first_task["id"],
         second_task["id"],
     }
+
+
+def test_shared_materials_and_evidence_follow_world_spine_across_task_slices(
+    client: TestClient,
+) -> None:
+    shared_payload = create_task_payload("Northwind shared materials")
+    shared_payload.update(
+        {
+            "client_name": "Northwind Studio",
+            "client_type": "個人品牌與服務",
+            "client_stage": "創業階段",
+            "engagement_name": "Northwind Growth Sprint",
+            "workstream_name": "提案重組與銷售收斂",
+            "decision_title": "Northwind primary decision",
+            "judgment_to_make": "先判斷提案重組是否足以提升成交效率。",
+            "domain_lenses": ["銷售", "行銷"],
+        }
+    )
+    follow_up_payload = create_task_payload("Northwind shared materials follow-up")
+    follow_up_payload.update(
+        {
+            "client_name": "Northwind Studio",
+            "client_type": "個人品牌與服務",
+            "client_stage": "創業階段",
+            "engagement_name": "Northwind Growth Sprint",
+            "workstream_name": "提案重組與銷售收斂",
+            "decision_title": "Northwind secondary decision",
+            "judgment_to_make": "先判斷新的提案摘要是否應該優先強化報價與成交主張。",
+            "domain_lenses": ["銷售", "行銷"],
+        }
+    )
+
+    first_task = client.post("/api/v1/tasks", json=shared_payload).json()
+    upload_response = client.post(
+        f"/api/v1/tasks/{first_task['id']}/uploads",
+        files=[("files", ("northwind-notes.txt", b"Northwind proposal notes with stronger commercial evidence.", "text/plain"))],
+    )
+    assert upload_response.status_code == 200
+
+    refreshed_first = client.get(f"/api/v1/tasks/{first_task['id']}").json()
+    shared_material = next(
+        item for item in refreshed_first["source_materials"] if item["continuity_scope"] == "world_shared"
+    )
+    shared_evidence = next(
+        item for item in refreshed_first["evidence"] if item["continuity_scope"] == "world_shared"
+    )
+    assert shared_material["continuity_scope"] == "world_shared"
+    assert shared_evidence["continuity_scope"] == "world_shared"
+
+    second_task = client.post("/api/v1/tasks", json=follow_up_payload).json()
+    refreshed_second = client.get(f"/api/v1/tasks/{second_task['id']}").json()
+
+    assert any(
+        item["id"] == shared_material["id"]
+        and item["matter_workspace_id"] == first_task["matter_workspace"]["id"]
+        and item["continuity_scope"] == "world_shared"
+        for item in refreshed_second["source_materials"]
+    )
+    assert any(
+        item["id"] == shared_evidence["id"]
+        and item["matter_workspace_id"] == first_task["matter_workspace"]["id"]
+        and item["continuity_scope"] == "world_shared"
+        for item in refreshed_second["evidence"]
+    )
+
+    workspace = client.get(f"/api/v1/matters/{first_task['matter_workspace']['id']}").json()
+    assert workspace["summary"]["source_material_count"] == 1
+    assert workspace["summary"]["artifact_count"] >= 1
 
 
 def test_artifact_evidence_workspace_route_returns_formal_source_and_support_chains(
@@ -596,6 +751,8 @@ def test_task_aggregate_includes_pack_resolution_from_context_spine(client: Test
     assert ecommerce_pack["decision_patterns"]
     assert body["pack_resolution"]["resolver_notes"]
     assert body["pack_resolution"]["evidence_expectations"]
+    assert "operations_pack" in body["case_world_state"]["selected_domain_packs"]
+    assert "ecommerce_pack" in body["case_world_state"]["selected_industry_packs"]
     assert body["agent_selection"]["host_agent"]["agent_id"] == "host_agent"
     assert body["agent_selection"]["selected_agent_ids"]
     assert body["agent_selection"]["selected_agent_names"]
@@ -1635,6 +1792,30 @@ def test_continuous_writeback_creates_decision_and_outcome_records(
     second_aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
     assert len(second_aggregate["decision_records"]) >= 2
     assert len(second_aggregate["outcome_records"]) >= 1
+
+
+def test_matter_follow_up_sources_update_world_first(client: TestClient) -> None:
+    task = client.post("/api/v1/tasks", json=create_task_payload("Matter follow-up world")).json()
+    matter_id = task["matter_workspace"]["id"]
+
+    response = client.post(
+        f"/api/v1/matters/{matter_id}/sources",
+        json={
+            "urls": ["https://example.com/follow-up"],
+            "pasted_text": "Follow-up note about channel performance and margin pressure.",
+            "pasted_title": "Follow-up note",
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["world_updated_first"] is True
+    assert body["matter_workspace_id"] == matter_id
+    assert body["world_update_summary"]
+
+    refreshed_task = client.get(f"/api/v1/tasks/{task['id']}").json()
+    assert refreshed_task["case_world_state"]["supplement_count"] >= 1
+    assert refreshed_task["case_world_state"]["last_supplement_summary"]
 
 
 def test_multi_agent_with_insufficient_evidence_returns_explicit_uncertainty(

@@ -344,6 +344,8 @@ export interface MatterMaterialSummary {
 export interface Client {
   id: string;
   task_id: string;
+  matter_workspace_id: string | null;
+  identity_scope: string;
   name: string;
   client_type: string;
   client_stage: string;
@@ -354,6 +356,8 @@ export interface Client {
 export interface Engagement {
   id: string;
   task_id: string;
+  matter_workspace_id: string | null;
+  identity_scope: string;
   client_id: string | null;
   name: string;
   description: string | null;
@@ -363,6 +367,8 @@ export interface Engagement {
 export interface Workstream {
   id: string;
   task_id: string;
+  matter_workspace_id: string | null;
+  identity_scope: string;
   engagement_id: string | null;
   name: string;
   description: string | null;
@@ -373,6 +379,8 @@ export interface Workstream {
 export interface DecisionContext {
   id: string;
   task_id: string;
+  matter_workspace_id: string | null;
+  identity_scope: string;
   client_id: string | null;
   engagement_id: string | null;
   workstream_id: string | null;
@@ -429,7 +437,9 @@ export interface Constraint {
 export interface SourceDocument {
   id: string;
   task_id: string;
+  matter_workspace_id: string | null;
   research_run_id: string | null;
+  continuity_scope: string;
   source_type: string;
   file_name: string;
   canonical_display_name: string;
@@ -458,7 +468,9 @@ export interface SourceDocument {
 export interface SourceMaterial {
   id: string;
   task_id: string;
+  matter_workspace_id: string | null;
   source_document_id: string | null;
+  continuity_scope: string;
   source_type: string;
   title: string;
   canonical_display_name: string;
@@ -485,6 +497,8 @@ export interface SourceMaterial {
 export interface Artifact {
   id: string;
   task_id: string;
+  matter_workspace_id: string | null;
+  continuity_scope: string;
   title: string;
   artifact_type: string;
   source_document_id: string | null;
@@ -496,9 +510,11 @@ export interface Artifact {
 export interface Evidence {
   id: string;
   task_id: string;
+  matter_workspace_id: string | null;
   source_document_id: string | null;
   source_material_id: string | null;
   artifact_id: string | null;
+  continuity_scope: string;
   evidence_type: string;
   source_type: string;
   source_ref: string | null;
@@ -640,6 +656,41 @@ export interface CaseWorldDraft {
   updated_at: string;
 }
 
+export interface CaseWorldState {
+  id: string;
+  matter_workspace_id: string;
+  compiler_status: string;
+  world_status: string;
+  client_id: string | null;
+  engagement_id: string | null;
+  workstream_id: string | null;
+  decision_context_id: string | null;
+  entry_preset: InputEntryMode;
+  continuity_mode: EngagementContinuityMode;
+  writeback_depth: WritebackDepth;
+  world_identity: Record<string, unknown>;
+  canonical_intake_summary: Record<string, unknown>;
+  decision_context: Record<string, unknown>;
+  extracted_objects: Array<Record<string, unknown>>;
+  inferred_links: Array<Record<string, unknown>>;
+  facts: CaseWorldFact[];
+  assumptions: CaseWorldAssumption[];
+  evidence_gaps: CaseWorldGap[];
+  selected_capabilities: string[];
+  selected_domain_packs: string[];
+  selected_industry_packs: string[];
+  selected_agent_ids: string[];
+  suggested_research_need: boolean;
+  next_best_actions: string[];
+  active_task_ids: string[];
+  latest_task_id: string | null;
+  latest_task_title: string | null;
+  supplement_count: number;
+  last_supplement_summary: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface EvidenceGap {
   id: string;
   task_id: string;
@@ -777,6 +828,8 @@ export interface TaskAggregate {
   deliverables: Deliverable[];
   runs: TaskRun[];
   case_world_draft: CaseWorldDraft | null;
+  case_world_state: CaseWorldState | null;
+  world_work_slice_summary: string;
   evidence_gaps: EvidenceGap[];
   research_runs: ResearchRun[];
   decision_records: DecisionRecord[];
@@ -831,6 +884,7 @@ export interface MatterWorkspace {
   engagement: Engagement | null;
   workstream: Workstream | null;
   current_decision_context: DecisionContext | null;
+  case_world_state: CaseWorldState | null;
   content_sections: MatterWorkspaceContentSections;
   content_revisions: MatterContentRevision[];
   decision_trajectory: MatterDecisionPoint[];
@@ -1052,6 +1106,9 @@ export interface DeliverablePublishRecord {
 
 export interface UploadBatchResponse {
   task_id: string;
+  matter_workspace_id: string | null;
+  world_updated_first: boolean;
+  world_update_summary: string;
   uploaded: Array<{
     source_document: SourceDocument;
     evidence: Evidence;
@@ -1068,6 +1125,9 @@ export interface SourceIngestPayload {
 
 export interface SourceIngestBatchResponse {
   task_id: string;
+  matter_workspace_id: string | null;
+  world_updated_first: boolean;
+  world_update_summary: string;
   ingested: Array<{
     source_document: SourceDocument;
     evidence: Evidence;
@@ -1084,6 +1144,12 @@ export interface ResearchRunResponse {
   risks: Risk[];
   recommendations: Recommendation[];
   action_items: ActionItem[];
+}
+
+export interface InitialIntakeFileDescriptor {
+  file_name: string;
+  content_type?: string;
+  file_size: number;
 }
 
 export interface TaskCreatePayload {
@@ -1121,6 +1187,10 @@ export interface TaskCreatePayload {
     constraint_type: string;
     severity: string;
   }>;
+  initial_source_urls?: string[];
+  initial_pasted_text?: string;
+  initial_pasted_title?: string;
+  initial_file_descriptors?: InitialIntakeFileDescriptor[];
 }
 
 export interface TaskExtensionOverridePayload {
