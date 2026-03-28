@@ -17,7 +17,10 @@ from app.services.source_materials import (
     build_source_objects_for_document,
     build_processed_evidence_items,
     build_unparsed_evidence_item,
+    ensure_material_evidence_participation_links,
     load_existing_world_shared_bundle,
+    PARTICIPATION_TYPE_DIRECT_INGEST,
+    PARTICIPATION_TYPE_SHARED_REUSE,
     SLICE_PARTICIPATION_CONTINUITY_SCOPE,
 )
 from app.services.storage_manager import (
@@ -132,6 +135,15 @@ def save_uploads_for_task(
         )
         if existing_bundle is not None:
             source_document, source_material, artifact, evidence = existing_bundle
+            ensure_material_evidence_participation_links(
+                db,
+                task_id=task.id,
+                matter_workspace_id=matter_workspace_id,
+                source_material_id=source_material.id,
+                artifact_id=artifact.id,
+                evidence_id=evidence.id,
+                participation_type=PARTICIPATION_TYPE_SHARED_REUSE,
+            )
             uploaded.append(
                 schemas.UploadResultItem(
                     source_document=schemas.SourceDocumentRead.model_validate(source_document),
@@ -284,6 +296,15 @@ def save_uploads_for_task(
             )
             db.add(evidence)
         db.flush()
+        ensure_material_evidence_participation_links(
+            db,
+            task_id=task.id,
+            matter_workspace_id=matter_workspace_id,
+            source_material_id=source_material.id,
+            artifact_id=artifact.id,
+            evidence_id=evidence.id,
+            participation_type=PARTICIPATION_TYPE_DIRECT_INGEST if matter_workspace_id else PARTICIPATION_TYPE_SHARED_REUSE,
+        )
 
         uploaded.append(
             schemas.UploadResultItem(

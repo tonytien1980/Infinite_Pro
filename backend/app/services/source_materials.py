@@ -9,6 +9,11 @@ from app.services.material_storage import build_source_reference, sync_source_ma
 
 WORLD_SHARED_CONTINUITY_SCOPE = "world_shared"
 SLICE_PARTICIPATION_CONTINUITY_SCOPE = "slice_participation"
+OBJECT_TYPE_SOURCE_MATERIAL = "source_material"
+OBJECT_TYPE_ARTIFACT = "artifact"
+OBJECT_TYPE_EVIDENCE = "evidence"
+PARTICIPATION_TYPE_DIRECT_INGEST = "direct_ingest"
+PARTICIPATION_TYPE_SHARED_REUSE = "shared_reuse"
 
 
 def _task_query_parts(task: models.Task) -> list[str]:
@@ -89,6 +94,97 @@ def load_existing_world_shared_bundle(
     if source_material is None or artifact is None or evidence is None:
         return None
     return source_document, source_material, artifact, evidence
+
+
+def ensure_task_object_participation_link(
+    db: Session,
+    *,
+    task_id: str,
+    matter_workspace_id: str | None,
+    object_type: str,
+    object_id: str,
+    canonical_object_id: str | None = None,
+    participation_type: str = PARTICIPATION_TYPE_SHARED_REUSE,
+) -> models.TaskObjectParticipationLink | None:
+    if not matter_workspace_id:
+        return None
+
+    link = db.scalars(
+        select(models.TaskObjectParticipationLink)
+        .where(models.TaskObjectParticipationLink.task_id == task_id)
+        .where(models.TaskObjectParticipationLink.object_type == object_type)
+        .where(models.TaskObjectParticipationLink.object_id == object_id)
+    ).first()
+    if link is None:
+        link = models.TaskObjectParticipationLink(
+            task_id=task_id,
+            matter_workspace_id=matter_workspace_id,
+            object_type=object_type,
+            object_id=object_id,
+            canonical_object_id=canonical_object_id or object_id,
+            participation_type=participation_type,
+        )
+        db.add(link)
+        db.flush()
+        return link
+
+    changed = False
+    resolved_canonical_id = canonical_object_id or object_id
+    if link.matter_workspace_id != matter_workspace_id:
+        link.matter_workspace_id = matter_workspace_id
+        changed = True
+    if link.canonical_object_id != resolved_canonical_id:
+        link.canonical_object_id = resolved_canonical_id
+        changed = True
+    if link.participation_type != participation_type:
+        link.participation_type = participation_type
+        changed = True
+    if changed:
+        db.add(link)
+        db.flush()
+    return link
+
+
+def ensure_material_evidence_participation_links(
+    db: Session,
+    *,
+    task_id: str,
+    matter_workspace_id: str | None,
+    source_material_id: str | None,
+    artifact_id: str | None,
+    evidence_id: str | None,
+    participation_type: str,
+) -> None:
+    if source_material_id:
+        ensure_task_object_participation_link(
+            db,
+            task_id=task_id,
+            matter_workspace_id=matter_workspace_id,
+            object_type=OBJECT_TYPE_SOURCE_MATERIAL,
+            object_id=source_material_id,
+            canonical_object_id=source_material_id,
+            participation_type=participation_type,
+        )
+    if artifact_id:
+        ensure_task_object_participation_link(
+            db,
+            task_id=task_id,
+            matter_workspace_id=matter_workspace_id,
+            object_type=OBJECT_TYPE_ARTIFACT,
+            object_id=artifact_id,
+            canonical_object_id=artifact_id,
+            participation_type=participation_type,
+        )
+    if evidence_id:
+        ensure_task_object_participation_link(
+            db,
+            task_id=task_id,
+            matter_workspace_id=matter_workspace_id,
+            object_type=OBJECT_TYPE_EVIDENCE,
+            object_id=evidence_id,
+            canonical_object_id=evidence_id,
+            participation_type=participation_type,
+        )
 
 
 def build_source_objects_for_document(

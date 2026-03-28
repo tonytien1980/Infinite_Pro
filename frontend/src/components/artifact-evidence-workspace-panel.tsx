@@ -128,7 +128,21 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
   ];
   const sharedContinuitySummary =
     workspace && (workspace.source_material_cards.length > 0 || workspace.evidence_chains.length > 0)
-      ? "補進來的材料與證據會優先掛回同一個案件世界，後續 task slices 可直接回看，不必再各自重傳。"
+      ? (() => {
+          const sharedCount = new Set(
+            [
+              ...workspace.source_material_cards
+                .filter((item) => item.participation_task_count > 1)
+                .map((item) => item.object_id),
+              ...workspace.evidence_chains
+                .filter((item) => (item.evidence.participation?.participation_task_count ?? 0) > 1)
+                .map((item) => item.evidence.id),
+            ],
+          ).size;
+          return sharedCount > 0
+            ? `補進來的材料與證據會優先掛回同一個案件世界；目前至少有 ${sharedCount} 條 shared chains 正被多個 task slices 共用。`
+            : "補進來的材料與證據會優先掛回同一個案件世界，後續 task slices 可直接回看，不必再各自重傳。";
+        })()
       : "目前還沒有可跨 task slices 連續使用的正式材料 / 證據。";
   const evidenceSectionGuideItems = workspace
     ? [
@@ -508,6 +522,9 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                         <div className="meta-row">
                           <span>{item.linked_evidence_count} 則已連結證據</span>
                           <span>{item.linked_output_count} 項已連結輸出</span>
+                          {item.participation_task_count > 1 ? (
+                            <span>共享於 {item.participation_task_count} 個 work slices</span>
+                          ) : null}
                           <span>{labelForSourceIngestStrategy(item.ingest_strategy)}</span>
                           <span>{labelForStorageAvailability(item.availability_state)}</span>
                         </div>
@@ -545,6 +562,9 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                         <div className="meta-row">
                           <span>{item.linked_evidence_count} 則已連結證據</span>
                           <span>{item.linked_output_count} 項已連結輸出</span>
+                          {item.participation_task_count > 1 ? (
+                            <span>共享於 {item.participation_task_count} 個 work slices</span>
+                          ) : null}
                         </div>
                         <Link className="back-link" href={`/tasks/${item.task_id}`}>
                           打開來源工作紀錄：{item.task_title}

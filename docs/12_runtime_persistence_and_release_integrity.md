@@ -74,12 +74,13 @@
 - `CaseWorldState` 應逐步成為 matter/world identity authority
 - 某些 domain objects 仍可暫時保留 legacy `task_id` references
 - 但 release integrity 與 writeback 行為不得因 identity 遷移而退化
-- identity deepen phase 3 應額外保證：
+- identity deepen phase 4 應額外保證：
   - canonical world read path 優先
   - world-preferred write / sync path 優先
   - slice-local fallback 僅作 compatibility / overlay
   - shared material / evidence reuse 不得破壞 deliverable revision / publish /
     artifact record / rollback / re-sync 邊界
+  - local participation rows / mappings 不得被誤算成 canonical ownership 或正式 release basis
 
 ---
 

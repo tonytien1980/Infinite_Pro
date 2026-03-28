@@ -413,6 +413,18 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
   const latestCaseWorldDraft = task?.case_world_draft ?? null;
   const caseWorldState = task?.case_world_state ?? null;
   const sliceDecisionContext = task?.slice_decision_context ?? null;
+  const sharedParticipationCount = task
+    ? new Set(
+        [
+          ...task.source_materials
+            .filter((item) => (item.participation?.participation_task_count ?? 0) > 1)
+            .map((item) => item.id),
+          ...task.evidence
+            .filter((item) => (item.participation?.participation_task_count ?? 0) > 1)
+            .map((item) => item.id),
+        ],
+      ).size
+    : 0;
   const openEvidenceGaps = task?.evidence_gaps.filter((item) => item.status !== "resolved") ?? [];
   const recentDecisionRecords = task?.decision_records.slice(0, 3) ?? [];
   const recentOutcomeRecords = task?.outcome_records.slice(0, 3) ?? [];
@@ -427,7 +439,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
   const sharedContinuitySummary = task
     ? task.source_materials.some((item) => item.continuity_scope === "world_shared") ||
       task.evidence.some((item) => item.continuity_scope === "world_shared")
-      ? "這筆工作已可回看同一案件世界下共享的 materials / evidence，不必把補件再拆成孤立流程。"
+      ? sharedParticipationCount > 0
+        ? `這筆工作已可回看同一案件世界下共享的 materials / evidence；目前至少有 ${sharedParticipationCount} 條 shared chains 被多個 work slices 共同使用。`
+        : "這筆工作已可回看同一案件世界下共享的 materials / evidence，不必把補件再拆成孤立流程。"
       : "目前這筆工作還沒有顯示可跨 slice 共用的 materials / evidence。"
     : "目前這筆工作還沒有顯示可跨 slice 共用的 materials / evidence。";
   const localOverlaySummary = sliceDecisionContext

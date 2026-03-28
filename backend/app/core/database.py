@@ -232,6 +232,8 @@ def _ensure_incremental_indexes() -> None:
         "ON deliverable_version_events (deliverable_id, event_key)",
         "CREATE INDEX IF NOT EXISTS ix_source_documents_content_digest "
         "ON source_documents (content_digest)",
+        "CREATE INDEX IF NOT EXISTS ix_task_object_participation_lookup "
+        "ON task_object_participation_links (matter_workspace_id, object_type, canonical_object_id)",
     ]
 
     with engine.begin() as connection:

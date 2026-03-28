@@ -465,6 +465,13 @@ export interface SourceDocument {
   updated_at: string;
 }
 
+export interface ObjectParticipation {
+  canonical_object_id: string | null;
+  current_task_participation: boolean;
+  participation_type: string | null;
+  participation_task_count: number;
+}
+
 export interface SourceMaterial {
   id: string;
   task_id: string;
@@ -490,6 +497,7 @@ export interface SourceMaterial {
   availability_state: string;
   metadata_only: boolean;
   summary: string;
+  participation: ObjectParticipation | null;
   created_at: string;
   updated_at: string;
 }
@@ -504,6 +512,7 @@ export interface Artifact {
   source_document_id: string | null;
   source_material_id: string | null;
   description: string;
+  participation: ObjectParticipation | null;
   created_at: string;
 }
 
@@ -521,6 +530,7 @@ export interface Evidence {
   title: string;
   excerpt_or_summary: string;
   reliability_level: string;
+  participation: ObjectParticipation | null;
   created_at: string;
 }
 
@@ -914,6 +924,10 @@ export interface ArtifactEvidenceMaterial {
   summary: string;
   role_label: string;
   presence_state: PresenceState;
+  continuity_scope: string | null;
+  participation_type: string | null;
+  participation_task_count: number;
+  current_task_participation: boolean;
   source_type: string | null;
   ingest_status: string | null;
   support_level: string | null;

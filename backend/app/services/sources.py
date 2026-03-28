@@ -21,7 +21,10 @@ from app.services.source_materials import (
     build_processed_evidence_items,
     build_source_objects_for_document,
     build_unparsed_evidence_item,
+    ensure_material_evidence_participation_links,
     load_existing_world_shared_bundle,
+    PARTICIPATION_TYPE_DIRECT_INGEST,
+    PARTICIPATION_TYPE_SHARED_REUSE,
     SLICE_PARTICIPATION_CONTINUITY_SCOPE,
 )
 from app.services.storage_manager import (
@@ -83,6 +86,15 @@ def _persist_processed_source(
         content_digest=compute_digest(extracted_text.encode("utf-8")) if extracted_text else None,
     )
     if existing_bundle is not None:
+        ensure_material_evidence_participation_links(
+            db,
+            task_id=task.id,
+            matter_workspace_id=matter_workspace_id,
+            source_material_id=existing_bundle[1].id,
+            artifact_id=existing_bundle[2].id,
+            evidence_id=existing_bundle[3].id,
+            participation_type=PARTICIPATION_TYPE_SHARED_REUSE,
+        )
         return existing_bundle
     source_document = models.SourceDocument(
         task_id=task.id,
@@ -178,6 +190,15 @@ def _persist_processed_source(
         )
         db.add(primary_evidence)
     db.flush()
+    ensure_material_evidence_participation_links(
+        db,
+        task_id=task.id,
+        matter_workspace_id=matter_workspace_id,
+        source_material_id=source_material.id,
+        artifact_id=artifact.id,
+        evidence_id=primary_evidence.id,
+        participation_type=PARTICIPATION_TYPE_DIRECT_INGEST if matter_workspace_id else PARTICIPATION_TYPE_SHARED_REUSE,
+    )
     return source_document, source_material, artifact, primary_evidence
 
 
@@ -203,6 +224,15 @@ def _persist_failed_source(
         storage_path=storage_path,
     )
     if existing_bundle is not None:
+        ensure_material_evidence_participation_links(
+            db,
+            task_id=task.id,
+            matter_workspace_id=matter_workspace_id,
+            source_material_id=existing_bundle[1].id,
+            artifact_id=existing_bundle[2].id,
+            evidence_id=existing_bundle[3].id,
+            participation_type=PARTICIPATION_TYPE_SHARED_REUSE,
+        )
         return existing_bundle
     source_document = models.SourceDocument(
         task_id=task.id,
@@ -261,6 +291,15 @@ def _persist_failed_source(
     )
     db.add(primary_evidence)
     db.flush()
+    ensure_material_evidence_participation_links(
+        db,
+        task_id=task.id,
+        matter_workspace_id=matter_workspace_id,
+        source_material_id=source_material.id,
+        artifact_id=artifact.id,
+        evidence_id=primary_evidence.id,
+        participation_type=PARTICIPATION_TYPE_DIRECT_INGEST if matter_workspace_id else PARTICIPATION_TYPE_SHARED_REUSE,
+    )
     return source_document, source_material, artifact, primary_evidence
 
 

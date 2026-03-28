@@ -322,6 +322,18 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const decisionSnapshot = task && deliverable ? buildDecisionSnapshot(task, deliverable) : null;
   const preferredWorldDecisionContext = task?.world_decision_context || task?.decision_context || null;
   const sliceDecisionContext = task?.slice_decision_context || null;
+  const sharedEvidenceParticipationCount = workspace
+    ? new Set(
+        [
+          ...workspace.linked_source_materials
+            .filter((item) => (item.participation?.participation_task_count ?? 0) > 1)
+            .map((item) => item.id),
+          ...workspace.linked_evidence
+            .filter((item) => (item.participation?.participation_task_count ?? 0) > 1)
+            .map((item) => item.id),
+        ],
+      ).size
+    : 0;
   const recommendations = task && deliverable ? buildRecommendationCards(task, deliverable) : [];
   const risks = task && deliverable ? buildRiskCards(task, deliverable) : [];
   const actionItems = task && deliverable ? buildActionItemCards(task, deliverable) : [];
@@ -1035,6 +1047,14 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                   {sliceDecisionContext
                     ? "交付物目前優先依案件世界的 canonical decision context 呈現；slice-local overlay 只保留給在途工作。"
                     : "交付物目前直接依 canonical world decision context 呈現。"}
+                </p>
+              </div>
+              <div className="section-card">
+                <h4>Shared participation</h4>
+                <p className="content-block">
+                  {sharedEvidenceParticipationCount > 0
+                    ? `這份交付物目前至少回鏈到 ${sharedEvidenceParticipationCount} 條被多個 work slices 共用的正式材料 / 證據鏈。`
+                    : "目前沒有顯示被多個 work slices 共用的正式材料 / 證據鏈。"}
                 </p>
               </div>
               <div className="section-card">

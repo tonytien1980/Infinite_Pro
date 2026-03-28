@@ -348,6 +348,13 @@ class SourceDocumentRead(ORMModel):
     updated_at: datetime
 
 
+class ObjectParticipationRead(BaseModel):
+    canonical_object_id: str | None = None
+    current_task_participation: bool = False
+    participation_type: str | None = None
+    participation_task_count: int = 0
+
+
 class SourceMaterialRead(ORMModel):
     id: str
     task_id: str
@@ -373,6 +380,7 @@ class SourceMaterialRead(ORMModel):
     availability_state: str
     metadata_only: bool
     summary: str
+    participation: ObjectParticipationRead | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -387,6 +395,7 @@ class ArtifactRead(ORMModel):
     source_document_id: str | None
     source_material_id: str | None
     description: str
+    participation: ObjectParticipationRead | None = None
     created_at: datetime
 
 
@@ -404,6 +413,7 @@ class EvidenceRead(ORMModel):
     title: str
     excerpt_or_summary: str
     reliability_level: str
+    participation: ObjectParticipationRead | None = None
     created_at: datetime
 
 
@@ -931,6 +941,10 @@ class ArtifactEvidenceMaterialRead(BaseModel):
     summary: str
     role_label: str
     presence_state: PresenceState
+    continuity_scope: str | None = None
+    participation_type: str | None = None
+    participation_task_count: int = 0
+    current_task_participation: bool = False
     source_type: str | None = None
     ingest_status: str | None = None
     support_level: str | None = None

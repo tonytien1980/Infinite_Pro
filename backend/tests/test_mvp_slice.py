@@ -260,7 +260,7 @@ def test_case_world_state_points_to_world_authority_spine(client: TestClient) ->
     assert body["client"]["identity_scope"] == "world_authority"
     assert body["engagement"]["identity_scope"] == "world_authority"
     assert body["workstream"]["identity_scope"] == "world_authority"
-    assert body["slice_decision_context"]["identity_scope"] == "slice_overlay"
+    assert body["slice_decision_context"] is None
     assert body["decision_context"]["identity_scope"] == "world_authority"
     assert body["world_decision_context"]["identity_scope"] == "world_authority"
     assert body["case_world_state"]["client_id"]
@@ -316,10 +316,35 @@ def test_world_decision_context_prefers_canonical_world_payload_over_slice_fallb
 
     refreshed_task = client.get(f"/api/v1/tasks/{task_id}").json()
     assert refreshed_task["decision_context"]["identity_scope"] == "world_authority"
-    assert refreshed_task["slice_decision_context"]["identity_scope"] == "slice_overlay"
+    assert refreshed_task["slice_decision_context"] is None
     assert refreshed_task["decision_context"]["goals"] == [
         "Highlight the strongest findings and next actions."
     ]
+
+
+def test_slice_decision_context_only_surfaces_meaningful_overlay(client: TestClient) -> None:
+    payload = create_task_payload("Meaningful overlay")
+    response = client.post("/api/v1/tasks", json=payload)
+    assert response.status_code == 201
+    task_id = response.json()["id"]
+
+    with SessionLocal() as db:
+        task = db.get(models.Task, task_id)
+        assert task is not None
+        overlay = next(
+            item for item in task.decision_contexts if item.identity_scope == "slice_overlay"
+        )
+        overlay.summary = "這是只屬於目前 work slice 的暫時判斷。"
+        overlay.goal_summary = "先只在這個 slice 內檢查一輪。"
+        db.add(overlay)
+        db.commit()
+
+    refreshed_task = client.get(f"/api/v1/tasks/{task_id}").json()
+    assert refreshed_task["decision_context"]["identity_scope"] == "world_authority"
+    assert refreshed_task["decision_context"]["summary"] != "這是只屬於目前 work slice 的暫時判斷。"
+    assert refreshed_task["slice_decision_context"]["identity_scope"] == "slice_overlay"
+    assert refreshed_task["slice_decision_context"]["summary"] == "這是只屬於目前 work slice 的暫時判斷。"
+    assert refreshed_task["slice_decision_context"]["goals"] == ["先只在這個 slice 內檢查一輪。"]
 
 
 def test_task_list_returns_object_aware_workspace_summary(client: TestClient) -> None:
@@ -516,9 +541,24 @@ def test_shared_materials_and_evidence_follow_world_spine_across_task_slices(
     assert reused_item["evidence"]["id"] == shared_evidence["id"]
     assert reused_item["source_material"]["continuity_scope"] == "world_shared"
 
+    refreshed_second_after_upload = client.get(f"/api/v1/tasks/{second_task['id']}").json()
+    reused_material = next(
+        item for item in refreshed_second_after_upload["source_materials"] if item["id"] == shared_material["id"]
+    )
+    reused_evidence = next(
+        item for item in refreshed_second_after_upload["evidence"] if item["id"] == shared_evidence["id"]
+    )
+    assert reused_material["participation"]["current_task_participation"] is True
+    assert reused_material["participation"]["participation_task_count"] == 2
+    assert reused_material["participation"]["participation_type"] == "shared_reuse"
+    assert reused_evidence["participation"]["current_task_participation"] is True
+    assert reused_evidence["participation"]["participation_task_count"] == 2
+
     workspace = client.get(f"/api/v1/matters/{first_task['matter_workspace']['id']}").json()
     assert workspace["summary"]["source_material_count"] == 1
     assert workspace["summary"]["artifact_count"] >= 1
+
+
 def test_core_context_keeps_world_authority_and_slice_overlay_rows(client: TestClient) -> None:
     task = client.post("/api/v1/tasks", json=create_task_payload("Overlay scope rows")).json()
 
@@ -541,6 +581,25 @@ def test_core_context_keeps_world_authority_and_slice_overlay_rows(client: TestC
             "slice_overlay",
             "world_authority",
         }
+
+
+def test_world_shared_materials_create_participation_links(client: TestClient) -> None:
+    task = client.post("/api/v1/tasks", json=create_task_payload("Participation link rows")).json()
+    upload_response = client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("participation.txt", b"Evidence that should become world-shared.", "text/plain"))],
+    )
+    assert upload_response.status_code == 200
+
+    with SessionLocal() as db:
+        task_row = db.get(models.Task, task["id"])
+        assert task_row is not None
+        link_types = {item.object_type for item in task_row.object_participation_links}
+        assert {
+            "source_material",
+            "artifact",
+            "evidence",
+        }.issubset(link_types)
 
 
 def test_artifact_evidence_workspace_route_returns_formal_source_and_support_chains(

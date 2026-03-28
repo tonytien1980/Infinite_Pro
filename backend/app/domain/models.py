@@ -110,6 +110,9 @@ class Task(Base):
     matter_workspace_links: Mapped[list["MatterWorkspaceTaskLink"]] = relationship(
         back_populates="task", cascade="all, delete-orphan"
     )
+    object_participation_links: Mapped[list["TaskObjectParticipationLink"]] = relationship(
+        back_populates="task", cascade="all, delete-orphan", order_by="TaskObjectParticipationLink.created_at"
+    )
     runs: Mapped[list["TaskRun"]] = relationship(back_populates="task", cascade="all, delete-orphan")
 
 
@@ -317,6 +320,32 @@ class MatterWorkspaceTaskLink(Base):
 
     matter_workspace: Mapped["MatterWorkspace"] = relationship(back_populates="task_links")
     task: Mapped["Task"] = relationship(back_populates="matter_workspace_links")
+
+
+class TaskObjectParticipationLink(Base):
+    __tablename__ = "task_object_participation_links"
+    __table_args__ = (
+        UniqueConstraint(
+            "task_id",
+            "object_type",
+            "object_id",
+            name="uq_task_object_participation",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    matter_workspace_id: Mapped[str | None] = mapped_column(
+        ForeignKey("matter_workspaces.id"),
+        nullable=True,
+    )
+    object_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    object_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    canonical_object_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    participation_type: Mapped[str] = mapped_column(String(50), default="shared_usage")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    task: Mapped["Task"] = relationship(back_populates="object_participation_links")
 
 
 class CaseWorldState(Base):
