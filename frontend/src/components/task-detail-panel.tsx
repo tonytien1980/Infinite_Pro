@@ -411,9 +411,24 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
     task ? buildEvidenceWorkspaceLane(task, latestDeliverable, readinessGovernance) : null;
   const deliverableBacklink = task ? buildDeliverableBacklinkView(task, latestDeliverable) : null;
   const latestCaseWorldDraft = task?.case_world_draft ?? null;
+  const caseWorldState = task?.case_world_state ?? null;
   const openEvidenceGaps = task?.evidence_gaps.filter((item) => item.status !== "resolved") ?? [];
   const recentDecisionRecords = task?.decision_records.slice(0, 3) ?? [];
   const recentOutcomeRecords = task?.outcome_records.slice(0, 3) ?? [];
+  const worldAuthoritySummary = caseWorldState
+    ? caseWorldState.client_id &&
+      caseWorldState.engagement_id &&
+      caseWorldState.workstream_id &&
+      caseWorldState.decision_context_id
+      ? "這筆 task 只是案件世界裡的一個 work slice；核心身份已掛在 matter/world spine。"
+      : "案件世界已建立，但底層 identity 仍在 bridge sync。"
+    : "目前尚未形成正式案件世界 authority。";
+  const sharedContinuitySummary = task
+    ? task.source_materials.some((item) => item.continuity_scope === "world_shared") ||
+      task.evidence.some((item) => item.continuity_scope === "world_shared")
+      ? "這筆工作已可回看同一案件世界下共享的 materials / evidence，不必把補件再拆成孤立流程。"
+      : "目前這筆工作還沒有顯示可跨 slice 共用的 materials / evidence。"
+    : "目前這筆工作還沒有顯示可跨 slice 共用的 materials / evidence。";
   const sortedRecommendations = task?.recommendations
     ? [...task.recommendations].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
@@ -597,7 +612,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
 
           <DisclosurePanel
             title="Case world draft 與寫回策略"
-            description="只有在你要檢查 Host 目前怎麼理解這筆工作、哪些是 facts / assumptions、以及這案會寫回到多深時，再展開這層。"
+            description="只有在你要檢查 Host 目前怎麼理解這筆工作、這個 task 在案件世界裡屬於哪個 work slice、以及 world authority 現在掛在哪裡時，再展開這層。"
           >
             <div className="summary-grid">
               <div className="section-card">
@@ -608,10 +623,26 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                 </p>
               </div>
               <div className="section-card">
+                <h4>World-first 狀態</h4>
+                <p className="content-block">
+                  {caseWorldState
+                    ? `${caseWorldState.compiler_status}｜${task.world_work_slice_summary}`
+                    : task.world_work_slice_summary || "目前尚未形成正式案件世界狀態。"}
+                </p>
+              </div>
+              <div className="section-card">
+                <h4>世界身份 authority</h4>
+                <p className="content-block">{worldAuthoritySummary}</p>
+              </div>
+              <div className="section-card">
                 <h4>進件入口 / 解析狀態</h4>
                 <p className="content-block">
-                  {latestCaseWorldDraft
-                    ? `${latestCaseWorldDraft.compiler_status}｜${latestCaseWorldDraft.canonical_intake_summary.problem_statement || "未顯示"}`
+                  {caseWorldState || latestCaseWorldDraft
+                    ? `${(caseWorldState?.compiler_status || latestCaseWorldDraft?.compiler_status) ?? "compiled"}｜${
+                        (caseWorldState?.canonical_intake_summary.problem_statement ||
+                          latestCaseWorldDraft?.canonical_intake_summary.problem_statement ||
+                          "未顯示")
+                      }`
                     : "目前尚未形成 case world draft。"}
                 </p>
               </div>
@@ -629,21 +660,29 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     : "目前沒有 research provenance。"}
                 </p>
               </div>
+              <div className="section-card">
+                <h4>共享材料連續性</h4>
+                <p className="content-block">{sharedContinuitySummary}</p>
+              </div>
             </div>
 
-            {latestCaseWorldDraft ? (
+            {caseWorldState || latestCaseWorldDraft ? (
               <div className="detail-list" style={{ marginTop: "18px" }}>
                 <div className="detail-item">
                   <h3>Facts</h3>
                   <ExpandableList
-                    items={latestCaseWorldDraft.facts.map((item) => `${item.title}：${item.detail}`)}
+                    items={(caseWorldState?.facts ?? latestCaseWorldDraft?.facts ?? []).map(
+                      (item) => `${item.title}：${item.detail}`,
+                    )}
                     emptyText="目前沒有額外 facts。"
                   />
                 </div>
                 <div className="detail-item">
                   <h3>Assumptions</h3>
                   <ExpandableList
-                    items={latestCaseWorldDraft.assumptions.map((item) => `${item.title}：${item.detail}`)}
+                    items={(caseWorldState?.assumptions ?? latestCaseWorldDraft?.assumptions ?? []).map(
+                      (item) => `${item.title}：${item.detail}`,
+                    )}
                     emptyText="目前沒有額外 assumptions。"
                   />
                 </div>
@@ -654,6 +693,14 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     emptyText="目前沒有高優先 evidence gaps。"
                   />
                 </div>
+                {caseWorldState?.last_supplement_summary ? (
+                  <div className="detail-item">
+                    <h3>最近 world update</h3>
+                    <p className="content-block">
+                      follow-up 先更新了案件世界，再回到這個 work slice：{caseWorldState.last_supplement_summary}
+                    </p>
+                  </div>
+                ) : null}
                 <div className="detail-item">
                   <h3>最近 decision / outcome</h3>
                   <ExpandableList

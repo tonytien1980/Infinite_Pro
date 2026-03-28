@@ -226,6 +226,7 @@ class HostOrchestrator:
             external_research_heavy_candidate=aggregate.external_research_heavy_candidate,
             sparse_input_summary=aggregate.sparse_input_summary,
             case_world_draft=aggregate.case_world_draft,
+            case_world_state=aggregate.case_world_state,
             presence_state_summary=aggregate.presence_state_summary,
             pack_resolution=aggregate.pack_resolution,
             agent_selection=aggregate.agent_selection,
@@ -1815,6 +1816,9 @@ class HostOrchestrator:
             "case_world_draft": payload.case_world_draft.model_dump(mode="json")
             if payload.case_world_draft
             else None,
+            "case_world_state": payload.case_world_state.model_dump(mode="json")
+            if payload.case_world_state
+            else None,
             "presence_state_summary": payload.presence_state_summary.model_dump(mode="json"),
             "pack_resolution": payload.pack_resolution.model_dump(mode="json"),
             "source_materials": [item.model_dump(mode="json") for item in payload.source_materials],
@@ -1930,6 +1934,11 @@ class HostOrchestrator:
         content["case_world_draft"] = (
             payload.case_world_draft.model_dump(mode="json")
             if payload.case_world_draft
+            else None
+        )
+        content["case_world_state"] = (
+            payload.case_world_state.model_dump(mode="json")
+            if payload.case_world_state
             else None
         )
         content["continuity_policy"] = {

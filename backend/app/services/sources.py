@@ -36,9 +36,20 @@ from app.services.storage_manager import (
     normalize_extension,
     write_text,
 )
-from app.services.tasks import get_loaded_task
+from app.services.tasks import (
+    get_loaded_task,
+    prepare_case_world_follow_up_for_task,
+    serialize_task,
+)
 
 logger = logging.getLogger(__name__)
+
+
+def _linked_matter_workspace_id(task: models.Task) -> str | None:
+    for link in task.matter_workspace_links:
+        if link.matter_workspace_id:
+            return link.matter_workspace_id
+    return None
 
 
 def _persist_processed_source(
@@ -60,9 +71,13 @@ def _persist_processed_source(
 ) -> tuple[models.SourceDocument, models.SourceMaterial, models.Artifact, models.Evidence]:
     retention_policy = RETENTION_POLICY_DERIVED
     extension = normalize_extension(title, "")
+    matter_workspace_id = _linked_matter_workspace_id(task)
+    continuity_scope = "world_shared" if matter_workspace_id else "task_slice"
     source_document = models.SourceDocument(
         task_id=task.id,
+        matter_workspace_id=matter_workspace_id,
         research_run_id=research_run_id,
+        continuity_scope=continuity_scope,
         source_type=connector_source_type,
         file_name=title,
         canonical_display_name=title,
@@ -103,7 +118,9 @@ def _persist_processed_source(
         db.flush()
     source_material, artifact = build_source_objects_for_document(
         task_id=task.id,
+        matter_workspace_id=matter_workspace_id,
         source_document=source_document,
+        continuity_scope=continuity_scope,
     )
     db.add(source_material)
     db.flush()
@@ -114,19 +131,27 @@ def _persist_processed_source(
 
     primary_evidence, chunk_items = build_processed_evidence_items(
         task=task,
+        matter_workspace_id=matter_workspace_id,
         source_document=source_document,
+        source_material_id=source_material.id,
+        artifact_id=artifact.id,
         source_ref=source_ref,
         title=title,
         text=extracted_text,
         primary_evidence_type="source_excerpt",
         reliability_level=reliability_level,
+        continuity_scope=continuity_scope,
     ) if extracted_text else (
         build_unparsed_evidence_item(
             task_id=task.id,
+            matter_workspace_id=matter_workspace_id,
             source_document_id=source_document.id,
+            source_material_id=source_material.id,
+            artifact_id=artifact.id,
             source_type=connector_source_type,
             source_ref=source_ref,
             title=title,
+            continuity_scope=continuity_scope,
         ),
         [],
     )
@@ -158,9 +183,13 @@ def _persist_failed_source(
     ingest_strategy: str = "unsupported",
     research_run_id: str | None = None,
 ) -> tuple[models.SourceDocument, models.SourceMaterial, models.Artifact, models.Evidence]:
+    matter_workspace_id = _linked_matter_workspace_id(task)
+    continuity_scope = "world_shared" if matter_workspace_id else "task_slice"
     source_document = models.SourceDocument(
         task_id=task.id,
+        matter_workspace_id=matter_workspace_id,
         research_run_id=research_run_id,
+        continuity_scope=continuity_scope,
         source_type=connector_source_type,
         file_name=title,
         canonical_display_name=title,
@@ -188,7 +217,9 @@ def _persist_failed_source(
     db.flush()
     source_material, artifact = build_source_objects_for_document(
         task_id=task.id,
+        matter_workspace_id=matter_workspace_id,
         source_document=source_document,
+        continuity_scope=continuity_scope,
     )
     db.add(source_material)
     db.flush()
@@ -199,11 +230,15 @@ def _persist_failed_source(
 
     primary_evidence = build_failed_evidence_item(
         task_id=task.id,
+        matter_workspace_id=matter_workspace_id,
         source_document_id=source_document.id,
+        source_material_id=source_material.id,
+        artifact_id=artifact.id,
         source_type=connector_source_type,
         source_ref=source_ref,
         title=title,
         error_message=error_message,
+        continuity_scope=continuity_scope,
     )
     db.add(primary_evidence)
     db.flush()
@@ -315,6 +350,19 @@ def ingest_sources_for_task(
         raise HTTPException(status_code=400, detail="至少需要提供一個網址或一段貼上內容。")
 
     task = get_loaded_task(db, task_id)
+    world_update_summary_parts: list[str] = []
+    if pasted_text:
+        world_update_summary_parts.append(
+            f"補入貼上內容「{payload.pasted_title or '手動貼上內容'}」"
+        )
+    if urls:
+        world_update_summary_parts.append(f"補入 {len(urls)} 筆網址")
+    world_update_summary = "；".join(world_update_summary_parts)
+    world_update = prepare_case_world_follow_up_for_task(
+        db,
+        task=task,
+        follow_up_summary=world_update_summary,
+    )
     text_connector = ManualTextConnector()
     ingested: list[schemas.UploadResultItem] = []
 
@@ -337,4 +385,12 @@ def ingest_sources_for_task(
 
     ingested.extend(ingest_remote_urls_for_task(db=db, task_id=task_id, urls=urls, origin="manual"))
 
-    return schemas.SourceIngestBatchResponse(task_id=task.id, ingested=ingested)
+    refreshed_task = get_loaded_task(db, task.id)
+    aggregate = serialize_task(refreshed_task)
+    return schemas.SourceIngestBatchResponse(
+        task_id=task.id,
+        matter_workspace_id=aggregate.matter_workspace.id if aggregate.matter_workspace else None,
+        world_updated_first=world_update is not None,
+        world_update_summary=world_update_summary if world_update is not None else "",
+        ingested=ingested,
+    )

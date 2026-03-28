@@ -98,6 +98,8 @@ Host Agent 一開始就必須負責：
 3. **case world compilation**
    - 所有 intake 都必須先形成 `case_world_draft`
    - `一句話問題 / 單文件進件 / 多材料案件` 只應是 entry presets，不可當成三種 ontology worlds
+   - 編譯結果應先提升 / 同步成 `CaseWorldState`
+   - 後續才決定要在這個世界中建立或推進哪些 task slices
 
 4. **workflow orchestration**
    - 判斷應採用什麼工作 archetype
@@ -128,7 +130,11 @@ Host Agent 一開始就必須負責：
    - `one_off` 不應被強迫建立完整 continuous loop
    - `continuous` 必須能支撐 decision -> action -> outcome 的最小閉環
 
-11. **history writeback**
+11. **world-first follow-up governance**
+   - follow-up supplements 應先更新既有 `CaseWorldState`
+   - 再決定是刷新既有 task slice、建立新的 task slice，或只更新 evidence / deliverable context
+
+12. **history writeback**
    - 將本輪執行與交付結果寫回系統歷史
 
 Host Agent 不是最後才來做摘要的總結員，而是全流程治理者。

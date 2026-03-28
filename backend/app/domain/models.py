@@ -251,6 +251,11 @@ class MatterWorkspace(Base):
         cascade="all, delete-orphan",
         order_by="MatterContentRevision.created_at.desc()",
     )
+    case_world_state: Mapped["CaseWorldState | None"] = relationship(
+        back_populates="matter_workspace",
+        cascade="all, delete-orphan",
+        uselist=False,
+    )
     case_world_drafts: Mapped[list["CaseWorldDraft"]] = relationship(
         back_populates="matter_workspace",
         order_by="CaseWorldDraft.updated_at.desc()",
@@ -312,6 +317,51 @@ class MatterWorkspaceTaskLink(Base):
 
     matter_workspace: Mapped["MatterWorkspace"] = relationship(back_populates="task_links")
     task: Mapped["Task"] = relationship(back_populates="matter_workspace_links")
+
+
+class CaseWorldState(Base):
+    __tablename__ = "case_world_states"
+    __table_args__ = (
+        UniqueConstraint("matter_workspace_id", name="uq_case_world_state_matter"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    matter_workspace_id: Mapped[str] = mapped_column(
+        ForeignKey("matter_workspaces.id"),
+        nullable=False,
+    )
+    compiler_status: Mapped[str] = mapped_column(String(30), default="compiled")
+    world_status: Mapped[str] = mapped_column(String(30), default="active")
+    client_id: Mapped[str | None] = mapped_column(ForeignKey("clients.id"), nullable=True)
+    engagement_id: Mapped[str | None] = mapped_column(ForeignKey("engagements.id"), nullable=True)
+    workstream_id: Mapped[str | None] = mapped_column(ForeignKey("workstreams.id"), nullable=True)
+    decision_context_id: Mapped[str | None] = mapped_column(ForeignKey("decision_contexts.id"), nullable=True)
+    entry_preset: Mapped[str] = mapped_column(String(50), default="one_line_inquiry")
+    continuity_mode: Mapped[str] = mapped_column(String(30), default="one_off")
+    writeback_depth: Mapped[str] = mapped_column(String(30), default="minimal")
+    world_identity_payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    canonical_intake_summary: Mapped[dict] = mapped_column(JSON, default=dict)
+    decision_context_payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    extracted_objects: Mapped[list[dict]] = mapped_column(JSON, default=list)
+    inferred_links: Mapped[list[dict]] = mapped_column(JSON, default=list)
+    facts: Mapped[list[dict]] = mapped_column(JSON, default=list)
+    assumptions_payload: Mapped[list[dict]] = mapped_column(JSON, default=list)
+    evidence_gaps_payload: Mapped[list[dict]] = mapped_column(JSON, default=list)
+    selected_capabilities: Mapped[list[str]] = mapped_column(JSON, default=list)
+    selected_domain_packs: Mapped[list[str]] = mapped_column(JSON, default=list)
+    selected_industry_packs: Mapped[list[str]] = mapped_column(JSON, default=list)
+    selected_agent_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
+    suggested_research_need: Mapped[bool] = mapped_column(Boolean, default=False)
+    next_best_actions: Mapped[list[str]] = mapped_column(JSON, default=list)
+    active_task_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
+    latest_task_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    latest_task_title: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    supplement_count: Mapped[int] = mapped_column(Integer, default=0)
+    last_supplement_summary: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+    matter_workspace: Mapped["MatterWorkspace"] = relationship(back_populates="case_world_state")
 
 
 class CaseWorldDraft(Base):
@@ -413,6 +463,11 @@ class Client(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
     task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    matter_workspace_id: Mapped[str | None] = mapped_column(
+        ForeignKey("matter_workspaces.id"),
+        nullable=True,
+    )
+    identity_scope: Mapped[str] = mapped_column(String(30), default="task_slice")
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     client_type: Mapped[str] = mapped_column(String(100), default="未指定")
     client_stage: Mapped[str] = mapped_column(String(100), default="未指定")
@@ -429,6 +484,11 @@ class Engagement(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
     task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    matter_workspace_id: Mapped[str | None] = mapped_column(
+        ForeignKey("matter_workspaces.id"),
+        nullable=True,
+    )
+    identity_scope: Mapped[str] = mapped_column(String(30), default="task_slice")
     client_id: Mapped[str | None] = mapped_column(ForeignKey("clients.id"), nullable=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -445,6 +505,11 @@ class Workstream(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
     task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    matter_workspace_id: Mapped[str | None] = mapped_column(
+        ForeignKey("matter_workspaces.id"),
+        nullable=True,
+    )
+    identity_scope: Mapped[str] = mapped_column(String(30), default="task_slice")
     engagement_id: Mapped[str | None] = mapped_column(ForeignKey("engagements.id"), nullable=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -461,6 +526,11 @@ class DecisionContext(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
     task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    matter_workspace_id: Mapped[str | None] = mapped_column(
+        ForeignKey("matter_workspaces.id"),
+        nullable=True,
+    )
+    identity_scope: Mapped[str] = mapped_column(String(30), default="task_slice")
     client_id: Mapped[str | None] = mapped_column(ForeignKey("clients.id"), nullable=True)
     engagement_id: Mapped[str | None] = mapped_column(ForeignKey("engagements.id"), nullable=True)
     workstream_id: Mapped[str | None] = mapped_column(ForeignKey("workstreams.id"), nullable=True)
@@ -540,7 +610,12 @@ class SourceDocument(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
     task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    matter_workspace_id: Mapped[str | None] = mapped_column(
+        ForeignKey("matter_workspaces.id"),
+        nullable=True,
+    )
     research_run_id: Mapped[str | None] = mapped_column(ForeignKey("research_runs.id"), nullable=True)
+    continuity_scope: Mapped[str] = mapped_column(String(30), default="task_slice")
     source_type: Mapped[str] = mapped_column(String(100), default="manual_upload")
     file_name: Mapped[str] = mapped_column(String(255), nullable=False)
     canonical_display_name: Mapped[str] = mapped_column(String(255), default="")
@@ -577,7 +652,12 @@ class SourceMaterial(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
     task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    matter_workspace_id: Mapped[str | None] = mapped_column(
+        ForeignKey("matter_workspaces.id"),
+        nullable=True,
+    )
     source_document_id: Mapped[str | None] = mapped_column(ForeignKey("source_documents.id"), nullable=True)
+    continuity_scope: Mapped[str] = mapped_column(String(30), default="task_slice")
     source_type: Mapped[str] = mapped_column(String(100), default="manual_upload")
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     canonical_display_name: Mapped[str] = mapped_column(String(255), default="")
@@ -610,8 +690,13 @@ class Artifact(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
     task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    matter_workspace_id: Mapped[str | None] = mapped_column(
+        ForeignKey("matter_workspaces.id"),
+        nullable=True,
+    )
     source_document_id: Mapped[str | None] = mapped_column(ForeignKey("source_documents.id"), nullable=True)
     source_material_id: Mapped[str | None] = mapped_column(ForeignKey("source_materials.id"), nullable=True)
+    continuity_scope: Mapped[str] = mapped_column(String(30), default="task_slice")
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     artifact_type: Mapped[str] = mapped_column(String(100), default="source_artifact")
     description: Mapped[str] = mapped_column(Text, default="")
@@ -627,7 +712,14 @@ class Evidence(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
     task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    matter_workspace_id: Mapped[str | None] = mapped_column(
+        ForeignKey("matter_workspaces.id"),
+        nullable=True,
+    )
     source_document_id: Mapped[str | None] = mapped_column(ForeignKey("source_documents.id"), nullable=True)
+    source_material_id: Mapped[str | None] = mapped_column(ForeignKey("source_materials.id"), nullable=True)
+    artifact_id: Mapped[str | None] = mapped_column(ForeignKey("artifacts.id"), nullable=True)
+    continuity_scope: Mapped[str] = mapped_column(String(30), default="task_slice")
     evidence_type: Mapped[str] = mapped_column(String(100), default="source_excerpt")
     source_type: Mapped[str] = mapped_column(String(100), default="manual_input")
     source_ref: Mapped[str | None] = mapped_column(String(255), nullable=True)

@@ -60,6 +60,7 @@ Infinite Pro 應正式以這六層作為主架構：
 - Task
 - DecisionContext
 - CaseWorldDraft
+- CaseWorldState
 - Artifact
 - SourceMaterial
 - Evidence
@@ -79,6 +80,20 @@ Infinite Pro 應正式以這六層作為主架構：
 ### 原則
 系統不應只圍繞 task 與 mode 工作，而應圍繞 ontology objects 與 links 工作。
 Ontology Layer 不是知識庫、prompt system、pack 或 UI 本身，而是這些層共同依附的語義底座。
+
+### Deeper identity bridge
+目前正式 bridge 應理解為：
+- `CaseWorldState` 是 matter/world-native identity spine
+- `Task` 是 world 內的 work slice
+- `Client / Engagement / Workstream / DecisionContext` 的正式 authority 應逐步提升到 matter/world 層
+- `SourceMaterial / Artifact / Evidence` 的 continuity 也應逐步能在 matter/world 層被直接回訪與共享
+
+這一輪允許保留：
+- world-level canonical identity
+- task-level legacy references
+- synchronized / derived world summaries
+
+但不應再把 legacy `task_id` ownership 誤認成最終正式架構。
 
 ---
 
@@ -151,7 +166,8 @@ Agent Layer 不是 prompt 集合，而是 capability execution layer。
 Host 第一階段現在必須正式被理解為：
 - `Case World Compiler`
 - 輸出 `case_world_draft`
-- 再決定 workflow、research、routing 與 writeback policy
+- 提升 / 同步為 `CaseWorldState`
+- 再決定 workflow、research、routing、task slices 與 writeback policy
 
 ---
 

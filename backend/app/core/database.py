@@ -66,6 +66,28 @@ def _ensure_incremental_schema_updates() -> None:
         "tasks": {
             "entry_preset": "VARCHAR(50) NOT NULL DEFAULT 'one_line_inquiry'",
         },
+        "case_world_states": {
+            "client_id": "VARCHAR(36)",
+            "engagement_id": "VARCHAR(36)",
+            "workstream_id": "VARCHAR(36)",
+            "decision_context_id": "VARCHAR(36)",
+        },
+        "clients": {
+            "matter_workspace_id": "VARCHAR(36)",
+            "identity_scope": "VARCHAR(30) NOT NULL DEFAULT 'task_slice'",
+        },
+        "engagements": {
+            "matter_workspace_id": "VARCHAR(36)",
+            "identity_scope": "VARCHAR(30) NOT NULL DEFAULT 'task_slice'",
+        },
+        "workstreams": {
+            "matter_workspace_id": "VARCHAR(36)",
+            "identity_scope": "VARCHAR(30) NOT NULL DEFAULT 'task_slice'",
+        },
+        "decision_contexts": {
+            "matter_workspace_id": "VARCHAR(36)",
+            "identity_scope": "VARCHAR(30) NOT NULL DEFAULT 'task_slice'",
+        },
         "deliverables": {
             "summary": "TEXT NOT NULL DEFAULT ''",
             "status": "VARCHAR(50)",
@@ -76,7 +98,9 @@ def _ensure_incremental_schema_updates() -> None:
             "event_key": "VARCHAR(255)",
         },
         "source_documents": {
+            "matter_workspace_id": "VARCHAR(36)",
             "research_run_id": "VARCHAR(36)",
+            "continuity_scope": "VARCHAR(30) NOT NULL DEFAULT 'task_slice'",
             "canonical_display_name": "VARCHAR(255) NOT NULL DEFAULT ''",
             "file_extension": "VARCHAR(20)",
             "storage_key": "VARCHAR(1024)",
@@ -93,6 +117,8 @@ def _ensure_incremental_schema_updates() -> None:
             "updated_at": f"{datetime_column_type} NOT NULL DEFAULT CURRENT_TIMESTAMP",
         },
         "source_materials": {
+            "matter_workspace_id": "VARCHAR(36)",
+            "continuity_scope": "VARCHAR(30) NOT NULL DEFAULT 'task_slice'",
             "canonical_display_name": "VARCHAR(255) NOT NULL DEFAULT ''",
             "file_extension": "VARCHAR(20)",
             "file_size": "INTEGER NOT NULL DEFAULT 0",
@@ -107,6 +133,16 @@ def _ensure_incremental_schema_updates() -> None:
             "availability_state": "VARCHAR(30) NOT NULL DEFAULT 'available'",
             "metadata_only": "BOOLEAN NOT NULL DEFAULT FALSE",
             "updated_at": f"{datetime_column_type} NOT NULL DEFAULT CURRENT_TIMESTAMP",
+        },
+        "artifacts": {
+            "matter_workspace_id": "VARCHAR(36)",
+            "continuity_scope": "VARCHAR(30) NOT NULL DEFAULT 'task_slice'",
+        },
+        "evidence": {
+            "matter_workspace_id": "VARCHAR(36)",
+            "source_material_id": "VARCHAR(36)",
+            "artifact_id": "VARCHAR(36)",
+            "continuity_scope": "VARCHAR(30) NOT NULL DEFAULT 'task_slice'",
         },
         "deliverable_artifact_records": {
             "storage_provider": "VARCHAR(50) NOT NULL DEFAULT 'local_fs'",

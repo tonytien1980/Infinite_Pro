@@ -28,6 +28,12 @@ class ConstraintCreate(BaseModel):
     severity: str = "medium"
 
 
+class InitialIntakeFileDescriptor(BaseModel):
+    file_name: str = Field(min_length=1)
+    content_type: str | None = None
+    file_size: int = 0
+
+
 class TaskCreateRequest(BaseModel):
     title: str = Field(min_length=1, max_length=255)
     description: str = ""
@@ -59,6 +65,10 @@ class TaskCreateRequest(BaseModel):
     goal_type: str = "research_synthesis"
     success_criteria: str | None = None
     constraints: list[ConstraintCreate] = Field(default_factory=list)
+    initial_source_urls: list[str] = Field(default_factory=list)
+    initial_pasted_text: str = ""
+    initial_pasted_title: str | None = None
+    initial_file_descriptors: list[InitialIntakeFileDescriptor] = Field(default_factory=list)
 
 
 class TaskExtensionOverrideRequest(BaseModel):
@@ -141,6 +151,8 @@ class TaskContextRead(ORMModel):
 class ClientRead(ORMModel):
     id: str
     task_id: str
+    matter_workspace_id: str | None = None
+    identity_scope: str = "task_slice"
     name: str
     client_type: str
     client_stage: str
@@ -151,6 +163,8 @@ class ClientRead(ORMModel):
 class EngagementRead(ORMModel):
     id: str
     task_id: str
+    matter_workspace_id: str | None = None
+    identity_scope: str = "task_slice"
     client_id: str | None
     name: str
     description: str | None
@@ -160,6 +174,8 @@ class EngagementRead(ORMModel):
 class WorkstreamRead(ORMModel):
     id: str
     task_id: str
+    matter_workspace_id: str | None = None
+    identity_scope: str = "task_slice"
     engagement_id: str | None
     name: str
     description: str | None
@@ -170,6 +186,8 @@ class WorkstreamRead(ORMModel):
 class DecisionContextRead(BaseModel):
     id: str
     task_id: str
+    matter_workspace_id: str | None = None
+    identity_scope: str = "task_slice"
     client_id: str | None
     engagement_id: str | None
     workstream_id: str | None
@@ -302,7 +320,9 @@ class ConstraintRead(ORMModel):
 class SourceDocumentRead(ORMModel):
     id: str
     task_id: str
+    matter_workspace_id: str | None = None
     research_run_id: str | None = None
+    continuity_scope: str = "task_slice"
     source_type: str
     file_name: str
     canonical_display_name: str
@@ -331,7 +351,9 @@ class SourceDocumentRead(ORMModel):
 class SourceMaterialRead(ORMModel):
     id: str
     task_id: str
+    matter_workspace_id: str | None = None
     source_document_id: str | None = None
+    continuity_scope: str = "task_slice"
     source_type: str
     title: str
     canonical_display_name: str
@@ -358,6 +380,8 @@ class SourceMaterialRead(ORMModel):
 class ArtifactRead(ORMModel):
     id: str
     task_id: str
+    matter_workspace_id: str | None = None
+    continuity_scope: str = "task_slice"
     title: str
     artifact_type: str
     source_document_id: str | None
@@ -369,9 +393,11 @@ class ArtifactRead(ORMModel):
 class EvidenceRead(ORMModel):
     id: str
     task_id: str
+    matter_workspace_id: str | None = None
     source_document_id: str | None
     source_material_id: str | None = None
     artifact_id: str | None = None
+    continuity_scope: str = "task_slice"
     evidence_type: str
     source_type: str
     source_ref: str | None
@@ -623,6 +649,41 @@ class CaseWorldDraftRead(BaseModel):
     updated_at: datetime
 
 
+class CaseWorldStateRead(BaseModel):
+    id: str
+    matter_workspace_id: str
+    compiler_status: str
+    world_status: str
+    client_id: str | None = None
+    engagement_id: str | None = None
+    workstream_id: str | None = None
+    decision_context_id: str | None = None
+    entry_preset: InputEntryMode = InputEntryMode.ONE_LINE_INQUIRY
+    continuity_mode: EngagementContinuityMode = EngagementContinuityMode.ONE_OFF
+    writeback_depth: WritebackDepth = WritebackDepth.MINIMAL
+    world_identity: dict[str, Any] = Field(default_factory=dict)
+    canonical_intake_summary: dict[str, Any] = Field(default_factory=dict)
+    decision_context: dict[str, Any] = Field(default_factory=dict)
+    extracted_objects: list[dict[str, Any]] = Field(default_factory=list)
+    inferred_links: list[dict[str, Any]] = Field(default_factory=list)
+    facts: list[CaseWorldFactRead] = Field(default_factory=list)
+    assumptions: list[CaseWorldAssumptionRead] = Field(default_factory=list)
+    evidence_gaps: list[CaseWorldGapRead] = Field(default_factory=list)
+    selected_capabilities: list[str] = Field(default_factory=list)
+    selected_domain_packs: list[str] = Field(default_factory=list)
+    selected_industry_packs: list[str] = Field(default_factory=list)
+    selected_agent_ids: list[str] = Field(default_factory=list)
+    suggested_research_need: bool = False
+    next_best_actions: list[str] = Field(default_factory=list)
+    active_task_ids: list[str] = Field(default_factory=list)
+    latest_task_id: str | None = None
+    latest_task_title: str | None = None
+    supplement_count: int = 0
+    last_supplement_summary: str = ""
+    created_at: datetime
+    updated_at: datetime
+
+
 class EvidenceGapRead(ORMModel):
     id: str
     task_id: str
@@ -840,6 +901,7 @@ class MatterWorkspaceResponse(BaseModel):
     engagement: EngagementRead | None = None
     workstream: WorkstreamRead | None = None
     current_decision_context: DecisionContextRead | None = None
+    case_world_state: CaseWorldStateRead | None = None
     content_sections: MatterWorkspaceContentSectionsRead = Field(
         default_factory=MatterWorkspaceContentSectionsRead
     )
@@ -972,6 +1034,8 @@ class TaskAggregateResponse(BaseModel):
     deliverables: list[DeliverableRead] = Field(default_factory=list)
     runs: list[TaskRunRead] = Field(default_factory=list)
     case_world_draft: CaseWorldDraftRead | None = None
+    case_world_state: CaseWorldStateRead | None = None
+    world_work_slice_summary: str = ""
     evidence_gaps: list[EvidenceGapRead] = Field(default_factory=list)
     research_runs: list[ResearchRunRead] = Field(default_factory=list)
     decision_records: list[DecisionRecordRead] = Field(default_factory=list)
@@ -1023,6 +1087,9 @@ class UploadResultItem(BaseModel):
 
 class UploadBatchResponse(BaseModel):
     task_id: str
+    matter_workspace_id: str | None = None
+    world_updated_first: bool = False
+    world_update_summary: str = ""
     uploaded: list[UploadResultItem]
 
 
@@ -1034,6 +1101,9 @@ class SourceIngestRequest(BaseModel):
 
 class SourceIngestBatchResponse(BaseModel):
     task_id: str
+    matter_workspace_id: str | None = None
+    world_updated_first: bool = False
+    world_update_summary: str = ""
     ingested: list[UploadResultItem]
 
 

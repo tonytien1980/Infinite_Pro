@@ -34,9 +34,20 @@ from app.services.storage_manager import (
     write_bytes,
     write_text,
 )
-from app.services.tasks import get_loaded_task
+from app.services.tasks import (
+    get_loaded_task,
+    prepare_case_world_follow_up_for_task,
+    serialize_task,
+)
 
 logger = logging.getLogger(__name__)
+
+
+def _linked_matter_workspace_id(task: models.Task) -> str | None:
+    for link in task.matter_workspace_links:
+        if link.matter_workspace_id:
+            return link.matter_workspace_id
+    return None
 
 
 def save_uploads_for_task(
@@ -48,6 +59,17 @@ def save_uploads_for_task(
         raise HTTPException(status_code=400, detail="至少需要上傳一個檔案。")
 
     task = get_loaded_task(db, task_id)
+    matter_workspace_id = _linked_matter_workspace_id(task)
+    continuity_scope = "world_shared" if matter_workspace_id else "task_slice"
+    follow_up_summary = (
+        f"補入 {len(files)} 份檔案："
+        + "、".join((file.filename or "未命名檔案") for file in files[:3])
+    )
+    world_update = prepare_case_world_follow_up_for_task(
+        db,
+        task=task,
+        follow_up_summary=follow_up_summary,
+    )
     connector = ManualUploadConnector()
     uploaded: list[schemas.UploadResultItem] = []
 
@@ -119,6 +141,8 @@ def save_uploads_for_task(
 
         source_document = models.SourceDocument(
             task_id=task.id,
+            matter_workspace_id=matter_workspace_id,
+            continuity_scope=continuity_scope,
             source_type=connector.source_type,
             file_name=file.filename or stored_name,
             canonical_display_name=file.filename or stored_name,
@@ -157,7 +181,9 @@ def save_uploads_for_task(
 
         source_material, artifact = build_source_objects_for_document(
             task_id=task.id,
+            matter_workspace_id=matter_workspace_id,
             source_document=source_document,
+            continuity_scope=continuity_scope,
         )
         db.add(source_material)
         db.flush()
@@ -169,11 +195,15 @@ def save_uploads_for_task(
         if ingest_status == "processed" and extracted_text:
             evidence, chunk_items = build_processed_evidence_items(
                 task=task,
+                matter_workspace_id=matter_workspace_id,
                 source_document=source_document,
+                source_material_id=source_material.id,
+                artifact_id=artifact.id,
                 source_ref=source_ref,
                 title=file.filename or stored_name,
                 text=extracted_text,
                 primary_evidence_type="uploaded_file_excerpt",
+                continuity_scope=continuity_scope,
             )
             db.add(evidence)
             for chunk_item in chunk_items:
@@ -181,11 +211,15 @@ def save_uploads_for_task(
         elif ingest_status == "failed":
             evidence = build_failed_evidence_item(
                 task_id=task.id,
+                matter_workspace_id=matter_workspace_id,
                 source_document_id=source_document.id,
+                source_material_id=source_material.id,
+                artifact_id=artifact.id,
                 source_type=connector.source_type,
                 source_ref=source_ref,
                 title=file.filename or stored_name,
                 error_message=ingestion_error or "未知的擷取錯誤",
+                continuity_scope=continuity_scope,
             )
             evidence.evidence_type = "uploaded_file_ingestion_issue"
             evidence.excerpt_or_summary = (
@@ -196,11 +230,15 @@ def save_uploads_for_task(
         elif ingest_status == "unsupported":
             evidence = build_failed_evidence_item(
                 task_id=task.id,
+                matter_workspace_id=matter_workspace_id,
                 source_document_id=source_document.id,
+                source_material_id=source_material.id,
+                artifact_id=artifact.id,
                 source_type=connector.source_type,
                 source_ref=source_ref,
                 title=file.filename or stored_name,
                 error_message=ingestion_error or "這種格式尚未正式支援。",
+                continuity_scope=continuity_scope,
             )
             evidence.evidence_type = "uploaded_file_ingestion_issue"
             evidence.excerpt_or_summary = (
@@ -211,10 +249,14 @@ def save_uploads_for_task(
         else:
             evidence = build_unparsed_evidence_item(
                 task_id=task.id,
+                matter_workspace_id=matter_workspace_id,
                 source_document_id=source_document.id,
+                source_material_id=source_material.id,
+                artifact_id=artifact.id,
                 source_type=connector.source_type,
                 source_ref=source_ref,
                 title=file.filename or stored_name,
+                continuity_scope=continuity_scope,
             )
             evidence.evidence_type = "uploaded_file_unparsed"
             evidence.excerpt_or_summary = (
@@ -237,4 +279,12 @@ def save_uploads_for_task(
         raise HTTPException(status_code=400, detail="沒有任何檔案成功上傳。")
 
     db.commit()
-    return schemas.UploadBatchResponse(task_id=task.id, uploaded=uploaded)
+    refreshed_task = get_loaded_task(db, task.id)
+    aggregate = serialize_task(refreshed_task)
+    return schemas.UploadBatchResponse(
+        task_id=task.id,
+        matter_workspace_id=aggregate.matter_workspace.id if aggregate.matter_workspace else None,
+        world_updated_first=world_update is not None,
+        world_update_summary=follow_up_summary if world_update is not None else "",
+        uploaded=uploaded,
+    )

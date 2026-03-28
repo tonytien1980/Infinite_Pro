@@ -66,10 +66,18 @@ Infinite Pro 的核心原則是：
    - 系統只有一條 canonical intake pipeline
    - `/new` 上的 `一句話問題 / 單文件進件 / 多材料案件` 只是 entry presets
    - 任何 intake 都必須先進入 `Case World Compiler`
+   - `Case World Compiler` 之後應先形成 / 同步 `CaseWorldState`
+   - `Task` 應被理解成 `CaseWorldState` 內的 work slice
 
 8. **continuity-aware writeback**
    - 並非所有案件都需要 full continuous loop
    - 但所有案件都至少需要最小 history、evidence basis 與 deliverable lineage
+
+9. **deeper identity / world-native continuity**
+   - `CaseWorldState` 應作為 matter/world-level identity authority 持續強化
+   - `Task` 應逐步退居 work slice，而不是 core business objects 的唯一 owner
+   - `Client / Engagement / Workstream / DecisionContext / SourceMaterial / Artifact / Evidence`
+     應逐步從 task-local persistence 過渡到 world-native continuity
 
 ---
 
@@ -111,7 +119,7 @@ Ontology 是這套系統的：
 
 Infinite Pro 的工作世界至少應圍繞以下主鏈理解：
 
-> **Client → Engagement → Workstream → Task → DecisionContext → Artifact / SourceMaterial → Evidence → Insight / Risk / Option → Recommendation → ActionItem → Deliverable**
+> **CaseWorldState → Client → Engagement → Workstream → DecisionContext → Task(work slice) → Artifact / SourceMaterial → Evidence → Insight / Risk / Option → Recommendation → ActionItem → Deliverable**
 
 這條主鏈代表：
 - Deliverable 不是自由文字的終點
@@ -121,6 +129,11 @@ Infinite Pro 的工作世界至少應圍繞以下主鏈理解：
 
 在這條主鏈之前，Host 還必須先形成：
 - `CaseWorldDraft`
+- 並把它提升 / 同步成 `CaseWorldState`
+
+在 bridge architecture 下，還必須誠實區分：
+- 哪些 world objects 已由 `CaseWorldState` / matter spine 正式承接 authority
+- 哪些物件仍由 legacy task-local persistence 提供 access path 或相容性引用
 
 在這條主鏈之後，根據 continuity / writeback policy，系統還要能正式保留：
 - `DecisionRecord`
@@ -149,6 +162,7 @@ Infinite Pro 的工作世界至少應圍繞以下主鏈理解：
 - Stakeholder
 - Audience
 - CaseWorldDraft
+- CaseWorldState
 - EvidenceGap
 - ResearchRun / ExternalResearchRun
 - DecisionRecord

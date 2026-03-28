@@ -131,6 +131,15 @@ At a minimum, implementation should preserve the following conceptual shape:
 ### 5.1 Ontology Layer
 This is the shared world model, structured reasoning skeleton, and operational layer for objects, properties, links, actions, functions, and decision context.
 
+Preferred runtime shape:
+- `Intake -> Case World Compiler -> CaseWorldDraft / CaseWorldState`
+- `Task` as a work slice inside the case world
+- follow-up supplements updating the world first, then driving task / evidence / deliverable changes
+- deeper identity bridge:
+  - `CaseWorldState` as the matter/world authority center
+  - legacy `task_id` references allowed temporarily
+  - but new identity decisions should favor matter/world-native continuity
+
 ### 5.2 Context Layer
 This carries:
 - client stage
@@ -223,6 +232,15 @@ Implementation should assume the ontology must formally represent at least:
 - Assumption
 - Stakeholder
 - Audience
+
+Implementation should also preserve:
+- `CaseWorldDraft` as the first compilation output
+- `CaseWorldState` as the matter-level world state
+- `Task` as a world work slice rather than the sole primary container
+- bridge architecture honesty:
+  - mark what is already world-native
+  - mark what is still transitional task-centric persistence
+  - do not claim fully world-native identity if legacy task ownership still exists
 
 The exact persistence schema may evolve, but these objects are part of the architecture boundary.
 

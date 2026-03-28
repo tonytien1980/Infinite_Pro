@@ -55,6 +55,7 @@
 
 ### 2.5 continuity / writeback records
 - `case_world_drafts`
+- `case_world_states`
 - `evidence_gaps`
 - `research_runs`
 - `decision_records`
@@ -68,6 +69,11 @@
 - export event 不等於 publish record
 - UI preference / visibility state 不應寫進正式 audit / publish record
 - continuity / writeback record 不等於 deliverable revision history
+
+在 deeper identity bridge 下還要再補一條：
+- `CaseWorldState` 應逐步成為 matter/world identity authority
+- 某些 domain objects 仍可暫時保留 legacy `task_id` references
+- 但 release integrity 與 writeback 行為不得因 identity 遷移而退化
 
 ---
 
