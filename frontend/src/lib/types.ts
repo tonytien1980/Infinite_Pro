@@ -6,6 +6,11 @@ export type InputEntryMode =
   | "one_line_inquiry"
   | "single_document_intake"
   | "multi_material_case";
+export type EngagementContinuityMode =
+  | "one_off"
+  | "follow_up"
+  | "continuous";
+export type WritebackDepth = "minimal" | "milestone" | "full";
 export type PresenceState =
   | "explicit"
   | "inferred"
@@ -286,6 +291,8 @@ export interface MatterWorkspaceSummary {
   latest_updated_at: string;
   continuity_summary: string;
   active_work_summary: string;
+  engagement_continuity_mode: EngagementContinuityMode;
+  writeback_depth: WritebackDepth;
   selected_pack_names: string[];
   selected_agent_names: string[];
 }
@@ -422,6 +429,7 @@ export interface Constraint {
 export interface SourceDocument {
   id: string;
   task_id: string;
+  research_run_id: string | null;
   source_type: string;
   file_name: string;
   canonical_display_name: string;
@@ -586,6 +594,145 @@ export interface TaskRun {
   completed_at: string | null;
 }
 
+export interface CaseWorldFact {
+  title: string;
+  detail: string;
+  source: string;
+}
+
+export interface CaseWorldAssumption {
+  title: string;
+  detail: string;
+  source: string;
+}
+
+export interface CaseWorldGap {
+  gap_key: string;
+  title: string;
+  description: string;
+  priority: string;
+  related_pack_ids: string[];
+}
+
+export interface CaseWorldDraft {
+  id: string;
+  task_id: string;
+  matter_workspace_id: string | null;
+  compiler_status: string;
+  entry_preset: InputEntryMode;
+  continuity_mode: EngagementContinuityMode;
+  writeback_depth: WritebackDepth;
+  canonical_intake_summary: Record<string, unknown>;
+  task_interpretation: Record<string, unknown>;
+  decision_context: Record<string, unknown>;
+  extracted_objects: Array<Record<string, unknown>>;
+  inferred_links: Array<Record<string, unknown>>;
+  facts: CaseWorldFact[];
+  assumptions: CaseWorldAssumption[];
+  evidence_gaps: CaseWorldGap[];
+  suggested_capabilities: string[];
+  suggested_domain_packs: string[];
+  suggested_industry_packs: string[];
+  suggested_agents: string[];
+  suggested_research_need: boolean;
+  next_best_actions: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EvidenceGap {
+  id: string;
+  task_id: string;
+  matter_workspace_id: string | null;
+  gap_key: string;
+  title: string;
+  gap_type: string;
+  description: string;
+  priority: string;
+  status: string;
+  source: string;
+  supporting_pack_ids: string[];
+  related_source_refs: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ResearchRun {
+  id: string;
+  task_id: string;
+  matter_workspace_id: string | null;
+  status: RunStatus;
+  query: string;
+  trigger_reason: string;
+  research_scope: string;
+  freshness_policy: string;
+  confidence_note: string;
+  source_trace_summary: string;
+  selected_domain_pack_ids: string[];
+  selected_industry_pack_ids: string[];
+  result_summary: string;
+  source_count: number;
+  error_message: string | null;
+  started_at: string;
+  completed_at: string | null;
+}
+
+export interface DecisionRecord {
+  id: string;
+  task_id: string;
+  matter_workspace_id: string | null;
+  deliverable_id: string | null;
+  task_run_id: string | null;
+  continuity_mode: EngagementContinuityMode;
+  writeback_depth: WritebackDepth;
+  title: string;
+  decision_summary: string;
+  evidence_basis_ids: string[];
+  recommendation_ids: string[];
+  risk_ids: string[];
+  action_item_ids: string[];
+  created_at: string;
+}
+
+export interface ActionPlan {
+  id: string;
+  task_id: string;
+  matter_workspace_id: string | null;
+  decision_record_id: string;
+  title: string;
+  summary: string;
+  status: string;
+  action_item_ids: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ActionExecution {
+  id: string;
+  task_id: string;
+  action_plan_id: string;
+  action_item_id: string | null;
+  status: string;
+  owner_hint: string | null;
+  execution_note: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OutcomeRecord {
+  id: string;
+  task_id: string;
+  matter_workspace_id: string | null;
+  decision_record_id: string | null;
+  action_execution_id: string | null;
+  deliverable_id: string | null;
+  status: string;
+  signal_type: string;
+  summary: string;
+  evidence_note: string;
+  created_at: string;
+}
+
 export interface TaskAggregate {
   id: string;
   title: string;
@@ -604,7 +751,10 @@ export interface TaskAggregate {
   client_type: string | null;
   domain_lenses: string[];
   assumptions: string[];
+  entry_preset: InputEntryMode;
   input_entry_mode: InputEntryMode;
+  engagement_continuity_mode: EngagementContinuityMode;
+  writeback_depth: WritebackDepth;
   deliverable_class_hint: DeliverableClass;
   external_research_heavy_candidate: boolean;
   sparse_input_summary: string;
@@ -626,6 +776,13 @@ export interface TaskAggregate {
   action_items: ActionItem[];
   deliverables: Deliverable[];
   runs: TaskRun[];
+  case_world_draft: CaseWorldDraft | null;
+  evidence_gaps: EvidenceGap[];
+  research_runs: ResearchRun[];
+  decision_records: DecisionRecord[];
+  action_plans: ActionPlan[];
+  action_executions: ActionExecution[];
+  outcome_records: OutcomeRecord[];
   matter_workspace: MatterWorkspaceSummary | null;
 }
 
@@ -645,7 +802,10 @@ export interface TaskListItem {
   client_stage: string | null;
   client_type: string | null;
   domain_lenses: string[];
+  entry_preset: InputEntryMode;
   input_entry_mode: InputEntryMode;
+  engagement_continuity_mode: EngagementContinuityMode;
+  writeback_depth: WritebackDepth;
   deliverable_class_hint: DeliverableClass;
   external_research_heavy_candidate: boolean;
   selected_pack_ids: string[];
@@ -678,6 +838,13 @@ export interface MatterWorkspace {
   related_deliverables: MatterDeliverableSummary[];
   related_artifacts: MatterMaterialSummary[];
   related_source_materials: MatterMaterialSummary[];
+  case_world_drafts: CaseWorldDraft[];
+  evidence_gaps: EvidenceGap[];
+  research_runs: ResearchRun[];
+  decision_records: DecisionRecord[];
+  action_plans: ActionPlan[];
+  action_executions: ActionExecution[];
+  outcome_records: OutcomeRecord[];
   readiness_hint: string;
   continuity_notes: string[];
 }
@@ -743,6 +910,8 @@ export interface ArtifactEvidenceWorkspace {
   evidence_chains: ArtifactEvidenceChain[];
   evidence_expectations: string[];
   high_impact_gaps: string[];
+  evidence_gaps: EvidenceGap[];
+  research_runs: ResearchRun[];
   sufficiency_summary: string;
   deliverable_limitations: string[];
   continuity_notes: string[];
@@ -766,6 +935,11 @@ export interface DeliverableWorkspace {
   linked_risks: Risk[];
   linked_action_items: ActionItem[];
   related_deliverables: MatterDeliverableSummary[];
+  decision_records: DecisionRecord[];
+  action_plans: ActionPlan[];
+  action_executions: ActionExecution[];
+  outcome_records: OutcomeRecord[];
+  research_runs: ResearchRun[];
   continuity_notes: string[];
   content_sections: DeliverableContentSections;
   content_revisions: DeliverableContentRevision[];
@@ -917,7 +1091,10 @@ export interface TaskCreatePayload {
   description: string;
   task_type: TaskType;
   mode: FlowMode;
+  entry_preset: InputEntryMode;
   external_data_strategy: ExternalDataStrategy;
+  engagement_continuity_mode: EngagementContinuityMode;
+  writeback_depth: WritebackDepth;
   client_name?: string;
   client_type?: string;
   client_stage?: string;

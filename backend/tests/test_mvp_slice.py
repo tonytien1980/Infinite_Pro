@@ -134,6 +134,27 @@ def test_task_creation_attaches_background_text_as_context_and_evidence(client: 
     }
 
 
+def test_task_creation_builds_case_world_draft_and_continuity_policy(client: TestClient) -> None:
+    payload = create_task_payload("Case world draft")
+    payload["engagement_continuity_mode"] = "follow_up"
+    payload["writeback_depth"] = "milestone"
+
+    response = client.post("/api/v1/tasks", json=payload)
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["entry_preset"] == "one_line_inquiry"
+    assert body["engagement_continuity_mode"] == "follow_up"
+    assert body["writeback_depth"] == "milestone"
+    assert body["case_world_draft"] is not None
+    assert body["case_world_draft"]["canonical_intake_summary"]["problem_statement"]
+    assert body["case_world_draft"]["task_interpretation"]["capability"]
+    assert body["case_world_draft"]["facts"]
+    assert body["case_world_draft"]["next_best_actions"]
+    assert body["matter_workspace"]["engagement_continuity_mode"] == "follow_up"
+    assert body["matter_workspace"]["writeback_depth"] == "milestone"
+
+
 def test_task_creation_populates_explicit_ontology_context_spine(client: TestClient) -> None:
     payload = create_task_payload("Ontology spine")
     payload.update(
@@ -1152,12 +1173,13 @@ def test_specialist_run_returns_explicit_uncertainty_when_model_router_fails(
 
     response = client.post(f"/api/v1/tasks/{task['id']}/run")
 
-    assert response.status_code == 200
-    body = response.json()
-    assert body["run"]["status"] == "completed"
-    assert "模型路由失敗" in " ".join(body["deliverable"]["content_structure"]["missing_information"])
-    assert body["recommendations"]
-    assert body["action_items"]
+    assert response.status_code == 503
+    assert "Mock 模型供應器的失敗模式目前已啟用" in response.json()["detail"]
+
+    refreshed = client.get(f"/api/v1/tasks/{task['id']}").json()
+    assert refreshed["status"] == "failed"
+    assert refreshed["runs"][0]["status"] == "failed"
+    assert refreshed["deliverables"] == []
 
     monkeypatch.delenv("MODEL_PROVIDER_FAILURE_MODE", raising=False)
 
@@ -1531,6 +1553,90 @@ def test_latest_external_data_strategy_always_triggers_search(
     assert body["deliverable"]["content_structure"]["external_search_used"] is True
 
 
+def test_external_search_persists_research_run_and_source_provenance(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.agents import host as host_module
+    from app.services import sources as source_service
+
+    payload = create_task_payload("Research provenance")
+    payload["external_data_strategy"] = "supplemental"
+    task = client.post("/api/v1/tasks", json=payload).json()
+
+    monkeypatch.setattr(
+        host_module,
+        "search_external_sources",
+        lambda query: [
+            SearchResult(
+                title="Public source",
+                url="https://example.com/public-source",
+                snippet="Public source",
+            )
+        ],
+    )
+    monkeypatch.setattr(
+        source_service,
+        "fetch_remote_source",
+        lambda url: RemoteSourceContent(
+            source_type="manual_url",
+            source_url=url,
+            title="Public source",
+            content_type="text/html",
+            normalized_text="External public source says implementation quality is the main bottleneck.",
+        ),
+    )
+
+    run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
+
+    assert run_response.status_code == 200
+    aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
+    assert aggregate["research_runs"]
+    assert aggregate["research_runs"][0]["source_count"] >= 1
+    assert aggregate["research_runs"][0]["query"]
+    assert any(item["research_run_id"] == aggregate["research_runs"][0]["id"] for item in aggregate["uploads"])
+
+
+def test_continuous_writeback_creates_decision_and_outcome_records(
+    client: TestClient,
+) -> None:
+    payload = create_task_payload("Continuous writeback")
+    payload["external_data_strategy"] = "strict"
+    payload["engagement_continuity_mode"] = "continuous"
+    payload["writeback_depth"] = "full"
+    task = client.post("/api/v1/tasks", json=payload).json()
+
+    upload_response = client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("notes.txt", b"Margin is down while retention is stable and support load is rising.", "text/plain"))],
+    )
+    assert upload_response.status_code == 200
+
+    first_run = client.post(f"/api/v1/tasks/{task['id']}/run")
+    assert first_run.status_code == 200
+    first_aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
+    assert len(first_aggregate["decision_records"]) == 1
+    assert len(first_aggregate["action_plans"]) == 1
+    assert first_aggregate["action_executions"]
+    assert first_aggregate["outcome_records"] == []
+
+    follow_up_ingest = client.post(
+        f"/api/v1/tasks/{task['id']}/sources",
+        json={
+            "urls": [],
+            "pasted_text": "Follow-up note: support tickets are still rising after the first pricing test.",
+            "pasted_title": "Follow-up outcome note",
+        },
+    )
+    assert follow_up_ingest.status_code == 200
+
+    second_run = client.post(f"/api/v1/tasks/{task['id']}/run")
+    assert second_run.status_code == 200
+    second_aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
+    assert len(second_aggregate["decision_records"]) >= 2
+    assert len(second_aggregate["outcome_records"]) >= 1
+
+
 def test_multi_agent_with_insufficient_evidence_returns_explicit_uncertainty(
     client: TestClient,
 ) -> None:
@@ -1778,3 +1884,94 @@ def test_openai_provider_parses_structured_response(
 
     assert result.findings == ["Finding one"]
     assert result.recommendations == ["Recommendation one"]
+
+
+def test_openai_provider_retries_once_after_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.model_router import openai_provider
+    from app.model_router.base import ResearchSynthesisRequest
+    from app.model_router.openai_provider import OpenAIModelProvider
+
+    class FakeResponse:
+        def __init__(self, payload: dict):
+            self.payload = payload
+
+        def read(self) -> bytes:
+            return json.dumps(self.payload).encode("utf-8")
+
+        def __enter__(self):  # noqa: ANN204
+            return self
+
+        def __exit__(self, exc_type, exc, tb):  # noqa: ANN001, ANN204
+            return False
+
+    attempts: list[int] = []
+
+    def fake_urlopen(http_request, timeout):  # noqa: ANN001
+        attempts.append(timeout)
+        if len(attempts) == 1:
+            raise TimeoutError("The read operation timed out")
+        return FakeResponse(
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "content": json.dumps(
+                                {
+                                    "problem_definition": "Retry test",
+                                    "background_summary": "Retried successfully",
+                                    "findings": ["Recovered finding"],
+                                    "risks": ["Recovered risk"],
+                                    "recommendations": ["Recovered recommendation"],
+                                    "action_items": ["Recovered action"],
+                                    "missing_information": [],
+                                }
+                            )
+                        }
+                    }
+                ]
+            }
+        )
+
+    monkeypatch.setattr(openai_provider.request, "urlopen", fake_urlopen)
+    provider = OpenAIModelProvider(
+        api_key="test-key",
+        model="gpt-5.4",
+        base_url="https://api.openai.com/v1",
+        timeout_seconds=60,
+    )
+
+    result = provider.generate_research_synthesis(
+        ResearchSynthesisRequest(
+            task_title="Retry timeout task",
+            task_description="Retry timeout description",
+            background_text="Background",
+            goals=["Goal"],
+            constraints=["Constraint"],
+            evidence=[{"id": "e1", "title": "Evidence", "content": "Useful evidence"}],
+        )
+    )
+
+    assert attempts == [60, 120]
+    assert result.findings == ["Recovered finding"]
+
+
+def test_specialist_run_fails_closed_when_model_provider_errors(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    payload = create_task_payload("Provider failure should fail closed")
+    payload["external_data_strategy"] = "strict"
+    task = client.post("/api/v1/tasks", json=payload).json()
+    monkeypatch.setenv("MODEL_PROVIDER_FAILURE_MODE", "always_fail")
+
+    response = client.post(f"/api/v1/tasks/{task['id']}/run")
+
+    assert response.status_code == 503
+    assert "Mock 模型供應器的失敗模式目前已啟用" in response.json()["detail"]
+
+    refreshed = client.get(f"/api/v1/tasks/{task['id']}").json()
+    assert refreshed["status"] == "failed"
+    assert refreshed["runs"][0]["status"] == "failed"
+    assert refreshed["deliverables"] == []

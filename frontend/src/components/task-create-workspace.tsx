@@ -29,7 +29,7 @@ export function TaskCreateWorkspace() {
         <span className="eyebrow">建立新案件</span>
         <h1 className="page-title">建立新案件</h1>
         <p className="page-subtitle">
-          從一句話問題、單文件進件或多材料案件開始都可以；完成後會直接接回同一個案件工作台，而不是停在孤立任務頁。
+          從一句話問題、單文件進件或多材料案件開始都可以；它們都只是進入同一條案件主鏈的 entry preset，完成後會直接接回案件工作台，而不是停在孤立任務頁。
         </p>
       </section>
 

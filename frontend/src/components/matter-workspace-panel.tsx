@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 
 import { buildTaskListWorkspaceSummary } from "@/lib/advisory-workflow";
 import { getMatterWorkspace, rollbackMatterContentRevision, runTask } from "@/lib/api";
@@ -17,6 +17,7 @@ import type {
 import {
   formatFileSize,
   formatDisplayDate,
+  labelForEngagementContinuityMode,
   labelForDeliverableClass,
   labelForFileExtension,
   labelForMatterStatus,
@@ -25,6 +26,7 @@ import {
   labelForSourceSupportLevel,
   labelForStorageAvailability,
   labelForTaskStatus,
+  labelForWritebackDepth,
 } from "@/lib/ui-labels";
 import {
   type MatterLifecycleStatus,
@@ -49,6 +51,31 @@ const MATTER_TABS: Array<{ key: MatterTab; label: string }> = [
   { key: "deliverables", label: "交付物" },
   { key: "history", label: "工作紀錄" },
 ];
+
+function DisclosurePanel({
+  id,
+  title,
+  description,
+  children,
+}: {
+  id?: string;
+  title: string;
+  description: string;
+  children: ReactNode;
+}) {
+  return (
+    <details className="panel disclosure-panel" id={id}>
+      <summary className="disclosure-summary">
+        <div>
+          <h2 className="section-title">{title}</h2>
+          <p className="panel-copy">{description}</p>
+        </div>
+        <span className="pill">展開</span>
+      </summary>
+      <div className="disclosure-body">{children}</div>
+    </details>
+  );
+}
 
 function defaultMatterStatus(matter: MatterWorkspace): MatterLifecycleStatus {
   return (
@@ -424,6 +451,14 @@ export function MatterWorkspacePanel({
     sourceMaterialCount: matter?.summary.source_material_count ?? 0,
     evidenceCount,
   });
+  const latestCaseWorldDraft = matter?.case_world_drafts[0] ?? null;
+  const openEvidenceGaps =
+    matter?.evidence_gaps.filter((item) => item.status !== "resolved").slice(0, 5) ?? [];
+  const recentDecisionRecords = matter?.decision_records.slice(0, 3) ?? [];
+  const recentOutcomeRecords = matter?.outcome_records.slice(0, 3) ?? [];
+  const continuityStrategySummary = matter
+    ? `${labelForEngagementContinuityMode(matter.summary.engagement_continuity_mode)} / ${labelForWritebackDepth(matter.summary.writeback_depth)}`
+    : "";
 
   async function handleAdvanceMatter() {
     if (latestDeliverable) {
@@ -649,79 +684,23 @@ export function MatterWorkspacePanel({
                 <div className="meta-row" style={{ marginTop: "16px" }}>
                   <span className="pill">{labelForMatterStatus(matterStatus)}</span>
                   <span>更新於 {formatDisplayDate(fallbackRecord?.updatedAt || matter.summary.latest_updated_at)}</span>
-                  <span>來源 {matter.summary.source_material_count}</span>
-                  <span>證據 {evidenceCount}</span>
-                  <span>交付物 {matter.summary.deliverable_count}</span>
-                  <span>工作紀錄 {matter.summary.total_task_count}</span>
+                  <span>{matter.summary.deliverable_count} 份交付物</span>
+                  <span>{matter.summary.total_task_count} 筆工作紀錄</span>
                 </div>
 
                 <div className="deliverable-focus-card workspace-focus-card">
                   <span className="pill">目前主線</span>
                   <p className="deliverable-focus-lead">{coreQuestion}</p>
                 </div>
-
-                <div className="summary-grid" style={{ marginTop: "16px" }}>
-                  <div className="section-card">
-                    <h4>案件現在狀態</h4>
-                    <p className="content-block">{truncateText(displaySummary, 140)}</p>
-                  </div>
-                  <div className="section-card">
-                    <h4>分析焦點</h4>
-                    {analysisFocusItems.length > 0 ? (
-                      <ul className="list-content">
-                        {analysisFocusItems.slice(0, 4).map((item) => (
-                          <li key={item}>{item}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="empty-text">目前尚未整理出清楚的分析焦點。</p>
-                    )}
-                  </div>
-                  <div className="section-card">
-                    <h4>下一步</h4>
-                    {nextStepItems.length > 0 ? (
-                      <ul className="list-content">
-                        {nextStepItems.map((item) => (
-                          <li key={item}>{item}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="empty-text">目前沒有額外的下一步提示。</p>
-                    )}
-                  </div>
-                </div>
               </div>
 
               <aside className="workspace-hero-rail">
                 <div className="section-card">
-                  <h4>工作面快讀</h4>
-                  <div className="deliverable-metric-grid">
-                    <div className="deliverable-metric-card">
-                      <span className="deliverable-metric-label">關聯代理</span>
-                      <strong className="deliverable-metric-value">{agentNames.length}</strong>
-                    </div>
-                    <div className="deliverable-metric-card">
-                      <span className="deliverable-metric-label">模組包</span>
-                      <strong className="deliverable-metric-value">{packNames.length}</strong>
-                    </div>
-                    <div className="deliverable-metric-card">
-                      <span className="deliverable-metric-label">進行中工作</span>
-                      <strong className="deliverable-metric-value">
-                        {matter.summary.active_task_count}
-                      </strong>
-                    </div>
-                    <div className="deliverable-metric-card">
-                      <span className="deliverable-metric-label">待補程度</span>
-                      <strong className="deliverable-metric-value">
-                        {evidenceCount < 2 ? "高" : "中"}
-                      </strong>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="section-card">
                   <h4>{advanceGuide.title}</h4>
                   <p className="content-block">{advanceGuide.summary}</p>
+                  <p className="muted-text" style={{ marginTop: "8px" }}>
+                    目前信號：{matter.summary.source_material_count} 份來源 / {evidenceCount} 則證據 / {matter.summary.active_task_count} 筆進行中工作
+                  </p>
                   {focusTask ? (
                     <p className="muted-text" style={{ marginTop: "8px" }}>
                       焦點工作紀錄：{focusTask.title}｜{labelForTaskStatus(focusTask.status)}
@@ -774,19 +753,6 @@ export function MatterWorkspacePanel({
                     </p>
                   ) : null}
                 </div>
-
-                <div className="section-card">
-                  <h4>主要限制 / 風險</h4>
-                  {constraintItems.length > 0 ? (
-                    <ul className="list-content">
-                      {constraintItems.map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="empty-text">目前尚未整理出限制或風險。</p>
-                  )}
-                </div>
               </aside>
             </div>
           </section>
@@ -805,222 +771,300 @@ export function MatterWorkspacePanel({
           </div>
 
           {activeTab === "overview" ? (
-            <div className="detail-grid">
-              <div className="detail-stack">
-                <section className="panel">
-                  <div className="panel-header">
-                    <div>
-                      <h2 className="panel-title">案件基本資訊</h2>
-                      <p className="panel-copy">這裡處理最常改動、最值得正式保存的欄位。</p>
-                    </div>
+            <div className="detail-stack">
+              <section className="panel">
+                <div className="panel-header">
+                  <div>
+                    <h2 className="panel-title">顧問操作焦點</h2>
+                    <p className="panel-copy">日常使用先只看主線、限制與下一步；案件設定、同步狀態與工作背景都改成需要時再展開。</p>
                   </div>
+                </div>
 
-                  <div className="form-grid">
-                    <div className="field-grid">
-                      <div className="field">
-                        <label htmlFor="matter-title">案件名稱</label>
-                        <input
-                          id="matter-title"
-                          value={draftTitle}
-                          onChange={(event) => {
-                            setDraftTitle(event.target.value);
-                            setSaveMessage(null);
-                          }}
-                        />
-                      </div>
-
-                      <div className="field">
-                        <label htmlFor="matter-status">狀態</label>
-                        <select
-                          id="matter-status"
-                          value={draftStatus}
-                          onChange={(event) => {
-                            setDraftStatus(event.target.value as MatterLifecycleStatus);
-                            setSaveMessage(null);
-                          }}
-                        >
-                          <option value="active">進行中</option>
-                          <option value="paused">暫停</option>
-                          <option value="archived">封存</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="field">
-                      <label htmlFor="matter-summary">簡短摘要</label>
-                      <textarea
-                        id="matter-summary"
-                        value={draftSummary}
-                        onChange={(event) => {
-                          setDraftSummary(event.target.value);
-                          setSaveMessage(null);
-                        }}
-                        placeholder="這個案件現在的狀態、處理範圍與下一步。"
-                      />
-                    </div>
+                <div className="detail-list">
+                  <div className="detail-item">
+                    <h3>目前主線</h3>
+                    <p className="content-block">{coreQuestion}</p>
                   </div>
-
-                  <div className="button-row" style={{ marginTop: "16px" }}>
-                    <button className="button-primary" type="button" onClick={handleSave}>
-                      儲存案件資訊
-                    </button>
+                  <div className="detail-item">
+                    <h3>分析焦點</h3>
+                    {analysisFocusItems.length > 0 ? (
+                      <ul className="list-content">
+                        {analysisFocusItems.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="empty-text">目前尚未整理出分析焦點。</p>
+                    )}
                   </div>
-                  {saveMessage ? (
-                    <p
-                      className={
-                        saveTone === "error"
-                          ? "error-text"
-                          : saveTone === "success"
-                            ? "success-text"
-                            : "muted-text"
-                      }
-                    >
-                      {saveMessage}
+                  <div className="detail-item">
+                    <h3>限制 / 風險</h3>
+                    {constraintItems.length > 0 ? (
+                      <ul className="list-content">
+                        {constraintItems.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="empty-text">目前沒有額外限制或風險。</p>
+                    )}
+                  </div>
+                  <div className="detail-item">
+                    <h3>最近工作脈絡</h3>
+                    <p className="content-block">
+                      {recentTaskSummary
+                        ? truncateText(recentTaskSummary.workspaceState, 120)
+                        : "目前尚未顯示最近工作脈絡。"}
                     </p>
-                  ) : null}
-                  {fallbackRecord && matterSyncState ? (
-                    <div className="section-card" style={{ marginTop: "12px" }}>
-                      <h4>同步狀態</h4>
-                      <p className="content-block">{buildMatterSyncFeedback(matterSyncState)}</p>
-                      {fallbackDiffItems.length > 0 && matterSyncState === "needs_review" ? (
-                        <ul className="list-content" style={{ marginTop: "12px" }}>
-                          {fallbackDiffItems.slice(0, 5).map((item) => (
-                            <li key={item.label}>
-                              {item.label}：遠端「{item.remote}」／本機「{item.local}」
+                  </div>
+                  <div className="detail-item">
+                    <h3>下一步建議</h3>
+                    {nextStepItems.length > 0 ? (
+                      <ul className="list-content">
+                        {nextStepItems.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="empty-text">目前沒有額外建議。</p>
+                    )}
+                  </div>
+                </div>
+              </section>
+
+              <DisclosurePanel
+                title="案件世界草稿與寫回策略"
+                description="只有在你要 debug Host 現在怎麼理解這個案件，或確認這個案件會寫回到多深時，再展開這層。"
+              >
+                <div className="summary-grid">
+                  <div className="section-card">
+                    <h4>連續性策略</h4>
+                    <p className="content-block">{continuityStrategySummary || "未設定"}</p>
+                  </div>
+                  <div className="section-card">
+                    <h4>Case world 主問題</h4>
+                    <p className="content-block">
+                      {String(latestCaseWorldDraft?.canonical_intake_summary.problem_statement || coreQuestion)}
+                    </p>
+                  </div>
+                  <div className="section-card">
+                    <h4>建議下一步</h4>
+                    <p className="content-block">
+                      {latestCaseWorldDraft?.next_best_actions[0] || "目前沒有額外建議。"}
+                    </p>
+                  </div>
+                  <div className="section-card">
+                    <h4>寫回紀錄</h4>
+                    <p className="content-block">
+                      {matter?.decision_records.length ?? 0} 筆 decision records / {matter?.outcome_records.length ?? 0} 筆 outcome records
+                    </p>
+                  </div>
+                </div>
+
+                {latestCaseWorldDraft ? (
+                  <div className="detail-list" style={{ marginTop: "18px" }}>
+                    <div className="detail-item">
+                      <h3>目前已確認的 facts</h3>
+                      {latestCaseWorldDraft.facts.length > 0 ? (
+                        <ul className="list-content">
+                          {latestCaseWorldDraft.facts.slice(0, 5).map((item) => (
+                            <li key={`${item.title}-${item.detail}`}>{item.title}：{item.detail}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="empty-text">目前沒有額外 facts。</p>
+                      )}
+                    </div>
+                    <div className="detail-item">
+                      <h3>仍在沿用的 assumptions</h3>
+                      {latestCaseWorldDraft.assumptions.length > 0 ? (
+                        <ul className="list-content">
+                          {latestCaseWorldDraft.assumptions.slice(0, 5).map((item) => (
+                            <li key={`${item.title}-${item.detail}`}>{item.title}：{item.detail}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="empty-text">目前沒有額外 assumptions。</p>
+                      )}
+                    </div>
+                    <div className="detail-item">
+                      <h3>目前 evidence gaps</h3>
+                      {openEvidenceGaps.length > 0 ? (
+                        <ul className="list-content">
+                          {openEvidenceGaps.map((item) => (
+                            <li key={item.id}>
+                              {item.title}：{item.description}
                             </li>
                           ))}
                         </ul>
-                      ) : null}
-                      <div className="button-row" style={{ marginTop: "12px" }}>
-                        <button
-                          className="button-secondary"
-                          type="button"
-                          onClick={() => void handleResyncMatterFallback(matterSyncState === "needs_review")}
-                          disabled={isResyncing}
-                        >
-                          {isResyncing ? "同步中..." : matterSyncState === "needs_review" ? "以本機內容重新同步" : "重新同步正式資料"}
-                        </button>
-                        <button
-                          className="button-secondary"
-                          type="button"
-                          onClick={handleDiscardLocalFallback}
-                          disabled={isResyncing}
-                        >
-                          放棄本機暫存
-                        </button>
-                      </div>
-                    </div>
-                  ) : null}
-                </section>
-
-                <section className="panel">
-                  <div className="panel-header">
-                    <div>
-                      <h2 className="panel-title">案件工作摘要</h2>
-                      <p className="panel-copy">先確認案件狀態、關聯脈絡與工作面分布，再決定往哪個頁籤深入。</p>
-                    </div>
-                  </div>
-
-                  <div className="summary-grid">
-                    <div className="section-card">
-                      <h4>案件路徑</h4>
-                      <p className="content-block">{matter.summary.object_path}</p>
-                    </div>
-                    <div className="section-card">
-                      <h4>最近更新</h4>
-                      <p className="content-block">
-                        {formatDisplayDate(fallbackRecord?.updatedAt || matter.summary.latest_updated_at)}
-                      </p>
-                    </div>
-                    <div className="section-card">
-                      <h4>關聯代理</h4>
-                      <p className="content-block">
-                        {agentNames.length > 0 ? agentNames.slice(0, 5).join("、") : "目前尚未顯示代理。"}
-                      </p>
-                    </div>
-                    <div className="section-card">
-                      <h4>關聯模組包</h4>
-                      <p className="content-block">
-                        {packNames.length > 0 ? packNames.slice(0, 5).join("、") : "目前尚未顯示模組包。"}
-                      </p>
-                    </div>
-                    <div className="section-card">
-                      <h4>來源 / 證據</h4>
-                      <p className="content-block">
-                        {matter.summary.source_material_count} 份來源，{evidenceCount} 則證據。
-                      </p>
-                    </div>
-                    <div className="section-card">
-                      <h4>交付物 / 工作紀錄</h4>
-                      <p className="content-block">
-                        {matter.summary.deliverable_count} 份交付物，{matter.summary.total_task_count} 筆工作紀錄。
-                      </p>
-                    </div>
-                  </div>
-                </section>
-              </div>
-
-              <div className="detail-stack">
-                <section className="panel">
-                  <div className="panel-header">
-                    <div>
-                      <h2 className="panel-title">現在要先做什麼</h2>
-                      <p className="panel-copy">案件 detail 不是資訊堆疊頁，而是用來決定下一步入口的工作面。</p>
-                    </div>
-                  </div>
-
-                  <div className="detail-list">
-                    <div className="detail-item">
-                      <h3>目前主線</h3>
-                      <p className="content-block">{coreQuestion}</p>
-                    </div>
-                    <div className="detail-item">
-                      <h3>分析焦點</h3>
-                      {analysisFocusItems.length > 0 ? (
-                        <ul className="list-content">
-                          {analysisFocusItems.map((item) => (
-                            <li key={item}>{item}</li>
-                          ))}
-                        </ul>
                       ) : (
-                        <p className="empty-text">目前尚未整理出分析焦點。</p>
+                        <p className="empty-text">目前沒有高優先 evidence gaps。</p>
                       )}
                     </div>
                     <div className="detail-item">
-                      <h3>限制 / 風險</h3>
-                      {constraintItems.length > 0 ? (
+                      <h3>最近 decision / outcome</h3>
+                      {recentDecisionRecords.length > 0 || recentOutcomeRecords.length > 0 ? (
                         <ul className="list-content">
-                          {constraintItems.map((item) => (
-                            <li key={item}>{item}</li>
+                          {recentDecisionRecords.map((item) => (
+                            <li key={item.id}>Decision：{item.decision_summary}</li>
+                          ))}
+                          {recentOutcomeRecords.map((item) => (
+                            <li key={item.id}>Outcome：{item.summary}</li>
                           ))}
                         </ul>
                       ) : (
-                        <p className="empty-text">目前沒有額外限制或風險。</p>
-                      )}
-                    </div>
-                    <div className="detail-item">
-                      <h3>最近工作脈絡</h3>
-                      <p className="content-block">
-                        {recentTaskSummary
-                          ? truncateText(recentTaskSummary.workspaceState, 120)
-                          : "目前尚未顯示最近工作脈絡。"}
-                      </p>
-                    </div>
-                    <div className="detail-item">
-                      <h3>下一步建議</h3>
-                      {nextStepItems.length > 0 ? (
-                        <ul className="list-content">
-                          {nextStepItems.map((item) => (
-                            <li key={item}>{item}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="empty-text">目前沒有額外建議。</p>
+                        <p className="empty-text">目前還沒有可回看的 writeback records。</p>
                       )}
                     </div>
                   </div>
-                </section>
-              </div>
+                ) : (
+                  <p className="empty-text">目前尚未形成 case world draft。</p>
+                )}
+              </DisclosurePanel>
+
+              <DisclosurePanel
+                title="案件設定與同步"
+                description="只有在你要改案件名稱、狀態、摘要，或處理 fallback / re-sync 時再打開。"
+              >
+                <div className="form-grid">
+                  <div className="field-grid">
+                    <div className="field">
+                      <label htmlFor="matter-title">案件名稱</label>
+                      <input
+                        id="matter-title"
+                        value={draftTitle}
+                        onChange={(event) => {
+                          setDraftTitle(event.target.value);
+                          setSaveMessage(null);
+                        }}
+                      />
+                    </div>
+
+                    <div className="field">
+                      <label htmlFor="matter-status">狀態</label>
+                      <select
+                        id="matter-status"
+                        value={draftStatus}
+                        onChange={(event) => {
+                          setDraftStatus(event.target.value as MatterLifecycleStatus);
+                          setSaveMessage(null);
+                        }}
+                      >
+                        <option value="active">進行中</option>
+                        <option value="paused">暫停</option>
+                        <option value="archived">封存</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="field">
+                    <label htmlFor="matter-summary">簡短摘要</label>
+                    <textarea
+                      id="matter-summary"
+                      value={draftSummary}
+                      onChange={(event) => {
+                        setDraftSummary(event.target.value);
+                        setSaveMessage(null);
+                      }}
+                      placeholder="這個案件現在的狀態、處理範圍與下一步。"
+                    />
+                  </div>
+                </div>
+
+                <div className="button-row" style={{ marginTop: "16px" }}>
+                  <button className="button-primary" type="button" onClick={handleSave}>
+                    儲存案件資訊
+                  </button>
+                </div>
+                {saveMessage ? (
+                  <p
+                    className={
+                      saveTone === "error"
+                        ? "error-text"
+                        : saveTone === "success"
+                          ? "success-text"
+                          : "muted-text"
+                    }
+                  >
+                    {saveMessage}
+                  </p>
+                ) : null}
+                {fallbackRecord && matterSyncState ? (
+                  <div className="section-card" style={{ marginTop: "12px" }}>
+                    <h4>同步狀態</h4>
+                    <p className="content-block">{buildMatterSyncFeedback(matterSyncState)}</p>
+                    {fallbackDiffItems.length > 0 && matterSyncState === "needs_review" ? (
+                      <ul className="list-content" style={{ marginTop: "12px" }}>
+                        {fallbackDiffItems.slice(0, 5).map((item) => (
+                          <li key={item.label}>
+                            {item.label}：遠端「{item.remote}」／本機「{item.local}」
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                    <div className="button-row" style={{ marginTop: "12px" }}>
+                      <button
+                        className="button-secondary"
+                        type="button"
+                        onClick={() => void handleResyncMatterFallback(matterSyncState === "needs_review")}
+                        disabled={isResyncing}
+                      >
+                        {isResyncing ? "同步中..." : matterSyncState === "needs_review" ? "以本機內容重新同步" : "重新同步正式資料"}
+                      </button>
+                      <button
+                        className="button-secondary"
+                        type="button"
+                        onClick={handleDiscardLocalFallback}
+                        disabled={isResyncing}
+                      >
+                        放棄本機暫存
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+              </DisclosurePanel>
+
+              <DisclosurePanel
+                title="案件背景與連續性"
+                description="當你需要核對案件路徑、最近更新、關聯代理 / 模組包與工作分布時，再展開這層。"
+              >
+                <div className="summary-grid">
+                  <div className="section-card">
+                    <h4>案件路徑</h4>
+                    <p className="content-block">{matter.summary.object_path}</p>
+                  </div>
+                  <div className="section-card">
+                    <h4>最近更新</h4>
+                    <p className="content-block">
+                      {formatDisplayDate(fallbackRecord?.updatedAt || matter.summary.latest_updated_at)}
+                    </p>
+                  </div>
+                  <div className="section-card">
+                    <h4>關聯代理</h4>
+                    <p className="content-block">
+                      {agentNames.length > 0 ? agentNames.slice(0, 5).join("、") : "目前尚未顯示代理。"}
+                    </p>
+                  </div>
+                  <div className="section-card">
+                    <h4>關聯模組包</h4>
+                    <p className="content-block">
+                      {packNames.length > 0 ? packNames.slice(0, 5).join("、") : "目前尚未顯示模組包。"}
+                    </p>
+                  </div>
+                  <div className="section-card">
+                    <h4>來源 / 證據</h4>
+                    <p className="content-block">
+                      {matter.summary.source_material_count} 份來源，{evidenceCount} 則證據。
+                    </p>
+                  </div>
+                  <div className="section-card">
+                    <h4>交付物 / 工作紀錄</h4>
+                    <p className="content-block">
+                      {matter.summary.deliverable_count} 份交付物，{matter.summary.total_task_count} 筆工作紀錄。
+                    </p>
+                  </div>
+                </div>
+              </DisclosurePanel>
             </div>
           ) : null}
 

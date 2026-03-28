@@ -25,6 +25,18 @@ class InputEntryMode(str, Enum):
     MULTI_MATERIAL_CASE = "multi_material_case"
 
 
+class EngagementContinuityMode(str, Enum):
+    ONE_OFF = "one_off"
+    FOLLOW_UP = "follow_up"
+    CONTINUOUS = "continuous"
+
+
+class WritebackDepth(str, Enum):
+    MINIMAL = "minimal"
+    MILESTONE = "milestone"
+    FULL = "full"
+
+
 class PresenceState(str, Enum):
     EXPLICIT = "explicit"
     INFERRED = "inferred"

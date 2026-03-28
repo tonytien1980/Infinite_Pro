@@ -7,12 +7,14 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.domain.enums import (
     DeliverableClass,
+    EngagementContinuityMode,
     ExternalDataStrategy,
     FlowMode,
     InputEntryMode,
     PresenceState,
     RunStatus,
     TaskStatus,
+    WritebackDepth,
 )
 
 
@@ -31,7 +33,10 @@ class TaskCreateRequest(BaseModel):
     description: str = ""
     task_type: str = "research_synthesis"
     mode: FlowMode = FlowMode.SPECIALIST
+    entry_preset: InputEntryMode = InputEntryMode.ONE_LINE_INQUIRY
     external_data_strategy: ExternalDataStrategy = ExternalDataStrategy.SUPPLEMENTAL
+    engagement_continuity_mode: EngagementContinuityMode = EngagementContinuityMode.ONE_OFF
+    writeback_depth: WritebackDepth = WritebackDepth.MINIMAL
     client_name: str | None = None
     client_type: str | None = None
     client_stage: str | None = None
@@ -297,6 +302,7 @@ class ConstraintRead(ORMModel):
 class SourceDocumentRead(ORMModel):
     id: str
     task_id: str
+    research_run_id: str | None = None
     source_type: str
     file_name: str
     canonical_display_name: str
@@ -571,6 +577,145 @@ class TaskRunRead(ORMModel):
     completed_at: datetime | None
 
 
+class CaseWorldFactRead(BaseModel):
+    title: str
+    detail: str
+    source: str = "explicit"
+
+
+class CaseWorldAssumptionRead(BaseModel):
+    title: str
+    detail: str
+    source: str = "inferred"
+
+
+class CaseWorldGapRead(BaseModel):
+    gap_key: str
+    title: str
+    description: str
+    priority: str = "medium"
+    related_pack_ids: list[str] = Field(default_factory=list)
+
+
+class CaseWorldDraftRead(BaseModel):
+    id: str
+    task_id: str
+    matter_workspace_id: str | None = None
+    compiler_status: str
+    entry_preset: InputEntryMode = InputEntryMode.ONE_LINE_INQUIRY
+    continuity_mode: EngagementContinuityMode = EngagementContinuityMode.ONE_OFF
+    writeback_depth: WritebackDepth = WritebackDepth.MINIMAL
+    canonical_intake_summary: dict[str, Any] = Field(default_factory=dict)
+    task_interpretation: dict[str, Any] = Field(default_factory=dict)
+    decision_context: dict[str, Any] = Field(default_factory=dict)
+    extracted_objects: list[dict[str, Any]] = Field(default_factory=list)
+    inferred_links: list[dict[str, Any]] = Field(default_factory=list)
+    facts: list[CaseWorldFactRead] = Field(default_factory=list)
+    assumptions: list[CaseWorldAssumptionRead] = Field(default_factory=list)
+    evidence_gaps: list[CaseWorldGapRead] = Field(default_factory=list)
+    suggested_capabilities: list[str] = Field(default_factory=list)
+    suggested_domain_packs: list[str] = Field(default_factory=list)
+    suggested_industry_packs: list[str] = Field(default_factory=list)
+    suggested_agents: list[str] = Field(default_factory=list)
+    suggested_research_need: bool = False
+    next_best_actions: list[str] = Field(default_factory=list)
+    created_at: datetime
+    updated_at: datetime
+
+
+class EvidenceGapRead(ORMModel):
+    id: str
+    task_id: str
+    matter_workspace_id: str | None = None
+    gap_key: str
+    title: str
+    gap_type: str
+    description: str
+    priority: str
+    status: str
+    source: str
+    supporting_pack_ids: list[str] = Field(default_factory=list)
+    related_source_refs: list[str] = Field(default_factory=list)
+    created_at: datetime
+    updated_at: datetime
+
+
+class ResearchRunRead(ORMModel):
+    id: str
+    task_id: str
+    matter_workspace_id: str | None = None
+    status: RunStatus
+    query: str
+    trigger_reason: str
+    research_scope: str
+    freshness_policy: str
+    confidence_note: str
+    source_trace_summary: str
+    selected_domain_pack_ids: list[str] = Field(default_factory=list)
+    selected_industry_pack_ids: list[str] = Field(default_factory=list)
+    result_summary: str
+    source_count: int
+    error_message: str | None = None
+    started_at: datetime
+    completed_at: datetime | None
+
+
+class DecisionRecordRead(ORMModel):
+    id: str
+    task_id: str
+    matter_workspace_id: str | None = None
+    deliverable_id: str | None = None
+    task_run_id: str | None = None
+    continuity_mode: EngagementContinuityMode = EngagementContinuityMode.ONE_OFF
+    writeback_depth: WritebackDepth = WritebackDepth.MINIMAL
+    title: str
+    decision_summary: str
+    evidence_basis_ids: list[str] = Field(default_factory=list)
+    recommendation_ids: list[str] = Field(default_factory=list)
+    risk_ids: list[str] = Field(default_factory=list)
+    action_item_ids: list[str] = Field(default_factory=list)
+    created_at: datetime
+
+
+class ActionPlanRead(ORMModel):
+    id: str
+    task_id: str
+    matter_workspace_id: str | None = None
+    decision_record_id: str
+    title: str
+    summary: str
+    status: str
+    action_item_ids: list[str] = Field(default_factory=list)
+    created_at: datetime
+    updated_at: datetime
+
+
+class ActionExecutionRead(ORMModel):
+    id: str
+    task_id: str
+    action_plan_id: str
+    action_item_id: str | None = None
+    status: str
+    owner_hint: str | None = None
+    execution_note: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class OutcomeRecordRead(ORMModel):
+    id: str
+    task_id: str
+    matter_workspace_id: str | None = None
+    decision_record_id: str | None = None
+    action_execution_id: str | None = None
+    deliverable_id: str | None = None
+    status: str
+    signal_type: str
+    summary: str
+    evidence_note: str
+    created_at: datetime
+
+
 class MatterWorkspaceSummaryRead(BaseModel):
     id: str
     title: str
@@ -593,6 +738,8 @@ class MatterWorkspaceSummaryRead(BaseModel):
     latest_updated_at: datetime
     continuity_summary: str = ""
     active_work_summary: str = ""
+    engagement_continuity_mode: EngagementContinuityMode = EngagementContinuityMode.ONE_OFF
+    writeback_depth: WritebackDepth = WritebackDepth.MINIMAL
     selected_pack_names: list[str] = Field(default_factory=list)
     selected_agent_names: list[str] = Field(default_factory=list)
 
@@ -613,7 +760,10 @@ class TaskListItemResponse(BaseModel):
     client_stage: str | None = None
     client_type: str | None = None
     domain_lenses: list[str] = Field(default_factory=list)
+    entry_preset: InputEntryMode = InputEntryMode.ONE_LINE_INQUIRY
     input_entry_mode: InputEntryMode = InputEntryMode.ONE_LINE_INQUIRY
+    engagement_continuity_mode: EngagementContinuityMode = EngagementContinuityMode.ONE_OFF
+    writeback_depth: WritebackDepth = WritebackDepth.MINIMAL
     deliverable_class_hint: DeliverableClass = DeliverableClass.EXPLORATORY_BRIEF
     external_research_heavy_candidate: bool = False
     selected_pack_ids: list[str] = Field(default_factory=list)
@@ -699,6 +849,13 @@ class MatterWorkspaceResponse(BaseModel):
     related_deliverables: list[MatterDeliverableSummaryRead] = Field(default_factory=list)
     related_artifacts: list[MatterMaterialSummaryRead] = Field(default_factory=list)
     related_source_materials: list[MatterMaterialSummaryRead] = Field(default_factory=list)
+    case_world_drafts: list[CaseWorldDraftRead] = Field(default_factory=list)
+    evidence_gaps: list[EvidenceGapRead] = Field(default_factory=list)
+    research_runs: list[ResearchRunRead] = Field(default_factory=list)
+    decision_records: list[DecisionRecordRead] = Field(default_factory=list)
+    action_plans: list[ActionPlanRead] = Field(default_factory=list)
+    action_executions: list[ActionExecutionRead] = Field(default_factory=list)
+    outcome_records: list[OutcomeRecordRead] = Field(default_factory=list)
     readiness_hint: str = ""
     continuity_notes: list[str] = Field(default_factory=list)
 
@@ -764,6 +921,8 @@ class ArtifactEvidenceWorkspaceResponse(BaseModel):
     evidence_chains: list[EvidenceWorkspaceEvidenceRead] = Field(default_factory=list)
     evidence_expectations: list[str] = Field(default_factory=list)
     high_impact_gaps: list[str] = Field(default_factory=list)
+    evidence_gaps: list[EvidenceGapRead] = Field(default_factory=list)
+    research_runs: list[ResearchRunRead] = Field(default_factory=list)
     sufficiency_summary: str = ""
     deliverable_limitations: list[str] = Field(default_factory=list)
     continuity_notes: list[str] = Field(default_factory=list)
@@ -787,7 +946,10 @@ class TaskAggregateResponse(BaseModel):
     client_type: str | None = None
     domain_lenses: list[str] = Field(default_factory=list)
     assumptions: list[str] = Field(default_factory=list)
+    entry_preset: InputEntryMode = InputEntryMode.ONE_LINE_INQUIRY
     input_entry_mode: InputEntryMode = InputEntryMode.ONE_LINE_INQUIRY
+    engagement_continuity_mode: EngagementContinuityMode = EngagementContinuityMode.ONE_OFF
+    writeback_depth: WritebackDepth = WritebackDepth.MINIMAL
     deliverable_class_hint: DeliverableClass = DeliverableClass.EXPLORATORY_BRIEF
     external_research_heavy_candidate: bool = False
     sparse_input_summary: str = ""
@@ -809,6 +971,13 @@ class TaskAggregateResponse(BaseModel):
     action_items: list[ActionItemRead] = Field(default_factory=list)
     deliverables: list[DeliverableRead] = Field(default_factory=list)
     runs: list[TaskRunRead] = Field(default_factory=list)
+    case_world_draft: CaseWorldDraftRead | None = None
+    evidence_gaps: list[EvidenceGapRead] = Field(default_factory=list)
+    research_runs: list[ResearchRunRead] = Field(default_factory=list)
+    decision_records: list[DecisionRecordRead] = Field(default_factory=list)
+    action_plans: list[ActionPlanRead] = Field(default_factory=list)
+    action_executions: list[ActionExecutionRead] = Field(default_factory=list)
+    outcome_records: list[OutcomeRecordRead] = Field(default_factory=list)
     matter_workspace: MatterWorkspaceSummaryRead | None = None
 
 
@@ -830,6 +999,11 @@ class DeliverableWorkspaceResponse(BaseModel):
     linked_risks: list[RiskRead] = Field(default_factory=list)
     linked_action_items: list[ActionItemRead] = Field(default_factory=list)
     related_deliverables: list[MatterDeliverableSummaryRead] = Field(default_factory=list)
+    decision_records: list[DecisionRecordRead] = Field(default_factory=list)
+    action_plans: list[ActionPlanRead] = Field(default_factory=list)
+    action_executions: list[ActionExecutionRead] = Field(default_factory=list)
+    outcome_records: list[OutcomeRecordRead] = Field(default_factory=list)
+    research_runs: list[ResearchRunRead] = Field(default_factory=list)
     continuity_notes: list[str] = Field(default_factory=list)
     content_sections: DeliverableContentSectionsRead = Field(
         default_factory=DeliverableContentSectionsRead

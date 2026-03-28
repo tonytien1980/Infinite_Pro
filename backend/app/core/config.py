@@ -11,8 +11,8 @@ class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1"
     database_url: str = "postgresql+psycopg://postgres:postgres@db:5432/ai_advisory_os"
     upload_dir: str = "/app/storage/uploads"
-    derived_dir: str = "/app/storage/derived"
-    release_dir: str = "/app/storage/releases"
+    derived_dir: str | None = None
+    release_dir: str | None = None
     model_provider: str = "mock"
     model_provider_api_key: str | None = None
     model_provider_model: str | None = None
@@ -46,11 +46,15 @@ class Settings(BaseSettings):
 
     @property
     def derived_path(self) -> Path:
-        return Path(self.derived_dir)
+        if self.derived_dir:
+            return Path(self.derived_dir)
+        return self.storage_root_path / "derived"
 
     @property
     def release_path(self) -> Path:
-        return Path(self.release_dir)
+        if self.release_dir:
+            return Path(self.release_dir)
+        return self.storage_root_path / "releases"
 
     @property
     def storage_root_path(self) -> Path:

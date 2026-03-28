@@ -187,9 +187,12 @@ Infinite Pro 的工作主體不應只是 task。
 用來接住原始問題、補充資料、外部資料策略與進階背景。
 
 在目前單人正式 beta 階段，這個工作面已正式包含：
-- `一句話問題`
-- `單文件進件`
-- `多材料案件`
+- 一條 canonical intake pipeline
+- 三種可見 entry presets：
+  - `一句話問題`
+  - `單文件進件`
+  - `多材料案件`
+- `Case World Compiler`
 - 建立後回到同一條 matter / source material / evidence / deliverable 主鏈
 - matter-level 補件入口，而不是只存在一次性上傳流程
 

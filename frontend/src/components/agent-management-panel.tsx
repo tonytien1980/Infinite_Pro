@@ -157,6 +157,17 @@ export function AgentManagementPanel() {
   const editingAgent =
     editingAgentId ? managedAgents.find((agent) => agent.agent_id === editingAgentId) ?? null : null;
   const editingSystemHost = editingAgent?.agent_type === "host" && editingAgent.source === "system";
+  const agentActionTitle = editingAgentId ? "現在正處於代理編輯模式" : "先從代理列表判斷是否真的要新增";
+  const agentActionSummary = editingAgentId
+    ? "當你已進入編輯模式，這頁的 primary action 就是把名稱、狀態與適用能力整理乾淨後正式儲存。"
+    : "這頁的主體應該是列表而不是表單。先確認現有代理是否已能覆蓋需求，再決定是否新增新代理。";
+  const agentActionChecklist = [
+    `目前共有 ${managedAgents.length} 個代理，其中 ${activeCount} 個啟用中，${hostCount} 個 Host。`,
+    editingAgent
+      ? `正在編輯「${getAgentCatalogDisplay(editingAgent).primaryName}」。`
+      : "若只是查看現況，先用搜尋與篩選縮小列表，不要直接進入新增。",
+    "Host 代理屬正式協調中心，不應與一般代理用同樣心智處理。",
+  ];
 
   function startCreate() {
     setEditingAgentId(null);
@@ -283,6 +294,21 @@ export function AgentManagementPanel() {
                 <button className="button-primary" type="button" onClick={startCreate}>
                   新增代理
                 </button>
+              </div>
+
+              <div className="summary-grid" style={{ marginBottom: "18px" }}>
+                <div className="section-card">
+                  <h4>{agentActionTitle}</h4>
+                  <p className="content-block">{agentActionSummary}</p>
+                </div>
+                <div className="section-card">
+                  <h4>這頁現在先看什麼</h4>
+                  <ul className="list-content">
+                    {agentActionChecklist.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
               </div>
 
               <div className="toolbar-grid">

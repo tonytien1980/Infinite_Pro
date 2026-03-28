@@ -9,6 +9,7 @@ from urllib import error, request
 
 from fastapi import HTTPException
 from sqlalchemy import select
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -200,7 +201,10 @@ def resolve_effective_provider_config(db: Session | None = None) -> ResolvedProv
         finally:
             session.close()
 
-    row = _get_runtime_config_row(db)
+    try:
+        row = _get_runtime_config_row(db)
+    except OperationalError:
+        return _build_env_baseline()
     if row is None:
         return _build_env_baseline()
 

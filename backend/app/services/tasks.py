@@ -13,10 +13,12 @@ from app.domain import models, schemas
 from app.domain.enums import (
     CapabilityArchetype,
     DeliverableClass,
+    EngagementContinuityMode,
     ExternalDataStrategy,
     InputEntryMode,
     PresenceState,
     TaskStatus,
+    WritebackDepth,
 )
 from app.extensions.registry import ExtensionRegistry
 from app.extensions.resolver import AgentResolver, PackResolver, resolve_runtime_agent_binding
@@ -293,6 +295,48 @@ def _unique_preserve_order(values: list[str]) -> list[str]:
     return unique_values
 
 
+def _default_continuity_mode(entry_preset: InputEntryMode) -> EngagementContinuityMode:
+    if entry_preset == InputEntryMode.ONE_LINE_INQUIRY:
+        return EngagementContinuityMode.ONE_OFF
+    return EngagementContinuityMode.FOLLOW_UP
+
+
+def _default_writeback_depth(entry_preset: InputEntryMode) -> WritebackDepth:
+    if entry_preset == InputEntryMode.ONE_LINE_INQUIRY:
+        return WritebackDepth.MINIMAL
+    return WritebackDepth.MILESTONE
+
+
+def _normalize_continuity_mode(
+    value: str | EngagementContinuityMode | None,
+    *,
+    fallback: InputEntryMode = InputEntryMode.ONE_LINE_INQUIRY,
+) -> EngagementContinuityMode:
+    if isinstance(value, EngagementContinuityMode):
+        return value
+    if value:
+        try:
+            return EngagementContinuityMode(value)
+        except ValueError:
+            logger.warning("Unknown engagement continuity mode: %s", value)
+    return _default_continuity_mode(fallback)
+
+
+def _normalize_writeback_depth(
+    value: str | WritebackDepth | None,
+    *,
+    fallback: InputEntryMode = InputEntryMode.ONE_LINE_INQUIRY,
+) -> WritebackDepth:
+    if isinstance(value, WritebackDepth):
+        return value
+    if value:
+        try:
+            return WritebackDepth(value)
+        except ValueError:
+            logger.warning("Unknown writeback depth: %s", value)
+    return _default_writeback_depth(fallback)
+
+
 def _contains_any_keyword(text: str, keywords: tuple[str, ...]) -> bool:
     normalized = text.lower()
     return any(keyword.lower() in normalized for keyword in keywords)
@@ -514,7 +558,7 @@ def _build_external_data_strategy_constraint(
 
 def task_load_options():
     return (
-        selectinload(models.Task.matter_workspace_links),
+        selectinload(models.Task.matter_workspace_links).selectinload(models.MatterWorkspaceTaskLink.matter_workspace),
         selectinload(models.Task.clients),
         selectinload(models.Task.engagements),
         selectinload(models.Task.workstreams),
@@ -537,6 +581,13 @@ def task_load_options():
         selectinload(models.Task.action_item_evidence_links),
         selectinload(models.Task.deliverables).selectinload(models.Deliverable.object_links),
         selectinload(models.Task.runs),
+        selectinload(models.Task.case_world_drafts),
+        selectinload(models.Task.evidence_gaps),
+        selectinload(models.Task.research_runs).selectinload(models.ResearchRun.source_documents),
+        selectinload(models.Task.decision_records),
+        selectinload(models.Task.action_plans),
+        selectinload(models.Task.action_executions),
+        selectinload(models.Task.outcome_records),
     )
 
 
@@ -1796,6 +1847,8 @@ def ensure_matter_workspace_for_task(
     workstream: schemas.WorkstreamRead | None,
     decision_context: schemas.DecisionContextRead | None,
     domain_lenses: list[str],
+    continuity_mode: EngagementContinuityMode | None = None,
+    writeback_depth: WritebackDepth | None = None,
 ) -> tuple[models.MatterWorkspace, bool]:
     identity = _derive_matter_workspace_identity(
         task,
@@ -1811,9 +1864,25 @@ def ensure_matter_workspace_for_task(
         )
     ).one_or_none()
     changed = False
+    try:
+        fallback_entry_preset = InputEntryMode(task.entry_preset)
+    except ValueError:
+        fallback_entry_preset = InputEntryMode.ONE_LINE_INQUIRY
 
     if matter_workspace is None:
-        matter_workspace = models.MatterWorkspace(**identity)
+        resolved_continuity_mode = _normalize_continuity_mode(
+            continuity_mode,
+            fallback=fallback_entry_preset,
+        )
+        resolved_writeback_depth = _normalize_writeback_depth(
+            writeback_depth,
+            fallback=fallback_entry_preset,
+        )
+        matter_workspace = models.MatterWorkspace(
+            **identity,
+            engagement_continuity_mode=resolved_continuity_mode.value,
+            writeback_depth=resolved_writeback_depth.value,
+        )
         db.add(matter_workspace)
         db.flush()
         changed = True
@@ -1842,6 +1911,18 @@ def ensure_matter_workspace_for_task(
         )
         if merged_lenses != matter_workspace.domain_lenses:
             matter_workspace.domain_lenses = merged_lenses
+            changed = True
+        if not matter_workspace.engagement_continuity_mode:
+            matter_workspace.engagement_continuity_mode = _normalize_continuity_mode(
+                continuity_mode,
+                fallback=fallback_entry_preset,
+            ).value
+            changed = True
+        if not matter_workspace.writeback_depth:
+            matter_workspace.writeback_depth = _normalize_writeback_depth(
+                writeback_depth,
+                fallback=fallback_entry_preset,
+            ).value
             changed = True
 
     existing_link = next(
@@ -1873,6 +1954,33 @@ def _default_matter_workspace_status(matter_workspace: models.MatterWorkspace, r
 
     active_task_count = sum(1 for task in related_tasks if task.status != TaskStatus.COMPLETED.value)
     return "active" if active_task_count > 0 else "paused"
+
+
+def _get_linked_matter_workspace(task: models.Task) -> models.MatterWorkspace | None:
+    for link in task.matter_workspace_links:
+        if link.matter_workspace is not None:
+            return link.matter_workspace
+    return None
+
+
+def resolve_continuity_policy_for_task(
+    task: models.Task,
+    matter_workspace: models.MatterWorkspace | None = None,
+) -> tuple[EngagementContinuityMode, WritebackDepth]:
+    linked_workspace = matter_workspace or _get_linked_matter_workspace(task)
+    try:
+        fallback_entry_preset = InputEntryMode(task.entry_preset)
+    except ValueError:
+        fallback_entry_preset = InputEntryMode.ONE_LINE_INQUIRY
+    continuity_mode = _normalize_continuity_mode(
+        linked_workspace.engagement_continuity_mode if linked_workspace else None,
+        fallback=fallback_entry_preset,
+    )
+    writeback_depth = _normalize_writeback_depth(
+        linked_workspace.writeback_depth if linked_workspace else None,
+        fallback=fallback_entry_preset,
+    )
+    return continuity_mode, writeback_depth
 
 
 def _default_deliverable_status(task: models.Task, deliverable: models.Deliverable) -> str:
@@ -2151,10 +2259,14 @@ def _build_matter_workspace_summary_from_tasks(
         selected_agent_names.extend(agent_selection.selected_agent_names)
 
     continuity_summary = (
-        f"目前這個案件世界已有 {len(related_tasks)} 個相關 tasks、{deliverable_count} 份 deliverables，"
+        f"目前這個案件世界採 {matter_workspace.engagement_continuity_mode} / {matter_workspace.writeback_depth} 策略，"
+        f"已有 {len(related_tasks)} 個相關 tasks、{deliverable_count} 份 deliverables，"
         "可直接回看 decision trajectory、最近交付與工作鏈材料。"
         if len(related_tasks) > 1 or deliverable_count > 0
-        else "這個案件世界目前仍是第一個 task，但已具備正式的 matter / engagement 工作面。"
+        else (
+            f"這個案件世界目前仍是第一個 task，採 {matter_workspace.engagement_continuity_mode} / "
+            f"{matter_workspace.writeback_depth} 策略，但已具備正式的 matter / engagement 工作面。"
+        )
     )
     active_work_summary = (
         f"目前有 {active_task_count} 個 active work item；最近更新來自「{latest_task.title}」。"
@@ -2204,6 +2316,10 @@ def _build_matter_workspace_summary_from_tasks(
         ),
         continuity_summary=continuity_summary,
         active_work_summary=active_work_summary,
+        engagement_continuity_mode=EngagementContinuityMode(
+            matter_workspace.engagement_continuity_mode
+        ),
+        writeback_depth=WritebackDepth(matter_workspace.writeback_depth),
         selected_pack_names=_unique_preserve_order(
             [
                 item.pack_name if isinstance(item, schemas.SelectedPackRead) else str(item)
@@ -2506,6 +2622,7 @@ def create_task(db: Session, payload: schemas.TaskCreateRequest) -> models.Task:
         description=payload.description,
         task_type=payload.task_type,
         mode=payload.mode.value,
+        entry_preset=payload.entry_preset.value,
         status=TaskStatus.READY.value,
     )
     db.add(task)
@@ -2660,6 +2777,8 @@ def create_task(db: Session, payload: schemas.TaskCreateRequest) -> models.Task:
         workstream_read,
         decision_context_read,
         domain_lenses,
+        payload.engagement_continuity_mode,
+        payload.writeback_depth,
     )
 
     db.commit()
@@ -2709,6 +2828,7 @@ def _build_task_list_item_response(
         source_materials,
         artifacts,
     )
+    continuity_mode, writeback_depth = resolve_continuity_policy_for_task(task)
     return schemas.TaskListItemResponse(
         id=task.id,
         title=task.title,
@@ -2725,7 +2845,10 @@ def _build_task_list_item_response(
         client_stage=client.client_stage if client and client.client_stage != UNSPECIFIED_LABEL else None,
         client_type=client.client_type if client and client.client_type != UNSPECIFIED_LABEL else None,
         domain_lenses=domain_lenses,
+        entry_preset=InputEntryMode(task.entry_preset),
         input_entry_mode=input_entry_mode,
+        engagement_continuity_mode=continuity_mode,
+        writeback_depth=writeback_depth,
         deliverable_class_hint=deliverable_class_hint,
         external_research_heavy_candidate=external_research_heavy_candidate,
         selected_pack_ids=pack_resolution.stack_order,
@@ -2868,10 +2991,20 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
     related_deliverables: list[schemas.MatterDeliverableSummaryRead] = []
     related_artifacts: list[schemas.MatterMaterialSummaryRead] = []
     related_source_materials: list[schemas.MatterMaterialSummaryRead] = []
+    case_world_drafts: list[schemas.CaseWorldDraftRead] = []
+    evidence_gap_records: list[schemas.EvidenceGapRead] = []
+    research_runs: list[schemas.ResearchRunRead] = []
+    decision_records: list[schemas.DecisionRecordRead] = []
+    action_plans: list[schemas.ActionPlanRead] = []
+    action_executions: list[schemas.ActionExecutionRead] = []
+    outcome_records: list[schemas.OutcomeRecordRead] = []
     seen_material_keys: set[str] = set()
     continuity_notes: list[str] = []
 
     for task in related_tasks:
+        if not task.case_world_drafts:
+            serialize_task(task)
+            task = get_loaded_task(db, task.id)
         _, _, _, decision_context, _, source_materials, artifacts = _build_ontology_spine_for_task(task)
         input_entry_mode = _infer_input_entry_mode(task, source_materials, artifacts)
         external_research_heavy_candidate = _is_external_research_heavy_candidate(
@@ -2904,6 +3037,37 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
                 deliverable_class_hint=deliverable_class_hint,
                 updated_at=task.updated_at,
             )
+        )
+        if task.case_world_drafts:
+            case_world_drafts.extend(
+                filter(
+                    None,
+                    [_serialize_case_world_draft(item) for item in task.case_world_drafts[:1]],
+                )
+            )
+        evidence_gap_records.extend(
+            schemas.EvidenceGapRead.model_validate(item)
+            for item in task.evidence_gaps
+        )
+        research_runs.extend(
+            schemas.ResearchRunRead.model_validate(item)
+            for item in task.research_runs
+        )
+        decision_records.extend(
+            schemas.DecisionRecordRead.model_validate(item)
+            for item in task.decision_records
+        )
+        action_plans.extend(
+            schemas.ActionPlanRead.model_validate(item)
+            for item in task.action_plans
+        )
+        action_executions.extend(
+            schemas.ActionExecutionRead.model_validate(item)
+            for item in task.action_executions
+        )
+        outcome_records.extend(
+            schemas.OutcomeRecordRead.model_validate(item)
+            for item in task.outcome_records
         )
         for deliverable in sorted(task.deliverables, key=lambda item: (item.generated_at, item.version), reverse=True)[:3]:
             related_deliverables.append(
@@ -3001,6 +3165,13 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
             key=lambda item: item.created_at,
             reverse=True,
         )[:8],
+        case_world_drafts=sorted(case_world_drafts, key=lambda item: item.updated_at, reverse=True)[:6],
+        evidence_gaps=sorted(evidence_gap_records, key=lambda item: item.updated_at, reverse=True)[:10],
+        research_runs=sorted(research_runs, key=lambda item: item.started_at, reverse=True)[:6],
+        decision_records=sorted(decision_records, key=lambda item: item.created_at, reverse=True)[:6],
+        action_plans=sorted(action_plans, key=lambda item: item.created_at, reverse=True)[:6],
+        action_executions=sorted(action_executions, key=lambda item: item.updated_at, reverse=True)[:10],
+        outcome_records=sorted(outcome_records, key=lambda item: item.created_at, reverse=True)[:10],
         readiness_hint=readiness_hint,
         continuity_notes=continuity_notes,
     )
@@ -3223,6 +3394,8 @@ def get_artifact_evidence_workspace(
     evidence_chains: list[schemas.EvidenceWorkspaceEvidenceRead] = []
     evidence_expectations: list[str] = []
     high_impact_gaps: list[str] = []
+    evidence_gap_records: list[schemas.EvidenceGapRead] = []
+    research_runs: list[schemas.ResearchRunRead] = []
     deliverable_limitations: list[str] = []
     continuity_notes: list[str] = []
 
@@ -3239,6 +3412,9 @@ def get_artifact_evidence_workspace(
     external_research_heavy_detected = False
 
     for task in related_tasks:
+        if not task.case_world_drafts:
+            serialize_task(task)
+            task = get_loaded_task(db, task.id)
         task_title = task.title
         task_spine = _build_ontology_spine_for_task(task)
         decision_context = task_spine[3]
@@ -3296,6 +3472,14 @@ def get_artifact_evidence_workspace(
             domain_lenses,
         )
         evidence_expectations.extend(pack_resolution.evidence_expectations)
+        evidence_gap_records.extend(
+            schemas.EvidenceGapRead.model_validate(item)
+            for item in task.evidence_gaps
+        )
+        research_runs.extend(
+            schemas.ResearchRunRead.model_validate(item)
+            for item in task.research_runs
+        )
 
         unsupported_recommendation_count += sum(
             1 for item in recommendations if not item.supporting_evidence_ids
@@ -3598,6 +3782,8 @@ def get_artifact_evidence_workspace(
         evidence_chains=evidence_chains,
         evidence_expectations=unique_expectations,
         high_impact_gaps=_unique_preserve_order(high_impact_gaps)[:8],
+        evidence_gaps=sorted(evidence_gap_records, key=lambda item: item.updated_at, reverse=True)[:10],
+        research_runs=sorted(research_runs, key=lambda item: item.started_at, reverse=True)[:6],
         sufficiency_summary=sufficiency_summary,
         deliverable_limitations=_unique_preserve_order(deliverable_limitations)[:6],
         continuity_notes=_unique_preserve_order(continuity_notes)[:6],
@@ -3874,6 +4060,11 @@ def get_deliverable_workspace(
         linked_risks=_dedupe_schema_items(linked_risks)[:8],
         linked_action_items=_dedupe_schema_items(linked_action_items)[:8],
         related_deliverables=related_deliverables,
+        decision_records=task_aggregate.decision_records[:6],
+        action_plans=task_aggregate.action_plans[:6],
+        action_executions=task_aggregate.action_executions[:10],
+        outcome_records=task_aggregate.outcome_records[:10],
+        research_runs=task_aggregate.research_runs[:6],
         continuity_notes=_unique_preserve_order(continuity_notes),
         content_sections=_normalize_deliverable_content_sections(deliverable_row.content_sections),
         content_revisions=[
@@ -4631,6 +4822,489 @@ def download_deliverable_artifact(
     )
 
 
+def _serialize_case_world_draft(
+    draft: models.CaseWorldDraft | None,
+) -> schemas.CaseWorldDraftRead | None:
+    if draft is None:
+        return None
+
+    return schemas.CaseWorldDraftRead(
+        id=draft.id,
+        task_id=draft.task_id,
+        matter_workspace_id=draft.matter_workspace_id,
+        compiler_status=draft.compiler_status,
+        entry_preset=InputEntryMode(draft.entry_preset),
+        continuity_mode=EngagementContinuityMode(draft.continuity_mode),
+        writeback_depth=WritebackDepth(draft.writeback_depth),
+        canonical_intake_summary=draft.canonical_intake_summary or {},
+        task_interpretation=draft.task_interpretation or {},
+        decision_context=draft.decision_context_payload or {},
+        extracted_objects=list(draft.extracted_objects or []),
+        inferred_links=list(draft.inferred_links or []),
+        facts=[
+            schemas.CaseWorldFactRead(**item)
+            for item in list(draft.facts or [])
+            if isinstance(item, dict)
+        ],
+        assumptions=[
+            schemas.CaseWorldAssumptionRead(**item)
+            for item in list(draft.assumptions_payload or [])
+            if isinstance(item, dict)
+        ],
+        evidence_gaps=[
+            schemas.CaseWorldGapRead(**item)
+            for item in list(draft.evidence_gaps_payload or [])
+            if isinstance(item, dict)
+        ],
+        suggested_capabilities=list(draft.suggested_capabilities or []),
+        suggested_domain_packs=list(draft.suggested_domain_packs or []),
+        suggested_industry_packs=list(draft.suggested_industry_packs or []),
+        suggested_agents=list(draft.suggested_agents or []),
+        suggested_research_need=bool(draft.suggested_research_need),
+        next_best_actions=list(draft.next_best_actions or []),
+        created_at=draft.created_at,
+        updated_at=draft.updated_at,
+    )
+
+
+def _build_case_world_fact_payloads(
+    *,
+    client: schemas.ClientRead | None,
+    engagement: schemas.EngagementRead | None,
+    workstream: schemas.WorkstreamRead | None,
+    decision_context: schemas.DecisionContextRead | None,
+    domain_lenses: list[str],
+    source_materials: list[schemas.SourceMaterialRead],
+    artifacts: list[schemas.ArtifactRead],
+    usable_evidence_count: int,
+    pack_resolution: schemas.PackResolutionRead,
+) -> list[dict[str, str]]:
+    facts: list[dict[str, str]] = []
+
+    if client and client.name:
+        facts.append({"title": "Client", "detail": client.name, "source": "explicit"})
+    if engagement and engagement.name:
+        facts.append({"title": "Engagement", "detail": engagement.name, "source": "explicit"})
+    if workstream and workstream.name:
+        facts.append({"title": "Workstream", "detail": workstream.name, "source": "explicit"})
+    if decision_context and decision_context.judgment_to_make:
+        facts.append(
+            {
+                "title": "DecisionContext",
+                "detail": decision_context.judgment_to_make,
+                "source": "explicit",
+            }
+        )
+    if domain_lenses:
+        facts.append(
+            {
+                "title": "DomainLens",
+                "detail": join_natural_list(domain_lenses),
+                "source": "inferred",
+            }
+        )
+    if source_materials:
+        facts.append(
+            {
+                "title": "SourceMaterial",
+                "detail": f"目前已有 {len(source_materials)} 份來源材料。",
+                "source": "explicit",
+            }
+        )
+    if artifacts:
+        facts.append(
+            {
+                "title": "Artifact",
+                "detail": f"目前已有 {len(artifacts)} 份工作物件。",
+                "source": "explicit",
+            }
+        )
+    if usable_evidence_count:
+        facts.append(
+            {
+                "title": "Evidence",
+                "detail": f"目前已有 {usable_evidence_count} 則可引用 evidence。",
+                "source": "explicit",
+            }
+        )
+    if pack_resolution.selected_domain_packs:
+        facts.append(
+            {
+                "title": "Domain Packs",
+                "detail": join_natural_list(
+                    [item.pack_name for item in pack_resolution.selected_domain_packs]
+                ),
+                "source": "pack_resolver",
+            }
+        )
+    if pack_resolution.selected_industry_packs:
+        facts.append(
+            {
+                "title": "Industry Packs",
+                "detail": join_natural_list(
+                    [item.pack_name for item in pack_resolution.selected_industry_packs]
+                ),
+                "source": "pack_resolver",
+            }
+        )
+
+    return facts
+
+
+def _build_case_world_assumption_payloads(
+    *,
+    task: models.Task,
+    decision_context: schemas.DecisionContextRead | None,
+    presence_state_summary: schemas.PresenceStateSummaryRead,
+) -> list[dict[str, str]]:
+    assumptions = [
+        {
+            "title": "既定假設",
+            "detail": item,
+            "source": "user_provided",
+        }
+        for item in _extract_assumptions(task)
+    ]
+
+    if presence_state_summary.decision_context.state == PresenceState.PROVISIONAL:
+        assumptions.append(
+            {
+                "title": "DecisionContext 仍偏 provisional",
+                "detail": "目前判斷主軸仍有一部分是 Host 依任務文字先建立的 provisional framing。",
+                "source": "host_inference",
+            }
+        )
+    if (
+        decision_context
+        and decision_context.client_stage
+        and decision_context.client_stage == UNSPECIFIED_LABEL
+    ):
+        assumptions.append(
+            {
+                "title": "Client stage 尚未明確",
+                "detail": "目前案件世界仍缺少更明確的 client stage，因此 stage-specific heuristics 只能先保守套用。",
+                "source": "host_inference",
+            }
+        )
+
+    return assumptions
+
+
+def _build_case_world_gap_payloads(
+    *,
+    task: models.Task,
+    decision_context: schemas.DecisionContextRead | None,
+    input_entry_mode: InputEntryMode,
+    source_materials: list[schemas.SourceMaterialRead],
+    artifacts: list[schemas.ArtifactRead],
+    usable_evidence_count: int,
+    pack_resolution: schemas.PackResolutionRead,
+    external_research_heavy_candidate: bool,
+) -> list[dict[str, object]]:
+    gaps: list[dict[str, object]] = []
+
+    if not decision_context or not _normalize_whitespace(decision_context.judgment_to_make):
+        gaps.append(
+            {
+                "gap_key": "decision-context",
+                "title": "DecisionContext 仍不夠穩定",
+                "description": "這輪仍缺清楚的 judgment_to_make，因此案件世界只能先以 provisional framing 運作。",
+                "priority": "high",
+                "related_pack_ids": [],
+            }
+        )
+
+    if not source_materials:
+        gaps.append(
+            {
+                "gap_key": "source-materials",
+                "title": "尚缺正式來源材料",
+                "description": "目前仍沒有可掛回案件世界的正式來源材料，建議先補檔案、網址或 pasted text。",
+                "priority": "high" if input_entry_mode == InputEntryMode.ONE_LINE_INQUIRY else "medium",
+                "related_pack_ids": [],
+            }
+        )
+
+    if usable_evidence_count < 2:
+        gaps.append(
+            {
+                "gap_key": "evidence-thickness",
+                "title": "證據鏈仍偏薄",
+                "description": "目前 evidence 仍不足以穩定支撐更高等級的 decision / action deliverable。",
+                "priority": "high" if not artifacts else "medium",
+                "related_pack_ids": [],
+            }
+        )
+
+    if external_research_heavy_candidate:
+        gaps.append(
+            {
+                "gap_key": "research-needed",
+                "title": "需要正式外部補完",
+                "description": "這輪屬於 external-research-heavy sparse case，Host 應先補 public research，再回到 evidence chain。",
+                "priority": "high",
+                "related_pack_ids": [
+                    *[item.pack_id for item in pack_resolution.selected_domain_packs],
+                    *[item.pack_id for item in pack_resolution.selected_industry_packs],
+                ],
+            }
+        )
+
+    for pack in [*pack_resolution.selected_domain_packs, *pack_resolution.selected_industry_packs]:
+        if not pack.evidence_expectations:
+            continue
+        expectation = pack.evidence_expectations[0]
+        gaps.append(
+            {
+                "gap_key": f"pack-{pack.pack_id}-expectation",
+                "title": f"{pack.pack_name} 缺少關鍵支撐",
+                "description": f"{pack.pack_name} 目前期待 {expectation} 等材料，但案件世界尚未形成足夠的可引用證據。",
+                "priority": "medium",
+                "related_pack_ids": [pack.pack_id],
+            }
+        )
+
+    unique_by_key: dict[str, dict[str, object]] = {}
+    for item in gaps:
+        gap_key = str(item["gap_key"])
+        if gap_key not in unique_by_key:
+            unique_by_key[gap_key] = item
+    return list(unique_by_key.values())
+
+
+def _upsert_evidence_gap_rows(
+    db: Session,
+    *,
+    task: models.Task,
+    matter_workspace: models.MatterWorkspace | None,
+    gap_payloads: list[dict[str, object]],
+) -> tuple[list[models.EvidenceGap], bool]:
+    existing_by_key = {
+        item.gap_key: item for item in task.evidence_gaps if item.source == "case_world_compiler"
+    }
+    active_keys = {str(item["gap_key"]) for item in gap_payloads}
+    rows: list[models.EvidenceGap] = []
+    changed = False
+
+    for payload in gap_payloads:
+        gap_key = str(payload["gap_key"])
+        row = existing_by_key.get(gap_key)
+        if row is None:
+            row = models.EvidenceGap(
+                task_id=task.id,
+                matter_workspace_id=matter_workspace.id if matter_workspace else None,
+                gap_key=gap_key,
+                source="case_world_compiler",
+            )
+            db.add(row)
+            changed = True
+        previous_state = (
+            row.matter_workspace_id,
+            row.title,
+            row.gap_type,
+            row.description,
+            row.priority,
+            row.status,
+            list(row.supporting_pack_ids or []),
+        )
+        row.matter_workspace_id = matter_workspace.id if matter_workspace else None
+        row.title = str(payload["title"])
+        row.gap_type = "evidence_gap"
+        row.description = str(payload["description"])
+        row.priority = str(payload.get("priority") or "medium")
+        row.status = "open"
+        row.supporting_pack_ids = list(payload.get("related_pack_ids") or [])
+        if previous_state != (
+            row.matter_workspace_id,
+            row.title,
+            row.gap_type,
+            row.description,
+            row.priority,
+            row.status,
+            list(row.supporting_pack_ids or []),
+        ):
+            changed = True
+        rows.append(row)
+
+    for gap_key, row in existing_by_key.items():
+        if gap_key in active_keys:
+            continue
+        if row.status != "resolved":
+            row.status = "resolved"
+            changed = True
+        rows.append(row)
+
+    db.flush()
+    ordered = sorted(
+        {item.id: item for item in rows}.values(),
+        key=lambda item: item.updated_at.isoformat() if item.updated_at else "",
+        reverse=True,
+    )
+    return ordered, changed
+
+
+def ensure_case_world_draft_for_task(
+    db: Session,
+    *,
+    task: models.Task,
+    matter_workspace: models.MatterWorkspace | None,
+    client: schemas.ClientRead | None,
+    engagement: schemas.EngagementRead | None,
+    workstream: schemas.WorkstreamRead | None,
+    decision_context: schemas.DecisionContextRead | None,
+    domain_lenses: list[str],
+    input_entry_mode: InputEntryMode,
+    deliverable_class_hint: DeliverableClass,
+    external_research_heavy_candidate: bool,
+    presence_state_summary: schemas.PresenceStateSummaryRead,
+    pack_resolution: schemas.PackResolutionRead,
+    agent_selection: schemas.AgentSelectionRead,
+    source_materials: list[schemas.SourceMaterialRead],
+    artifacts: list[schemas.ArtifactRead],
+) -> tuple[models.CaseWorldDraft, list[models.EvidenceGap], bool]:
+    continuity_mode, writeback_depth = resolve_continuity_policy_for_task(task, matter_workspace)
+    usable_evidence_count = len(_usable_evidence(task))
+    capability = _infer_capability_for_task(task, decision_context, domain_lenses)
+    fact_payloads = _build_case_world_fact_payloads(
+        client=client,
+        engagement=engagement,
+        workstream=workstream,
+        decision_context=decision_context,
+        domain_lenses=domain_lenses,
+        source_materials=source_materials,
+        artifacts=artifacts,
+        usable_evidence_count=usable_evidence_count,
+        pack_resolution=pack_resolution,
+    )
+    assumption_payloads = _build_case_world_assumption_payloads(
+        task=task,
+        decision_context=decision_context,
+        presence_state_summary=presence_state_summary,
+    )
+    gap_payloads = _build_case_world_gap_payloads(
+        task=task,
+        decision_context=decision_context,
+        input_entry_mode=input_entry_mode,
+        source_materials=source_materials,
+        artifacts=artifacts,
+        usable_evidence_count=usable_evidence_count,
+        pack_resolution=pack_resolution,
+        external_research_heavy_candidate=external_research_heavy_candidate,
+    )
+    evidence_gap_rows, evidence_gap_changed = _upsert_evidence_gap_rows(
+        db,
+        task=task,
+        matter_workspace=matter_workspace,
+        gap_payloads=gap_payloads,
+    )
+
+    extracted_objects = [
+        {"object_type": "client", "object_id": client.id if client else None, "label": client.name if client else "未指定 client"},
+        {"object_type": "engagement", "object_id": engagement.id if engagement else None, "label": engagement.name if engagement else "未指定 engagement"},
+        {"object_type": "workstream", "object_id": workstream.id if workstream else None, "label": workstream.name if workstream else "未指定 workstream"},
+        {
+            "object_type": "decision_context",
+            "object_id": decision_context.id if decision_context else None,
+            "label": decision_context.title if decision_context else task.title,
+        },
+    ]
+    inferred_links = [
+        {"from": "task", "to": "decision_context", "relation": "frames"},
+        {"from": "decision_context", "to": "source_material", "relation": "expects_evidence"},
+        {"from": "source_material", "to": "evidence", "relation": "produces"},
+        {"from": "deliverable", "to": "decision_record", "relation": "writes_back"},
+    ]
+    next_best_actions: list[str] = []
+    if not source_materials:
+        next_best_actions.append("先補至少一份檔案、網址或 pasted text。")
+    if external_research_heavy_candidate:
+        next_best_actions.append("允許 Host 先補正式外部 research，再回到 evidence chain。")
+    if usable_evidence_count < 2:
+        next_best_actions.append("先執行第一版分析，或補更多 evidence 之後再收斂。")
+    else:
+        next_best_actions.append("直接執行分析並寫回正式交付物。")
+    if continuity_mode != EngagementContinuityMode.ONE_OFF:
+        next_best_actions.append("把這輪結果寫回案件世界，保留 decision checkpoint。")
+
+    existing = task.case_world_drafts[0] if task.case_world_drafts else None
+    changed = existing is None
+    if existing is None:
+        existing = models.CaseWorldDraft(
+            task_id=task.id,
+            matter_workspace_id=matter_workspace.id if matter_workspace else None,
+        )
+        db.add(existing)
+
+    canonical_intake_summary = {
+        "entry_preset": task.entry_preset,
+        "resolved_input_state": input_entry_mode.value,
+        "problem_statement": (
+            decision_context.judgment_to_make
+            if decision_context and decision_context.judgment_to_make
+            else task.description or task.title
+        ),
+        "source_material_count": len(source_materials),
+        "artifact_count": len(artifacts),
+        "usable_evidence_count": usable_evidence_count,
+        "external_research_heavy_candidate": external_research_heavy_candidate,
+    }
+    task_interpretation = {
+        "task_title": task.title,
+        "task_type": task.task_type,
+        "workflow_mode": task.mode,
+        "capability": capability.value,
+        "deliverable_class_hint": deliverable_class_hint.value,
+        "external_data_strategy": get_external_data_strategy_for_task(task).value,
+        "summary": _build_sparse_input_summary(
+            input_entry_mode,
+            deliverable_class_hint,
+            external_research_heavy_candidate,
+        ),
+    }
+    decision_context_payload = (
+        decision_context.model_dump(mode="json")
+        if decision_context
+        else {
+            "title": task.title,
+            "judgment_to_make": task.description or task.title,
+            "summary": task.description,
+        }
+    )
+    suggested_domain_packs = [item.pack_id for item in pack_resolution.selected_domain_packs]
+    suggested_industry_packs = [item.pack_id for item in pack_resolution.selected_industry_packs]
+    suggested_research_need = external_research_heavy_candidate or any(
+        item["gap_key"] == "research-needed" for item in gap_payloads
+    )
+
+    def assign(attribute: str, value: object) -> None:
+        nonlocal changed
+        if getattr(existing, attribute) != value:
+            setattr(existing, attribute, value)
+            changed = True
+
+    assign("matter_workspace_id", matter_workspace.id if matter_workspace else None)
+    assign("compiler_status", "compiled")
+    assign("entry_preset", task.entry_preset)
+    assign("continuity_mode", continuity_mode.value)
+    assign("writeback_depth", writeback_depth.value)
+    assign("canonical_intake_summary", canonical_intake_summary)
+    assign("task_interpretation", task_interpretation)
+    assign("decision_context_payload", decision_context_payload)
+    assign("extracted_objects", extracted_objects)
+    assign("inferred_links", inferred_links)
+    assign("facts", fact_payloads)
+    assign("assumptions_payload", assumption_payloads)
+    assign("evidence_gaps_payload", gap_payloads)
+    assign("suggested_capabilities", [capability.value])
+    assign("suggested_domain_packs", suggested_domain_packs)
+    assign("suggested_industry_packs", suggested_industry_packs)
+    assign("suggested_agents", agent_selection.selected_agent_ids)
+    assign("suggested_research_need", suggested_research_need)
+    assign("next_best_actions", _unique_preserve_order(next_best_actions))
+    db.flush()
+    return existing, evidence_gap_rows, changed or evidence_gap_changed
+
+
 def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
     db = object_session(task)
     if db is None:
@@ -4723,6 +5397,45 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         source_materials,
         artifacts,
     )
+    continuity_mode, writeback_depth = resolve_continuity_policy_for_task(task, matter_workspace)
+    case_world_draft_row, evidence_gap_rows, case_world_changed = ensure_case_world_draft_for_task(
+        db,
+        task=task,
+        matter_workspace=matter_workspace,
+        client=client,
+        engagement=engagement,
+        workstream=workstream,
+        decision_context=decision_context,
+        domain_lenses=domain_lenses,
+        input_entry_mode=input_entry_mode,
+        deliverable_class_hint=deliverable_class_hint,
+        external_research_heavy_candidate=external_research_heavy_candidate,
+        presence_state_summary=presence_state_summary,
+        pack_resolution=pack_resolution,
+        agent_selection=agent_selection,
+        source_materials=source_materials,
+        artifacts=artifacts,
+    )
+    if case_world_changed:
+        db.commit()
+        task = get_loaded_task(db, task.id)
+        client, engagement, workstream, decision_context, domain_lenses, source_materials, artifacts = (
+            _build_ontology_spine_for_task(task)
+        )
+        matter_workspace = _get_linked_matter_workspace(task) or matter_workspace
+        matter_workspace_summary = _build_matter_workspace_summary_map(db, [matter_workspace]).get(
+            matter_workspace.id
+        )
+        evidence = _serialize_evidence_items(task, source_materials, artifacts)
+        recommendation_support_map, risk_support_map, action_item_support_map = _build_supporting_evidence_maps(
+            task
+        )
+        recommendations = _serialize_recommendations(task, recommendation_support_map)
+        risks = _serialize_risks(task, risk_support_map)
+        action_items = _serialize_action_items(task, action_item_support_map)
+        case_world_draft_row = task.case_world_drafts[0] if task.case_world_drafts else case_world_draft_row
+        evidence_gap_rows = list(task.evidence_gaps)
+
     return schemas.TaskAggregateResponse(
         id=task.id,
         title=task.title,
@@ -4741,7 +5454,10 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         client_type=decision_context.client_type if decision_context else client.client_type if client else None,
         domain_lenses=domain_lenses,
         assumptions=_extract_assumptions(task),
+        entry_preset=InputEntryMode(task.entry_preset),
         input_entry_mode=input_entry_mode,
+        engagement_continuity_mode=continuity_mode,
+        writeback_depth=writeback_depth,
         deliverable_class_hint=deliverable_class_hint,
         external_research_heavy_candidate=external_research_heavy_candidate,
         sparse_input_summary=_build_sparse_input_summary(
@@ -4767,6 +5483,18 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         action_items=action_items,
         deliverables=deliverables,
         runs=[schemas.TaskRunRead.model_validate(item) for item in task.runs],
+        case_world_draft=_serialize_case_world_draft(case_world_draft_row),
+        evidence_gaps=[
+            schemas.EvidenceGapRead.model_validate(item)
+            for item in sorted(evidence_gap_rows, key=lambda gap: gap.updated_at, reverse=True)
+        ],
+        research_runs=[schemas.ResearchRunRead.model_validate(item) for item in task.research_runs],
+        decision_records=[schemas.DecisionRecordRead.model_validate(item) for item in task.decision_records],
+        action_plans=[schemas.ActionPlanRead.model_validate(item) for item in task.action_plans],
+        action_executions=[
+            schemas.ActionExecutionRead.model_validate(item) for item in task.action_executions
+        ],
+        outcome_records=[schemas.OutcomeRecordRead.model_validate(item) for item in task.outcome_records],
         matter_workspace=matter_workspace_summary,
     )
 

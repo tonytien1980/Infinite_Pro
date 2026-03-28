@@ -60,6 +60,11 @@ def _ensure_incremental_schema_updates() -> None:
             "status": "VARCHAR(50)",
             "content_sections": "JSON NOT NULL DEFAULT '{}'",
             "title_override_active": "BOOLEAN NOT NULL DEFAULT FALSE",
+            "engagement_continuity_mode": "VARCHAR(30) NOT NULL DEFAULT 'one_off'",
+            "writeback_depth": "VARCHAR(30) NOT NULL DEFAULT 'minimal'",
+        },
+        "tasks": {
+            "entry_preset": "VARCHAR(50) NOT NULL DEFAULT 'one_line_inquiry'",
         },
         "deliverables": {
             "summary": "TEXT NOT NULL DEFAULT ''",
@@ -71,6 +76,7 @@ def _ensure_incremental_schema_updates() -> None:
             "event_key": "VARCHAR(255)",
         },
         "source_documents": {
+            "research_run_id": "VARCHAR(36)",
             "canonical_display_name": "VARCHAR(255) NOT NULL DEFAULT ''",
             "file_extension": "VARCHAR(20)",
             "storage_key": "VARCHAR(1024)",

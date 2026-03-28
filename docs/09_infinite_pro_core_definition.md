@@ -62,6 +62,15 @@ Infinite Pro 的核心原則是：
    - 正式進件模式、multi-source ingestion、storage / retention / purge 邊界，正式由 `docs/11_intake_storage_architecture.md` 承接。
    - 正文 persistence、revision、rollback、publish / artifact records、fallback / degraded mode / re-sync 邊界，正式由 `docs/12_runtime_persistence_and_release_integrity.md` 承接。
 
+7. **canonical intake pipeline**
+   - 系統只有一條 canonical intake pipeline
+   - `/new` 上的 `一句話問題 / 單文件進件 / 多材料案件` 只是 entry presets
+   - 任何 intake 都必須先進入 `Case World Compiler`
+
+8. **continuity-aware writeback**
+   - 並非所有案件都需要 full continuous loop
+   - 但所有案件都至少需要最小 history、evidence basis 與 deliverable lineage
+
 ---
 
 ## 4. Ontology 的正式角色
@@ -94,6 +103,8 @@ Ontology 是這套系統的：
 - 一組 prompt 變數
 - 一份 UI 導覽表
 
+也不要把 ontology world 按 `一句話 / 單文件 / 多材料` 拆成三個不同世界。
+
 ---
 
 ## 5. 正式主鏈與工作物件
@@ -106,7 +117,16 @@ Infinite Pro 的工作世界至少應圍繞以下主鏈理解：
 - Deliverable 不是自由文字的終點
 - Recommendation / Risk / ActionItem 不是獨立散落的欄位
 - 每一段輸出都應儘量能回到 shared objects 與 links
-- `/new` 的一句話問題、單文件進件、多材料案件，都必須匯進這同一條主鏈，而不是三套互不相容的 intake 流程
+- `/new` 的一句話問題、單文件進件、多材料案件，都必須匯進這同一條 canonical intake pipeline，而不是三套互不相容的 intake 流程
+
+在這條主鏈之前，Host 還必須先形成：
+- `CaseWorldDraft`
+
+在這條主鏈之後，根據 continuity / writeback policy，系統還要能正式保留：
+- `DecisionRecord`
+- `ActionPlan`
+- `ActionExecution`
+- `OutcomeRecord`
 
 正式核心物件至少包括：
 - Client
@@ -128,6 +148,13 @@ Infinite Pro 的工作世界至少應圍繞以下主鏈理解：
 - Assumption
 - Stakeholder
 - Audience
+- CaseWorldDraft
+- EvidenceGap
+- ResearchRun / ExternalResearchRun
+- DecisionRecord
+- ActionPlan
+- ActionExecution
+- OutcomeRecord
 
 ---
 
@@ -140,11 +167,14 @@ Infinite Pro 的工作世界至少應圍繞以下主鏈理解：
 作為唯一 orchestration center，負責：
 - 理解任務
 - decision framing
+- case world compilation
 - workflow selection
 - readiness governance
+- research trigger governance
 - specialist / reasoning routing
 - convergence
 - deliverable shaping
+- continuity / writeback policy control
 
 ### Agents
 提供不同專業視角或專門能力，用於：
@@ -172,6 +202,7 @@ Infinite Pro 的工作世界至少應圍繞以下主鏈理解：
 - 區分 `Domain / Functional Packs` 與 `Industry Packs`
 - 提供 context modules
 - 擴充 ontology-aware context、heuristics、evidence expectations、decision templates、deliverable patterns
+- 影響 case world compilation、research focus 與 writeback interpretation
 - 透過 registry / resolver / management surface 被治理
 
 單人版 Pack 基本盤中的 Domain / Functional Packs 應至少包括：
@@ -236,10 +267,12 @@ Infinite Pro 的工作世界至少應圍繞以下主鏈理解：
 
 ### Intake / Storage 邊界的正式地位
 在目前單人正式 beta 階段，以下能力也應被視為正式 architecture responsibility：
-- 三種進件模式：
+- 三種 entry presets：
   - 一句話問題
   - 單文件進件
   - 多材料案件
+- one canonical intake pipeline
+- `Case World Compiler`
 - multi-source ingestion
 - raw / derived / released storage 分層
 - retention / purge metadata
@@ -256,6 +289,23 @@ Infinite Pro 的工作世界至少應圍繞以下主鏈理解：
 - object storage 負責 raw materials、derived extracts、released artifacts
 - raw intake file 不預設永久保存
 - publish / artifact / audit record 不可跟 raw file retention 混成同一層
+
+### continuity / writeback 的正式地位
+Infinite Pro 現在正式支援：
+- `engagement_continuity_mode`
+  - `one_off`
+  - `follow_up`
+  - `continuous`
+- `writeback_depth`
+  - `minimal`
+  - `milestone`
+  - `full`
+
+正式規則：
+- `one_off` 至少保留 history、evidence basis 與 deliverable lineage
+- `follow_up` 允許 decision checkpoints 與 milestone-level writeback
+- `continuous` 才要求 decision -> action -> outcome 的持續閉環
+- research 與 follow-up 補件都必須回到同一個 case world，而不是浮在外面
 
 ### Persistence / Release Integrity 的正式地位
 在目前單人正式 beta 階段，以下也應被視為正式 architecture responsibility：

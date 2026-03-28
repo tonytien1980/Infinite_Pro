@@ -45,19 +45,23 @@
 4. `docs/03_system_overview.md`
 5. `docs/09_infinite_pro_core_definition.md`
 6. `docs/10_frontend_information_architecture_and_ux_principles.md`
-7. `docs/04_ontology_core.md`
-8. `docs/05_agent_architecture.md`
-9. `docs/06_system_architecture.md`
-10. `docs/07_implementation_order.md`
-11. `docs/11_intake_storage_architecture.md` when touching intake / source / storage / retention
-12. `docs/12_runtime_persistence_and_release_integrity.md` when touching revision / publish / fallback / sync recovery
-13. `AGENTS.md`
+7. `docs/14_workbench_ui_ux_operating_principles.md`
+8. `docs/15_page_level_ui_inventory_and_flow_rules.md`
+9. `docs/04_ontology_core.md`
+10. `docs/05_agent_architecture.md`
+11. `docs/06_system_architecture.md`
+12. `docs/07_implementation_order.md`
+13. `docs/11_intake_storage_architecture.md` when touching intake / source / storage / retention
+14. `docs/12_runtime_persistence_and_release_integrity.md` when touching revision / publish / fallback / sync recovery
+15. `AGENTS.md`
 
 如果想法與上述文件衝突，以文件為準。
 
 另外，前端改版不得再把 Infinite Pro 做回 generic AI workspace。
 首頁、導覽、工作面、管理面、歷史紀錄與繁體中文化規則，現在正式由 `docs/10_frontend_information_architecture_and_ux_principles.md` 承接。
-若施工觸及三種進件模式、multi-source ingestion、storage / retention / purge 邊界，需補讀 `docs/11_intake_storage_architecture.md`。
+若施工觸及 page-level 操作邏輯、資訊密度、primary action、progressive disclosure、detail workspace readability 或「現在要先做什麼」類型導引，需補讀 `docs/14_workbench_ui_ux_operating_principles.md`。
+若施工觸及具體頁面的第一屏內容、頁面主任務、主按鈕、次級操作、延後揭露內容與跨頁跳轉，需補讀 `docs/15_page_level_ui_inventory_and_flow_rules.md`。
+若施工觸及 canonical intake pipeline、entry presets、multi-source ingestion、storage / retention / purge 邊界，需補讀 `docs/11_intake_storage_architecture.md`。
 若施工觸及正文 persistence、revision、rollback、publish / artifact records、fallback、degraded mode 或 sync recovery，需補讀 `docs/12_runtime_persistence_and_release_integrity.md`。
 
 ---
@@ -83,6 +87,13 @@ Infinite Pro 是：
 - packs
 - deliverable-centric outputs
 - history and traceability
+
+另外，Codex 必須把以下五個能力理解為建立在同一個 ontology world model 上的同一條主鏈，而不是五個平行 feature：
+- 案件世界編譯器
+- Evidence chain
+- Host orchestration
+- 外部補完能力
+- Decision writeback / feedback loop
 
 在這裡，ontology 應被理解為：
 - shared world model
@@ -155,11 +166,14 @@ Host Agent 永遠是唯一 orchestration center。
 必須正式負責：
 - task / decision framing
 - ontology mapping
+- case world compilation
 - workflow selection
 - agent routing
 - readiness governance
+- research trigger governance
 - convergence
 - deliverable shaping
+- continuity / writeback policy control
 
 ### 7.2 Agents
 Agents 應依能力面與專業責任分類，而不是只依目前已落地 flow 命名。
@@ -246,11 +260,13 @@ Codex 應把它理解為已完成的正式交付物工作面，至少承接：
 ### 7.7 正式進件模式與 storage 邊界
 在目前單人正式 beta 範圍內，Codex 應把以下能力視為已成立的正式主鏈，而不是暫時 hack：
 
-- `/new` 承接三種正式進件模式：
+- `/new` 承接三種 entry presets：
   - 一句話問題
   - 單文件進件
   - 多材料案件
-- 三種模式都應匯進同一條 `task → matter → source material / artifact → evidence → deliverable` 主鏈
+- 但從正式語義上，它們都只是同一條 canonical intake pipeline 的不同入口
+- 所有 intake 都必須先進入 `Case World Compiler`
+- 三種入口都應匯進同一條 `task → matter → source material / artifact → evidence → deliverable` 主鏈
 - 同一個案件可持續補檔案、網址與補充文字，不可被資料模型限制成單檔心智
 - 正式支援格式應理解為：`.md / .txt / .docx / .xlsx / .csv / text-first PDF / URL / 純文字補充`
 - 有限支援格式應理解為：`.jpg / .jpeg / .png / .webp / 掃描型 PDF`
@@ -262,7 +278,25 @@ Codex 應把它理解為已完成的正式交付物工作面，至少承接：
   - release artifacts
 - retention / purge policy、metadata-only / limited support、digest / dedupe boundary 與成本控制邊界，現在已由 `docs/11_intake_storage_architecture.md` 正式承接
 
-### 7.8 正式 persistence / revision / publish 邊界
+### 7.8 continuity / writeback policy
+Codex 必須正式保留以下欄位與行為：
+
+- `engagement_continuity_mode`
+  - `one_off`
+  - `follow_up`
+  - `continuous`
+- `writeback_depth`
+  - `minimal`
+  - `milestone`
+  - `full`
+
+正式規則：
+- `one_off` 至少保留最小 history / traceability / deliverable lineage
+- `follow_up` 允許 decision checkpoints 與 milestone-level writeback
+- `continuous` 必須能形成 decision -> action -> outcome 的最小閉環
+- writeback 不是所有案件都 full，但也不可以把所有案件都做成無法回看的孤立結果
+
+### 7.9 正式 persistence / revision / publish 邊界
 在目前單人正式 beta 範圍內，Codex 也應把以下能力視為已成立的正式 runtime 邊界：
 
 - matter metadata 與正文採 remote-first persistence

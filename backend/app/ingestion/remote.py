@@ -19,9 +19,9 @@ class RemoteSourceContent:
     title: str
     content_type: str | None
     normalized_text: str
-    support_level: str
-    ingest_strategy: str
-    metadata_only: bool
+    support_level: str = "full"
+    ingest_strategy: str = "remote_text_extract"
+    metadata_only: bool = False
     message: str | None = None
 
 

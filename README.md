@@ -175,6 +175,97 @@ Two additional runtime governance files now matter for day-to-day development:
 - [`docs/11_intake_storage_architecture.md`](/Users/tonytien/Desktop/Infinite%20Pro/docs/11_intake_storage_architecture.md) for intake modes, source materials, storage, retention, purge, and storage cost boundaries
 - [`docs/12_runtime_persistence_and_release_integrity.md`](/Users/tonytien/Desktop/Infinite%20Pro/docs/12_runtime_persistence_and_release_integrity.md) for revision history, rollback, publish / artifact records, fail-closed rules, and degraded-mode re-sync
 
+## Canonical intake and case world compilation
+
+Infinite Pro no longer treats `一句話問題`、`單文件進件`、`多材料案件` as three different ontology worlds.
+
+The formal rule is:
+
+> **There is one canonical intake pipeline, and the three visible choices on `/new` are only entry presets.**
+
+For the runtime, formal intake always means:
+- a problem statement
+- supplemental materials
+  - files
+  - URLs
+  - pasted text
+  - structured data
+- follow-up supplements
+
+Every intake path must first enter the same `case world compilation` stage. Host should then decide:
+- how sparse or dense the current materials are
+- whether external completion is needed
+- whether the evidence base is ready for convergence
+- what the next-best action should be
+
+The first formal Host stage is therefore:
+- `Case World Compiler`
+- output: `case_world_draft`
+
+At minimum, `case_world_draft` should carry:
+- task interpretation
+- decision context
+- extracted objects
+- inferred links
+- facts
+- assumptions
+- evidence gaps
+- suggested capabilities
+- suggested domain packs
+- suggested industry packs
+- suggested agents
+- suggested research need
+- next-best actions
+
+## Pack layer in the capability chain
+
+Pack Layer is not a catalog-only surface and not a tag system.
+
+Both `Domain / Functional Packs` and `Industry Packs` must formally influence:
+- case world compilation
+- evidence expectations
+- readiness governance
+- specialist / reasoning routing
+- external research strategy
+- deliverable shaping
+- writeback interpretation
+
+The Pack Layer governance shape remains:
+- `Pack Spec`
+- `Pack Registry`
+- `Pack Resolver`
+- `Pack Management Surface`
+
+## Continuity and writeback policy
+
+Infinite Pro now distinguishes between different case continuity depths.
+
+Formal fields:
+- `engagement_continuity_mode`
+  - `one_off`
+  - `follow_up`
+  - `continuous`
+- `writeback_depth`
+  - `minimal`
+  - `milestone`
+  - `full`
+
+Formal behavior:
+- `one_off`
+  - builds the case world
+  - builds the evidence chain
+  - produces a deliverable
+  - keeps minimum history and traceability
+- `follow_up`
+  - keeps the `one_off` baseline
+  - allows decision checkpoints and milestone writeback
+- `continuous`
+  - keeps the `follow_up` baseline
+  - supports decision -> action -> outcome continuity over time
+
+This means writeback is no longer treated as "all or nothing".
+All matters must keep minimum history and deliverable lineage, but only follow-up and continuous cases should deepen the feedback loop.
+
 ## Core ontology objects
 
 The system should be planned around objects such as:
@@ -200,6 +291,15 @@ The system should be planned around objects such as:
 
 These objects define the product boundary even if some of them are still being implemented in waves.
 
+Additional first-class objects now belong to the formal boundary:
+- `CaseWorldDraft`
+- `EvidenceGap`
+- `ResearchRun / ExternalResearchRun`
+- `DecisionRecord`
+- `ActionPlan`
+- `ActionExecution`
+- `OutcomeRecord`
+
 ## Current implementation status
 
 The repository currently contains a working early implementation slice within the full-scope architecture. Today it already includes:
@@ -214,7 +314,7 @@ The repository currently contains a working early implementation slice within th
 - a formal `Matter / Engagement Workspace` for single-consultant case continuity
 - a formal `Artifact / Evidence Workspace` for source, evidence, support-chain, and gap governance
 - a formal `Deliverable Workspace` for deliverable identity, linkage, limitations, and continuity
-- three formal intake modes on `/new`:
+- one canonical intake pipeline on `/new`, currently entered through three presets:
   - `一句話問題`
   - `單文件進件`
   - `多材料案件`

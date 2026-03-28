@@ -9,12 +9,15 @@ from app.domain.enums import (
     AgentCategory,
     AgentStatus,
     DeliverableClass,
+    EngagementContinuityMode,
     FlowMode,
     InputEntryMode,
+    WritebackDepth,
 )
 from app.domain.schemas import (
     AgentSelectionRead,
     ArtifactRead,
+    CaseWorldDraftRead,
     ClientRead,
     ConstraintRead,
     DecisionContextRead,
@@ -56,10 +59,14 @@ class AgentInputPayload(BaseModel):
     decision_context: DecisionContextRead | None = None
     domain_lenses: list[str] = Field(default_factory=list)
     assumptions: list[str] = Field(default_factory=list)
+    entry_preset: InputEntryMode = InputEntryMode.ONE_LINE_INQUIRY
     input_entry_mode: InputEntryMode = InputEntryMode.ONE_LINE_INQUIRY
+    engagement_continuity_mode: EngagementContinuityMode = EngagementContinuityMode.ONE_OFF
+    writeback_depth: WritebackDepth = WritebackDepth.MINIMAL
     deliverable_class_hint: DeliverableClass = DeliverableClass.EXPLORATORY_BRIEF
     external_research_heavy_candidate: bool = False
     sparse_input_summary: str = ""
+    case_world_draft: CaseWorldDraftRead | None = None
     presence_state_summary: PresenceStateSummaryRead
     pack_resolution: PackResolutionRead = Field(default_factory=PackResolutionRead)
     agent_selection: AgentSelectionRead = Field(default_factory=AgentSelectionRead)
