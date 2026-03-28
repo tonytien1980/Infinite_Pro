@@ -17,6 +17,7 @@ from app.services.source_materials import (
     build_source_objects_for_document,
     build_processed_evidence_items,
     build_unparsed_evidence_item,
+    load_existing_world_shared_bundle,
 )
 from app.services.storage_manager import (
     AVAILABILITY_AVAILABLE,
@@ -122,6 +123,23 @@ def save_uploads_for_task(
             if content
             else None
         )
+        existing_bundle = load_existing_world_shared_bundle(
+            db,
+            matter_workspace_id=matter_workspace_id,
+            source_type=connector.source_type,
+            content_digest=stored.digest if stored is not None else None,
+        )
+        if existing_bundle is not None:
+            source_document, source_material, artifact, evidence = existing_bundle
+            uploaded.append(
+                schemas.UploadResultItem(
+                    source_document=schemas.SourceDocumentRead.model_validate(source_document),
+                    evidence=schemas.EvidenceRead.model_validate(evidence),
+                    source_material=schemas.SourceMaterialRead.model_validate(source_material),
+                    artifact=schemas.ArtifactRead.model_validate(artifact),
+                )
+            )
+            continue
         retention_policy = (
             RETENTION_POLICY_FAILED
             if ingest_status in {"failed", "unsupported"}

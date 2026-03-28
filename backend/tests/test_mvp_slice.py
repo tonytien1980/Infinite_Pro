@@ -7,6 +7,8 @@ from fastapi.testclient import TestClient
 import pytest
 from docx import Document
 
+from app.core.database import SessionLocal
+from app.domain import models
 from app.ingestion.remote import RemoteSourceContent
 from app.services.external_search import SearchResult
 
@@ -255,6 +257,9 @@ def test_case_world_state_points_to_world_authority_spine(client: TestClient) ->
 
     assert response.status_code == 201
     body = response.json()
+    assert body["client"]["identity_scope"] == "world_authority"
+    assert body["engagement"]["identity_scope"] == "world_authority"
+    assert body["workstream"]["identity_scope"] == "world_authority"
     assert body["case_world_state"]["client_id"]
     assert body["case_world_state"]["engagement_id"]
     assert body["case_world_state"]["workstream_id"]
@@ -271,6 +276,40 @@ def test_case_world_state_points_to_world_authority_spine(client: TestClient) ->
     assert workspace["engagement"]["id"] == body["case_world_state"]["engagement_id"]
     assert workspace["workstream"]["id"] == body["case_world_state"]["workstream_id"]
     assert workspace["current_decision_context"]["id"] == body["case_world_state"]["decision_context_id"]
+
+
+def test_world_decision_context_prefers_canonical_world_payload_over_slice_fallback(
+    client: TestClient,
+) -> None:
+    payload = create_task_payload("World payload decision context")
+    payload["assumptions"] = "原始世界假設仍成立"
+
+    response = client.post("/api/v1/tasks", json=payload)
+
+    assert response.status_code == 201
+    body = response.json()
+    task_id = body["id"]
+    matter_id = body["matter_workspace"]["id"]
+
+    with SessionLocal() as db:
+        task = db.get(models.Task, task_id)
+        assert task is not None
+        for goal in list(task.goals):
+            db.delete(goal)
+        for constraint in list(task.constraints):
+            db.delete(constraint)
+        if task.contexts:
+            task.contexts[-1].assumptions = ""
+            db.add(task.contexts[-1])
+        db.commit()
+
+    workspace = client.get(f"/api/v1/matters/{matter_id}").json()
+    assert workspace["current_decision_context"]["identity_scope"] == "world_authority"
+    assert workspace["current_decision_context"]["goals"] == [
+        "Highlight the strongest findings and next actions."
+    ]
+    assert "Keep the output internal-only for now." in workspace["current_decision_context"]["constraints"]
+    assert "原始世界假設仍成立" in "\n".join(workspace["current_decision_context"]["assumptions"])
 
 
 def test_task_list_returns_object_aware_workspace_summary(client: TestClient) -> None:
@@ -457,6 +496,15 @@ def test_shared_materials_and_evidence_follow_world_spine_across_task_slices(
         for item in refreshed_second["evidence"]
     )
 
+    second_upload_response = client.post(
+        f"/api/v1/tasks/{second_task['id']}/uploads",
+        files=[("files", ("northwind-notes.txt", b"Northwind proposal notes with stronger commercial evidence.", "text/plain"))],
+    )
+    assert second_upload_response.status_code == 200
+    reused_item = second_upload_response.json()["uploaded"][0]
+    assert reused_item["source_material"]["id"] == shared_material["id"]
+    assert reused_item["evidence"]["id"] == shared_evidence["id"]
+
     workspace = client.get(f"/api/v1/matters/{first_task['matter_workspace']['id']}").json()
     assert workspace["summary"]["source_material_count"] == 1
     assert workspace["summary"]["artifact_count"] >= 1
@@ -504,6 +552,7 @@ def test_artifact_evidence_workspace_route_returns_formal_source_and_support_cha
     assert workspace_response.status_code == 200
     workspace = workspace_response.json()
     assert workspace["matter_summary"]["id"] == matter["id"]
+    assert workspace["current_decision_context"]["identity_scope"] == "world_authority"
     assert workspace["source_material_cards"]
     assert workspace["artifact_cards"]
     assert workspace["evidence_chains"]
@@ -559,6 +608,8 @@ def test_deliverable_workspace_route_returns_formal_deliverable_context(
     workspace = workspace_response.json()
     assert workspace["deliverable"]["id"] == deliverable_id
     assert workspace["task"]["id"] == task["id"]
+    assert workspace["task"]["client"]["identity_scope"] == "world_authority"
+    assert workspace["task"]["world_decision_context"]["identity_scope"] == "world_authority"
     assert workspace["deliverable_class"] in {
         "assessment_review_memo",
         "decision_action_deliverable",

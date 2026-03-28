@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
 from app.domain import models
 from app.ingestion.preprocess import build_text_chunks, infer_relevance_label, summarize_evidence_text
 from app.services.material_storage import build_source_reference, sync_source_material_from_document
+
+WORLD_SHARED_CONTINUITY_SCOPE = "world_shared"
 
 
 def _task_query_parts(task: models.Task) -> list[str]:
@@ -26,6 +31,63 @@ def infer_artifact_type(source_document: models.SourceDocument) -> str:
     if source_document.source_type == "external_search":
         return "external_reference"
     return "source_artifact"
+
+
+def load_existing_world_shared_bundle(
+    db: Session,
+    *,
+    matter_workspace_id: str | None,
+    source_type: str,
+    storage_path: str | None = None,
+    content_digest: str | None = None,
+) -> tuple[models.SourceDocument, models.SourceMaterial, models.Artifact, models.Evidence] | None:
+    if not matter_workspace_id:
+        return None
+    if not storage_path and not content_digest:
+        return None
+
+    statement = (
+        select(models.SourceDocument)
+        .where(models.SourceDocument.matter_workspace_id == matter_workspace_id)
+        .where(models.SourceDocument.continuity_scope == WORLD_SHARED_CONTINUITY_SCOPE)
+        .where(models.SourceDocument.source_type == source_type)
+        .order_by(models.SourceDocument.created_at)
+    )
+    if storage_path:
+        statement = statement.where(models.SourceDocument.storage_path == storage_path)
+    else:
+        statement = statement.where(models.SourceDocument.content_digest == content_digest)
+
+    source_document = db.scalars(statement).first()
+    if source_document is None:
+        return None
+
+    source_material = db.scalars(
+        select(models.SourceMaterial)
+        .where(models.SourceMaterial.source_document_id == source_document.id)
+        .where(models.SourceMaterial.matter_workspace_id == matter_workspace_id)
+        .where(models.SourceMaterial.continuity_scope == WORLD_SHARED_CONTINUITY_SCOPE)
+        .order_by(models.SourceMaterial.created_at)
+    ).first()
+    artifact = db.scalars(
+        select(models.Artifact)
+        .where(models.Artifact.source_document_id == source_document.id)
+        .where(models.Artifact.matter_workspace_id == matter_workspace_id)
+        .where(models.Artifact.continuity_scope == WORLD_SHARED_CONTINUITY_SCOPE)
+        .order_by(models.Artifact.created_at)
+    ).first()
+    evidence = db.scalars(
+        select(models.Evidence)
+        .where(models.Evidence.source_document_id == source_document.id)
+        .where(models.Evidence.matter_workspace_id == matter_workspace_id)
+        .where(models.Evidence.continuity_scope == WORLD_SHARED_CONTINUITY_SCOPE)
+        .where(models.Evidence.evidence_type != "source_chunk")
+        .order_by(models.Evidence.created_at)
+    ).first()
+
+    if source_material is None or artifact is None or evidence is None:
+        return None
+    return source_document, source_material, artifact, evidence
 
 
 def build_source_objects_for_document(

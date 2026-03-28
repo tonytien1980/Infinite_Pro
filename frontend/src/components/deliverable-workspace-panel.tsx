@@ -320,6 +320,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
     task && deliverable && readiness ? buildReadinessGovernance(task, deliverable, readiness) : null;
   const executiveSummary = task && deliverable ? buildExecutiveSummary(task, deliverable) : null;
   const decisionSnapshot = task && deliverable ? buildDecisionSnapshot(task, deliverable) : null;
+  const preferredWorldDecisionContext = task?.world_decision_context || task?.decision_context || null;
   const recommendations = task && deliverable ? buildRecommendationCards(task, deliverable) : [];
   const risks = task && deliverable ? buildRiskCards(task, deliverable) : [];
   const actionItems = task && deliverable ? buildActionItemCards(task, deliverable) : [];
@@ -772,8 +773,8 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                   <div className="section-card deliverable-focus-panel">
                     <h4>決策問題</h4>
                     <p className="content-block">
-                      {task.decision_context?.judgment_to_make ||
-                        task.decision_context?.title ||
+                      {preferredWorldDecisionContext?.judgment_to_make ||
+                        preferredWorldDecisionContext?.title ||
                         "目前尚未形成清楚的決策問題。"}
                     </p>
                   </div>

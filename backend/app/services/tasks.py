@@ -1930,6 +1930,142 @@ def _build_decision_context_read(task: models.Task) -> schemas.DecisionContextRe
     )
 
 
+def _coerce_string_list_from_payload(value: object) -> list[str]:
+    if isinstance(value, str):
+        return _split_multiline_items(value)
+    if isinstance(value, list):
+        return _normalize_string_list_payload(
+            [str(item).strip() for item in value if str(item).strip()]
+        )
+    return []
+
+
+def _assumption_lines_from_payload(
+    payload: list[dict] | None,
+) -> list[str]:
+    lines: list[str] = []
+    for item in list(payload or []):
+        if not isinstance(item, dict):
+            continue
+        detail = _normalize_whitespace(str(item.get("detail", "")))
+        title = _normalize_whitespace(str(item.get("title", "")))
+        if detail and title and detail != title:
+            lines.append(f"{title}：{detail}")
+        elif detail:
+            lines.append(detail)
+        elif title:
+            lines.append(title)
+    return _unique_preserve_order(lines)
+
+
+def _build_world_decision_context_read(
+    *,
+    case_world_state: models.CaseWorldState | None,
+    authority_decision_context: models.DecisionContext | None,
+    fallback: schemas.DecisionContextRead | None,
+) -> schemas.DecisionContextRead | None:
+    payload = (
+        case_world_state.decision_context_payload
+        if case_world_state and isinstance(case_world_state.decision_context_payload, dict)
+        else {}
+    )
+    if authority_decision_context is None and fallback is None and not payload:
+        return None
+
+    payload_goals = _coerce_string_list_from_payload(payload.get("goals"))
+    payload_constraints = _coerce_string_list_from_payload(payload.get("constraints"))
+    payload_assumptions = _coerce_string_list_from_payload(payload.get("assumptions"))
+    state_assumptions = _assumption_lines_from_payload(
+        case_world_state.assumptions_payload if case_world_state else None
+    )
+
+    return schemas.DecisionContextRead(
+        id=(
+            authority_decision_context.id
+            if authority_decision_context is not None
+            else fallback.id if fallback is not None else (case_world_state.decision_context_id if case_world_state else "")
+        ),
+        task_id=(
+            authority_decision_context.task_id
+            if authority_decision_context is not None
+            else fallback.task_id if fallback is not None else (case_world_state.latest_task_id if case_world_state else "")
+        ),
+        matter_workspace_id=(
+            authority_decision_context.matter_workspace_id
+            if authority_decision_context is not None
+            else fallback.matter_workspace_id if fallback is not None else (case_world_state.matter_workspace_id if case_world_state else None)
+        ),
+        identity_scope=(
+            authority_decision_context.identity_scope
+            if authority_decision_context is not None
+            else fallback.identity_scope if fallback is not None else WORLD_AUTHORITY_IDENTITY_SCOPE
+        ),
+        client_id=(
+            authority_decision_context.client_id
+            if authority_decision_context is not None
+            else fallback.client_id if fallback is not None else (case_world_state.client_id if case_world_state else None)
+        ),
+        engagement_id=(
+            authority_decision_context.engagement_id
+            if authority_decision_context is not None
+            else fallback.engagement_id if fallback is not None else (case_world_state.engagement_id if case_world_state else None)
+        ),
+        workstream_id=(
+            authority_decision_context.workstream_id
+            if authority_decision_context is not None
+            else fallback.workstream_id if fallback is not None else (case_world_state.workstream_id if case_world_state else None)
+        ),
+        title=(
+            _coerce_text(payload.get("title"))
+            or (authority_decision_context.title if authority_decision_context is not None else "")
+            or (fallback.title if fallback is not None else "")
+        ),
+        summary=(
+            _coerce_text(payload.get("summary"))
+            or (authority_decision_context.summary if authority_decision_context is not None else "")
+            or (fallback.summary if fallback is not None else "")
+        ),
+        judgment_to_make=(
+            _coerce_text(payload.get("judgment_to_make"))
+            or (authority_decision_context.judgment_to_make if authority_decision_context is not None else "")
+            or (fallback.judgment_to_make if fallback is not None else "")
+        ),
+        domain_lenses=(
+            _coerce_string_list_from_payload(payload.get("domain_lenses"))
+            or (authority_decision_context.domain_lenses if authority_decision_context is not None else [])
+            or (fallback.domain_lenses if fallback is not None else [])
+        ),
+        client_stage=(
+            _coerce_text(payload.get("client_stage"))
+            or (authority_decision_context.client_stage if authority_decision_context is not None else "")
+            or (fallback.client_stage if fallback is not None else None)
+        ),
+        client_type=(
+            _coerce_text(payload.get("client_type"))
+            or (authority_decision_context.client_type if authority_decision_context is not None else "")
+            or (fallback.client_type if fallback is not None else None)
+        ),
+        goals=payload_goals or (fallback.goals if fallback is not None else []),
+        constraints=payload_constraints or (fallback.constraints if fallback is not None else []),
+        assumptions=payload_assumptions or state_assumptions or (fallback.assumptions if fallback is not None else []),
+        source_priority=(
+            _coerce_text(payload.get("source_priority"))
+            or (authority_decision_context.source_priority if authority_decision_context is not None else "")
+            or (fallback.source_priority if fallback is not None else "")
+        ),
+        external_data_policy=(
+            _coerce_text(payload.get("external_data_policy"))
+            or (authority_decision_context.external_data_policy if authority_decision_context is not None else "")
+            or (fallback.external_data_policy if fallback is not None else "")
+        ),
+        created_at=(
+            authority_decision_context.created_at
+            if authority_decision_context is not None
+            else fallback.created_at if fallback is not None else (case_world_state.updated_at if case_world_state else models.utc_now())
+        ),
+    )
+
+
 def _build_ontology_spine_for_task(
     task: models.Task,
 ) -> tuple[
@@ -4161,6 +4297,11 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
         goals=latest_task_spine[3].goals if latest_task_spine[3] else [],
         constraints=latest_task_spine[3].constraints if latest_task_spine[3] else [],
         assumptions=latest_task_spine[3].assumptions if latest_task_spine[3] else [],
+    )
+    current_decision_context = _build_world_decision_context_read(
+        case_world_state=matter_workspace.case_world_state,
+        authority_decision_context=authority_decision_context_row,
+        fallback=current_decision_context,
     ) or latest_task_spine[3]
     client = schemas.ClientRead.model_validate(authority_client_row) if authority_client_row else latest_task_spine[0]
     engagement = (
@@ -4562,7 +4703,9 @@ def get_artifact_evidence_workspace(
     matter_id: str,
 ) -> schemas.ArtifactEvidenceWorkspaceResponse:
     matter_workspace = db.scalars(
-        select(models.MatterWorkspace).where(models.MatterWorkspace.id == matter_id)
+        select(models.MatterWorkspace)
+        .options(selectinload(models.MatterWorkspace.case_world_state))
+        .where(models.MatterWorkspace.id == matter_id)
     ).one_or_none()
     if matter_workspace is None:
         raise HTTPException(status_code=404, detail="找不到指定來源 / 證據工作面。")
@@ -4574,13 +4717,57 @@ def get_artifact_evidence_workspace(
     if not related_tasks:
         raise HTTPException(status_code=404, detail="找不到此來源 / 證據工作面的相關任務。")
 
+    latest_task = related_tasks[0]
+    _, world_spine_changed = ensure_world_context_spine_for_task(
+        db,
+        matter_workspace=matter_workspace,
+        task=latest_task,
+        client=_primary_item(latest_task.clients),
+        engagement=_primary_item(latest_task.engagements),
+        workstream=_primary_item(latest_task.workstreams),
+        decision_context=_primary_item(latest_task.decision_contexts),
+        case_world_state=matter_workspace.case_world_state,
+    )
+    if world_spine_changed:
+        db.commit()
+        matter_workspace = db.scalars(
+            select(models.MatterWorkspace)
+            .options(selectinload(models.MatterWorkspace.case_world_state))
+            .where(models.MatterWorkspace.id == matter_id)
+        ).one()
+        related_tasks = _load_tasks_for_matter_workspaces(db, [matter_workspace.id]).get(
+            matter_workspace.id,
+            [],
+        )
+        if not related_tasks:
+            raise HTTPException(status_code=404, detail="找不到此來源 / 證據工作面的相關任務。")
+
     matter_summary = _build_matter_workspace_summary_from_tasks(matter_workspace, related_tasks)
     latest_task = related_tasks[0]
     latest_task_spine = _build_ontology_spine_for_task(latest_task)
-    client = latest_task_spine[0]
-    engagement = latest_task_spine[1]
-    workstream = latest_task_spine[2]
-    current_decision_context = latest_task_spine[3]
+    authority_client_row, authority_engagement_row, authority_workstream_row, authority_decision_context_row = (
+        _load_world_authority_spine(
+            db,
+            matter_workspace=matter_workspace,
+            case_world_state=matter_workspace.case_world_state,
+        )
+    )
+    client = schemas.ClientRead.model_validate(authority_client_row) if authority_client_row else latest_task_spine[0]
+    engagement = (
+        schemas.EngagementRead.model_validate(authority_engagement_row)
+        if authority_engagement_row
+        else latest_task_spine[1]
+    )
+    workstream = (
+        schemas.WorkstreamRead.model_validate(authority_workstream_row)
+        if authority_workstream_row
+        else latest_task_spine[2]
+    )
+    current_decision_context = _build_world_decision_context_read(
+        case_world_state=matter_workspace.case_world_state,
+        authority_decision_context=authority_decision_context_row,
+        fallback=latest_task_spine[3],
+    ) or latest_task_spine[3]
     related_task_items = [
         _build_task_list_item_response(task, matter_summary) for task in related_tasks[:8]
     ]
@@ -6588,6 +6775,18 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         decision_context=task_decision_context_row,
         case_world_state=matter_workspace.case_world_state,
     )
+    world_client_row, world_engagement_row, world_workstream_row, world_authority_decision_context_row = (
+        _load_world_authority_spine(
+            db,
+            matter_workspace=matter_workspace,
+            case_world_state=case_world_state_row,
+        )
+    )
+    world_decision_context = _build_world_decision_context_read(
+        case_world_state=case_world_state_row,
+        authority_decision_context=world_authority_decision_context_row,
+        fallback=decision_context,
+    )
     matter_workspace_summary = _build_matter_workspace_summary_map(db, [matter_workspace]).get(
         matter_workspace.id
     )
@@ -6706,6 +6905,18 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         case_world_draft_row = task.case_world_drafts[0] if task.case_world_drafts else case_world_draft_row
         case_world_state_row = matter_workspace.case_world_state
         evidence_gap_rows = list(task.evidence_gaps)
+        world_client_row, world_engagement_row, world_workstream_row, world_authority_decision_context_row = (
+            _load_world_authority_spine(
+                db,
+                matter_workspace=matter_workspace,
+                case_world_state=case_world_state_row,
+            )
+        )
+        world_decision_context = _build_world_decision_context_read(
+            case_world_state=case_world_state_row,
+            authority_decision_context=world_authority_decision_context_row,
+            fallback=decision_context,
+        )
 
     return schemas.TaskAggregateResponse(
         id=task.id,
@@ -6717,12 +6928,29 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         status=task.status,
         created_at=task.created_at,
         updated_at=task.updated_at,
-        client=client,
-        engagement=engagement,
-        workstream=workstream,
+        client=schemas.ClientRead.model_validate(world_client_row) if world_client_row else client,
+        engagement=(
+            schemas.EngagementRead.model_validate(world_engagement_row)
+            if world_engagement_row
+            else engagement
+        ),
+        workstream=(
+            schemas.WorkstreamRead.model_validate(world_workstream_row)
+            if world_workstream_row
+            else workstream
+        ),
         decision_context=decision_context,
-        client_stage=decision_context.client_stage if decision_context else client.client_stage if client else None,
-        client_type=decision_context.client_type if decision_context else client.client_type if client else None,
+        world_decision_context=world_decision_context,
+        client_stage=(
+            world_decision_context.client_stage
+            if world_decision_context and world_decision_context.client_stage
+            else decision_context.client_stage if decision_context else client.client_stage if client else None
+        ),
+        client_type=(
+            world_decision_context.client_type
+            if world_decision_context and world_decision_context.client_type
+            else decision_context.client_type if decision_context else client.client_type if client else None
+        ),
         domain_lenses=domain_lenses,
         assumptions=_extract_assumptions(task),
         entry_preset=InputEntryMode(task.entry_preset),

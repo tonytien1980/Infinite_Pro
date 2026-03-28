@@ -241,6 +241,10 @@ Implementation should also preserve:
   - mark what is already world-native
   - mark what is still transitional task-centric persistence
   - do not claim fully world-native identity if legacy task ownership still exists
+  - identity deepen phase 2 should explicitly distinguish:
+    - canonical world rows
+    - slice-local derivative rows
+    - shared continuity rows for materials / evidence
 
 The exact persistence schema may evolve, but these objects are part of the architecture boundary.
 

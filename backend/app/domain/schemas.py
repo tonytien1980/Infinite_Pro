@@ -1004,6 +1004,7 @@ class TaskAggregateResponse(BaseModel):
     engagement: EngagementRead | None = None
     workstream: WorkstreamRead | None = None
     decision_context: DecisionContextRead | None = None
+    world_decision_context: DecisionContextRead | None = None
     client_stage: str | None = None
     client_type: str | None = None
     domain_lenses: list[str] = Field(default_factory=list)

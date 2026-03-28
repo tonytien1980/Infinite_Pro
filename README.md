@@ -236,6 +236,11 @@ Current bridge architecture:
 - `Client / Engagement / Workstream / DecisionContext / SourceMaterial / Artifact / Evidence`
   are expected to move progressively toward world-native continuity while legacy
   `task_id` references coexist during migration
+- identity deepen phase 2 should additionally prefer:
+  - canonical world rows and canonical world read paths first
+  - slice-local derivative rows only as compatibility overlays
+  - shared material / evidence reuse on the same matter spine instead of
+    recreating near-duplicate rows for every new task slice
 
 ## Pack layer in the capability chain
 

@@ -21,6 +21,7 @@ from app.services.source_materials import (
     build_processed_evidence_items,
     build_source_objects_for_document,
     build_unparsed_evidence_item,
+    load_existing_world_shared_bundle,
 )
 from app.services.storage_manager import (
     AVAILABILITY_AVAILABLE,
@@ -73,6 +74,15 @@ def _persist_processed_source(
     extension = normalize_extension(title, "")
     matter_workspace_id = _linked_matter_workspace_id(task)
     continuity_scope = "world_shared" if matter_workspace_id else "task_slice"
+    existing_bundle = load_existing_world_shared_bundle(
+        db,
+        matter_workspace_id=matter_workspace_id,
+        source_type=connector_source_type,
+        storage_path=None if storage_path.startswith("inline://task/") else storage_path,
+        content_digest=compute_digest(extracted_text.encode("utf-8")) if extracted_text else None,
+    )
+    if existing_bundle is not None:
+        return existing_bundle
     source_document = models.SourceDocument(
         task_id=task.id,
         matter_workspace_id=matter_workspace_id,
@@ -185,6 +195,14 @@ def _persist_failed_source(
 ) -> tuple[models.SourceDocument, models.SourceMaterial, models.Artifact, models.Evidence]:
     matter_workspace_id = _linked_matter_workspace_id(task)
     continuity_scope = "world_shared" if matter_workspace_id else "task_slice"
+    existing_bundle = load_existing_world_shared_bundle(
+        db,
+        matter_workspace_id=matter_workspace_id,
+        source_type=connector_source_type,
+        storage_path=storage_path,
+    )
+    if existing_bundle is not None:
+        return existing_bundle
     source_document = models.SourceDocument(
         task_id=task.id,
         matter_workspace_id=matter_workspace_id,
