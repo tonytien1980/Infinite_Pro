@@ -41,6 +41,7 @@ import {
 import {
   formatDisplayDate,
   labelForAgentId,
+  labelForEngagementContinuityMode,
   labelForExternalDataStrategy,
   labelForEvidenceType,
   labelForFlowMode,
@@ -52,6 +53,7 @@ import {
   labelForStructuredField,
   labelForTaskStatus,
   labelForTaskType,
+  labelForWritebackDepth,
   translateStructuredValue,
 } from "@/lib/ui-labels";
 import { WorkspaceSectionGuide } from "@/components/workspace-section-guide";
@@ -408,6 +410,10 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
   const evidenceWorkspaceLane =
     task ? buildEvidenceWorkspaceLane(task, latestDeliverable, readinessGovernance) : null;
   const deliverableBacklink = task ? buildDeliverableBacklinkView(task, latestDeliverable) : null;
+  const latestCaseWorldDraft = task?.case_world_draft ?? null;
+  const openEvidenceGaps = task?.evidence_gaps.filter((item) => item.status !== "resolved") ?? [];
+  const recentDecisionRecords = task?.decision_records.slice(0, 3) ?? [];
+  const recentOutcomeRecords = task?.outcome_records.slice(0, 3) ?? [];
   const sortedRecommendations = task?.recommendations
     ? [...task.recommendations].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
@@ -588,6 +594,79 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
             description="不要整頁一路往下刷。先選你現在要做的是對齊判斷、確認能不能跑、還是直接回看結果。"
             items={taskSectionGuideItems}
           />
+
+          <DisclosurePanel
+            title="Case world draft 與寫回策略"
+            description="只有在你要檢查 Host 目前怎麼理解這筆工作、哪些是 facts / assumptions、以及這案會寫回到多深時，再展開這層。"
+          >
+            <div className="summary-grid">
+              <div className="section-card">
+                <h4>連續性策略</h4>
+                <p className="content-block">
+                  {labelForEngagementContinuityMode(task.engagement_continuity_mode)} /{" "}
+                  {labelForWritebackDepth(task.writeback_depth)}
+                </p>
+              </div>
+              <div className="section-card">
+                <h4>進件入口 / 解析狀態</h4>
+                <p className="content-block">
+                  {latestCaseWorldDraft
+                    ? `${latestCaseWorldDraft.compiler_status}｜${latestCaseWorldDraft.canonical_intake_summary.problem_statement || "未顯示"}`
+                    : "目前尚未形成 case world draft。"}
+                </p>
+              </div>
+              <div className="section-card">
+                <h4>最近 writeback</h4>
+                <p className="content-block">
+                  {task.decision_records.length} 筆 decision records / {task.outcome_records.length} 筆 outcome records
+                </p>
+              </div>
+              <div className="section-card">
+                <h4>research provenance</h4>
+                <p className="content-block">
+                  {task.research_runs.length > 0
+                    ? `已留存 ${task.research_runs.length} 筆 research runs。`
+                    : "目前沒有 research provenance。"}
+                </p>
+              </div>
+            </div>
+
+            {latestCaseWorldDraft ? (
+              <div className="detail-list" style={{ marginTop: "18px" }}>
+                <div className="detail-item">
+                  <h3>Facts</h3>
+                  <ExpandableList
+                    items={latestCaseWorldDraft.facts.map((item) => `${item.title}：${item.detail}`)}
+                    emptyText="目前沒有額外 facts。"
+                  />
+                </div>
+                <div className="detail-item">
+                  <h3>Assumptions</h3>
+                  <ExpandableList
+                    items={latestCaseWorldDraft.assumptions.map((item) => `${item.title}：${item.detail}`)}
+                    emptyText="目前沒有額外 assumptions。"
+                  />
+                </div>
+                <div className="detail-item">
+                  <h3>Evidence gaps</h3>
+                  <ExpandableList
+                    items={openEvidenceGaps.map((item) => `${item.title}：${item.description}`)}
+                    emptyText="目前沒有高優先 evidence gaps。"
+                  />
+                </div>
+                <div className="detail-item">
+                  <h3>最近 decision / outcome</h3>
+                  <ExpandableList
+                    items={[
+                      ...recentDecisionRecords.map((item) => `Decision：${item.decision_summary}`),
+                      ...recentOutcomeRecords.map((item) => `Outcome：${item.summary}`),
+                    ]}
+                    emptyText="目前還沒有可回看的 writeback records。"
+                  />
+                </div>
+              </div>
+            ) : null}
+          </DisclosurePanel>
 
           {matterWorkspaceCard ? (
             <DisclosurePanel

@@ -144,6 +144,18 @@ const INPUT_ENTRY_MODE_LABELS: Record<string, string> = {
   multi_material_case: "多材料案件",
 };
 
+const ENGAGEMENT_CONTINUITY_MODE_LABELS: Record<string, string> = {
+  one_off: "單次案件",
+  follow_up: "可追蹤 follow-up",
+  continuous: "持續追蹤案件",
+};
+
+const WRITEBACK_DEPTH_LABELS: Record<string, string> = {
+  minimal: "最小寫回",
+  milestone: "里程碑寫回",
+  full: "完整閉環寫回",
+};
+
 const PRESENCE_STATE_LABELS: Record<string, string> = {
   explicit: "明確存在",
   inferred: "推定存在",
@@ -521,6 +533,14 @@ export function labelForInputEntryMode(value: string) {
   return INPUT_ENTRY_MODE_LABELS[value] ?? fallbackLabel(value);
 }
 
+export function labelForEngagementContinuityMode(value: string) {
+  return ENGAGEMENT_CONTINUITY_MODE_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForWritebackDepth(value: string) {
+  return WRITEBACK_DEPTH_LABELS[value] ?? fallbackLabel(value);
+}
+
 export function labelForPresenceState(value: string) {
   return PRESENCE_STATE_LABELS[value] ?? fallbackLabel(value);
 }
@@ -592,6 +612,18 @@ export function translateStructuredValue(label: string, value: unknown) {
 
   if (label === "input_entry_mode" && typeof value === "string") {
     return labelForInputEntryMode(value);
+  }
+
+  if (label === "entry_preset" && typeof value === "string") {
+    return labelForInputEntryMode(value);
+  }
+
+  if (label === "engagement_continuity_mode" && typeof value === "string") {
+    return labelForEngagementContinuityMode(value);
+  }
+
+  if (label === "writeback_depth" && typeof value === "string") {
+    return labelForWritebackDepth(value);
   }
 
   if (label === "deliverable_class" && typeof value === "string") {

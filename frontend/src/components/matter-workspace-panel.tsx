@@ -17,6 +17,7 @@ import type {
 import {
   formatFileSize,
   formatDisplayDate,
+  labelForEngagementContinuityMode,
   labelForDeliverableClass,
   labelForFileExtension,
   labelForMatterStatus,
@@ -25,6 +26,7 @@ import {
   labelForSourceSupportLevel,
   labelForStorageAvailability,
   labelForTaskStatus,
+  labelForWritebackDepth,
 } from "@/lib/ui-labels";
 import {
   type MatterLifecycleStatus,
@@ -449,6 +451,14 @@ export function MatterWorkspacePanel({
     sourceMaterialCount: matter?.summary.source_material_count ?? 0,
     evidenceCount,
   });
+  const latestCaseWorldDraft = matter?.case_world_drafts[0] ?? null;
+  const openEvidenceGaps =
+    matter?.evidence_gaps.filter((item) => item.status !== "resolved").slice(0, 5) ?? [];
+  const recentDecisionRecords = matter?.decision_records.slice(0, 3) ?? [];
+  const recentOutcomeRecords = matter?.outcome_records.slice(0, 3) ?? [];
+  const continuityStrategySummary = matter
+    ? `${labelForEngagementContinuityMode(matter.summary.engagement_continuity_mode)} / ${labelForWritebackDepth(matter.summary.writeback_depth)}`
+    : "";
 
   async function handleAdvanceMatter() {
     if (latestDeliverable) {
@@ -821,6 +831,96 @@ export function MatterWorkspacePanel({
                   </div>
                 </div>
               </section>
+
+              <DisclosurePanel
+                title="案件世界草稿與寫回策略"
+                description="只有在你要 debug Host 現在怎麼理解這個案件，或確認這個案件會寫回到多深時，再展開這層。"
+              >
+                <div className="summary-grid">
+                  <div className="section-card">
+                    <h4>連續性策略</h4>
+                    <p className="content-block">{continuityStrategySummary || "未設定"}</p>
+                  </div>
+                  <div className="section-card">
+                    <h4>Case world 主問題</h4>
+                    <p className="content-block">
+                      {String(latestCaseWorldDraft?.canonical_intake_summary.problem_statement || coreQuestion)}
+                    </p>
+                  </div>
+                  <div className="section-card">
+                    <h4>建議下一步</h4>
+                    <p className="content-block">
+                      {latestCaseWorldDraft?.next_best_actions[0] || "目前沒有額外建議。"}
+                    </p>
+                  </div>
+                  <div className="section-card">
+                    <h4>寫回紀錄</h4>
+                    <p className="content-block">
+                      {matter?.decision_records.length ?? 0} 筆 decision records / {matter?.outcome_records.length ?? 0} 筆 outcome records
+                    </p>
+                  </div>
+                </div>
+
+                {latestCaseWorldDraft ? (
+                  <div className="detail-list" style={{ marginTop: "18px" }}>
+                    <div className="detail-item">
+                      <h3>目前已確認的 facts</h3>
+                      {latestCaseWorldDraft.facts.length > 0 ? (
+                        <ul className="list-content">
+                          {latestCaseWorldDraft.facts.slice(0, 5).map((item) => (
+                            <li key={`${item.title}-${item.detail}`}>{item.title}：{item.detail}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="empty-text">目前沒有額外 facts。</p>
+                      )}
+                    </div>
+                    <div className="detail-item">
+                      <h3>仍在沿用的 assumptions</h3>
+                      {latestCaseWorldDraft.assumptions.length > 0 ? (
+                        <ul className="list-content">
+                          {latestCaseWorldDraft.assumptions.slice(0, 5).map((item) => (
+                            <li key={`${item.title}-${item.detail}`}>{item.title}：{item.detail}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="empty-text">目前沒有額外 assumptions。</p>
+                      )}
+                    </div>
+                    <div className="detail-item">
+                      <h3>目前 evidence gaps</h3>
+                      {openEvidenceGaps.length > 0 ? (
+                        <ul className="list-content">
+                          {openEvidenceGaps.map((item) => (
+                            <li key={item.id}>
+                              {item.title}：{item.description}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="empty-text">目前沒有高優先 evidence gaps。</p>
+                      )}
+                    </div>
+                    <div className="detail-item">
+                      <h3>最近 decision / outcome</h3>
+                      {recentDecisionRecords.length > 0 || recentOutcomeRecords.length > 0 ? (
+                        <ul className="list-content">
+                          {recentDecisionRecords.map((item) => (
+                            <li key={item.id}>Decision：{item.decision_summary}</li>
+                          ))}
+                          {recentOutcomeRecords.map((item) => (
+                            <li key={item.id}>Outcome：{item.summary}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="empty-text">目前還沒有可回看的 writeback records。</p>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="empty-text">目前尚未形成 case world draft。</p>
+                )}
+              </DisclosurePanel>
 
               <DisclosurePanel
                 title="案件設定與同步"

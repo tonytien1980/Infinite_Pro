@@ -16,6 +16,7 @@ import type { ArtifactEvidenceWorkspace } from "@/lib/types";
 import {
   formatFileSize,
   formatDisplayDate,
+  labelForEngagementContinuityMode,
   labelForEvidenceStrength,
   labelForEvidenceType,
   labelForFileExtension,
@@ -27,6 +28,7 @@ import {
   labelForSourceType,
   labelForStorageAvailability,
   labelForTaskStatus,
+  labelForWritebackDepth,
 } from "@/lib/ui-labels";
 import { WorkspaceSectionGuide } from "@/components/workspace-section-guide";
 
@@ -242,6 +244,10 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
               <span>{workspace.source_material_cards.length} 份來源材料</span>
               <span>{workspace.artifact_cards.length} 份工作物件</span>
               <span>{workspace.evidence_chains.length} 則證據支撐鏈</span>
+              <span>
+                {labelForEngagementContinuityMode(workspace.matter_summary.engagement_continuity_mode)} /{" "}
+                {labelForWritebackDepth(workspace.matter_summary.writeback_depth)}
+              </span>
             </div>
             <div className="matter-hero-strip">
               <div>
@@ -362,6 +368,28 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
               </div>
             </DisclosurePanel>
           </section>
+
+          <DisclosurePanel
+            title="Research provenance 與 evidence gap records"
+            description="只有在你要 debug 這輪外部補完是怎麼進入 evidence chain、或確認哪些 gaps 已被正式記錄時，再展開這層。"
+          >
+            <div className="summary-grid">
+              <div className="section-card">
+                <h4>Research runs</h4>
+                <CompactList
+                  items={workspace.research_runs.map((item) => `${item.query}｜${item.result_summary || item.status}`)}
+                  emptyText="目前沒有 research provenance。"
+                />
+              </div>
+              <div className="section-card">
+                <h4>Evidence gap records</h4>
+                <CompactList
+                  items={workspace.evidence_gaps.map((item) => `${item.title}：${item.description}`)}
+                  emptyText="目前沒有已記錄的 evidence gaps。"
+                />
+              </div>
+            </div>
+          </DisclosurePanel>
 
           <section className="panel section-anchor" id="evidence-supplement">
             <div className="panel-header">

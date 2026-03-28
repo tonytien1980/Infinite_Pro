@@ -31,8 +31,10 @@ import {
   labelForAgentId,
   labelForDeliverableEventType,
   labelForDeliverableStatus,
+  labelForEngagementContinuityMode,
   labelForEvidenceType,
   labelForSourceType,
+  labelForWritebackDepth,
 } from "@/lib/ui-labels";
 import { type DeliverableLifecycleStatus } from "@/lib/workbench-store";
 import {
@@ -1004,6 +1006,68 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
             description="先決定你現在要整理版本、回看結果、檢查依據，還是確認可發布程度。歷史與 artifact registry 放在較後面，需要時再下鑽。"
             items={deliverableSectionGuideItems}
           />
+
+          <DisclosurePanel
+            title="Continuity / research / writeback"
+            description="只有在你要確認這份交付物會怎麼寫回案件世界、外部 research 怎麼進鏈、以及目前有哪些 decision / outcome records 時，再展開這層。"
+          >
+            <div className="summary-grid">
+              <div className="section-card">
+                <h4>案件策略</h4>
+                <p className="content-block">
+                  {labelForEngagementContinuityMode(task.engagement_continuity_mode)} /{" "}
+                  {labelForWritebackDepth(task.writeback_depth)}
+                </p>
+              </div>
+              <div className="section-card">
+                <h4>Research provenance</h4>
+                <p className="content-block">
+                  {workspace.research_runs.length > 0
+                    ? `已留存 ${workspace.research_runs.length} 筆 research runs。`
+                    : "目前沒有 research provenance。"}
+                </p>
+              </div>
+              <div className="section-card">
+                <h4>Decision records</h4>
+                <p className="content-block">{workspace.decision_records.length} 筆</p>
+              </div>
+              <div className="section-card">
+                <h4>Outcome records</h4>
+                <p className="content-block">{workspace.outcome_records.length} 筆</p>
+              </div>
+            </div>
+            <div className="detail-list" style={{ marginTop: "18px" }}>
+              <div className="detail-item">
+                <h3>最近 decision / outcome</h3>
+                {workspace.decision_records.length > 0 || workspace.outcome_records.length > 0 ? (
+                  <ul className="list-content">
+                    {workspace.decision_records.slice(0, 3).map((item) => (
+                      <li key={item.id}>Decision：{item.decision_summary}</li>
+                    ))}
+                    {workspace.outcome_records.slice(0, 3).map((item) => (
+                      <li key={item.id}>Outcome：{item.summary}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="empty-text">目前還沒有可回看的 writeback records。</p>
+                )}
+              </div>
+              <div className="detail-item">
+                <h3>Research runs</h3>
+                {workspace.research_runs.length > 0 ? (
+                  <ul className="list-content">
+                    {workspace.research_runs.slice(0, 3).map((item) => (
+                      <li key={item.id}>
+                        {item.query}｜{item.result_summary || item.status}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="empty-text">目前沒有 research runs。</p>
+                )}
+              </div>
+            </div>
+          </DisclosurePanel>
 
           <DisclosurePanel
             id="deliverable-management"

@@ -4,10 +4,12 @@ import { FormEvent, useMemo, useState } from "react";
 
 import { createTask, ingestTaskSources, uploadTaskFiles } from "@/lib/api";
 import type {
+  EngagementContinuityMode,
   ExternalDataStrategy,
   InputEntryMode,
   TaskAggregate,
   TaskCreatePayload,
+  WritebackDepth,
 } from "@/lib/types";
 
 interface TaskCreateFormProps {
@@ -93,6 +95,50 @@ const INPUT_MODE_OPTIONS: Array<{
   },
 ];
 
+const CONTINUITY_MODE_OPTIONS: Array<{
+  value: EngagementContinuityMode;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: "one_off",
+    label: "單次案件",
+    description: "只保留最小 history、evidence basis 與 deliverable lineage，不強迫持續追蹤。",
+  },
+  {
+    value: "follow_up",
+    label: "可追蹤 follow-up",
+    description: "保留 decision checkpoints，適合之後還會補件、改版或再看一次的案件。",
+  },
+  {
+    value: "continuous",
+    label: "持續追蹤案件",
+    description: "會保留 decision -> action -> outcome 的長期寫回痕跡，適合長期持續推進的案件。",
+  },
+];
+
+const WRITEBACK_DEPTH_OPTIONS: Array<{
+  value: WritebackDepth;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: "minimal",
+    label: "最小寫回",
+    description: "保留 history、evidence basis 與 deliverable lineage。",
+  },
+  {
+    value: "milestone",
+    label: "里程碑寫回",
+    description: "在最小寫回上再保留 decision checkpoints 與 milestone 節點。",
+  },
+  {
+    value: "full",
+    label: "完整閉環寫回",
+    description: "會追蹤 decision、action execution 與 outcome records，適合長期案件。",
+  },
+];
+
 const INPUT_MODE_GUIDANCE: Record<
   InputEntryMode,
   {
@@ -127,6 +173,16 @@ function labelForExternalDataStrategy(value: ExternalDataStrategy) {
     EXTERNAL_DATA_STRATEGY_OPTIONS.find((item) => item.value === value)?.label ??
     EXTERNAL_DATA_STRATEGY_OPTIONS[1].label
   );
+}
+
+function defaultContinuityModeForInputMode(
+  inputMode: InputEntryMode,
+): EngagementContinuityMode {
+  return inputMode === "one_line_inquiry" ? "one_off" : "follow_up";
+}
+
+function defaultWritebackDepthForInputMode(inputMode: InputEntryMode): WritebackDepth {
+  return inputMode === "one_line_inquiry" ? "minimal" : "milestone";
 }
 
 function deriveTaskTitle(description: string) {
@@ -306,6 +362,12 @@ export function TaskCreateForm({
     useState<ExternalDataStrategy>("supplemental");
   const [showAdvanced, setShowAdvanced] =
     useState(defaultInputMode === "multi_material_case");
+  const [continuityMode, setContinuityMode] = useState<EngagementContinuityMode>(
+    defaultContinuityModeForInputMode(defaultInputMode),
+  );
+  const [writebackDepth, setWritebackDepth] = useState<WritebackDepth>(
+    defaultWritebackDepthForInputMode(defaultInputMode),
+  );
   const [analysisDepth, setAnalysisDepth] = useState("");
   const [constraintInput, setConstraintInput] = useState("");
   const [assumptions, setAssumptions] = useState("");
@@ -387,7 +449,10 @@ export function TaskCreateForm({
       description,
       task_type: flow.taskType,
       mode: flow.mode,
+      entry_preset: inputMode,
       external_data_strategy: externalDataStrategy,
+      engagement_continuity_mode: continuityMode,
+      writeback_depth: writebackDepth,
       client_type: inferClientType(description),
       client_stage: inferClientStage(description),
       engagement_name: derivedTitle || undefined,
@@ -457,11 +522,11 @@ export function TaskCreateForm({
       <form className="form-grid" onSubmit={handleSubmit}>
         <section className="intake-section">
           <div className="section-heading">
-            <h3>輸入模式</h3>
-            <p>這三種都是正式進件模式，會匯進同一條案件主鏈，而不是三套互不相容的流程。</p>
+            <h3>進件入口</h3>
+            <p>這三種只是進入同一條 canonical intake pipeline 的不同入口，建立後都會回到同一個案件世界。</p>
           </div>
 
-          <div className="page-tabs" role="tablist" aria-label="新案件輸入模式">
+          <div className="page-tabs" role="tablist" aria-label="新案件進件入口">
             {INPUT_MODE_OPTIONS.map((option) => (
               <button
                 key={option.value}
@@ -469,6 +534,16 @@ export function TaskCreateForm({
                 type="button"
                 onClick={() => {
                   setInputMode(option.value);
+                  setContinuityMode((current) =>
+                    current === defaultContinuityModeForInputMode(inputMode)
+                      ? defaultContinuityModeForInputMode(option.value)
+                      : current,
+                  );
+                  setWritebackDepth((current) =>
+                    current === defaultWritebackDepthForInputMode(inputMode)
+                      ? defaultWritebackDepthForInputMode(option.value)
+                      : current,
+                  );
                   if (option.value === "multi_material_case") {
                     setShowAdvanced(true);
                   }
@@ -499,6 +574,13 @@ export function TaskCreateForm({
             <div className="section-card">
               <h4>材料規則</h4>
               <p className="content-block">{inputModeGuidance.materialHint}</p>
+            </div>
+            <div className="section-card">
+              <h4>案件連續性</h4>
+              <p className="content-block">
+                {CONTINUITY_MODE_OPTIONS.find((item) => item.value === continuityMode)?.label} /{" "}
+                {WRITEBACK_DEPTH_OPTIONS.find((item) => item.value === writebackDepth)?.label}
+              </p>
             </div>
           </div>
         </section>
@@ -670,6 +752,54 @@ export function TaskCreateForm({
                   {workflowPreference === "auto"
                     ? `目前會自動判斷為「${flow.label}」。${flow.description}`
                     : flow.description}
+                </small>
+              </div>
+
+              <div className="field">
+                <label htmlFor="continuity-mode">案件連續性策略</label>
+                <select
+                  id="continuity-mode"
+                  value={continuityMode}
+                  onChange={(event) =>
+                    setContinuityMode(event.target.value as EngagementContinuityMode)
+                  }
+                >
+                  {CONTINUITY_MODE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <small>
+                  {
+                    CONTINUITY_MODE_OPTIONS.find(
+                      (option) => option.value === continuityMode,
+                    )?.description
+                  }
+                </small>
+              </div>
+
+              <div className="field">
+                <label htmlFor="writeback-depth">寫回深度</label>
+                <select
+                  id="writeback-depth"
+                  value={writebackDepth}
+                  onChange={(event) =>
+                    setWritebackDepth(event.target.value as WritebackDepth)
+                  }
+                >
+                  {WRITEBACK_DEPTH_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <small>
+                  {
+                    WRITEBACK_DEPTH_OPTIONS.find(
+                      (option) => option.value === writebackDepth,
+                    )?.description
+                  }
                 </small>
               </div>
 
