@@ -71,8 +71,10 @@ EXTERNAL_DATA_STRATEGY_LABELS = {
 }
 PACK_OVERRIDE_CONSTRAINT_TYPE = "pack_override"
 AGENT_OVERRIDE_CONSTRAINT_TYPE = "agent_override"
-TASK_SLICE_IDENTITY_SCOPE = "task_slice"
+LEGACY_TASK_SLICE_IDENTITY_SCOPE = "task_slice"
+SLICE_OVERLAY_IDENTITY_SCOPE = "slice_overlay"
 WORLD_AUTHORITY_IDENTITY_SCOPE = "world_authority"
+SLICE_PARTICIPATION_CONTINUITY_SCOPE = "slice_participation"
 WORLD_SHARED_CONTINUITY_SCOPE = "world_shared"
 PACK_REASON_DOMAIN_MATCHES = {
     "operations_pack": {"營運"},
@@ -640,7 +642,7 @@ def _primary_item(items: list[models.Client] | list[models.Engagement] | list[mo
         return None
 
     for item in items:
-        if getattr(item, "identity_scope", TASK_SLICE_IDENTITY_SCOPE) != WORLD_AUTHORITY_IDENTITY_SCOPE:
+        if getattr(item, "identity_scope", LEGACY_TASK_SLICE_IDENTITY_SCOPE) != WORLD_AUTHORITY_IDENTITY_SCOPE:
             return item
     return items[0]
 
@@ -2066,6 +2068,68 @@ def _build_world_decision_context_read(
     )
 
 
+def _merge_world_decision_context_payload(
+    *,
+    canonical_payload: dict[str, object] | None,
+    overlay: schemas.DecisionContextRead | None,
+    task: models.Task,
+) -> dict[str, object]:
+    canonical_payload = canonical_payload or {}
+    payload_goals = _coerce_string_list_from_payload(canonical_payload.get("goals"))
+    payload_constraints = _coerce_string_list_from_payload(canonical_payload.get("constraints"))
+    payload_assumptions = _coerce_string_list_from_payload(canonical_payload.get("assumptions"))
+
+    overlay_goals = overlay.goals if overlay and overlay.goals else payload_goals
+    overlay_constraints = (
+        overlay.constraints if overlay and overlay.constraints else payload_constraints
+    )
+    overlay_assumptions = (
+        overlay.assumptions if overlay and overlay.assumptions else payload_assumptions
+    )
+
+    return {
+        "title": (
+            overlay.title if overlay and _normalize_whitespace(overlay.title) else _coerce_text(canonical_payload.get("title")) or task.title
+        ),
+        "summary": (
+            overlay.summary if overlay and _normalize_whitespace(overlay.summary) else _coerce_text(canonical_payload.get("summary")) or task.description
+        ),
+        "judgment_to_make": (
+            overlay.judgment_to_make
+            if overlay and _normalize_whitespace(overlay.judgment_to_make)
+            else _coerce_text(canonical_payload.get("judgment_to_make")) or task.description or task.title
+        ),
+        "domain_lenses": (
+            overlay.domain_lenses
+            if overlay and overlay.domain_lenses
+            else _coerce_string_list_from_payload(canonical_payload.get("domain_lenses"))
+        ),
+        "client_stage": (
+            overlay.client_stage
+            if overlay and _normalize_whitespace(overlay.client_stage)
+            else _coerce_text(canonical_payload.get("client_stage"))
+        ),
+        "client_type": (
+            overlay.client_type
+            if overlay and _normalize_whitespace(overlay.client_type)
+            else _coerce_text(canonical_payload.get("client_type"))
+        ),
+        "goals": overlay_goals,
+        "constraints": overlay_constraints,
+        "assumptions": overlay_assumptions,
+        "source_priority": (
+            overlay.source_priority
+            if overlay and _normalize_whitespace(overlay.source_priority)
+            else _coerce_text(canonical_payload.get("source_priority"))
+        ),
+        "external_data_policy": (
+            overlay.external_data_policy
+            if overlay and _normalize_whitespace(overlay.external_data_policy)
+            else _coerce_text(canonical_payload.get("external_data_policy"))
+        ),
+    }
+
+
 def _build_ontology_spine_for_task(
     task: models.Task,
 ) -> tuple[
@@ -2694,7 +2758,7 @@ def _load_world_authority_object(
     if (
         candidate is not None
         and getattr(candidate, "matter_workspace_id", None) == matter_workspace_id
-        and getattr(candidate, "identity_scope", TASK_SLICE_IDENTITY_SCOPE) == WORLD_AUTHORITY_IDENTITY_SCOPE
+        and getattr(candidate, "identity_scope", LEGACY_TASK_SLICE_IDENTITY_SCOPE) == WORLD_AUTHORITY_IDENTITY_SCOPE
     ):
         return candidate
 
@@ -2731,7 +2795,7 @@ def ensure_world_context_spine_for_task(
         if item is None:
             continue
         changed = _assign_if_changed(item, "matter_workspace_id", matter_workspace.id) or changed
-        changed = _assign_if_changed(item, "identity_scope", TASK_SLICE_IDENTITY_SCOPE) or changed
+        changed = _assign_if_changed(item, "identity_scope", SLICE_OVERLAY_IDENTITY_SCOPE) or changed
 
     canonical_client = _load_world_authority_object(
         db,
@@ -4072,12 +4136,26 @@ def _build_task_list_item_response(
     client, engagement, workstream, decision_context, domain_lenses, source_materials, artifacts = (
         _build_ontology_spine_for_task(task)
     )
+    preferred_decision_context = decision_context
+    db = object_session(task)
+    linked_matter_workspace = _get_linked_matter_workspace(task)
+    if db is not None and linked_matter_workspace is not None:
+        _, _, _, authority_decision_context_row = _load_world_authority_spine(
+            db,
+            matter_workspace=linked_matter_workspace,
+            case_world_state=linked_matter_workspace.case_world_state,
+        )
+        preferred_decision_context = _build_world_decision_context_read(
+            case_world_state=linked_matter_workspace.case_world_state,
+            authority_decision_context=authority_decision_context_row,
+            fallback=decision_context,
+        ) or decision_context
     pack_resolution = resolve_pack_selection_for_task(
         task,
         client,
         engagement,
         workstream,
-        decision_context,
+        preferred_decision_context,
         domain_lenses,
     )
     input_entry_mode = _infer_input_entry_mode(task, source_materials, artifacts)
@@ -4098,7 +4176,7 @@ def _build_task_list_item_response(
     )
     agent_selection = resolve_agent_selection_for_task(
         task,
-        decision_context,
+        preferred_decision_context,
         domain_lenses,
         pack_resolution,
         input_entry_mode,
@@ -4120,9 +4198,17 @@ def _build_task_list_item_response(
         client_name=client.name if client else None,
         engagement_name=engagement.name if engagement else None,
         workstream_name=workstream.name if workstream else None,
-        decision_context_title=decision_context.title if decision_context else None,
-        client_stage=client.client_stage if client and client.client_stage != UNSPECIFIED_LABEL else None,
-        client_type=client.client_type if client and client.client_type != UNSPECIFIED_LABEL else None,
+        decision_context_title=preferred_decision_context.title if preferred_decision_context else None,
+        client_stage=(
+            preferred_decision_context.client_stage
+            if preferred_decision_context and preferred_decision_context.client_stage != UNSPECIFIED_LABEL
+            else client.client_stage if client and client.client_stage != UNSPECIFIED_LABEL else None
+        ),
+        client_type=(
+            preferred_decision_context.client_type
+            if preferred_decision_context and preferred_decision_context.client_type != UNSPECIFIED_LABEL
+            else client.client_type if client and client.client_type != UNSPECIFIED_LABEL else None
+        ),
         domain_lenses=domain_lenses,
         entry_preset=InputEntryMode(task.entry_preset),
         input_entry_mode=input_entry_mode,
@@ -6698,14 +6784,17 @@ def ensure_case_world_draft_for_task(
             external_research_heavy_candidate,
         ),
     }
-    decision_context_payload = (
-        decision_context.model_dump(mode="json")
-        if decision_context
-        else {
-            "title": task.title,
-            "judgment_to_make": task.description or task.title,
-            "summary": task.description,
-        }
+    canonical_decision_context_payload = None
+    if matter_workspace and matter_workspace.case_world_state:
+        state_payload = matter_workspace.case_world_state.decision_context_payload
+        if isinstance(state_payload, dict):
+            canonical_decision_context_payload = state_payload
+    if canonical_decision_context_payload is None and existing is not None and isinstance(existing.decision_context_payload, dict):
+        canonical_decision_context_payload = existing.decision_context_payload
+    decision_context_payload = _merge_world_decision_context_payload(
+        canonical_payload=canonical_decision_context_payload,
+        overlay=decision_context,
+        task=task,
     )
     suggested_domain_packs = [item.pack_id for item in pack_resolution.selected_domain_packs]
     suggested_industry_packs = [item.pack_id for item in pack_resolution.selected_industry_packs]
@@ -6782,6 +6871,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
             case_world_state=case_world_state_row,
         )
     )
+    slice_decision_context = decision_context
     world_decision_context = _build_world_decision_context_read(
         case_world_state=case_world_state_row,
         authority_decision_context=world_authority_decision_context_row,
@@ -6912,6 +7002,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
                 case_world_state=case_world_state_row,
             )
         )
+        slice_decision_context = decision_context
         world_decision_context = _build_world_decision_context_read(
             case_world_state=case_world_state_row,
             authority_decision_context=world_authority_decision_context_row,
@@ -6939,7 +7030,8 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
             if world_workstream_row
             else workstream
         ),
-        decision_context=decision_context,
+        decision_context=world_decision_context or decision_context,
+        slice_decision_context=slice_decision_context,
         world_decision_context=world_decision_context,
         client_stage=(
             world_decision_context.client_stage

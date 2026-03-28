@@ -8,6 +8,7 @@ from app.ingestion.preprocess import build_text_chunks, infer_relevance_label, s
 from app.services.material_storage import build_source_reference, sync_source_material_from_document
 
 WORLD_SHARED_CONTINUITY_SCOPE = "world_shared"
+SLICE_PARTICIPATION_CONTINUITY_SCOPE = "slice_participation"
 
 
 def _task_query_parts(task: models.Task) -> list[str]:
@@ -95,7 +96,7 @@ def build_source_objects_for_document(
     task_id: str,
     matter_workspace_id: str | None,
     source_document: models.SourceDocument,
-    continuity_scope: str = "task_slice",
+    continuity_scope: str = SLICE_PARTICIPATION_CONTINUITY_SCOPE,
 ) -> tuple[models.SourceMaterial, models.Artifact]:
     summary = build_source_material_summary(source_document)
     source_material = models.SourceMaterial(
@@ -148,7 +149,7 @@ def build_processed_evidence_items(
     text: str,
     primary_evidence_type: str,
     reliability_level: str = "user_provided",
-    continuity_scope: str = "task_slice",
+    continuity_scope: str = SLICE_PARTICIPATION_CONTINUITY_SCOPE,
 ) -> tuple[models.Evidence, list[models.Evidence]]:
     relevance = infer_relevance_label(text, _task_query_parts(task))
     summary = summarize_evidence_text(text)
@@ -204,7 +205,7 @@ def build_failed_evidence_item(
     source_ref: str,
     title: str,
     error_message: str,
-    continuity_scope: str = "task_slice",
+    continuity_scope: str = SLICE_PARTICIPATION_CONTINUITY_SCOPE,
 ) -> models.Evidence:
     return models.Evidence(
         task_id=task_id,
@@ -232,7 +233,7 @@ def build_unparsed_evidence_item(
     source_type: str,
     source_ref: str,
     title: str,
-    continuity_scope: str = "task_slice",
+    continuity_scope: str = SLICE_PARTICIPATION_CONTINUITY_SCOPE,
 ) -> models.Evidence:
     return models.Evidence(
         task_id=task_id,

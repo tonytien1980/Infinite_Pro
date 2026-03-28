@@ -74,19 +74,19 @@ def _ensure_incremental_schema_updates() -> None:
         },
         "clients": {
             "matter_workspace_id": "VARCHAR(36)",
-            "identity_scope": "VARCHAR(30) NOT NULL DEFAULT 'task_slice'",
+            "identity_scope": "VARCHAR(30) NOT NULL DEFAULT 'slice_overlay'",
         },
         "engagements": {
             "matter_workspace_id": "VARCHAR(36)",
-            "identity_scope": "VARCHAR(30) NOT NULL DEFAULT 'task_slice'",
+            "identity_scope": "VARCHAR(30) NOT NULL DEFAULT 'slice_overlay'",
         },
         "workstreams": {
             "matter_workspace_id": "VARCHAR(36)",
-            "identity_scope": "VARCHAR(30) NOT NULL DEFAULT 'task_slice'",
+            "identity_scope": "VARCHAR(30) NOT NULL DEFAULT 'slice_overlay'",
         },
         "decision_contexts": {
             "matter_workspace_id": "VARCHAR(36)",
-            "identity_scope": "VARCHAR(30) NOT NULL DEFAULT 'task_slice'",
+            "identity_scope": "VARCHAR(30) NOT NULL DEFAULT 'slice_overlay'",
         },
         "deliverables": {
             "summary": "TEXT NOT NULL DEFAULT ''",
@@ -100,7 +100,7 @@ def _ensure_incremental_schema_updates() -> None:
         "source_documents": {
             "matter_workspace_id": "VARCHAR(36)",
             "research_run_id": "VARCHAR(36)",
-            "continuity_scope": "VARCHAR(30) NOT NULL DEFAULT 'task_slice'",
+            "continuity_scope": "VARCHAR(30) NOT NULL DEFAULT 'slice_participation'",
             "canonical_display_name": "VARCHAR(255) NOT NULL DEFAULT ''",
             "file_extension": "VARCHAR(20)",
             "storage_key": "VARCHAR(1024)",
@@ -118,7 +118,7 @@ def _ensure_incremental_schema_updates() -> None:
         },
         "source_materials": {
             "matter_workspace_id": "VARCHAR(36)",
-            "continuity_scope": "VARCHAR(30) NOT NULL DEFAULT 'task_slice'",
+            "continuity_scope": "VARCHAR(30) NOT NULL DEFAULT 'slice_participation'",
             "canonical_display_name": "VARCHAR(255) NOT NULL DEFAULT ''",
             "file_extension": "VARCHAR(20)",
             "file_size": "INTEGER NOT NULL DEFAULT 0",
@@ -136,13 +136,13 @@ def _ensure_incremental_schema_updates() -> None:
         },
         "artifacts": {
             "matter_workspace_id": "VARCHAR(36)",
-            "continuity_scope": "VARCHAR(30) NOT NULL DEFAULT 'task_slice'",
+            "continuity_scope": "VARCHAR(30) NOT NULL DEFAULT 'slice_participation'",
         },
         "evidence": {
             "matter_workspace_id": "VARCHAR(36)",
             "source_material_id": "VARCHAR(36)",
             "artifact_id": "VARCHAR(36)",
-            "continuity_scope": "VARCHAR(30) NOT NULL DEFAULT 'task_slice'",
+            "continuity_scope": "VARCHAR(30) NOT NULL DEFAULT 'slice_participation'",
         },
         "deliverable_artifact_records": {
             "storage_provider": "VARCHAR(50) NOT NULL DEFAULT 'local_fs'",
@@ -184,6 +184,26 @@ def _normalize_incremental_data() -> None:
 
     session = SessionLocal()
     try:
+        if settings.database_url.startswith("sqlite"):
+            with session.bind.begin() as connection:
+                connection.execute(text("UPDATE clients SET identity_scope = 'slice_overlay' WHERE identity_scope = 'task_slice'"))
+                connection.execute(text("UPDATE engagements SET identity_scope = 'slice_overlay' WHERE identity_scope = 'task_slice'"))
+                connection.execute(text("UPDATE workstreams SET identity_scope = 'slice_overlay' WHERE identity_scope = 'task_slice'"))
+                connection.execute(text("UPDATE decision_contexts SET identity_scope = 'slice_overlay' WHERE identity_scope = 'task_slice'"))
+                connection.execute(text("UPDATE source_documents SET continuity_scope = 'slice_participation' WHERE continuity_scope = 'task_slice'"))
+                connection.execute(text("UPDATE source_materials SET continuity_scope = 'slice_participation' WHERE continuity_scope = 'task_slice'"))
+                connection.execute(text("UPDATE artifacts SET continuity_scope = 'slice_participation' WHERE continuity_scope = 'task_slice'"))
+                connection.execute(text("UPDATE evidence SET continuity_scope = 'slice_participation' WHERE continuity_scope = 'task_slice'"))
+        else:
+            with session.bind.begin() as connection:
+                connection.execute(text("UPDATE clients SET identity_scope = 'slice_overlay' WHERE identity_scope = 'task_slice'"))
+                connection.execute(text("UPDATE engagements SET identity_scope = 'slice_overlay' WHERE identity_scope = 'task_slice'"))
+                connection.execute(text("UPDATE workstreams SET identity_scope = 'slice_overlay' WHERE identity_scope = 'task_slice'"))
+                connection.execute(text("UPDATE decision_contexts SET identity_scope = 'slice_overlay' WHERE identity_scope = 'task_slice'"))
+                connection.execute(text("UPDATE source_documents SET continuity_scope = 'slice_participation' WHERE continuity_scope = 'task_slice'"))
+                connection.execute(text("UPDATE source_materials SET continuity_scope = 'slice_participation' WHERE continuity_scope = 'task_slice'"))
+                connection.execute(text("UPDATE artifacts SET continuity_scope = 'slice_participation' WHERE continuity_scope = 'task_slice'"))
+                connection.execute(text("UPDATE evidence SET continuity_scope = 'slice_participation' WHERE continuity_scope = 'task_slice'"))
         deliverables = session.scalars(select(models.Deliverable)).all()
         deliverable_ids = session.scalars(
             select(models.DeliverableVersionEvent.deliverable_id).distinct()

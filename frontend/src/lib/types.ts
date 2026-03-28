@@ -798,6 +798,7 @@ export interface TaskAggregate {
   engagement: Engagement | null;
   workstream: Workstream | null;
   decision_context: DecisionContext | null;
+  slice_decision_context: DecisionContext | null;
   world_decision_context: DecisionContext | null;
   client_stage: string | null;
   client_type: string | null;

@@ -22,6 +22,7 @@ from app.services.source_materials import (
     build_source_objects_for_document,
     build_unparsed_evidence_item,
     load_existing_world_shared_bundle,
+    SLICE_PARTICIPATION_CONTINUITY_SCOPE,
 )
 from app.services.storage_manager import (
     AVAILABILITY_AVAILABLE,
@@ -73,7 +74,7 @@ def _persist_processed_source(
     retention_policy = RETENTION_POLICY_DERIVED
     extension = normalize_extension(title, "")
     matter_workspace_id = _linked_matter_workspace_id(task)
-    continuity_scope = "world_shared" if matter_workspace_id else "task_slice"
+    continuity_scope = "world_shared" if matter_workspace_id else SLICE_PARTICIPATION_CONTINUITY_SCOPE
     existing_bundle = load_existing_world_shared_bundle(
         db,
         matter_workspace_id=matter_workspace_id,
@@ -194,7 +195,7 @@ def _persist_failed_source(
     research_run_id: str | None = None,
 ) -> tuple[models.SourceDocument, models.SourceMaterial, models.Artifact, models.Evidence]:
     matter_workspace_id = _linked_matter_workspace_id(task)
-    continuity_scope = "world_shared" if matter_workspace_id else "task_slice"
+    continuity_scope = "world_shared" if matter_workspace_id else SLICE_PARTICIPATION_CONTINUITY_SCOPE
     existing_bundle = load_existing_world_shared_bundle(
         db,
         matter_workspace_id=matter_workspace_id,

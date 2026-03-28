@@ -321,6 +321,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const executiveSummary = task && deliverable ? buildExecutiveSummary(task, deliverable) : null;
   const decisionSnapshot = task && deliverable ? buildDecisionSnapshot(task, deliverable) : null;
   const preferredWorldDecisionContext = task?.world_decision_context || task?.decision_context || null;
+  const sliceDecisionContext = task?.slice_decision_context || null;
   const recommendations = task && deliverable ? buildRecommendationCards(task, deliverable) : [];
   const risks = task && deliverable ? buildRiskCards(task, deliverable) : [];
   const actionItems = task && deliverable ? buildActionItemCards(task, deliverable) : [];
@@ -1026,6 +1027,14 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                   {workspace.research_runs.length > 0
                     ? `已留存 ${workspace.research_runs.length} 筆 research runs。`
                     : "目前沒有 research provenance。"}
+                </p>
+              </div>
+              <div className="section-card">
+                <h4>Decision authority</h4>
+                <p className="content-block">
+                  {sliceDecisionContext
+                    ? "交付物目前優先依案件世界的 canonical decision context 呈現；slice-local overlay 只保留給在途工作。"
+                    : "交付物目前直接依 canonical world decision context 呈現。"}
                 </p>
               </div>
               <div className="section-card">

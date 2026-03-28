@@ -412,6 +412,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
   const deliverableBacklink = task ? buildDeliverableBacklinkView(task, latestDeliverable) : null;
   const latestCaseWorldDraft = task?.case_world_draft ?? null;
   const caseWorldState = task?.case_world_state ?? null;
+  const sliceDecisionContext = task?.slice_decision_context ?? null;
   const openEvidenceGaps = task?.evidence_gaps.filter((item) => item.status !== "resolved") ?? [];
   const recentDecisionRecords = task?.decision_records.slice(0, 3) ?? [];
   const recentOutcomeRecords = task?.outcome_records.slice(0, 3) ?? [];
@@ -429,6 +430,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
       ? "這筆工作已可回看同一案件世界下共享的 materials / evidence，不必把補件再拆成孤立流程。"
       : "目前這筆工作還沒有顯示可跨 slice 共用的 materials / evidence。"
     : "目前這筆工作還沒有顯示可跨 slice 共用的 materials / evidence。";
+  const localOverlaySummary = sliceDecisionContext
+    ? "目前這筆 task 仍保留一個 local overlay decision context，供在途工作與相容層使用；正式主來源已優先回到案件世界。"
+    : "目前沒有額外的 slice-local decision overlay。";
   const sortedRecommendations = task?.recommendations
     ? [...task.recommendations].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
@@ -664,6 +668,10 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                 <h4>共享材料連續性</h4>
                 <p className="content-block">{sharedContinuitySummary}</p>
               </div>
+              <div className="section-card">
+                <h4>Local overlay</h4>
+                <p className="content-block">{localOverlaySummary}</p>
+              </div>
             </div>
 
             {caseWorldState || latestCaseWorldDraft ? (
@@ -693,6 +701,18 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     emptyText="目前沒有高優先 evidence gaps。"
                   />
                 </div>
+                {sliceDecisionContext ? (
+                  <div className="detail-item">
+                    <h3>Slice-local decision overlay</h3>
+                    <ExpandableList
+                      items={[
+                        sliceDecisionContext.judgment_to_make || sliceDecisionContext.title,
+                        sliceDecisionContext.summary,
+                      ].filter(Boolean)}
+                      emptyText="目前沒有額外的 slice-local overlay。"
+                    />
+                  </div>
+                ) : null}
                 {caseWorldState?.last_supplement_summary ? (
                   <div className="detail-item">
                     <h3>最近 world update</h3>

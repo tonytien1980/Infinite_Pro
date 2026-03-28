@@ -152,7 +152,7 @@ class ClientRead(ORMModel):
     id: str
     task_id: str
     matter_workspace_id: str | None = None
-    identity_scope: str = "task_slice"
+    identity_scope: str = "slice_overlay"
     name: str
     client_type: str
     client_stage: str
@@ -164,7 +164,7 @@ class EngagementRead(ORMModel):
     id: str
     task_id: str
     matter_workspace_id: str | None = None
-    identity_scope: str = "task_slice"
+    identity_scope: str = "slice_overlay"
     client_id: str | None
     name: str
     description: str | None
@@ -175,7 +175,7 @@ class WorkstreamRead(ORMModel):
     id: str
     task_id: str
     matter_workspace_id: str | None = None
-    identity_scope: str = "task_slice"
+    identity_scope: str = "slice_overlay"
     engagement_id: str | None
     name: str
     description: str | None
@@ -187,7 +187,7 @@ class DecisionContextRead(BaseModel):
     id: str
     task_id: str
     matter_workspace_id: str | None = None
-    identity_scope: str = "task_slice"
+    identity_scope: str = "slice_overlay"
     client_id: str | None
     engagement_id: str | None
     workstream_id: str | None
@@ -322,7 +322,7 @@ class SourceDocumentRead(ORMModel):
     task_id: str
     matter_workspace_id: str | None = None
     research_run_id: str | None = None
-    continuity_scope: str = "task_slice"
+    continuity_scope: str = "slice_participation"
     source_type: str
     file_name: str
     canonical_display_name: str
@@ -353,7 +353,7 @@ class SourceMaterialRead(ORMModel):
     task_id: str
     matter_workspace_id: str | None = None
     source_document_id: str | None = None
-    continuity_scope: str = "task_slice"
+    continuity_scope: str = "slice_participation"
     source_type: str
     title: str
     canonical_display_name: str
@@ -381,7 +381,7 @@ class ArtifactRead(ORMModel):
     id: str
     task_id: str
     matter_workspace_id: str | None = None
-    continuity_scope: str = "task_slice"
+    continuity_scope: str = "slice_participation"
     title: str
     artifact_type: str
     source_document_id: str | None
@@ -397,7 +397,7 @@ class EvidenceRead(ORMModel):
     source_document_id: str | None
     source_material_id: str | None = None
     artifact_id: str | None = None
-    continuity_scope: str = "task_slice"
+    continuity_scope: str = "slice_participation"
     evidence_type: str
     source_type: str
     source_ref: str | None
@@ -1004,6 +1004,7 @@ class TaskAggregateResponse(BaseModel):
     engagement: EngagementRead | None = None
     workstream: WorkstreamRead | None = None
     decision_context: DecisionContextRead | None = None
+    slice_decision_context: DecisionContextRead | None = None
     world_decision_context: DecisionContextRead | None = None
     client_stage: str | None = None
     client_type: str | None = None

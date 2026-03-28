@@ -260,6 +260,9 @@ def test_case_world_state_points_to_world_authority_spine(client: TestClient) ->
     assert body["client"]["identity_scope"] == "world_authority"
     assert body["engagement"]["identity_scope"] == "world_authority"
     assert body["workstream"]["identity_scope"] == "world_authority"
+    assert body["slice_decision_context"]["identity_scope"] == "slice_overlay"
+    assert body["decision_context"]["identity_scope"] == "world_authority"
+    assert body["world_decision_context"]["identity_scope"] == "world_authority"
     assert body["case_world_state"]["client_id"]
     assert body["case_world_state"]["engagement_id"]
     assert body["case_world_state"]["workstream_id"]
@@ -310,6 +313,13 @@ def test_world_decision_context_prefers_canonical_world_payload_over_slice_fallb
     ]
     assert "Keep the output internal-only for now." in workspace["current_decision_context"]["constraints"]
     assert "原始世界假設仍成立" in "\n".join(workspace["current_decision_context"]["assumptions"])
+
+    refreshed_task = client.get(f"/api/v1/tasks/{task_id}").json()
+    assert refreshed_task["decision_context"]["identity_scope"] == "world_authority"
+    assert refreshed_task["slice_decision_context"]["identity_scope"] == "slice_overlay"
+    assert refreshed_task["decision_context"]["goals"] == [
+        "Highlight the strongest findings and next actions."
+    ]
 
 
 def test_task_list_returns_object_aware_workspace_summary(client: TestClient) -> None:
@@ -504,10 +514,33 @@ def test_shared_materials_and_evidence_follow_world_spine_across_task_slices(
     reused_item = second_upload_response.json()["uploaded"][0]
     assert reused_item["source_material"]["id"] == shared_material["id"]
     assert reused_item["evidence"]["id"] == shared_evidence["id"]
+    assert reused_item["source_material"]["continuity_scope"] == "world_shared"
 
     workspace = client.get(f"/api/v1/matters/{first_task['matter_workspace']['id']}").json()
     assert workspace["summary"]["source_material_count"] == 1
     assert workspace["summary"]["artifact_count"] >= 1
+def test_core_context_keeps_world_authority_and_slice_overlay_rows(client: TestClient) -> None:
+    task = client.post("/api/v1/tasks", json=create_task_payload("Overlay scope rows")).json()
+
+    with SessionLocal() as db:
+        task_row = db.get(models.Task, task["id"])
+        assert task_row is not None
+        assert {item.identity_scope for item in task_row.clients} == {
+            "slice_overlay",
+            "world_authority",
+        }
+        assert {item.identity_scope for item in task_row.engagements} == {
+            "slice_overlay",
+            "world_authority",
+        }
+        assert {item.identity_scope for item in task_row.workstreams} == {
+            "slice_overlay",
+            "world_authority",
+        }
+        assert {item.identity_scope for item in task_row.decision_contexts} == {
+            "slice_overlay",
+            "world_authority",
+        }
 
 
 def test_artifact_evidence_workspace_route_returns_formal_source_and_support_chains(

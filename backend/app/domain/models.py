@@ -467,7 +467,7 @@ class Client(Base):
         ForeignKey("matter_workspaces.id"),
         nullable=True,
     )
-    identity_scope: Mapped[str] = mapped_column(String(30), default="task_slice")
+    identity_scope: Mapped[str] = mapped_column(String(30), default="slice_overlay")
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     client_type: Mapped[str] = mapped_column(String(100), default="未指定")
     client_stage: Mapped[str] = mapped_column(String(100), default="未指定")
@@ -488,7 +488,7 @@ class Engagement(Base):
         ForeignKey("matter_workspaces.id"),
         nullable=True,
     )
-    identity_scope: Mapped[str] = mapped_column(String(30), default="task_slice")
+    identity_scope: Mapped[str] = mapped_column(String(30), default="slice_overlay")
     client_id: Mapped[str | None] = mapped_column(ForeignKey("clients.id"), nullable=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -509,7 +509,7 @@ class Workstream(Base):
         ForeignKey("matter_workspaces.id"),
         nullable=True,
     )
-    identity_scope: Mapped[str] = mapped_column(String(30), default="task_slice")
+    identity_scope: Mapped[str] = mapped_column(String(30), default="slice_overlay")
     engagement_id: Mapped[str | None] = mapped_column(ForeignKey("engagements.id"), nullable=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -530,7 +530,7 @@ class DecisionContext(Base):
         ForeignKey("matter_workspaces.id"),
         nullable=True,
     )
-    identity_scope: Mapped[str] = mapped_column(String(30), default="task_slice")
+    identity_scope: Mapped[str] = mapped_column(String(30), default="slice_overlay")
     client_id: Mapped[str | None] = mapped_column(ForeignKey("clients.id"), nullable=True)
     engagement_id: Mapped[str | None] = mapped_column(ForeignKey("engagements.id"), nullable=True)
     workstream_id: Mapped[str | None] = mapped_column(ForeignKey("workstreams.id"), nullable=True)
@@ -615,7 +615,7 @@ class SourceDocument(Base):
         nullable=True,
     )
     research_run_id: Mapped[str | None] = mapped_column(ForeignKey("research_runs.id"), nullable=True)
-    continuity_scope: Mapped[str] = mapped_column(String(30), default="task_slice")
+    continuity_scope: Mapped[str] = mapped_column(String(30), default="slice_participation")
     source_type: Mapped[str] = mapped_column(String(100), default="manual_upload")
     file_name: Mapped[str] = mapped_column(String(255), nullable=False)
     canonical_display_name: Mapped[str] = mapped_column(String(255), default="")
@@ -657,7 +657,7 @@ class SourceMaterial(Base):
         nullable=True,
     )
     source_document_id: Mapped[str | None] = mapped_column(ForeignKey("source_documents.id"), nullable=True)
-    continuity_scope: Mapped[str] = mapped_column(String(30), default="task_slice")
+    continuity_scope: Mapped[str] = mapped_column(String(30), default="slice_participation")
     source_type: Mapped[str] = mapped_column(String(100), default="manual_upload")
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     canonical_display_name: Mapped[str] = mapped_column(String(255), default="")
@@ -696,7 +696,7 @@ class Artifact(Base):
     )
     source_document_id: Mapped[str | None] = mapped_column(ForeignKey("source_documents.id"), nullable=True)
     source_material_id: Mapped[str | None] = mapped_column(ForeignKey("source_materials.id"), nullable=True)
-    continuity_scope: Mapped[str] = mapped_column(String(30), default="task_slice")
+    continuity_scope: Mapped[str] = mapped_column(String(30), default="slice_participation")
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     artifact_type: Mapped[str] = mapped_column(String(100), default="source_artifact")
     description: Mapped[str] = mapped_column(Text, default="")
@@ -719,7 +719,7 @@ class Evidence(Base):
     source_document_id: Mapped[str | None] = mapped_column(ForeignKey("source_documents.id"), nullable=True)
     source_material_id: Mapped[str | None] = mapped_column(ForeignKey("source_materials.id"), nullable=True)
     artifact_id: Mapped[str | None] = mapped_column(ForeignKey("artifacts.id"), nullable=True)
-    continuity_scope: Mapped[str] = mapped_column(String(30), default="task_slice")
+    continuity_scope: Mapped[str] = mapped_column(String(30), default="slice_participation")
     evidence_type: Mapped[str] = mapped_column(String(100), default="source_excerpt")
     source_type: Mapped[str] = mapped_column(String(100), default="manual_input")
     source_ref: Mapped[str | None] = mapped_column(String(255), nullable=True)
