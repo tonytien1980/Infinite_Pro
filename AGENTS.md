@@ -241,7 +241,7 @@ Implementation should also preserve:
   - mark what is already world-native
   - mark what is still transitional task-centric persistence
   - do not claim fully world-native identity if legacy task ownership still exists
-  - identity deepen phase 8 should explicitly distinguish:
+  - identity deepen phase 9 should explicitly distinguish:
     - canonical world rows
     - task-slice local overlays / derivative rows
     - world-authoritative context rows for `Client / Engagement / Workstream / DecisionContext`
@@ -249,6 +249,7 @@ Implementation should also preserve:
     - compatibility-only `task_id` references versus real ownership authority
     - participation-aware batch / upload / source response contracts versus aggregate-only semantics
     - thinner `slice_decision_context` deltas versus canonical world decision authority
+    - host payload canonical context spine versus task-local fallback behavior
 
 The exact persistence schema may evolve, but these objects are part of the architecture boundary.
 

@@ -74,7 +74,7 @@
 - `CaseWorldState` 應逐步成為 matter/world identity authority
 - 某些 domain objects 仍可暫時保留 legacy `task_id` references
 - 但 release integrity 與 writeback 行為不得因 identity 遷移而退化
-- identity deepen phase 8 應額外保證：
+- identity deepen phase 9 應額外保證：
   - canonical world read path 優先
   - world-preferred write / sync path 優先
   - slice-local fallback 僅作 compatibility / overlay
@@ -87,6 +87,7 @@
   - upload / source / batch response 的 participation-aware contract 不得和 aggregate /
     workspace 的正式語義互相衝突
   - delta-only overlay contract 不得洗掉 canonical world decision authority
+  - host payload 不得因 compatibility-only `task_id` 仍存在而回退到 task-local core/context authority
 
 ---
 

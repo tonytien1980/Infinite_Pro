@@ -153,6 +153,7 @@ class ClientRead(ORMModel):
     task_id: str
     matter_workspace_id: str | None = None
     identity_scope: str = "slice_overlay"
+    task_reference_role: str = "slice_linkage"
     name: str
     client_type: str
     client_stage: str
@@ -165,6 +166,7 @@ class EngagementRead(ORMModel):
     task_id: str
     matter_workspace_id: str | None = None
     identity_scope: str = "slice_overlay"
+    task_reference_role: str = "slice_linkage"
     client_id: str | None
     name: str
     description: str | None
@@ -176,6 +178,7 @@ class WorkstreamRead(ORMModel):
     task_id: str
     matter_workspace_id: str | None = None
     identity_scope: str = "slice_overlay"
+    task_reference_role: str = "slice_linkage"
     engagement_id: str | None
     name: str
     description: str | None
@@ -188,6 +191,7 @@ class DecisionContextRead(BaseModel):
     task_id: str
     matter_workspace_id: str | None = None
     identity_scope: str = "slice_overlay"
+    task_reference_role: str = "slice_linkage"
     client_id: str | None
     engagement_id: str | None
     workstream_id: str | None

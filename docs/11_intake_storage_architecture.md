@@ -80,7 +80,7 @@ Host 必須在這一階段判斷：
 - `CaseWorldState` 應逐步成為材料 continuity 的正式 anchor
 - `SourceMaterial / Artifact / Evidence` 應逐步能以 matter/world spine 被直接回訪
 - legacy `task_id` 可暫時保留作為 slice-level access path，但不應再是唯一 continuity owner
-- identity deepen phase 8 應再往前一步：
+- identity deepen phase 9 應再往前一步：
   - 同一 matter 下的 canonical source chain 應盡量重用既有
     `SourceDocument / SourceMaterial / Artifact / Evidence`
   - 新 task slice 不應因同一份 canonical source 再次進件，就重建一套近似孤島的 rows
@@ -89,6 +89,7 @@ Host 必須在這一階段判斷：
   - `task_id` 若仍保留，應更接近 compatibility-only access path
   - upload / source batch responses 也應能顯示 shared participation，而不是退回 task-local owner 心智
   - participation bridge 應逐步從 helper / scope bridge 推進到更明確的 mapping 結構
+  - Host payload 對 core/context 的理解也應繼承同一套 world spine，而不是繞回 task-local rows
 
 補完後，正式理解應是：
 

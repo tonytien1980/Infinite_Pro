@@ -264,7 +264,12 @@ def test_case_world_state_points_to_world_authority_spine(client: TestClient) ->
     assert body["workstream"]["identity_scope"] == "world_authority"
     assert body["slice_decision_context"] is None
     assert body["decision_context"]["identity_scope"] == "world_authority"
+    assert body["client"]["task_reference_role"] == "compatibility_only"
+    assert body["engagement"]["task_reference_role"] == "compatibility_only"
+    assert body["workstream"]["task_reference_role"] == "compatibility_only"
+    assert body["decision_context"]["task_reference_role"] == "compatibility_only"
     assert body["world_decision_context"]["identity_scope"] == "world_authority"
+    assert body["world_decision_context"]["task_reference_role"] == "compatibility_only"
     assert body["case_world_state"]["client_id"]
     assert body["case_world_state"]["engagement_id"]
     assert body["case_world_state"]["workstream_id"]
@@ -277,6 +282,10 @@ def test_case_world_state_points_to_world_authority_spine(client: TestClient) ->
     assert workspace["engagement"]["identity_scope"] == "world_authority"
     assert workspace["workstream"]["identity_scope"] == "world_authority"
     assert workspace["current_decision_context"]["identity_scope"] == "world_authority"
+    assert workspace["client"]["task_reference_role"] == "compatibility_only"
+    assert workspace["engagement"]["task_reference_role"] == "compatibility_only"
+    assert workspace["workstream"]["task_reference_role"] == "compatibility_only"
+    assert workspace["current_decision_context"]["task_reference_role"] == "compatibility_only"
     assert workspace["client"]["id"] == body["case_world_state"]["client_id"]
     assert workspace["engagement"]["id"] == body["case_world_state"]["engagement_id"]
     assert workspace["workstream"]["id"] == body["case_world_state"]["workstream_id"]
@@ -681,6 +690,12 @@ def test_follow_up_promotes_canonical_core_context_links_to_latest_slice(client:
     assert first_aggregate["client"]["identity_scope"] == "world_authority"
     assert second_aggregate["client"]["identity_scope"] == "world_authority"
     assert second_aggregate["decision_context"]["identity_scope"] == "world_authority"
+    assert first_aggregate["client"]["task_reference_role"] == "compatibility_only"
+    assert second_aggregate["client"]["task_reference_role"] == "compatibility_only"
+    assert first_aggregate["client"]["task_id"] == first_task["id"]
+    assert second_aggregate["client"]["task_id"] == second_task["id"]
+    assert second_aggregate["decision_context"]["task_reference_role"] == "compatibility_only"
+    assert second_aggregate["decision_context"]["task_id"] == second_task["id"]
 
 
 def test_task_list_and_host_payload_prefer_world_authority_core_context(client: TestClient) -> None:
@@ -744,6 +759,10 @@ def test_task_list_and_host_payload_prefer_world_authority_core_context(client: 
         assert payload.engagement.identity_scope == "world_authority"
         assert payload.workstream.identity_scope == "world_authority"
         assert payload.decision_context.identity_scope == "world_authority"
+        assert payload.client.task_reference_role == "compatibility_only"
+        assert payload.engagement.task_reference_role == "compatibility_only"
+        assert payload.workstream.task_reference_role == "compatibility_only"
+        assert payload.decision_context.task_reference_role == "compatibility_only"
         assert payload.client.name == "Evergreen Consulting"
         assert payload.decision_context.summary != "只屬於 overlay 的暫時摘要。"
 
