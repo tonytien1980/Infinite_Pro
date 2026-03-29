@@ -42,6 +42,7 @@ from app.services.storage_manager import (
     write_text,
 )
 from app.services.tasks import (
+    build_upload_result_item_from_aggregate,
     get_loaded_task,
     prepare_case_world_follow_up_for_task,
     serialize_task,
@@ -319,20 +320,6 @@ def _select_connector_for_remote_source(
     return ManualUrlConnector()
 
 
-def _serialize_upload_item(
-    source_document: models.SourceDocument,
-    source_material: models.SourceMaterial,
-    artifact: models.Artifact,
-    evidence: models.Evidence,
-) -> schemas.UploadResultItem:
-    return schemas.UploadResultItem(
-        source_document=schemas.SourceDocumentRead.model_validate(source_document),
-        evidence=schemas.EvidenceRead.model_validate(evidence),
-        source_material=schemas.SourceMaterialRead.model_validate(source_material),
-        artifact=schemas.ArtifactRead.model_validate(artifact),
-    )
-
-
 def ingest_remote_urls_for_task(
     db: Session,
     task_id: str,
@@ -340,10 +327,10 @@ def ingest_remote_urls_for_task(
     *,
     origin: str = "manual",
     research_run_id: str | None = None,
-) -> list[schemas.UploadResultItem]:
+) -> list[tuple[str, str, str | None, str | None]]:
     task = get_loaded_task(db, task_id)
     existing_storage_paths = {item.storage_path for item in task.uploads}
-    ingested: list[schemas.UploadResultItem] = []
+    ingested_refs: list[tuple[str, str, str | None, str | None]] = []
 
     for url in urls:
         normalized_url = url.strip()
@@ -393,12 +380,12 @@ def ingest_remote_urls_for_task(
             )
 
         existing_storage_paths.add(normalized_url)
-        ingested.append(_serialize_upload_item(source_document, source_material, artifact, evidence))
+        ingested_refs.append((source_document.id, evidence.id, source_material.id, artifact.id))
 
-    if ingested:
+    if ingested_refs:
         db.commit()
 
-    return ingested
+    return ingested_refs
 
 
 def ingest_sources_for_task(
@@ -426,7 +413,7 @@ def ingest_sources_for_task(
         follow_up_summary=world_update_summary,
     )
     text_connector = ManualTextConnector()
-    ingested: list[schemas.UploadResultItem] = []
+    ingested_refs: list[tuple[str, str, str | None, str | None]] = []
 
     if pasted_text:
         title = payload.pasted_title or "手動貼上內容"
@@ -442,13 +429,25 @@ def ingest_sources_for_task(
             support_level="full",
             ingest_strategy="inline_text_extract",
         )
-        ingested.append(_serialize_upload_item(source_document, source_material, artifact, evidence))
+        ingested_refs.append((source_document.id, evidence.id, source_material.id, artifact.id))
         db.commit()
 
-    ingested.extend(ingest_remote_urls_for_task(db=db, task_id=task_id, urls=urls, origin="manual"))
+    ingested_refs.extend(
+        ingest_remote_urls_for_task(db=db, task_id=task_id, urls=urls, origin="manual")
+    )
 
     refreshed_task = get_loaded_task(db, task.id)
     aggregate = serialize_task(refreshed_task)
+    ingested = [
+        build_upload_result_item_from_aggregate(
+            aggregate,
+            source_document_id=source_document_id,
+            evidence_id=evidence_id,
+            source_material_id=source_material_id,
+            artifact_id=artifact_id,
+        )
+        for source_document_id, evidence_id, source_material_id, artifact_id in ingested_refs
+    ]
     return schemas.SourceIngestBatchResponse(
         task_id=task.id,
         matter_workspace_id=aggregate.matter_workspace.id if aggregate.matter_workspace else None,

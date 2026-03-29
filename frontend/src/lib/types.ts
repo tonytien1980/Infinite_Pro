@@ -398,6 +398,21 @@ export interface DecisionContext {
   created_at: string;
 }
 
+export interface DecisionContextDelta {
+  title: string | null;
+  summary: string | null;
+  judgment_to_make: string | null;
+  domain_lenses: string[];
+  client_stage: string | null;
+  client_type: string | null;
+  goals: string[];
+  constraints: string[];
+  assumptions: string[];
+  source_priority: string | null;
+  external_data_policy: string | null;
+  changed_fields: string[];
+}
+
 export interface TaskContext {
   id: string;
   task_id: string;
@@ -471,6 +486,7 @@ export interface ObjectParticipation {
   current_task_participation: boolean;
   participation_type: string | null;
   participation_task_count: number;
+  mapping_mode: string | null;
 }
 
 export interface SourceMaterial {
@@ -809,7 +825,7 @@ export interface TaskAggregate {
   engagement: Engagement | null;
   workstream: Workstream | null;
   decision_context: DecisionContext | null;
-  slice_decision_context: DecisionContext | null;
+  slice_decision_context: DecisionContextDelta | null;
   world_decision_context: DecisionContext | null;
   client_stage: string | null;
   client_type: string | null;

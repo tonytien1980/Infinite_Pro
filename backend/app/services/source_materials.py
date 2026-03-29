@@ -105,10 +105,29 @@ def ensure_task_object_participation_link(
     object_type: str,
     object_id: str,
     canonical_object_id: str | None = None,
+    source_document_id: str | None = None,
+    source_material_id: str | None = None,
+    artifact_id: str | None = None,
+    evidence_id: str | None = None,
     participation_type: str = PARTICIPATION_TYPE_SHARED_REUSE,
 ) -> models.TaskObjectParticipationLink | None:
     if not matter_workspace_id:
         return None
+
+    resolved_canonical_id = canonical_object_id or object_id
+    resolved_source_document_id = source_document_id
+    resolved_source_material_id = source_material_id
+    resolved_artifact_id = artifact_id
+    resolved_evidence_id = evidence_id
+
+    if object_type == OBJECT_TYPE_SOURCE_DOCUMENT:
+        resolved_source_document_id = resolved_source_document_id or resolved_canonical_id
+    elif object_type == OBJECT_TYPE_SOURCE_MATERIAL:
+        resolved_source_material_id = resolved_source_material_id or resolved_canonical_id
+    elif object_type == OBJECT_TYPE_ARTIFACT:
+        resolved_artifact_id = resolved_artifact_id or resolved_canonical_id
+    elif object_type == OBJECT_TYPE_EVIDENCE:
+        resolved_evidence_id = resolved_evidence_id or resolved_canonical_id
 
     link = db.scalars(
         select(models.TaskObjectParticipationLink)
@@ -122,7 +141,11 @@ def ensure_task_object_participation_link(
             matter_workspace_id=matter_workspace_id,
             object_type=object_type,
             object_id=object_id,
-            canonical_object_id=canonical_object_id or object_id,
+            canonical_object_id=resolved_canonical_id,
+            source_document_id=resolved_source_document_id,
+            source_material_id=resolved_source_material_id,
+            artifact_id=resolved_artifact_id,
+            evidence_id=resolved_evidence_id,
             participation_type=participation_type,
         )
         db.add(link)
@@ -130,12 +153,23 @@ def ensure_task_object_participation_link(
         return link
 
     changed = False
-    resolved_canonical_id = canonical_object_id or object_id
     if link.matter_workspace_id != matter_workspace_id:
         link.matter_workspace_id = matter_workspace_id
         changed = True
     if link.canonical_object_id != resolved_canonical_id:
         link.canonical_object_id = resolved_canonical_id
+        changed = True
+    if link.source_document_id != resolved_source_document_id:
+        link.source_document_id = resolved_source_document_id
+        changed = True
+    if link.source_material_id != resolved_source_material_id:
+        link.source_material_id = resolved_source_material_id
+        changed = True
+    if link.artifact_id != resolved_artifact_id:
+        link.artifact_id = resolved_artifact_id
+        changed = True
+    if link.evidence_id != resolved_evidence_id:
+        link.evidence_id = resolved_evidence_id
         changed = True
     if link.participation_type != participation_type:
         link.participation_type = participation_type
@@ -165,6 +199,7 @@ def ensure_source_chain_participation_links(
             object_type=OBJECT_TYPE_SOURCE_DOCUMENT,
             object_id=source_document_id,
             canonical_object_id=source_document_id,
+            source_document_id=source_document_id,
             participation_type=participation_type,
         )
     if source_material_id:
@@ -175,6 +210,8 @@ def ensure_source_chain_participation_links(
             object_type=OBJECT_TYPE_SOURCE_MATERIAL,
             object_id=source_material_id,
             canonical_object_id=source_material_id,
+            source_document_id=source_document_id,
+            source_material_id=source_material_id,
             participation_type=participation_type,
         )
     if artifact_id:
@@ -185,6 +222,9 @@ def ensure_source_chain_participation_links(
             object_type=OBJECT_TYPE_ARTIFACT,
             object_id=artifact_id,
             canonical_object_id=artifact_id,
+            source_document_id=source_document_id,
+            source_material_id=source_material_id,
+            artifact_id=artifact_id,
             participation_type=participation_type,
         )
     if evidence_id:
@@ -195,8 +235,26 @@ def ensure_source_chain_participation_links(
             object_type=OBJECT_TYPE_EVIDENCE,
             object_id=evidence_id,
             canonical_object_id=evidence_id,
+            source_document_id=source_document_id,
+            source_material_id=source_material_id,
+            artifact_id=artifact_id,
+            evidence_id=evidence_id,
             participation_type=participation_type,
         )
+
+
+def resolve_participation_canonical_key(
+    link: models.TaskObjectParticipationLink,
+) -> str:
+    if link.object_type == OBJECT_TYPE_SOURCE_DOCUMENT and link.source_document_id:
+        return link.source_document_id
+    if link.object_type == OBJECT_TYPE_SOURCE_MATERIAL and link.source_material_id:
+        return link.source_material_id
+    if link.object_type == OBJECT_TYPE_ARTIFACT and link.artifact_id:
+        return link.artifact_id
+    if link.object_type == OBJECT_TYPE_EVIDENCE and link.evidence_id:
+        return link.evidence_id
+    return link.canonical_object_id or link.object_id
 
 
 def build_source_objects_for_document(

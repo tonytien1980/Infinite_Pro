@@ -342,10 +342,9 @@ def test_slice_decision_context_only_surfaces_meaningful_overlay(client: TestCli
     refreshed_task = client.get(f"/api/v1/tasks/{task_id}").json()
     assert refreshed_task["decision_context"]["identity_scope"] == "world_authority"
     assert refreshed_task["decision_context"]["summary"] != "這是只屬於目前 work slice 的暫時判斷。"
-    assert refreshed_task["slice_decision_context"]["identity_scope"] == "slice_overlay"
-    assert refreshed_task["slice_decision_context"]["title"] == ""
+    assert refreshed_task["slice_decision_context"]["changed_fields"] == ["summary", "goals"]
     assert refreshed_task["slice_decision_context"]["summary"] == "這是只屬於目前 work slice 的暫時判斷。"
-    assert refreshed_task["slice_decision_context"]["judgment_to_make"] == ""
+    assert refreshed_task["slice_decision_context"]["judgment_to_make"] is None
     assert refreshed_task["slice_decision_context"]["goals"] == ["先只在這個 slice 內檢查一輪。"]
 
 
@@ -549,6 +548,10 @@ def test_shared_materials_and_evidence_follow_world_spine_across_task_slices(
     assert second_upload_response.status_code == 200
     reused_item = second_upload_response.json()["uploaded"][0]
     assert reused_item["source_document"]["id"] == shared_source_document["id"]
+    assert reused_item["source_document"]["participation"]["current_task_participation"] is True
+    assert reused_item["source_document"]["participation"]["participation_task_count"] == 2
+    assert reused_item["source_document"]["participation"]["participation_type"] == "shared_reuse"
+    assert reused_item["source_document"]["participation"]["mapping_mode"] == "explicit_mapping"
     assert reused_item["source_material"]["id"] == shared_material["id"]
     assert reused_item["evidence"]["id"] == shared_evidence["id"]
     assert reused_item["source_material"]["continuity_scope"] == "world_shared"
@@ -620,6 +623,15 @@ def test_world_shared_materials_create_participation_links(client: TestClient) -
             "artifact",
             "evidence",
         }.issubset(link_types)
+        document_link = next(
+            item for item in task_row.object_participation_links if item.object_type == "source_document"
+        )
+        evidence_link = next(
+            item for item in task_row.object_participation_links if item.object_type == "evidence"
+        )
+        assert document_link.source_document_id is not None
+        assert evidence_link.source_document_id is not None
+        assert evidence_link.evidence_id is not None
 
 
 def test_artifact_evidence_workspace_route_returns_formal_source_and_support_chains(
@@ -1027,6 +1039,11 @@ def test_file_upload_creates_usable_txt_evidence(client: TestClient) -> None:
     assert uploaded["source_material"]["source_document_id"] == uploaded["source_document"]["id"]
     assert uploaded["artifact"]["source_document_id"] == uploaded["source_document"]["id"]
     assert uploaded["artifact"]["source_material_id"] == uploaded["source_material"]["id"]
+    assert uploaded["source_document"]["participation"]["current_task_participation"] is True
+    assert uploaded["source_document"]["participation"]["participation_type"] == "direct_ingest"
+    assert uploaded["source_document"]["participation"]["mapping_mode"] == "explicit_mapping"
+    assert uploaded["source_material"]["participation"]["current_task_participation"] is True
+    assert uploaded["evidence"]["participation"]["current_task_participation"] is True
 
     aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
     assert aggregate["source_materials"]
@@ -1162,6 +1179,9 @@ def test_source_ingestion_from_pasted_text_creates_normalized_evidence_and_chunk
     assert ingested["source_document"]["ingest_status"] == "processed"
     assert ingested["evidence"]["evidence_type"] == "source_excerpt"
     assert "關聯度" in ingested["evidence"]["excerpt_or_summary"]
+    assert ingested["source_document"]["participation"]["current_task_participation"] is True
+    assert ingested["source_document"]["participation"]["participation_type"] == "direct_ingest"
+    assert ingested["source_document"]["participation"]["mapping_mode"] == "explicit_mapping"
 
     aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
     assert any(item["evidence_type"] == "source_chunk" for item in aggregate["evidence"])
@@ -1197,6 +1217,9 @@ def test_source_ingestion_from_url_extracts_text_and_metadata(
     assert ingested["source_document"]["source_type"] == "manual_url"
     assert ingested["source_document"]["file_name"] == "市場新聞摘要"
     assert ingested["evidence"]["evidence_type"] == "source_excerpt"
+    assert ingested["source_document"]["participation"]["current_task_participation"] is True
+    assert ingested["source_document"]["participation"]["participation_type"] == "direct_ingest"
+    assert ingested["source_document"]["participation"]["mapping_mode"] == "explicit_mapping"
 
 
 def test_google_docs_without_permission_returns_explicit_ingestion_issue(

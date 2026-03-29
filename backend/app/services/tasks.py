@@ -61,6 +61,7 @@ from app.services.source_materials import (
     build_source_material_summary,
     ensure_source_chain_participation_links,
     infer_artifact_type,
+    resolve_participation_canonical_key,
 )
 
 logger = logging.getLogger(__name__)
@@ -860,7 +861,7 @@ def _load_task_object_participation_snapshot(
     current_links: dict[tuple[str, str], models.TaskObjectParticipationLink] = {}
     participation_counts: dict[tuple[str, str], int] = {}
     for row in rows:
-        canonical_key = row.canonical_object_id or row.object_id
+        canonical_key = resolve_participation_canonical_key(row)
         key = (row.object_type, canonical_key)
         participation_counts[key] = participation_counts.get(key, 0) + 1
         if row.task_id == task_id:
@@ -895,6 +896,11 @@ def _build_object_participation_read(
                 else "direct_ingest" if fallback_to_task_ref else None
             ),
             participation_task_count=max(participation_count, 1),
+            mapping_mode=(
+                "explicit_mapping"
+                if participation_count > 0
+                else "compatibility_task_ref" if fallback_to_task_ref else None
+            ),
         )
 
     if object_task_id == current_task_id:
@@ -903,6 +909,7 @@ def _build_object_participation_read(
             current_task_participation=True,
             participation_type="slice_local_only",
             participation_task_count=1,
+            mapping_mode="slice_local_only",
         )
     return None
 
@@ -1006,6 +1013,40 @@ def _build_source_documents(task: models.Task) -> list[schemas.SourceDocumentRea
             )
             covered_ids.add(item.id)
     return sorted(documents, key=lambda item: item.created_at)
+
+
+def build_upload_result_item_from_aggregate(
+    aggregate: schemas.TaskAggregateResponse,
+    *,
+    source_document_id: str,
+    evidence_id: str,
+    source_material_id: str | None = None,
+    artifact_id: str | None = None,
+) -> schemas.UploadResultItem:
+    source_documents_by_id = {item.id: item for item in aggregate.uploads}
+    source_materials_by_id = {item.id: item for item in aggregate.source_materials}
+    artifacts_by_id = {item.id: item for item in aggregate.artifacts}
+    evidence_by_id = {item.id: item for item in aggregate.evidence}
+
+    source_document = source_documents_by_id.get(source_document_id)
+    evidence = evidence_by_id.get(evidence_id)
+    source_material = source_materials_by_id.get(source_material_id) if source_material_id else None
+    artifact = artifacts_by_id.get(artifact_id) if artifact_id else None
+
+    if source_document is None or evidence is None:
+        raise RuntimeError("Upload/source response could not resolve canonical aggregate rows.")
+
+    if source_material is None and source_material_id is None and evidence.source_material_id:
+        source_material = source_materials_by_id.get(evidence.source_material_id)
+    if artifact is None and artifact_id is None and evidence.artifact_id:
+        artifact = artifacts_by_id.get(evidence.artifact_id)
+
+    return schemas.UploadResultItem(
+        source_document=source_document,
+        evidence=evidence,
+        source_material=source_material,
+        artifact=artifact,
+    )
 
 
 def _build_source_materials(task: models.Task) -> list[schemas.SourceMaterialRead]:
@@ -2471,7 +2512,7 @@ def _build_slice_decision_context_overlay(
     *,
     overlay: schemas.DecisionContextRead | None,
     world: schemas.DecisionContextRead | None,
-) -> schemas.DecisionContextRead | None:
+) -> schemas.DecisionContextDeltaRead | None:
     if overlay is None:
         return None
 
@@ -2497,81 +2538,59 @@ def _build_slice_decision_context_overlay(
         created_at=overlay.created_at,
     )
 
+    def _changed_text(value: str | None, world_value: str | None) -> str | None:
+        if not value:
+            return None
+        return value if value != world_value else None
+
+    def _changed_list(value: list[str], world_value: list[str]) -> list[str]:
+        if not value:
+            return []
+        return value if value != world_value else []
+
     text_fields = {
-        "title": overlay.title if overlay.title and overlay.title != world.title else "",
-        "summary": overlay.summary if overlay.summary and overlay.summary != world.summary else "",
-        "judgment_to_make": (
-            overlay.judgment_to_make
-            if overlay.judgment_to_make and overlay.judgment_to_make != world.judgment_to_make
-            else ""
+        "title": _changed_text(overlay.title, world.title),
+        "summary": _changed_text(overlay.summary, world.summary),
+        "judgment_to_make": _changed_text(
+            overlay.judgment_to_make,
+            world.judgment_to_make,
         ),
-        "client_stage": (
-            overlay.client_stage
-            if overlay.client_stage and overlay.client_stage != world.client_stage
-            else None
-        ),
-        "client_type": (
-            overlay.client_type
-            if overlay.client_type and overlay.client_type != world.client_type
-            else None
-        ),
-        "source_priority": (
-            overlay.source_priority
-            if overlay.source_priority and overlay.source_priority != world.source_priority
-            else ""
-        ),
-        "external_data_policy": (
-            overlay.external_data_policy
-            if overlay.external_data_policy
-            and overlay.external_data_policy != world.external_data_policy
-            else ""
+        "client_stage": _changed_text(overlay.client_stage, world.client_stage),
+        "client_type": _changed_text(overlay.client_type, world.client_type),
+        "source_priority": _changed_text(overlay.source_priority, world.source_priority),
+        "external_data_policy": _changed_text(
+            overlay.external_data_policy,
+            world.external_data_policy,
         ),
     }
     list_fields = {
-        "domain_lenses": (
-            overlay.domain_lenses
-            if overlay.domain_lenses and overlay.domain_lenses != world.domain_lenses
-            else []
-        ),
-        "goals": overlay.goals if overlay.goals and overlay.goals != world.goals else [],
-        "constraints": (
-            overlay.constraints
-            if overlay.constraints and overlay.constraints != world.constraints
-            else []
-        ),
-        "assumptions": (
-            overlay.assumptions
-            if overlay.assumptions and overlay.assumptions != world.assumptions
-            else []
-        ),
+        "domain_lenses": _changed_list(overlay.domain_lenses, world.domain_lenses),
+        "goals": _changed_list(overlay.goals, world.goals),
+        "constraints": _changed_list(overlay.constraints, world.constraints),
+        "assumptions": _changed_list(overlay.assumptions, world.assumptions),
     }
-    has_meaningful_overlay = any(
-        bool(value)
-        for value in [*text_fields.values(), *list_fields.values()]
-    )
+    changed_fields = [
+        name
+        for name, value in {**text_fields, **list_fields}.items()
+        if bool(value)
+    ]
+    has_meaningful_overlay = bool(changed_fields)
     if not has_meaningful_overlay:
         return None
 
-    return schemas.DecisionContextRead(
-        id=overlay.id,
-        task_id=overlay.task_id,
-        matter_workspace_id=overlay.matter_workspace_id,
-        identity_scope=overlay.identity_scope,
-        client_id=overlay.client_id,
-        engagement_id=overlay.engagement_id,
-        workstream_id=overlay.workstream_id,
-        title=text_fields["title"] or "",
-        summary=text_fields["summary"] or "",
-        judgment_to_make=text_fields["judgment_to_make"] or "",
+    return schemas.DecisionContextDeltaRead(
+        title=text_fields["title"],
+        summary=text_fields["summary"],
+        judgment_to_make=text_fields["judgment_to_make"],
         domain_lenses=list_fields["domain_lenses"],
         client_stage=text_fields["client_stage"],
         client_type=text_fields["client_type"],
         goals=list_fields["goals"],
         constraints=list_fields["constraints"],
         assumptions=list_fields["assumptions"],
-        source_priority=text_fields["source_priority"] or "",
-        external_data_policy=text_fields["external_data_policy"] or "",
-        created_at=overlay.created_at,
+        source_priority=text_fields["source_priority"],
+        external_data_policy=text_fields["external_data_policy"],
+        changed_fields=changed_fields,
     )
 
 
@@ -7437,7 +7456,6 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
             case_world_state=case_world_state_row,
         )
     )
-    slice_decision_context = decision_context
     world_decision_context = _build_world_decision_context_read(
         case_world_state=case_world_state_row,
         authority_decision_context=world_authority_decision_context_row,

@@ -342,6 +342,22 @@ class TaskObjectParticipationLink(Base):
     object_type: Mapped[str] = mapped_column(String(50), nullable=False)
     object_id: Mapped[str] = mapped_column(String(36), nullable=False)
     canonical_object_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    source_document_id: Mapped[str | None] = mapped_column(
+        ForeignKey("source_documents.id"),
+        nullable=True,
+    )
+    source_material_id: Mapped[str | None] = mapped_column(
+        ForeignKey("source_materials.id"),
+        nullable=True,
+    )
+    artifact_id: Mapped[str | None] = mapped_column(
+        ForeignKey("artifacts.id"),
+        nullable=True,
+    )
+    evidence_id: Mapped[str | None] = mapped_column(
+        ForeignKey("evidence.id"),
+        nullable=True,
+    )
     participation_type: Mapped[str] = mapped_column(String(50), default="shared_usage")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 

@@ -140,7 +140,7 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
             ],
           ).size;
           return sharedCount > 0
-            ? `補進來的材料與證據會優先掛回同一個案件世界；目前至少有 ${sharedCount} 條 shared chains 正被多個 task slices 共用。`
+            ? `補進來的材料與證據會優先掛回同一個案件世界；目前至少有 ${sharedCount} 條 shared chains 已透過正式 participation mapping 被多個 task slices 共用。`
             : "補進來的材料與證據會優先掛回同一個案件世界，後續 task slices 可直接回看，不必再各自重傳。";
         })()
       : "目前還沒有可跨 task slices 連續使用的正式材料 / 證據。";

@@ -1045,7 +1045,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                 <h4>Decision authority</h4>
                 <p className="content-block">
                   {sliceDecisionContext
-                    ? "交付物目前優先依案件世界的 canonical decision context 呈現；slice-local overlay 只保留給在途工作。"
+                    ? `交付物目前優先依案件世界的 canonical decision context 呈現；slice-local overlay 只保留 ${sliceDecisionContext.changed_fields.length} 項差異給在途工作。`
                     : "交付物目前直接依 canonical world decision context 呈現。"}
                 </p>
               </div>

@@ -144,6 +144,12 @@ def _ensure_incremental_schema_updates() -> None:
             "artifact_id": "VARCHAR(36)",
             "continuity_scope": "VARCHAR(30) NOT NULL DEFAULT 'slice_participation'",
         },
+        "task_object_participation_links": {
+            "source_document_id": "VARCHAR(36)",
+            "source_material_id": "VARCHAR(36)",
+            "artifact_id": "VARCHAR(36)",
+            "evidence_id": "VARCHAR(36)",
+        },
         "deliverable_artifact_records": {
             "storage_provider": "VARCHAR(50) NOT NULL DEFAULT 'local_fs'",
             "retention_policy": "VARCHAR(100) NOT NULL DEFAULT 'release_365d'",
@@ -222,6 +228,56 @@ def _normalize_incremental_data() -> None:
                 fallback_status=deliverable.status,
             )
             backfill_deliverable_artifact_storage(session, deliverable.id)
+
+        participation_links = session.scalars(select(models.TaskObjectParticipationLink)).all()
+        for link in participation_links:
+            canonical_id = link.canonical_object_id or link.object_id
+            if link.object_type == "source_document":
+                if link.source_document_id != canonical_id:
+                    link.source_document_id = canonical_id
+                    session.add(link)
+                continue
+            if link.object_type == "source_material":
+                source_material = session.get(models.SourceMaterial, canonical_id)
+                if source_material is None:
+                    continue
+                if link.source_material_id != source_material.id:
+                    link.source_material_id = source_material.id
+                    session.add(link)
+                if link.source_document_id != source_material.source_document_id:
+                    link.source_document_id = source_material.source_document_id
+                    session.add(link)
+                continue
+            if link.object_type == "artifact":
+                artifact = session.get(models.Artifact, canonical_id)
+                if artifact is None:
+                    continue
+                if link.artifact_id != artifact.id:
+                    link.artifact_id = artifact.id
+                    session.add(link)
+                if link.source_material_id != artifact.source_material_id:
+                    link.source_material_id = artifact.source_material_id
+                    session.add(link)
+                if link.source_document_id != artifact.source_document_id:
+                    link.source_document_id = artifact.source_document_id
+                    session.add(link)
+                continue
+            if link.object_type == "evidence":
+                evidence = session.get(models.Evidence, canonical_id)
+                if evidence is None:
+                    continue
+                if link.evidence_id != evidence.id:
+                    link.evidence_id = evidence.id
+                    session.add(link)
+                if link.artifact_id != evidence.artifact_id:
+                    link.artifact_id = evidence.artifact_id
+                    session.add(link)
+                if link.source_material_id != evidence.source_material_id:
+                    link.source_material_id = evidence.source_material_id
+                    session.add(link)
+                if link.source_document_id != evidence.source_document_id:
+                    link.source_document_id = evidence.source_document_id
+                    session.add(link)
     finally:
         session.close()
 
@@ -234,6 +290,8 @@ def _ensure_incremental_indexes() -> None:
         "ON source_documents (content_digest)",
         "CREATE INDEX IF NOT EXISTS ix_task_object_participation_lookup "
         "ON task_object_participation_links (matter_workspace_id, object_type, canonical_object_id)",
+        "CREATE INDEX IF NOT EXISTS ix_task_object_participation_source_document "
+        "ON task_object_participation_links (matter_workspace_id, source_document_id)",
     ]
 
     with engine.begin() as connection:

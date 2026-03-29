@@ -428,6 +428,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
         ],
       ).size
     : 0;
+  const sliceOverlayFieldCount = sliceDecisionContext?.changed_fields.length ?? 0;
   const openEvidenceGaps = task?.evidence_gaps.filter((item) => item.status !== "resolved") ?? [];
   const recentDecisionRecords = task?.decision_records.slice(0, 3) ?? [];
   const recentOutcomeRecords = task?.outcome_records.slice(0, 3) ?? [];
@@ -444,12 +445,12 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
       task.source_materials.some((item) => item.continuity_scope === "world_shared") ||
       task.evidence.some((item) => item.continuity_scope === "world_shared")
       ? sharedParticipationCount > 0
-        ? `這筆工作已可回看同一案件世界下共享的 source / material / evidence chains；目前至少有 ${sharedParticipationCount} 條 shared chains 被多個 work slices 共同使用。`
+        ? `這筆工作已可回看同一案件世界下共享的 source / material / evidence chains；目前至少有 ${sharedParticipationCount} 條 shared chains 透過正式 participation mapping 被多個 work slices 共同使用。`
         : "這筆工作已可回看同一案件世界下共享的 source / material / evidence chains，不必把補件再拆成孤立流程。"
       : "目前這筆工作還沒有顯示可跨 slice 共用的 source / material / evidence chains。"
     : "目前這筆工作還沒有顯示可跨 slice 共用的 source / material / evidence chains。";
   const localOverlaySummary = sliceDecisionContext
-    ? "目前這筆 task 仍保留一個 local overlay decision context，供在途工作與相容層使用；正式主來源已優先回到案件世界。"
+    ? `目前這筆 task 仍保留 ${sliceOverlayFieldCount} 項 local decision delta，供在途工作與相容層使用；正式主來源已優先回到案件世界。`
     : "目前沒有額外的 slice-local decision overlay。";
   const sortedRecommendations = task?.recommendations
     ? [...task.recommendations].sort(
@@ -724,9 +725,13 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     <h3>Slice-local decision overlay</h3>
                     <ExpandableList
                       items={[
-                        sliceDecisionContext.judgment_to_make || sliceDecisionContext.title,
+                        sliceDecisionContext.judgment_to_make,
+                        sliceDecisionContext.title,
                         sliceDecisionContext.summary,
-                      ].filter(Boolean)}
+                        ...sliceDecisionContext.goals.map((item) => `Goal delta：${item}`),
+                        ...sliceDecisionContext.constraints.map((item) => `Constraint delta：${item}`),
+                        ...sliceDecisionContext.assumptions.map((item) => `Assumption delta：${item}`),
+                      ].filter((item): item is string => Boolean(item))}
                       emptyText="目前沒有額外的 slice-local overlay。"
                     />
                   </div>

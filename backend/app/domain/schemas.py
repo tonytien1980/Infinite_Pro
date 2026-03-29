@@ -205,6 +205,21 @@ class DecisionContextRead(BaseModel):
     created_at: datetime
 
 
+class DecisionContextDeltaRead(BaseModel):
+    title: str | None = None
+    summary: str | None = None
+    judgment_to_make: str | None = None
+    domain_lenses: list[str] = Field(default_factory=list)
+    client_stage: str | None = None
+    client_type: str | None = None
+    goals: list[str] = Field(default_factory=list)
+    constraints: list[str] = Field(default_factory=list)
+    assumptions: list[str] = Field(default_factory=list)
+    source_priority: str | None = None
+    external_data_policy: str | None = None
+    changed_fields: list[str] = Field(default_factory=list)
+
+
 class PresenceStateItemRead(BaseModel):
     state: PresenceState
     reason: str
@@ -354,6 +369,7 @@ class ObjectParticipationRead(BaseModel):
     current_task_participation: bool = False
     participation_type: str | None = None
     participation_task_count: int = 0
+    mapping_mode: str | None = None
 
 
 class SourceMaterialRead(ORMModel):
@@ -1019,7 +1035,7 @@ class TaskAggregateResponse(BaseModel):
     engagement: EngagementRead | None = None
     workstream: WorkstreamRead | None = None
     decision_context: DecisionContextRead | None = None
-    slice_decision_context: DecisionContextRead | None = None
+    slice_decision_context: DecisionContextDeltaRead | None = None
     world_decision_context: DecisionContextRead | None = None
     client_stage: str | None = None
     client_type: str | None = None
