@@ -1045,8 +1045,8 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                 <h4>Decision authority</h4>
                 <p className="content-block">
                   {sliceDecisionContext
-                    ? `交付物目前優先依案件世界的 canonical decision context 呈現；slice-local overlay 只保留 ${sliceDecisionContext.changed_fields.length} 項差異給在途工作。`
-                    : "交付物目前直接依 canonical world decision context 呈現。"}
+                    ? `交付物目前優先依案件世界的 canonical decision context 呈現；slice-local overlay 只保留 ${sliceDecisionContext.changed_fields.length} 項差異給在途工作，core/context authority 不再以 task-local row 為主。`
+                    : "交付物目前直接依 canonical world decision context 呈現，core/context authority 已優先站穩案件世界。"}
                 </p>
               </div>
               <div className="section-card">
