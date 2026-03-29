@@ -51,6 +51,8 @@ Infinite Pro 不再把 `/new` 的三種 intake patterns 理解成三個不同 on
 - 「1 份材料」不只限於文件，應包括檔案、URL、補充文字或其他正式支援的單一材料
 - 「多份材料」可混合檔案、URL、補充文字，並作為同一個案件逐步長成 multi-source case
 - 統一材料區應同時承接 file / URL / pasted text，單次最多 10 份，超過時應要求分批補件
+- 統一材料區應提供逐項 preview / remove / warning，讓每份材料都可被單獨檢查與移除
+- item-level handling 應至少標示 accepted、limited support、pending parse、unsupported / rejected
 
 ### 2.3 Case World Compiler 是正式第一站
 任何 intake 都必須先進入：
@@ -289,5 +291,9 @@ storage metadata 至少要能表示：
 - `.pptx` 與壓縮包 ingestion
 - 自動 purge / lifecycle jobs
 - production-grade object storage serving / signed URLs
+
+產品工作面語義也應保持誠實：
+- 掃描型 PDF / 圖片型來源可被接收並建立 reference-level rows，但不應在 item-level UI 上被寫成完整全文支援
+- `.pptx`、壓縮包等尚未正式支援材料，應在 item-level UI 上被明確標示為 unsupported 或 reject
 
 這些能力可在後續波次補強，但不應被文件寫成已 production-ready。

@@ -1422,6 +1422,50 @@ def test_file_ingestion_failure_creates_explicit_uncertainty_evidence(client: Te
     assert "未能完整擷取" in uploaded["evidence"]["excerpt_or_summary"]
 
 
+def test_limited_support_image_upload_returns_reference_level_status(client: TestClient) -> None:
+    task = client.post("/api/v1/tasks", json=create_task_payload("Limited image upload")).json()
+
+    response = client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("photo.png", b"fake image bytes", "image/png"))],
+    )
+
+    assert response.status_code == 200
+    uploaded = response.json()["uploaded"][0]
+    assert uploaded["source_document"]["ingest_status"] == "metadata_only"
+    assert uploaded["source_document"]["support_level"] == "limited"
+    assert uploaded["source_document"]["metadata_only"] is True
+    assert uploaded["source_document"]["ingestion_error"]
+    assert uploaded["evidence"]["evidence_type"] == "uploaded_file_unparsed"
+    assert "只建立 reference / metadata" in uploaded["evidence"]["excerpt_or_summary"]
+
+
+def test_unsupported_file_upload_returns_explicit_unsupported_status(client: TestClient) -> None:
+    task = client.post("/api/v1/tasks", json=create_task_payload("Unsupported upload")).json()
+
+    response = client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[
+            (
+                "files",
+                (
+                    "deck.pptx",
+                    b"fake pptx bytes",
+                    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                ),
+            )
+        ],
+    )
+
+    assert response.status_code == 200
+    uploaded = response.json()["uploaded"][0]
+    assert uploaded["source_document"]["ingest_status"] == "unsupported"
+    assert uploaded["source_document"]["support_level"] == "unsupported"
+    assert uploaded["source_document"]["metadata_only"] is True
+    assert uploaded["evidence"]["evidence_type"] == "uploaded_file_ingestion_issue"
+    assert "尚未正式支援" in uploaded["evidence"]["excerpt_or_summary"]
+
+
 def test_task_creation_auto_infers_consulting_scaffold_when_advanced_fields_missing(
     client: TestClient,
 ) -> None:

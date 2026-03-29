@@ -104,6 +104,8 @@
 - 系統目前判讀出的 intake pattern
 - 單次最多 10 份材料與可分批補件的規則
 - 統一材料區（file / URL / pasted text）
+- 材料 item-level preview / remove / warning
+- item-level handling status（accepted / limited support / pending parse / unsupported）
 - continuity strategy / writeback depth（若已展開進階設定）
 - continuity 選擇對後續 workflow 的影響：
   `one_off` 偏正式結案、`follow_up` 偏 checkpoint、`continuous` 偏 progression / outcome
@@ -227,6 +229,7 @@
 - research provenance 摘要
 - 補件導引
 - 若為 `follow_up`，需顯示這次補件主要想更新什麼，以及上一個 / 最新 checkpoint 的輕量脈絡
+- 若為 `follow_up`，補件區本身也需顯示 latest update、previous checkpoint、what changed、next follow-up action
 - 段落導覽
 
 **延後揭露**

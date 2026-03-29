@@ -171,6 +171,8 @@ Infinite Pro 的正式第一層主導覽應為：
 - 系統應根據主問題與材料組成自動判讀 sparse inquiry、單材料起手或 multi-source case
 - 單材料起手不只限於文件，應允許檔案、URL 或補充文字
 - 統一材料區應允許混合檔案、URL 與補充文字，且單次最多 10 份、可分批補件
+- 統一材料區應提供 item-level preview / remove / warning；使用者要能逐份看見材料如何被系統理解
+- item-level handling 應明確標示 accepted、limited support、pending parse、unsupported，而不是只放在長篇說明文
 - 若只有材料、沒有主問題，UI 應要求至少補一句主問題，而不是直接讓材料孤立進件
 - `.md / .txt / .docx / .xlsx / .csv / text-first PDF / URL / 純文字補充` 應在 UI 上明確標示為正式支援
 - `.jpg / .jpeg / .png / .webp / 掃描型 PDF` 應在 UI 上明確標示為有限支援，意思是 metadata / reference-level ingestion，不預設 OCR

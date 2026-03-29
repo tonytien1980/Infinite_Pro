@@ -262,12 +262,14 @@ Infinite Pro 應正式使用以下漸進揭露方式：
 
 正式規則：
 - `/new` 第一屏應明確說明「現在只有一個 unified intake surface，背後仍是同一條 canonical intake pipeline」
+- `/new` 的統一材料區應提供 item-level preview / remove / warning，且每份材料都要在 item 上看得出支援層級與處理方式
 - `Task detail` 應可見最小 `case world draft` 摘要，但全量 facts / assumptions / evidence gaps 應預設收合
 - `Matter workspace` 應可見 `engagement_continuity_mode / writeback_depth`，且第一屏 primary action 應隨模式分流：
   `one_off` 偏 closure、`follow_up` 偏 checkpoint、`continuous` 偏 progression / outcome
 - `follow_up` 的第一屏應先回答「上次到哪裡、這次改什麼、下一步是什麼」，而不是直接鋪滿所有 checkpoint records
 - `Artifact / Evidence workspace` 應可見 research provenance 與 evidence gaps，但不應退回 debug dashboard
 - `Artifact / Evidence workspace` 在 `follow_up` 模式下應明確提示這次補件主要想更新哪一類 recommendation / risk / next step，而不是只顯示 generic 上傳動作
+- `Artifact / Evidence workspace` 的補件區也應顯示 latest update、previous checkpoint、what changed 與 next follow-up action，但仍維持輕量 lane
 - `Deliverable workspace` 應可見這份交付物如何被寫回案件世界，以及它目前更接近 closure、checkpoint 或 progression，但 writeback 細節應維持按需展開
 - `Deliverable workspace` 在 `follow_up` 模式下應可看出最新 checkpoint、上一輪 checkpoint 與這輪最重要的 continuity 變化，但不應退成 timeline dashboard
 

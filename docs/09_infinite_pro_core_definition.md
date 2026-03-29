@@ -66,6 +66,8 @@ Infinite Pro 的核心原則是：
    - 系統只有一條 canonical intake pipeline
    - `/new` 對使用者可見的應只有一個 unified intake surface
    - `只有一句話 / 一句話 + 1 份材料 / 一句話 + 多份材料` 是系統內部判讀的 intake patterns
+   - unified material area 應可逐項預覽、移除並顯示 warning / support 狀態，而不是只顯示批次總數
+   - item-level status 應至少可分辨 accepted、limited support、pending parse、unsupported / rejected
    - 任何 intake 都必須先進入 `Case World Compiler`
    - `Case World Compiler` 之後應先形成 / 同步 `CaseWorldState`
    - `Task` 應被理解成 `CaseWorldState` 內的 work slice
@@ -338,6 +340,7 @@ Infinite Pro 現在正式支援：
 - `follow_up` 應有輕量 checkpoint / milestone 更新語義，而不是被迫進入完整 action-outcome tracking
 - `follow_up` 應讓顧問看得出上一個 checkpoint、最新更新、這次差異與下一步建議
 - `follow_up` 應讓 recommendation / risk / action continuity 可見，但仍維持輕量 lane，而不是長期 CRM timeline
+- `follow_up` 的補件工作面也應看得出 evidence update goal 與這次補件主要想補哪個缺口
 - `continuous` 才應顯示較完整的 progression / outcome logging surface
 
 ### Persistence / Release Integrity 的正式地位

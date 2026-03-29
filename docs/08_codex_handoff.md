@@ -273,6 +273,8 @@ Codex 應把它理解為已完成的正式交付物工作面，至少承接：
 - 所有 intake 都必須先進入 `Case World Compiler`
 - 三種 intake patterns 都應匯進同一條 `task → matter → source material / artifact → evidence → deliverable` 主鏈
 - 同一個案件可持續補檔案、網址與補充文字，不可被資料模型限制成單檔心智
+- unified material area 應支援 item-level preview / remove / warning，而不是只顯示批次總數
+- item-level 規則應可讓使用者看出每份材料是已接受、有限支援、待解析，還是尚未正式支援
 - 正式支援格式應理解為：`.md / .txt / .docx / .xlsx / .csv / text-first PDF / URL / 純文字補充`
 - 有限支援格式應理解為：`.jpg / .jpeg / .png / .webp / 掃描型 PDF`
 - 有限支援的意思是可建立 metadata / reference-level record，但不預設做高成本 OCR，也不宣稱與 text-first 文件同等成熟
@@ -298,6 +300,7 @@ Codex 必須正式保留以下欄位與行為：
 正式規則：
 - `one_off` 至少保留最小 history / traceability / deliverable lineage
 - `follow_up` 允許 decision checkpoints 與 milestone-level writeback
+- `follow_up` 的補件導引應回答 latest update、previous checkpoint、what changed、next follow-up action 與這次補件主要想補哪個 evidence gap / update goal
 - `continuous` 必須能形成 decision -> action -> outcome 的最小閉環
 - writeback 不是所有案件都 full，但也不可以把所有案件都做成無法回看的孤立結果
 

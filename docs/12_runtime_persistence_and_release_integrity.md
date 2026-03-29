@@ -334,6 +334,16 @@ publish / artifact records 用來描述正式發布與正式輸出物。
 - 若後續又有新資料，應以 reopen 重新啟動，而不是默默假裝仍在 continuous 狀態
 
 ### 8.3 follow_up
+- 允許 checkpoint / milestone-level writeback
+- 補件仍應優先掛回同一個案件世界與 evidence chain
+- matter / evidence 工作面應能顯示 latest update、previous checkpoint、what changed、next follow-up action
+- follow-up 補件區不應只是 generic upload；應顯示這次補件主要想補哪個 evidence gap / update goal
+
+### 8.4 continuous
+- continuous 才要求較完整的 progression / outcome writeback
+- richer follow_up UX 不可把 continuous 縮成只有 checkpoint
+
+### 8.3 follow_up
 - 在 `one_off` 基礎上
 - 允許 decision checkpoints
 - 允許 milestone-level writeback

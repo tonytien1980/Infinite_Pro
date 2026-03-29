@@ -11,6 +11,7 @@ import {
   rollbackMatterContentRevision,
   runTask,
 } from "@/lib/api";
+import { describeRuntimeMaterialHandling } from "@/lib/intake";
 import { truncateText } from "@/lib/text-format";
 import type {
   ContinuationSurface,
@@ -29,7 +30,6 @@ import {
   labelForMatterStatus,
   labelForRetentionPolicy,
   labelForRetentionState,
-  labelForSourceSupportLevel,
   labelForStorageAvailability,
   labelForTaskStatus,
   labelForWritebackDepth,
@@ -840,6 +840,22 @@ export function MatterWorkspacePanel({
                           <li key={item}>{item}</li>
                         ))}
                       </ul>
+                    </div>
+                  ) : null}
+                  {followUpLane ? (
+                    <div className="summary-grid" style={{ marginTop: "12px" }}>
+                      <div className="section-card">
+                        <h4>這次補件要補什麼</h4>
+                        <p className="content-block">
+                          {followUpLane.evidence_update_goal || "先補強這輪 follow-up 要更新的支撐鏈。"}
+                        </p>
+                      </div>
+                      <div className="section-card">
+                        <h4>補完後最建議做什麼</h4>
+                        <p className="content-block">
+                          {followUpLane.next_follow_up_actions[0] || "回案件工作面更新 checkpoint。"}
+                        </p>
+                      </div>
                     </div>
                   ) : null}
                   {continuationSurface?.primary_action?.action_id === "record_checkpoint" ? (
@@ -1675,37 +1691,62 @@ export function MatterWorkspacePanel({
                   </div>
                   <div className="detail-list">
                     {visibleMaterials.length > 0 ? (
-                      visibleMaterials.map((item) => (
-                        <div className="detail-item" key={`${item.object_type}-${item.object_id}`}>
-                          <div className="meta-row">
-                            <span className="pill">{item.object_type === "artifact" ? "工作物件" : "來源材料"}</span>
-                            {item.support_level ? <span>{labelForSourceSupportLevel(item.support_level)}</span> : null}
-                            <span>{formatDisplayDate(item.created_at)}</span>
-                          </div>
-                          <h3>{item.title}</h3>
-                          <p className="muted-text">
-                            {item.task_title}
-                            {item.file_extension ? `｜${labelForFileExtension(item.file_extension)}` : ""}
-                            {item.file_size ? `｜${formatFileSize(item.file_size)}` : ""}
-                          </p>
-                          <p className="content-block">{truncateText(item.summary || "目前沒有額外摘要。", 118)}</p>
-                          {item.object_type !== "artifact" ? (
+                      visibleMaterials.map((item) => {
+                        const handling = describeRuntimeMaterialHandling({
+                          supportLevel: item.support_level,
+                          ingestStatus: item.ingest_status,
+                          ingestStrategy: null,
+                          metadataOnly: item.metadata_only,
+                        });
+                        return (
+                          <div className="detail-item" key={`${item.object_type}-${item.object_id}`}>
                             <div className="meta-row">
-                              {item.availability_state ? (
-                                <span>{labelForStorageAvailability(item.availability_state)}</span>
-                              ) : null}
-                              {item.retention_policy ? (
-                                <span>{labelForRetentionPolicy(item.retention_policy)}</span>
-                              ) : null}
-                              {item.purge_at ? (
-                                <span>
-                                  {labelForRetentionState(item.purge_at)}｜{formatDisplayDate(item.purge_at)}
+                              <span className="pill">{item.object_type === "artifact" ? "工作物件" : "來源材料"}</span>
+                              {item.support_level ? (
+                                <span className={`intake-status-pill intake-status-${handling.status}`}>
+                                  {handling.statusLabel}
                                 </span>
                               ) : null}
+                              <span>{formatDisplayDate(item.created_at)}</span>
                             </div>
-                          ) : null}
-                        </div>
-                      ))
+                            <h3>{item.title}</h3>
+                            <p className="muted-text">
+                              {item.task_title}
+                              {item.file_extension ? `｜${labelForFileExtension(item.file_extension)}` : ""}
+                              {item.file_size ? `｜${formatFileSize(item.file_size)}` : ""}
+                            </p>
+                            <p className="content-block">{truncateText(item.summary || "目前沒有額外摘要。", 118)}</p>
+                            {item.object_type !== "artifact" ? (
+                              <>
+                                <p
+                                  className={
+                                    handling.status === "accepted"
+                                      ? "success-text"
+                                      : handling.status === "limited" || handling.status === "pending"
+                                        ? "muted-text"
+                                        : "error-text"
+                                  }
+                                >
+                                  {handling.statusDetail}
+                                </p>
+                                <div className="meta-row">
+                                  {item.availability_state ? (
+                                    <span>{labelForStorageAvailability(item.availability_state)}</span>
+                                  ) : null}
+                                  {item.retention_policy ? (
+                                    <span>{labelForRetentionPolicy(item.retention_policy)}</span>
+                                  ) : null}
+                                  {item.purge_at ? (
+                                    <span>
+                                      {labelForRetentionState(item.purge_at)}｜{formatDisplayDate(item.purge_at)}
+                                    </span>
+                                  ) : null}
+                                </div>
+                              </>
+                            ) : null}
+                          </div>
+                        );
+                      })
                     ) : (
                       <p className="empty-text">目前還沒有可顯示的來源或證據材料。</p>
                     )}

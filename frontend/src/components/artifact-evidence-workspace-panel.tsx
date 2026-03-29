@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ChangeEvent, FormEvent, ReactNode, useEffect, useState } from "react";
 
+import { IntakeMaterialPreviewList } from "@/components/intake-material-preview-list";
 import {
   buildArtifactEvidenceWorkspaceView,
   buildMatterWorkspaceCard,
@@ -12,7 +13,13 @@ import {
   ingestMatterSources,
   uploadMatterFiles,
 } from "@/lib/api";
-import { countIntakeMaterialUnits, MAX_INTAKE_MATERIAL_UNITS } from "@/lib/intake";
+import {
+  appendSelectedFiles,
+  buildIntakePreviewItems,
+  countIntakeMaterialUnits,
+  describeRuntimeMaterialHandling,
+  MAX_INTAKE_MATERIAL_UNITS,
+} from "@/lib/intake";
 import type { ArtifactEvidenceWorkspace } from "@/lib/types";
 import {
   formatFileSize,
@@ -25,7 +32,6 @@ import {
   labelForRetentionPolicy,
   labelForRetentionState,
   labelForSourceIngestStrategy,
-  labelForSourceSupportLevel,
   labelForSourceType,
   labelForStorageAvailability,
   labelForTaskStatus,
@@ -216,6 +222,23 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
         },
       ]
     : [];
+  const normalizedUrls = urlsText
+    .split("\n")
+    .map((item) => item.trim())
+    .filter(Boolean);
+  const pendingMaterialUnitCount = countIntakeMaterialUnits({
+    fileCount: files.length,
+    urlCount: normalizedUrls.length,
+    hasPastedText: Boolean(pastedText.trim()),
+  });
+  const pendingPreviewItems = buildIntakePreviewItems({
+    files,
+    urls: normalizedUrls,
+    pastedText,
+  });
+  const unsupportedPendingItems = pendingPreviewItems.filter(
+    (item) => item.status === "unsupported",
+  );
 
   async function handleSupplementSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -223,26 +246,22 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
     setSupplementMessage(null);
     setSupplementError(null);
 
-    const urls = urlsText
-      .split("\n")
-      .map((item) => item.trim())
-      .filter(Boolean);
-
-    if (files.length === 0 && urls.length === 0 && !pastedText.trim()) {
+    if (files.length === 0 && normalizedUrls.length === 0 && !pastedText.trim()) {
       setSupplementError("請至少補上一份檔案、一個網址或一段補充文字。");
       setSubmitting(false);
       return;
     }
 
-    const materialUnitCount = countIntakeMaterialUnits({
-      fileCount: files.length,
-      urlCount: urls.length,
-      hasPastedText: Boolean(pastedText.trim()),
-    });
-    if (materialUnitCount > MAX_INTAKE_MATERIAL_UNITS) {
+    if (pendingMaterialUnitCount > MAX_INTAKE_MATERIAL_UNITS) {
       setSupplementError(
         `單次最多只能補 ${MAX_INTAKE_MATERIAL_UNITS} 份材料；請先精簡，或分批補件。`,
       );
+      setSubmitting(false);
+      return;
+    }
+
+    if (unsupportedPendingItems.length > 0) {
+      setSupplementError("目前有尚未正式支援的材料；請先移除，再補件。");
       setSubmitting(false);
       return;
     }
@@ -253,9 +272,9 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
         const uploadResult = await uploadMatterFiles(matterId, files);
         notes.push(`已掛接 ${uploadResult.uploaded.length} 份檔案材料`);
       }
-      if (urls.length > 0 || pastedText.trim()) {
+      if (normalizedUrls.length > 0 || pastedText.trim()) {
         const ingestResult = await ingestMatterSources(matterId, {
-          urls,
+          urls: normalizedUrls,
           pasted_text: pastedText,
           pasted_title: pastedText.trim() ? "案件補充說明" : undefined,
         });
@@ -276,7 +295,26 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
   }
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
-    setFiles(Array.from(event.target.files ?? []));
+    setFiles((previous) =>
+      appendSelectedFiles(previous, Array.from(event.target.files ?? [])),
+    );
+    event.currentTarget.value = "";
+  }
+
+  function handleRemovePendingPreviewItem(itemId: string) {
+    if (itemId.startsWith("file-")) {
+      const index = Number(itemId.replace("file-", ""));
+      setFiles((previous) => previous.filter((_, itemIndex) => itemIndex !== index));
+      return;
+    }
+    if (itemId.startsWith("url-")) {
+      const index = Number(itemId.replace("url-", ""));
+      setUrlsText(normalizedUrls.filter((_, itemIndex) => itemIndex !== index).join("\n"));
+      return;
+    }
+    if (itemId === "text-0") {
+      setPastedText("");
+    }
   }
 
   return (
@@ -354,9 +392,21 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                     </p>
                   </div>
                   <div className="section-card">
+                    <h4>上一個 checkpoint</h4>
+                    <p className="content-block">
+                      {followUpLane.previous_checkpoint?.summary || "目前還沒有上一輪 checkpoint 可對照。"}
+                    </p>
+                  </div>
+                  <div className="section-card">
                     <h4>這次補件主要影響</h4>
                     <p className="content-block">
                       {followUpLane.evidence_update_goal || "先補齊這輪 follow-up 要更新的支撐鏈。"}
+                    </p>
+                  </div>
+                  <div className="section-card">
+                    <h4>下一步最建議做什麼</h4>
+                    <p className="content-block">
+                      {followUpLane.next_follow_up_actions[0] || "補完後回案件工作面更新這輪 checkpoint。"}
                     </p>
                   </div>
                 </>
@@ -488,6 +538,47 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
             </div>
 
             <form className="detail-stack" onSubmit={handleSupplementSubmit}>
+              {followUpLane ? (
+                <div className="summary-grid">
+                  <div className="section-card">
+                    <h4>最新更新（latest update）</h4>
+                    <p className="content-block">
+                      {followUpLane.latest_update?.summary || "目前還沒有正式 latest update。"}
+                    </p>
+                  </div>
+                  <div className="section-card">
+                    <h4>上一個 checkpoint</h4>
+                    <p className="content-block">
+                      {followUpLane.previous_checkpoint?.summary || "目前還沒有 previous checkpoint 可比較。"}
+                    </p>
+                  </div>
+                  <div className="section-card">
+                    <h4>這次差異（what changed）</h4>
+                    <p className="content-block">
+                      {followUpLane.what_changed[0] || "這輪主要是在延續既有 checkpoint，補強判斷基礎。"}
+                    </p>
+                  </div>
+                  <div className="section-card">
+                    <h4>下一步建議（next follow-up action）</h4>
+                    <p className="content-block">
+                      {followUpLane.next_follow_up_actions[0] || "補完之後回案件工作面更新 checkpoint。"}
+                    </p>
+                  </div>
+                  <div className="section-card">
+                    <h4>這次補件要補哪個缺口</h4>
+                    <p className="content-block">
+                      {followUpLane.evidence_update_goal || "這次補件主要是為了補強最新 follow-up 更新的判斷基礎。"}
+                    </p>
+                  </div>
+                  <div className="section-card">
+                    <h4>目前最顯著的 evidence gap</h4>
+                    <p className="content-block">
+                      {workspace.high_impact_gaps[0] || "目前沒有額外高影響缺口，補件可先圍繞最近更新做精修。"}
+                    </p>
+                  </div>
+                </div>
+              ) : null}
+
               <div className="field">
                 <label htmlFor="matter-files">上傳檔案</label>
                 <input
@@ -528,14 +619,48 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                 ) : null}
               </div>
 
+              <div className="field">
+                <label>這次待補的材料</label>
+                <IntakeMaterialPreviewList
+                  items={pendingPreviewItems}
+                  onRemove={(item) => {
+                    handleRemovePendingPreviewItem(item.id);
+                    setSupplementError(null);
+                  }}
+                  emptyText="先補一句明確材料就夠了；這裡會逐項列出待補檔案、URL 與補充文字。"
+                />
+                <small>
+                  補件材料會逐項顯示目前的支援層級與處理方式；若有尚未正式支援的格式，請先移除。
+                </small>
+              </div>
+
               <div className="button-row">
-                <button className="button-primary" type="submit" disabled={submitting}>
+                <button
+                  className="button-primary"
+                  type="submit"
+                  disabled={
+                    submitting ||
+                    pendingMaterialUnitCount > MAX_INTAKE_MATERIAL_UNITS ||
+                    unsupportedPendingItems.length > 0
+                  }
+                >
                   {submitting ? "補件中..." : "掛接到目前案件"}
                 </button>
               </div>
               <p className="muted-text">
-                單次最多 {MAX_INTAKE_MATERIAL_UNITS} 份材料；檔案、URL 與補充文字都一起計算。超過時請分批補件。
+                目前待補 {pendingMaterialUnitCount} / {MAX_INTAKE_MATERIAL_UNITS} 份；檔案、URL 與補充文字都一起計算。超過時請分批補件。
               </p>
+              {pendingMaterialUnitCount > MAX_INTAKE_MATERIAL_UNITS ? (
+                <p className="error-text">
+                  單次最多只能補 {MAX_INTAKE_MATERIAL_UNITS} 份材料；請先精簡，或拆成兩批補件。
+                </p>
+              ) : null}
+              {pendingMaterialUnitCount <= MAX_INTAKE_MATERIAL_UNITS &&
+              unsupportedPendingItems.length > 0 ? (
+                <p className="error-text">
+                  目前有 {unsupportedPendingItems.length} 份材料超出正式支援範圍；請先移除，再補件。
+                </p>
+              ) : null}
 
               <DisclosurePanel
                 title="進件規則與保留邊界"
@@ -580,49 +705,69 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                 </p>
                 <div className="detail-list">
                   {workspace.source_material_cards.length > 0 ? (
-                    workspace.source_material_cards.map((item) => (
-                      <div className="detail-item" key={item.object_id}>
-                        <div className="meta-row">
-                          <span className="pill">{item.role_label}</span>
-                          <span>{labelForPresenceState(item.presence_state)}</span>
-                          <span>{item.ingest_status || "未標示匯入狀態"}</span>
-                          <span>{labelForSourceSupportLevel(item.support_level)}</span>
-                          <span>{formatDisplayDate(item.created_at)}</span>
+                    workspace.source_material_cards.map((item) => {
+                      const handling = describeRuntimeMaterialHandling({
+                        supportLevel: item.support_level,
+                        ingestStatus: item.ingest_status,
+                        ingestStrategy: item.ingest_strategy,
+                        metadataOnly: item.metadata_only,
+                      });
+                      return (
+                        <div className="detail-item" key={item.object_id}>
+                          <div className="meta-row">
+                            <span className="pill">{item.role_label}</span>
+                            <span>{labelForPresenceState(item.presence_state)}</span>
+                            <span className={`intake-status-pill intake-status-${handling.status}`}>
+                              {handling.statusLabel}
+                            </span>
+                            <span>{formatDisplayDate(item.created_at)}</span>
+                          </div>
+                          <h3>{item.title}</h3>
+                          <p className="muted-text">
+                            {labelForSourceType(item.source_type || "manual_input")}
+                            {item.file_extension ? `｜${labelForFileExtension(item.file_extension)}` : ""}
+                            {item.file_size ? `｜${formatFileSize(item.file_size)}` : ""}
+                            {item.source_ref ? `｜${item.source_ref}` : ""}
+                          </p>
+                          <p className="content-block">{item.summary || "目前沒有可顯示的來源摘要。"}</p>
+                          <p
+                            className={
+                              handling.status === "accepted"
+                                ? "success-text"
+                                : handling.status === "limited" || handling.status === "pending"
+                                  ? "muted-text"
+                                  : "error-text"
+                            }
+                          >
+                            {handling.statusDetail}
+                          </p>
+                          <div className="meta-row">
+                            <span>{item.linked_evidence_count} 則已連結證據</span>
+                            <span>{item.linked_output_count} 項已連結輸出</span>
+                            {item.participation_task_count > 1 ? (
+                              <span>共享於 {item.participation_task_count} 個 work slices</span>
+                            ) : null}
+                            {item.mapping_mode === "explicit_mapping" &&
+                            item.canonical_owner_scope === "world_canonical" ? (
+                              <span>案件世界正式鏈</span>
+                            ) : null}
+                            {item.mapping_mode === "compatibility_task_ref" ? (
+                              <span>相容層 task ref</span>
+                            ) : null}
+                            <span>{labelForSourceIngestStrategy(item.ingest_strategy)}</span>
+                            <span>{labelForStorageAvailability(item.availability_state)}</span>
+                          </div>
+                          <div className="meta-row">
+                            <span>{labelForRetentionPolicy(item.retention_policy)}</span>
+                            <span>{labelForRetentionState(item.purge_at)}</span>
+                            {item.purge_at ? <span>預計清理：{formatDisplayDate(item.purge_at)}</span> : null}
+                          </div>
+                          <Link className="back-link" href={`/tasks/${item.task_id}`}>
+                            打開來源工作紀錄：{item.task_title}
+                          </Link>
                         </div>
-                        <h3>{item.title}</h3>
-                        <p className="muted-text">
-                          {labelForSourceType(item.source_type || "manual_input")}
-                          {item.file_extension ? `｜${labelForFileExtension(item.file_extension)}` : ""}
-                          {item.file_size ? `｜${formatFileSize(item.file_size)}` : ""}
-                          {item.source_ref ? `｜${item.source_ref}` : ""}
-                        </p>
-                        <p className="content-block">{item.summary || "目前沒有可顯示的來源摘要。"}</p>
-                        <div className="meta-row">
-                          <span>{item.linked_evidence_count} 則已連結證據</span>
-                          <span>{item.linked_output_count} 項已連結輸出</span>
-                          {item.participation_task_count > 1 ? (
-                            <span>共享於 {item.participation_task_count} 個 work slices</span>
-                          ) : null}
-                          {item.mapping_mode === "explicit_mapping" &&
-                          item.canonical_owner_scope === "world_canonical" ? (
-                            <span>案件世界正式鏈</span>
-                          ) : null}
-                          {item.mapping_mode === "compatibility_task_ref" ? (
-                            <span>相容層 task ref</span>
-                          ) : null}
-                          <span>{labelForSourceIngestStrategy(item.ingest_strategy)}</span>
-                          <span>{labelForStorageAvailability(item.availability_state)}</span>
-                        </div>
-                        <div className="meta-row">
-                          <span>{labelForRetentionPolicy(item.retention_policy)}</span>
-                          <span>{labelForRetentionState(item.purge_at)}</span>
-                          {item.purge_at ? <span>預計清理：{formatDisplayDate(item.purge_at)}</span> : null}
-                        </div>
-                        <Link className="back-link" href={`/tasks/${item.task_id}`}>
-                          打開來源工作紀錄：{item.task_title}
-                        </Link>
-                      </div>
-                    ))
+                      );
+                    })
                   ) : (
                     <p className="empty-text">目前還沒有可顯示的來源材料。</p>
                   )}

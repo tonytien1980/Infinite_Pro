@@ -2,8 +2,11 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
+import { IntakeMaterialPreviewList } from "@/components/intake-material-preview-list";
 import { createTask, ingestTaskSources, uploadTaskFiles } from "@/lib/api";
 import {
+  appendSelectedFiles,
+  buildIntakePreviewItems,
   countIntakeMaterialUnits,
   inferInputEntryModeFromMaterialUnits,
   MAX_INTAKE_MATERIAL_UNITS,
@@ -394,12 +397,22 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
     urlCount: normalizedUrls.length,
     hasPastedText: hasPastedContent,
   });
+  const previewItems = useMemo(
+    () =>
+      buildIntakePreviewItems({
+        files,
+        urls: normalizedUrls,
+        pastedText: pastedContent,
+      }),
+    [files, normalizedUrls, pastedContent],
+  );
   const inputMode = inferInputEntryModeFromMaterialUnits(materialUnitCount);
   const selectedInputMode =
     INPUT_MODE_OPTIONS.find((option) => option.value === inputMode) ?? INPUT_MODE_OPTIONS[0];
   const inputModeGuidance = INPUT_MODE_GUIDANCE[inputMode];
   const needsProblemStatement = !description.trim();
   const materialLimitExceeded = materialUnitCount > MAX_INTAKE_MATERIAL_UNITS;
+  const unsupportedItems = previewItems.filter((item) => item.status === "unsupported");
   const consultantBrief = useMemo(
     () =>
       buildConsultantBrief({
@@ -436,6 +449,23 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
       setWritebackDepth(defaultWritebackDepthForInputMode(inputMode));
     }
   }, [continuityManuallyTouched, inputMode, writebackManuallyTouched]);
+
+  function handleRemovePreviewItem(itemId: string) {
+    if (itemId.startsWith("file-")) {
+      const index = Number(itemId.replace("file-", ""));
+      setFiles((previous) => previous.filter((_, itemIndex) => itemIndex !== index));
+      return;
+    }
+    if (itemId.startsWith("url-")) {
+      const index = Number(itemId.replace("url-", ""));
+      setUrlsText(normalizedUrls.filter((_, itemIndex) => itemIndex !== index).join("\n"));
+      return;
+    }
+    if (itemId === "text-0") {
+      setPastedContent("");
+    }
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
@@ -451,6 +481,12 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
     if (materialLimitExceeded) {
       setSubmitting(false);
       setError(`單次建立案件最多只能帶入 ${MAX_INTAKE_MATERIAL_UNITS} 份材料；請先精簡，或建立後分批補件。`);
+      return;
+    }
+
+    if (unsupportedItems.length > 0) {
+      setSubmitting(false);
+      setError("目前有尚未正式支援的材料；請先移除，再建立案件。");
       return;
     }
 
@@ -624,8 +660,11 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
               multiple
               accept=".md,.txt,.docx,.xlsx,.csv,.pdf,.jpg,.jpeg,.png,.webp,text/plain,text/markdown,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/jpeg,image/png,image/webp"
               onChange={(event) => {
-                setFiles(Array.from(event.target.files ?? []));
+                setFiles((previous) =>
+                  appendSelectedFiles(previous, Array.from(event.target.files ?? [])),
+                );
                 setError(null);
+                event.currentTarget.value = "";
               }}
             />
             <small>檔案與 URL / 補充文字一起共用同一個 10 份上限；若超過，請先建立案件後再分批補件。</small>
@@ -643,6 +682,19 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
               placeholder="直接貼上會議摘要、研究摘錄、內部筆記或任何可供分析的原始內容"
             />
             <small>補充文字會算 1 份材料，並作為正式 source material 掛回同一個案件。</small>
+          </div>
+
+          <div className="field">
+            <label>目前待送出的材料</label>
+            <IntakeMaterialPreviewList
+              items={previewItems}
+              onRemove={(item) => {
+                handleRemovePreviewItem(item.id);
+                setError(null);
+              }}
+              emptyText="你可以先只輸入一句問題；如果要帶材料，這裡會逐項列出檔案、URL 與補充文字。"
+            />
+            <small>每一份材料都會逐項顯示目前會被怎麼處理；若有尚未正式支援的格式，請先移除。</small>
           </div>
 
           <div className="summary-grid">
@@ -671,6 +723,11 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
           {materialLimitExceeded ? (
             <p className="error-text">
               單次最多只能帶入 {MAX_INTAKE_MATERIAL_UNITS} 份材料；請先精簡，或建立後再分批補件。
+            </p>
+          ) : null}
+          {!materialLimitExceeded && unsupportedItems.length > 0 ? (
+            <p className="error-text">
+              目前有 {unsupportedItems.length} 份材料超出正式支援範圍；請先移除，再建立案件。
             </p>
           ) : null}
 
@@ -703,7 +760,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
           <button
             className="button-primary"
             type="submit"
-            disabled={submitting || materialLimitExceeded}
+            disabled={submitting || materialLimitExceeded || unsupportedItems.length > 0}
           >
             {submitting ? "建立案件中..." : inputModeGuidance.submitLabel}
           </button>

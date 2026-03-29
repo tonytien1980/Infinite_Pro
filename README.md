@@ -197,6 +197,8 @@ On the visible product surface, `/new` should now expose one unified intake area
 - one shared material area for files, URLs, and pasted text
 - system-inferred intake patterns instead of a manual mode chooser
 - a single-batch limit of 10 material units, with later supplements still allowed on the same matter
+- item-level preview, remove, and warning behavior for every pending material
+- clear item-level handling states such as accepted, limited support, pending parse, and unsupported
 
 Every intake path must first enter the same `case world compilation` stage. Host should then decide:
 - how sparse or dense the current materials are
@@ -312,6 +314,8 @@ Formal behavior:
   - supports lightweight checkpoint-style continuation without turning the case into a CRM loop
   - should show the previous checkpoint, the latest update, what changed, and the next suggested follow-up action
   - should make recommendation / risk / action continuity visible without forcing a full action-outcome tracking surface
+  - should make evidence supplements feel like purposeful consulting updates, not generic uploads
+  - should show the evidence update goal and the gap this supplement is meant to close
 - `continuous`
   - keeps the `follow_up` baseline
   - supports decision -> action -> outcome continuity over time
@@ -376,6 +380,8 @@ The repository currently contains a working early implementation slice within th
   - `只有一句話`
   - `一句話 + 1 份材料`
   - `一句話 + 多份材料`
+- item-level preview / remove / warning on the unified material area
+- item-level ingestion result messaging for accepted, limited-support, pending-parse, and unsupported materials
 - matter-level supplement flow for additional files, URLs, and pasted text
 - source material metadata with support level, ingest strategy, retention, purge state, and availability state
 - formal support for `.md / .txt / .docx / .xlsx / .csv / text-first PDF / URL / 純文字補充`
