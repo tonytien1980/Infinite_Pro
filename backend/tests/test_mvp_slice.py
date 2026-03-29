@@ -590,9 +590,15 @@ def test_shared_materials_and_evidence_follow_world_spine_across_task_slices(
     assert reused_item["source_document"]["participation"]["participation_task_count"] == 2
     assert reused_item["source_document"]["participation"]["participation_type"] == "shared_reuse"
     assert reused_item["source_document"]["participation"]["mapping_mode"] == "explicit_mapping"
+    assert reused_item["source_document"]["participation"]["canonical_owner_scope"] == "world_canonical"
+    assert reused_item["source_document"]["participation"]["compatibility_task_id"] == first_task["id"]
     assert reused_item["source_material"]["id"] == shared_material["id"]
     assert reused_item["evidence"]["id"] == shared_evidence["id"]
     assert reused_item["source_material"]["continuity_scope"] == "world_shared"
+    assert reused_item["source_material"]["participation"]["canonical_owner_scope"] == "world_canonical"
+    assert reused_item["source_material"]["participation"]["compatibility_task_id"] == first_task["id"]
+    assert reused_item["evidence"]["participation"]["canonical_owner_scope"] == "world_canonical"
+    assert reused_item["evidence"]["participation"]["compatibility_task_id"] == first_task["id"]
 
     refreshed_second_after_upload = client.get(f"/api/v1/tasks/{second_task['id']}").json()
     reused_source_document = next(
@@ -608,11 +614,19 @@ def test_shared_materials_and_evidence_follow_world_spine_across_task_slices(
     assert reused_source_document["participation"]["current_task_participation"] is True
     assert reused_source_document["participation"]["participation_task_count"] == 2
     assert reused_source_document["participation"]["participation_type"] == "shared_reuse"
+    assert reused_source_document["participation"]["canonical_owner_scope"] == "world_canonical"
+    assert reused_source_document["participation"]["compatibility_task_id"] == first_task["id"]
     assert reused_material["participation"]["current_task_participation"] is True
     assert reused_material["participation"]["participation_task_count"] == 2
     assert reused_material["participation"]["participation_type"] == "shared_reuse"
+    assert reused_material["participation"]["mapping_mode"] == "explicit_mapping"
+    assert reused_material["participation"]["canonical_owner_scope"] == "world_canonical"
+    assert reused_material["participation"]["compatibility_task_id"] == first_task["id"]
     assert reused_evidence["participation"]["current_task_participation"] is True
     assert reused_evidence["participation"]["participation_task_count"] == 2
+    assert reused_evidence["participation"]["mapping_mode"] == "explicit_mapping"
+    assert reused_evidence["participation"]["canonical_owner_scope"] == "world_canonical"
+    assert reused_evidence["participation"]["compatibility_task_id"] == first_task["id"]
 
     workspace = client.get(f"/api/v1/matters/{first_task['matter_workspace']['id']}").json()
     assert workspace["summary"]["source_material_count"] == 1
@@ -906,6 +920,14 @@ def test_artifact_evidence_workspace_route_returns_formal_source_and_support_cha
     assert any(
         item["linked_recommendations"] or item["linked_risks"] or item["linked_action_items"]
         for item in workspace["evidence_chains"]
+    )
+    assert any(
+        item["canonical_owner_scope"] == "world_canonical" and item["mapping_mode"] == "explicit_mapping"
+        for item in workspace["source_material_cards"]
+    )
+    assert any(
+        item["canonical_owner_scope"] == "world_canonical" and item["mapping_mode"] == "explicit_mapping"
+        for item in workspace["artifact_cards"]
     )
 
 
@@ -1262,8 +1284,14 @@ def test_file_upload_creates_usable_txt_evidence(client: TestClient) -> None:
     assert uploaded["source_document"]["participation"]["current_task_participation"] is True
     assert uploaded["source_document"]["participation"]["participation_type"] == "direct_ingest"
     assert uploaded["source_document"]["participation"]["mapping_mode"] == "explicit_mapping"
+    assert uploaded["source_document"]["participation"]["canonical_owner_scope"] == "world_canonical"
+    assert uploaded["source_document"]["participation"]["compatibility_task_id"] == task["id"]
     assert uploaded["source_material"]["participation"]["current_task_participation"] is True
+    assert uploaded["source_material"]["participation"]["canonical_owner_scope"] == "world_canonical"
+    assert uploaded["source_material"]["participation"]["compatibility_task_id"] == task["id"]
     assert uploaded["evidence"]["participation"]["current_task_participation"] is True
+    assert uploaded["evidence"]["participation"]["canonical_owner_scope"] == "world_canonical"
+    assert uploaded["evidence"]["participation"]["compatibility_task_id"] == task["id"]
 
     aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
     assert aggregate["source_materials"]
@@ -1402,6 +1430,8 @@ def test_source_ingestion_from_pasted_text_creates_normalized_evidence_and_chunk
     assert ingested["source_document"]["participation"]["current_task_participation"] is True
     assert ingested["source_document"]["participation"]["participation_type"] == "direct_ingest"
     assert ingested["source_document"]["participation"]["mapping_mode"] == "explicit_mapping"
+    assert ingested["source_document"]["participation"]["canonical_owner_scope"] == "world_canonical"
+    assert ingested["source_document"]["participation"]["compatibility_task_id"] == task["id"]
 
     aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
     assert any(item["evidence_type"] == "source_chunk" for item in aggregate["evidence"])
@@ -1440,6 +1470,8 @@ def test_source_ingestion_from_url_extracts_text_and_metadata(
     assert ingested["source_document"]["participation"]["current_task_participation"] is True
     assert ingested["source_document"]["participation"]["participation_type"] == "direct_ingest"
     assert ingested["source_document"]["participation"]["mapping_mode"] == "explicit_mapping"
+    assert ingested["source_document"]["participation"]["canonical_owner_scope"] == "world_canonical"
+    assert ingested["source_document"]["participation"]["compatibility_task_id"] == task["id"]
 
 
 def test_google_docs_without_permission_returns_explicit_ingestion_issue(

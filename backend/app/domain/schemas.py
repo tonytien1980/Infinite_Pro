@@ -370,6 +370,8 @@ class SourceDocumentRead(ORMModel):
 
 class ObjectParticipationRead(BaseModel):
     canonical_object_id: str | None = None
+    canonical_owner_scope: str | None = None
+    compatibility_task_id: str | None = None
     current_task_participation: bool = False
     participation_type: str | None = None
     participation_task_count: int = 0
@@ -966,6 +968,9 @@ class ArtifactEvidenceMaterialRead(BaseModel):
     participation_type: str | None = None
     participation_task_count: int = 0
     current_task_participation: bool = False
+    canonical_owner_scope: str | None = None
+    compatibility_task_id: str | None = None
+    mapping_mode: str | None = None
     source_type: str | None = None
     ingest_status: str | None = None
     support_level: str | None = None

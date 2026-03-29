@@ -241,7 +241,7 @@ Implementation should also preserve:
   - mark what is already world-native
   - mark what is still transitional task-centric persistence
   - do not claim fully world-native identity if legacy task ownership still exists
-  - identity deepen phase 10 should explicitly distinguish:
+  - identity deepen phase 11 should explicitly distinguish:
     - canonical world rows
     - task-slice local overlays / derivative rows
     - world-authoritative context rows for `Client / Engagement / Workstream / DecisionContext`
@@ -251,6 +251,7 @@ Implementation should also preserve:
     - thinner `slice_decision_context` deltas versus canonical world decision authority
     - host payload canonical context spine versus task-local fallback behavior
     - canonical-first read / serialize helpers shared across aggregate, workspace, and host paths
+    - source-chain compatibility closeout and the stop condition for the identity line
 
 The exact persistence schema may evolve, but these objects are part of the architecture boundary.
 

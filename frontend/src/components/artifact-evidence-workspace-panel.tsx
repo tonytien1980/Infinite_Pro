@@ -140,7 +140,7 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
             ],
           ).size;
           return sharedCount > 0
-            ? `補進來的材料與證據會優先掛回同一個案件世界；目前至少有 ${sharedCount} 條 shared chains 已透過正式 participation mapping 被多個 task slices 共用。`
+            ? `補進來的材料與證據會優先掛回同一個案件世界；目前至少有 ${sharedCount} 條 shared chains 已透過正式 participation mapping 被多個 task slices 共用，task 連結只作相容層入口。`
             : "補進來的材料與證據會優先掛回同一個案件世界，後續 task slices 可直接回看，不必再各自重傳。";
         })()
       : "目前還沒有可跨 task slices 連續使用的正式材料 / 證據。";
@@ -528,6 +528,13 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                           {item.participation_task_count > 1 ? (
                             <span>共享於 {item.participation_task_count} 個 work slices</span>
                           ) : null}
+                          {item.mapping_mode === "explicit_mapping" &&
+                          item.canonical_owner_scope === "world_canonical" ? (
+                            <span>案件世界正式鏈</span>
+                          ) : null}
+                          {item.mapping_mode === "compatibility_task_ref" ? (
+                            <span>相容層 task ref</span>
+                          ) : null}
                           <span>{labelForSourceIngestStrategy(item.ingest_strategy)}</span>
                           <span>{labelForStorageAvailability(item.availability_state)}</span>
                         </div>
@@ -567,6 +574,13 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                           <span>{item.linked_output_count} 項已連結輸出</span>
                           {item.participation_task_count > 1 ? (
                             <span>共享於 {item.participation_task_count} 個 work slices</span>
+                          ) : null}
+                          {item.mapping_mode === "explicit_mapping" &&
+                          item.canonical_owner_scope === "world_canonical" ? (
+                            <span>案件世界正式鏈</span>
+                          ) : null}
+                          {item.mapping_mode === "compatibility_task_ref" ? (
+                            <span>相容層 task ref</span>
                           ) : null}
                         </div>
                         <Link className="back-link" href={`/tasks/${item.task_id}`}>

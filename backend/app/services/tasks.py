@@ -801,7 +801,15 @@ def _build_legacy_source_material_read(source_document: models.SourceDocument) -
         availability_state=source_document.availability_state,
         metadata_only=source_document.metadata_only,
         summary=_normalize_whitespace(build_source_material_summary(source_document)),
-        participation=None,
+        participation=schemas.ObjectParticipationRead(
+            canonical_object_id=None,
+            canonical_owner_scope="slice_local",
+            compatibility_task_id=source_document.task_id,
+            current_task_participation=True,
+            participation_type="slice_local_only",
+            participation_task_count=1,
+            mapping_mode="slice_local_only",
+        ),
         created_at=source_document.created_at,
         updated_at=source_document.updated_at,
     )
@@ -912,7 +920,15 @@ def _build_legacy_artifact_read(
         source_document_id=source_document.id,
         source_material_id=source_material_id,
         description=_normalize_whitespace(build_source_material_summary(source_document)[:280]),
-        participation=None,
+        participation=schemas.ObjectParticipationRead(
+            canonical_object_id=None,
+            canonical_owner_scope="slice_local",
+            compatibility_task_id=source_document.task_id,
+            current_task_participation=True,
+            participation_type="slice_local_only",
+            participation_task_count=1,
+            mapping_mode="slice_local_only",
+        ),
         created_at=source_document.created_at,
     )
 
@@ -968,6 +984,8 @@ def _build_object_participation_read(
         fallback_to_task_ref = participation_count == 0 and object_task_id == current_task_id
         return schemas.ObjectParticipationRead(
             canonical_object_id=object_id,
+            canonical_owner_scope="world_canonical",
+            compatibility_task_id=object_task_id,
             current_task_participation=current_link is not None or fallback_to_task_ref,
             participation_type=(
                 current_link.participation_type
@@ -985,6 +1003,8 @@ def _build_object_participation_read(
     if object_task_id == current_task_id:
         return schemas.ObjectParticipationRead(
             canonical_object_id=None,
+            canonical_owner_scope="slice_local",
+            compatibility_task_id=object_task_id,
             current_task_participation=True,
             participation_type="slice_local_only",
             participation_task_count=1,
@@ -1056,7 +1076,9 @@ def _backfill_world_shared_source_chain_participation_links(
         )
 
 
-def _build_source_documents(task: models.Task) -> list[schemas.SourceDocumentRead]:
+def _ensure_source_chain_participation_snapshot_ready(
+    task: models.Task,
+) -> tuple[Session | None, models.MatterWorkspace | None, str | None]:
     db = object_session(task)
     matter_workspace = _get_linked_matter_workspace(task)
     matter_workspace_id = matter_workspace.id if matter_workspace is not None else None
@@ -1067,6 +1089,11 @@ def _build_source_documents(task: models.Task) -> list[schemas.SourceDocumentRea
             matter_workspace_id=matter_workspace_id,
         )
         db.flush()
+    return db, matter_workspace, matter_workspace_id
+
+
+def _build_source_documents(task: models.Task) -> list[schemas.SourceDocumentRead]:
+    db, matter_workspace, matter_workspace_id = _ensure_source_chain_participation_snapshot_ready(task)
     participation_snapshot = _load_task_object_participation_snapshot(
         db,
         matter_workspace_id=matter_workspace_id,
@@ -1129,11 +1156,10 @@ def build_upload_result_item_from_aggregate(
 
 
 def _build_source_materials(task: models.Task) -> list[schemas.SourceMaterialRead]:
-    db = object_session(task)
-    matter_workspace = _get_linked_matter_workspace(task)
+    db, matter_workspace, matter_workspace_id = _ensure_source_chain_participation_snapshot_ready(task)
     participation_snapshot = _load_task_object_participation_snapshot(
         db,
-        matter_workspace_id=matter_workspace.id if matter_workspace is not None else None,
+        matter_workspace_id=matter_workspace_id,
         task_id=task.id,
     )
     materials = [
@@ -1191,11 +1217,10 @@ def _build_artifacts(
     task: models.Task,
     source_materials: list[schemas.SourceMaterialRead],
 ) -> list[schemas.ArtifactRead]:
-    db = object_session(task)
-    matter_workspace = _get_linked_matter_workspace(task)
+    db, matter_workspace, matter_workspace_id = _ensure_source_chain_participation_snapshot_ready(task)
     participation_snapshot = _load_task_object_participation_snapshot(
         db,
-        matter_workspace_id=matter_workspace.id if matter_workspace is not None else None,
+        matter_workspace_id=matter_workspace_id,
         task_id=task.id,
     )
     artifacts = [
@@ -4498,11 +4523,10 @@ def _serialize_evidence_items(
         artifacts,
     )
     evidence_rows = list(task.evidence)
-    db = object_session(task)
-    matter_workspace = _get_linked_matter_workspace(task)
+    db, matter_workspace, matter_workspace_id = _ensure_source_chain_participation_snapshot_ready(task)
     participation_snapshot = _load_task_object_participation_snapshot(
         db,
-        matter_workspace_id=matter_workspace.id if matter_workspace is not None else None,
+        matter_workspace_id=matter_workspace_id,
         task_id=task.id,
     )
     if db is not None and matter_workspace is not None:
@@ -5542,6 +5566,26 @@ def _material_role_label(
     return "待補強來源", PresenceState.PROVISIONAL
 
 
+def _workspace_material_participation_fields(
+    *,
+    task_id: str,
+    continuity_scope: str | None,
+    participation: schemas.ObjectParticipationRead | None,
+) -> tuple[str | None, int, bool, str | None, str | None, str | None]:
+    if participation is not None:
+        return (
+            participation.participation_type,
+            participation.participation_task_count,
+            participation.current_task_participation,
+            participation.mapping_mode,
+            participation.canonical_owner_scope,
+            participation.compatibility_task_id,
+        )
+    if continuity_scope == WORLD_SHARED_CONTINUITY_SCOPE:
+        return None, 0, False, None, "world_canonical", None
+    return "slice_local_only", 1, True, "slice_local_only", "slice_local", task_id
+
+
 def _evidence_strength_label(
     linked_output_count: int,
     linked_deliverable_count: int,
@@ -5820,6 +5864,18 @@ def get_artifact_evidence_workspace(
                 if source_material.participation is not None
                 else 0,
             )
+            (
+                participation_type,
+                participation_task_count,
+                current_task_participation,
+                mapping_mode,
+                canonical_owner_scope,
+                compatibility_task_id,
+            ) = _workspace_material_participation_fields(
+                task_id=task.id,
+                continuity_scope=source_material.continuity_scope,
+                participation=source_material.participation,
+            )
             source_material_cards.append(
                 schemas.ArtifactEvidenceMaterialRead(
                     object_id=source_material.id,
@@ -5831,21 +5887,12 @@ def get_artifact_evidence_workspace(
                     role_label=role_label,
                     presence_state=presence_state,
                     continuity_scope=source_material.continuity_scope,
-                    participation_type=(
-                        source_material.participation.participation_type
-                        if source_material.participation is not None
-                        else None
-                    ),
-                    participation_task_count=(
-                        source_material.participation.participation_task_count
-                        if source_material.participation is not None
-                        else 0
-                    ),
-                    current_task_participation=(
-                        source_material.participation.current_task_participation
-                        if source_material.participation is not None
-                        else source_material.task_id == task.id
-                    ),
+                    participation_type=participation_type,
+                    participation_task_count=participation_task_count,
+                    current_task_participation=current_task_participation,
+                    canonical_owner_scope=canonical_owner_scope,
+                    compatibility_task_id=compatibility_task_id,
+                    mapping_mode=mapping_mode,
                     source_type=source_material.source_type,
                     ingest_status=source_material.ingest_status,
                     support_level=source_material.support_level,
@@ -5886,6 +5933,18 @@ def get_artifact_evidence_workspace(
                 if artifact.participation is not None
                 else 0,
             )
+            (
+                participation_type,
+                participation_task_count,
+                current_task_participation,
+                mapping_mode,
+                canonical_owner_scope,
+                compatibility_task_id,
+            ) = _workspace_material_participation_fields(
+                task_id=task.id,
+                continuity_scope=artifact.continuity_scope,
+                participation=artifact.participation,
+            )
             artifact_cards.append(
                 schemas.ArtifactEvidenceMaterialRead(
                     object_id=artifact.id,
@@ -5897,21 +5956,12 @@ def get_artifact_evidence_workspace(
                     role_label=role_label,
                     presence_state=presence_state,
                     continuity_scope=artifact.continuity_scope,
-                    participation_type=(
-                        artifact.participation.participation_type
-                        if artifact.participation is not None
-                        else None
-                    ),
-                    participation_task_count=(
-                        artifact.participation.participation_task_count
-                        if artifact.participation is not None
-                        else 0
-                    ),
-                    current_task_participation=(
-                        artifact.participation.current_task_participation
-                        if artifact.participation is not None
-                        else artifact.task_id == task.id
-                    ),
+                    participation_type=participation_type,
+                    participation_task_count=participation_task_count,
+                    current_task_participation=current_task_participation,
+                    canonical_owner_scope=canonical_owner_scope,
+                    compatibility_task_id=compatibility_task_id,
+                    mapping_mode=mapping_mode,
                     source_type=None,
                     ingest_status=None,
                     source_ref=None,

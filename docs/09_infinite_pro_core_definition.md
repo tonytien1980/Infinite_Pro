@@ -78,7 +78,7 @@ Infinite Pro 的核心原則是：
    - `Task` 應逐步退居 work slice，而不是 core business objects 的唯一 owner
    - `Client / Engagement / Workstream / DecisionContext / SourceMaterial / Artifact / Evidence`
      應逐步從 task-local persistence 過渡到 world-native continuity
-- identity deepen phase 10 應明確區分：
+- identity deepen phase 11 應明確區分：
   - canonical world rows
   - task-slice local overlay rows
   - world-authoritative core/context rows
@@ -88,6 +88,7 @@ Infinite Pro 的核心原則是：
   - delta-only `slice_decision_context`
   - canonical host payload context spine
   - canonical-first read / serialize helpers shared by aggregate / workspace / host paths
+  - source-chain compatibility closeout 與 identity-line stop condition
   的 authority、write path 與 fallback 順序
 
 ---
