@@ -304,6 +304,8 @@ Formal behavior:
   - keeps the `one_off` baseline
   - allows decision checkpoints and milestone writeback
   - supports lightweight checkpoint-style continuation without turning the case into a CRM loop
+  - should show the previous checkpoint, the latest update, what changed, and the next suggested follow-up action
+  - should make recommendation / risk / action continuity visible without forcing a full action-outcome tracking surface
 - `continuous`
   - keeps the `follow_up` baseline
   - supports decision -> action -> outcome continuity over time
@@ -312,6 +314,7 @@ Formal behavior:
 This means writeback is no longer treated as "all or nothing".
 All matters must keep minimum history and deliverable lineage, but only follow-up and continuous cases should deepen the feedback loop.
 Primary actions in matter, task, deliverable, and evidence workspaces should now change with this policy: one-off cases should bias toward closure, follow-up cases toward checkpoint updates, and continuous cases toward progression / outcome observation.
+For follow-up specifically, the workbench should answer three questions quickly: what the last checkpoint said, what changed this time, and what the consultant should do next.
 
 ## Core ontology objects
 

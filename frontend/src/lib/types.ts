@@ -823,6 +823,35 @@ export interface ContinuationAction {
   description: string;
 }
 
+export interface CheckpointSnapshot {
+  record_id: string | null;
+  task_id: string | null;
+  task_title: string;
+  deliverable_id: string | null;
+  deliverable_title: string | null;
+  summary: string;
+  created_at: string | null;
+}
+
+export interface ContinuationChangeItem {
+  kind: "recommendation" | "risk" | "action_item";
+  title: string;
+  change_type: string;
+  summary: string;
+}
+
+export interface FollowUpLane {
+  latest_update: CheckpointSnapshot | null;
+  previous_checkpoint: CheckpointSnapshot | null;
+  recent_checkpoints: CheckpointSnapshot[];
+  what_changed: string[];
+  recommendation_changes: ContinuationChangeItem[];
+  risk_changes: ContinuationChangeItem[];
+  action_changes: ContinuationChangeItem[];
+  next_follow_up_actions: string[];
+  evidence_update_goal: string;
+}
+
 export interface ContinuationSurface {
   workflow_layer: "closure" | "checkpoint" | "progression";
   mode: EngagementContinuityMode;
@@ -836,6 +865,7 @@ export interface ContinuationSurface {
   can_reopen: boolean;
   checkpoint_enabled: boolean;
   outcome_logging_enabled: boolean;
+  follow_up_lane: FollowUpLane | null;
 }
 
 export interface TaskAggregate {
@@ -1023,6 +1053,7 @@ export interface ArtifactEvidenceWorkspace {
   engagement: Engagement | null;
   workstream: Workstream | null;
   current_decision_context: DecisionContext | null;
+  continuation_surface: ContinuationSurface | null;
   related_tasks: TaskListItem[];
   artifact_cards: ArtifactEvidenceMaterial[];
   source_material_cards: ArtifactEvidenceMaterial[];

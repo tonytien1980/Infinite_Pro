@@ -113,12 +113,14 @@ Infinite Pro 的正式第一層主導覽應為：
    - 承接 `Client / Engagement / Workstream / DecisionContext`
    - 首屏 primary action 應受 `engagement_continuity_mode / writeback_depth` 影響：
      `one_off` 偏正式結案、`follow_up` 偏 checkpoint、`continuous` 偏 progression / outcome
+   - `follow_up` 首屏應可快速看出上一個 checkpoint、最新更新重點、哪些建議 / 風險 / 行動仍延續，以及下一步最建議做什麼
    - 它不是 task list 的包裝，而是案件脈絡、相關工作、來源、交付物與工作紀錄的主體
 
 3. **交付物**
    - 正式交付物頁與交付物回看入口
    - 承接 deliverable identity、summary、judgment、recommendation、risk、action、evidence basis、limitations 與版本紀錄
    - 應可看出這份交付物目前對應的是 closure、checkpoint 還是 continuous progression
+   - 若是 `follow_up`，還應可看出它承接哪一個 checkpoint、與上一輪相比改了什麼，以及下一步應回案件工作台補 checkpoint 還是先補件
    - 它不是單次 task 的結果區替身
 
 4. **代理管理**

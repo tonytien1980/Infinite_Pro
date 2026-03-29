@@ -108,6 +108,8 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
 
   const matterCard = workspace ? buildMatterWorkspaceCard(workspace.matter_summary) : null;
   const workspaceView = workspace ? buildArtifactEvidenceWorkspaceView(workspace) : null;
+  const continuationSurface = workspace?.continuation_surface ?? null;
+  const followUpLane = continuationSurface?.follow_up_lane ?? null;
   const focusTask = workspace?.related_tasks[0] ?? null;
   const evidenceActionTitle =
     workspace?.matter_summary.engagement_continuity_mode === "one_off" &&
@@ -116,7 +118,9 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
       : workspace && workspace.high_impact_gaps.length > 0
       ? "先補件，再回到主線判斷"
       : workspace?.matter_summary.engagement_continuity_mode === "follow_up"
-        ? "先補齊支撐鏈，再決定 checkpoint 要怎麼更新"
+        ? followUpLane?.evidence_update_goal
+          ? "先補齊這輪更新需要的支撐鏈"
+          : "先補齊支撐鏈，再決定 checkpoint 要怎麼更新"
         : workspace?.matter_summary.engagement_continuity_mode === "continuous"
           ? "先補齊支撐鏈，再決定要不要記錄新 outcome"
           : "先檢查支撐鏈，再決定往哪裡推進";
@@ -127,7 +131,9 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
       : workspace && workspace.high_impact_gaps.length > 0
       ? "這裡最重要的不是把資料看完，而是先補齊高影響缺口，避免案件工作台或交付物在證據不足下失真。"
       : workspace?.matter_summary.engagement_continuity_mode === "follow_up"
-        ? "這個工作面現在更偏向 follow-up 補件與 checkpoint 更新，不需要把所有後續都做成完整 continuous tracking。"
+        ? followUpLane?.evidence_update_goal
+          ? `這個工作面現在更偏向 follow-up 補件與 checkpoint 更新。${followUpLane.evidence_update_goal}`
+          : "這個工作面現在更偏向 follow-up 補件與 checkpoint 更新，不需要把所有後續都做成完整 continuous tracking。"
         : workspace?.matter_summary.engagement_continuity_mode === "continuous"
           ? "這個工作面現在更偏向持續推進案件：先補來源與證據，再回案件工作面記錄 progression / outcome。"
           : "這個工作面負責釐清來源、工作物件與證據支撐鏈。先確認支撐鏈完整度，再回案件或工作紀錄會更有效率。";
@@ -139,6 +145,9 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
     workspace && workspace.source_material_cards.length === 0
       ? "目前還沒有正式來源材料，建議先補檔案、網址或補充文字。"
       : "目前已有來源材料，接著可回看證據支撐鏈是否真的支撐得住判斷。",
+    followUpLane?.next_follow_up_actions[0]
+      ? `補完之後，下一步建議是：${followUpLane.next_follow_up_actions[0]}`
+      : "補完之後再回案件工作面，確認這輪 follow-up 要怎麼更新 checkpoint。",
   ];
   const sharedContinuitySummary =
     workspace && (workspace.source_material_cards.length > 0 || workspace.evidence_chains.length > 0)
@@ -173,7 +182,11 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
           eyebrow: "真的要補時",
           title: "補件與新增來源",
           copy: "需要補檔案、網址或補充文字時，直接走這條正式補件主鏈，不要另開新的孤立工作。",
-          meta: workspace.source_material_cards.length === 0 ? "目前尚無正式來源材料。" : "補件後會直接掛回同一個案件世界。",
+          meta:
+            followUpLane?.evidence_update_goal ||
+            (workspace.source_material_cards.length === 0
+              ? "目前尚無正式來源材料。"
+              : "補件後會直接掛回同一個案件世界。"),
           tone: "accent" as const,
         },
         {
@@ -318,6 +331,22 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                 <h4>跨 slice 共享鏈</h4>
                 <p className="content-block">{sharedContinuitySummary}</p>
               </div>
+              {followUpLane ? (
+                <>
+                  <div className="section-card">
+                    <h4>最新 checkpoint</h4>
+                    <p className="content-block">
+                      {followUpLane.latest_update?.summary || "尚未形成正式 checkpoint。"}
+                    </p>
+                  </div>
+                  <div className="section-card">
+                    <h4>這次補件主要影響</h4>
+                    <p className="content-block">
+                      {followUpLane.evidence_update_goal || "先補齊這輪 follow-up 要更新的支撐鏈。"}
+                    </p>
+                  </div>
+                </>
+              ) : null}
             </div>
             <ul className="list-content" style={{ marginTop: "16px" }}>
               {evidenceActionChecklist.map((item) => (
@@ -475,6 +504,14 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                   onChange={(event) => setPastedText(event.target.value)}
                   placeholder="可直接貼上會議摘要、客戶補充說明、原始筆記或任何需要掛回案件的文字材料。"
                 />
+                {followUpLane ? (
+                  <small>
+                    {followUpLane.evidence_update_goal}
+                    {followUpLane.previous_checkpoint?.summary
+                      ? ` 上一個 checkpoint 是「${followUpLane.previous_checkpoint.summary}」。`
+                      : ""}
+                  </small>
+                ) : null}
               </div>
 
               <div className="button-row">
