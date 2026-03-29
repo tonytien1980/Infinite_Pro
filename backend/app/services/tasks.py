@@ -2327,20 +2327,18 @@ def _build_world_decision_context_read(
             else fallback.id if fallback is not None else (case_world_state.decision_context_id if case_world_state else "")
         ),
         task_id=(
-            authority_decision_context.task_id
+            case_world_state.latest_task_id
+            if case_world_state and case_world_state.latest_task_id
+            else authority_decision_context.task_id
             if authority_decision_context is not None
-            else fallback.task_id if fallback is not None else (case_world_state.latest_task_id if case_world_state else "")
+            else fallback.task_id if fallback is not None else ""
         ),
         matter_workspace_id=(
             authority_decision_context.matter_workspace_id
             if authority_decision_context is not None
             else fallback.matter_workspace_id if fallback is not None else (case_world_state.matter_workspace_id if case_world_state else None)
         ),
-        identity_scope=(
-            authority_decision_context.identity_scope
-            if authority_decision_context is not None
-            else fallback.identity_scope if fallback is not None else WORLD_AUTHORITY_IDENTITY_SCOPE
-        ),
+        identity_scope=WORLD_AUTHORITY_IDENTITY_SCOPE,
         client_id=(
             authority_decision_context.client_id
             if authority_decision_context is not None
@@ -2623,6 +2621,64 @@ def _build_ontology_spine_for_task(
         schemas.WorkstreamRead.model_validate(workstream) if workstream else None,
         decision_context,
         domain_lenses,
+        source_materials,
+        artifacts,
+    )
+
+
+def _build_world_preferred_ontology_spine_for_task(
+    task: models.Task,
+) -> tuple[
+    schemas.ClientRead | None,
+    schemas.EngagementRead | None,
+    schemas.WorkstreamRead | None,
+    schemas.DecisionContextRead | None,
+    list[str],
+    list[schemas.SourceMaterialRead],
+    list[schemas.ArtifactRead],
+]:
+    client, engagement, workstream, decision_context, domain_lenses, source_materials, artifacts = (
+        _build_ontology_spine_for_task(task)
+    )
+    db = object_session(task)
+    matter_workspace = _get_linked_matter_workspace(task)
+    if db is None or matter_workspace is None:
+        return client, engagement, workstream, decision_context, domain_lenses, source_materials, artifacts
+
+    authority_client_row, authority_engagement_row, authority_workstream_row, authority_decision_context_row = (
+        _load_world_authority_spine(
+            db,
+            matter_workspace=matter_workspace,
+            case_world_state=matter_workspace.case_world_state,
+        )
+    )
+    world_client = schemas.ClientRead.model_validate(authority_client_row) if authority_client_row else client
+    world_engagement = (
+        schemas.EngagementRead.model_validate(authority_engagement_row)
+        if authority_engagement_row
+        else engagement
+    )
+    world_workstream = (
+        schemas.WorkstreamRead.model_validate(authority_workstream_row)
+        if authority_workstream_row
+        else workstream
+    )
+    world_decision_context = _build_world_decision_context_read(
+        case_world_state=matter_workspace.case_world_state,
+        authority_decision_context=authority_decision_context_row,
+        fallback=decision_context,
+    ) or decision_context
+    preferred_domain_lenses = (
+        world_decision_context.domain_lenses
+        if world_decision_context and world_decision_context.domain_lenses
+        else world_workstream.domain_lenses if world_workstream else domain_lenses
+    )
+    return (
+        world_client,
+        world_engagement,
+        world_workstream,
+        world_decision_context,
+        preferred_domain_lenses,
         source_materials,
         artifacts,
     )
@@ -3251,6 +3307,7 @@ def ensure_world_context_spine_for_task(
     workstream: models.Workstream | None,
     decision_context: models.DecisionContext | None,
     case_world_state: models.CaseWorldState | None = None,
+    refresh_compatibility_task_reference: bool = False,
 ) -> tuple[models.CaseWorldState, bool]:
     state = case_world_state or _ensure_case_world_state_row(db, matter_workspace)
     changed = False
@@ -3288,6 +3345,8 @@ def ensure_world_context_spine_for_task(
                 "identity_scope",
                 WORLD_AUTHORITY_IDENTITY_SCOPE,
             ) or changed
+            if refresh_compatibility_task_reference:
+                changed = _assign_if_changed(canonical_client, "task_id", task.id) or changed
             changed = _assign_if_changed(canonical_client, "name", client.name) or changed
             changed = _assign_if_changed(canonical_client, "client_type", client.client_type) or changed
             changed = _assign_if_changed(canonical_client, "client_stage", client.client_stage) or changed
@@ -3319,6 +3378,8 @@ def ensure_world_context_spine_for_task(
                 "identity_scope",
                 WORLD_AUTHORITY_IDENTITY_SCOPE,
             ) or changed
+            if refresh_compatibility_task_reference:
+                changed = _assign_if_changed(canonical_engagement, "task_id", task.id) or changed
             changed = _assign_if_changed(
                 canonical_engagement,
                 "client_id",
@@ -3358,6 +3419,8 @@ def ensure_world_context_spine_for_task(
                 "identity_scope",
                 WORLD_AUTHORITY_IDENTITY_SCOPE,
             ) or changed
+            if refresh_compatibility_task_reference:
+                changed = _assign_if_changed(canonical_workstream, "task_id", task.id) or changed
             changed = _assign_if_changed(
                 canonical_workstream,
                 "engagement_id",
@@ -3441,6 +3504,8 @@ def ensure_world_context_spine_for_task(
                 "identity_scope",
                 WORLD_AUTHORITY_IDENTITY_SCOPE,
             ) or changed
+            if refresh_compatibility_task_reference:
+                changed = _assign_if_changed(canonical_decision_context, "task_id", task.id) or changed
             changed = _assign_if_changed(
                 canonical_decision_context,
                 "client_id",
@@ -3526,6 +3591,35 @@ def ensure_world_context_spine_for_task(
             state,
             "decision_context_payload",
             canonical_decision_context_payload,
+        ) or changed
+
+    if engagement is not None:
+        changed = _assign_if_changed(
+            engagement,
+            "client_id",
+            canonical_client.id if canonical_client else engagement.client_id,
+        ) or changed
+    if workstream is not None:
+        changed = _assign_if_changed(
+            workstream,
+            "engagement_id",
+            canonical_engagement.id if canonical_engagement else workstream.engagement_id,
+        ) or changed
+    if decision_context is not None:
+        changed = _assign_if_changed(
+            decision_context,
+            "client_id",
+            canonical_client.id if canonical_client else decision_context.client_id,
+        ) or changed
+        changed = _assign_if_changed(
+            decision_context,
+            "engagement_id",
+            canonical_engagement.id if canonical_engagement else decision_context.engagement_id,
+        ) or changed
+        changed = _assign_if_changed(
+            decision_context,
+            "workstream_id",
+            canonical_workstream.id if canonical_workstream else decision_context.workstream_id,
         ) or changed
 
     changed = _assign_if_changed(state, "client_id", canonical_client.id if canonical_client else None) or changed
@@ -4027,7 +4121,9 @@ def _build_matter_workspace_summary_from_tasks(
     current_decision_context_summary = matter_workspace.current_decision_context_summary
 
     for task in related_tasks:
-        _, _, _, decision_context, domain_lenses, source_materials, artifacts = _build_ontology_spine_for_task(task)
+        client, engagement, workstream, decision_context, domain_lenses, source_materials, artifacts = (
+            _build_world_preferred_ontology_spine_for_task(task)
+        )
         artifact_ids.update(item.id for item in _meaningful_artifacts(artifacts))
         source_material_ids.update(item.id for item in _meaningful_source_materials(source_materials))
         shared_material_ids.update(
@@ -4047,9 +4143,9 @@ def _build_matter_workspace_summary_from_tasks(
 
         pack_resolution = resolve_pack_selection_for_task(
             task,
-            schemas.ClientRead.model_validate(_primary_item(task.clients)) if task.clients else None,
-            schemas.EngagementRead.model_validate(_primary_item(task.engagements)) if task.engagements else None,
-            schemas.WorkstreamRead.model_validate(_primary_item(task.workstreams)) if task.workstreams else None,
+            client,
+            engagement,
+            workstream,
             decision_context,
             domain_lenses,
         )
@@ -4650,6 +4746,7 @@ def create_task(db: Session, payload: schemas.TaskCreateRequest) -> models.Task:
         workstream=workstream,
         decision_context=decision_context,
         case_world_state=world_state,
+        refresh_compatibility_task_reference=True,
     )
     world_state.active_task_ids = _unique_preserve_order([*world_state.active_task_ids, task.id])
     world_state.latest_task_id = task.id
@@ -4665,23 +4762,9 @@ def _build_task_list_item_response(
     matter_workspace: schemas.MatterWorkspaceSummaryRead | None = None,
 ) -> schemas.TaskListItemResponse:
     latest_deliverable = _latest_deliverable(task)
-    client, engagement, workstream, decision_context, domain_lenses, source_materials, artifacts = (
-        _build_ontology_spine_for_task(task)
+    client, engagement, workstream, preferred_decision_context, domain_lenses, source_materials, artifacts = (
+        _build_world_preferred_ontology_spine_for_task(task)
     )
-    preferred_decision_context = decision_context
-    db = object_session(task)
-    linked_matter_workspace = _get_linked_matter_workspace(task)
-    if db is not None and linked_matter_workspace is not None:
-        _, _, _, authority_decision_context_row = _load_world_authority_spine(
-            db,
-            matter_workspace=linked_matter_workspace,
-            case_world_state=linked_matter_workspace.case_world_state,
-        )
-        preferred_decision_context = _build_world_decision_context_read(
-            case_world_state=linked_matter_workspace.case_world_state,
-            authority_decision_context=authority_decision_context_row,
-            fallback=decision_context,
-        ) or decision_context
     pack_resolution = resolve_pack_selection_for_task(
         task,
         client,
@@ -4797,7 +4880,7 @@ def list_tasks(db: Session) -> list[schemas.TaskListItemResponse]:
     changed = False
 
     for task in tasks:
-        client, engagement, workstream, decision_context, domain_lenses, _, _ = _build_ontology_spine_for_task(task)
+        client, engagement, workstream, decision_context, domain_lenses, _, _ = _build_world_preferred_ontology_spine_for_task(task)
         matter_workspace, workspace_changed = ensure_matter_workspace_for_task(
             db,
             task,
@@ -4832,7 +4915,7 @@ def list_matter_workspaces(db: Session) -> list[schemas.MatterWorkspaceSummaryRe
     changed = False
 
     for task in tasks:
-        client, engagement, workstream, decision_context, domain_lenses, _, _ = _build_ontology_spine_for_task(task)
+        client, engagement, workstream, decision_context, domain_lenses, _, _ = _build_world_preferred_ontology_spine_for_task(task)
         _, workspace_changed = ensure_matter_workspace_for_task(
             db,
             task,
@@ -4954,7 +5037,7 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
         if not task.case_world_drafts:
             serialize_task(task)
             task = get_loaded_task(db, task.id)
-        _, _, _, decision_context, _, source_materials, artifacts = _build_ontology_spine_for_task(task)
+        _, _, _, decision_context, _, source_materials, artifacts = _build_world_preferred_ontology_spine_for_task(task)
         input_entry_mode = _infer_input_entry_mode(task, source_materials, artifacts)
         external_research_heavy_candidate = _is_external_research_heavy_candidate(
             task,
@@ -5423,7 +5506,7 @@ def get_artifact_evidence_workspace(
             serialize_task(task)
             task = get_loaded_task(db, task.id)
         task_title = task.title
-        task_spine = _build_ontology_spine_for_task(task)
+        task_spine = _build_world_preferred_ontology_spine_for_task(task)
         decision_context = task_spine[3]
         domain_lenses = task_spine[4]
         source_materials = task_spine[5]

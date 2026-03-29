@@ -437,7 +437,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
       caseWorldState.engagement_id &&
       caseWorldState.workstream_id &&
       caseWorldState.decision_context_id
-      ? "這筆 task 只是案件世界裡的一個 work slice；核心身份已掛在 matter/world spine。"
+      ? "這筆 task 只是案件世界裡的一個 work slice；核心 Client / Engagement / Workstream / DecisionContext 已掛在 matter/world spine。"
       : "案件世界已建立，但底層 identity 仍在 bridge sync。"
     : "目前尚未形成正式案件世界 authority。";
   const sharedContinuitySummary = task
@@ -450,7 +450,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
       : "目前這筆工作還沒有顯示可跨 slice 共用的 source / material / evidence chains。"
     : "目前這筆工作還沒有顯示可跨 slice 共用的 source / material / evidence chains。";
   const localOverlaySummary = sliceDecisionContext
-    ? `目前這筆 task 仍保留 ${sliceOverlayFieldCount} 項 local decision delta，供在途工作與相容層使用；正式主來源已優先回到案件世界。`
+    ? `目前這筆 task 仍保留 ${sliceOverlayFieldCount} 項 local decision delta，供在途工作與相容層使用；正式 core/context authority 已優先回到案件世界。`
     : "目前沒有額外的 slice-local decision overlay。";
   const sortedRecommendations = task?.recommendations
     ? [...task.recommendations].sort(

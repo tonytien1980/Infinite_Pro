@@ -7,10 +7,12 @@ from fastapi.testclient import TestClient
 import pytest
 from docx import Document
 
+from app.agents.host import HostOrchestrator
 from app.core.database import SessionLocal
 from app.domain import models
 from app.ingestion.remote import RemoteSourceContent
 from app.services.external_search import SearchResult
+from app.services.tasks import get_loaded_task
 
 
 def assert_consultant_output_shell(content: dict) -> None:
@@ -603,6 +605,147 @@ def test_core_context_keeps_world_authority_and_slice_overlay_rows(client: TestC
             "slice_overlay",
             "world_authority",
         }
+
+
+def test_follow_up_promotes_canonical_core_context_links_to_latest_slice(client: TestClient) -> None:
+    primary_payload = create_task_payload("Core context primary")
+    primary_payload.update(
+        {
+            "client_name": "Northwind Studio",
+            "client_type": "中小企業",
+            "client_stage": "制度化階段",
+            "engagement_name": "Northwind Growth Sprint",
+            "workstream_name": "提案與成交主張",
+            "decision_title": "Northwind primary decision",
+            "judgment_to_make": "先判斷現有成交主張是否需要重寫。",
+            "domain_lenses": ["營運", "銷售"],
+        }
+    )
+    follow_up_payload = create_task_payload("Core context follow-up")
+    follow_up_payload.update(
+        {
+            "client_name": "Northwind Studio",
+            "client_type": "中小企業",
+            "client_stage": "制度化階段",
+            "engagement_name": "Northwind Growth Sprint",
+            "workstream_name": "提案與成交主張",
+            "decision_title": "Northwind follow-up decision",
+            "judgment_to_make": "再判斷 follow-up 補件後是否要同步改寫價格敘事。",
+            "domain_lenses": ["營運", "銷售"],
+        }
+    )
+
+    first_task = client.post("/api/v1/tasks", json=primary_payload).json()
+    second_task = client.post("/api/v1/tasks", json=follow_up_payload).json()
+
+    with SessionLocal() as db:
+        second_task_row = get_loaded_task(db, second_task["id"])
+        canonical_client = next(
+            item for item in second_task_row.clients if item.identity_scope == "world_authority"
+        )
+        canonical_engagement = next(
+            item for item in second_task_row.engagements if item.identity_scope == "world_authority"
+        )
+        canonical_workstream = next(
+            item for item in second_task_row.workstreams if item.identity_scope == "world_authority"
+        )
+        canonical_decision_context = next(
+            item
+            for item in second_task_row.decision_contexts
+            if item.identity_scope == "world_authority"
+        )
+        overlay_engagement = next(
+            item for item in second_task_row.engagements if item.identity_scope == "slice_overlay"
+        )
+        overlay_workstream = next(
+            item for item in second_task_row.workstreams if item.identity_scope == "slice_overlay"
+        )
+        overlay_decision_context = next(
+            item
+            for item in second_task_row.decision_contexts
+            if item.identity_scope == "slice_overlay"
+        )
+
+        assert canonical_client.task_id == second_task["id"]
+        assert canonical_engagement.task_id == second_task["id"]
+        assert canonical_workstream.task_id == second_task["id"]
+        assert canonical_decision_context.task_id == second_task["id"]
+        assert overlay_engagement.client_id == canonical_client.id
+        assert overlay_workstream.engagement_id == canonical_engagement.id
+        assert overlay_decision_context.client_id == canonical_client.id
+        assert overlay_decision_context.engagement_id == canonical_engagement.id
+        assert overlay_decision_context.workstream_id == canonical_workstream.id
+
+    first_aggregate = client.get(f"/api/v1/tasks/{first_task['id']}").json()
+    second_aggregate = client.get(f"/api/v1/tasks/{second_task['id']}").json()
+    assert first_aggregate["client"]["identity_scope"] == "world_authority"
+    assert second_aggregate["client"]["identity_scope"] == "world_authority"
+    assert second_aggregate["decision_context"]["identity_scope"] == "world_authority"
+
+
+def test_task_list_and_host_payload_prefer_world_authority_core_context(client: TestClient) -> None:
+    payload = create_task_payload("World authority list and host payload")
+    payload.update(
+        {
+            "client_name": "Evergreen Consulting",
+            "client_type": "中小企業",
+            "client_stage": "制度化階段",
+            "engagement_name": "Evergreen 營運盤點",
+            "workstream_name": "營運效率優化",
+            "decision_title": "Evergreen decision context",
+            "judgment_to_make": "先判斷目前的營運效率瓶頸是否已足以支持流程重整。",
+            "domain_lenses": ["營運"],
+        }
+    )
+
+    task = client.post("/api/v1/tasks", json=payload).json()
+
+    with SessionLocal() as db:
+        task_row = get_loaded_task(db, task["id"])
+        overlay_client = next(
+            item for item in task_row.clients if item.identity_scope == "slice_overlay"
+        )
+        overlay_engagement = next(
+            item for item in task_row.engagements if item.identity_scope == "slice_overlay"
+        )
+        overlay_workstream = next(
+            item for item in task_row.workstreams if item.identity_scope == "slice_overlay"
+        )
+        overlay_decision_context = next(
+            item
+            for item in task_row.decision_contexts
+            if item.identity_scope == "slice_overlay"
+        )
+        overlay_client.name = "Temporary overlay client"
+        overlay_engagement.name = "Temporary overlay engagement"
+        overlay_workstream.name = "Temporary overlay workstream"
+        overlay_decision_context.summary = "只屬於 overlay 的暫時摘要。"
+        db.add(overlay_client)
+        db.add(overlay_engagement)
+        db.add(overlay_workstream)
+        db.add(overlay_decision_context)
+        db.commit()
+
+    task_list = client.get("/api/v1/tasks").json()
+    listed_task = next(item for item in task_list if item["id"] == task["id"])
+    assert listed_task["client_name"] == "Evergreen Consulting"
+    assert listed_task["engagement_name"] == "Evergreen 營運盤點"
+    assert listed_task["workstream_name"] == "營運效率優化"
+    assert listed_task["decision_context_title"] == "Evergreen decision context"
+
+    with SessionLocal() as db:
+        task_row = get_loaded_task(db, task["id"])
+        payload = HostOrchestrator(db).build_payload(task_row)
+        assert payload.client is not None
+        assert payload.engagement is not None
+        assert payload.workstream is not None
+        assert payload.decision_context is not None
+        assert payload.client.identity_scope == "world_authority"
+        assert payload.engagement.identity_scope == "world_authority"
+        assert payload.workstream.identity_scope == "world_authority"
+        assert payload.decision_context.identity_scope == "world_authority"
+        assert payload.client.name == "Evergreen Consulting"
+        assert payload.decision_context.summary != "只屬於 overlay 的暫時摘要。"
 
 
 def test_world_shared_materials_create_participation_links(client: TestClient) -> None:

@@ -241,9 +241,10 @@ Implementation should also preserve:
   - mark what is already world-native
   - mark what is still transitional task-centric persistence
   - do not claim fully world-native identity if legacy task ownership still exists
-  - identity deepen phase 7 should explicitly distinguish:
+  - identity deepen phase 8 should explicitly distinguish:
     - canonical world rows
     - task-slice local overlays / derivative rows
+    - world-authoritative context rows for `Client / Engagement / Workstream / DecisionContext`
     - shared continuity rows and more formal participation mappings for source / document / material / evidence chains
     - compatibility-only `task_id` references versus real ownership authority
     - participation-aware batch / upload / source response contracts versus aggregate-only semantics
