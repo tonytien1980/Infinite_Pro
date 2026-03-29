@@ -403,6 +403,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
         files,
         urls: normalizedUrls,
         pastedText: pastedContent,
+        context: { lane: "intake" },
       }),
     [files, normalizedUrls, pastedContent],
   );
@@ -412,7 +413,9 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
   const inputModeGuidance = INPUT_MODE_GUIDANCE[inputMode];
   const needsProblemStatement = !description.trim();
   const materialLimitExceeded = materialUnitCount > MAX_INTAKE_MATERIAL_UNITS;
-  const unsupportedItems = previewItems.filter((item) => item.status === "unsupported");
+  const blockingItems = previewItems.filter(
+    (item) => item.status === "unsupported" || item.status === "issue",
+  );
   const consultantBrief = useMemo(
     () =>
       buildConsultantBrief({
@@ -484,9 +487,9 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
       return;
     }
 
-    if (unsupportedItems.length > 0) {
+    if (blockingItems.length > 0) {
       setSubmitting(false);
-      setError("目前有尚未正式支援的材料；請先移除，再建立案件。");
+      setError("目前有無法成功進主鏈的材料；請先移除或修正，再建立案件。");
       return;
     }
 
@@ -694,7 +697,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
               }}
               emptyText="你可以先只輸入一句問題；如果要帶材料，這裡會逐項列出檔案、URL 與補充文字。"
             />
-            <small>每一份材料都會逐項顯示目前會被怎麼處理；若有尚未正式支援的格式，請先移除。</small>
+            <small>每一份材料都會逐項顯示限制、影響與補救方式；若有無法成功進主鏈的材料，請先移除或修正。</small>
           </div>
 
           <div className="summary-grid">
@@ -725,9 +728,9 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
               單次最多只能帶入 {MAX_INTAKE_MATERIAL_UNITS} 份材料；請先精簡，或建立後再分批補件。
             </p>
           ) : null}
-          {!materialLimitExceeded && unsupportedItems.length > 0 ? (
+          {!materialLimitExceeded && blockingItems.length > 0 ? (
             <p className="error-text">
-              目前有 {unsupportedItems.length} 份材料超出正式支援範圍；請先移除，再建立案件。
+              目前有 {blockingItems.length} 份材料無法成功進主鏈；請先移除或修正，再建立案件。
             </p>
           ) : null}
 
@@ -760,7 +763,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
           <button
             className="button-primary"
             type="submit"
-            disabled={submitting || materialLimitExceeded || unsupportedItems.length > 0}
+            disabled={submitting || materialLimitExceeded || blockingItems.length > 0}
           >
             {submitting ? "建立案件中..." : inputModeGuidance.submitLabel}
           </button>

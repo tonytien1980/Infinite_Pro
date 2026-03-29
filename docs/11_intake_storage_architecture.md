@@ -52,7 +52,12 @@ Infinite Pro 不再把 `/new` 的三種 intake patterns 理解成三個不同 on
 - 「多份材料」可混合檔案、URL、補充文字，並作為同一個案件逐步長成 multi-source case
 - 統一材料區應同時承接 file / URL / pasted text，單次最多 10 份，超過時應要求分批補件
 - 統一材料區應提供逐項 preview / remove / warning，讓每份材料都可被單獨檢查與移除
-- item-level handling 應至少標示 accepted、limited support、pending parse、unsupported / rejected
+- item-level handling 應至少標示 accepted、limited support、pending parse、unsupported / rejected、failed ingest
+- remediation guidance 應逐項回答：
+  - 為什麼是這個狀態
+  - 這會影響什麼
+  - 建議下一步怎麼補救
+  - 若需要更穩定分析，應補哪種替代材料
 
 ### 2.3 Case World Compiler 是正式第一站
 任何 intake 都必須先進入：

@@ -504,6 +504,7 @@ If a change touches intake semantics, verify:
 - single-material and multi-source starts remain inferred intake patterns rather than different ontology worlds
 - unified intake keeps one visible entry surface while item-level preview / remove / warning stays usable
 - limited-support and unsupported materials are shown honestly at item level rather than being implied by generic copy
+- limited-support / pending-parse / unsupported / failed ingest states now also explain impact and recommended remediation, rather than stopping at raw status pills
 
 If a change touches continuity / writeback behavior, test at least:
 - `one_off` minimal traceability

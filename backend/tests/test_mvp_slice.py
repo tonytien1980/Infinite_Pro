@@ -1408,6 +1408,7 @@ def test_file_upload_creates_usable_docx_evidence(client: TestClient) -> None:
 
 def test_file_ingestion_failure_creates_explicit_uncertainty_evidence(client: TestClient) -> None:
     task = client.post("/api/v1/tasks", json=create_task_payload("Broken upload")).json()
+    matter_id = task["matter_workspace"]["id"]
 
     response = client.post(
         f"/api/v1/tasks/{task['id']}/uploads",
@@ -1421,9 +1422,27 @@ def test_file_ingestion_failure_creates_explicit_uncertainty_evidence(client: Te
     assert uploaded["evidence"]["evidence_type"] == "uploaded_file_ingestion_issue"
     assert "未能完整擷取" in uploaded["evidence"]["excerpt_or_summary"]
 
+    matter_workspace = client.get(f"/api/v1/matters/{matter_id}").json()
+    evidence_workspace = client.get(f"/api/v1/matters/{matter_id}/artifact-evidence").json()
+    recent_material = next(
+        item
+        for item in matter_workspace["related_source_materials"]
+        if item["title"] == "empty.txt"
+    )
+    source_card = next(
+        item
+        for item in evidence_workspace["source_material_cards"]
+        if item["title"] == "empty.txt"
+    )
+    assert recent_material["ingest_status"] == "failed"
+    assert recent_material["ingestion_error"] == "上傳檔案為空白內容。"
+    assert source_card["ingest_status"] == "failed"
+    assert source_card["ingestion_error"] == "上傳檔案為空白內容。"
+
 
 def test_limited_support_image_upload_returns_reference_level_status(client: TestClient) -> None:
     task = client.post("/api/v1/tasks", json=create_task_payload("Limited image upload")).json()
+    matter_id = task["matter_workspace"]["id"]
 
     response = client.post(
         f"/api/v1/tasks/{task['id']}/uploads",
@@ -1439,9 +1458,29 @@ def test_limited_support_image_upload_returns_reference_level_status(client: Tes
     assert uploaded["evidence"]["evidence_type"] == "uploaded_file_unparsed"
     assert "只建立 reference / metadata" in uploaded["evidence"]["excerpt_or_summary"]
 
+    matter_workspace = client.get(f"/api/v1/matters/{matter_id}").json()
+    evidence_workspace = client.get(f"/api/v1/matters/{matter_id}/artifact-evidence").json()
+    recent_material = next(
+        item
+        for item in matter_workspace["related_source_materials"]
+        if item["title"] == "photo.png"
+    )
+    source_card = next(
+        item
+        for item in evidence_workspace["source_material_cards"]
+        if item["title"] == "photo.png"
+    )
+    assert recent_material["ingest_status"] == "metadata_only"
+    assert recent_material["ingest_strategy"] == "reference_image"
+    assert recent_material["ingestion_error"]
+    assert source_card["support_level"] == "limited"
+    assert source_card["ingest_strategy"] == "reference_image"
+    assert source_card["ingestion_error"]
+
 
 def test_unsupported_file_upload_returns_explicit_unsupported_status(client: TestClient) -> None:
     task = client.post("/api/v1/tasks", json=create_task_payload("Unsupported upload")).json()
+    matter_id = task["matter_workspace"]["id"]
 
     response = client.post(
         f"/api/v1/tasks/{task['id']}/uploads",
@@ -1462,8 +1501,26 @@ def test_unsupported_file_upload_returns_explicit_unsupported_status(client: Tes
     assert uploaded["source_document"]["ingest_status"] == "unsupported"
     assert uploaded["source_document"]["support_level"] == "unsupported"
     assert uploaded["source_document"]["metadata_only"] is True
+    assert uploaded["source_document"]["ingestion_error"]
     assert uploaded["evidence"]["evidence_type"] == "uploaded_file_ingestion_issue"
     assert "尚未正式支援" in uploaded["evidence"]["excerpt_or_summary"]
+
+    matter_workspace = client.get(f"/api/v1/matters/{matter_id}").json()
+    evidence_workspace = client.get(f"/api/v1/matters/{matter_id}/artifact-evidence").json()
+    recent_material = next(
+        item
+        for item in matter_workspace["related_source_materials"]
+        if item["title"] == "deck.pptx"
+    )
+    source_card = next(
+        item
+        for item in evidence_workspace["source_material_cards"]
+        if item["title"] == "deck.pptx"
+    )
+    assert recent_material["ingest_status"] == "unsupported"
+    assert recent_material["ingestion_error"]
+    assert source_card["ingest_status"] == "unsupported"
+    assert source_card["ingestion_error"]
 
 
 def test_task_creation_auto_infers_consulting_scaffold_when_advanced_fields_missing(

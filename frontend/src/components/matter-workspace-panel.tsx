@@ -465,6 +465,27 @@ export function MatterWorkspacePanel({
   const continuationSurface = matter?.continuation_surface ?? null;
   const followUpLane = continuationSurface?.follow_up_lane ?? null;
   const progressionLane = continuationSurface?.progression_lane ?? null;
+  const continuityMode = matter?.summary.engagement_continuity_mode ?? null;
+  const remediationContext =
+    continuityMode === "follow_up"
+      ? {
+          lane: "follow_up" as const,
+          updateGoal: followUpLane?.evidence_update_goal,
+          nextAction: followUpLane?.next_follow_up_actions[0],
+        }
+      : continuityMode === "continuous"
+        ? {
+            lane: "continuous" as const,
+            updateGoal: progressionLane?.evidence_update_goal,
+            nextAction: progressionLane?.next_progression_actions[0],
+          }
+        : continuityMode === "one_off"
+          ? {
+              lane: "one_off" as const,
+            }
+          : {
+              lane: "workspace" as const,
+            };
   const recentTask = matter?.related_tasks[0] ?? null;
   const focusTask =
     matter?.related_tasks.find((task) => task.id === createdTaskId) ?? recentTask ?? null;
@@ -1801,8 +1822,10 @@ export function MatterWorkspacePanel({
                         const handling = describeRuntimeMaterialHandling({
                           supportLevel: item.support_level,
                           ingestStatus: item.ingest_status,
-                          ingestStrategy: null,
+                          ingestStrategy: item.ingest_strategy,
                           metadataOnly: item.metadata_only,
+                          ingestionError: item.ingestion_error,
+                          context: remediationContext,
                         });
                         return (
                           <div className="detail-item" key={`${item.object_type}-${item.object_id}`}>
@@ -1835,6 +1858,20 @@ export function MatterWorkspacePanel({
                                 >
                                   {handling.statusDetail}
                                 </p>
+                                <p className="muted-text">
+                                  <strong>會影響什麼：</strong>
+                                  {handling.impactDetail}
+                                </p>
+                                <p className="muted-text">
+                                  <strong>建議下一步：</strong>
+                                  {handling.recommendedNextStep}
+                                </p>
+                                {handling.fallbackStrategy ? (
+                                  <p className="muted-text">
+                                    <strong>較佳替代方式：</strong>
+                                    {handling.fallbackStrategy}
+                                  </p>
+                                ) : null}
                                 <div className="meta-row">
                                   {item.availability_state ? (
                                     <span>{labelForStorageAvailability(item.availability_state)}</span>

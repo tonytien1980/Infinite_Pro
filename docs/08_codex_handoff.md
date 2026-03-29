@@ -275,9 +275,16 @@ Codex 應把它理解為已完成的正式交付物工作面，至少承接：
 - 同一個案件可持續補檔案、網址與補充文字，不可被資料模型限制成單檔心智
 - unified material area 應支援 item-level preview / remove / warning，而不是只顯示批次總數
 - item-level 規則應可讓使用者看出每份材料是已接受、有限支援、待解析，還是尚未正式支援
+- remediation guidance 也應逐項回答：
+  - 為什麼是這個狀態
+  - 這會影響什麼
+  - 下一步最建議怎麼補救
+  - 是否有更穩定的替代材料策略
 - 正式支援格式應理解為：`.md / .txt / .docx / .xlsx / .csv / text-first PDF / URL / 純文字補充`
 - 有限支援格式應理解為：`.jpg / .jpeg / .png / .webp / 掃描型 PDF`
 - 有限支援的意思是可建立 metadata / reference-level record，但不預設做高成本 OCR，也不宣稱與 text-first 文件同等成熟
+- pending-parse 的意思是尚待實際解析結果，不可先假設已成功抽取正文
+- unsupported / failed ingest 都必須提供保守但可執行的補救導引，而不是只顯示 generic error
 - storage architecture 必須正式區分：
   - DB metadata
   - raw intake storage

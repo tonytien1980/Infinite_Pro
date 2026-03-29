@@ -198,7 +198,12 @@ On the visible product surface, `/new` should now expose one unified intake area
 - system-inferred intake patterns instead of a manual mode chooser
 - a single-batch limit of 10 material units, with later supplements still allowed on the same matter
 - item-level preview, remove, and warning behavior for every pending material
-- clear item-level handling states such as accepted, limited support, pending parse, and unsupported
+- clear item-level handling states such as accepted, limited support, pending parse, unsupported, and failed ingest
+- each item should answer four questions quickly:
+  - why it is in this state
+  - what this state affects
+  - what the recommended next step is
+  - what the safer fallback material strategy is when needed
 
 Every intake path must first enter the same `case world compilation` stage. Host should then decide:
 - how sparse or dense the current materials are

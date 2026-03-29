@@ -410,6 +410,7 @@ class SourceMaterialRead(ORMModel):
     availability_state: str
     metadata_only: bool
     summary: str
+    ingestion_error: str | None = None
     participation: ObjectParticipationRead | None = None
     created_at: datetime
     updated_at: datetime
@@ -1010,6 +1011,8 @@ class MatterMaterialSummaryRead(BaseModel):
     file_size: int = 0
     ingest_status: str | None = None
     support_level: str | None = None
+    ingest_strategy: str | None = None
+    ingestion_error: str | None = None
     retention_policy: str | None = None
     purge_at: datetime | None = None
     availability_state: str | None = None
@@ -1065,6 +1068,7 @@ class ArtifactEvidenceMaterialRead(BaseModel):
     ingest_status: str | None = None
     support_level: str | None = None
     ingest_strategy: str | None = None
+    ingestion_error: str | None = None
     source_ref: str | None = None
     file_extension: str | None = None
     content_type: str | None = None

@@ -802,6 +802,7 @@ def _build_legacy_source_material_read(source_document: models.SourceDocument) -
         availability_state=source_document.availability_state,
         metadata_only=source_document.metadata_only,
         summary=_normalize_whitespace(build_source_material_summary(source_document)),
+        ingestion_error=source_document.ingestion_error,
         participation=schemas.ObjectParticipationRead(
             canonical_object_id=None,
             canonical_owner_scope="slice_local",
@@ -1165,7 +1166,16 @@ def _build_source_materials(task: models.Task) -> list[schemas.SourceMaterialRea
     )
     materials = [
         schemas.SourceMaterialRead(
-            **schemas.SourceMaterialRead.model_validate(item).model_dump(exclude={"participation"}),
+            **(
+                schemas.SourceMaterialRead.model_validate(item).model_dump(
+                    exclude={"participation", "ingestion_error"}
+                )
+                | {
+                    "ingestion_error": (
+                        item.source_document.ingestion_error if item.source_document is not None else None
+                    )
+                }
+            ),
             participation=_build_object_participation_read(
                 object_type=OBJECT_TYPE_SOURCE_MATERIAL,
                 object_id=item.id,
@@ -1191,7 +1201,18 @@ def _build_source_materials(task: models.Task) -> list[schemas.SourceMaterialRea
                 continue
             materials.append(
                 schemas.SourceMaterialRead(
-                    **schemas.SourceMaterialRead.model_validate(item).model_dump(exclude={"participation"}),
+                    **(
+                        schemas.SourceMaterialRead.model_validate(item).model_dump(
+                            exclude={"participation", "ingestion_error"}
+                        )
+                        | {
+                            "ingestion_error": (
+                                item.source_document.ingestion_error
+                                if item.source_document is not None
+                                else None
+                            )
+                        }
+                    ),
                     participation=_build_object_participation_read(
                         object_type=OBJECT_TYPE_SOURCE_MATERIAL,
                         object_id=item.id,
@@ -6595,6 +6616,8 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
                     file_size=source_material.file_size,
                     ingest_status=source_material.ingest_status,
                     support_level=source_material.support_level,
+                    ingest_strategy=source_material.ingest_strategy,
+                    ingestion_error=source_material.ingestion_error,
                     retention_policy=source_material.retention_policy,
                     purge_at=source_material.purge_at,
                     availability_state=source_material.availability_state,
@@ -7191,6 +7214,7 @@ def get_artifact_evidence_workspace(
                     ingest_status=source_material.ingest_status,
                     support_level=source_material.support_level,
                     ingest_strategy=source_material.ingest_strategy,
+                    ingestion_error=source_material.ingestion_error,
                     source_ref=source_material.source_ref,
                     file_extension=source_material.file_extension,
                     content_type=source_material.content_type,

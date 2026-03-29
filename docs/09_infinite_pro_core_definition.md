@@ -67,7 +67,12 @@ Infinite Pro 的核心原則是：
    - `/new` 對使用者可見的應只有一個 unified intake surface
    - `只有一句話 / 一句話 + 1 份材料 / 一句話 + 多份材料` 是系統內部判讀的 intake patterns
    - unified material area 應可逐項預覽、移除並顯示 warning / support 狀態，而不是只顯示批次總數
-   - item-level status 應至少可分辨 accepted、limited support、pending parse、unsupported / rejected
+   - item-level status 應至少可分辨 accepted、limited support、pending parse、unsupported / rejected、failed ingest
+   - item-level remediation guidance 應回答：
+     - 為什麼是這個狀態
+     - 這會影響什麼
+     - 現在最建議怎麼補救
+     - 是否有更穩定的 fallback material strategy
    - 任何 intake 都必須先進入 `Case World Compiler`
    - `Case World Compiler` 之後應先形成 / 同步 `CaseWorldState`
    - `Task` 應被理解成 `CaseWorldState` 內的 work slice

@@ -338,6 +338,10 @@ publish / artifact records 用來描述正式發布與正式輸出物。
 - 補件仍應優先掛回同一個案件世界與 evidence chain
 - matter / evidence 工作面應能顯示 latest update、previous checkpoint、what changed、next follow-up action
 - follow-up 補件區不應只是 generic upload；應顯示這次補件主要想補哪個 evidence gap / update goal
+- 若補進來的材料屬 limited-support、pending-parse、unsupported 或 failed ingest，補件區與材料卡也應明確說明：
+  - 這個狀態代表什麼
+  - 會影響哪個 checkpoint 缺口
+  - 下一步最建議怎麼補救
 
 ### 8.4 continuous
 - 在 `follow_up` 基礎上
@@ -347,6 +351,10 @@ publish / artifact records 用來描述正式發布與正式輸出物。
 - UI / workflow 應可見 latest progression state、previous progression snapshot、what changed、next progression action
 - UI / workflow 應可見 recommendation adoption、action status 與 outcome signals，但仍維持顧問工作面，而不是 records 牆
 - continuous 補件應能說明這次主要是為了驗證哪個 action / outcome / recommendation
+- 若補進來的材料屬 limited-support、pending-parse、unsupported 或 failed ingest，補件區與材料卡也應明確說明：
+  - 這個狀態代表什麼
+  - 會影響哪個 action / outcome / recommendation 驗證
+  - 下一步最建議怎麼補救
 
 正式規則：
 - 所有案件都至少要保留最小 history / traceability

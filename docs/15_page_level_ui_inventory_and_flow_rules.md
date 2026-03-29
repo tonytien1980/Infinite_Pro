@@ -105,7 +105,11 @@
 - 單次最多 10 份材料與可分批補件的規則
 - 統一材料區（file / URL / pasted text）
 - 材料 item-level preview / remove / warning
-- item-level handling status（accepted / limited support / pending parse / unsupported）
+- item-level handling status（accepted / limited support / pending parse / unsupported / failed ingest）
+- item-level remediation guidance：
+  - 為什麼是這個狀態
+  - 這會影響什麼
+  - 下一步最建議怎麼補救
 - continuity strategy / writeback depth（若已展開進階設定）
 - continuity 選擇對後續 workflow 的影響：
   `one_off` 偏正式結案、`follow_up` 偏 checkpoint、`continuous` 偏 progression / outcome
@@ -237,6 +241,7 @@
 - 若為 `follow_up`，需顯示這次補件主要想更新什麼，以及上一個 / 最新 checkpoint 的輕量脈絡
 - 若為 `follow_up`，補件區本身也需顯示 latest update、previous checkpoint、what changed、next follow-up action
 - 若為 `continuous`，需顯示這次補件主要想驗證哪個 action / outcome / recommendation，以及最新 progression 的最小脈絡
+- 若補件或既有材料屬 limited-support、pending-parse、unsupported 或 failed ingest，卡片與補件區也需顯示目前可用範圍、限制與補救方式
 - 段落導覽
 
 **延後揭露**

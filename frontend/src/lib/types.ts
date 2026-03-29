@@ -334,6 +334,8 @@ export interface MatterMaterialSummary {
   file_size: number;
   ingest_status: string | null;
   support_level: string | null;
+  ingest_strategy: string | null;
+  ingestion_error: string | null;
   retention_policy: string | null;
   purge_at: string | null;
   availability_state: string | null;
@@ -520,6 +522,7 @@ export interface SourceMaterial {
   availability_state: string;
   metadata_only: boolean;
   summary: string;
+  ingestion_error: string | null;
   participation: ObjectParticipation | null;
   created_at: string;
   updated_at: string;
@@ -1042,6 +1045,7 @@ export interface ArtifactEvidenceMaterial {
   ingest_status: string | null;
   support_level: string | null;
   ingest_strategy: string | null;
+  ingestion_error: string | null;
   source_ref: string | null;
   file_extension: string | null;
   content_type: string | null;

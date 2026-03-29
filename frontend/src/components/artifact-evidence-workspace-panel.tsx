@@ -84,6 +84,40 @@ function DisclosurePanel({
   );
 }
 
+function buildEvidenceIssueGuidance({
+  evidenceType,
+  workflowLayer,
+  updateGoal,
+}: {
+  evidenceType: string;
+  workflowLayer: string | null | undefined;
+  updateGoal?: string | null;
+}) {
+  const isIngestIssue = evidenceType === "source_ingestion_issue" || evidenceType === "uploaded_file_ingestion_issue";
+  const isUnparsed = evidenceType === "source_unparsed" || evidenceType === "uploaded_file_unparsed";
+
+  if (!isIngestIssue && !isUnparsed) {
+    return null;
+  }
+
+  const laneSpecificTail =
+    workflowLayer === "checkpoint"
+      ? updateGoal
+        ? ` 這輪 follow-up 主要想補的是：${updateGoal}`
+        : " 這輪 follow-up 不應把它誤當成已可直接引用的正文。"
+      : workflowLayer === "progression"
+        ? updateGoal
+          ? ` 這輪 continuous 主要想驗證的是：${updateGoal}`
+          : " 這輪 continuous 不應把它誤當成已可直接引用的正文。"
+        : " 先把它當成限制提示，而不是正式內容證據。";
+
+  if (isIngestIssue) {
+    return `這則 evidence 代表來源匯入異常，不等於可直接採用的內容證據。若你還需要它，建議補文字版、可讀 URL 或人工摘要，再回主線續推。${laneSpecificTail}`;
+  }
+
+  return `這則 evidence 代表來源仍待解析，現在不能先假設已成功抽出正文。若後續仍只停在 pending / metadata-only，建議補文字版、可讀 URL 或摘要。${laneSpecificTail}`;
+}
+
 export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string }) {
   const [workspace, setWorkspace] = useState<ArtifactEvidenceWorkspace | null>(null);
   const [loading, setLoading] = useState(true);
@@ -239,13 +273,34 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
     urlCount: normalizedUrls.length,
     hasPastedText: Boolean(pastedText.trim()),
   });
+  const remediationContext =
+    workspace?.matter_summary.engagement_continuity_mode === "follow_up"
+      ? {
+          lane: "follow_up" as const,
+          updateGoal: followUpLane?.evidence_update_goal,
+          nextAction: followUpLane?.next_follow_up_actions[0],
+        }
+      : workspace?.matter_summary.engagement_continuity_mode === "continuous"
+        ? {
+            lane: "continuous" as const,
+            updateGoal: progressionLane?.evidence_update_goal,
+            nextAction: progressionLane?.next_progression_actions[0],
+          }
+        : workspace?.matter_summary.engagement_continuity_mode === "one_off"
+          ? {
+              lane: "one_off" as const,
+            }
+          : {
+              lane: "workspace" as const,
+            };
   const pendingPreviewItems = buildIntakePreviewItems({
     files,
     urls: normalizedUrls,
     pastedText,
+    context: remediationContext,
   });
-  const unsupportedPendingItems = pendingPreviewItems.filter(
-    (item) => item.status === "unsupported",
+  const blockingPendingItems = pendingPreviewItems.filter(
+    (item) => item.status === "unsupported" || item.status === "issue",
   );
 
   async function handleSupplementSubmit(event: FormEvent<HTMLFormElement>) {
@@ -268,8 +323,8 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
       return;
     }
 
-    if (unsupportedPendingItems.length > 0) {
-      setSupplementError("目前有尚未正式支援的材料；請先移除，再補件。");
+    if (blockingPendingItems.length > 0) {
+      setSupplementError("目前有無法成功進主鏈的材料；請先移除或修正，再補件。");
       setSubmitting(false);
       return;
     }
@@ -694,7 +749,7 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                   emptyText="先補一句明確材料就夠了；這裡會逐項列出待補檔案、URL 與補充文字。"
                 />
                 <small>
-                  補件材料會逐項顯示目前的支援層級與處理方式；若有尚未正式支援的格式，請先移除。
+                  補件材料會逐項顯示限制、影響與補救方式；若有無法成功進主鏈的材料，請先移除或修正。
                 </small>
               </div>
 
@@ -705,7 +760,7 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                   disabled={
                     submitting ||
                     pendingMaterialUnitCount > MAX_INTAKE_MATERIAL_UNITS ||
-                    unsupportedPendingItems.length > 0
+                    blockingPendingItems.length > 0
                   }
                 >
                   {submitting ? "補件中..." : "掛接到目前案件"}
@@ -720,9 +775,9 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                 </p>
               ) : null}
               {pendingMaterialUnitCount <= MAX_INTAKE_MATERIAL_UNITS &&
-              unsupportedPendingItems.length > 0 ? (
+              blockingPendingItems.length > 0 ? (
                 <p className="error-text">
-                  目前有 {unsupportedPendingItems.length} 份材料超出正式支援範圍；請先移除，再補件。
+                  目前有 {blockingPendingItems.length} 份材料無法成功進主鏈；請先移除或修正，再補件。
                 </p>
               ) : null}
 
@@ -775,6 +830,8 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                         ingestStatus: item.ingest_status,
                         ingestStrategy: item.ingest_strategy,
                         metadataOnly: item.metadata_only,
+                        ingestionError: item.ingestion_error,
+                        context: remediationContext,
                       });
                       return (
                         <div className="detail-item" key={item.object_id}>
@@ -805,6 +862,20 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                           >
                             {handling.statusDetail}
                           </p>
+                          <p className="muted-text">
+                            <strong>會影響什麼：</strong>
+                            {handling.impactDetail}
+                          </p>
+                          <p className="muted-text">
+                            <strong>建議下一步：</strong>
+                            {handling.recommendedNextStep}
+                          </p>
+                          {handling.fallbackStrategy ? (
+                            <p className="muted-text">
+                              <strong>較佳替代方式：</strong>
+                              {handling.fallbackStrategy}
+                            </p>
+                          ) : null}
                           <div className="meta-row">
                             <span>{item.linked_evidence_count} 則已連結證據</span>
                             <span>{item.linked_output_count} 項已連結輸出</span>
@@ -903,6 +974,24 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                         </p>
                         <p className="content-block">{item.evidence.excerpt_or_summary}</p>
                         <p className="muted-text">{item.sufficiency_note}</p>
+                        {buildEvidenceIssueGuidance({
+                          evidenceType: item.evidence.evidence_type,
+                          workflowLayer: continuationSurface?.workflow_layer,
+                          updateGoal:
+                            progressionLane?.evidence_update_goal ||
+                            followUpLane?.evidence_update_goal,
+                        }) ? (
+                          <p className="muted-text">
+                            <strong>補救導引：</strong>
+                            {buildEvidenceIssueGuidance({
+                              evidenceType: item.evidence.evidence_type,
+                              workflowLayer: continuationSurface?.workflow_layer,
+                              updateGoal:
+                                progressionLane?.evidence_update_goal ||
+                                followUpLane?.evidence_update_goal,
+                            })}
+                          </p>
+                        ) : null}
 
                         {item.linked_recommendations.length > 0 ? (
                           <div style={{ marginTop: "12px" }}>

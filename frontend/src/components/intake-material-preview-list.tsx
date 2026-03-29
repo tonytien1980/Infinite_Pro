@@ -75,7 +75,28 @@ export function IntakeMaterialPreviewList({
             <p className="muted-text">{normalizeMetadata(item).join("｜")}</p>
           ) : null}
           {item.preview ? <p className="content-block">{item.preview}</p> : null}
-          <p className={itemNoteClass(item.status)}>{item.statusDetail}</p>
+          <div className="detail-list" style={{ marginTop: "12px" }}>
+            <div className="detail-item" style={{ padding: "12px 14px" }}>
+              <p className={itemNoteClass(item.status)} style={{ marginBottom: "8px" }}>
+                <strong>這代表什麼：</strong>
+                {item.statusDetail}
+              </p>
+              <p className="muted-text" style={{ marginBottom: "8px" }}>
+                <strong>會影響什麼：</strong>
+                {item.impactDetail}
+              </p>
+              <p className="muted-text" style={{ marginBottom: 0 }}>
+                <strong>建議下一步：</strong>
+                {item.recommendedNextStep}
+              </p>
+              {item.fallbackStrategy ? (
+                <p className="muted-text" style={{ marginTop: "8px", marginBottom: 0 }}>
+                  <strong>較佳替代方式：</strong>
+                  {item.fallbackStrategy}
+                </p>
+              ) : null}
+            </div>
+          </div>
         </div>
       ))}
     </div>
