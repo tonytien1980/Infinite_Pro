@@ -6,6 +6,7 @@ import json
 from fastapi.testclient import TestClient
 import pytest
 from docx import Document
+from sqlalchemy import select
 
 from app.agents.host import HostOrchestrator
 from app.core.database import SessionLocal
@@ -359,6 +360,32 @@ def test_slice_decision_context_only_surfaces_meaningful_overlay(client: TestCli
     assert refreshed_task["slice_decision_context"]["goals"] == ["先只在這個 slice 內檢查一輪。"]
 
 
+def test_slice_decision_context_ignores_weak_whitespace_only_overlay(client: TestClient) -> None:
+    payload = create_task_payload("Whitespace-only overlay")
+    response = client.post("/api/v1/tasks", json=payload)
+    assert response.status_code == 201
+    created = response.json()
+    task_id = created["id"]
+
+    with SessionLocal() as db:
+        task = db.get(models.Task, task_id)
+        assert task is not None
+        canonical = next(
+            item for item in task.decision_contexts if item.identity_scope == "world_authority"
+        )
+        overlay = next(
+            item for item in task.decision_contexts if item.identity_scope == "slice_overlay"
+        )
+        overlay.summary = f"  {canonical.summary}  "
+        overlay.goal_summary = "\n".join(f"  {item}  " for item in canonical.goal_summary.splitlines() if item.strip())
+        db.add(overlay)
+        db.commit()
+
+    refreshed_task = client.get(f"/api/v1/tasks/{task_id}").json()
+    assert refreshed_task["decision_context"]["identity_scope"] == "world_authority"
+    assert refreshed_task["slice_decision_context"] is None
+
+
 def test_task_list_returns_object_aware_workspace_summary(client: TestClient) -> None:
     payload = create_task_payload("Object-aware list")
     payload.update(
@@ -649,20 +676,31 @@ def test_follow_up_promotes_canonical_core_context_links_to_latest_slice(client:
 
     with SessionLocal() as db:
         second_task_row = get_loaded_task(db, second_task["id"])
-        canonical_client = next(
-            item for item in second_task_row.clients if item.identity_scope == "world_authority"
-        )
-        canonical_engagement = next(
-            item for item in second_task_row.engagements if item.identity_scope == "world_authority"
-        )
-        canonical_workstream = next(
-            item for item in second_task_row.workstreams if item.identity_scope == "world_authority"
-        )
-        canonical_decision_context = next(
-            item
-            for item in second_task_row.decision_contexts
-            if item.identity_scope == "world_authority"
-        )
+        matter_workspace_id = second_task_row.matter_workspace_links[0].matter_workspace_id
+        canonical_client = db.scalars(
+            select(models.Client).where(
+                models.Client.matter_workspace_id == matter_workspace_id,
+                models.Client.identity_scope == "world_authority",
+            )
+        ).one()
+        canonical_engagement = db.scalars(
+            select(models.Engagement).where(
+                models.Engagement.matter_workspace_id == matter_workspace_id,
+                models.Engagement.identity_scope == "world_authority",
+            )
+        ).one()
+        canonical_workstream = db.scalars(
+            select(models.Workstream).where(
+                models.Workstream.matter_workspace_id == matter_workspace_id,
+                models.Workstream.identity_scope == "world_authority",
+            )
+        ).one()
+        canonical_decision_context = db.scalars(
+            select(models.DecisionContext).where(
+                models.DecisionContext.matter_workspace_id == matter_workspace_id,
+                models.DecisionContext.identity_scope == "world_authority",
+            )
+        ).one()
         overlay_engagement = next(
             item for item in second_task_row.engagements if item.identity_scope == "slice_overlay"
         )
@@ -675,8 +713,8 @@ def test_follow_up_promotes_canonical_core_context_links_to_latest_slice(client:
             if item.identity_scope == "slice_overlay"
         )
 
-        assert canonical_client.task_id == second_task["id"]
-        assert canonical_engagement.task_id == second_task["id"]
+        assert canonical_client.task_id == first_task["id"]
+        assert canonical_engagement.task_id == first_task["id"]
         assert canonical_workstream.task_id == second_task["id"]
         assert canonical_decision_context.task_id == second_task["id"]
         assert overlay_engagement.client_id == canonical_client.id
@@ -747,6 +785,26 @@ def test_task_list_and_host_payload_prefer_world_authority_core_context(client: 
     assert listed_task["engagement_name"] == "Evergreen 營運盤點"
     assert listed_task["workstream_name"] == "營運效率優化"
     assert listed_task["decision_context_title"] == "Evergreen decision context"
+
+    aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
+    assert aggregate["client"]["name"] == "Evergreen Consulting"
+    assert aggregate["engagement"]["name"] == "Evergreen 營運盤點"
+    assert aggregate["workstream"]["name"] == "營運效率優化"
+    assert aggregate["decision_context"]["summary"] != "只屬於 overlay 的暫時摘要。"
+
+    matter_workspace = client.get(f"/api/v1/matters/{task['matter_workspace']['id']}").json()
+    assert matter_workspace["client"]["name"] == "Evergreen Consulting"
+    assert matter_workspace["engagement"]["name"] == "Evergreen 營運盤點"
+    assert matter_workspace["workstream"]["name"] == "營運效率優化"
+    assert matter_workspace["current_decision_context"]["summary"] != "只屬於 overlay 的暫時摘要。"
+
+    evidence_workspace = client.get(
+        f"/api/v1/matters/{task['matter_workspace']['id']}/artifact-evidence"
+    ).json()
+    assert evidence_workspace["client"]["name"] == "Evergreen Consulting"
+    assert evidence_workspace["engagement"]["name"] == "Evergreen 營運盤點"
+    assert evidence_workspace["workstream"]["name"] == "營運效率優化"
+    assert evidence_workspace["current_decision_context"]["summary"] != "只屬於 overlay 的暫時摘要。"
 
     with SessionLocal() as db:
         task_row = get_loaded_task(db, task["id"])
