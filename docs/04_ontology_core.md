@@ -228,11 +228,26 @@ Ontology 不只定義物件名稱，也要定義：
 - `CaseWorldState` 是案件世界的 identity authority center
 - `Client / Engagement / Workstream / DecisionContext` 應逐步脫離只能靠 `task_id` 才存在的狀態
 - `SourceMaterial / Artifact / Evidence` 應逐步可由案件世界直接掛載與回訪，而不只是某個 task 的附屬物
+- identity deepen phase 7 應再往前一步：
+  - canonical world rows 作為正式 authority
+  - slice-local rows 作為 local overlay / compatibility layer
+  - shared `SourceDocument / SourceMaterial / Artifact / Evidence` rows 在同一 matter 下應優先重用
+  - local participation / usage 不得再被誤認成 canonical ownership，且應更接近正式 mapping
+  - `task_id` 若仍存在，應更接近 compatibility / access path，而不是 canonical owner
+  - upload / source / batch responses 也應正式承接 participation-aware contract，而不是只在 aggregate/workspace 可見
+  - `slice_decision_context` 應更接近 delta / working overlay，而不是第二份 decision owner
 
 本輪仍允許 bridge architecture：
 - world-native authority 先提升到 matter / `CaseWorldState`
 - legacy `task_id` references 可暫時保留
 - 但 `task_id` 應逐步退居 slice / access path，而不是唯一 identity owner
+- `CaseWorldState.decision_context_payload` 應作為 world-level goals / constraints / assumptions 的優先 canonical source；slice-local task context 只作 fallback
+- `DecisionContext` 的正式輸出應先呈現 world canonical context，再附 local overlay（若仍需要）
+- `SourceDocument / SourceMaterial / Artifact / Evidence` 應逐步形成：
+  - world canonical ownership
+  - slice-level participation / usage
+  - compatibility fallback
+  三者分層，而不是只靠 `continuity_scope` 單欄位隱含語義
 
 ### EvidenceGap
 代表目前案件世界中仍缺少、但對判斷有高影響的資訊缺口。

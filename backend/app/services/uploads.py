@@ -17,6 +17,11 @@ from app.services.source_materials import (
     build_source_objects_for_document,
     build_processed_evidence_items,
     build_unparsed_evidence_item,
+    ensure_source_chain_participation_links,
+    load_existing_world_shared_bundle,
+    PARTICIPATION_TYPE_DIRECT_INGEST,
+    PARTICIPATION_TYPE_SHARED_REUSE,
+    SLICE_PARTICIPATION_CONTINUITY_SCOPE,
 )
 from app.services.storage_manager import (
     AVAILABILITY_AVAILABLE,
@@ -35,6 +40,7 @@ from app.services.storage_manager import (
     write_text,
 )
 from app.services.tasks import (
+    build_upload_result_item_from_aggregate,
     get_loaded_task,
     prepare_case_world_follow_up_for_task,
     serialize_task,
@@ -60,7 +66,7 @@ def save_uploads_for_task(
 
     task = get_loaded_task(db, task_id)
     matter_workspace_id = _linked_matter_workspace_id(task)
-    continuity_scope = "world_shared" if matter_workspace_id else "task_slice"
+    continuity_scope = "world_shared" if matter_workspace_id else SLICE_PARTICIPATION_CONTINUITY_SCOPE
     follow_up_summary = (
         f"補入 {len(files)} 份檔案："
         + "、".join((file.filename or "未命名檔案") for file in files[:3])
@@ -71,7 +77,7 @@ def save_uploads_for_task(
         follow_up_summary=follow_up_summary,
     )
     connector = ManualUploadConnector()
-    uploaded: list[schemas.UploadResultItem] = []
+    uploaded_refs: list[tuple[str, str, str | None, str | None]] = []
 
     for file in files:
         content = file.file.read()
@@ -122,6 +128,26 @@ def save_uploads_for_task(
             if content
             else None
         )
+        existing_bundle = load_existing_world_shared_bundle(
+            db,
+            matter_workspace_id=matter_workspace_id,
+            source_type=connector.source_type,
+            content_digest=stored.digest if stored is not None else None,
+        )
+        if existing_bundle is not None:
+            source_document, source_material, artifact, evidence = existing_bundle
+            ensure_source_chain_participation_links(
+                db,
+                task_id=task.id,
+                matter_workspace_id=matter_workspace_id,
+                source_document_id=source_document.id,
+                source_material_id=source_material.id,
+                artifact_id=artifact.id,
+                evidence_id=evidence.id,
+                participation_type=PARTICIPATION_TYPE_SHARED_REUSE,
+            )
+            uploaded_refs.append((source_document.id, evidence.id, source_material.id, artifact.id))
+            continue
         retention_policy = (
             RETENTION_POLICY_FAILED
             if ingest_status in {"failed", "unsupported"}
@@ -265,22 +291,35 @@ def save_uploads_for_task(
             )
             db.add(evidence)
         db.flush()
-
-        uploaded.append(
-            schemas.UploadResultItem(
-                source_document=schemas.SourceDocumentRead.model_validate(source_document),
-                evidence=schemas.EvidenceRead.model_validate(evidence),
-                source_material=schemas.SourceMaterialRead.model_validate(source_material),
-                artifact=schemas.ArtifactRead.model_validate(artifact),
-            )
+        ensure_source_chain_participation_links(
+            db,
+            task_id=task.id,
+            matter_workspace_id=matter_workspace_id,
+            source_document_id=source_document.id,
+            source_material_id=source_material.id,
+            artifact_id=artifact.id,
+            evidence_id=evidence.id,
+            participation_type=PARTICIPATION_TYPE_DIRECT_INGEST if matter_workspace_id else PARTICIPATION_TYPE_SHARED_REUSE,
         )
 
-    if not uploaded:
+        uploaded_refs.append((source_document.id, evidence.id, source_material.id, artifact.id))
+
+    if not uploaded_refs:
         raise HTTPException(status_code=400, detail="沒有任何檔案成功上傳。")
 
     db.commit()
     refreshed_task = get_loaded_task(db, task.id)
     aggregate = serialize_task(refreshed_task)
+    uploaded = [
+        build_upload_result_item_from_aggregate(
+            aggregate,
+            source_document_id=source_document_id,
+            evidence_id=evidence_id,
+            source_material_id=source_material_id,
+            artifact_id=artifact_id,
+        )
+        for source_document_id, evidence_id, source_material_id, artifact_id in uploaded_refs
+    ]
     return schemas.UploadBatchResponse(
         task_id=task.id,
         matter_workspace_id=aggregate.matter_workspace.id if aggregate.matter_workspace else None,

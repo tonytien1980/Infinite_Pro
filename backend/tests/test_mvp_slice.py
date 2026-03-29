@@ -7,6 +7,8 @@ from fastapi.testclient import TestClient
 import pytest
 from docx import Document
 
+from app.core.database import SessionLocal
+from app.domain import models
 from app.ingestion.remote import RemoteSourceContent
 from app.services.external_search import SearchResult
 
@@ -255,6 +257,12 @@ def test_case_world_state_points_to_world_authority_spine(client: TestClient) ->
 
     assert response.status_code == 201
     body = response.json()
+    assert body["client"]["identity_scope"] == "world_authority"
+    assert body["engagement"]["identity_scope"] == "world_authority"
+    assert body["workstream"]["identity_scope"] == "world_authority"
+    assert body["slice_decision_context"] is None
+    assert body["decision_context"]["identity_scope"] == "world_authority"
+    assert body["world_decision_context"]["identity_scope"] == "world_authority"
     assert body["case_world_state"]["client_id"]
     assert body["case_world_state"]["engagement_id"]
     assert body["case_world_state"]["workstream_id"]
@@ -271,6 +279,73 @@ def test_case_world_state_points_to_world_authority_spine(client: TestClient) ->
     assert workspace["engagement"]["id"] == body["case_world_state"]["engagement_id"]
     assert workspace["workstream"]["id"] == body["case_world_state"]["workstream_id"]
     assert workspace["current_decision_context"]["id"] == body["case_world_state"]["decision_context_id"]
+
+
+def test_world_decision_context_prefers_canonical_world_payload_over_slice_fallback(
+    client: TestClient,
+) -> None:
+    payload = create_task_payload("World payload decision context")
+    payload["assumptions"] = "原始世界假設仍成立"
+
+    response = client.post("/api/v1/tasks", json=payload)
+
+    assert response.status_code == 201
+    body = response.json()
+    task_id = body["id"]
+    matter_id = body["matter_workspace"]["id"]
+
+    with SessionLocal() as db:
+        task = db.get(models.Task, task_id)
+        assert task is not None
+        for goal in list(task.goals):
+            db.delete(goal)
+        for constraint in list(task.constraints):
+            db.delete(constraint)
+        if task.contexts:
+            task.contexts[-1].assumptions = ""
+            db.add(task.contexts[-1])
+        db.commit()
+
+    workspace = client.get(f"/api/v1/matters/{matter_id}").json()
+    assert workspace["current_decision_context"]["identity_scope"] == "world_authority"
+    assert workspace["current_decision_context"]["goals"] == [
+        "Highlight the strongest findings and next actions."
+    ]
+    assert "Keep the output internal-only for now." in workspace["current_decision_context"]["constraints"]
+    assert "原始世界假設仍成立" in "\n".join(workspace["current_decision_context"]["assumptions"])
+
+    refreshed_task = client.get(f"/api/v1/tasks/{task_id}").json()
+    assert refreshed_task["decision_context"]["identity_scope"] == "world_authority"
+    assert refreshed_task["slice_decision_context"] is None
+    assert refreshed_task["decision_context"]["goals"] == [
+        "Highlight the strongest findings and next actions."
+    ]
+
+
+def test_slice_decision_context_only_surfaces_meaningful_overlay(client: TestClient) -> None:
+    payload = create_task_payload("Meaningful overlay")
+    response = client.post("/api/v1/tasks", json=payload)
+    assert response.status_code == 201
+    task_id = response.json()["id"]
+
+    with SessionLocal() as db:
+        task = db.get(models.Task, task_id)
+        assert task is not None
+        overlay = next(
+            item for item in task.decision_contexts if item.identity_scope == "slice_overlay"
+        )
+        overlay.summary = "這是只屬於目前 work slice 的暫時判斷。"
+        overlay.goal_summary = "先只在這個 slice 內檢查一輪。"
+        db.add(overlay)
+        db.commit()
+
+    refreshed_task = client.get(f"/api/v1/tasks/{task_id}").json()
+    assert refreshed_task["decision_context"]["identity_scope"] == "world_authority"
+    assert refreshed_task["decision_context"]["summary"] != "這是只屬於目前 work slice 的暫時判斷。"
+    assert refreshed_task["slice_decision_context"]["changed_fields"] == ["summary", "goals"]
+    assert refreshed_task["slice_decision_context"]["summary"] == "這是只屬於目前 work slice 的暫時判斷。"
+    assert refreshed_task["slice_decision_context"]["judgment_to_make"] is None
+    assert refreshed_task["slice_decision_context"]["goals"] == ["先只在這個 slice 內檢查一輪。"]
 
 
 def test_task_list_returns_object_aware_workspace_summary(client: TestClient) -> None:
@@ -432,6 +507,9 @@ def test_shared_materials_and_evidence_follow_world_spine_across_task_slices(
     assert upload_response.status_code == 200
 
     refreshed_first = client.get(f"/api/v1/tasks/{first_task['id']}").json()
+    shared_source_document = next(
+        item for item in refreshed_first["uploads"] if item["continuity_scope"] == "world_shared"
+    )
     shared_material = next(
         item for item in refreshed_first["source_materials"] if item["continuity_scope"] == "world_shared"
     )
@@ -445,6 +523,12 @@ def test_shared_materials_and_evidence_follow_world_spine_across_task_slices(
     refreshed_second = client.get(f"/api/v1/tasks/{second_task['id']}").json()
 
     assert any(
+        item["id"] == shared_source_document["id"]
+        and item["matter_workspace_id"] == first_task["matter_workspace"]["id"]
+        and item["continuity_scope"] == "world_shared"
+        for item in refreshed_second["uploads"]
+    )
+    assert any(
         item["id"] == shared_material["id"]
         and item["matter_workspace_id"] == first_task["matter_workspace"]["id"]
         and item["continuity_scope"] == "world_shared"
@@ -457,9 +541,97 @@ def test_shared_materials_and_evidence_follow_world_spine_across_task_slices(
         for item in refreshed_second["evidence"]
     )
 
+    second_upload_response = client.post(
+        f"/api/v1/tasks/{second_task['id']}/uploads",
+        files=[("files", ("northwind-notes.txt", b"Northwind proposal notes with stronger commercial evidence.", "text/plain"))],
+    )
+    assert second_upload_response.status_code == 200
+    reused_item = second_upload_response.json()["uploaded"][0]
+    assert reused_item["source_document"]["id"] == shared_source_document["id"]
+    assert reused_item["source_document"]["participation"]["current_task_participation"] is True
+    assert reused_item["source_document"]["participation"]["participation_task_count"] == 2
+    assert reused_item["source_document"]["participation"]["participation_type"] == "shared_reuse"
+    assert reused_item["source_document"]["participation"]["mapping_mode"] == "explicit_mapping"
+    assert reused_item["source_material"]["id"] == shared_material["id"]
+    assert reused_item["evidence"]["id"] == shared_evidence["id"]
+    assert reused_item["source_material"]["continuity_scope"] == "world_shared"
+
+    refreshed_second_after_upload = client.get(f"/api/v1/tasks/{second_task['id']}").json()
+    reused_source_document = next(
+        item for item in refreshed_second_after_upload["uploads"] if item["id"] == shared_source_document["id"]
+    )
+    reused_material = next(
+        item for item in refreshed_second_after_upload["source_materials"] if item["id"] == shared_material["id"]
+    )
+    reused_evidence = next(
+        item for item in refreshed_second_after_upload["evidence"] if item["id"] == shared_evidence["id"]
+    )
+    assert reused_source_document["task_id"] == first_task["id"]
+    assert reused_source_document["participation"]["current_task_participation"] is True
+    assert reused_source_document["participation"]["participation_task_count"] == 2
+    assert reused_source_document["participation"]["participation_type"] == "shared_reuse"
+    assert reused_material["participation"]["current_task_participation"] is True
+    assert reused_material["participation"]["participation_task_count"] == 2
+    assert reused_material["participation"]["participation_type"] == "shared_reuse"
+    assert reused_evidence["participation"]["current_task_participation"] is True
+    assert reused_evidence["participation"]["participation_task_count"] == 2
+
     workspace = client.get(f"/api/v1/matters/{first_task['matter_workspace']['id']}").json()
     assert workspace["summary"]["source_material_count"] == 1
     assert workspace["summary"]["artifact_count"] >= 1
+
+
+def test_core_context_keeps_world_authority_and_slice_overlay_rows(client: TestClient) -> None:
+    task = client.post("/api/v1/tasks", json=create_task_payload("Overlay scope rows")).json()
+
+    with SessionLocal() as db:
+        task_row = db.get(models.Task, task["id"])
+        assert task_row is not None
+        assert {item.identity_scope for item in task_row.clients} == {
+            "slice_overlay",
+            "world_authority",
+        }
+        assert {item.identity_scope for item in task_row.engagements} == {
+            "slice_overlay",
+            "world_authority",
+        }
+        assert {item.identity_scope for item in task_row.workstreams} == {
+            "slice_overlay",
+            "world_authority",
+        }
+        assert {item.identity_scope for item in task_row.decision_contexts} == {
+            "slice_overlay",
+            "world_authority",
+        }
+
+
+def test_world_shared_materials_create_participation_links(client: TestClient) -> None:
+    task = client.post("/api/v1/tasks", json=create_task_payload("Participation link rows")).json()
+    upload_response = client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("participation.txt", b"Evidence that should become world-shared.", "text/plain"))],
+    )
+    assert upload_response.status_code == 200
+
+    with SessionLocal() as db:
+        task_row = db.get(models.Task, task["id"])
+        assert task_row is not None
+        link_types = {item.object_type for item in task_row.object_participation_links}
+        assert {
+            "source_document",
+            "source_material",
+            "artifact",
+            "evidence",
+        }.issubset(link_types)
+        document_link = next(
+            item for item in task_row.object_participation_links if item.object_type == "source_document"
+        )
+        evidence_link = next(
+            item for item in task_row.object_participation_links if item.object_type == "evidence"
+        )
+        assert document_link.source_document_id is not None
+        assert evidence_link.source_document_id is not None
+        assert evidence_link.evidence_id is not None
 
 
 def test_artifact_evidence_workspace_route_returns_formal_source_and_support_chains(
@@ -504,6 +676,7 @@ def test_artifact_evidence_workspace_route_returns_formal_source_and_support_cha
     assert workspace_response.status_code == 200
     workspace = workspace_response.json()
     assert workspace["matter_summary"]["id"] == matter["id"]
+    assert workspace["current_decision_context"]["identity_scope"] == "world_authority"
     assert workspace["source_material_cards"]
     assert workspace["artifact_cards"]
     assert workspace["evidence_chains"]
@@ -559,6 +732,8 @@ def test_deliverable_workspace_route_returns_formal_deliverable_context(
     workspace = workspace_response.json()
     assert workspace["deliverable"]["id"] == deliverable_id
     assert workspace["task"]["id"] == task["id"]
+    assert workspace["task"]["client"]["identity_scope"] == "world_authority"
+    assert workspace["task"]["world_decision_context"]["identity_scope"] == "world_authority"
     assert workspace["deliverable_class"] in {
         "assessment_review_memo",
         "decision_action_deliverable",
@@ -864,6 +1039,11 @@ def test_file_upload_creates_usable_txt_evidence(client: TestClient) -> None:
     assert uploaded["source_material"]["source_document_id"] == uploaded["source_document"]["id"]
     assert uploaded["artifact"]["source_document_id"] == uploaded["source_document"]["id"]
     assert uploaded["artifact"]["source_material_id"] == uploaded["source_material"]["id"]
+    assert uploaded["source_document"]["participation"]["current_task_participation"] is True
+    assert uploaded["source_document"]["participation"]["participation_type"] == "direct_ingest"
+    assert uploaded["source_document"]["participation"]["mapping_mode"] == "explicit_mapping"
+    assert uploaded["source_material"]["participation"]["current_task_participation"] is True
+    assert uploaded["evidence"]["participation"]["current_task_participation"] is True
 
     aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
     assert aggregate["source_materials"]
@@ -999,6 +1179,9 @@ def test_source_ingestion_from_pasted_text_creates_normalized_evidence_and_chunk
     assert ingested["source_document"]["ingest_status"] == "processed"
     assert ingested["evidence"]["evidence_type"] == "source_excerpt"
     assert "關聯度" in ingested["evidence"]["excerpt_or_summary"]
+    assert ingested["source_document"]["participation"]["current_task_participation"] is True
+    assert ingested["source_document"]["participation"]["participation_type"] == "direct_ingest"
+    assert ingested["source_document"]["participation"]["mapping_mode"] == "explicit_mapping"
 
     aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
     assert any(item["evidence_type"] == "source_chunk" for item in aggregate["evidence"])
@@ -1034,6 +1217,9 @@ def test_source_ingestion_from_url_extracts_text_and_metadata(
     assert ingested["source_document"]["source_type"] == "manual_url"
     assert ingested["source_document"]["file_name"] == "市場新聞摘要"
     assert ingested["evidence"]["evidence_type"] == "source_excerpt"
+    assert ingested["source_document"]["participation"]["current_task_participation"] is True
+    assert ingested["source_document"]["participation"]["participation_type"] == "direct_ingest"
+    assert ingested["source_document"]["participation"]["mapping_mode"] == "explicit_mapping"
 
 
 def test_google_docs_without_permission_returns_explicit_ingestion_issue(

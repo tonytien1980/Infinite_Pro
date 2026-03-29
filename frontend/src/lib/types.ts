@@ -398,6 +398,21 @@ export interface DecisionContext {
   created_at: string;
 }
 
+export interface DecisionContextDelta {
+  title: string | null;
+  summary: string | null;
+  judgment_to_make: string | null;
+  domain_lenses: string[];
+  client_stage: string | null;
+  client_type: string | null;
+  goals: string[];
+  constraints: string[];
+  assumptions: string[];
+  source_priority: string | null;
+  external_data_policy: string | null;
+  changed_fields: string[];
+}
+
 export interface TaskContext {
   id: string;
   task_id: string;
@@ -461,8 +476,17 @@ export interface SourceDocument {
   derived_storage_key: string | null;
   extracted_text: string | null;
   ingestion_error: string | null;
+  participation: ObjectParticipation | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface ObjectParticipation {
+  canonical_object_id: string | null;
+  current_task_participation: boolean;
+  participation_type: string | null;
+  participation_task_count: number;
+  mapping_mode: string | null;
 }
 
 export interface SourceMaterial {
@@ -490,6 +514,7 @@ export interface SourceMaterial {
   availability_state: string;
   metadata_only: boolean;
   summary: string;
+  participation: ObjectParticipation | null;
   created_at: string;
   updated_at: string;
 }
@@ -504,6 +529,7 @@ export interface Artifact {
   source_document_id: string | null;
   source_material_id: string | null;
   description: string;
+  participation: ObjectParticipation | null;
   created_at: string;
 }
 
@@ -521,6 +547,7 @@ export interface Evidence {
   title: string;
   excerpt_or_summary: string;
   reliability_level: string;
+  participation: ObjectParticipation | null;
   created_at: string;
 }
 
@@ -798,6 +825,8 @@ export interface TaskAggregate {
   engagement: Engagement | null;
   workstream: Workstream | null;
   decision_context: DecisionContext | null;
+  slice_decision_context: DecisionContextDelta | null;
+  world_decision_context: DecisionContext | null;
   client_stage: string | null;
   client_type: string | null;
   domain_lenses: string[];
@@ -912,6 +941,10 @@ export interface ArtifactEvidenceMaterial {
   summary: string;
   role_label: string;
   presence_state: PresenceState;
+  continuity_scope: string | null;
+  participation_type: string | null;
+  participation_task_count: number;
+  current_task_participation: boolean;
   source_type: string | null;
   ingest_status: string | null;
   support_level: string | null;

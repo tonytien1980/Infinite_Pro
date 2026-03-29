@@ -21,6 +21,11 @@ from app.services.source_materials import (
     build_processed_evidence_items,
     build_source_objects_for_document,
     build_unparsed_evidence_item,
+    ensure_source_chain_participation_links,
+    load_existing_world_shared_bundle,
+    PARTICIPATION_TYPE_DIRECT_INGEST,
+    PARTICIPATION_TYPE_SHARED_REUSE,
+    SLICE_PARTICIPATION_CONTINUITY_SCOPE,
 )
 from app.services.storage_manager import (
     AVAILABILITY_AVAILABLE,
@@ -37,6 +42,7 @@ from app.services.storage_manager import (
     write_text,
 )
 from app.services.tasks import (
+    build_upload_result_item_from_aggregate,
     get_loaded_task,
     prepare_case_world_follow_up_for_task,
     serialize_task,
@@ -72,7 +78,26 @@ def _persist_processed_source(
     retention_policy = RETENTION_POLICY_DERIVED
     extension = normalize_extension(title, "")
     matter_workspace_id = _linked_matter_workspace_id(task)
-    continuity_scope = "world_shared" if matter_workspace_id else "task_slice"
+    continuity_scope = "world_shared" if matter_workspace_id else SLICE_PARTICIPATION_CONTINUITY_SCOPE
+    existing_bundle = load_existing_world_shared_bundle(
+        db,
+        matter_workspace_id=matter_workspace_id,
+        source_type=connector_source_type,
+        storage_path=None if storage_path.startswith("inline://task/") else storage_path,
+        content_digest=compute_digest(extracted_text.encode("utf-8")) if extracted_text else None,
+    )
+    if existing_bundle is not None:
+        ensure_source_chain_participation_links(
+            db,
+            task_id=task.id,
+            matter_workspace_id=matter_workspace_id,
+            source_document_id=existing_bundle[0].id,
+            source_material_id=existing_bundle[1].id,
+            artifact_id=existing_bundle[2].id,
+            evidence_id=existing_bundle[3].id,
+            participation_type=PARTICIPATION_TYPE_SHARED_REUSE,
+        )
+        return existing_bundle
     source_document = models.SourceDocument(
         task_id=task.id,
         matter_workspace_id=matter_workspace_id,
@@ -167,6 +192,16 @@ def _persist_processed_source(
         )
         db.add(primary_evidence)
     db.flush()
+    ensure_source_chain_participation_links(
+        db,
+        task_id=task.id,
+        matter_workspace_id=matter_workspace_id,
+        source_document_id=source_document.id,
+        source_material_id=source_material.id,
+        artifact_id=artifact.id,
+        evidence_id=primary_evidence.id,
+        participation_type=PARTICIPATION_TYPE_DIRECT_INGEST if matter_workspace_id else PARTICIPATION_TYPE_SHARED_REUSE,
+    )
     return source_document, source_material, artifact, primary_evidence
 
 
@@ -184,7 +219,25 @@ def _persist_failed_source(
     research_run_id: str | None = None,
 ) -> tuple[models.SourceDocument, models.SourceMaterial, models.Artifact, models.Evidence]:
     matter_workspace_id = _linked_matter_workspace_id(task)
-    continuity_scope = "world_shared" if matter_workspace_id else "task_slice"
+    continuity_scope = "world_shared" if matter_workspace_id else SLICE_PARTICIPATION_CONTINUITY_SCOPE
+    existing_bundle = load_existing_world_shared_bundle(
+        db,
+        matter_workspace_id=matter_workspace_id,
+        source_type=connector_source_type,
+        storage_path=storage_path,
+    )
+    if existing_bundle is not None:
+        ensure_source_chain_participation_links(
+            db,
+            task_id=task.id,
+            matter_workspace_id=matter_workspace_id,
+            source_document_id=existing_bundle[0].id,
+            source_material_id=existing_bundle[1].id,
+            artifact_id=existing_bundle[2].id,
+            evidence_id=existing_bundle[3].id,
+            participation_type=PARTICIPATION_TYPE_SHARED_REUSE,
+        )
+        return existing_bundle
     source_document = models.SourceDocument(
         task_id=task.id,
         matter_workspace_id=matter_workspace_id,
@@ -242,6 +295,16 @@ def _persist_failed_source(
     )
     db.add(primary_evidence)
     db.flush()
+    ensure_source_chain_participation_links(
+        db,
+        task_id=task.id,
+        matter_workspace_id=matter_workspace_id,
+        source_document_id=source_document.id,
+        source_material_id=source_material.id,
+        artifact_id=artifact.id,
+        evidence_id=primary_evidence.id,
+        participation_type=PARTICIPATION_TYPE_DIRECT_INGEST if matter_workspace_id else PARTICIPATION_TYPE_SHARED_REUSE,
+    )
     return source_document, source_material, artifact, primary_evidence
 
 
@@ -257,20 +320,6 @@ def _select_connector_for_remote_source(
     return ManualUrlConnector()
 
 
-def _serialize_upload_item(
-    source_document: models.SourceDocument,
-    source_material: models.SourceMaterial,
-    artifact: models.Artifact,
-    evidence: models.Evidence,
-) -> schemas.UploadResultItem:
-    return schemas.UploadResultItem(
-        source_document=schemas.SourceDocumentRead.model_validate(source_document),
-        evidence=schemas.EvidenceRead.model_validate(evidence),
-        source_material=schemas.SourceMaterialRead.model_validate(source_material),
-        artifact=schemas.ArtifactRead.model_validate(artifact),
-    )
-
-
 def ingest_remote_urls_for_task(
     db: Session,
     task_id: str,
@@ -278,10 +327,10 @@ def ingest_remote_urls_for_task(
     *,
     origin: str = "manual",
     research_run_id: str | None = None,
-) -> list[schemas.UploadResultItem]:
+) -> list[tuple[str, str, str | None, str | None]]:
     task = get_loaded_task(db, task_id)
     existing_storage_paths = {item.storage_path for item in task.uploads}
-    ingested: list[schemas.UploadResultItem] = []
+    ingested_refs: list[tuple[str, str, str | None, str | None]] = []
 
     for url in urls:
         normalized_url = url.strip()
@@ -331,12 +380,12 @@ def ingest_remote_urls_for_task(
             )
 
         existing_storage_paths.add(normalized_url)
-        ingested.append(_serialize_upload_item(source_document, source_material, artifact, evidence))
+        ingested_refs.append((source_document.id, evidence.id, source_material.id, artifact.id))
 
-    if ingested:
+    if ingested_refs:
         db.commit()
 
-    return ingested
+    return ingested_refs
 
 
 def ingest_sources_for_task(
@@ -364,7 +413,7 @@ def ingest_sources_for_task(
         follow_up_summary=world_update_summary,
     )
     text_connector = ManualTextConnector()
-    ingested: list[schemas.UploadResultItem] = []
+    ingested_refs: list[tuple[str, str, str | None, str | None]] = []
 
     if pasted_text:
         title = payload.pasted_title or "手動貼上內容"
@@ -380,13 +429,25 @@ def ingest_sources_for_task(
             support_level="full",
             ingest_strategy="inline_text_extract",
         )
-        ingested.append(_serialize_upload_item(source_document, source_material, artifact, evidence))
+        ingested_refs.append((source_document.id, evidence.id, source_material.id, artifact.id))
         db.commit()
 
-    ingested.extend(ingest_remote_urls_for_task(db=db, task_id=task_id, urls=urls, origin="manual"))
+    ingested_refs.extend(
+        ingest_remote_urls_for_task(db=db, task_id=task_id, urls=urls, origin="manual")
+    )
 
     refreshed_task = get_loaded_task(db, task.id)
     aggregate = serialize_task(refreshed_task)
+    ingested = [
+        build_upload_result_item_from_aggregate(
+            aggregate,
+            source_document_id=source_document_id,
+            evidence_id=evidence_id,
+            source_material_id=source_material_id,
+            artifact_id=artifact_id,
+        )
+        for source_document_id, evidence_id, source_material_id, artifact_id in ingested_refs
+    ]
     return schemas.SourceIngestBatchResponse(
         task_id=task.id,
         matter_workspace_id=aggregate.matter_workspace.id if aggregate.matter_workspace else None,

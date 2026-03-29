@@ -57,8 +57,8 @@ function CompactList({
 
   return (
     <ul className="list-content">
-      {items.map((item) => (
-        <li key={item}>{item}</li>
+      {items.map((item, index) => (
+        <li key={`${item}-${index}`}>{item}</li>
       ))}
     </ul>
   );
@@ -320,6 +320,20 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
     task && deliverable && readiness ? buildReadinessGovernance(task, deliverable, readiness) : null;
   const executiveSummary = task && deliverable ? buildExecutiveSummary(task, deliverable) : null;
   const decisionSnapshot = task && deliverable ? buildDecisionSnapshot(task, deliverable) : null;
+  const preferredWorldDecisionContext = task?.world_decision_context || task?.decision_context || null;
+  const sliceDecisionContext = task?.slice_decision_context || null;
+  const sharedEvidenceParticipationCount = workspace
+    ? new Set(
+        [
+          ...workspace.linked_source_materials
+            .filter((item) => (item.participation?.participation_task_count ?? 0) > 1)
+            .map((item) => item.id),
+          ...workspace.linked_evidence
+            .filter((item) => (item.participation?.participation_task_count ?? 0) > 1)
+            .map((item) => item.id),
+        ],
+      ).size
+    : 0;
   const recommendations = task && deliverable ? buildRecommendationCards(task, deliverable) : [];
   const risks = task && deliverable ? buildRiskCards(task, deliverable) : [];
   const actionItems = task && deliverable ? buildActionItemCards(task, deliverable) : [];
@@ -772,8 +786,8 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                   <div className="section-card deliverable-focus-panel">
                     <h4>決策問題</h4>
                     <p className="content-block">
-                      {task.decision_context?.judgment_to_make ||
-                        task.decision_context?.title ||
+                      {preferredWorldDecisionContext?.judgment_to_make ||
+                        preferredWorldDecisionContext?.title ||
                         "目前尚未形成清楚的決策問題。"}
                     </p>
                   </div>
@@ -1025,6 +1039,22 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                   {workspace.research_runs.length > 0
                     ? `已留存 ${workspace.research_runs.length} 筆 research runs。`
                     : "目前沒有 research provenance。"}
+                </p>
+              </div>
+              <div className="section-card">
+                <h4>Decision authority</h4>
+                <p className="content-block">
+                  {sliceDecisionContext
+                    ? `交付物目前優先依案件世界的 canonical decision context 呈現；slice-local overlay 只保留 ${sliceDecisionContext.changed_fields.length} 項差異給在途工作。`
+                    : "交付物目前直接依 canonical world decision context 呈現。"}
+                </p>
+              </div>
+              <div className="section-card">
+                <h4>Shared participation</h4>
+                <p className="content-block">
+                  {sharedEvidenceParticipationCount > 0
+                    ? `這份交付物目前至少回鏈到 ${sharedEvidenceParticipationCount} 條被多個 work slices 共用的正式材料 / 證據鏈。`
+                    : "目前沒有顯示被多個 work slices 共用的正式材料 / 證據鏈。"}
                 </p>
               </div>
               <div className="section-card">

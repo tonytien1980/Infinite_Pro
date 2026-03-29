@@ -205,17 +205,18 @@ class HostOrchestrator:
     ) -> AgentInputPayload:
         aggregate = serialize_task(task)
         latest_context = task.contexts[-1].summary if task.contexts else ""
+        preferred_decision_context = aggregate.decision_context or aggregate.world_decision_context
         return AgentInputPayload(
             task_id=task.id,
             title=task.title,
             description=task.description,
             task_type=task.task_type,
             flow_mode=workflow_mode or self._compatibility_flow_mode(task),
-            background_text=aggregate.decision_context.summary if aggregate.decision_context else latest_context,
+            background_text=preferred_decision_context.summary if preferred_decision_context else latest_context,
             client=aggregate.client,
             engagement=aggregate.engagement,
             workstream=aggregate.workstream,
-            decision_context=aggregate.decision_context,
+            decision_context=preferred_decision_context,
             domain_lenses=aggregate.domain_lenses,
             assumptions=aggregate.assumptions,
             entry_preset=aggregate.entry_preset,

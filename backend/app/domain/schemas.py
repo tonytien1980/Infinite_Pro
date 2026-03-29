@@ -152,7 +152,7 @@ class ClientRead(ORMModel):
     id: str
     task_id: str
     matter_workspace_id: str | None = None
-    identity_scope: str = "task_slice"
+    identity_scope: str = "slice_overlay"
     name: str
     client_type: str
     client_stage: str
@@ -164,7 +164,7 @@ class EngagementRead(ORMModel):
     id: str
     task_id: str
     matter_workspace_id: str | None = None
-    identity_scope: str = "task_slice"
+    identity_scope: str = "slice_overlay"
     client_id: str | None
     name: str
     description: str | None
@@ -175,7 +175,7 @@ class WorkstreamRead(ORMModel):
     id: str
     task_id: str
     matter_workspace_id: str | None = None
-    identity_scope: str = "task_slice"
+    identity_scope: str = "slice_overlay"
     engagement_id: str | None
     name: str
     description: str | None
@@ -187,7 +187,7 @@ class DecisionContextRead(BaseModel):
     id: str
     task_id: str
     matter_workspace_id: str | None = None
-    identity_scope: str = "task_slice"
+    identity_scope: str = "slice_overlay"
     client_id: str | None
     engagement_id: str | None
     workstream_id: str | None
@@ -203,6 +203,21 @@ class DecisionContextRead(BaseModel):
     source_priority: str = ""
     external_data_policy: str = ""
     created_at: datetime
+
+
+class DecisionContextDeltaRead(BaseModel):
+    title: str | None = None
+    summary: str | None = None
+    judgment_to_make: str | None = None
+    domain_lenses: list[str] = Field(default_factory=list)
+    client_stage: str | None = None
+    client_type: str | None = None
+    goals: list[str] = Field(default_factory=list)
+    constraints: list[str] = Field(default_factory=list)
+    assumptions: list[str] = Field(default_factory=list)
+    source_priority: str | None = None
+    external_data_policy: str | None = None
+    changed_fields: list[str] = Field(default_factory=list)
 
 
 class PresenceStateItemRead(BaseModel):
@@ -322,7 +337,7 @@ class SourceDocumentRead(ORMModel):
     task_id: str
     matter_workspace_id: str | None = None
     research_run_id: str | None = None
-    continuity_scope: str = "task_slice"
+    continuity_scope: str = "slice_participation"
     source_type: str
     file_name: str
     canonical_display_name: str
@@ -344,8 +359,17 @@ class SourceDocumentRead(ORMModel):
     derived_storage_key: str | None
     extracted_text: str | None
     ingestion_error: str | None
+    participation: ObjectParticipationRead | None = None
     created_at: datetime
     updated_at: datetime
+
+
+class ObjectParticipationRead(BaseModel):
+    canonical_object_id: str | None = None
+    current_task_participation: bool = False
+    participation_type: str | None = None
+    participation_task_count: int = 0
+    mapping_mode: str | None = None
 
 
 class SourceMaterialRead(ORMModel):
@@ -353,7 +377,7 @@ class SourceMaterialRead(ORMModel):
     task_id: str
     matter_workspace_id: str | None = None
     source_document_id: str | None = None
-    continuity_scope: str = "task_slice"
+    continuity_scope: str = "slice_participation"
     source_type: str
     title: str
     canonical_display_name: str
@@ -373,6 +397,7 @@ class SourceMaterialRead(ORMModel):
     availability_state: str
     metadata_only: bool
     summary: str
+    participation: ObjectParticipationRead | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -381,12 +406,13 @@ class ArtifactRead(ORMModel):
     id: str
     task_id: str
     matter_workspace_id: str | None = None
-    continuity_scope: str = "task_slice"
+    continuity_scope: str = "slice_participation"
     title: str
     artifact_type: str
     source_document_id: str | None
     source_material_id: str | None
     description: str
+    participation: ObjectParticipationRead | None = None
     created_at: datetime
 
 
@@ -397,13 +423,14 @@ class EvidenceRead(ORMModel):
     source_document_id: str | None
     source_material_id: str | None = None
     artifact_id: str | None = None
-    continuity_scope: str = "task_slice"
+    continuity_scope: str = "slice_participation"
     evidence_type: str
     source_type: str
     source_ref: str | None
     title: str
     excerpt_or_summary: str
     reliability_level: str
+    participation: ObjectParticipationRead | None = None
     created_at: datetime
 
 
@@ -931,6 +958,10 @@ class ArtifactEvidenceMaterialRead(BaseModel):
     summary: str
     role_label: str
     presence_state: PresenceState
+    continuity_scope: str | None = None
+    participation_type: str | None = None
+    participation_task_count: int = 0
+    current_task_participation: bool = False
     source_type: str | None = None
     ingest_status: str | None = None
     support_level: str | None = None
@@ -1004,6 +1035,8 @@ class TaskAggregateResponse(BaseModel):
     engagement: EngagementRead | None = None
     workstream: WorkstreamRead | None = None
     decision_context: DecisionContextRead | None = None
+    slice_decision_context: DecisionContextDeltaRead | None = None
+    world_decision_context: DecisionContextRead | None = None
     client_stage: str | None = None
     client_type: str | None = None
     domain_lenses: list[str] = Field(default_factory=list)

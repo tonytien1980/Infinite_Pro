@@ -57,7 +57,12 @@ from app.services.deliverable_records import (
     label_for_deliverable_status,
     record_deliverable_version_event,
 )
-from app.services.source_materials import build_source_material_summary, infer_artifact_type
+from app.services.source_materials import (
+    build_source_material_summary,
+    ensure_source_chain_participation_links,
+    infer_artifact_type,
+    resolve_participation_canonical_key,
+)
 
 logger = logging.getLogger(__name__)
 EXTERNAL_DATA_STRATEGY_CONSTRAINT_TYPE = "external_data_strategy"
@@ -71,9 +76,15 @@ EXTERNAL_DATA_STRATEGY_LABELS = {
 }
 PACK_OVERRIDE_CONSTRAINT_TYPE = "pack_override"
 AGENT_OVERRIDE_CONSTRAINT_TYPE = "agent_override"
-TASK_SLICE_IDENTITY_SCOPE = "task_slice"
+LEGACY_TASK_SLICE_IDENTITY_SCOPE = "task_slice"
+SLICE_OVERLAY_IDENTITY_SCOPE = "slice_overlay"
 WORLD_AUTHORITY_IDENTITY_SCOPE = "world_authority"
+SLICE_PARTICIPATION_CONTINUITY_SCOPE = "slice_participation"
 WORLD_SHARED_CONTINUITY_SCOPE = "world_shared"
+OBJECT_TYPE_SOURCE_DOCUMENT = "source_document"
+OBJECT_TYPE_SOURCE_MATERIAL = "source_material"
+OBJECT_TYPE_ARTIFACT = "artifact"
+OBJECT_TYPE_EVIDENCE = "evidence"
 PACK_REASON_DOMAIN_MATCHES = {
     "operations_pack": {"營運"},
     "finance_fundraising_pack": {"財務", "募資"},
@@ -640,7 +651,7 @@ def _primary_item(items: list[models.Client] | list[models.Engagement] | list[mo
         return None
 
     for item in items:
-        if getattr(item, "identity_scope", TASK_SLICE_IDENTITY_SCOPE) != WORLD_AUTHORITY_IDENTITY_SCOPE:
+        if getattr(item, "identity_scope", LEGACY_TASK_SLICE_IDENTITY_SCOPE) != WORLD_AUTHORITY_IDENTITY_SCOPE:
             return item
     return items[0]
 
@@ -782,8 +793,29 @@ def _build_legacy_source_material_read(source_document: models.SourceDocument) -
         availability_state=source_document.availability_state,
         metadata_only=source_document.metadata_only,
         summary=_normalize_whitespace(build_source_material_summary(source_document)),
+        participation=None,
         created_at=source_document.created_at,
         updated_at=source_document.updated_at,
+    )
+
+
+def _build_source_document_read(
+    source_document: models.SourceDocument,
+    *,
+    task: models.Task,
+    snapshot: _TaskObjectParticipationSnapshot,
+) -> schemas.SourceDocumentRead:
+    return schemas.SourceDocumentRead(
+        **schemas.SourceDocumentRead.model_validate(source_document).model_dump(exclude={"participation"}),
+        participation=_build_object_participation_read(
+            object_type=OBJECT_TYPE_SOURCE_DOCUMENT,
+            object_id=source_document.id,
+            object_task_id=source_document.task_id,
+            current_task_id=task.id,
+            matter_workspace_id=source_document.matter_workspace_id,
+            continuity_scope=source_document.continuity_scope,
+            snapshot=snapshot,
+        ),
     )
 
 
@@ -801,14 +833,245 @@ def _build_legacy_artifact_read(
         source_document_id=source_document.id,
         source_material_id=source_material_id,
         description=_normalize_whitespace(build_source_material_summary(source_document)[:280]),
+        participation=None,
         created_at=source_document.created_at,
     )
 
 
-def _build_source_materials(task: models.Task) -> list[schemas.SourceMaterialRead]:
-    materials = [schemas.SourceMaterialRead.model_validate(item) for item in task.source_materials]
+@dataclass
+class _TaskObjectParticipationSnapshot:
+    current_links: dict[tuple[str, str], models.TaskObjectParticipationLink]
+    participation_counts: dict[tuple[str, str], int]
+
+
+def _load_task_object_participation_snapshot(
+    db: Session | None,
+    *,
+    matter_workspace_id: str | None,
+    task_id: str,
+) -> _TaskObjectParticipationSnapshot:
+    if db is None or matter_workspace_id is None:
+        return _TaskObjectParticipationSnapshot(current_links={}, participation_counts={})
+
+    rows = db.scalars(
+        select(models.TaskObjectParticipationLink)
+        .where(models.TaskObjectParticipationLink.matter_workspace_id == matter_workspace_id)
+        .order_by(models.TaskObjectParticipationLink.created_at)
+    ).all()
+    current_links: dict[tuple[str, str], models.TaskObjectParticipationLink] = {}
+    participation_counts: dict[tuple[str, str], int] = {}
+    for row in rows:
+        canonical_key = resolve_participation_canonical_key(row)
+        key = (row.object_type, canonical_key)
+        participation_counts[key] = participation_counts.get(key, 0) + 1
+        if row.task_id == task_id:
+            current_links[key] = row
+    return _TaskObjectParticipationSnapshot(
+        current_links=current_links,
+        participation_counts=participation_counts,
+    )
+
+
+def _build_object_participation_read(
+    *,
+    object_type: str,
+    object_id: str,
+    object_task_id: str,
+    current_task_id: str,
+    matter_workspace_id: str | None,
+    continuity_scope: str,
+    snapshot: _TaskObjectParticipationSnapshot,
+) -> schemas.ObjectParticipationRead | None:
+    if continuity_scope == WORLD_SHARED_CONTINUITY_SCOPE and matter_workspace_id:
+        key = (object_type, object_id)
+        current_link = snapshot.current_links.get(key)
+        participation_count = snapshot.participation_counts.get(key, 0)
+        fallback_to_task_ref = participation_count == 0 and object_task_id == current_task_id
+        return schemas.ObjectParticipationRead(
+            canonical_object_id=object_id,
+            current_task_participation=current_link is not None or fallback_to_task_ref,
+            participation_type=(
+                current_link.participation_type
+                if current_link is not None
+                else "direct_ingest" if fallback_to_task_ref else None
+            ),
+            participation_task_count=max(participation_count, 1),
+            mapping_mode=(
+                "explicit_mapping"
+                if participation_count > 0
+                else "compatibility_task_ref" if fallback_to_task_ref else None
+            ),
+        )
+
+    if object_task_id == current_task_id:
+        return schemas.ObjectParticipationRead(
+            canonical_object_id=None,
+            current_task_participation=True,
+            participation_type="slice_local_only",
+            participation_task_count=1,
+            mapping_mode="slice_local_only",
+        )
+    return None
+
+
+def _backfill_world_shared_source_chain_participation_links(
+    db: Session,
+    *,
+    task: models.Task,
+    matter_workspace_id: str | None,
+) -> None:
+    if not matter_workspace_id:
+        return
+
+    for source_document in task.uploads:
+        if source_document.continuity_scope != WORLD_SHARED_CONTINUITY_SCOPE:
+            continue
+        ensure_source_chain_participation_links(
+            db,
+            task_id=task.id,
+            matter_workspace_id=matter_workspace_id,
+            source_document_id=source_document.id,
+            source_material_id=None,
+            artifact_id=None,
+            evidence_id=None,
+            participation_type="direct_ingest",
+        )
+    for source_material in task.source_materials:
+        if source_material.continuity_scope != WORLD_SHARED_CONTINUITY_SCOPE:
+            continue
+        ensure_source_chain_participation_links(
+            db,
+            task_id=task.id,
+            matter_workspace_id=matter_workspace_id,
+            source_document_id=source_material.source_document_id,
+            source_material_id=source_material.id,
+            artifact_id=None,
+            evidence_id=None,
+            participation_type="direct_ingest",
+        )
+    for artifact in task.artifacts:
+        if artifact.continuity_scope != WORLD_SHARED_CONTINUITY_SCOPE:
+            continue
+        ensure_source_chain_participation_links(
+            db,
+            task_id=task.id,
+            matter_workspace_id=matter_workspace_id,
+            source_document_id=artifact.source_document_id,
+            source_material_id=artifact.source_material_id,
+            artifact_id=artifact.id,
+            evidence_id=None,
+            participation_type="direct_ingest",
+        )
+    for evidence in task.evidence:
+        if evidence.continuity_scope != WORLD_SHARED_CONTINUITY_SCOPE:
+            continue
+        ensure_source_chain_participation_links(
+            db,
+            task_id=task.id,
+            matter_workspace_id=matter_workspace_id,
+            source_document_id=evidence.source_document_id,
+            source_material_id=evidence.source_material_id,
+            artifact_id=evidence.artifact_id,
+            evidence_id=evidence.id,
+            participation_type="direct_ingest",
+        )
+
+
+def _build_source_documents(task: models.Task) -> list[schemas.SourceDocumentRead]:
     db = object_session(task)
     matter_workspace = _get_linked_matter_workspace(task)
+    matter_workspace_id = matter_workspace.id if matter_workspace is not None else None
+    if db is not None and matter_workspace_id is not None:
+        _backfill_world_shared_source_chain_participation_links(
+            db,
+            task=task,
+            matter_workspace_id=matter_workspace_id,
+        )
+        db.flush()
+    participation_snapshot = _load_task_object_participation_snapshot(
+        db,
+        matter_workspace_id=matter_workspace_id,
+        task_id=task.id,
+    )
+    documents = [
+        _build_source_document_read(item, task=task, snapshot=participation_snapshot)
+        for item in task.uploads
+    ]
+    if db is not None and matter_workspace is not None:
+        world_documents = db.scalars(
+            select(models.SourceDocument)
+            .where(models.SourceDocument.matter_workspace_id == matter_workspace.id)
+            .where(models.SourceDocument.continuity_scope == WORLD_SHARED_CONTINUITY_SCOPE)
+            .order_by(models.SourceDocument.created_at)
+        ).all()
+        covered_ids = {item.id for item in documents}
+        for item in world_documents:
+            if item.id in covered_ids:
+                continue
+            documents.append(
+                _build_source_document_read(item, task=task, snapshot=participation_snapshot)
+            )
+            covered_ids.add(item.id)
+    return sorted(documents, key=lambda item: item.created_at)
+
+
+def build_upload_result_item_from_aggregate(
+    aggregate: schemas.TaskAggregateResponse,
+    *,
+    source_document_id: str,
+    evidence_id: str,
+    source_material_id: str | None = None,
+    artifact_id: str | None = None,
+) -> schemas.UploadResultItem:
+    source_documents_by_id = {item.id: item for item in aggregate.uploads}
+    source_materials_by_id = {item.id: item for item in aggregate.source_materials}
+    artifacts_by_id = {item.id: item for item in aggregate.artifacts}
+    evidence_by_id = {item.id: item for item in aggregate.evidence}
+
+    source_document = source_documents_by_id.get(source_document_id)
+    evidence = evidence_by_id.get(evidence_id)
+    source_material = source_materials_by_id.get(source_material_id) if source_material_id else None
+    artifact = artifacts_by_id.get(artifact_id) if artifact_id else None
+
+    if source_document is None or evidence is None:
+        raise RuntimeError("Upload/source response could not resolve canonical aggregate rows.")
+
+    if source_material is None and source_material_id is None and evidence.source_material_id:
+        source_material = source_materials_by_id.get(evidence.source_material_id)
+    if artifact is None and artifact_id is None and evidence.artifact_id:
+        artifact = artifacts_by_id.get(evidence.artifact_id)
+
+    return schemas.UploadResultItem(
+        source_document=source_document,
+        evidence=evidence,
+        source_material=source_material,
+        artifact=artifact,
+    )
+
+
+def _build_source_materials(task: models.Task) -> list[schemas.SourceMaterialRead]:
+    db = object_session(task)
+    matter_workspace = _get_linked_matter_workspace(task)
+    participation_snapshot = _load_task_object_participation_snapshot(
+        db,
+        matter_workspace_id=matter_workspace.id if matter_workspace is not None else None,
+        task_id=task.id,
+    )
+    materials = [
+        schemas.SourceMaterialRead(
+            **schemas.SourceMaterialRead.model_validate(item).model_dump(exclude={"participation"}),
+            participation=_build_object_participation_read(
+                object_type=OBJECT_TYPE_SOURCE_MATERIAL,
+                object_id=item.id,
+                object_task_id=item.task_id,
+                current_task_id=task.id,
+                matter_workspace_id=item.matter_workspace_id,
+                continuity_scope=item.continuity_scope,
+                snapshot=participation_snapshot,
+            ),
+        )
+        for item in task.source_materials
+    ]
     if db is not None and matter_workspace is not None:
         world_materials = db.scalars(
             select(models.SourceMaterial)
@@ -820,7 +1083,20 @@ def _build_source_materials(task: models.Task) -> list[schemas.SourceMaterialRea
         for item in world_materials:
             if item.id in covered_ids:
                 continue
-            materials.append(schemas.SourceMaterialRead.model_validate(item))
+            materials.append(
+                schemas.SourceMaterialRead(
+                    **schemas.SourceMaterialRead.model_validate(item).model_dump(exclude={"participation"}),
+                    participation=_build_object_participation_read(
+                        object_type=OBJECT_TYPE_SOURCE_MATERIAL,
+                        object_id=item.id,
+                        object_task_id=item.task_id,
+                        current_task_id=task.id,
+                        matter_workspace_id=item.matter_workspace_id,
+                        continuity_scope=item.continuity_scope,
+                        snapshot=participation_snapshot,
+                    ),
+                )
+            )
             covered_ids.add(item.id)
     covered_source_documents = {
         item.source_document_id for item in materials if item.source_document_id
@@ -836,9 +1112,28 @@ def _build_artifacts(
     task: models.Task,
     source_materials: list[schemas.SourceMaterialRead],
 ) -> list[schemas.ArtifactRead]:
-    artifacts = [schemas.ArtifactRead.model_validate(item) for item in task.artifacts]
     db = object_session(task)
     matter_workspace = _get_linked_matter_workspace(task)
+    participation_snapshot = _load_task_object_participation_snapshot(
+        db,
+        matter_workspace_id=matter_workspace.id if matter_workspace is not None else None,
+        task_id=task.id,
+    )
+    artifacts = [
+        schemas.ArtifactRead(
+            **schemas.ArtifactRead.model_validate(item).model_dump(exclude={"participation"}),
+            participation=_build_object_participation_read(
+                object_type=OBJECT_TYPE_ARTIFACT,
+                object_id=item.id,
+                object_task_id=item.task_id,
+                current_task_id=task.id,
+                matter_workspace_id=item.matter_workspace_id,
+                continuity_scope=item.continuity_scope,
+                snapshot=participation_snapshot,
+            ),
+        )
+        for item in task.artifacts
+    ]
     if db is not None and matter_workspace is not None:
         world_artifacts = db.scalars(
             select(models.Artifact)
@@ -850,7 +1145,20 @@ def _build_artifacts(
         for item in world_artifacts:
             if item.id in covered_ids:
                 continue
-            artifacts.append(schemas.ArtifactRead.model_validate(item))
+            artifacts.append(
+                schemas.ArtifactRead(
+                    **schemas.ArtifactRead.model_validate(item).model_dump(exclude={"participation"}),
+                    participation=_build_object_participation_read(
+                        object_type=OBJECT_TYPE_ARTIFACT,
+                        object_id=item.id,
+                        object_task_id=item.task_id,
+                        current_task_id=task.id,
+                        matter_workspace_id=item.matter_workspace_id,
+                        continuity_scope=item.continuity_scope,
+                        snapshot=participation_snapshot,
+                    ),
+                )
+            )
             covered_ids.add(item.id)
     source_material_by_document = {
         item.source_document_id: item.id
@@ -1893,6 +2201,10 @@ def _build_decision_context_read_from_row(
     if decision_context is None:
         return None
 
+    row_goals = _string_list_from_summary_text(decision_context.goal_summary)
+    row_constraints = _string_list_from_summary_text(decision_context.constraint_summary)
+    row_assumptions = _string_list_from_summary_text(decision_context.assumption_summary)
+
     return schemas.DecisionContextRead(
         id=decision_context.id,
         task_id=decision_context.task_id,
@@ -1907,9 +2219,9 @@ def _build_decision_context_read_from_row(
         domain_lenses=decision_context.domain_lenses,
         client_stage=decision_context.client_stage,
         client_type=decision_context.client_type,
-        goals=goals,
-        constraints=constraints,
-        assumptions=assumptions,
+        goals=row_goals or goals,
+        constraints=row_constraints or constraints,
+        assumptions=row_assumptions or assumptions,
         source_priority=decision_context.source_priority or "",
         external_data_policy=decision_context.external_data_policy or "",
         created_at=decision_context.created_at,
@@ -1927,6 +2239,358 @@ def _build_decision_context_read(task: models.Task) -> schemas.DecisionContextRe
         goals=[item.description for item in task.goals],
         constraints=visible_constraints,
         assumptions=_extract_assumptions(task),
+    )
+
+
+def _coerce_string_list_from_payload(value: object) -> list[str]:
+    if isinstance(value, str):
+        return _split_multiline_items(value)
+    if isinstance(value, list):
+        return _normalize_string_list_payload(
+            [str(item).strip() for item in value if str(item).strip()]
+        )
+    return []
+
+
+def _string_list_from_summary_text(value: str | None) -> list[str]:
+    return _split_multiline_items(value or "")
+
+
+def _first_nonempty_text(*values: object) -> str:
+    for value in values:
+        normalized = _coerce_text(value)
+        if normalized:
+            return normalized
+    return ""
+
+
+def _first_nonempty_list(*values: list[str] | None) -> list[str]:
+    for value in values:
+        normalized = _normalize_string_list_payload(value)
+        if normalized:
+            return normalized
+    return []
+
+
+def _assumption_lines_from_payload(
+    payload: list[dict] | None,
+) -> list[str]:
+    lines: list[str] = []
+    for item in list(payload or []):
+        if not isinstance(item, dict):
+            continue
+        detail = _normalize_whitespace(str(item.get("detail", "")))
+        title = _normalize_whitespace(str(item.get("title", "")))
+        if detail and title and detail != title:
+            lines.append(f"{title}：{detail}")
+        elif detail:
+            lines.append(detail)
+        elif title:
+            lines.append(title)
+    return _unique_preserve_order(lines)
+
+
+def _build_world_decision_context_read(
+    *,
+    case_world_state: models.CaseWorldState | None,
+    authority_decision_context: models.DecisionContext | None,
+    fallback: schemas.DecisionContextRead | None,
+) -> schemas.DecisionContextRead | None:
+    payload = (
+        case_world_state.decision_context_payload
+        if case_world_state and isinstance(case_world_state.decision_context_payload, dict)
+        else {}
+    )
+    if authority_decision_context is None and fallback is None and not payload:
+        return None
+
+    payload_goals = _coerce_string_list_from_payload(payload.get("goals"))
+    payload_constraints = _coerce_string_list_from_payload(payload.get("constraints"))
+    payload_assumptions = _coerce_string_list_from_payload(payload.get("assumptions"))
+    state_assumptions = _assumption_lines_from_payload(
+        case_world_state.assumptions_payload if case_world_state else None
+    )
+    authority_goals = _string_list_from_summary_text(
+        authority_decision_context.goal_summary if authority_decision_context is not None else None
+    )
+    authority_constraints = _string_list_from_summary_text(
+        authority_decision_context.constraint_summary if authority_decision_context is not None else None
+    )
+    authority_assumptions = _string_list_from_summary_text(
+        authority_decision_context.assumption_summary if authority_decision_context is not None else None
+    )
+
+    return schemas.DecisionContextRead(
+        id=(
+            authority_decision_context.id
+            if authority_decision_context is not None
+            else fallback.id if fallback is not None else (case_world_state.decision_context_id if case_world_state else "")
+        ),
+        task_id=(
+            authority_decision_context.task_id
+            if authority_decision_context is not None
+            else fallback.task_id if fallback is not None else (case_world_state.latest_task_id if case_world_state else "")
+        ),
+        matter_workspace_id=(
+            authority_decision_context.matter_workspace_id
+            if authority_decision_context is not None
+            else fallback.matter_workspace_id if fallback is not None else (case_world_state.matter_workspace_id if case_world_state else None)
+        ),
+        identity_scope=(
+            authority_decision_context.identity_scope
+            if authority_decision_context is not None
+            else fallback.identity_scope if fallback is not None else WORLD_AUTHORITY_IDENTITY_SCOPE
+        ),
+        client_id=(
+            authority_decision_context.client_id
+            if authority_decision_context is not None
+            else fallback.client_id if fallback is not None else (case_world_state.client_id if case_world_state else None)
+        ),
+        engagement_id=(
+            authority_decision_context.engagement_id
+            if authority_decision_context is not None
+            else fallback.engagement_id if fallback is not None else (case_world_state.engagement_id if case_world_state else None)
+        ),
+        workstream_id=(
+            authority_decision_context.workstream_id
+            if authority_decision_context is not None
+            else fallback.workstream_id if fallback is not None else (case_world_state.workstream_id if case_world_state else None)
+        ),
+        title=(
+            _coerce_text(payload.get("title"))
+            or (authority_decision_context.title if authority_decision_context is not None else "")
+            or (fallback.title if fallback is not None else "")
+        ),
+        summary=(
+            _coerce_text(payload.get("summary"))
+            or (authority_decision_context.summary if authority_decision_context is not None else "")
+            or (fallback.summary if fallback is not None else "")
+        ),
+        judgment_to_make=(
+            _coerce_text(payload.get("judgment_to_make"))
+            or (authority_decision_context.judgment_to_make if authority_decision_context is not None else "")
+            or (fallback.judgment_to_make if fallback is not None else "")
+        ),
+        domain_lenses=(
+            _coerce_string_list_from_payload(payload.get("domain_lenses"))
+            or (authority_decision_context.domain_lenses if authority_decision_context is not None else [])
+            or (fallback.domain_lenses if fallback is not None else [])
+        ),
+        client_stage=(
+            _coerce_text(payload.get("client_stage"))
+            or (authority_decision_context.client_stage if authority_decision_context is not None else "")
+            or (fallback.client_stage if fallback is not None else None)
+        ),
+        client_type=(
+            _coerce_text(payload.get("client_type"))
+            or (authority_decision_context.client_type if authority_decision_context is not None else "")
+            or (fallback.client_type if fallback is not None else None)
+        ),
+        goals=payload_goals or authority_goals or (fallback.goals if fallback is not None else []),
+        constraints=payload_constraints or authority_constraints or (fallback.constraints if fallback is not None else []),
+        assumptions=(
+            payload_assumptions
+            or state_assumptions
+            or authority_assumptions
+            or (fallback.assumptions if fallback is not None else [])
+        ),
+        source_priority=(
+            _coerce_text(payload.get("source_priority"))
+            or (authority_decision_context.source_priority if authority_decision_context is not None else "")
+            or (fallback.source_priority if fallback is not None else "")
+        ),
+        external_data_policy=(
+            _coerce_text(payload.get("external_data_policy"))
+            or (authority_decision_context.external_data_policy if authority_decision_context is not None else "")
+            or (fallback.external_data_policy if fallback is not None else "")
+        ),
+        created_at=(
+            authority_decision_context.created_at
+            if authority_decision_context is not None
+            else fallback.created_at if fallback is not None else (case_world_state.updated_at if case_world_state else models.utc_now())
+        ),
+    )
+
+
+def _merge_world_decision_context_payload(
+    *,
+    canonical_payload: dict[str, object] | None,
+    canonical_row: models.DecisionContext | None,
+    overlay: schemas.DecisionContextRead | None,
+    task: models.Task,
+) -> dict[str, object]:
+    canonical_payload = canonical_payload or {}
+    payload_goals = _coerce_string_list_from_payload(canonical_payload.get("goals"))
+    payload_constraints = _coerce_string_list_from_payload(canonical_payload.get("constraints"))
+    payload_assumptions = _coerce_string_list_from_payload(canonical_payload.get("assumptions"))
+    canonical_row_goals = _string_list_from_summary_text(
+        canonical_row.goal_summary if canonical_row is not None else None
+    )
+    canonical_row_constraints = _string_list_from_summary_text(
+        canonical_row.constraint_summary if canonical_row is not None else None
+    )
+    canonical_row_assumptions = _string_list_from_summary_text(
+        canonical_row.assumption_summary if canonical_row is not None else None
+    )
+    task_constraints = [
+        item.description
+        for item in task.constraints
+        if item.constraint_type != EXTERNAL_DATA_STRATEGY_CONSTRAINT_TYPE
+    ]
+
+    merged_goals = _first_nonempty_list(
+        payload_goals,
+        canonical_row_goals,
+        overlay.goals if overlay else None,
+        [item.description for item in task.goals],
+    )
+    merged_constraints = _first_nonempty_list(
+        payload_constraints,
+        canonical_row_constraints,
+        overlay.constraints if overlay else None,
+        task_constraints,
+    )
+    merged_assumptions = _first_nonempty_list(
+        payload_assumptions,
+        canonical_row_assumptions,
+        overlay.assumptions if overlay else None,
+        _extract_assumptions(task),
+    )
+
+    return {
+        "title": _first_nonempty_text(
+            canonical_payload.get("title"),
+            canonical_row.title if canonical_row is not None else None,
+            overlay.title if overlay else None,
+            task.title,
+        ),
+        "summary": _first_nonempty_text(
+            canonical_payload.get("summary"),
+            canonical_row.summary if canonical_row is not None else None,
+            overlay.summary if overlay else None,
+            task.description,
+        ),
+        "judgment_to_make": _first_nonempty_text(
+            canonical_payload.get("judgment_to_make"),
+            canonical_row.judgment_to_make if canonical_row is not None else None,
+            overlay.judgment_to_make if overlay else None,
+            task.description,
+            task.title,
+        ),
+        "domain_lenses": _first_nonempty_list(
+            _coerce_string_list_from_payload(canonical_payload.get("domain_lenses")),
+            canonical_row.domain_lenses if canonical_row is not None else None,
+            overlay.domain_lenses if overlay else None,
+        ),
+        "client_stage": _first_nonempty_text(
+            canonical_payload.get("client_stage"),
+            canonical_row.client_stage if canonical_row is not None else None,
+            overlay.client_stage if overlay else None,
+        ),
+        "client_type": _first_nonempty_text(
+            canonical_payload.get("client_type"),
+            canonical_row.client_type if canonical_row is not None else None,
+            overlay.client_type if overlay else None,
+        ),
+        "goals": merged_goals,
+        "constraints": merged_constraints,
+        "assumptions": merged_assumptions,
+        "source_priority": _first_nonempty_text(
+            canonical_payload.get("source_priority"),
+            canonical_row.source_priority if canonical_row is not None else None,
+            overlay.source_priority if overlay else None,
+        ),
+        "external_data_policy": _first_nonempty_text(
+            canonical_payload.get("external_data_policy"),
+            canonical_row.external_data_policy if canonical_row is not None else None,
+            overlay.external_data_policy if overlay else None,
+        ),
+    }
+
+
+def _build_slice_decision_context_overlay(
+    *,
+    overlay: schemas.DecisionContextRead | None,
+    world: schemas.DecisionContextRead | None,
+) -> schemas.DecisionContextDeltaRead | None:
+    if overlay is None:
+        return None
+
+    world = world or schemas.DecisionContextRead(
+        id=overlay.id,
+        task_id=overlay.task_id,
+        matter_workspace_id=overlay.matter_workspace_id,
+        identity_scope=WORLD_AUTHORITY_IDENTITY_SCOPE,
+        client_id=overlay.client_id,
+        engagement_id=overlay.engagement_id,
+        workstream_id=overlay.workstream_id,
+        title="",
+        summary="",
+        judgment_to_make="",
+        domain_lenses=[],
+        client_stage=None,
+        client_type=None,
+        goals=[],
+        constraints=[],
+        assumptions=[],
+        source_priority="",
+        external_data_policy="",
+        created_at=overlay.created_at,
+    )
+
+    def _changed_text(value: str | None, world_value: str | None) -> str | None:
+        if not value:
+            return None
+        return value if value != world_value else None
+
+    def _changed_list(value: list[str], world_value: list[str]) -> list[str]:
+        if not value:
+            return []
+        return value if value != world_value else []
+
+    text_fields = {
+        "title": _changed_text(overlay.title, world.title),
+        "summary": _changed_text(overlay.summary, world.summary),
+        "judgment_to_make": _changed_text(
+            overlay.judgment_to_make,
+            world.judgment_to_make,
+        ),
+        "client_stage": _changed_text(overlay.client_stage, world.client_stage),
+        "client_type": _changed_text(overlay.client_type, world.client_type),
+        "source_priority": _changed_text(overlay.source_priority, world.source_priority),
+        "external_data_policy": _changed_text(
+            overlay.external_data_policy,
+            world.external_data_policy,
+        ),
+    }
+    list_fields = {
+        "domain_lenses": _changed_list(overlay.domain_lenses, world.domain_lenses),
+        "goals": _changed_list(overlay.goals, world.goals),
+        "constraints": _changed_list(overlay.constraints, world.constraints),
+        "assumptions": _changed_list(overlay.assumptions, world.assumptions),
+    }
+    changed_fields = [
+        name
+        for name, value in {**text_fields, **list_fields}.items()
+        if bool(value)
+    ]
+    has_meaningful_overlay = bool(changed_fields)
+    if not has_meaningful_overlay:
+        return None
+
+    return schemas.DecisionContextDeltaRead(
+        title=text_fields["title"],
+        summary=text_fields["summary"],
+        judgment_to_make=text_fields["judgment_to_make"],
+        domain_lenses=list_fields["domain_lenses"],
+        client_stage=text_fields["client_stage"],
+        client_type=text_fields["client_type"],
+        goals=list_fields["goals"],
+        constraints=list_fields["constraints"],
+        assumptions=list_fields["assumptions"],
+        source_priority=text_fields["source_priority"],
+        external_data_policy=text_fields["external_data_policy"],
+        changed_fields=changed_fields,
     )
 
 
@@ -2558,7 +3222,7 @@ def _load_world_authority_object(
     if (
         candidate is not None
         and getattr(candidate, "matter_workspace_id", None) == matter_workspace_id
-        and getattr(candidate, "identity_scope", TASK_SLICE_IDENTITY_SCOPE) == WORLD_AUTHORITY_IDENTITY_SCOPE
+        and getattr(candidate, "identity_scope", LEGACY_TASK_SLICE_IDENTITY_SCOPE) == WORLD_AUTHORITY_IDENTITY_SCOPE
     ):
         return candidate
 
@@ -2595,7 +3259,7 @@ def ensure_world_context_spine_for_task(
         if item is None:
             continue
         changed = _assign_if_changed(item, "matter_workspace_id", matter_workspace.id) or changed
-        changed = _assign_if_changed(item, "identity_scope", TASK_SLICE_IDENTITY_SCOPE) or changed
+        changed = _assign_if_changed(item, "identity_scope", SLICE_OVERLAY_IDENTITY_SCOPE) or changed
 
     canonical_client = _load_world_authority_object(
         db,
@@ -2718,6 +3382,24 @@ def ensure_world_context_spine_for_task(
         object_id=state.decision_context_id,
     )
     if decision_context is not None:
+        overlay_decision_context = _build_decision_context_read(task)
+        canonical_decision_context_payload = _merge_world_decision_context_payload(
+            canonical_payload=(
+                state.decision_context_payload
+                if isinstance(state.decision_context_payload, dict)
+                else None
+            ),
+            canonical_row=canonical_decision_context,
+            overlay=overlay_decision_context,
+            task=task,
+        )
+        canonical_goal_summary = "\n".join(canonical_decision_context_payload.get("goals") or [])
+        canonical_constraint_summary = "\n".join(
+            canonical_decision_context_payload.get("constraints") or []
+        )
+        canonical_assumption_summary = "\n".join(
+            canonical_decision_context_payload.get("assumptions") or []
+        )
         if canonical_decision_context is None:
             canonical_decision_context = models.DecisionContext(
                 task_id=task.id,
@@ -2726,17 +3408,24 @@ def ensure_world_context_spine_for_task(
                 client_id=canonical_client.id if canonical_client else None,
                 engagement_id=canonical_engagement.id if canonical_engagement else None,
                 workstream_id=canonical_workstream.id if canonical_workstream else None,
-                title=decision_context.title,
-                summary=decision_context.summary,
-                judgment_to_make=decision_context.judgment_to_make,
-                domain_lenses=decision_context.domain_lenses,
-                client_stage=decision_context.client_stage,
-                client_type=decision_context.client_type,
-                goal_summary=decision_context.goal_summary,
-                constraint_summary=decision_context.constraint_summary,
-                assumption_summary=decision_context.assumption_summary,
-                source_priority=decision_context.source_priority,
-                external_data_policy=decision_context.external_data_policy,
+                title=str(canonical_decision_context_payload.get("title") or decision_context.title),
+                summary=str(canonical_decision_context_payload.get("summary") or decision_context.summary),
+                judgment_to_make=str(
+                    canonical_decision_context_payload.get("judgment_to_make")
+                    or decision_context.judgment_to_make
+                ),
+                domain_lenses=list(canonical_decision_context_payload.get("domain_lenses") or decision_context.domain_lenses),
+                client_stage=str(canonical_decision_context_payload.get("client_stage") or decision_context.client_stage),
+                client_type=str(canonical_decision_context_payload.get("client_type") or decision_context.client_type),
+                goal_summary=canonical_goal_summary or decision_context.goal_summary,
+                constraint_summary=canonical_constraint_summary or decision_context.constraint_summary,
+                assumption_summary=canonical_assumption_summary or decision_context.assumption_summary,
+                source_priority=str(canonical_decision_context_payload.get("source_priority") or decision_context.source_priority or ""),
+                external_data_policy=str(
+                    canonical_decision_context_payload.get("external_data_policy")
+                    or decision_context.external_data_policy
+                    or ""
+                ),
             )
             db.add(canonical_decision_context)
             db.flush()
@@ -2770,58 +3459,74 @@ def ensure_world_context_spine_for_task(
             changed = _assign_if_changed(
                 canonical_decision_context,
                 "title",
-                decision_context.title,
+                str(canonical_decision_context_payload.get("title") or decision_context.title),
             ) or changed
             changed = _assign_if_changed(
                 canonical_decision_context,
                 "summary",
-                decision_context.summary,
+                str(canonical_decision_context_payload.get("summary") or decision_context.summary),
             ) or changed
             changed = _assign_if_changed(
                 canonical_decision_context,
                 "judgment_to_make",
-                decision_context.judgment_to_make,
+                str(
+                    canonical_decision_context_payload.get("judgment_to_make")
+                    or decision_context.judgment_to_make
+                ),
             ) or changed
             changed = _assign_if_changed(
                 canonical_decision_context,
                 "domain_lenses",
-                decision_context.domain_lenses,
+                list(canonical_decision_context_payload.get("domain_lenses") or decision_context.domain_lenses),
             ) or changed
             changed = _assign_if_changed(
                 canonical_decision_context,
                 "client_stage",
-                decision_context.client_stage,
+                str(canonical_decision_context_payload.get("client_stage") or decision_context.client_stage),
             ) or changed
             changed = _assign_if_changed(
                 canonical_decision_context,
                 "client_type",
-                decision_context.client_type,
+                str(canonical_decision_context_payload.get("client_type") or decision_context.client_type),
             ) or changed
             changed = _assign_if_changed(
                 canonical_decision_context,
                 "goal_summary",
-                decision_context.goal_summary,
+                canonical_goal_summary or decision_context.goal_summary,
             ) or changed
             changed = _assign_if_changed(
                 canonical_decision_context,
                 "constraint_summary",
-                decision_context.constraint_summary,
+                canonical_constraint_summary or decision_context.constraint_summary,
             ) or changed
             changed = _assign_if_changed(
                 canonical_decision_context,
                 "assumption_summary",
-                decision_context.assumption_summary,
+                canonical_assumption_summary or decision_context.assumption_summary,
             ) or changed
             changed = _assign_if_changed(
                 canonical_decision_context,
                 "source_priority",
-                decision_context.source_priority,
+                str(
+                    canonical_decision_context_payload.get("source_priority")
+                    or decision_context.source_priority
+                    or ""
+                ),
             ) or changed
             changed = _assign_if_changed(
                 canonical_decision_context,
                 "external_data_policy",
-                decision_context.external_data_policy,
+                str(
+                    canonical_decision_context_payload.get("external_data_policy")
+                    or decision_context.external_data_policy
+                    or ""
+                ),
             ) or changed
+        changed = _assign_if_changed(
+            state,
+            "decision_context_payload",
+            canonical_decision_context_payload,
+        ) or changed
 
     changed = _assign_if_changed(state, "client_id", canonical_client.id if canonical_client else None) or changed
     changed = _assign_if_changed(
@@ -3314,6 +4019,8 @@ def _build_matter_workspace_summary_from_tasks(
     deliverable_count = sum(len(task.deliverables) for task in related_tasks)
     artifact_ids: set[str] = set()
     source_material_ids: set[str] = set()
+    shared_material_ids: set[str] = set()
+    shared_evidence_ids: set[str] = set()
     selected_pack_names: list[str] = []
     selected_agent_names: list[str] = []
     current_decision_context_title = matter_workspace.current_decision_context_title
@@ -3323,6 +4030,16 @@ def _build_matter_workspace_summary_from_tasks(
         _, _, _, decision_context, domain_lenses, source_materials, artifacts = _build_ontology_spine_for_task(task)
         artifact_ids.update(item.id for item in _meaningful_artifacts(artifacts))
         source_material_ids.update(item.id for item in _meaningful_source_materials(source_materials))
+        shared_material_ids.update(
+            item.id
+            for item in source_materials
+            if item.continuity_scope == WORLD_SHARED_CONTINUITY_SCOPE
+        )
+        shared_evidence_ids.update(
+            item.id
+            for item in _serialize_evidence_items(task, source_materials, artifacts)
+            if item.continuity_scope == WORLD_SHARED_CONTINUITY_SCOPE
+        )
 
         if not current_decision_context_title and decision_context:
             current_decision_context_title = decision_context.title
@@ -3371,7 +4088,8 @@ def _build_matter_workspace_summary_from_tasks(
     continuity_summary = (
         f"目前這個案件世界採 {matter_workspace.engagement_continuity_mode} / {matter_workspace.writeback_depth} 策略，"
         f"已有 {len(related_tasks)} 個相關 task slices、{deliverable_count} 份 deliverables，"
-        "可直接回看 decision trajectory、最近交付與工作鏈材料。"
+        f"可直接回看 decision trajectory、最近交付與工作鏈材料；其中 {len(shared_material_ids)} 份共享 materials / "
+        f"{len(shared_evidence_ids)} 則共享 evidence 已正式掛在案件世界。"
         if len(related_tasks) > 1 or deliverable_count > 0
         else (
             f"這個案件世界目前仍在第一個 task slice 階段，採 {matter_workspace.engagement_continuity_mode} / "
@@ -3486,6 +4204,11 @@ def _serialize_evidence_items(
     evidence_rows = list(task.evidence)
     db = object_session(task)
     matter_workspace = _get_linked_matter_workspace(task)
+    participation_snapshot = _load_task_object_participation_snapshot(
+        db,
+        matter_workspace_id=matter_workspace.id if matter_workspace is not None else None,
+        task_id=task.id,
+    )
     if db is not None and matter_workspace is not None:
         world_evidence = db.scalars(
             select(models.Evidence)
@@ -3516,6 +4239,15 @@ def _serialize_evidence_items(
             title=item.title,
             excerpt_or_summary=item.excerpt_or_summary,
             reliability_level=item.reliability_level,
+            participation=_build_object_participation_read(
+                object_type=OBJECT_TYPE_EVIDENCE,
+                object_id=item.id,
+                object_task_id=item.task_id,
+                current_task_id=task.id,
+                matter_workspace_id=item.matter_workspace_id,
+                continuity_scope=item.continuity_scope,
+                snapshot=participation_snapshot,
+            ),
             created_at=item.created_at,
         )
         for item in evidence_rows
@@ -3936,25 +4668,39 @@ def _build_task_list_item_response(
     client, engagement, workstream, decision_context, domain_lenses, source_materials, artifacts = (
         _build_ontology_spine_for_task(task)
     )
+    preferred_decision_context = decision_context
+    db = object_session(task)
+    linked_matter_workspace = _get_linked_matter_workspace(task)
+    if db is not None and linked_matter_workspace is not None:
+        _, _, _, authority_decision_context_row = _load_world_authority_spine(
+            db,
+            matter_workspace=linked_matter_workspace,
+            case_world_state=linked_matter_workspace.case_world_state,
+        )
+        preferred_decision_context = _build_world_decision_context_read(
+            case_world_state=linked_matter_workspace.case_world_state,
+            authority_decision_context=authority_decision_context_row,
+            fallback=decision_context,
+        ) or decision_context
     pack_resolution = resolve_pack_selection_for_task(
         task,
         client,
         engagement,
         workstream,
-        decision_context,
+        preferred_decision_context,
         domain_lenses,
     )
     input_entry_mode = _infer_input_entry_mode(task, source_materials, artifacts)
     external_research_heavy_candidate = _is_external_research_heavy_candidate(
         task,
-        decision_context,
+        preferred_decision_context,
         source_materials,
         artifacts,
         input_entry_mode,
     )
     deliverable_class_hint = _resolve_deliverable_class_hint(
         input_entry_mode,
-        decision_context,
+        preferred_decision_context,
         source_materials,
         artifacts,
         len(_usable_evidence(task)),
@@ -3962,7 +4708,7 @@ def _build_task_list_item_response(
     )
     agent_selection = resolve_agent_selection_for_task(
         task,
-        decision_context,
+        preferred_decision_context,
         domain_lenses,
         pack_resolution,
         input_entry_mode,
@@ -3984,9 +4730,17 @@ def _build_task_list_item_response(
         client_name=client.name if client else None,
         engagement_name=engagement.name if engagement else None,
         workstream_name=workstream.name if workstream else None,
-        decision_context_title=decision_context.title if decision_context else None,
-        client_stage=client.client_stage if client and client.client_stage != UNSPECIFIED_LABEL else None,
-        client_type=client.client_type if client and client.client_type != UNSPECIFIED_LABEL else None,
+        decision_context_title=preferred_decision_context.title if preferred_decision_context else None,
+        client_stage=(
+            preferred_decision_context.client_stage
+            if preferred_decision_context and preferred_decision_context.client_stage != UNSPECIFIED_LABEL
+            else client.client_stage if client and client.client_stage != UNSPECIFIED_LABEL else None
+        ),
+        client_type=(
+            preferred_decision_context.client_type
+            if preferred_decision_context and preferred_decision_context.client_type != UNSPECIFIED_LABEL
+            else client.client_type if client and client.client_type != UNSPECIFIED_LABEL else None
+        ),
         domain_lenses=domain_lenses,
         entry_preset=InputEntryMode(task.entry_preset),
         input_entry_mode=input_entry_mode,
@@ -4161,6 +4915,11 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
         goals=latest_task_spine[3].goals if latest_task_spine[3] else [],
         constraints=latest_task_spine[3].constraints if latest_task_spine[3] else [],
         assumptions=latest_task_spine[3].assumptions if latest_task_spine[3] else [],
+    )
+    current_decision_context = _build_world_decision_context_read(
+        case_world_state=matter_workspace.case_world_state,
+        authority_decision_context=authority_decision_context_row,
+        fallback=current_decision_context,
     ) or latest_task_spine[3]
     client = schemas.ClientRead.model_validate(authority_client_row) if authority_client_row else latest_task_spine[0]
     engagement = (
@@ -4508,7 +5267,13 @@ def _material_role_label(
     linked_evidence_count: int,
     linked_output_count: int,
     ingest_status: str | None = None,
+    continuity_scope: str | None = None,
+    participation_task_count: int = 0,
 ) -> tuple[str, PresenceState]:
+    if continuity_scope == WORLD_SHARED_CONTINUITY_SCOPE and participation_task_count >= 2:
+        return "共享主來源", PresenceState.EXPLICIT
+    if continuity_scope == WORLD_SHARED_CONTINUITY_SCOPE:
+        return "正式來源", PresenceState.EXPLICIT
     if linked_output_count >= 2 or linked_evidence_count >= 2:
         return "主要來源", PresenceState.EXPLICIT
     if linked_evidence_count >= 1:
@@ -4562,7 +5327,9 @@ def get_artifact_evidence_workspace(
     matter_id: str,
 ) -> schemas.ArtifactEvidenceWorkspaceResponse:
     matter_workspace = db.scalars(
-        select(models.MatterWorkspace).where(models.MatterWorkspace.id == matter_id)
+        select(models.MatterWorkspace)
+        .options(selectinload(models.MatterWorkspace.case_world_state))
+        .where(models.MatterWorkspace.id == matter_id)
     ).one_or_none()
     if matter_workspace is None:
         raise HTTPException(status_code=404, detail="找不到指定來源 / 證據工作面。")
@@ -4574,13 +5341,57 @@ def get_artifact_evidence_workspace(
     if not related_tasks:
         raise HTTPException(status_code=404, detail="找不到此來源 / 證據工作面的相關任務。")
 
+    latest_task = related_tasks[0]
+    _, world_spine_changed = ensure_world_context_spine_for_task(
+        db,
+        matter_workspace=matter_workspace,
+        task=latest_task,
+        client=_primary_item(latest_task.clients),
+        engagement=_primary_item(latest_task.engagements),
+        workstream=_primary_item(latest_task.workstreams),
+        decision_context=_primary_item(latest_task.decision_contexts),
+        case_world_state=matter_workspace.case_world_state,
+    )
+    if world_spine_changed:
+        db.commit()
+        matter_workspace = db.scalars(
+            select(models.MatterWorkspace)
+            .options(selectinload(models.MatterWorkspace.case_world_state))
+            .where(models.MatterWorkspace.id == matter_id)
+        ).one()
+        related_tasks = _load_tasks_for_matter_workspaces(db, [matter_workspace.id]).get(
+            matter_workspace.id,
+            [],
+        )
+        if not related_tasks:
+            raise HTTPException(status_code=404, detail="找不到此來源 / 證據工作面的相關任務。")
+
     matter_summary = _build_matter_workspace_summary_from_tasks(matter_workspace, related_tasks)
     latest_task = related_tasks[0]
     latest_task_spine = _build_ontology_spine_for_task(latest_task)
-    client = latest_task_spine[0]
-    engagement = latest_task_spine[1]
-    workstream = latest_task_spine[2]
-    current_decision_context = latest_task_spine[3]
+    authority_client_row, authority_engagement_row, authority_workstream_row, authority_decision_context_row = (
+        _load_world_authority_spine(
+            db,
+            matter_workspace=matter_workspace,
+            case_world_state=matter_workspace.case_world_state,
+        )
+    )
+    client = schemas.ClientRead.model_validate(authority_client_row) if authority_client_row else latest_task_spine[0]
+    engagement = (
+        schemas.EngagementRead.model_validate(authority_engagement_row)
+        if authority_engagement_row
+        else latest_task_spine[1]
+    )
+    workstream = (
+        schemas.WorkstreamRead.model_validate(authority_workstream_row)
+        if authority_workstream_row
+        else latest_task_spine[2]
+    )
+    current_decision_context = _build_world_decision_context_read(
+        case_world_state=matter_workspace.case_world_state,
+        authority_decision_context=authority_decision_context_row,
+        fallback=latest_task_spine[3],
+    ) or latest_task_spine[3]
     related_task_items = [
         _build_task_list_item_response(task, matter_summary) for task in related_tasks[:8]
     ]
@@ -4764,6 +5575,10 @@ def get_artifact_evidence_workspace(
                 len(linked_evidence),
                 linked_output_count,
                 source_material.ingest_status,
+                source_material.continuity_scope,
+                source_material.participation.participation_task_count
+                if source_material.participation is not None
+                else 0,
             )
             source_material_cards.append(
                 schemas.ArtifactEvidenceMaterialRead(
@@ -4775,6 +5590,22 @@ def get_artifact_evidence_workspace(
                     summary=source_material.summary,
                     role_label=role_label,
                     presence_state=presence_state,
+                    continuity_scope=source_material.continuity_scope,
+                    participation_type=(
+                        source_material.participation.participation_type
+                        if source_material.participation is not None
+                        else None
+                    ),
+                    participation_task_count=(
+                        source_material.participation.participation_task_count
+                        if source_material.participation is not None
+                        else 0
+                    ),
+                    current_task_participation=(
+                        source_material.participation.current_task_participation
+                        if source_material.participation is not None
+                        else source_material.task_id == task.id
+                    ),
                     source_type=source_material.source_type,
                     ingest_status=source_material.ingest_status,
                     support_level=source_material.support_level,
@@ -4810,6 +5641,10 @@ def get_artifact_evidence_workspace(
                 len(linked_evidence),
                 linked_output_count,
                 None,
+                artifact.continuity_scope,
+                artifact.participation.participation_task_count
+                if artifact.participation is not None
+                else 0,
             )
             artifact_cards.append(
                 schemas.ArtifactEvidenceMaterialRead(
@@ -4821,6 +5656,22 @@ def get_artifact_evidence_workspace(
                     summary=artifact.description or artifact.artifact_type,
                     role_label=role_label,
                     presence_state=presence_state,
+                    continuity_scope=artifact.continuity_scope,
+                    participation_type=(
+                        artifact.participation.participation_type
+                        if artifact.participation is not None
+                        else None
+                    ),
+                    participation_task_count=(
+                        artifact.participation.participation_task_count
+                        if artifact.participation is not None
+                        else 0
+                    ),
+                    current_task_participation=(
+                        artifact.participation.current_task_participation
+                        if artifact.participation is not None
+                        else artifact.task_id == task.id
+                    ),
                     source_type=None,
                     ingest_status=None,
                     source_ref=None,
@@ -6511,14 +7362,24 @@ def ensure_case_world_draft_for_task(
             external_research_heavy_candidate,
         ),
     }
-    decision_context_payload = (
-        decision_context.model_dump(mode="json")
-        if decision_context
-        else {
-            "title": task.title,
-            "judgment_to_make": task.description or task.title,
-            "summary": task.description,
-        }
+    canonical_decision_context_payload = None
+    canonical_decision_context_row = None
+    if matter_workspace and matter_workspace.case_world_state:
+        state_payload = matter_workspace.case_world_state.decision_context_payload
+        if isinstance(state_payload, dict):
+            canonical_decision_context_payload = state_payload
+        _, _, _, canonical_decision_context_row = _load_world_authority_spine(
+            db,
+            matter_workspace=matter_workspace,
+            case_world_state=matter_workspace.case_world_state,
+        )
+    if canonical_decision_context_payload is None and existing is not None and isinstance(existing.decision_context_payload, dict):
+        canonical_decision_context_payload = existing.decision_context_payload
+    decision_context_payload = _merge_world_decision_context_payload(
+        canonical_payload=canonical_decision_context_payload,
+        canonical_row=canonical_decision_context_row,
+        overlay=decision_context,
+        task=task,
     )
     suggested_domain_packs = [item.pack_id for item in pack_resolution.selected_domain_packs]
     suggested_industry_packs = [item.pack_id for item in pack_resolution.selected_industry_packs]
@@ -6588,6 +7449,23 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         decision_context=task_decision_context_row,
         case_world_state=matter_workspace.case_world_state,
     )
+    world_client_row, world_engagement_row, world_workstream_row, world_authority_decision_context_row = (
+        _load_world_authority_spine(
+            db,
+            matter_workspace=matter_workspace,
+            case_world_state=case_world_state_row,
+        )
+    )
+    world_decision_context = _build_world_decision_context_read(
+        case_world_state=case_world_state_row,
+        authority_decision_context=world_authority_decision_context_row,
+        fallback=decision_context,
+    )
+    preferred_decision_context = world_decision_context or decision_context
+    slice_decision_context = _build_slice_decision_context_overlay(
+        overlay=decision_context,
+        world=preferred_decision_context,
+    )
     matter_workspace_summary = _build_matter_workspace_summary_map(db, [matter_workspace]).get(
         matter_workspace.id
     )
@@ -6608,7 +7486,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
             recommendations,
             risks,
             action_items,
-            decision_context,
+            preferred_decision_context,
             client,
             engagement,
             workstream,
@@ -6617,7 +7495,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
     input_entry_mode = _infer_input_entry_mode(task, source_materials, artifacts)
     external_research_heavy_candidate = _is_external_research_heavy_candidate(
         task,
-        decision_context,
+        preferred_decision_context,
         source_materials,
         artifacts,
         input_entry_mode,
@@ -6627,7 +7505,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         client,
         engagement,
         workstream,
-        decision_context,
+        preferred_decision_context,
         domain_lenses,
         source_materials,
         artifacts,
@@ -6639,12 +7517,12 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         client,
         engagement,
         workstream,
-        decision_context,
+        preferred_decision_context,
         domain_lenses,
     )
     deliverable_class_hint = _resolve_deliverable_class_hint(
         input_entry_mode,
-        decision_context,
+        preferred_decision_context,
         source_materials,
         artifacts,
         len(_usable_evidence(task)),
@@ -6652,7 +7530,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
     )
     agent_selection = resolve_agent_selection_for_task(
         task,
-        decision_context,
+        preferred_decision_context,
         domain_lenses,
         pack_resolution,
         input_entry_mode,
@@ -6669,7 +7547,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         client=client,
         engagement=engagement,
         workstream=workstream,
-        decision_context=decision_context,
+        decision_context=preferred_decision_context,
         domain_lenses=domain_lenses,
         input_entry_mode=input_entry_mode,
         deliverable_class_hint=deliverable_class_hint,
@@ -6706,6 +7584,23 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         case_world_draft_row = task.case_world_drafts[0] if task.case_world_drafts else case_world_draft_row
         case_world_state_row = matter_workspace.case_world_state
         evidence_gap_rows = list(task.evidence_gaps)
+        world_client_row, world_engagement_row, world_workstream_row, world_authority_decision_context_row = (
+            _load_world_authority_spine(
+                db,
+                matter_workspace=matter_workspace,
+                case_world_state=case_world_state_row,
+            )
+        )
+        world_decision_context = _build_world_decision_context_read(
+            case_world_state=case_world_state_row,
+            authority_decision_context=world_authority_decision_context_row,
+            fallback=decision_context,
+        )
+        preferred_decision_context = world_decision_context or decision_context
+        slice_decision_context = _build_slice_decision_context_overlay(
+            overlay=decision_context,
+            world=preferred_decision_context,
+        )
 
     return schemas.TaskAggregateResponse(
         id=task.id,
@@ -6717,14 +7612,36 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         status=task.status,
         created_at=task.created_at,
         updated_at=task.updated_at,
-        client=client,
-        engagement=engagement,
-        workstream=workstream,
-        decision_context=decision_context,
-        client_stage=decision_context.client_stage if decision_context else client.client_stage if client else None,
-        client_type=decision_context.client_type if decision_context else client.client_type if client else None,
+        client=schemas.ClientRead.model_validate(world_client_row) if world_client_row else client,
+        engagement=(
+            schemas.EngagementRead.model_validate(world_engagement_row)
+            if world_engagement_row
+            else engagement
+        ),
+        workstream=(
+            schemas.WorkstreamRead.model_validate(world_workstream_row)
+            if world_workstream_row
+            else workstream
+        ),
+        decision_context=preferred_decision_context,
+        slice_decision_context=slice_decision_context,
+        world_decision_context=world_decision_context,
+        client_stage=(
+            world_decision_context.client_stage
+            if world_decision_context and world_decision_context.client_stage
+            else decision_context.client_stage if decision_context else client.client_stage if client else None
+        ),
+        client_type=(
+            world_decision_context.client_type
+            if world_decision_context and world_decision_context.client_type
+            else decision_context.client_type if decision_context else client.client_type if client else None
+        ),
         domain_lenses=domain_lenses,
-        assumptions=_extract_assumptions(task),
+        assumptions=(
+            preferred_decision_context.assumptions
+            if preferred_decision_context and preferred_decision_context.assumptions
+            else _extract_assumptions(task)
+        ),
         entry_preset=InputEntryMode(task.entry_preset),
         input_entry_mode=input_entry_mode,
         engagement_continuity_mode=continuity_mode,
@@ -6745,7 +7662,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         subjects=[schemas.SubjectRead.model_validate(item) for item in task.subjects],
         goals=[schemas.GoalRead.model_validate(item) for item in task.goals],
         constraints=[schemas.ConstraintRead.model_validate(item) for item in task.constraints],
-        uploads=[schemas.SourceDocumentRead.model_validate(item) for item in task.uploads],
+        uploads=_build_source_documents(task),
         evidence=evidence,
         insights=[schemas.InsightRead.model_validate(item) for item in task.insights],
         risks=risks,
