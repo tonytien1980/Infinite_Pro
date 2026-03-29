@@ -40,6 +40,7 @@ from app.services.storage_manager import (
     write_text,
 )
 from app.services.tasks import (
+    MAX_INTAKE_MATERIAL_UNITS,
     build_upload_result_item_from_aggregate,
     get_loaded_task,
     prepare_case_world_follow_up_for_task,
@@ -63,6 +64,11 @@ def save_uploads_for_task(
 ) -> schemas.UploadBatchResponse:
     if not files:
         raise HTTPException(status_code=400, detail="至少需要上傳一個檔案。")
+    if len(files) > MAX_INTAKE_MATERIAL_UNITS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"單次最多只能上傳 {MAX_INTAKE_MATERIAL_UNITS} 份檔案；請分批補件。",
+        )
 
     task = get_loaded_task(db, task_id)
     matter_workspace_id = _linked_matter_workspace_id(task)

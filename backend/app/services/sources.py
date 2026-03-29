@@ -42,6 +42,7 @@ from app.services.storage_manager import (
     write_text,
 )
 from app.services.tasks import (
+    MAX_INTAKE_MATERIAL_UNITS,
     build_upload_result_item_from_aggregate,
     get_loaded_task,
     prepare_case_world_follow_up_for_task,
@@ -397,6 +398,12 @@ def ingest_sources_for_task(
     pasted_text = normalize_text(payload.pasted_text)
     if not urls and not pasted_text:
         raise HTTPException(status_code=400, detail="至少需要提供一個網址或一段貼上內容。")
+    material_unit_count = len(urls) + (1 if pasted_text else 0)
+    if material_unit_count > MAX_INTAKE_MATERIAL_UNITS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"單次最多只能補入 {MAX_INTAKE_MATERIAL_UNITS} 份材料；請分批補件。",
+        )
 
     task = get_loaded_task(db, task_id)
     world_update_summary_parts: list[str] = []

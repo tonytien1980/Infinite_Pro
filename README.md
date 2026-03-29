@@ -177,11 +177,11 @@ Two additional runtime governance files now matter for day-to-day development:
 
 ## Canonical intake and case world compilation
 
-Infinite Pro no longer treats `一句話問題`、`單文件進件`、`多材料案件` as three different ontology worlds.
+Infinite Pro no longer treats `一句話起手`、`單材料起手`、`多來源案件` as three different ontology worlds.
 
 The formal rule is:
 
-> **There is one canonical intake pipeline, and the three visible choices on `/new` are only entry presets.**
+> **There is one canonical intake pipeline, and `/new` is now one unified intake surface.**
 
 For the runtime, formal intake always means:
 - a problem statement
@@ -191,6 +191,12 @@ For the runtime, formal intake always means:
   - pasted text
   - structured data
 - follow-up supplements
+
+On the visible product surface, `/new` should now expose one unified intake area:
+- one main question field
+- one shared material area for files, URLs, and pasted text
+- system-inferred intake patterns instead of a manual mode chooser
+- a single-batch limit of 10 material units, with later supplements still allowed on the same matter
 
 Every intake path must first enter the same `case world compilation` stage. Host should then decide:
 - how sparse or dense the current materials are
@@ -365,10 +371,11 @@ The repository currently contains a working early implementation slice within th
 - a formal `Matter / Engagement Workspace` for single-consultant case continuity
 - a formal `Artifact / Evidence Workspace` for source, evidence, support-chain, and gap governance
 - a formal `Deliverable Workspace` for deliverable identity, linkage, limitations, and continuity
-- one canonical intake pipeline on `/new`, currently entered through three presets:
-  - `一句話問題`
-  - `單文件進件`
-  - `多材料案件`
+- one canonical intake pipeline on `/new`, now exposed as one unified intake surface
+- three inferred intake patterns:
+  - `只有一句話`
+  - `一句話 + 1 份材料`
+  - `一句話 + 多份材料`
 - matter-level supplement flow for additional files, URLs, and pasted text
 - source material metadata with support level, ingest strategy, retention, purge state, and availability state
 - formal support for `.md / .txt / .docx / .xlsx / .csv / text-first PDF / URL / 純文字補充`

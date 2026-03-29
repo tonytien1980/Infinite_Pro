@@ -21,11 +21,11 @@
 
 ## 2. 正式 intake 語義
 
-Infinite Pro 不再把 `/new` 的三種可見入口理解成三個不同 ontology worlds。
+Infinite Pro 不再把 `/new` 的三種 intake patterns 理解成三個不同 ontology worlds。
 
 正式規則改為：
 
-> **系統只有一條 canonical intake pipeline，而 `/new` 的三種選項只是 entry presets。**
+> **系統只有一條 canonical intake pipeline，而 `/new` 對使用者可見的應只有一個 unified intake surface。**
 
 ### 2.1 正式 intake 只分三類輸入
 - 問題陳述
@@ -36,16 +36,21 @@ Infinite Pro 不再把 `/new` 的三種可見入口理解成三個不同 ontolog
   - structured data
 - 後續補件
 
-### 2.2 `/new` 的三種 entry presets
-目前 `/new` 仍可保留三種可見入口：
-- `一句話問題`
-- `單文件進件`
-- `多材料案件`
+### 2.2 `/new` 的 unified intake surface 與三種 intake patterns
+目前 `/new` 應只保留一個可見進件入口。
+
+但系統內部仍要能推導三種 intake patterns：
+- `只有一句話`
+- `一句話 + 1 份材料`
+- `一句話 + 多份材料`
 
 但正式語義是：
-- 它們只是不同稀疏度、不同來源量、不同來源型態的 entry presets
+- 它們只是不同稀疏度、不同來源量、不同來源型態的 intake patterns
 - 不可被當成三種不同案件型別
 - 不可讓 ontology、Host orchestration、evidence pipeline、writeback policy 因這三者而分叉
+- 「1 份材料」不只限於文件，應包括檔案、URL、補充文字或其他正式支援的單一材料
+- 「多份材料」可混合檔案、URL、補充文字，並作為同一個案件逐步長成 multi-source case
+- 統一材料區應同時承接 file / URL / pasted text，單次最多 10 份，超過時應要求分批補件
 
 ### 2.3 Case World Compiler 是正式第一站
 任何 intake 都必須先進入：
@@ -66,15 +71,16 @@ Host 必須在這一階段判斷：
 
 ## 3. 正式工作主鏈
 
-所有 entry presets 都必須匯進同一條正式工作主鏈：
+所有 intake patterns 都必須匯進同一條正式工作主鏈：
 
 > `CaseWorldState → Task slices / DecisionContext → Artifact / SourceMaterial → Evidence → Deliverable`
 
 正式規則：
-- 不可把 quick inquiry、single document、multi material 拆成三套 payload 或三套持久化世界
+- 不可把 quick inquiry、single-material start、multi-source case 拆成三套 payload 或三套持久化世界
 - intake 的前半段必須先形成 `case_world_draft`
 - 補件必須先更新既有 `CaseWorldState`，而不是開出新的孤立 intake 分支
 - 來源材料、證據、交付物與發布紀錄都必須保留最小 traceability
+- 同一個案件建立後，後續補件仍應沿用同一條 matter / source material / evidence 主鏈，不可因批次不同而斷裂
 
 在 deeper identity bridge 下：
 - `CaseWorldState` 應逐步成為材料 continuity 的正式 anchor

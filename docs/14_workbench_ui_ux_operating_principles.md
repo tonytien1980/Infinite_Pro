@@ -261,7 +261,7 @@ Infinite Pro 應正式使用以下漸進揭露方式：
 ### 9.4 新增可見規則：canonical intake / continuity / writeback
 
 正式規則：
-- `/new` 第一屏應明確說明「現在只是選 entry preset，背後仍是同一條 canonical intake pipeline」
+- `/new` 第一屏應明確說明「現在只有一個 unified intake surface，背後仍是同一條 canonical intake pipeline」
 - `Task detail` 應可見最小 `case world draft` 摘要，但全量 facts / assumptions / evidence gaps 應預設收合
 - `Matter workspace` 應可見 `engagement_continuity_mode / writeback_depth`，且第一屏 primary action 應隨模式分流：
   `one_off` 偏 closure、`follow_up` 偏 checkpoint、`continuous` 偏 progression / outcome

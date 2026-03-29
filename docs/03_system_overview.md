@@ -194,10 +194,11 @@ Infinite Pro 的工作主體不應只是 task。
 
 在目前單人正式 beta 階段，這個工作面已正式包含：
 - 一條 canonical intake pipeline
-- 三種可見 entry presets：
-  - `一句話問題`
-  - `單文件進件`
-  - `多材料案件`
+- 一個 unified intake surface
+- 三種由系統內部判讀的 intake patterns：
+  - `只有一句話`
+  - `一句話 + 1 份材料`
+  - `一句話 + 多份材料`
 - `Case World Compiler`
 - `CaseWorldState` 的最小正式世界狀態
 - 建立後回到同一條 matter / source material / evidence / deliverable 主鏈

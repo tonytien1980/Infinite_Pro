@@ -1511,11 +1511,11 @@ class HostOrchestrator:
             missing_information.append("目前 DomainLens 仍偏 provisional，這會降低結論的聚焦度。")
 
         if payload.input_entry_mode == InputEntryMode.ONE_LINE_INQUIRY:
-            conclusion_impact.append("目前進件屬於一句話問題，Host 會先建立 provisional working world。")
+            conclusion_impact.append("目前進件屬於一句話起手，Host 會先建立 provisional working world。")
         elif payload.input_entry_mode == InputEntryMode.SINGLE_DOCUMENT_INTAKE:
-            conclusion_impact.append("目前進件屬於單文件 intake，較適合圍繞該 artifact 形成 document-centered judgment。")
+            conclusion_impact.append("目前進件屬於單材料起手，較適合圍繞這份材料形成 material-centered judgment。")
         else:
-            conclusion_impact.append("目前進件屬於多材料案件，可逐步收斂成較完整的決策工作鏈。")
+            conclusion_impact.append("目前進件屬於多來源案件，可逐步收斂成較完整的決策工作鏈。")
 
         if capability_frame.capability == CapabilityArchetype.REVIEW_CHALLENGE and not artifacts:
             missing_information.append("目前尚未提供可審閱的文件或條款 artifact，因此審閱結論只能停留在一般風險提醒。")

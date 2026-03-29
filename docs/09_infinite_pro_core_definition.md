@@ -64,7 +64,8 @@ Infinite Pro 的核心原則是：
 
 7. **canonical intake pipeline**
    - 系統只有一條 canonical intake pipeline
-   - `/new` 上的 `一句話問題 / 單文件進件 / 多材料案件` 只是 entry presets
+   - `/new` 對使用者可見的應只有一個 unified intake surface
+   - `只有一句話 / 一句話 + 1 份材料 / 一句話 + 多份材料` 是系統內部判讀的 intake patterns
    - 任何 intake 都必須先進入 `Case World Compiler`
    - `Case World Compiler` 之後應先形成 / 同步 `CaseWorldState`
    - `Task` 應被理解成 `CaseWorldState` 內的 work slice
@@ -137,7 +138,7 @@ Infinite Pro 的工作世界至少應圍繞以下主鏈理解：
 - Deliverable 不是自由文字的終點
 - Recommendation / Risk / ActionItem 不是獨立散落的欄位
 - 每一段輸出都應儘量能回到 shared objects 與 links
-- `/new` 的一句話問題、單文件進件、多材料案件，都必須匯進這同一條 canonical intake pipeline，而不是三套互不相容的 intake 流程
+- `/new` 的 unified intake surface 不論是只有一句話、單材料起手，或多來源案件，都必須匯進這同一條 canonical intake pipeline，而不是三套互不相容的 intake 流程
 
 在這條主鏈之前，Host 還必須先形成：
 - `CaseWorldDraft`
@@ -293,10 +294,11 @@ Infinite Pro 的工作世界至少應圍繞以下主鏈理解：
 
 ### Intake / Storage 邊界的正式地位
 在目前單人正式 beta 階段，以下能力也應被視為正式 architecture responsibility：
-- 三種 entry presets：
-  - 一句話問題
-  - 單文件進件
-  - 多材料案件
+- 一個 unified intake surface
+- 三種由系統內部推導的 intake patterns：
+  - 只有一句話
+  - 一句話 + 1 份材料
+  - 一句話 + 多份材料
 - one canonical intake pipeline
 - `Case World Compiler`
 - multi-source ingestion

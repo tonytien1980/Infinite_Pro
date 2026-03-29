@@ -12,6 +12,7 @@ import {
   ingestMatterSources,
   uploadMatterFiles,
 } from "@/lib/api";
+import { countIntakeMaterialUnits, MAX_INTAKE_MATERIAL_UNITS } from "@/lib/intake";
 import type { ArtifactEvidenceWorkspace } from "@/lib/types";
 import {
   formatFileSize,
@@ -229,6 +230,19 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
 
     if (files.length === 0 && urls.length === 0 && !pastedText.trim()) {
       setSupplementError("請至少補上一份檔案、一個網址或一段補充文字。");
+      setSubmitting(false);
+      return;
+    }
+
+    const materialUnitCount = countIntakeMaterialUnits({
+      fileCount: files.length,
+      urlCount: urls.length,
+      hasPastedText: Boolean(pastedText.trim()),
+    });
+    if (materialUnitCount > MAX_INTAKE_MATERIAL_UNITS) {
+      setSupplementError(
+        `單次最多只能補 ${MAX_INTAKE_MATERIAL_UNITS} 份材料；請先精簡，或分批補件。`,
+      );
       setSubmitting(false);
       return;
     }
@@ -519,6 +533,9 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                   {submitting ? "補件中..." : "掛接到目前案件"}
                 </button>
               </div>
+              <p className="muted-text">
+                單次最多 {MAX_INTAKE_MATERIAL_UNITS} 份材料；檔案、URL 與補充文字都一起計算。超過時請分批補件。
+              </p>
 
               <DisclosurePanel
                 title="進件規則與保留邊界"

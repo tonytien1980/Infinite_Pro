@@ -4,11 +4,9 @@ import { useRouter } from "next/navigation";
 
 import { TaskCreateForm } from "@/components/task-create-form";
 import type { TaskAggregate } from "@/lib/types";
-import { useWorkbenchSettings } from "@/lib/workbench-store";
 
 export function TaskCreateWorkspace() {
   const router = useRouter();
-  const [settings] = useWorkbenchSettings();
 
   function handleCreated(task: TaskAggregate) {
     if (task.matter_workspace?.id) {
@@ -29,7 +27,7 @@ export function TaskCreateWorkspace() {
         <span className="eyebrow">建立新案件</span>
         <h1 className="page-title">建立新案件</h1>
         <p className="page-subtitle">
-          從一句話問題、單文件進件或多材料案件開始都可以；它們都只是進入同一條案件主鏈的 entry preset。系統會先建立案件世界，再把這輪工作掛成可推進的 task slice，而不是停在孤立任務頁。
+          這裡現在只有一個統一進件入口。你只要先說清楚想釐清的問題，再視需要補檔案、網址或補充文字；系統會自動判讀這次是 sparse inquiry、單材料起手，還是 multi-source case。
         </p>
       </section>
 
@@ -51,9 +49,9 @@ export function TaskCreateWorkspace() {
             </p>
           </div>
           <div className="section-card">
-            <h4>2. 補件或直接先跑</h4>
+            <h4>2. 材料可一次帶進，也可後續分批補</h4>
             <p className="content-block">
-              如果你手上已有檔案、網址或會議摘要，就先補到來源與證據；如果沒有，也可以先產出第一版骨架。
+              同一個材料區可接收檔案、URL 與補充文字；單次最多 10 份，但同一案件後續仍可分批補件。
             </p>
           </div>
           <div className="section-card">
@@ -65,10 +63,7 @@ export function TaskCreateWorkspace() {
         </div>
       </section>
 
-      <TaskCreateForm
-        defaultInputMode={settings.newTaskDefaultInputMode}
-        onCreated={handleCreated}
-      />
+      <TaskCreateForm onCreated={handleCreated} />
     </main>
   );
 }

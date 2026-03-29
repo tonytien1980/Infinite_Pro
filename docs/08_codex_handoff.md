@@ -265,13 +265,13 @@ Codex 應把它理解為已完成的正式交付物工作面，至少承接：
 ### 7.7 正式進件模式與 storage 邊界
 在目前單人正式 beta 範圍內，Codex 應把以下能力視為已成立的正式主鏈，而不是暫時 hack：
 
-- `/new` 承接三種 entry presets：
-  - 一句話問題
-  - 單文件進件
-  - 多材料案件
-- 但從正式語義上，它們都只是同一條 canonical intake pipeline 的不同入口
+- `/new` 現在應只保留一個 unified intake surface
+- 系統內部仍支援三種 intake patterns：
+  - 只有一句話
+  - 一句話 + 1 份材料
+  - 一句話 + 多份材料
 - 所有 intake 都必須先進入 `Case World Compiler`
-- 三種入口都應匯進同一條 `task → matter → source material / artifact → evidence → deliverable` 主鏈
+- 三種 intake patterns 都應匯進同一條 `task → matter → source material / artifact → evidence → deliverable` 主鏈
 - 同一個案件可持續補檔案、網址與補充文字，不可被資料模型限制成單檔心智
 - 正式支援格式應理解為：`.md / .txt / .docx / .xlsx / .csv / text-first PDF / URL / 純文字補充`
 - 有限支援格式應理解為：`.jpg / .jpeg / .png / .webp / 掃描型 PDF`

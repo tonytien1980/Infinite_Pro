@@ -93,16 +93,17 @@
 - 建立後如何產出結果
 
 **Primary action**
-- 建立案件骨架 / 用材料建立案件
+- 建立案件 / 開始正式進件
 
 **Secondary actions**
-- 切換 entry preset
 - 補上可選材料
 - 展開進階設定
 
 **首屏必顯**
 - canonical intake pipeline 說明
-- 當前 entry preset 規則
+- 系統目前判讀出的 intake pattern
+- 單次最多 10 份材料與可分批補件的規則
+- 統一材料區（file / URL / pasted text）
 - continuity strategy / writeback depth（若已展開進階設定）
 - continuity 選擇對後續 workflow 的影響：
   `one_off` 偏正式結案、`follow_up` 偏 checkpoint、`continuous` 偏 progression / outcome

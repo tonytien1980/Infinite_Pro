@@ -177,6 +177,14 @@ def test_task_creation_builds_case_world_draft_and_continuity_policy(client: Tes
         ),
         (
             {
+                "initial_pasted_text": "One pasted intake note should count as a single formal material.",
+                "initial_pasted_title": "Pasted kickoff note",
+            },
+            "single_document_intake",
+            1,
+        ),
+        (
+            {
                 "initial_source_urls": ["https://example.com/report"],
                 "initial_file_descriptors": [
                     {
@@ -188,6 +196,22 @@ def test_task_creation_builds_case_world_draft_and_continuity_policy(client: Tes
             },
             "multi_material_case",
             2,
+        ),
+        (
+            {
+                "initial_source_urls": ["https://example.com/report"],
+                "initial_pasted_text": "A second material can come from pasted text, not just a second file.",
+                "initial_pasted_title": "Mixed note",
+                "initial_file_descriptors": [
+                    {
+                        "file_name": "notes.txt",
+                        "content_type": "text/plain",
+                        "file_size": 120,
+                    }
+                ],
+            },
+            "multi_material_case",
+            3,
         ),
     ],
 )
@@ -209,6 +233,24 @@ def test_task_creation_compiles_world_first_from_initial_material_state(
     assert body["case_world_state"]["canonical_intake_summary"]["planned_material_count"] == expected_count
     assert body["case_world_state"]["latest_task_id"] == body["id"]
     assert body["case_world_state"]["latest_task_title"] == body["title"]
+
+
+def test_task_creation_rejects_more_than_ten_initial_material_units(
+    client: TestClient,
+) -> None:
+    payload = create_task_payload("Too many initial materials")
+    payload.update(
+        {
+            "initial_source_urls": [f"https://example.com/{index}" for index in range(10)],
+            "initial_pasted_text": "This pasted note would become the 11th material unit.",
+            "initial_pasted_title": "Overflow note",
+        }
+    )
+
+    response = client.post("/api/v1/tasks", json=payload)
+
+    assert response.status_code == 400
+    assert "最多只能提交 10 份材料" in response.json()["detail"]
 
 
 def test_task_creation_populates_explicit_ontology_context_spine(client: TestClient) -> None:
@@ -1473,6 +1515,94 @@ def test_source_ingestion_from_url_extracts_text_and_metadata(
     assert ingested["source_document"]["participation"]["mapping_mode"] == "explicit_mapping"
     assert ingested["source_document"]["participation"]["canonical_owner_scope"] == "world_canonical"
     assert ingested["source_document"]["participation"]["compatibility_task_id"] == task["id"]
+
+
+def test_source_ingestion_rejects_more_than_ten_material_units_per_request(
+    client: TestClient,
+) -> None:
+    task = client.post("/api/v1/tasks", json=create_task_payload("Source limit")).json()
+
+    response = client.post(
+        f"/api/v1/tasks/{task['id']}/sources",
+        json={
+            "urls": [f"https://example.com/source-{index}" for index in range(10)],
+            "pasted_text": "This pasted supplement would become the 11th material unit.",
+            "pasted_title": "Overflow source note",
+        },
+    )
+
+    assert response.status_code == 400
+    assert "最多只能補入 10 份材料" in response.json()["detail"]
+
+
+def test_file_upload_rejects_more_than_ten_files_per_request(
+    client: TestClient,
+) -> None:
+    task = client.post("/api/v1/tasks", json=create_task_payload("Upload limit")).json()
+
+    files = [
+        (
+            "files",
+            (f"file-{index}.txt", f"content-{index}".encode("utf-8"), "text/plain"),
+        )
+        for index in range(11)
+    ]
+    response = client.post(f"/api/v1/tasks/{task['id']}/uploads", files=files)
+
+    assert response.status_code == 400
+    assert "最多只能上傳 10 份檔案" in response.json()["detail"]
+
+
+def test_sentence_only_case_supports_batched_material_supplements_on_same_matter(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.services import sources as source_service
+
+    task = client.post("/api/v1/tasks", json=create_task_payload("Batched supplements")).json()
+    matter_id = task["matter_workspace"]["id"]
+
+    monkeypatch.setattr(
+        source_service,
+        "fetch_remote_source",
+        lambda url: RemoteSourceContent(
+            source_type="manual_url",
+            source_url=url,
+            title=f"Source for {url.rsplit('/', 1)[-1]}",
+            content_type="text/html",
+            normalized_text=f"Normalized text for {url}.",
+        ),
+    )
+
+    first_batch = client.post(
+        f"/api/v1/matters/{matter_id}/sources",
+        json={"urls": ["https://example.com/first"]},
+    )
+    assert first_batch.status_code == 200
+
+    second_batch = client.post(
+        f"/api/v1/matters/{matter_id}/uploads",
+        files=[("files", ("follow-up.txt", b"Uploaded follow-up material for the same matter.", "text/plain"))],
+    )
+    assert second_batch.status_code == 200
+
+    third_batch = client.post(
+        f"/api/v1/matters/{matter_id}/sources",
+        json={
+            "urls": ["https://example.com/second"],
+            "pasted_text": "A pasted supplement should join the same matter world instead of opening a new intake branch.",
+            "pasted_title": "Batched pasted note",
+        },
+    )
+    assert third_batch.status_code == 200
+
+    refreshed_task = client.get(f"/api/v1/tasks/{task['id']}").json()
+    source_types = {item["source_type"] for item in refreshed_task["uploads"]}
+
+    assert refreshed_task["matter_workspace"]["id"] == matter_id
+    assert refreshed_task["case_world_state"]["supplement_count"] >= 3
+    assert source_types >= {"manual_url", "manual_input", "manual_upload"}
+    assert len(refreshed_task["source_materials"]) >= 4
 
 
 def test_google_docs_without_permission_returns_explicit_ingestion_issue(

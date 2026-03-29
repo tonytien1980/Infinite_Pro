@@ -85,6 +85,7 @@ OBJECT_TYPE_SOURCE_DOCUMENT = "source_document"
 OBJECT_TYPE_SOURCE_MATERIAL = "source_material"
 OBJECT_TYPE_ARTIFACT = "artifact"
 OBJECT_TYPE_EVIDENCE = "evidence"
+MAX_INTAKE_MATERIAL_UNITS = 10
 PACK_REASON_DOMAIN_MATCHES = {
     "operations_pack": {"營運"},
     "finance_fundraising_pack": {"財務", "募資"},
@@ -2061,9 +2062,9 @@ def resolve_agent_selection_for_task(
     if input_entry_mode == InputEntryMode.ONE_LINE_INQUIRY:
         rationale.append("目前屬於一句話 sparse input，因此 agent selection 會維持較保守的最小集合。")
     elif input_entry_mode == InputEntryMode.SINGLE_DOCUMENT_INTAKE:
-        rationale.append("目前屬於單文件 intake，因此 agent selection 會偏向 document-centered review / synthesis。")
+        rationale.append("目前屬於單材料起手，因此 agent selection 會偏向 material-centered review / synthesis。")
     else:
-        rationale.append("目前屬於多材料案件，因此可啟用較完整的 reasoning 組合。")
+        rationale.append("目前屬於多來源案件，因此可啟用較完整的 reasoning 組合。")
     if external_research_heavy_candidate:
         rationale.append("這輪屬於 external-research-heavy sparse case，因此會優先保留外部研究與不確定性 framing 能力。")
     if deliverable_class_hint == DeliverableClass.EXPLORATORY_BRIEF:
@@ -2287,12 +2288,12 @@ def _build_sparse_input_summary(
             "避免假裝已具備 company-specific certainty。"
         )
     if input_entry_mode == InputEntryMode.ONE_LINE_INQUIRY:
-        return "目前屬於一句話問題進件；Host 會先建立 provisional world，再以 exploratory brief 形成第一輪判斷。"
+        return "目前屬於一句話起手；Host 會先建立 provisional world，再以 exploratory brief 形成第一輪判斷。"
     if input_entry_mode == InputEntryMode.SINGLE_DOCUMENT_INTAKE:
-        return "目前屬於單文件進件；系統可先圍繞該 artifact 形成 assessment / review memo。"
+        return "目前屬於單材料起手；系統可先圍繞這份正式材料形成 assessment / review memo。"
     if deliverable_class_hint == DeliverableClass.DECISION_ACTION_DELIVERABLE:
-        return "目前屬於多材料案件，資料密度已開始接近 decision / action deliverable 所需的工作鏈。"
-    return "目前屬於多材料案件，但仍建議先以 assessment / review memo 收斂關鍵判斷。"
+        return "目前屬於多來源案件，資料密度已開始接近 decision / action deliverable 所需的工作鏈。"
+    return "目前屬於多來源案件，但仍建議先以 assessment / review memo 收斂關鍵判斷。"
 
 
 def _build_decision_context_read_from_row(
@@ -2845,6 +2846,17 @@ def _build_initial_material_snapshot(payload: schemas.TaskCreateRequest) -> Init
         file_count=len(payload.initial_file_descriptors),
         pasted_text_present=bool(_normalize_whitespace(payload.initial_pasted_text)),
     )
+
+
+def _validate_material_unit_limit(total_count: int) -> None:
+    if total_count > MAX_INTAKE_MATERIAL_UNITS:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"單次最多只能提交 {MAX_INTAKE_MATERIAL_UNITS} 份材料；"
+                "請先精簡這批進件，或建立案件後再分批補件。"
+            ),
+        )
 
 
 def _build_provisional_task_for_case_world_seed(
@@ -5595,6 +5607,7 @@ def create_task(db: Session, payload: schemas.TaskCreateRequest) -> models.Task:
         payload.task_type,
         payload.mode.value,
     )
+    _validate_material_unit_limit(_build_initial_material_snapshot(payload).total_count)
     compiled_seed = compile_case_world_seed_from_payload(payload)
     matter_workspace, _ = ensure_matter_workspace_for_seed(
         db,

@@ -501,7 +501,7 @@ If a change touches orchestration, ontology, or context modeling, test both:
 
 If a change touches intake semantics, verify:
 - one-line inquiry still enters the same canonical intake pipeline
-- single-document and multi-material entry remain entry presets rather than different ontology worlds
+- single-material and multi-source starts remain inferred intake patterns rather than different ontology worlds
 
 If a change touches continuity / writeback behavior, test at least:
 - `one_off` minimal traceability
