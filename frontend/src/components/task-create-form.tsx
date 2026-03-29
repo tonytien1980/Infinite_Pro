@@ -103,17 +103,17 @@ const CONTINUITY_MODE_OPTIONS: Array<{
   {
     value: "one_off",
     label: "單次案件",
-    description: "只保留最小 history、evidence basis 與 deliverable lineage，不強迫持續追蹤。",
+    description: "適合正式結案型案件：保留最小 history、evidence basis 與 deliverable lineage，不強迫持續追蹤。",
   },
   {
     value: "follow_up",
     label: "可追蹤 follow-up",
-    description: "保留 decision checkpoints，適合之後還會補件、改版或再看一次的案件。",
+    description: "適合輕量後續案件：保留 decision checkpoints 與 milestone 更新，但不要求完整 action-outcome loop。",
   },
   {
     value: "continuous",
     label: "持續追蹤案件",
-    description: "會保留 decision -> action -> outcome 的長期寫回痕跡，適合長期持續推進的案件。",
+    description: "適合長期推進案件：才會保留較完整的 decision -> action -> outcome 寫回痕跡。",
   },
 ];
 
@@ -125,17 +125,17 @@ const WRITEBACK_DEPTH_OPTIONS: Array<{
   {
     value: "minimal",
     label: "最小寫回",
-    description: "保留 history、evidence basis 與 deliverable lineage。",
+    description: "保留 history、evidence basis 與 deliverable lineage，適合 one_off 正式結案。",
   },
   {
     value: "milestone",
     label: "里程碑寫回",
-    description: "在最小寫回上再保留 decision checkpoints 與 milestone 節點。",
+    description: "在最小寫回上再保留 decision checkpoints 與 milestone 節點，適合 follow_up。",
   },
   {
     value: "full",
     label: "完整閉環寫回",
-    description: "會追蹤 decision、action execution 與 outcome records，適合長期案件。",
+    description: "會追蹤 decision、action execution 與 outcome records，適合 continuous。",
   },
 ];
 

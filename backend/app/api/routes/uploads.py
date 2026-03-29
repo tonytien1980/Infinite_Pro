@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.domain import schemas
 from app.services.sources import ingest_sources_for_task
+from app.services.tasks import ensure_task_allows_continuation_activity, get_loaded_task
 from app.services.uploads import save_uploads_for_task
 
 router = APIRouter(prefix="/tasks", tags=["uploads"])
@@ -17,6 +18,7 @@ def upload_task_files(
     files: list[UploadFile] = File(...),
     db: Session = Depends(get_db),
 ) -> schemas.UploadBatchResponse:
+    ensure_task_allows_continuation_activity(get_loaded_task(db, task_id))
     return save_uploads_for_task(db=db, task_id=task_id, files=files)
 
 
@@ -26,4 +28,5 @@ def ingest_task_sources(
     payload: schemas.SourceIngestRequest,
     db: Session = Depends(get_db),
 ) -> schemas.SourceIngestBatchResponse:
+    ensure_task_allows_continuation_activity(get_loaded_task(db, task_id))
     return ingest_sources_for_task(db=db, task_id=task_id, payload=payload)

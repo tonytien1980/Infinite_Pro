@@ -507,6 +507,7 @@ If a change touches continuity / writeback behavior, test at least:
 - `one_off` minimal traceability
 - `follow_up` milestone checkpoint behavior
 - `continuous` decision -> action -> outcome writeback visibility
+- one_off closure / reopen semantics and continuation-aware primary actions on matter / task / deliverable surfaces
 
 If a change affects workbench structure, validate:
 - main work surface readability

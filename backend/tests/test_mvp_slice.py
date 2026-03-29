@@ -161,6 +161,7 @@ def test_task_creation_builds_case_world_draft_and_continuity_policy(client: Tes
     assert "work slice" in body["world_work_slice_summary"]
     assert body["matter_workspace"]["engagement_continuity_mode"] == "follow_up"
     assert body["matter_workspace"]["writeback_depth"] == "milestone"
+    assert body["continuation_surface"]["workflow_layer"] == "checkpoint"
 
 
 @pytest.mark.parametrize(
@@ -2230,6 +2231,130 @@ def test_continuous_writeback_creates_decision_and_outcome_records(
     second_aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
     assert len(second_aggregate["decision_records"]) >= 2
     assert len(second_aggregate["outcome_records"]) >= 1
+
+
+def test_one_off_case_can_close_and_reopen_without_continuous_records(
+    client: TestClient,
+) -> None:
+    task = client.post("/api/v1/tasks", json=create_task_payload("One-off closure")).json()
+    matter_id = task["matter_workspace"]["id"]
+
+    upload_response = client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("closure.txt", b"One-off cases should support formal closure and reopen.", "text/plain"))],
+    )
+    assert upload_response.status_code == 200
+
+    run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
+    assert run_response.status_code == 200
+
+    close_response = client.post(
+        f"/api/v1/matters/{matter_id}/continuation",
+        json={"action": "close"},
+    )
+    assert close_response.status_code == 200
+    closed_workspace = close_response.json()
+    assert closed_workspace["summary"]["status"] == "closed"
+    assert closed_workspace["continuation_surface"]["current_state"] == "closed"
+    assert closed_workspace["outcome_records"] == []
+
+    blocked_run = client.post(f"/api/v1/tasks/{task['id']}/run")
+    assert blocked_run.status_code == 409
+    assert "重新開啟" in blocked_run.json()["detail"]
+
+    reopen_response = client.post(
+        f"/api/v1/matters/{matter_id}/continuation",
+        json={"action": "reopen"},
+    )
+    assert reopen_response.status_code == 200
+    reopened_workspace = reopen_response.json()
+    assert reopened_workspace["summary"]["status"] == "active"
+    assert reopened_workspace["continuation_surface"]["can_reopen"] is False
+
+    matter_follow_up = client.post(
+        f"/api/v1/matters/{matter_id}/sources",
+        json={
+            "urls": [],
+            "pasted_text": "Reopened one-off matter with one additional note.",
+            "pasted_title": "Reopen note",
+        },
+    )
+    assert matter_follow_up.status_code == 200
+
+
+def test_follow_up_checkpoint_action_creates_lightweight_decision_record(
+    client: TestClient,
+) -> None:
+    payload = create_task_payload("Follow-up checkpoint")
+    payload["engagement_continuity_mode"] = "follow_up"
+    payload["writeback_depth"] = "milestone"
+    task = client.post("/api/v1/tasks", json=payload).json()
+    matter_id = task["matter_workspace"]["id"]
+
+    upload_response = client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("checkpoint.txt", b"Checkpoint cases should keep milestone writeback without full outcome loops.", "text/plain"))],
+    )
+    assert upload_response.status_code == 200
+    run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
+    assert run_response.status_code == 200
+
+    before_workspace = client.get(f"/api/v1/matters/{matter_id}").json()
+    before_decision_count = len(before_workspace["decision_records"])
+    assert before_workspace["continuation_surface"]["workflow_layer"] == "checkpoint"
+
+    checkpoint_response = client.post(
+        f"/api/v1/matters/{matter_id}/continuation",
+        json={
+            "action": "checkpoint",
+            "summary": "Checkpoint：這輪只更新 milestone decision summary，不需要完整 outcome loop。",
+        },
+    )
+    assert checkpoint_response.status_code == 200
+    workspace = checkpoint_response.json()
+    assert len(workspace["decision_records"]) == before_decision_count + 1
+    assert workspace["outcome_records"] == []
+    assert workspace["continuation_surface"]["checkpoint_enabled"] is True
+    assert workspace["continuation_surface"]["outcome_logging_enabled"] is False
+
+
+def test_continuous_manual_outcome_logging_updates_progression_surface(
+    client: TestClient,
+) -> None:
+    payload = create_task_payload("Continuous manual outcome")
+    payload["external_data_strategy"] = "strict"
+    payload["engagement_continuity_mode"] = "continuous"
+    payload["writeback_depth"] = "full"
+    task = client.post("/api/v1/tasks", json=payload).json()
+    matter_id = task["matter_workspace"]["id"]
+
+    upload_response = client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("progress.txt", b"Continuous cases should support progression and manual outcome logging.", "text/plain"))],
+    )
+    assert upload_response.status_code == 200
+    run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
+    assert run_response.status_code == 200
+
+    workspace_before = client.get(f"/api/v1/matters/{matter_id}").json()
+    before_outcomes = len(workspace_before["outcome_records"])
+    assert workspace_before["continuation_surface"]["workflow_layer"] == "progression"
+
+    outcome_response = client.post(
+        f"/api/v1/matters/{matter_id}/continuation",
+        json={
+            "action": "record_outcome",
+            "summary": "第一輪建議已開始執行，但目前卡在跨部門 handoff。",
+            "note": "需要回到 deliverable 調整下一步與 owner hint。",
+            "action_status": "blocked",
+        },
+    )
+    assert outcome_response.status_code == 200
+    workspace_after = outcome_response.json()
+    assert len(workspace_after["outcome_records"]) == before_outcomes + 1
+    assert workspace_after["outcome_records"][0]["signal_type"] == "manual_outcome_log"
+    assert "跨部門 handoff" in workspace_after["outcome_records"][0]["summary"]
+    assert any(item["status"] == "blocked" for item in workspace_after["action_executions"])
 
 
 def test_matter_follow_up_sources_update_world_first(client: TestClient) -> None:

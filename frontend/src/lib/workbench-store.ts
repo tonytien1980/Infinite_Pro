@@ -19,7 +19,7 @@ export type {
   WorkbenchSettings,
 } from "@/lib/types";
 
-export type MatterLifecycleStatus = "active" | "paused" | "archived";
+export type MatterLifecycleStatus = "active" | "paused" | "closed" | "archived";
 export type DeliverableLifecycleStatus =
   | "draft"
   | "pending_confirmation"

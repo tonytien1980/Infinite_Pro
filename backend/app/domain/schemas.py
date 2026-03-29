@@ -79,7 +79,7 @@ class TaskExtensionOverrideRequest(BaseModel):
 class MatterWorkspaceMetadataUpdateRequest(BaseModel):
     title: str = Field(min_length=1, max_length=255)
     summary: str = ""
-    status: Literal["active", "paused", "archived"]
+    status: Literal["active", "paused", "closed", "archived"]
 
 
 class MatterWorkspaceContentSectionsRequest(BaseModel):
@@ -92,10 +92,17 @@ class MatterWorkspaceContentSectionsRequest(BaseModel):
 class MatterWorkspaceUpdateRequest(BaseModel):
     title: str = Field(min_length=1, max_length=255)
     summary: str = ""
-    status: Literal["active", "paused", "archived"]
+    status: Literal["active", "paused", "closed", "archived"]
     content_sections: MatterWorkspaceContentSectionsRequest = Field(
         default_factory=MatterWorkspaceContentSectionsRequest
     )
+
+
+class MatterContinuationActionRequest(BaseModel):
+    action: Literal["close", "reopen", "checkpoint", "record_outcome"]
+    summary: str = ""
+    note: str = ""
+    action_status: Literal["planned", "in_progress", "blocked", "completed", "review_required"] | None = None
 
 
 class DeliverableMetadataUpdateRequest(BaseModel):
@@ -810,6 +817,27 @@ class OutcomeRecordRead(ORMModel):
     created_at: datetime
 
 
+class ContinuationActionRead(BaseModel):
+    action_id: str
+    label: str
+    description: str
+
+
+class ContinuationSurfaceRead(BaseModel):
+    workflow_layer: Literal["closure", "checkpoint", "progression"]
+    mode: EngagementContinuityMode
+    writeback_depth: WritebackDepth
+    current_state: str
+    title: str
+    summary: str
+    primary_action: ContinuationActionRead | None = None
+    secondary_actions: list[ContinuationActionRead] = Field(default_factory=list)
+    closure_ready: bool = False
+    can_reopen: bool = False
+    checkpoint_enabled: bool = False
+    outcome_logging_enabled: bool = False
+
+
 class MatterWorkspaceSummaryRead(BaseModel):
     id: str
     title: str
@@ -953,6 +981,7 @@ class MatterWorkspaceResponse(BaseModel):
     outcome_records: list[OutcomeRecordRead] = Field(default_factory=list)
     readiness_hint: str = ""
     continuity_notes: list[str] = Field(default_factory=list)
+    continuation_surface: ContinuationSurfaceRead | None = None
 
 
 class ArtifactEvidenceMaterialRead(BaseModel):
@@ -1085,6 +1114,7 @@ class TaskAggregateResponse(BaseModel):
     action_executions: list[ActionExecutionRead] = Field(default_factory=list)
     outcome_records: list[OutcomeRecordRead] = Field(default_factory=list)
     matter_workspace: MatterWorkspaceSummaryRead | None = None
+    continuation_surface: ContinuationSurfaceRead | None = None
 
 
 class DeliverableWorkspaceResponse(BaseModel):
@@ -1111,6 +1141,7 @@ class DeliverableWorkspaceResponse(BaseModel):
     outcome_records: list[OutcomeRecordRead] = Field(default_factory=list)
     research_runs: list[ResearchRunRead] = Field(default_factory=list)
     continuity_notes: list[str] = Field(default_factory=list)
+    continuation_surface: ContinuationSurfaceRead | None = None
     content_sections: DeliverableContentSectionsRead = Field(
         default_factory=DeliverableContentSectionsRead
     )

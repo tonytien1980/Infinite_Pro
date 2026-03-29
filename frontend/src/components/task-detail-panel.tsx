@@ -59,6 +59,24 @@ import {
 import { WorkspaceSectionGuide } from "@/components/workspace-section-guide";
 
 function buildRunMeta(task: TaskAggregate) {
+  if (task.continuation_surface?.workflow_layer === "checkpoint") {
+    return {
+      title: "更新這輪 follow-up 分析",
+      copy:
+        "這筆工作屬於輕量 follow-up / checkpoint 鏈。先刷新這輪判斷，再決定要不要把 milestone checkpoint 寫回案件世界。",
+      buttonIdle: "執行 follow-up 分析",
+      buttonRunning: "follow-up 分析執行中...",
+    };
+  }
+  if (task.continuation_surface?.workflow_layer === "progression") {
+    return {
+      title: "刷新這輪持續推進分析",
+      copy:
+        "這筆工作屬於 continuous progression 鏈。先刷新判斷與交付結果，再回到案件工作面記錄進度與 outcome。",
+      buttonIdle: "執行持續推進分析",
+      buttonRunning: "持續推進分析執行中...",
+    };
+  }
   return {
     title: "啟動這輪分析",
     copy:
@@ -378,6 +396,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
   const taskFraming = task && readiness ? buildTaskFraming(task, readiness) : null;
   const executiveSummary = task ? buildExecutiveSummary(task, latestDeliverable) : null;
   const runMeta = task ? buildRunMeta(task) : null;
+  const continuationSurface = task?.continuation_surface ?? null;
   const successCriteria = task ? getGoalSuccessCriteria(task.goals) : [];
   const latestContext = task?.contexts[0];
   const workflowKey = task ? resolveWorkflowKey(task.task_type, task.mode) : null;
@@ -488,12 +507,20 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
     task && task.evidence.length < 2 && task.source_materials.length < 2,
   );
   const taskActionTitle = latestDeliverable
-    ? "這筆工作已有可回看的正式交付物"
+    ? continuationSurface?.workflow_layer === "checkpoint"
+      ? "這筆工作屬於 follow-up checkpoint 鏈"
+      : continuationSurface?.workflow_layer === "progression"
+        ? "這筆工作屬於持續推進鏈"
+        : "這筆工作已有可回看的正式交付物"
     : hasThinTaskEvidence
       ? "先補資料，或直接先跑第一版"
       : "這筆工作可以直接執行分析";
   const taskActionSummary = latestDeliverable
-    ? "你現在可以直接打開交付物工作面，也可以先回看來源 / 證據與執行框架，再決定要不要重跑。"
+    ? continuationSurface?.workflow_layer === "checkpoint"
+      ? "你現在可以回看最新交付物、補件後重跑，或回到案件工作面把這輪結果寫成 checkpoint。"
+      : continuationSurface?.workflow_layer === "progression"
+        ? "你現在可以回看最新交付物、補件後重跑，或回到案件工作面記錄 outcome / progression。"
+        : "你現在可以直接打開交付物工作面，也可以先回看來源 / 證據與執行框架，再決定要不要重跑。"
     : hasThinTaskEvidence
       ? "目前資料仍偏薄，但不用卡住。你可以先補來源與證據，或直接讓 Host 先產出一版可回看的工作成果。"
       : "這筆工作已具備基本資料厚度，現在最有效率的做法是直接執行分析，再回到交付物工作面整理版本。";
@@ -503,7 +530,11 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
       ? "如果你手上有文件、網址或摘要，先補到來源 / 證據工作面；如果沒有，也可以直接先跑第一版。"
       : "目前資料已達基本可運作狀態，執行分析會比繼續空看頁面更有幫助。",
     latestDeliverable
-      ? `最新結果已整理成「${latestDeliverable.title}」，可以直接進入正式交付物工作面。`
+      ? continuationSurface?.workflow_layer === "checkpoint"
+        ? `最新結果已整理成「${latestDeliverable.title}」，接下來更像是 checkpoint 更新，不是完整 continuous loop。`
+        : continuationSurface?.workflow_layer === "progression"
+          ? `最新結果已整理成「${latestDeliverable.title}」，接下來可回案件工作面補記 progression / outcome。`
+          : `最新結果已整理成「${latestDeliverable.title}」，可以直接進入正式交付物工作面。`
       : "真正會產出結果的是這頁的執行分析，不是只停在閱讀摘要。",
   ];
   const taskSectionGuideItems = task

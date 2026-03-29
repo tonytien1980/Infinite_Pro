@@ -332,6 +332,9 @@ Infinite Pro 現在正式支援：
 - `follow_up` 允許 decision checkpoints 與 milestone-level writeback
 - `continuous` 才要求 decision -> action -> outcome 的持續閉環
 - research 與 follow-up 補件都必須回到同一個 case world，而不是浮在外面
+- `one_off` 應有正式 closure / reopen 語義，而不是被 continuous UX 汙染
+- `follow_up` 應有輕量 checkpoint / milestone 更新語義，而不是被迫進入完整 action-outcome tracking
+- `continuous` 才應顯示較完整的 progression / outcome logging surface
 
 ### Persistence / Release Integrity 的正式地位
 在目前單人正式 beta 階段，以下也應被視為正式 architecture responsibility：

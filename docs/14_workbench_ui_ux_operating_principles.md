@@ -263,9 +263,10 @@ Infinite Pro 應正式使用以下漸進揭露方式：
 正式規則：
 - `/new` 第一屏應明確說明「現在只是選 entry preset，背後仍是同一條 canonical intake pipeline」
 - `Task detail` 應可見最小 `case world draft` 摘要，但全量 facts / assumptions / evidence gaps 應預設收合
-- `Matter workspace` 應可見 `engagement_continuity_mode / writeback_depth`，但不應把所有 writeback records 攤成主頁主線
+- `Matter workspace` 應可見 `engagement_continuity_mode / writeback_depth`，且第一屏 primary action 應隨模式分流：
+  `one_off` 偏 closure、`follow_up` 偏 checkpoint、`continuous` 偏 progression / outcome
 - `Artifact / Evidence workspace` 應可見 research provenance 與 evidence gaps，但不應退回 debug dashboard
-- `Deliverable workspace` 應可見這份交付物如何被寫回案件世界，但 writeback 細節應維持按需展開
+- `Deliverable workspace` 應可見這份交付物如何被寫回案件世界，以及它目前更接近 closure、checkpoint 或 progression，但 writeback 細節應維持按需展開
 
 ### 9.3 長列表與歷史區塊規則
 
