@@ -334,6 +334,8 @@ Infinite Pro 現在正式支援：
 - research 與 follow-up 補件都必須回到同一個 case world，而不是浮在外面
 - `one_off` 應有正式 closure / reopen 語義，而不是被 continuous UX 汙染
 - `follow_up` 應有輕量 checkpoint / milestone 更新語義，而不是被迫進入完整 action-outcome tracking
+- `follow_up` 應讓顧問看得出上一個 checkpoint、最新更新、這次差異與下一步建議
+- `follow_up` 應讓 recommendation / risk / action continuity 可見，但仍維持輕量 lane，而不是長期 CRM timeline
 - `continuous` 才應顯示較完整的 progression / outcome logging surface
 
 ### Persistence / Release Integrity 的正式地位

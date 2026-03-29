@@ -823,6 +823,35 @@ class ContinuationActionRead(BaseModel):
     description: str
 
 
+class CheckpointSnapshotRead(BaseModel):
+    record_id: str | None = None
+    task_id: str | None = None
+    task_title: str = ""
+    deliverable_id: str | None = None
+    deliverable_title: str | None = None
+    summary: str = ""
+    created_at: datetime | None = None
+
+
+class ContinuationChangeItemRead(BaseModel):
+    kind: Literal["recommendation", "risk", "action_item"]
+    title: str
+    change_type: str
+    summary: str
+
+
+class FollowUpLaneRead(BaseModel):
+    latest_update: CheckpointSnapshotRead | None = None
+    previous_checkpoint: CheckpointSnapshotRead | None = None
+    recent_checkpoints: list[CheckpointSnapshotRead] = Field(default_factory=list)
+    what_changed: list[str] = Field(default_factory=list)
+    recommendation_changes: list[ContinuationChangeItemRead] = Field(default_factory=list)
+    risk_changes: list[ContinuationChangeItemRead] = Field(default_factory=list)
+    action_changes: list[ContinuationChangeItemRead] = Field(default_factory=list)
+    next_follow_up_actions: list[str] = Field(default_factory=list)
+    evidence_update_goal: str = ""
+
+
 class ContinuationSurfaceRead(BaseModel):
     workflow_layer: Literal["closure", "checkpoint", "progression"]
     mode: EngagementContinuityMode
@@ -836,6 +865,7 @@ class ContinuationSurfaceRead(BaseModel):
     can_reopen: bool = False
     checkpoint_enabled: bool = False
     outcome_logging_enabled: bool = False
+    follow_up_lane: FollowUpLaneRead | None = None
 
 
 class MatterWorkspaceSummaryRead(BaseModel):
@@ -1046,6 +1076,7 @@ class ArtifactEvidenceWorkspaceResponse(BaseModel):
     engagement: EngagementRead | None = None
     workstream: WorkstreamRead | None = None
     current_decision_context: DecisionContextRead | None = None
+    continuation_surface: ContinuationSurfaceRead | None = None
     related_tasks: list[TaskListItemResponse] = Field(default_factory=list)
     artifact_cards: list[ArtifactEvidenceMaterialRead] = Field(default_factory=list)
     source_material_cards: list[ArtifactEvidenceMaterialRead] = Field(default_factory=list)

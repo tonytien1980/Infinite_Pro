@@ -4139,6 +4139,323 @@ def _build_continuation_action(
     )
 
 
+def _continuation_compare_key(value: str | None) -> str:
+    normalized = _normalize_whitespace(value)
+    return re.sub(r"[\s\-_/]+", "", normalized).lower()
+
+
+def _build_checkpoint_snapshot_read(
+    *,
+    decision_record: models.DecisionRecord | None = None,
+    task: models.Task | None = None,
+    deliverable: models.Deliverable | None = None,
+) -> schemas.CheckpointSnapshotRead | None:
+    if decision_record is None and task is None and deliverable is None:
+        return None
+
+    if decision_record is not None:
+        deliverable_row = deliverable
+        if deliverable_row is None and decision_record.deliverable_id:
+            deliverable_row = decision_record.deliverable
+        task_title = task.title if task is not None else decision_record.task.title if decision_record.task else ""
+        return schemas.CheckpointSnapshotRead(
+            record_id=decision_record.id,
+            task_id=decision_record.task_id,
+            task_title=task_title,
+            deliverable_id=decision_record.deliverable_id,
+            deliverable_title=deliverable_row.title if deliverable_row is not None else None,
+            summary=_normalize_whitespace(decision_record.decision_summary or decision_record.title),
+            created_at=decision_record.created_at,
+        )
+
+    latest_deliverable = deliverable or (_latest_deliverable(task) if task is not None else None)
+    if task is None:
+        return None
+    return schemas.CheckpointSnapshotRead(
+        record_id=None,
+        task_id=task.id,
+        task_title=task.title,
+        deliverable_id=latest_deliverable.id if latest_deliverable is not None else None,
+        deliverable_title=latest_deliverable.title if latest_deliverable is not None else None,
+        summary=_normalize_whitespace(
+            _resolve_deliverable_summary_text(latest_deliverable)
+            if latest_deliverable is not None
+            else task.description or task.title
+        ),
+        created_at=latest_deliverable.generated_at if latest_deliverable is not None else task.updated_at,
+    )
+
+
+def _recommendation_continuity_map(task: models.Task) -> dict[str, str]:
+    result: dict[str, str] = {}
+    for item in task.recommendations:
+        key = _continuation_compare_key(item.summary)
+        if key and key not in result:
+            result[key] = _normalize_whitespace(item.summary)
+    return result
+
+
+def _risk_continuity_map(task: models.Task) -> dict[str, str]:
+    result: dict[str, str] = {}
+    for item in task.risks:
+        title = _normalize_whitespace(item.title or item.description)
+        key = _continuation_compare_key(title)
+        if key and key not in result:
+            result[key] = title
+    return result
+
+
+def _action_continuity_map(task: models.Task) -> dict[str, tuple[str, str]]:
+    result: dict[str, tuple[str, str]] = {}
+    for item in task.action_items:
+        title = _normalize_whitespace(item.description)
+        key = _continuation_compare_key(title)
+        if key and key not in result:
+            result[key] = (title, item.status)
+    return result
+
+
+def _build_follow_up_change_items_for_strings(
+    *,
+    kind: str,
+    current_map: dict[str, str],
+    previous_map: dict[str, str],
+) -> list[schemas.ContinuationChangeItemRead]:
+    items: list[schemas.ContinuationChangeItemRead] = []
+    for key, title in current_map.items():
+        if key in previous_map:
+            items.append(
+                schemas.ContinuationChangeItemRead(
+                    kind=kind,
+                    title=title,
+                    change_type="still_open",
+                    summary="這項內容延續自上一輪，仍是這次 follow-up 需要保留的重點。",
+                )
+            )
+        else:
+            items.append(
+                schemas.ContinuationChangeItemRead(
+                    kind=kind,
+                    title=title,
+                    change_type="new",
+                    summary="這項內容是這輪 follow-up 新增或重新浮出的更新重點。",
+                )
+            )
+    for key, title in previous_map.items():
+        if key in current_map:
+            continue
+        items.append(
+            schemas.ContinuationChangeItemRead(
+                kind=kind,
+                title=title,
+                change_type="resolved",
+                summary="這項內容在上一輪曾被明確保留，但這輪已不再列為主要 follow-up 重點。",
+            )
+        )
+    return items[:6]
+
+
+def _build_follow_up_action_change_items(
+    *,
+    current_map: dict[str, tuple[str, str]],
+    previous_map: dict[str, tuple[str, str]],
+) -> list[schemas.ContinuationChangeItemRead]:
+    items: list[schemas.ContinuationChangeItemRead] = []
+    for key, (title, status) in current_map.items():
+        previous = previous_map.get(key)
+        if previous is None:
+            items.append(
+                schemas.ContinuationChangeItemRead(
+                    kind="action_item",
+                    title=title,
+                    change_type="new",
+                    summary=f"這項 action item 是本輪新增的後續工作；目前狀態為「{status}」。",
+                )
+            )
+            continue
+        _, previous_status = previous
+        if status == previous_status:
+            change_type = "resolved" if status == "completed" else "still_open"
+            summary = (
+                "這項 action item 已在這輪標記完成。"
+                if status == "completed"
+                else f"這項 action item 延續自上一輪；目前狀態仍為「{status}」。"
+            )
+        else:
+            change_type = "updated"
+            summary = f"這項 action item 從上一輪的「{previous_status}」更新為「{status}」。"
+        items.append(
+            schemas.ContinuationChangeItemRead(
+                kind="action_item",
+                title=title,
+                change_type=change_type,
+                summary=summary,
+            )
+        )
+    for key, (title, previous_status) in previous_map.items():
+        if key in current_map:
+            continue
+        items.append(
+            schemas.ContinuationChangeItemRead(
+                kind="action_item",
+                title=title,
+                change_type="resolved",
+                summary=f"這項 action item 在上一輪仍被追蹤（狀態：{previous_status}），但這輪已未再列為主要 follow-up 行動。",
+            )
+        )
+    return items[:6]
+
+
+def _follow_up_change_counts(
+    items: list[schemas.ContinuationChangeItemRead],
+    change_type: str,
+) -> int:
+    return sum(1 for item in items if item.change_type == change_type)
+
+
+def _build_follow_up_what_changed(
+    *,
+    recommendation_changes: list[schemas.ContinuationChangeItemRead],
+    risk_changes: list[schemas.ContinuationChangeItemRead],
+    action_changes: list[schemas.ContinuationChangeItemRead],
+) -> list[str]:
+    summary: list[str] = []
+    if _follow_up_change_counts(recommendation_changes, "new") > 0:
+        summary.append(
+            f"這輪有 {_follow_up_change_counts(recommendation_changes, 'new')} 項建議被新增或重新浮出。"
+        )
+    if _follow_up_change_counts(risk_changes, "resolved") > 0:
+        summary.append(
+            f"這輪有 {_follow_up_change_counts(risk_changes, 'resolved')} 項風險未再列為主要 follow-up 風險。"
+        )
+    if _follow_up_change_counts(action_changes, "updated") > 0:
+        summary.append(
+            f"這輪有 {_follow_up_change_counts(action_changes, 'updated')} 項 action item 的狀態發生變化。"
+        )
+    if _follow_up_change_counts(action_changes, "resolved") > 0:
+        summary.append(
+            f"這輪有 {_follow_up_change_counts(action_changes, 'resolved')} 項 action item 已完成或已不再是主要後續工作。"
+        )
+    if not summary:
+        summary.append("這輪 follow-up 主要是在延續既有 checkpoint，補強證據與重述下一步。")
+    return summary[:4]
+
+
+def _build_follow_up_evidence_update_goal(
+    *,
+    recommendation_changes: list[schemas.ContinuationChangeItemRead],
+    risk_changes: list[schemas.ContinuationChangeItemRead],
+    action_changes: list[schemas.ContinuationChangeItemRead],
+    latest_update: schemas.CheckpointSnapshotRead | None,
+) -> str:
+    if action_changes:
+        return "這次補件主要是為了確認哪些 action item 仍在延續、哪些已完成、哪些需要重開。"
+    if risk_changes:
+        return "這次補件主要是為了確認哪些風險仍成立、哪些已降低、哪些需要重新提升注意力。"
+    if recommendation_changes:
+        return "這次補件主要是為了確認哪些建議仍有效、哪些需要修正或新增。"
+    if latest_update and latest_update.summary:
+        preview = latest_update.summary
+        if len(preview) > 90:
+            preview = f"{preview[:90].rstrip()}..."
+        return f"這次補件主要是為了補強最近 checkpoint：{preview}"
+    return "這次補件主要是為了補強最新 follow-up 更新的判斷基礎。"
+
+
+def _is_follow_up_checkpoint_record(record: models.DecisionRecord) -> bool:
+    normalized_title = _normalize_whitespace(record.title).lower()
+    return normalized_title.endswith("｜checkpoint") or normalized_title.endswith("|checkpoint")
+
+
+def _build_follow_up_lane(
+    *,
+    ordered_tasks: list[models.Task],
+    current_task_id: str,
+    next_follow_up_actions: list[str],
+) -> schemas.FollowUpLaneRead | None:
+    if not ordered_tasks:
+        return None
+
+    current_task = next((item for item in ordered_tasks if item.id == current_task_id), ordered_tasks[0])
+    comparison_tasks = [current_task, *[item for item in ordered_tasks if item.id != current_task.id]]
+    previous_task = comparison_tasks[1] if len(comparison_tasks) > 1 else None
+
+    decision_record_rows = sorted(
+        [record for task in comparison_tasks for record in task.decision_records],
+        key=lambda item: item.created_at,
+        reverse=True,
+    )
+    checkpoint_record_rows = [
+        record for record in decision_record_rows if _is_follow_up_checkpoint_record(record)
+    ]
+    latest_update = (
+        _build_checkpoint_snapshot_read(
+            decision_record=checkpoint_record_rows[0],
+            task=current_task,
+        )
+        if checkpoint_record_rows
+        else _build_checkpoint_snapshot_read(decision_record=decision_record_rows[0], task=current_task)
+        if decision_record_rows
+        else _build_checkpoint_snapshot_read(task=current_task)
+    )
+    previous_checkpoint = (
+        _build_checkpoint_snapshot_read(decision_record=checkpoint_record_rows[1])
+        if len(checkpoint_record_rows) > 1
+        else _build_checkpoint_snapshot_read(task=previous_task)
+        if checkpoint_record_rows and previous_task is not None
+        else _build_checkpoint_snapshot_read(decision_record=decision_record_rows[1])
+        if len(decision_record_rows) > 1
+        else _build_checkpoint_snapshot_read(task=previous_task) if previous_task is not None else None
+    )
+    recent_checkpoints = [
+        snapshot
+        for snapshot in (
+            _build_checkpoint_snapshot_read(decision_record=item)
+            for item in (
+                checkpoint_record_rows[:3] if checkpoint_record_rows else decision_record_rows[:3]
+            )
+        )
+        if snapshot is not None
+    ]
+
+    recommendation_changes = _build_follow_up_change_items_for_strings(
+        kind="recommendation",
+        current_map=_recommendation_continuity_map(current_task),
+        previous_map=_recommendation_continuity_map(previous_task) if previous_task is not None else {},
+    )
+    risk_changes = _build_follow_up_change_items_for_strings(
+        kind="risk",
+        current_map=_risk_continuity_map(current_task),
+        previous_map=_risk_continuity_map(previous_task) if previous_task is not None else {},
+    )
+    action_changes = _build_follow_up_action_change_items(
+        current_map=_action_continuity_map(current_task),
+        previous_map=_action_continuity_map(previous_task) if previous_task is not None else {},
+    )
+    what_changed = _build_follow_up_what_changed(
+        recommendation_changes=recommendation_changes,
+        risk_changes=risk_changes,
+        action_changes=action_changes,
+    )
+
+    return schemas.FollowUpLaneRead(
+        latest_update=latest_update,
+        previous_checkpoint=previous_checkpoint,
+        recent_checkpoints=recent_checkpoints,
+        what_changed=what_changed,
+        recommendation_changes=recommendation_changes,
+        risk_changes=risk_changes,
+        action_changes=action_changes,
+        next_follow_up_actions=_unique_preserve_order(next_follow_up_actions)[:4],
+        evidence_update_goal=_build_follow_up_evidence_update_goal(
+            recommendation_changes=recommendation_changes,
+            risk_changes=risk_changes,
+            action_changes=action_changes,
+            latest_update=latest_update,
+        ),
+    )
+
+
 def _build_continuation_surface(
     *,
     continuity_mode: EngagementContinuityMode,
@@ -4149,6 +4466,7 @@ def _build_continuation_surface(
     evidence_count: int,
     decision_record_count: int,
     outcome_record_count: int,
+    follow_up_lane: schemas.FollowUpLaneRead | None = None,
 ) -> schemas.ContinuationSurfaceRead:
     workflow_layer = _resolve_continuation_workflow_layer(continuity_mode)
     is_closed_one_off = (
@@ -4249,8 +4567,16 @@ def _build_continuation_surface(
                 current_state="checkpoint_ready",
                 title="這案目前適合寫入輕量 checkpoint",
                 summary=(
-                    "follow-up 案件應保留 decision checkpoint、milestone note 與新版建議摘要，"
-                    "但不需要被完整 action / outcome loop 汙染。"
+                    (
+                        f"這輪主要是在延續「{follow_up_lane.previous_checkpoint.task_title}」之後的更新："
+                        if follow_up_lane and follow_up_lane.previous_checkpoint and follow_up_lane.previous_checkpoint.task_title
+                        else "follow-up 案件應保留 decision checkpoint、milestone note 與新版建議摘要，"
+                    )
+                    + (
+                        follow_up_lane.what_changed[0]
+                        if follow_up_lane and follow_up_lane.what_changed
+                        else "但不需要被完整 action / outcome loop 汙染。"
+                    )
                 ),
                 primary_action=_build_continuation_action(
                     "record_checkpoint",
@@ -4270,6 +4596,7 @@ def _build_continuation_surface(
                     ),
                 ],
                 checkpoint_enabled=True,
+                follow_up_lane=follow_up_lane,
             )
         return schemas.ContinuationSurfaceRead(
             workflow_layer=workflow_layer,
@@ -4294,6 +4621,7 @@ def _build_continuation_surface(
                 )
             ],
             checkpoint_enabled=True,
+            follow_up_lane=follow_up_lane,
         )
 
     if has_result_surface or decision_record_count > 0 or outcome_record_count > 0:
@@ -5858,6 +6186,21 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
         if related_deliverables
         else None
     )
+    follow_up_lane = (
+        _build_follow_up_lane(
+            ordered_tasks=related_tasks,
+            current_task_id=latest_task.id,
+            next_follow_up_actions=(
+                list(matter_workspace.case_world_state.next_best_actions or [])
+                if matter_workspace.case_world_state is not None
+                else list(latest_task.case_world_drafts[0].next_best_actions)
+                if latest_task.case_world_drafts
+                else []
+            ),
+        )
+        if summary.engagement_continuity_mode == EngagementContinuityMode.FOLLOW_UP
+        else None
+    )
     continuation_surface = _build_continuation_surface(
         continuity_mode=summary.engagement_continuity_mode,
         writeback_depth=summary.writeback_depth,
@@ -5867,6 +6210,7 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
         evidence_count=sum(task.evidence_count for task in related_task_items),
         decision_record_count=len(decision_records),
         outcome_record_count=len(outcome_records),
+        follow_up_lane=follow_up_lane,
     )
 
     return schemas.MatterWorkspaceResponse(
@@ -6597,6 +6941,37 @@ def get_artifact_evidence_workspace(
         ),
         reverse=True,
     )[:12]
+    follow_up_lane = (
+        _build_follow_up_lane(
+            ordered_tasks=related_tasks,
+            current_task_id=latest_task.id,
+            next_follow_up_actions=(
+                list(matter_workspace.case_world_state.next_best_actions or [])
+                if matter_workspace.case_world_state is not None
+                else list(latest_task.case_world_drafts[0].next_best_actions)
+                if latest_task.case_world_drafts
+                else []
+            ),
+        )
+        if matter_summary.engagement_continuity_mode == EngagementContinuityMode.FOLLOW_UP
+        else None
+    )
+    latest_deliverable_title = (
+        _latest_deliverable(related_tasks[0]).title
+        if related_tasks and _latest_deliverable(related_tasks[0]) is not None
+        else None
+    )
+    continuation_surface = _build_continuation_surface(
+        continuity_mode=matter_summary.engagement_continuity_mode,
+        writeback_depth=matter_summary.writeback_depth,
+        matter_status=matter_summary.status,
+        latest_deliverable_title=latest_deliverable_title,
+        source_material_count=len(source_material_cards),
+        evidence_count=len(evidence_chains),
+        decision_record_count=sum(len(task.decision_records) for task in related_tasks),
+        outcome_record_count=sum(len(task.outcome_records) for task in related_tasks),
+        follow_up_lane=follow_up_lane,
+    )
 
     return schemas.ArtifactEvidenceWorkspaceResponse(
         matter_summary=matter_summary,
@@ -6604,6 +6979,7 @@ def get_artifact_evidence_workspace(
         engagement=engagement,
         workstream=workstream,
         current_decision_context=current_decision_context,
+        continuation_surface=continuation_surface,
         related_tasks=related_task_items,
         artifact_cards=artifact_cards,
         source_material_cards=source_material_cards,
@@ -6869,6 +7245,26 @@ def get_deliverable_workspace(
         )
     if not linked_evidence:
         continuity_notes.append("這份交付物目前尚未形成厚實 evidence basis，應先回看來源 / 證據工作面再採行。")
+    follow_up_lane = (
+        _build_follow_up_lane(
+            ordered_tasks=_load_tasks_for_matter_workspaces(db, [task_aggregate.matter_workspace.id]).get(
+                task_aggregate.matter_workspace.id,
+                [task],
+            )
+            if task_aggregate.matter_workspace is not None
+            else [task],
+            current_task_id=task.id,
+            next_follow_up_actions=(
+                list(task_aggregate.case_world_state.next_best_actions)
+                if task_aggregate.case_world_state is not None
+                else list(task_aggregate.case_world_draft.next_best_actions)
+                if task_aggregate.case_world_draft is not None
+                else []
+            ),
+        )
+        if task_aggregate.engagement_continuity_mode == EngagementContinuityMode.FOLLOW_UP
+        else None
+    )
     continuation_surface = _build_continuation_surface(
         continuity_mode=task_aggregate.engagement_continuity_mode,
         writeback_depth=task_aggregate.writeback_depth,
@@ -6878,6 +7274,7 @@ def get_deliverable_workspace(
         evidence_count=len(linked_evidence),
         decision_record_count=len(task_aggregate.decision_records),
         outcome_record_count=len(task_aggregate.outcome_records),
+        follow_up_lane=follow_up_lane,
     )
 
     return schemas.DeliverableWorkspaceResponse(
@@ -8419,6 +8816,27 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         key=lambda item: (item.generated_at, item.version),
         default=None,
     )
+    related_tasks_for_lane: list[models.Task] = [task]
+    if matter_workspace is not None:
+        related_tasks_for_lane = _load_tasks_for_matter_workspaces(db, [matter_workspace.id]).get(
+            matter_workspace.id,
+            [task],
+        )
+    follow_up_lane = (
+        _build_follow_up_lane(
+            ordered_tasks=related_tasks_for_lane,
+            current_task_id=task.id,
+            next_follow_up_actions=(
+                list(case_world_state_row.next_best_actions or [])
+                if case_world_state_row is not None
+                else list(case_world_draft_row.next_best_actions)
+                if case_world_draft_row is not None
+                else []
+            ),
+        )
+        if continuity_mode == EngagementContinuityMode.FOLLOW_UP
+        else None
+    )
     continuation_surface = _build_continuation_surface(
         continuity_mode=continuity_mode,
         writeback_depth=writeback_depth,
@@ -8428,6 +8846,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         evidence_count=len(evidence),
         decision_record_count=len(task.decision_records),
         outcome_record_count=len(task.outcome_records),
+        follow_up_lane=follow_up_lane,
     )
 
     return schemas.TaskAggregateResponse(

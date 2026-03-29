@@ -397,6 +397,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
   const executiveSummary = task ? buildExecutiveSummary(task, latestDeliverable) : null;
   const runMeta = task ? buildRunMeta(task) : null;
   const continuationSurface = task?.continuation_surface ?? null;
+  const followUpLane = continuationSurface?.follow_up_lane ?? null;
   const successCriteria = task ? getGoalSuccessCriteria(task.goals) : [];
   const latestContext = task?.contexts[0];
   const workflowKey = task ? resolveWorkflowKey(task.task_type, task.mode) : null;
@@ -627,6 +628,24 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
               <span>{latestDeliverable ? "已形成正式交付物" : "尚未形成正式交付物"}</span>
               {matterWorkspaceCard ? <span>{matterWorkspaceCard.objectPath}</span> : null}
             </div>
+            {followUpLane ? (
+              <div className="summary-grid" style={{ marginTop: "16px" }}>
+                <div className="section-card">
+                  <h4>上一個 checkpoint</h4>
+                  <p className="content-block">
+                    {followUpLane.previous_checkpoint?.summary || "目前沒有更早的 checkpoint 可比較。"}
+                  </p>
+                </div>
+                <div className="section-card">
+                  <h4>這次更新重點</h4>
+                  <ul className="list-content">
+                    {followUpLane.what_changed.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            ) : null}
             <ul className="list-content" style={{ marginTop: "16px" }}>
               {taskActionChecklist.slice(0, 2).map((item) => (
                 <li key={item}>{item}</li>
@@ -724,7 +743,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
               </div>
             </div>
 
-            {caseWorldState || latestCaseWorldDraft ? (
+                {caseWorldState || latestCaseWorldDraft ? (
               <div className="detail-list" style={{ marginTop: "18px" }}>
                 <div className="detail-item">
                   <h3>Facts</h3>
@@ -785,6 +804,45 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     emptyText="目前還沒有可回看的 writeback records。"
                   />
                 </div>
+                {followUpLane ? (
+                  <div className="detail-item">
+                    <h3>這筆 follow-up 跟上一輪相比</h3>
+                    <div className="summary-grid">
+                      <div className="section-card">
+                        <h4>最近更新</h4>
+                        <p className="content-block">
+                          {followUpLane.latest_update?.summary || "尚未形成正式 checkpoint。"}
+                        </p>
+                      </div>
+                      <div className="section-card">
+                        <h4>建議延續</h4>
+                        {followUpLane.recommendation_changes.length > 0 ? (
+                          <ul className="list-content">
+                            {followUpLane.recommendation_changes.slice(0, 3).map((item) => (
+                              <li key={`${item.kind}-${item.title}`}>{item.title}：{item.summary}</li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="empty-text">目前沒有額外的建議延續摘要。</p>
+                        )}
+                      </div>
+                      <div className="section-card">
+                        <h4>風險 / action 變化</h4>
+                        {([...followUpLane.risk_changes, ...followUpLane.action_changes]).length > 0 ? (
+                          <ul className="list-content">
+                            {[...followUpLane.risk_changes, ...followUpLane.action_changes]
+                              .slice(0, 4)
+                              .map((item) => (
+                                <li key={`${item.kind}-${item.title}`}>{item.title}：{item.summary}</li>
+                              ))}
+                          </ul>
+                        ) : (
+                          <p className="empty-text">目前沒有額外的 follow-up 變化摘要。</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             ) : null}
           </DisclosurePanel>

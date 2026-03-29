@@ -317,6 +317,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const task = workspace?.task ?? null;
   const deliverable = workspace?.deliverable ?? null;
   const continuationSurface = workspace?.continuation_surface ?? null;
+  const followUpLane = continuationSurface?.follow_up_lane ?? null;
   const workspaceView = workspace ? buildDeliverableWorkspaceView(workspace) : null;
   const readiness = task ? assessTaskReadiness(task) : null;
   const readinessGovernance =
@@ -372,6 +373,13 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const effectiveEvidenceBasis = resolvedSections?.evidence_basis || [];
   const latestContentRevision = workspace?.content_revisions[0] ?? null;
   const latestPublishRecord = workspace?.publish_records[0] ?? null;
+  const followUpChangeHighlights = followUpLane
+    ? [
+        ...followUpLane.recommendation_changes,
+        ...followUpLane.risk_changes,
+        ...followUpLane.action_changes,
+      ].slice(0, 3)
+    : [];
   const hasUnpublishedContentChanges = Boolean(
     latestContentRevision &&
       latestPublishRecord &&
@@ -429,7 +437,9 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
       : continuationSurface?.workflow_layer === "closure"
         ? continuationSurface.summary
         : continuationSurface?.workflow_layer === "checkpoint"
-          ? "這份交付物目前更像 follow-up checkpoint 的基線。先回看結果，再決定要不要回案件工作面補一筆 checkpoint。"
+          ? followUpLane?.latest_update?.summary
+            ? `這份交付物目前對應 follow-up checkpoint「${followUpLane.latest_update.summary}」。先確認這輪更新重點，再決定是回案件工作面補 checkpoint，還是先補件重跑。`
+            : "這份交付物目前更像 follow-up checkpoint 的基線。先回看結果，再決定要不要回案件工作面補一筆 checkpoint。"
           : continuationSurface?.workflow_layer === "progression"
             ? "這份交付物目前更像持續推進的基線。先回看結論與依據，再回案件工作面記錄進度或 outcome。"
       : deliverableStatus === "final"
@@ -891,6 +901,32 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                   </div>
                 ) : null}
 
+                {followUpLane ? (
+                  <div className="section-card deliverable-rail-card">
+                    <h4>Checkpoint 脈絡</h4>
+                    <div className="detail-list">
+                      <div className="detail-item">
+                        <h3>最新更新</h3>
+                        <p className="content-block">
+                          {followUpLane.latest_update?.summary || "尚未形成正式 checkpoint。"}
+                        </p>
+                      </div>
+                      <div className="detail-item">
+                        <h3>上一個 checkpoint</h3>
+                        <p className="content-block">
+                          {followUpLane.previous_checkpoint?.summary || "目前沒有更早的 checkpoint 可比較。"}
+                        </p>
+                      </div>
+                      <div className="detail-item">
+                        <h3>下一步建議</h3>
+                        <p className="content-block">
+                          {followUpLane.next_follow_up_actions[0] || "先回案件工作面整理這輪 checkpoint。"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+
                 <div className="section-card deliverable-rail-card">
                   <h4>工作面快讀</h4>
                   <div className="deliverable-metric-grid">
@@ -997,9 +1033,25 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                     ? "系統已整理正式草稿，尚未落盤"
                     : hasUnsavedChanges
                       ? "有未儲存修改"
-                      : "目前沒有未儲存修改"}
+                    : "目前沒有未儲存修改"}
                 </p>
               </div>
+              {followUpLane ? (
+                <>
+                  <div className="section-card">
+                    <h4>最新 checkpoint</h4>
+                    <p className="content-block">
+                      {followUpLane.latest_update?.summary || "尚未形成正式 checkpoint。"}
+                    </p>
+                  </div>
+                  <div className="section-card">
+                    <h4>和上一輪的差異</h4>
+                    <p className="content-block">
+                      {followUpLane.what_changed[0] || "這輪主要是在延續既有 checkpoint。"}
+                    </p>
+                  </div>
+                </>
+              ) : null}
             </div>
             <ul className="list-content" style={{ marginTop: "16px" }}>
               {deliverableActionChecklist.map((item) => (
@@ -1154,6 +1206,36 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                 <p className="content-block">{workspace.outcome_records.length} 筆</p>
               </div>
             </div>
+            {followUpLane ? (
+              <div className="detail-list" style={{ marginTop: "18px" }}>
+                <div className="detail-item">
+                  <h3>這份交付物接在哪個 checkpoint 後面</h3>
+                  <ul className="list-content">
+                    <li>最新 checkpoint：{followUpLane.latest_update?.summary || "尚未形成正式 checkpoint。"}</li>
+                    <li>上一個 checkpoint：{followUpLane.previous_checkpoint?.summary || "目前沒有更早的 checkpoint 可比較。"}</li>
+                    {followUpLane.what_changed.map((item) => (
+                      <li key={`deliverable-follow-up-change-${item}`}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="detail-item">
+                  <h3>建議 / 風險 / action continuity</h3>
+                  {followUpChangeHighlights.length > 0 ? (
+                    <ul className="list-content">
+                      {followUpChangeHighlights.map((item, index) => (
+                        <li key={`${item.kind}-${item.title}-${index}`}>
+                          {item.title}｜{item.summary}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="empty-text">
+                      目前這輪主要是在延續既有 checkpoint，尚未形成額外的 continuity 變化摘要。
+                    </p>
+                  )}
+                </div>
+              </div>
+            ) : null}
             <div className="detail-list" style={{ marginTop: "18px" }}>
               <div className="detail-item">
                 <h3>最近 decision / outcome</h3>

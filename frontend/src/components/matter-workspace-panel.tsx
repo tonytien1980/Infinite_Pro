@@ -463,6 +463,7 @@ export function MatterWorkspacePanel({
     : [];
   const latestDeliverable = matter?.related_deliverables[0] ?? null;
   const continuationSurface = matter?.continuation_surface ?? null;
+  const followUpLane = continuationSurface?.follow_up_lane ?? null;
   const recentTask = matter?.related_tasks[0] ?? null;
   const focusTask =
     matter?.related_tasks.find((task) => task.id === createdTaskId) ?? recentTask ?? null;
@@ -815,6 +816,32 @@ export function MatterWorkspacePanel({
                       <li key={item}>{item}</li>
                     ))}
                   </ul>
+                  {followUpLane ? (
+                    <div className="summary-grid" style={{ marginTop: "12px" }}>
+                      <div className="section-card">
+                        <h4>最近更新</h4>
+                        <p className="content-block">
+                          {followUpLane.latest_update?.summary || "目前還沒有正式 checkpoint。"}
+                        </p>
+                      </div>
+                      <div className="section-card">
+                        <h4>上一個 checkpoint</h4>
+                        <p className="content-block">
+                          {followUpLane.previous_checkpoint?.summary || "目前還沒有上一個 checkpoint 可比較。"}
+                        </p>
+                      </div>
+                    </div>
+                  ) : null}
+                  {followUpLane?.what_changed.length ? (
+                    <div className="section-card" style={{ marginTop: "12px" }}>
+                      <h4>這次更新重點</h4>
+                      <ul className="list-content">
+                        {followUpLane.what_changed.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
                   {continuationSurface?.primary_action?.action_id === "record_checkpoint" ? (
                     <div className="field" style={{ marginTop: "12px" }}>
                       <label htmlFor="matter-checkpoint-note">這輪 checkpoint 要留下什麼？</label>
@@ -822,7 +849,11 @@ export function MatterWorkspacePanel({
                         id="matter-checkpoint-note"
                         value={continuationSummary}
                         onChange={(event) => setContinuationSummary(event.target.value)}
-                        placeholder="例如：這輪只更新 milestone 判斷、風險變化與下一步建議，不需要完整 outcome loop。"
+                        placeholder={
+                          followUpLane?.latest_update?.summary
+                            ? `例如：延續「${followUpLane.latest_update.summary.slice(0, 36)}...」，這輪主要更新哪些建議 / 風險 / 下一步。`
+                            : "例如：這輪只更新 milestone 判斷、風險變化與下一步建議，不需要完整 outcome loop。"
+                        }
                       />
                     </div>
                   ) : null}
@@ -960,6 +991,18 @@ export function MatterWorkspacePanel({
                       </p>
                     </div>
                   ) : null}
+                  {followUpLane ? (
+                    <div className="detail-item">
+                      <h3>上次到哪裡 / 這次更新什麼</h3>
+                      <ul className="list-content">
+                        <li>最近 checkpoint：{followUpLane.latest_update?.summary || "尚未形成正式 checkpoint。"}</li>
+                        <li>上一個 checkpoint：{followUpLane.previous_checkpoint?.summary || "目前沒有更早的 checkpoint 可比較。"}</li>
+                        {followUpLane.what_changed.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
                   <div className="detail-item">
                     <h3>分析焦點</h3>
                     {analysisFocusItems.length > 0 ? (
@@ -994,7 +1037,13 @@ export function MatterWorkspacePanel({
                   </div>
                   <div className="detail-item">
                     <h3>下一步建議</h3>
-                    {nextStepItems.length > 0 ? (
+                    {followUpLane?.next_follow_up_actions.length ? (
+                      <ul className="list-content">
+                        {followUpLane.next_follow_up_actions.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    ) : nextStepItems.length > 0 ? (
                       <ul className="list-content">
                         {nextStepItems.map((item) => (
                           <li key={item}>{item}</li>
@@ -1121,6 +1170,49 @@ export function MatterWorkspacePanel({
                         <p className="empty-text">目前還沒有可回看的 writeback records。</p>
                       )}
                     </div>
+                    {followUpLane ? (
+                      <div className="detail-item">
+                        <h3>建議 / 風險 / action continuity</h3>
+                        <div className="summary-grid">
+                          <div className="section-card">
+                            <h4>建議延續</h4>
+                            {followUpLane.recommendation_changes.length > 0 ? (
+                              <ul className="list-content">
+                                {followUpLane.recommendation_changes.slice(0, 3).map((item) => (
+                                  <li key={`${item.kind}-${item.title}`}>{item.title}：{item.summary}</li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p className="empty-text">目前沒有額外的建議延續摘要。</p>
+                            )}
+                          </div>
+                          <div className="section-card">
+                            <h4>風險變化</h4>
+                            {followUpLane.risk_changes.length > 0 ? (
+                              <ul className="list-content">
+                                {followUpLane.risk_changes.slice(0, 3).map((item) => (
+                                  <li key={`${item.kind}-${item.title}`}>{item.title}：{item.summary}</li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p className="empty-text">目前沒有額外的風險變化摘要。</p>
+                            )}
+                          </div>
+                          <div className="section-card">
+                            <h4>Action continuity</h4>
+                            {followUpLane.action_changes.length > 0 ? (
+                              <ul className="list-content">
+                                {followUpLane.action_changes.slice(0, 3).map((item) => (
+                                  <li key={`${item.kind}-${item.title}`}>{item.title}：{item.summary}</li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p className="empty-text">目前沒有額外的 action continuity 摘要。</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 ) : (
                   <p className="empty-text">目前尚未形成 case world draft。</p>

@@ -2318,6 +2318,107 @@ def test_follow_up_checkpoint_action_creates_lightweight_decision_record(
     assert workspace["continuation_surface"]["outcome_logging_enabled"] is False
 
 
+def test_follow_up_surfaces_show_latest_previous_checkpoint_and_change_guidance(
+    client: TestClient,
+) -> None:
+    primary_payload = create_task_payload("Follow-up cadence baseline")
+    primary_payload.update(
+        {
+            "engagement_continuity_mode": "follow_up",
+            "writeback_depth": "milestone",
+            "client_name": "Northwind Studio",
+            "client_type": "中小企業",
+            "client_stage": "制度化階段",
+            "engagement_name": "Northwind Follow-up Sprint",
+            "workstream_name": "渠道與報價調整",
+            "decision_title": "Northwind follow-up decision",
+            "judgment_to_make": "先判斷目前渠道與報價調整是否需要進一步修正。",
+            "domain_lenses": ["營運", "銷售"],
+        }
+    )
+    second_payload = create_task_payload("Follow-up checkpoint refresh")
+    second_payload.update(
+        {
+            "engagement_continuity_mode": "follow_up",
+            "writeback_depth": "milestone",
+            "client_name": "Northwind Studio",
+            "client_type": "中小企業",
+            "client_stage": "制度化階段",
+            "engagement_name": "Northwind Follow-up Sprint",
+            "workstream_name": "渠道與報價調整",
+            "decision_title": "Northwind follow-up refresh",
+            "judgment_to_make": "再判斷補件後是否需要調整報價結構與渠道優先順序。",
+            "domain_lenses": ["營運", "銷售"],
+        }
+    )
+
+    first_task = client.post("/api/v1/tasks", json=primary_payload).json()
+    matter_id = first_task["matter_workspace"]["id"]
+    first_upload = client.post(
+        f"/api/v1/tasks/{first_task['id']}/uploads",
+        files=[("files", ("follow-up-1.txt", b"Initial follow-up baseline with channel and pricing concerns.", "text/plain"))],
+    )
+    assert first_upload.status_code == 200
+    first_run = client.post(f"/api/v1/tasks/{first_task['id']}/run")
+    assert first_run.status_code == 200
+
+    first_checkpoint_summary = "Checkpoint A：先維持主方案，但需追蹤報價與渠道效率。"
+    first_checkpoint = client.post(
+        f"/api/v1/matters/{matter_id}/continuation",
+        json={
+            "action": "checkpoint",
+            "summary": first_checkpoint_summary,
+            "note": "先確認下一輪補件是否足以調整報價節奏。",
+        },
+    )
+    assert first_checkpoint.status_code == 200
+
+    second_task = client.post("/api/v1/tasks", json=second_payload).json()
+    second_upload = client.post(
+        f"/api/v1/tasks/{second_task['id']}/uploads",
+        files=[("files", ("follow-up-2.txt", b"Updated follow-up notes show channel mix improved while premium conversion still lags.", "text/plain"))],
+    )
+    assert second_upload.status_code == 200
+    second_run = client.post(f"/api/v1/tasks/{second_task['id']}/run")
+    assert second_run.status_code == 200
+    second_deliverable_id = second_run.json()["deliverable"]["id"]
+
+    second_checkpoint_summary = "Checkpoint B：這輪改成優先修正 premium 報價敘事，渠道主線先延續。"
+    second_checkpoint = client.post(
+        f"/api/v1/matters/{matter_id}/continuation",
+        json={
+            "action": "checkpoint",
+            "summary": second_checkpoint_summary,
+            "note": "下一輪 follow-up 先補 premium 轉換與定價反饋。",
+        },
+    )
+    assert second_checkpoint.status_code == 200
+
+    matter_workspace = client.get(f"/api/v1/matters/{matter_id}").json()
+    task_aggregate = client.get(f"/api/v1/tasks/{second_task['id']}").json()
+    deliverable_workspace = client.get(f"/api/v1/deliverables/{second_deliverable_id}").json()
+    evidence_workspace = client.get(f"/api/v1/matters/{matter_id}/artifact-evidence").json()
+
+    for payload in (
+        matter_workspace["continuation_surface"],
+        task_aggregate["continuation_surface"],
+        deliverable_workspace["continuation_surface"],
+        evidence_workspace["continuation_surface"],
+    ):
+        assert payload["workflow_layer"] == "checkpoint"
+        assert payload["checkpoint_enabled"] is True
+        assert payload["outcome_logging_enabled"] is False
+        assert payload["follow_up_lane"]["latest_update"]["summary"] == second_checkpoint_summary
+        assert payload["follow_up_lane"]["previous_checkpoint"]["summary"] == first_checkpoint_summary
+        assert len(payload["follow_up_lane"]["recent_checkpoints"]) >= 2
+        assert payload["follow_up_lane"]["what_changed"]
+        assert payload["follow_up_lane"]["evidence_update_goal"]
+
+    assert matter_workspace["outcome_records"] == []
+    assert task_aggregate["outcome_records"] == []
+    assert evidence_workspace["continuation_surface"]["follow_up_lane"]["next_follow_up_actions"]
+
+
 def test_continuous_manual_outcome_logging_updates_progression_surface(
     client: TestClient,
 ) -> None:

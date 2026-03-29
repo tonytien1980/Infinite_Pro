@@ -339,6 +339,8 @@ publish / artifact records 用來描述正式發布與正式輸出物。
 - 允許 milestone-level writeback
 - 允許後續追蹤，但不要求完整 continuous loop
 - UI / workflow 應偏向 checkpoint、milestone note、updated recommendation / risk / action summary
+- UI / workflow 應可見上一個 checkpoint、最新更新摘要、what changed、next follow-up action
+- follow_up 補件應能說明這次主要是為了更新哪一類 recommendation / risk / action continuity
 
 ### 8.4 continuous
 - 在 `follow_up` 基礎上
