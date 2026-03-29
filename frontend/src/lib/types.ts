@@ -346,6 +346,7 @@ export interface Client {
   task_id: string;
   matter_workspace_id: string | null;
   identity_scope: string;
+  task_reference_role: string;
   name: string;
   client_type: string;
   client_stage: string;
@@ -358,6 +359,7 @@ export interface Engagement {
   task_id: string;
   matter_workspace_id: string | null;
   identity_scope: string;
+  task_reference_role: string;
   client_id: string | null;
   name: string;
   description: string | null;
@@ -369,6 +371,7 @@ export interface Workstream {
   task_id: string;
   matter_workspace_id: string | null;
   identity_scope: string;
+  task_reference_role: string;
   engagement_id: string | null;
   name: string;
   description: string | null;
@@ -381,6 +384,7 @@ export interface DecisionContext {
   task_id: string;
   matter_workspace_id: string | null;
   identity_scope: string;
+  task_reference_role: string;
   client_id: string | null;
   engagement_id: string | null;
   workstream_id: string | null;

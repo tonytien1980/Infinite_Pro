@@ -465,7 +465,7 @@ export function MatterWorkspacePanel({
       caseWorldState.engagement_id &&
       caseWorldState.workstream_id &&
       caseWorldState.decision_context_id
-      ? "Client / Engagement / Workstream / DecisionContext 已正式掛在案件世界層；task 只負責承接 work slices 與相容層連結。"
+      ? "Client / Engagement / Workstream / DecisionContext 已正式掛在案件世界層；task 在這一層只剩相容層連結與 work slice 入口。"
       : "案件世界已建立，但底層 identity 仍在 bridge sync。"
     : "目前尚未形成正式案件世界 authority。";
   const sharedContinuitySummary = matter

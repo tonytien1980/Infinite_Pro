@@ -656,6 +656,14 @@ def _primary_item(items: list[models.Client] | list[models.Engagement] | list[mo
     return items[0]
 
 
+def _task_reference_role_for_identity_scope(identity_scope: str | None) -> str:
+    if identity_scope == WORLD_AUTHORITY_IDENTITY_SCOPE:
+        return "compatibility_only"
+    if identity_scope == SLICE_OVERLAY_IDENTITY_SCOPE:
+        return "slice_linkage"
+    return "legacy_owner"
+
+
 def _canonical_workspace_value(value: str | None, fallback: str) -> str:
     normalized = _normalize_whitespace(value)
     return normalized or fallback
@@ -796,6 +804,77 @@ def _build_legacy_source_material_read(source_document: models.SourceDocument) -
         participation=None,
         created_at=source_document.created_at,
         updated_at=source_document.updated_at,
+    )
+
+
+def _build_client_read_from_row(
+    client: models.Client,
+    *,
+    reference_task_id: str | None = None,
+) -> schemas.ClientRead:
+    identity_scope = client.identity_scope or LEGACY_TASK_SLICE_IDENTITY_SCOPE
+    return schemas.ClientRead(
+        id=client.id,
+        task_id=(
+            reference_task_id
+            if identity_scope == WORLD_AUTHORITY_IDENTITY_SCOPE and reference_task_id
+            else client.task_id
+        ),
+        matter_workspace_id=client.matter_workspace_id,
+        identity_scope=identity_scope,
+        task_reference_role=_task_reference_role_for_identity_scope(identity_scope),
+        name=client.name,
+        client_type=client.client_type,
+        client_stage=client.client_stage,
+        description=client.description,
+        created_at=client.created_at,
+    )
+
+
+def _build_engagement_read_from_row(
+    engagement: models.Engagement,
+    *,
+    reference_task_id: str | None = None,
+) -> schemas.EngagementRead:
+    identity_scope = engagement.identity_scope or LEGACY_TASK_SLICE_IDENTITY_SCOPE
+    return schemas.EngagementRead(
+        id=engagement.id,
+        task_id=(
+            reference_task_id
+            if identity_scope == WORLD_AUTHORITY_IDENTITY_SCOPE and reference_task_id
+            else engagement.task_id
+        ),
+        matter_workspace_id=engagement.matter_workspace_id,
+        identity_scope=identity_scope,
+        task_reference_role=_task_reference_role_for_identity_scope(identity_scope),
+        client_id=engagement.client_id,
+        name=engagement.name,
+        description=engagement.description,
+        created_at=engagement.created_at,
+    )
+
+
+def _build_workstream_read_from_row(
+    workstream: models.Workstream,
+    *,
+    reference_task_id: str | None = None,
+) -> schemas.WorkstreamRead:
+    identity_scope = workstream.identity_scope or LEGACY_TASK_SLICE_IDENTITY_SCOPE
+    return schemas.WorkstreamRead(
+        id=workstream.id,
+        task_id=(
+            reference_task_id
+            if identity_scope == WORLD_AUTHORITY_IDENTITY_SCOPE and reference_task_id
+            else workstream.task_id
+        ),
+        matter_workspace_id=workstream.matter_workspace_id,
+        identity_scope=identity_scope,
+        task_reference_role=_task_reference_role_for_identity_scope(identity_scope),
+        engagement_id=workstream.engagement_id,
+        name=workstream.name,
+        description=workstream.description,
+        domain_lenses=workstream.domain_lenses,
+        created_at=workstream.created_at,
     )
 
 
@@ -2197,6 +2276,7 @@ def _build_decision_context_read_from_row(
     goals: list[str],
     constraints: list[str],
     assumptions: list[str],
+    reference_task_id: str | None = None,
 ) -> schemas.DecisionContextRead | None:
     if decision_context is None:
         return None
@@ -2207,9 +2287,14 @@ def _build_decision_context_read_from_row(
 
     return schemas.DecisionContextRead(
         id=decision_context.id,
-        task_id=decision_context.task_id,
+        task_id=(
+            reference_task_id
+            if decision_context.identity_scope == WORLD_AUTHORITY_IDENTITY_SCOPE and reference_task_id
+            else decision_context.task_id
+        ),
         matter_workspace_id=decision_context.matter_workspace_id,
         identity_scope=decision_context.identity_scope,
+        task_reference_role=_task_reference_role_for_identity_scope(decision_context.identity_scope),
         client_id=decision_context.client_id,
         engagement_id=decision_context.engagement_id,
         workstream_id=decision_context.workstream_id,
@@ -2239,6 +2324,7 @@ def _build_decision_context_read(task: models.Task) -> schemas.DecisionContextRe
         goals=[item.description for item in task.goals],
         constraints=visible_constraints,
         assumptions=_extract_assumptions(task),
+        reference_task_id=task.id,
     )
 
 
@@ -2339,6 +2425,7 @@ def _build_world_decision_context_read(
             else fallback.matter_workspace_id if fallback is not None else (case_world_state.matter_workspace_id if case_world_state else None)
         ),
         identity_scope=WORLD_AUTHORITY_IDENTITY_SCOPE,
+        task_reference_role="compatibility_only",
         client_id=(
             authority_decision_context.client_id
             if authority_decision_context is not None
@@ -2616,9 +2703,9 @@ def _build_ontology_spine_for_task(
     artifacts = _build_artifacts(task, source_materials)
 
     return (
-        schemas.ClientRead.model_validate(client) if client else None,
-        schemas.EngagementRead.model_validate(engagement) if engagement else None,
-        schemas.WorkstreamRead.model_validate(workstream) if workstream else None,
+        _build_client_read_from_row(client, reference_task_id=task.id) if client else None,
+        _build_engagement_read_from_row(engagement, reference_task_id=task.id) if engagement else None,
+        _build_workstream_read_from_row(workstream, reference_task_id=task.id) if workstream else None,
         decision_context,
         domain_lenses,
         source_materials,
@@ -2652,14 +2739,14 @@ def _build_world_preferred_ontology_spine_for_task(
             case_world_state=matter_workspace.case_world_state,
         )
     )
-    world_client = schemas.ClientRead.model_validate(authority_client_row) if authority_client_row else client
+    world_client = _build_client_read_from_row(authority_client_row, reference_task_id=task.id) if authority_client_row else client
     world_engagement = (
-        schemas.EngagementRead.model_validate(authority_engagement_row)
+        _build_engagement_read_from_row(authority_engagement_row, reference_task_id=task.id)
         if authority_engagement_row
         else engagement
     )
     world_workstream = (
-        schemas.WorkstreamRead.model_validate(authority_workstream_row)
+        _build_workstream_read_from_row(authority_workstream_row, reference_task_id=task.id)
         if authority_workstream_row
         else workstream
     )
@@ -4711,12 +4798,13 @@ def create_task(db: Session, payload: schemas.TaskCreateRequest) -> models.Task:
     ensure_matter_workspace_for_task(
         db,
         task,
-        schemas.ClientRead.model_validate(client),
-        schemas.EngagementRead.model_validate(engagement),
-        schemas.WorkstreamRead.model_validate(workstream),
+        _build_client_read_from_row(client, reference_task_id=task.id),
+        _build_engagement_read_from_row(engagement, reference_task_id=task.id),
+        _build_workstream_read_from_row(workstream, reference_task_id=task.id),
         schemas.DecisionContextRead(
             id=decision_context.id,
             task_id=decision_context.task_id,
+            task_reference_role="slice_linkage",
             client_id=decision_context.client_id,
             engagement_id=decision_context.engagement_id,
             workstream_id=decision_context.workstream_id,
@@ -4998,20 +5086,25 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
         goals=latest_task_spine[3].goals if latest_task_spine[3] else [],
         constraints=latest_task_spine[3].constraints if latest_task_spine[3] else [],
         assumptions=latest_task_spine[3].assumptions if latest_task_spine[3] else [],
+        reference_task_id=latest_task.id,
     )
     current_decision_context = _build_world_decision_context_read(
         case_world_state=matter_workspace.case_world_state,
         authority_decision_context=authority_decision_context_row,
         fallback=current_decision_context,
     ) or latest_task_spine[3]
-    client = schemas.ClientRead.model_validate(authority_client_row) if authority_client_row else latest_task_spine[0]
+    client = (
+        _build_client_read_from_row(authority_client_row, reference_task_id=latest_task.id)
+        if authority_client_row
+        else latest_task_spine[0]
+    )
     engagement = (
-        schemas.EngagementRead.model_validate(authority_engagement_row)
+        _build_engagement_read_from_row(authority_engagement_row, reference_task_id=latest_task.id)
         if authority_engagement_row
         else latest_task_spine[1]
     )
     workstream = (
-        schemas.WorkstreamRead.model_validate(authority_workstream_row)
+        _build_workstream_read_from_row(authority_workstream_row, reference_task_id=latest_task.id)
         if authority_workstream_row
         else latest_task_spine[2]
     )
@@ -5459,14 +5552,18 @@ def get_artifact_evidence_workspace(
             case_world_state=matter_workspace.case_world_state,
         )
     )
-    client = schemas.ClientRead.model_validate(authority_client_row) if authority_client_row else latest_task_spine[0]
+    client = (
+        _build_client_read_from_row(authority_client_row, reference_task_id=latest_task.id)
+        if authority_client_row
+        else latest_task_spine[0]
+    )
     engagement = (
-        schemas.EngagementRead.model_validate(authority_engagement_row)
+        _build_engagement_read_from_row(authority_engagement_row, reference_task_id=latest_task.id)
         if authority_engagement_row
         else latest_task_spine[1]
     )
     workstream = (
-        schemas.WorkstreamRead.model_validate(authority_workstream_row)
+        _build_workstream_read_from_row(authority_workstream_row, reference_task_id=latest_task.id)
         if authority_workstream_row
         else latest_task_spine[2]
     )
@@ -7695,14 +7792,14 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         status=task.status,
         created_at=task.created_at,
         updated_at=task.updated_at,
-        client=schemas.ClientRead.model_validate(world_client_row) if world_client_row else client,
+        client=_build_client_read_from_row(world_client_row, reference_task_id=task.id) if world_client_row else client,
         engagement=(
-            schemas.EngagementRead.model_validate(world_engagement_row)
+            _build_engagement_read_from_row(world_engagement_row, reference_task_id=task.id)
             if world_engagement_row
             else engagement
         ),
         workstream=(
-            schemas.WorkstreamRead.model_validate(world_workstream_row)
+            _build_workstream_read_from_row(world_workstream_row, reference_task_id=task.id)
             if world_workstream_row
             else workstream
         ),

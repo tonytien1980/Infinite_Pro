@@ -228,7 +228,7 @@ Ontology 不只定義物件名稱，也要定義：
 - `CaseWorldState` 是案件世界的 identity authority center
 - `Client / Engagement / Workstream / DecisionContext` 應逐步脫離只能靠 `task_id` 才存在的狀態
 - `SourceMaterial / Artifact / Evidence` 應逐步可由案件世界直接掛載與回訪，而不只是某個 task 的附屬物
-- identity deepen phase 8 應再往前一步：
+- identity deepen phase 9 應再往前一步：
   - canonical world rows 作為正式 authority
   - slice-local rows 作為 local overlay / compatibility layer
   - `Client / Engagement / Workstream / DecisionContext` 應更明確由 matter/world spine 持有 canonical ownership
@@ -237,6 +237,7 @@ Ontology 不只定義物件名稱，也要定義：
   - `task_id` 若仍存在，應更接近 compatibility / access path，而不是 canonical owner
   - upload / source / batch responses 也應正式承接 participation-aware contract，而不是只在 aggregate/workspace 可見
   - `slice_decision_context` 應更接近 delta / working overlay，而不是第二份 decision owner
+  - Host payload 構建也應優先使用這套 world-authoritative core/context spine
 
 本輪仍允許 bridge architecture：
 - world-native authority 先提升到 matter / `CaseWorldState`
