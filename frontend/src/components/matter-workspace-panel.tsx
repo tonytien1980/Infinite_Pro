@@ -5,9 +5,15 @@ import { useRouter } from "next/navigation";
 import { ReactNode, useEffect, useMemo, useState } from "react";
 
 import { buildTaskListWorkspaceSummary } from "@/lib/advisory-workflow";
-import { getMatterWorkspace, rollbackMatterContentRevision, runTask } from "@/lib/api";
+import {
+  applyMatterContinuationAction,
+  getMatterWorkspace,
+  rollbackMatterContentRevision,
+  runTask,
+} from "@/lib/api";
 import { truncateText } from "@/lib/text-format";
 import type {
+  ContinuationSurface,
   MatterContentRevision,
   MatterWorkspace,
   MatterWorkspaceContentSections,
@@ -143,18 +149,36 @@ type MatterAdvanceGuide = {
   primaryActionLabel: string | null;
 };
 
+function mapContinuationActionIdToPayloadAction(actionId: string) {
+  if (actionId === "close_case") {
+    return "close";
+  }
+  if (actionId === "reopen_case") {
+    return "reopen";
+  }
+  if (actionId === "record_checkpoint") {
+    return "checkpoint";
+  }
+  if (actionId === "record_outcome") {
+    return "record_outcome";
+  }
+  return null;
+}
+
 function buildMatterAdvanceGuide({
   arrivedFromNew,
   focusTask,
   latestDeliverable,
   sourceMaterialCount,
   evidenceCount,
+  continuationSurface,
 }: {
   arrivedFromNew: boolean;
   focusTask: TaskListItem | null;
   latestDeliverable: MatterDeliverableSummary | null;
   sourceMaterialCount: number;
   evidenceCount: number;
+  continuationSurface: ContinuationSurface | null;
 }): MatterAdvanceGuide {
   const checklist = [
     "先確認這個案件頁面上的「目前主線」是否就是你真正想要系統幫你收斂的判斷。",
@@ -169,6 +193,18 @@ function buildMatterAdvanceGuide({
         ? `真正會產出結果的是工作紀錄「${focusTask.title}」的執行分析；完成後會生成正式交付物。`
         : "目前尚未找到可直接推進的工作紀錄。",
   ];
+
+  if (
+    continuationSurface?.primary_action &&
+    continuationSurface.primary_action.action_id !== "run_analysis"
+  ) {
+    return {
+      title: continuationSurface.title,
+      summary: continuationSurface.summary,
+      checklist,
+      primaryActionLabel: continuationSurface.primary_action.label,
+    };
+  }
 
   if (latestDeliverable) {
     return {
@@ -337,6 +373,12 @@ export function MatterWorkspacePanel({
   const [saveTone, setSaveTone] = useState<"success" | "warning" | "error" | null>(null);
   const [advanceMessage, setAdvanceMessage] = useState<string | null>(null);
   const [advanceTone, setAdvanceTone] = useState<"success" | "warning" | "error" | null>(null);
+  const [continuationSummary, setContinuationSummary] = useState("");
+  const [continuationNote, setContinuationNote] = useState("");
+  const [continuationActionStatus, setContinuationActionStatus] = useState<
+    "planned" | "in_progress" | "blocked" | "completed" | "review_required"
+  >("in_progress");
+  const [isApplyingContinuation, setIsApplyingContinuation] = useState(false);
   const [runningFocusTask, setRunningFocusTask] = useState(false);
   const [isResyncing, setIsResyncing] = useState(false);
   const [rollingBackRevisionId, setRollingBackRevisionId] = useState<string | null>(null);
@@ -388,6 +430,9 @@ export function MatterWorkspacePanel({
     );
     setDraftStatus(fallbackRecord?.status || defaultMatterStatus(matter));
     setDraftContentSections(buildResolvedMatterContentSections(matter, fallbackRecord));
+    setContinuationSummary("");
+    setContinuationNote("");
+    setContinuationActionStatus("in_progress");
   }, [fallbackRecord, matter, matterId]);
 
   const matterStatus = matter
@@ -417,6 +462,7 @@ export function MatterWorkspacePanel({
     ? [...matter.related_artifacts, ...matter.related_source_materials].slice(0, 6)
     : [];
   const latestDeliverable = matter?.related_deliverables[0] ?? null;
+  const continuationSurface = matter?.continuation_surface ?? null;
   const recentTask = matter?.related_tasks[0] ?? null;
   const focusTask =
     matter?.related_tasks.find((task) => task.id === createdTaskId) ?? recentTask ?? null;
@@ -450,6 +496,7 @@ export function MatterWorkspacePanel({
     latestDeliverable,
     sourceMaterialCount: matter?.summary.source_material_count ?? 0,
     evidenceCount,
+    continuationSurface,
   });
   const caseWorldState = matter?.case_world_state ?? null;
   const latestCaseWorldDraft = matter?.case_world_drafts[0] ?? null;
@@ -502,6 +549,49 @@ export function MatterWorkspacePanel({
       setAdvanceMessage(runError instanceof Error ? runError.message : "執行分析失敗。");
     } finally {
       setRunningFocusTask(false);
+    }
+  }
+
+  async function handleApplyContinuationAction(actionId: string) {
+    if (!matter) {
+      return;
+    }
+
+    const payloadAction = mapContinuationActionIdToPayloadAction(actionId);
+    if (!payloadAction) {
+      return;
+    }
+
+    try {
+      setIsApplyingContinuation(true);
+      const nextWorkspace = await applyMatterContinuationAction(matterId, {
+        action: payloadAction,
+        summary: continuationSummary,
+        note: continuationNote,
+        action_status: actionId === "record_outcome" ? continuationActionStatus : undefined,
+      });
+      setMatter(nextWorkspace);
+      setAdvanceTone("success");
+      setAdvanceMessage(
+        payloadAction === "close"
+          ? "案件已正式結案。"
+          : payloadAction === "reopen"
+            ? "案件已重新開啟，可回到同一個案件世界續推。"
+            : payloadAction === "checkpoint"
+              ? "Checkpoint 已寫回這個案件世界。"
+              : "Outcome / 進度已寫回這個案件世界。",
+      );
+      setContinuationSummary("");
+      setContinuationNote("");
+    } catch (continuationError) {
+      setAdvanceTone("error");
+      setAdvanceMessage(
+        continuationError instanceof Error
+          ? continuationError.message
+          : "執行 continuation action 失敗。",
+      );
+    } finally {
+      setIsApplyingContinuation(false);
     }
   }
 
@@ -709,7 +799,7 @@ export function MatterWorkspacePanel({
               </div>
 
               <aside className="workspace-hero-rail">
-                <div className="section-card">
+                <div className="section-card section-anchor" id="continuation-actions">
                   <h4>{advanceGuide.title}</h4>
                   <p className="content-block">{advanceGuide.summary}</p>
                   <p className="muted-text" style={{ marginTop: "8px" }}>
@@ -725,8 +815,71 @@ export function MatterWorkspacePanel({
                       <li key={item}>{item}</li>
                     ))}
                   </ul>
+                  {continuationSurface?.primary_action?.action_id === "record_checkpoint" ? (
+                    <div className="field" style={{ marginTop: "12px" }}>
+                      <label htmlFor="matter-checkpoint-note">這輪 checkpoint 要留下什麼？</label>
+                      <textarea
+                        id="matter-checkpoint-note"
+                        value={continuationSummary}
+                        onChange={(event) => setContinuationSummary(event.target.value)}
+                        placeholder="例如：這輪只更新 milestone 判斷、風險變化與下一步建議，不需要完整 outcome loop。"
+                      />
+                    </div>
+                  ) : null}
+                  {continuationSurface?.primary_action?.action_id === "record_outcome" ? (
+                    <div className="form-grid" style={{ marginTop: "12px" }}>
+                      <div className="field">
+                        <label htmlFor="matter-outcome-status">目前進度</label>
+                        <select
+                          id="matter-outcome-status"
+                          value={continuationActionStatus}
+                          onChange={(event) =>
+                            setContinuationActionStatus(
+                              event.target.value as
+                                | "planned"
+                                | "in_progress"
+                                | "blocked"
+                                | "completed"
+                                | "review_required",
+                            )
+                          }
+                        >
+                          <option value="planned">已規劃</option>
+                          <option value="in_progress">進行中</option>
+                          <option value="blocked">受阻</option>
+                          <option value="completed">已完成</option>
+                          <option value="review_required">待重新檢查</option>
+                        </select>
+                      </div>
+                      <div className="field">
+                        <label htmlFor="matter-outcome-summary">這輪 outcome / 新訊號</label>
+                        <textarea
+                          id="matter-outcome-summary"
+                          value={continuationSummary}
+                          onChange={(event) => setContinuationSummary(event.target.value)}
+                          placeholder="例如：建議已開始執行，但第一週卡在跨部門 handoff；需要刷新 deliverable 的下一步。"
+                        />
+                      </div>
+                    </div>
+                  ) : null}
                   <div className="button-row" style={{ marginTop: "12px" }}>
-                    {latestDeliverable ? (
+                    {continuationSurface?.primary_action &&
+                    continuationSurface.primary_action.action_id !== "run_analysis" ? (
+                      <button
+                        className="button-primary"
+                        type="button"
+                        onClick={() =>
+                          void handleApplyContinuationAction(
+                            continuationSurface.primary_action?.action_id ?? "",
+                          )
+                        }
+                        disabled={isApplyingContinuation}
+                      >
+                        {isApplyingContinuation
+                          ? "寫回中..."
+                          : continuationSurface.primary_action.label}
+                      </button>
+                    ) : latestDeliverable ? (
                       <Link
                         className="button-primary"
                         href={`/deliverables/${latestDeliverable.deliverable_id}`}
@@ -799,6 +952,14 @@ export function MatterWorkspacePanel({
                     <h3>目前主線</h3>
                     <p className="content-block">{coreQuestion}</p>
                   </div>
+                  {continuationSurface ? (
+                    <div className="detail-item">
+                      <h3>案件後續模式</h3>
+                      <p className="content-block">
+                        {continuationSurface.title}。{continuationSurface.summary}
+                      </p>
+                    </div>
+                  ) : null}
                   <div className="detail-item">
                     <h3>分析焦點</h3>
                     {analysisFocusItems.length > 0 ? (
@@ -996,6 +1157,7 @@ export function MatterWorkspacePanel({
                       >
                         <option value="active">進行中</option>
                         <option value="paused">暫停</option>
+                        <option value="closed">已結案</option>
                         <option value="archived">封存</option>
                       </select>
                     </div>

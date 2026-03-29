@@ -9,6 +9,7 @@ from app.agents.host import HostOrchestrator
 from app.core.database import get_db
 from app.domain import schemas
 from app.model_router.base import ModelProviderError
+from app.services.tasks import ensure_task_allows_continuation_activity, get_loaded_task
 
 router = APIRouter(prefix="/tasks", tags=["runs"])
 logger = logging.getLogger(__name__)
@@ -20,6 +21,7 @@ def run_task(
     db: Session = Depends(get_db),
 ) -> schemas.ResearchRunResponse:
     logger.info("Received run request for task %s", task_id)
+    ensure_task_allows_continuation_activity(get_loaded_task(db, task_id))
     orchestrator = HostOrchestrator(db)
     try:
         return orchestrator.orchestrate_task(task_id)
@@ -36,6 +38,7 @@ def run_research_synthesis(
     task_id: str,
     db: Session = Depends(get_db),
 ) -> schemas.ResearchRunResponse:
+    ensure_task_allows_continuation_activity(get_loaded_task(db, task_id))
     orchestrator = HostOrchestrator(db)
     try:
         return orchestrator.orchestrate_task(task_id)

@@ -111,11 +111,14 @@ Infinite Pro 的正式第一層主導覽應為：
 2. **案件工作台**
    - 顧問操作案件世界的正式主工作面
    - 承接 `Client / Engagement / Workstream / DecisionContext`
+   - 首屏 primary action 應受 `engagement_continuity_mode / writeback_depth` 影響：
+     `one_off` 偏正式結案、`follow_up` 偏 checkpoint、`continuous` 偏 progression / outcome
    - 它不是 task list 的包裝，而是案件脈絡、相關工作、來源、交付物與工作紀錄的主體
 
 3. **交付物**
    - 正式交付物頁與交付物回看入口
    - 承接 deliverable identity、summary、judgment、recommendation、risk、action、evidence basis、limitations 與版本紀錄
+   - 應可看出這份交付物目前對應的是 closure、checkpoint 還是 continuous progression
    - 它不是單次 task 的結果區替身
 
 4. **代理管理**

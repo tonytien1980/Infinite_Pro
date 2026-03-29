@@ -8,6 +8,8 @@ from app.domain import schemas
 from app.services.sources import ingest_sources_for_task
 from app.services.tasks import get_primary_task_for_matter
 from app.services.tasks import (
+    apply_matter_continuation_action,
+    ensure_task_allows_continuation_activity,
     get_artifact_evidence_workspace,
     get_matter_workspace,
     list_matter_workspaces,
@@ -53,6 +55,15 @@ def update_matter_workspace_route(
     return update_matter_workspace(db, matter_id, payload)
 
 
+@router.post("/{matter_id}/continuation", response_model=schemas.MatterWorkspaceResponse)
+def apply_matter_continuation_action_route(
+    matter_id: str,
+    payload: schemas.MatterContinuationActionRequest,
+    db: Session = Depends(get_db),
+) -> schemas.MatterWorkspaceResponse:
+    return apply_matter_continuation_action(db, matter_id, payload)
+
+
 @router.post("/{matter_id}/revisions/{revision_id}/rollback", response_model=schemas.MatterWorkspaceResponse)
 def rollback_matter_content_revision_route(
     matter_id: str,
@@ -80,6 +91,7 @@ def upload_matter_files_route(
     db: Session = Depends(get_db),
 ) -> schemas.UploadBatchResponse:
     task = get_primary_task_for_matter(db, matter_id)
+    ensure_task_allows_continuation_activity(task)
     return save_uploads_for_task(db=db, task_id=task.id, files=files)
 
 
@@ -90,4 +102,5 @@ def ingest_matter_sources_route(
     db: Session = Depends(get_db),
 ) -> schemas.SourceIngestBatchResponse:
     task = get_primary_task_for_matter(db, matter_id)
+    ensure_task_allows_continuation_activity(task)
     return ingest_sources_for_task(db=db, task_id=task.id, payload=payload)

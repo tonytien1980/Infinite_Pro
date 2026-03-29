@@ -43,10 +43,12 @@ const LIKELIHOOD_LEVEL_LABELS: Record<string, string> = {
 };
 
 const ACTION_STATUS_LABELS: Record<string, string> = {
+  planned: "已規劃",
   open: "待處理",
   in_progress: "進行中",
   completed: "已完成",
   blocked: "受阻",
+  review_required: "待重新檢查",
 };
 
 const AGENT_LABELS: Record<string, string> = {
@@ -321,6 +323,7 @@ const CAPABILITY_LABELS: Record<string, string> = {
 const MATTER_STATUS_LABELS: Record<string, string> = {
   active: "進行中",
   paused: "暫停",
+  closed: "已結案",
   archived: "封存",
 };
 

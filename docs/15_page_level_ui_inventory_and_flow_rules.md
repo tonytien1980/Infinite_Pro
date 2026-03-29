@@ -104,6 +104,8 @@
 - canonical intake pipeline 說明
 - 當前 entry preset 規則
 - continuity strategy / writeback depth（若已展開進階設定）
+- continuity 選擇對後續 workflow 的影響：
+  `one_off` 偏正式結案、`follow_up` 偏 checkpoint、`continuous` 偏 progression / outcome
 - 建立後流程說明
 - 核心輸入欄位
 
@@ -166,9 +168,9 @@
 
 **Primary action**
 - 依案件狀態決定：
-  - 補件
-  - 執行分析
-  - 打開最新交付物
+  - `one_off`：正式結案 / reopen / 打開最新交付物
+  - `follow_up`：補件 / 更新 checkpoint / 打開最新交付物
+  - `continuous`：補件 / 記錄 outcome / 打開最新交付物
 
 **Secondary actions**
 - 打開焦點工作紀錄
@@ -207,7 +209,10 @@
 - 補完之後回哪裡
 
 **Primary action**
-- 補件
+- 依 continuity mode 決定：
+  - `one_off` 且已結案：先 reopen
+  - `follow_up`：補件，然後回案件工作面更新 checkpoint
+  - `continuous`：補件，然後回案件工作面記錄 progression / outcome
 
 **Secondary actions**
 - 打開焦點工作紀錄
@@ -324,9 +329,9 @@
 
 **Primary action**
 - 依狀態決定：
-  - 正式發布
-  - 匯出正式版本
-  - 打開最近正式交付物
+  - `one_off`：正式發布 / 匯出 / 正式結案
+  - `follow_up`：新增 checkpoint / 回案件工作面續推
+  - `continuous`：記錄 outcome / 更新下一步 / 回案件工作面續推
 
 **Secondary actions**
 - 整理版本與摘要

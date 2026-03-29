@@ -298,15 +298,20 @@ Formal behavior:
   - builds the evidence chain
   - produces a deliverable
   - keeps minimum history and traceability
+  - supports formal closure and reopen semantics
+  - does not force continuous action / outcome tracking
 - `follow_up`
   - keeps the `one_off` baseline
   - allows decision checkpoints and milestone writeback
+  - supports lightweight checkpoint-style continuation without turning the case into a CRM loop
 - `continuous`
   - keeps the `follow_up` baseline
   - supports decision -> action -> outcome continuity over time
+  - is the only mode that should expose richer progression / outcome logging UX
 
 This means writeback is no longer treated as "all or nothing".
 All matters must keep minimum history and deliverable lineage, but only follow-up and continuous cases should deepen the feedback loop.
+Primary actions in matter, task, deliverable, and evidence workspaces should now change with this policy: one-off cases should bias toward closure, follow-up cases toward checkpoint updates, and continuous cases toward progression / outcome observation.
 
 ## Core ontology objects
 

@@ -817,6 +817,27 @@ export interface OutcomeRecord {
   created_at: string;
 }
 
+export interface ContinuationAction {
+  action_id: string;
+  label: string;
+  description: string;
+}
+
+export interface ContinuationSurface {
+  workflow_layer: "closure" | "checkpoint" | "progression";
+  mode: EngagementContinuityMode;
+  writeback_depth: WritebackDepth;
+  current_state: string;
+  title: string;
+  summary: string;
+  primary_action: ContinuationAction | null;
+  secondary_actions: ContinuationAction[];
+  closure_ready: boolean;
+  can_reopen: boolean;
+  checkpoint_enabled: boolean;
+  outcome_logging_enabled: boolean;
+}
+
 export interface TaskAggregate {
   id: string;
   title: string;
@@ -872,6 +893,7 @@ export interface TaskAggregate {
   action_executions: ActionExecution[];
   outcome_records: OutcomeRecord[];
   matter_workspace: MatterWorkspaceSummary | null;
+  continuation_surface: ContinuationSurface | null;
 }
 
 export interface TaskListItem {
@@ -936,6 +958,7 @@ export interface MatterWorkspace {
   outcome_records: OutcomeRecord[];
   readiness_hint: string;
   continuity_notes: string[];
+  continuation_surface: ContinuationSurface | null;
 }
 
 export interface ArtifactEvidenceMaterial {
@@ -1037,6 +1060,7 @@ export interface DeliverableWorkspace {
   outcome_records: OutcomeRecord[];
   research_runs: ResearchRun[];
   continuity_notes: string[];
+  continuation_surface: ContinuationSurface | null;
   content_sections: DeliverableContentSections;
   content_revisions: DeliverableContentRevision[];
   version_events: DeliverableVersionEvent[];
@@ -1243,7 +1267,7 @@ export interface TaskExtensionOverridePayload {
 export interface MatterWorkspaceMetadataUpdatePayload {
   title: string;
   summary: string;
-  status: "active" | "paused" | "archived";
+  status: "active" | "paused" | "closed" | "archived";
 }
 
 export interface MatterWorkspaceUpdatePayload extends MatterWorkspaceMetadataUpdatePayload {
@@ -1269,4 +1293,11 @@ export interface DeliverablePublishPayload {
   publish_note: string;
   artifact_formats: Array<"markdown" | "docx">;
   content_sections: DeliverableContentSections;
+}
+
+export interface MatterContinuationActionPayload {
+  action: "close" | "reopen" | "checkpoint" | "record_outcome";
+  summary?: string;
+  note?: string;
+  action_status?: "planned" | "in_progress" | "blocked" | "completed" | "review_required";
 }

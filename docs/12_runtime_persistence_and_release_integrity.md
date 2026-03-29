@@ -330,22 +330,27 @@ publish / artifact records 用來描述正式發布與正式輸出物。
 - 產出 deliverable
 - 保留最小 history / traceability
 - 不強迫建立完整 action-outcome loop
+- 應支援 formal closure
+- 若後續又有新資料，應以 reopen 重新啟動，而不是默默假裝仍在 continuous 狀態
 
 ### 8.3 follow_up
 - 在 `one_off` 基礎上
 - 允許 decision checkpoints
 - 允許 milestone-level writeback
 - 允許後續追蹤，但不要求完整 continuous loop
+- UI / workflow 應偏向 checkpoint、milestone note、updated recommendation / risk / action summary
 
 ### 8.4 continuous
 - 在 `follow_up` 基礎上
 - 正式支援 decision -> action -> outcome 閉環
 - 支援長期更新案件世界
+- manual outcome logging 與 progression surface 只應在這一層被正式打開
 
 正式規則：
 - 所有案件都至少要保留最小 history / traceability
 - 並非所有案件都應被污染成 continuous UX
 - 但 `continuous` 案件的 writeback 痕跡不可消失在 revision history 裡
+- `writeback_depth` 不可只存在欄位；它必須在 closure、checkpoint、outcome logging 上有可見後果
 
 ---
 

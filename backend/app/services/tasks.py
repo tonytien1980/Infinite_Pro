@@ -4117,6 +4117,263 @@ def resolve_continuity_policy_for_task(
     return continuity_mode, writeback_depth
 
 
+def _resolve_continuation_workflow_layer(
+    continuity_mode: EngagementContinuityMode,
+) -> str:
+    if continuity_mode == EngagementContinuityMode.ONE_OFF:
+        return "closure"
+    if continuity_mode == EngagementContinuityMode.FOLLOW_UP:
+        return "checkpoint"
+    return "progression"
+
+
+def _build_continuation_action(
+    action_id: str,
+    label: str,
+    description: str,
+) -> schemas.ContinuationActionRead:
+    return schemas.ContinuationActionRead(
+        action_id=action_id,
+        label=label,
+        description=description,
+    )
+
+
+def _build_continuation_surface(
+    *,
+    continuity_mode: EngagementContinuityMode,
+    writeback_depth: WritebackDepth,
+    matter_status: str | None,
+    latest_deliverable_title: str | None,
+    source_material_count: int,
+    evidence_count: int,
+    decision_record_count: int,
+    outcome_record_count: int,
+) -> schemas.ContinuationSurfaceRead:
+    workflow_layer = _resolve_continuation_workflow_layer(continuity_mode)
+    is_closed_one_off = (
+        continuity_mode == EngagementContinuityMode.ONE_OFF and matter_status == "closed"
+    )
+    has_result_surface = bool(latest_deliverable_title)
+
+    if continuity_mode == EngagementContinuityMode.ONE_OFF:
+        if is_closed_one_off:
+            return schemas.ContinuationSurfaceRead(
+                workflow_layer=workflow_layer,
+                mode=continuity_mode,
+                writeback_depth=writeback_depth,
+                current_state="closed",
+                title="這案已正式結案",
+                summary=(
+                    "目前保留正式交付物、evidence basis 與 history lineage，"
+                    "不再要求 action / outcome loop；如果後續又有新資料，請先 reopen 再續推。"
+                ),
+                primary_action=_build_continuation_action(
+                    "reopen_case",
+                    "重新開啟案件",
+                    "若後續又有新資料或要再做一輪分析，先明確 reopen，再回到同一個案件世界續推。",
+                ),
+                secondary_actions=(
+                    [
+                        _build_continuation_action(
+                            "open_deliverable",
+                            "回看正式交付物",
+                            "先回看既有 deliverable、evidence basis 與 release lineage。",
+                        )
+                    ]
+                    if has_result_surface
+                    else []
+                ),
+                can_reopen=True,
+            )
+        if has_result_surface:
+            return schemas.ContinuationSurfaceRead(
+                workflow_layer=workflow_layer,
+                mode=continuity_mode,
+                writeback_depth=writeback_depth,
+                current_state="closure_ready",
+                title="這案已可正式結案",
+                summary=(
+                    "single-use 案件現在已具備最小 history、evidence basis 與 deliverable lineage，"
+                    "下一步應偏向正式結案、發布或匯出，而不是進入持續追蹤。"
+                ),
+                primary_action=_build_continuation_action(
+                    "close_case",
+                    "正式結案",
+                    "保留交付物 lineage 與 evidence basis，但不再強迫持續追蹤 outcome。",
+                ),
+                secondary_actions=[
+                    _build_continuation_action(
+                        "open_deliverable",
+                        "查看正式交付物",
+                        "先回看這份交付物，確認是否已達 closure-ready 狀態。",
+                    ),
+                    _build_continuation_action(
+                        "supplement_evidence",
+                        "若仍不放心，先補件",
+                        "若還有關鍵缺口，先補來源與證據，再決定要不要正式結案。",
+                    ),
+                ],
+                closure_ready=True,
+            )
+        return schemas.ContinuationSurfaceRead(
+            workflow_layer=workflow_layer,
+            mode=continuity_mode,
+            writeback_depth=writeback_depth,
+            current_state="analysis_pending",
+            title="先完成這輪分析，再決定是否結案",
+            summary=(
+                "one_off 案件只要求最小 lineage，不要求持續追蹤；"
+                "先補齊基本材料或完成第一輪分析，再決定是否正式結案。"
+            ),
+            primary_action=_build_continuation_action(
+                "run_analysis",
+                "先完成這輪分析",
+                "先產出正式交付結果，之後才有 clear closure-ready surface。",
+            ),
+            secondary_actions=[
+                _build_continuation_action(
+                    "supplement_evidence",
+                    "先補件",
+                    "若材料與證據仍偏薄，先補件會比直接空跑更穩。",
+                )
+            ],
+        )
+
+    if continuity_mode == EngagementContinuityMode.FOLLOW_UP:
+        if has_result_surface or decision_record_count > 0:
+            return schemas.ContinuationSurfaceRead(
+                workflow_layer=workflow_layer,
+                mode=continuity_mode,
+                writeback_depth=writeback_depth,
+                current_state="checkpoint_ready",
+                title="這案目前適合寫入輕量 checkpoint",
+                summary=(
+                    "follow-up 案件應保留 decision checkpoint、milestone note 與新版建議摘要，"
+                    "但不需要被完整 action / outcome loop 汙染。"
+                ),
+                primary_action=_build_continuation_action(
+                    "record_checkpoint",
+                    "更新 checkpoint",
+                    "把這輪判斷寫成 milestone-level checkpoint，保留後續回看節點。",
+                ),
+                secondary_actions=[
+                    _build_continuation_action(
+                        "supplement_evidence",
+                        "先補件",
+                        "若要更新 checkpoint，先補最新材料與證據會更穩。",
+                    ),
+                    _build_continuation_action(
+                        "open_deliverable",
+                        "打開最新交付物",
+                        "回看最近 deliverable，再決定這輪 checkpoint 要怎麼補。",
+                    ),
+                ],
+                checkpoint_enabled=True,
+            )
+        return schemas.ContinuationSurfaceRead(
+            workflow_layer=workflow_layer,
+            mode=continuity_mode,
+            writeback_depth=writeback_depth,
+            current_state="follow_up_pending",
+            title="先完成這輪 follow-up 分析",
+            summary=(
+                "這案屬於 follow-up 模式：重點是補件、重跑與 milestone 更新，"
+                "不是把所有後續都做成重型持續追蹤。"
+            ),
+            primary_action=_build_continuation_action(
+                "run_analysis",
+                "先完成 follow-up 分析",
+                "先形成新版判斷與交付，再決定要不要寫入 checkpoint。",
+            ),
+            secondary_actions=[
+                _build_continuation_action(
+                    "supplement_evidence",
+                    "先補來源與證據",
+                    "若手上已有新資料，先掛回同一個案件世界再續推。",
+                )
+            ],
+            checkpoint_enabled=True,
+        )
+
+    if has_result_surface or decision_record_count > 0 or outcome_record_count > 0:
+        return schemas.ContinuationSurfaceRead(
+            workflow_layer=workflow_layer,
+            mode=continuity_mode,
+            writeback_depth=writeback_depth,
+            current_state="progression_ready",
+            title="這案目前適合記錄進度與 outcome",
+            summary=(
+                "continuous 案件才需要較完整的 progression surface；"
+                "現在可以記錄 action 是否開始 / 卡住 / 完成，以及 outcome 是否出現新訊號。"
+            ),
+            primary_action=_build_continuation_action(
+                "record_outcome",
+                "記錄 outcome / 進度",
+                "把這輪新的進度訊號或 outcome observation 掛回同一個案件世界。",
+            ),
+            secondary_actions=[
+                _build_continuation_action(
+                    "record_checkpoint",
+                    "更新 decision checkpoint",
+                    "若這輪更像 milestone update，也可以先記 checkpoint 再續推。",
+                ),
+                _build_continuation_action(
+                    "open_deliverable",
+                    "回看最新交付物",
+                    "先確認上一輪 deliverable 的建議與限制，再記錄新的進度。",
+                ),
+            ],
+            checkpoint_enabled=True,
+            outcome_logging_enabled=True,
+        )
+
+    return schemas.ContinuationSurfaceRead(
+        workflow_layer=workflow_layer,
+        mode=continuity_mode,
+        writeback_depth=writeback_depth,
+        current_state="progression_pending",
+        title="先建立第一輪持續推進基線",
+        summary=(
+            "這案屬於 continuous 模式，但目前還沒有足夠的 decision / deliverable 基線；"
+            "先完成第一輪分析，之後再記錄 progression 與 outcome。"
+        ),
+        primary_action=_build_continuation_action(
+            "run_analysis",
+            "先建立持續推進基線",
+            "先形成第一份 decision / action deliverable，後續才有 progression surface 可回寫。",
+        ),
+        secondary_actions=[
+            _build_continuation_action(
+                "supplement_evidence",
+                "先補件",
+                "若你手上已有新材料，先掛回案件世界再建立第一輪基線。",
+            )
+        ],
+        checkpoint_enabled=True,
+        outcome_logging_enabled=True,
+    )
+
+
+def _is_closed_one_off_workspace(matter_workspace: models.MatterWorkspace | None) -> bool:
+    if matter_workspace is None:
+        return False
+    continuity_mode = _normalize_continuity_mode(
+        matter_workspace.engagement_continuity_mode,
+        fallback=InputEntryMode.ONE_LINE_INQUIRY,
+    )
+    return continuity_mode == EngagementContinuityMode.ONE_OFF and matter_workspace.status == "closed"
+
+
+def ensure_task_allows_continuation_activity(task: models.Task) -> None:
+    matter_workspace = _get_linked_matter_workspace(task)
+    if _is_closed_one_off_workspace(matter_workspace):
+        raise HTTPException(
+            status_code=409,
+            detail="這個 one_off 案件已正式結案；若要補件、重跑或續推，請先在案件工作面重新開啟。",
+        )
+
+
 def _default_deliverable_status(task: models.Task, deliverable: models.Deliverable) -> str:
     if deliverable.status:
         return deliverable.status
@@ -4328,6 +4585,216 @@ def get_primary_task_for_matter(
     return active_task or related_tasks[0]
 
 
+def _latest_deliverable_for_tasks(related_tasks: list[models.Task]) -> tuple[models.Task | None, models.Deliverable | None]:
+    candidates: list[tuple[models.Task, models.Deliverable]] = []
+    for task in related_tasks:
+        for deliverable in task.deliverables:
+            candidates.append((task, deliverable))
+    if not candidates:
+        return None, None
+    task, deliverable = max(
+        candidates,
+        key=lambda item: (item[1].generated_at, item[1].version),
+    )
+    return task, deliverable
+
+
+def _build_default_checkpoint_summary(
+    matter_workspace: models.MatterWorkspace,
+    task: models.Task,
+    deliverable: models.Deliverable | None,
+) -> str:
+    if deliverable is not None:
+        return (
+            f"Checkpoint 更新：以「{deliverable.title}」作為目前里程碑基線，"
+            "保留這輪 decision、建議與風險摘要。"
+        )
+    if task.description.strip():
+        return f"Checkpoint 更新：延續「{task.title}」這輪判斷，保留 milestone-level decision summary。"
+    return f"Checkpoint 更新：為案件「{matter_workspace.title}」補一筆 milestone-level decision summary。"
+
+
+def _build_default_outcome_summary(
+    matter_workspace: models.MatterWorkspace,
+    deliverable: models.Deliverable | None,
+) -> str:
+    if deliverable is not None:
+        return f"Outcome observation：延續「{deliverable.title}」後的新進度 / 結果訊號。"
+    return f"Outcome observation：為案件「{matter_workspace.title}」補記新的進度 / 結果訊號。"
+
+
+def apply_matter_continuation_action(
+    db: Session,
+    matter_id: str,
+    payload: schemas.MatterContinuationActionRequest,
+) -> schemas.MatterWorkspaceResponse:
+    matter_workspace = db.scalars(
+        select(models.MatterWorkspace)
+        .options(selectinload(models.MatterWorkspace.case_world_state))
+        .where(models.MatterWorkspace.id == matter_id)
+    ).one_or_none()
+    if matter_workspace is None:
+        raise HTTPException(status_code=404, detail="找不到指定案件工作面。")
+
+    related_tasks = _load_tasks_for_matter_workspaces(db, [matter_id]).get(matter_id, [])
+    if not related_tasks:
+        raise HTTPException(status_code=404, detail="這個案件目前還沒有可續推的工作。")
+
+    primary_task = get_primary_task_for_matter(db, matter_id)
+    continuity_mode, writeback_depth = resolve_continuity_policy_for_task(primary_task, matter_workspace)
+    _, latest_deliverable = _latest_deliverable_for_tasks(related_tasks)
+    summary = _normalize_whitespace(payload.summary)
+    note = _normalize_whitespace(payload.note)
+
+    if payload.action == "close":
+        if continuity_mode != EngagementContinuityMode.ONE_OFF:
+            raise HTTPException(
+                status_code=400,
+                detail="只有 one_off 案件適用正式結案；follow_up / continuous 請改用 checkpoint 或持續推進流程。",
+            )
+        if latest_deliverable is None:
+            raise HTTPException(
+                status_code=400,
+                detail="這個案件目前還沒有正式交付物，請先完成分析或產出交付物後再結案。",
+            )
+        matter_workspace.status = "closed"
+        db.add(matter_workspace)
+        db.commit()
+        return get_matter_workspace(db, matter_id)
+
+    if payload.action == "reopen":
+        if continuity_mode != EngagementContinuityMode.ONE_OFF:
+            raise HTTPException(
+                status_code=400,
+                detail="reopen 目前只用於 one_off 正式結案後的再開啟；其他模式請直接續推。",
+            )
+        matter_workspace.status = "active"
+        db.add(matter_workspace)
+        db.commit()
+        return get_matter_workspace(db, matter_id)
+
+    if _is_closed_one_off_workspace(matter_workspace):
+        raise HTTPException(
+            status_code=409,
+            detail="這個 one_off 案件已正式結案；若要 checkpoint 或補記 outcome，請先 reopen。",
+        )
+
+    if payload.action == "checkpoint":
+        if writeback_depth == WritebackDepth.MINIMAL:
+            raise HTTPException(
+                status_code=400,
+                detail="目前案件策略只有 minimal writeback；請改用正式結案或補件 / 重跑，不支援 checkpoint。",
+            )
+        decision_record = models.DecisionRecord(
+            task_id=primary_task.id,
+            matter_workspace_id=matter_workspace.id,
+            deliverable_id=latest_deliverable.id if latest_deliverable else None,
+            task_run_id=latest_deliverable.task_run_id if latest_deliverable else None,
+            continuity_mode=continuity_mode.value,
+            writeback_depth=writeback_depth.value,
+            title=f"{matter_workspace.title}｜Checkpoint",
+            decision_summary=summary or _build_default_checkpoint_summary(
+                matter_workspace,
+                primary_task,
+                latest_deliverable,
+            ),
+            evidence_basis_ids=[item.id for item in primary_task.evidence][:12],
+            recommendation_ids=[item.id for item in primary_task.recommendations][:12],
+            risk_ids=[item.id for item in primary_task.risks][:12],
+            action_item_ids=[item.id for item in primary_task.action_items][:12],
+        )
+        db.add(decision_record)
+        db.commit()
+        return get_matter_workspace(db, matter_id)
+
+    if payload.action == "record_outcome":
+        if continuity_mode != EngagementContinuityMode.CONTINUOUS or writeback_depth != WritebackDepth.FULL:
+            raise HTTPException(
+                status_code=400,
+                detail="只有 continuous / full 案件才支援 manual outcome logging。",
+            )
+
+        latest_decision_record = next(
+            iter(
+                sorted(
+                    [item for task in related_tasks for item in task.decision_records],
+                    key=lambda item: item.created_at,
+                    reverse=True,
+                )
+            ),
+            None,
+        )
+        if latest_decision_record is None:
+            raise HTTPException(
+                status_code=400,
+                detail="目前還沒有可追蹤的 decision baseline；請先完成至少一輪正式分析。",
+            )
+
+        latest_action_plan = next(
+            iter(
+                sorted(
+                    [item for task in related_tasks for item in task.action_plans if item.decision_record_id == latest_decision_record.id],
+                    key=lambda item: item.updated_at,
+                    reverse=True,
+                )
+            ),
+            None,
+        )
+        if latest_action_plan is None:
+            latest_action_plan = models.ActionPlan(
+                task_id=latest_decision_record.task_id,
+                matter_workspace_id=matter_workspace.id,
+                decision_record_id=latest_decision_record.id,
+                title=f"{matter_workspace.title}｜Continuation Plan",
+                summary="由 manual outcome logging 補上的最小 progression plan。",
+                status="planned",
+                action_item_ids=list(latest_decision_record.action_item_ids or [])[:12],
+            )
+            db.add(latest_action_plan)
+            db.flush()
+
+        latest_action_execution = next(
+            iter(
+                sorted(
+                    [item for task in related_tasks for item in task.action_executions if item.action_plan_id == latest_action_plan.id],
+                    key=lambda item: item.updated_at,
+                    reverse=True,
+                )
+            ),
+            None,
+        )
+        if latest_action_execution is None:
+            latest_action_execution = models.ActionExecution(
+                task_id=latest_action_plan.task_id,
+                action_plan_id=latest_action_plan.id,
+                action_item_id=(latest_action_plan.action_item_ids or [None])[0],
+                status=payload.action_status or "in_progress",
+                execution_note="由 continuation-aware manual outcome logging 建立的最小 progression execution。",
+            )
+            db.add(latest_action_execution)
+            db.flush()
+        elif payload.action_status:
+            latest_action_execution.status = payload.action_status
+            db.add(latest_action_execution)
+
+        outcome_record = models.OutcomeRecord(
+            task_id=latest_action_execution.task_id,
+            matter_workspace_id=matter_workspace.id,
+            decision_record_id=latest_decision_record.id,
+            action_execution_id=latest_action_execution.id,
+            deliverable_id=latest_decision_record.deliverable_id,
+            status="observed",
+            signal_type="manual_outcome_log",
+            summary=summary or _build_default_outcome_summary(matter_workspace, latest_deliverable),
+            evidence_note=note or "由 continuous progression 手動補記的 outcome / progress signal。",
+        )
+        db.add(outcome_record)
+        db.commit()
+        return get_matter_workspace(db, matter_id)
+
+    raise HTTPException(status_code=400, detail="不支援的 continuation action。")
+
+
 def _build_matter_workspace_summary_from_tasks(
     matter_workspace: models.MatterWorkspace,
     related_tasks: list[models.Task],
@@ -4406,26 +4873,32 @@ def _build_matter_workspace_summary_from_tasks(
         )
         selected_agent_names.extend(agent_selection.selected_agent_names)
 
-    continuity_summary = (
-        f"目前這個案件世界採 {matter_workspace.engagement_continuity_mode} / {matter_workspace.writeback_depth} 策略，"
-        f"已有 {len(related_tasks)} 個相關 task slices、{deliverable_count} 份 deliverables，"
-        f"可直接回看 decision trajectory、最近交付與工作鏈材料；其中 {len(shared_material_ids)} 份共享 materials / "
-        f"{len(shared_evidence_ids)} 則共享 evidence 已正式掛在案件世界。"
-        if len(related_tasks) > 1 or deliverable_count > 0
-        else (
-            f"這個案件世界目前仍在第一個 task slice 階段，採 {matter_workspace.engagement_continuity_mode} / "
-            f"{matter_workspace.writeback_depth} 策略，但已具備正式的 matter / engagement 工作面。"
+    if matter_workspace.engagement_continuity_mode == EngagementContinuityMode.ONE_OFF.value:
+        continuity_summary = (
+            f"這個案件目前採 one_off / {matter_workspace.writeback_depth} 策略，"
+            f"重點是保留交付物 lineage、evidence basis 與最小 history；"
+            f"目前已有 {deliverable_count} 份 deliverables、{len(shared_material_ids)} 份共享 materials / "
+            f"{len(shared_evidence_ids)} 則共享 evidence 掛在同一個案件世界。"
         )
-    )
-    active_work_summary = (
-        f"目前有 {active_task_count} 個 active work item；最近更新來自「{latest_task.title}」。"
-        if latest_task and active_task_count > 0
-        else (
-            f"最近一次完成的工作是「{latest_task.title}」。"
-            if latest_task
-            else "目前尚未有可顯示的案件工作。"
+    elif matter_workspace.engagement_continuity_mode == EngagementContinuityMode.FOLLOW_UP.value:
+        continuity_summary = (
+            f"這個案件目前採 follow_up / {matter_workspace.writeback_depth} 策略，"
+            "重點是輕量 checkpoint / milestone 更新，而不是完整 continuous tracking。"
         )
-    )
+    else:
+        continuity_summary = (
+            f"這個案件目前採 continuous / {matter_workspace.writeback_depth} 策略，"
+            "應可持續回看 decision、action progression 與 outcome observation。"
+        )
+
+    if workspace_status == "closed":
+        active_work_summary = "這個 one_off 案件目前已正式結案；若後續又有新資料，應先 reopen 再續推。"
+    elif latest_task and active_task_count > 0:
+        active_work_summary = f"目前有 {active_task_count} 個 active work item；最近更新來自「{latest_task.title}」。"
+    elif latest_task:
+        active_work_summary = f"最近一次完成的工作是「{latest_task.title}」。"
+    else:
+        active_work_summary = "目前尚未有可顯示的案件工作。"
 
     return schemas.MatterWorkspaceSummaryRead(
         id=matter_workspace.id,
@@ -5367,6 +5840,8 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
         continuity_notes.append(f"目前仍有 {summary.active_task_count} 個 active work item 正在這個案件世界內推進。")
     if summary.artifact_count == 0 and summary.source_material_count == 0:
         continuity_notes.append("目前案件材料仍偏 sparse，工作面主要依賴 DecisionContext 與 Host framing。")
+    if summary.engagement_continuity_mode == EngagementContinuityMode.ONE_OFF and summary.status == "closed":
+        continuity_notes.append("這個 one_off 案件目前已正式結案；若後續又有新資料，應先 reopen 再續推。")
 
     readiness_hint = (
         f"最近一次工作屬於「{summary.current_decision_context_title or latest_task.title}」，"
@@ -5378,6 +5853,21 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
         .options(selectinload(models.MatterWorkspace.case_world_state))
         .where(models.MatterWorkspace.id == matter_id)
     ).one()
+    latest_related_deliverable = (
+        max(related_deliverables, key=lambda item: item.generated_at)
+        if related_deliverables
+        else None
+    )
+    continuation_surface = _build_continuation_surface(
+        continuity_mode=summary.engagement_continuity_mode,
+        writeback_depth=summary.writeback_depth,
+        matter_status=summary.status,
+        latest_deliverable_title=latest_related_deliverable.title if latest_related_deliverable else None,
+        source_material_count=summary.source_material_count,
+        evidence_count=sum(task.evidence_count for task in related_task_items),
+        decision_record_count=len(decision_records),
+        outcome_record_count=len(outcome_records),
+    )
 
     return schemas.MatterWorkspaceResponse(
         summary=summary,
@@ -5412,6 +5902,7 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
         outcome_records=sorted(outcome_records, key=lambda item: item.created_at, reverse=True)[:10],
         readiness_hint=readiness_hint,
         continuity_notes=continuity_notes,
+        continuation_surface=continuation_surface,
     )
 
 
@@ -6378,6 +6869,16 @@ def get_deliverable_workspace(
         )
     if not linked_evidence:
         continuity_notes.append("這份交付物目前尚未形成厚實 evidence basis，應先回看來源 / 證據工作面再採行。")
+    continuation_surface = _build_continuation_surface(
+        continuity_mode=task_aggregate.engagement_continuity_mode,
+        writeback_depth=task_aggregate.writeback_depth,
+        matter_status=task_aggregate.matter_workspace.status if task_aggregate.matter_workspace else None,
+        latest_deliverable_title=deliverable.title,
+        source_material_count=len(linked_source_materials),
+        evidence_count=len(linked_evidence),
+        decision_record_count=len(task_aggregate.decision_records),
+        outcome_record_count=len(task_aggregate.outcome_records),
+    )
 
     return schemas.DeliverableWorkspaceResponse(
         deliverable=deliverable,
@@ -6403,6 +6904,7 @@ def get_deliverable_workspace(
         outcome_records=task_aggregate.outcome_records[:10],
         research_runs=task_aggregate.research_runs[:6],
         continuity_notes=_unique_preserve_order(continuity_notes),
+        continuation_surface=continuation_surface,
         content_sections=_normalize_deliverable_content_sections(deliverable_row.content_sections),
         content_revisions=[
             _build_deliverable_content_revision_read(item) for item in content_revisions[:12]
@@ -7912,6 +8414,22 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
             world=preferred_decision_context,
         )
 
+    latest_task_deliverable = max(
+        task.deliverables,
+        key=lambda item: (item.generated_at, item.version),
+        default=None,
+    )
+    continuation_surface = _build_continuation_surface(
+        continuity_mode=continuity_mode,
+        writeback_depth=writeback_depth,
+        matter_status=_default_matter_workspace_status(matter_workspace, [task]),
+        latest_deliverable_title=latest_task_deliverable.title if latest_task_deliverable else None,
+        source_material_count=len(source_materials),
+        evidence_count=len(evidence),
+        decision_record_count=len(task.decision_records),
+        outcome_record_count=len(task.outcome_records),
+    )
+
     return schemas.TaskAggregateResponse(
         id=task.id,
         title=task.title,
@@ -7993,6 +8511,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         ],
         outcome_records=[schemas.OutcomeRecordRead.model_validate(item) for item in task.outcome_records],
         matter_workspace=matter_workspace_summary,
+        continuation_surface=continuation_surface,
     )
 
 

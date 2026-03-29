@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ReactNode, useEffect, useState } from "react";
 
 import {
+  applyMatterContinuationAction,
   downloadDeliverableArtifact,
   exportDeliverableDocx,
   exportDeliverableMarkdown,
@@ -249,6 +250,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const [exportTone, setExportTone] = useState<"success" | "error" | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isApplyingContinuation, setIsApplyingContinuation] = useState(false);
   const [activeExportFormat, setActiveExportFormat] = useState<"markdown" | "docx" | null>(null);
   const [activeArtifactDownloadId, setActiveArtifactDownloadId] = useState<string | null>(null);
   const [retryAction, setRetryAction] = useState<
@@ -314,6 +316,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
 
   const task = workspace?.task ?? null;
   const deliverable = workspace?.deliverable ?? null;
+  const continuationSurface = workspace?.continuation_surface ?? null;
   const workspaceView = workspace ? buildDeliverableWorkspaceView(workspace) : null;
   const readiness = task ? assessTaskReadiness(task) : null;
   const readinessGovernance =
@@ -423,8 +426,14 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
       ? hasPendingFormalSave
         ? "系統已先幫你整理出一版可用的正式草稿，但這些內容還沒正式寫回 deliverable workspace。先儲存，之後再匯出或發布會比較安全。"
         : "你目前有尚未儲存的修改。先把正式內容落盤，再做匯出、發布或版本比對，整體工作流會更穩。"
+      : continuationSurface?.workflow_layer === "closure"
+        ? continuationSurface.summary
+        : continuationSurface?.workflow_layer === "checkpoint"
+          ? "這份交付物目前更像 follow-up checkpoint 的基線。先回看結果，再決定要不要回案件工作面補一筆 checkpoint。"
+          : continuationSurface?.workflow_layer === "progression"
+            ? "這份交付物目前更像持續推進的基線。先回看結論與依據，再回案件工作面記錄進度或 outcome。"
       : deliverableStatus === "final"
-      ? "現在最有效率的做法是匯出正式版本，或回到下方檢查依據來源、版本紀錄與連續性。"
+        ? "現在最有效率的做法是匯出正式版本，或回到下方檢查依據來源、版本紀錄與連續性。"
       : deliverableStatus === "archived"
         ? "這份交付物目前以歷史回看為主；若要繼續推進，通常會回到較新的版本或原始工作紀錄。"
         : "先把版本標記、摘要與正文整理乾淨，再做正式發布；這樣會比直接在長頁面裡來回找區塊順手很多。";
@@ -618,6 +627,33 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
       }
     } finally {
       setIsPublishing(false);
+    }
+  }
+
+  async function handleMatterContinuationAction(action: "close" | "reopen") {
+    if (!workspace?.matter_workspace) {
+      return;
+    }
+
+    try {
+      setIsApplyingContinuation(true);
+      await applyMatterContinuationAction(workspace.matter_workspace.id, { action });
+      setWorkspace(await getDeliverableWorkspace(deliverableId));
+      setSaveTone("success");
+      setSaveMessage(
+        action === "close"
+          ? "案件已正式結案。"
+          : "案件已重新開啟，可回到同一個案件世界續推。",
+      );
+    } catch (continuationError) {
+      setSaveTone("error");
+      setSaveMessage(
+        continuationError instanceof Error
+          ? continuationError.message
+          : "執行 continuation action 失敗。",
+      );
+    } finally {
+      setIsApplyingContinuation(false);
     }
   }
 
@@ -971,7 +1007,43 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
               ))}
             </ul>
             <div className="button-row" style={{ marginTop: "16px" }}>
-              {requiresSaveBeforeFormalActions ? (
+              {continuationSurface?.primary_action?.action_id === "close_case" &&
+              workspace?.matter_workspace ? (
+                <button
+                  className="button-primary"
+                  type="button"
+                  onClick={() => void handleMatterContinuationAction("close")}
+                  disabled={isApplyingContinuation}
+                >
+                  {isApplyingContinuation ? "結案中..." : continuationSurface.primary_action.label}
+                </button>
+              ) : continuationSurface?.primary_action?.action_id === "reopen_case" &&
+                workspace?.matter_workspace ? (
+                <button
+                  className="button-primary"
+                  type="button"
+                  onClick={() => void handleMatterContinuationAction("reopen")}
+                  disabled={isApplyingContinuation}
+                >
+                  {isApplyingContinuation ? "重新開啟中..." : continuationSurface.primary_action.label}
+                </button>
+              ) : continuationSurface?.primary_action?.action_id === "record_checkpoint" &&
+                workspace?.matter_workspace ? (
+                <Link
+                  className="button-primary"
+                  href={`/matters/${workspace.matter_workspace.id}#continuation-actions`}
+                >
+                  {continuationSurface.primary_action.label}
+                </Link>
+              ) : continuationSurface?.primary_action?.action_id === "record_outcome" &&
+                workspace?.matter_workspace ? (
+                <Link
+                  className="button-primary"
+                  href={`/matters/${workspace.matter_workspace.id}#continuation-actions`}
+                >
+                  {continuationSurface.primary_action.label}
+                </Link>
+              ) : requiresSaveBeforeFormalActions ? (
                 <button
                   className="button-primary"
                   type="button"
@@ -1006,6 +1078,14 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
               <Link className="button-secondary" href="#deliverable-management">
                 整理版本與摘要
               </Link>
+              {workspace?.matter_workspace ? (
+                <Link
+                  className="button-secondary"
+                  href={`/matters/${workspace.matter_workspace.id}#continuation-actions`}
+                >
+                  回案件工作面續推
+                </Link>
+              ) : null}
               <Link className="button-secondary" href="#deliverable-reading">
                 查看交付摘要
               </Link>
@@ -1033,6 +1113,14 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                   {labelForWritebackDepth(task.writeback_depth)}
                 </p>
               </div>
+              {continuationSurface ? (
+                <div className="section-card">
+                  <h4>後續工作流</h4>
+                  <p className="content-block">
+                    {continuationSurface.title}。{continuationSurface.summary}
+                  </p>
+                </div>
+              ) : null}
               <div className="section-card">
                 <h4>Research provenance</h4>
                 <p className="content-block">

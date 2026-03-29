@@ -10,6 +10,7 @@ import {
   HistoryVisibilityState,
   HistoryVisibilityUpdatePayload,
   MatterWorkspace,
+  MatterContinuationActionPayload,
   MatterWorkspaceMetadataUpdatePayload,
   MatterWorkspaceSummary,
   ProviderValidationResult,
@@ -588,6 +589,20 @@ export async function runTask(taskId: string): Promise<ResearchRunResponse> {
     method: "POST",
   });
   return parseResponse<ResearchRunResponse>(response);
+}
+
+export async function applyMatterContinuationAction(
+  matterId: string,
+  payload: MatterContinuationActionPayload,
+): Promise<MatterWorkspace> {
+  const response = await fetch(`${getApiBaseUrl()}/matters/${matterId}/continuation`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  return parseResponse<MatterWorkspace>(response);
 }
 
 export async function updateTaskExtensions(
