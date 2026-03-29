@@ -487,6 +487,8 @@ export interface SourceDocument {
 
 export interface ObjectParticipation {
   canonical_object_id: string | null;
+  canonical_owner_scope: string | null;
+  compatibility_task_id: string | null;
   current_task_participation: boolean;
   participation_type: string | null;
   participation_task_count: number;
@@ -949,6 +951,9 @@ export interface ArtifactEvidenceMaterial {
   participation_type: string | null;
   participation_task_count: number;
   current_task_participation: boolean;
+  canonical_owner_scope: string | null;
+  compatibility_task_id: string | null;
+  mapping_mode: string | null;
   source_type: string | null;
   ingest_status: string | null;
   support_level: string | null;

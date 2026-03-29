@@ -236,7 +236,7 @@ Current bridge architecture:
 - `Client / Engagement / Workstream / DecisionContext / SourceMaterial / Artifact / Evidence`
   are expected to move progressively toward world-native continuity while legacy
   `task_id` references coexist during migration
-- identity deepen phase 10 should additionally prefer:
+- identity deepen phase 11 should additionally prefer:
   - canonical world rows and canonical world read paths first
   - task-slice derivative rows only as local overlays / compatibility layers
   - world-preferred write and sync paths over task-local ownership
@@ -256,6 +256,8 @@ Current bridge architecture:
     a second full decision authority
   - Host payloads, task aggregates, and workspace read models that consume the
     same canonical world context spine
+  - source-chain contracts whose `canonical owner / local participation / compatibility task ref`
+    boundaries are explicit enough that the identity line can enter closeout rather than another open-ended bridge wave
 
 ## Pack layer in the capability chain
 
