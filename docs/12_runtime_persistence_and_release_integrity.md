@@ -340,23 +340,13 @@ publish / artifact records 用來描述正式發布與正式輸出物。
 - follow-up 補件區不應只是 generic upload；應顯示這次補件主要想補哪個 evidence gap / update goal
 
 ### 8.4 continuous
-- continuous 才要求較完整的 progression / outcome writeback
-- richer follow_up UX 不可把 continuous 縮成只有 checkpoint
-
-### 8.3 follow_up
-- 在 `one_off` 基礎上
-- 允許 decision checkpoints
-- 允許 milestone-level writeback
-- 允許後續追蹤，但不要求完整 continuous loop
-- UI / workflow 應偏向 checkpoint、milestone note、updated recommendation / risk / action summary
-- UI / workflow 應可見上一個 checkpoint、最新更新摘要、what changed、next follow-up action
-- follow_up 補件應能說明這次主要是為了更新哪一類 recommendation / risk / action continuity
-
-### 8.4 continuous
 - 在 `follow_up` 基礎上
 - 正式支援 decision -> action -> outcome 閉環
 - 支援長期更新案件世界
 - manual outcome logging 與 progression surface 只應在這一層被正式打開
+- UI / workflow 應可見 latest progression state、previous progression snapshot、what changed、next progression action
+- UI / workflow 應可見 recommendation adoption、action status 與 outcome signals，但仍維持顧問工作面，而不是 records 牆
+- continuous 補件應能說明這次主要是為了驗證哪個 action / outcome / recommendation
 
 正式規則：
 - 所有案件都至少要保留最小 history / traceability

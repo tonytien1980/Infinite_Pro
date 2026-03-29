@@ -511,6 +511,7 @@ If a change touches continuity / writeback behavior, test at least:
 - `continuous` decision -> action -> outcome writeback visibility
 - one_off closure / reopen semantics and continuation-aware primary actions on matter / task / deliverable surfaces
 - follow_up supplement guidance on matter / evidence surfaces still answers what changed, what this supplement is for, and what to do next
+- continuous progression surfaces on matter / task / deliverable / evidence pages still answer where progression stands now, what changed, and what to do next without turning into a records wall
 
 If a change affects workbench structure, validate:
 - main work surface readability

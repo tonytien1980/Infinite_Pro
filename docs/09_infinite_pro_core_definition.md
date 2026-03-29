@@ -342,6 +342,9 @@ Infinite Pro 現在正式支援：
 - `follow_up` 應讓 recommendation / risk / action continuity 可見，但仍維持輕量 lane，而不是長期 CRM timeline
 - `follow_up` 的補件工作面也應看得出 evidence update goal 與這次補件主要想補哪個缺口
 - `continuous` 才應顯示較完整的 progression / outcome logging surface
+- `continuous` 應讓顧問看得出 latest progression state、previous progression snapshot、what changed、next progression action
+- `continuous` 應讓 recommendation adoption、action status、outcome signals 可見，但仍維持輕量 progression workbench，而不是 project tracker
+- `continuous` 的補件工作面應說明這次主要想驗證哪個 action / outcome / recommendation，而不是 generic upload
 
 ### Persistence / Release Integrity 的正式地位
 在目前單人正式 beta 階段，以下也應被視為正式 architecture responsibility：

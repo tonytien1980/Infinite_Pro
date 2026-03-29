@@ -2630,6 +2630,75 @@ def test_continuous_manual_outcome_logging_updates_progression_surface(
     assert workspace_after["outcome_records"][0]["signal_type"] == "manual_outcome_log"
     assert "跨部門 handoff" in workspace_after["outcome_records"][0]["summary"]
     assert any(item["status"] == "blocked" for item in workspace_after["action_executions"])
+    progression_lane = workspace_after["continuation_surface"]["progression_lane"]
+    assert progression_lane["latest_progression"]["summary"]
+    assert progression_lane["what_changed"]
+    assert progression_lane["action_states"]
+    assert progression_lane["next_progression_actions"]
+    assert progression_lane["evidence_update_goal"]
+
+
+def test_continuous_surfaces_show_latest_previous_progression_and_guidance(
+    client: TestClient,
+) -> None:
+    payload = create_task_payload("Continuous progression surface")
+    payload["external_data_strategy"] = "strict"
+    payload["engagement_continuity_mode"] = "continuous"
+    payload["writeback_depth"] = "full"
+    task = client.post("/api/v1/tasks", json=payload).json()
+    matter_id = task["matter_workspace"]["id"]
+
+    upload_response = client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("progress.txt", b"Continuous progression should expose action state and outcome continuity.", "text/plain"))],
+    )
+    assert upload_response.status_code == 200
+    run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
+    assert run_response.status_code == 200
+    deliverable_id = run_response.json()["deliverable"]["id"]
+
+    first_outcome = client.post(
+        f"/api/v1/matters/{matter_id}/continuation",
+        json={
+            "action": "record_outcome",
+            "summary": "第一輪 action 已啟動，但目前仍在跨部門協調中。",
+            "note": "先補 owner 與 handoff 訊號。",
+            "action_status": "in_progress",
+        },
+    )
+    assert first_outcome.status_code == 200
+    second_outcome = client.post(
+        f"/api/v1/matters/{matter_id}/continuation",
+        json={
+            "action": "record_outcome",
+            "summary": "第二輪 outcome 顯示主要阻塞已解除，可以考慮刷新 deliverable。",
+            "note": "目前需要確認是否正式改寫下一步。",
+            "action_status": "completed",
+        },
+    )
+    assert second_outcome.status_code == 200
+
+    matter_workspace = client.get(f"/api/v1/matters/{matter_id}").json()
+    task_aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
+    evidence_workspace = client.get(f"/api/v1/matters/{matter_id}/artifact-evidence").json()
+    deliverable_workspace = client.get(f"/api/v1/deliverables/{deliverable_id}").json()
+
+    for payload in (
+        matter_workspace["continuation_surface"],
+        task_aggregate["continuation_surface"],
+        evidence_workspace["continuation_surface"],
+        deliverable_workspace["continuation_surface"],
+    ):
+        assert payload["workflow_layer"] == "progression"
+        assert payload["follow_up_lane"] is None
+        assert payload["progression_lane"]["latest_progression"]["summary"].startswith("第二輪 outcome")
+        assert payload["progression_lane"]["previous_progression"]["summary"].startswith("第一輪 action")
+        assert payload["progression_lane"]["what_changed"]
+        assert payload["progression_lane"]["next_progression_actions"]
+
+    assert evidence_workspace["continuation_surface"]["progression_lane"]["evidence_update_goal"]
+    assert deliverable_workspace["continuation_surface"]["progression_lane"]["action_states"]
+    assert deliverable_workspace["continuation_surface"]["progression_lane"]["outcome_signals"]
 
 
 def test_matter_follow_up_sources_update_world_first(client: TestClient) -> None:

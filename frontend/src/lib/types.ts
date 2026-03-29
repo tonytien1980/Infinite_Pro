@@ -852,6 +852,36 @@ export interface FollowUpLane {
   evidence_update_goal: string;
 }
 
+export interface ProgressionSnapshot {
+  record_id: string | null;
+  task_id: string | null;
+  task_title: string;
+  deliverable_id: string | null;
+  deliverable_title: string | null;
+  summary: string;
+  action_state_summary: string;
+  outcome_summary: string;
+  created_at: string | null;
+}
+
+export interface ProgressionStateItem {
+  title: string;
+  state: string;
+  summary: string;
+}
+
+export interface ProgressionLane {
+  latest_progression: ProgressionSnapshot | null;
+  previous_progression: ProgressionSnapshot | null;
+  recent_progressions: ProgressionSnapshot[];
+  what_changed: string[];
+  recommendation_states: ProgressionStateItem[];
+  action_states: ProgressionStateItem[];
+  outcome_signals: string[];
+  next_progression_actions: string[];
+  evidence_update_goal: string;
+}
+
 export interface ContinuationSurface {
   workflow_layer: "closure" | "checkpoint" | "progression";
   mode: EngagementContinuityMode;
@@ -866,6 +896,7 @@ export interface ContinuationSurface {
   checkpoint_enabled: boolean;
   outcome_logging_enabled: boolean;
   follow_up_lane: FollowUpLane | null;
+  progression_lane: ProgressionLane | null;
 }
 
 export interface TaskAggregate {

@@ -320,11 +320,15 @@ Formal behavior:
   - keeps the `follow_up` baseline
   - supports decision -> action -> outcome continuity over time
   - is the only mode that should expose richer progression / outcome logging UX
+  - should show the latest progression state, the previous progression snapshot, what changed, and the next progression-aware action
+  - should make recommendation adoption, action status, and outcome signals visible without turning the workbench into a heavy CRM wall
+  - should make evidence supplements feel tied to the current progression goal, not like generic uploads
 
 This means writeback is no longer treated as "all or nothing".
 All matters must keep minimum history and deliverable lineage, but only follow-up and continuous cases should deepen the feedback loop.
 Primary actions in matter, task, deliverable, and evidence workspaces should now change with this policy: one-off cases should bias toward closure, follow-up cases toward checkpoint updates, and continuous cases toward progression / outcome observation.
 For follow-up specifically, the workbench should answer three questions quickly: what the last checkpoint said, what changed this time, and what the consultant should do next.
+For continuous specifically, the workbench should answer four questions quickly: where progression stands now, which actions are moving or blocked, whether new outcomes appeared, and what the consultant should do next.
 
 ## Core ontology objects
 

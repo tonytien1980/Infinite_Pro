@@ -464,6 +464,7 @@ export function MatterWorkspacePanel({
   const latestDeliverable = matter?.related_deliverables[0] ?? null;
   const continuationSurface = matter?.continuation_surface ?? null;
   const followUpLane = continuationSurface?.follow_up_lane ?? null;
+  const progressionLane = continuationSurface?.progression_lane ?? null;
   const recentTask = matter?.related_tasks[0] ?? null;
   const focusTask =
     matter?.related_tasks.find((task) => task.id === createdTaskId) ?? recentTask ?? null;
@@ -858,6 +859,22 @@ export function MatterWorkspacePanel({
                       </div>
                     </div>
                   ) : null}
+                  {progressionLane ? (
+                    <div className="summary-grid" style={{ marginTop: "12px" }}>
+                      <div className="section-card">
+                        <h4>最新 progression state</h4>
+                        <p className="content-block">
+                          {progressionLane.latest_progression?.summary || "目前還沒有 progression update。"}
+                        </p>
+                      </div>
+                      <div className="section-card">
+                        <h4>上一個 progression snapshot</h4>
+                        <p className="content-block">
+                          {progressionLane.previous_progression?.summary || "目前還沒有更早的 progression snapshot。"}
+                        </p>
+                      </div>
+                    </div>
+                  ) : null}
                   {continuationSurface?.primary_action?.action_id === "record_checkpoint" ? (
                     <div className="field" style={{ marginTop: "12px" }}>
                       <label htmlFor="matter-checkpoint-note">這輪 checkpoint 要留下什麼？</label>
@@ -874,38 +891,100 @@ export function MatterWorkspacePanel({
                     </div>
                   ) : null}
                   {continuationSurface?.primary_action?.action_id === "record_outcome" ? (
-                    <div className="form-grid" style={{ marginTop: "12px" }}>
-                      <div className="field">
-                        <label htmlFor="matter-outcome-status">目前進度</label>
-                        <select
-                          id="matter-outcome-status"
-                          value={continuationActionStatus}
-                          onChange={(event) =>
-                            setContinuationActionStatus(
-                              event.target.value as
-                                | "planned"
-                                | "in_progress"
-                                | "blocked"
-                                | "completed"
-                                | "review_required",
-                            )
-                          }
-                        >
-                          <option value="planned">已規劃</option>
-                          <option value="in_progress">進行中</option>
-                          <option value="blocked">受阻</option>
-                          <option value="completed">已完成</option>
-                          <option value="review_required">待重新檢查</option>
-                        </select>
-                      </div>
-                      <div className="field">
-                        <label htmlFor="matter-outcome-summary">這輪 outcome / 新訊號</label>
-                        <textarea
-                          id="matter-outcome-summary"
-                          value={continuationSummary}
-                          onChange={(event) => setContinuationSummary(event.target.value)}
-                          placeholder="例如：建議已開始執行，但第一週卡在跨部門 handoff；需要刷新 deliverable 的下一步。"
-                        />
+                    <div className="detail-stack" style={{ marginTop: "12px" }}>
+                      {progressionLane ? (
+                        <>
+                          <div className="section-card">
+                            <h4>這次最重要的 progression 變化</h4>
+                            <ul className="list-content">
+                              {progressionLane.what_changed.map((item) => (
+                                <li key={item}>{item}</li>
+                              ))}
+                            </ul>
+                          </div>
+                          <div className="summary-grid">
+                            <div className="section-card">
+                              <h4>建議採納狀態</h4>
+                              {progressionLane.recommendation_states.length > 0 ? (
+                                <ul className="list-content">
+                                  {progressionLane.recommendation_states.slice(0, 3).map((item) => (
+                                    <li key={`${item.state}-${item.title}`}>{item.title}：{item.summary}</li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <p className="empty-text">目前還沒有可顯示的建議採納摘要。</p>
+                              )}
+                            </div>
+                            <div className="section-card">
+                              <h4>目前 action 狀態</h4>
+                              {progressionLane.action_states.length > 0 ? (
+                                <ul className="list-content">
+                                  {progressionLane.action_states.slice(0, 3).map((item) => (
+                                    <li key={`${item.state}-${item.title}`}>{item.title}：{item.summary}</li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <p className="empty-text">目前還沒有可顯示的 action 狀態摘要。</p>
+                              )}
+                            </div>
+                            <div className="section-card">
+                              <h4>最新 outcome 訊號</h4>
+                              {progressionLane.outcome_signals.length > 0 ? (
+                                <ul className="list-content">
+                                  {progressionLane.outcome_signals.slice(0, 3).map((item) => (
+                                    <li key={item}>{item}</li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <p className="empty-text">目前還沒有新的 outcome 訊號摘要。</p>
+                              )}
+                            </div>
+                            <div className="section-card">
+                              <h4>下一步最建議做什麼</h4>
+                              <p className="content-block">
+                                {progressionLane.next_progression_actions[0] || "回案件工作面補一筆 progression update。"}
+                              </p>
+                            </div>
+                          </div>
+                        </>
+                      ) : null}
+                      <div className="form-grid">
+                        <div className="field">
+                          <label htmlFor="matter-outcome-status">目前 action 狀態</label>
+                          <select
+                            id="matter-outcome-status"
+                            value={continuationActionStatus}
+                            onChange={(event) =>
+                              setContinuationActionStatus(
+                                event.target.value as
+                                  | "planned"
+                                  | "in_progress"
+                                  | "blocked"
+                                  | "completed"
+                                  | "review_required",
+                              )
+                            }
+                          >
+                            <option value="planned">已規劃</option>
+                            <option value="in_progress">進行中</option>
+                            <option value="blocked">受阻</option>
+                            <option value="completed">已完成</option>
+                            <option value="review_required">待重新檢查</option>
+                          </select>
+                        </div>
+                        <div className="field">
+                          <label htmlFor="matter-outcome-summary">這輪 progression / outcome 更新</label>
+                          <textarea
+                            id="matter-outcome-summary"
+                            value={continuationSummary}
+                            onChange={(event) => setContinuationSummary(event.target.value)}
+                            placeholder={
+                              progressionLane?.latest_progression?.summary
+                                ? `例如：延續「${progressionLane.latest_progression.summary.slice(0, 40)}...」，這輪主要補了哪些進度訊號、阻塞點或新 outcome。`
+                                : "例如：action 已開始推進，但目前卡在哪裡；或 outcome 已出現新訊號，需要刷新 deliverable。"
+                            }
+                          />
+                        </div>
                       </div>
                     </div>
                   ) : null}
@@ -1225,6 +1304,33 @@ export function MatterWorkspacePanel({
                             ) : (
                               <p className="empty-text">目前沒有額外的 action continuity 摘要。</p>
                             )}
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
+                    {progressionLane ? (
+                      <div className="detail-item">
+                        <h3>Progression continuity</h3>
+                        <div className="summary-grid">
+                          <div className="section-card">
+                            <h4>最近 progression</h4>
+                            <p className="content-block">
+                              {progressionLane.latest_progression?.summary || "目前還沒有 progression update。"}
+                            </p>
+                          </div>
+                          <div className="section-card">
+                            <h4>Action / outcome 摘要</h4>
+                            <ul className="list-content">
+                              {progressionLane.what_changed.map((item) => (
+                                <li key={item}>{item}</li>
+                              ))}
+                            </ul>
+                          </div>
+                          <div className="section-card">
+                            <h4>下一步建議</h4>
+                            <p className="content-block">
+                              {progressionLane.next_progression_actions[0] || "回案件工作面補一筆 progression update。"}
+                            </p>
                           </div>
                         </div>
                       </div>

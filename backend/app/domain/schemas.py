@@ -852,6 +852,36 @@ class FollowUpLaneRead(BaseModel):
     evidence_update_goal: str = ""
 
 
+class ProgressionSnapshotRead(BaseModel):
+    record_id: str | None = None
+    task_id: str | None = None
+    task_title: str = ""
+    deliverable_id: str | None = None
+    deliverable_title: str | None = None
+    summary: str = ""
+    action_state_summary: str = ""
+    outcome_summary: str = ""
+    created_at: datetime | None = None
+
+
+class ProgressionStateItemRead(BaseModel):
+    title: str
+    state: str
+    summary: str
+
+
+class ProgressionLaneRead(BaseModel):
+    latest_progression: ProgressionSnapshotRead | None = None
+    previous_progression: ProgressionSnapshotRead | None = None
+    recent_progressions: list[ProgressionSnapshotRead] = Field(default_factory=list)
+    what_changed: list[str] = Field(default_factory=list)
+    recommendation_states: list[ProgressionStateItemRead] = Field(default_factory=list)
+    action_states: list[ProgressionStateItemRead] = Field(default_factory=list)
+    outcome_signals: list[str] = Field(default_factory=list)
+    next_progression_actions: list[str] = Field(default_factory=list)
+    evidence_update_goal: str = ""
+
+
 class ContinuationSurfaceRead(BaseModel):
     workflow_layer: Literal["closure", "checkpoint", "progression"]
     mode: EngagementContinuityMode
@@ -866,6 +896,7 @@ class ContinuationSurfaceRead(BaseModel):
     checkpoint_enabled: bool = False
     outcome_logging_enabled: bool = False
     follow_up_lane: FollowUpLaneRead | None = None
+    progression_lane: ProgressionLaneRead | None = None
 
 
 class MatterWorkspaceSummaryRead(BaseModel):

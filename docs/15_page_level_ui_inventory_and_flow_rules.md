@@ -175,6 +175,12 @@
   - `follow_up`：補件 / 更新 checkpoint / 打開最新交付物
   - `continuous`：補件 / 記錄 outcome / 打開最新交付物
 
+**continuous 額外首屏必顯**
+- latest progression state
+- previous progression snapshot
+- action / outcome 最重要的變化
+- next progression action
+
 **Secondary actions**
 - 打開焦點工作紀錄
 - 切頁籤到決策問題 / 來源與證據 / 交付物 / 工作紀錄
@@ -230,6 +236,7 @@
 - 補件導引
 - 若為 `follow_up`，需顯示這次補件主要想更新什麼，以及上一個 / 最新 checkpoint 的輕量脈絡
 - 若為 `follow_up`，補件區本身也需顯示 latest update、previous checkpoint、what changed、next follow-up action
+- 若為 `continuous`，需顯示這次補件主要想驗證哪個 action / outcome / recommendation，以及最新 progression 的最小脈絡
 - 段落導覽
 
 **延後揭露**
@@ -269,6 +276,7 @@
 - task 身份與狀態
 - 目前工作導引
 - case world draft 摘要
+- 若為 `continuous`，需顯示這筆工作接在哪個 progression update 後面，以及這輪是在補強、刷新還是應對新 outcome
 - 來源厚度 / 結果狀態
 - 若為 `follow_up`，需顯示這筆分析接在哪一次 checkpoint 後面，以及這輪是在延續、修正還是補強
 - 主按鈕
@@ -350,6 +358,7 @@
 - 一句話結論
 - 版本 / 狀態 / 所屬案件
 - 若為 `follow_up`，需顯示這份 deliverable 對應哪個 checkpoint 階段、上一輪是什麼、以及下一步建議回 checkpoint 還是先補件 / 再分析
+- 若為 `continuous`，需顯示這份 deliverable 對應哪個 progression state、最近 action / outcome 有何變化，以及下一步建議回案件工作面續推、先補件，還是刷新 deliverable
 - continuity mode / writeback depth 摘要
 - 導引層
 - 段落導覽

@@ -4468,6 +4468,425 @@ def _build_follow_up_lane(
     )
 
 
+def _progression_status_label(status: str | None) -> str:
+    if status == "planned":
+        return "已規劃"
+    if status == "in_progress":
+        return "進行中"
+    if status == "blocked":
+        return "受阻"
+    if status == "completed":
+        return "已完成"
+    if status == "review_required":
+        return "待重新檢查"
+    return "待確認"
+
+
+def _progression_state_summary(status: str | None) -> str:
+    if status == "planned":
+        return "這項 action 已被採納，但還沒開始推進。"
+    if status == "in_progress":
+        return "這項 action 正在推進，下一步通常是補 outcome 訊號或刷新 deliverable。"
+    if status == "blocked":
+        return "這項 action 目前受阻，通常需要補新 evidence 或重新收斂下一步。"
+    if status == "completed":
+        return "這項 action 已完成，接下來要確認是否已產生可寫回的 outcome。"
+    if status == "review_required":
+        return "這項 action 需要重開或重新檢查，代表前一次結果還不能直接關閉。"
+    return "這項 action 目前尚未形成清楚的 progression 狀態。"
+
+
+def _texts_overlap_for_progression(left: str | None, right: str | None) -> bool:
+    normalized_left = _normalize_whitespace(left).lower()
+    normalized_right = _normalize_whitespace(right).lower()
+    if len(normalized_left) < 6 or len(normalized_right) < 6:
+        return False
+    return normalized_left in normalized_right or normalized_right in normalized_left
+
+
+def _truncate_progression_summary(value: str | None, limit: int = 96) -> str:
+    normalized = _normalize_whitespace(value)
+    if len(normalized) <= limit:
+        return normalized
+    return f"{normalized[:limit].rstrip()}..."
+
+
+def _build_progression_snapshot_read(
+    *,
+    tasks_by_id: dict[str, models.Task],
+    deliverables_by_id: dict[str, models.Deliverable],
+    outcome_record: models.OutcomeRecord | None = None,
+    action_execution: models.ActionExecution | None = None,
+    decision_record: models.DecisionRecord | None = None,
+) -> schemas.ProgressionSnapshotRead | None:
+    if outcome_record is None and action_execution is None and decision_record is None:
+        return None
+
+    if outcome_record is not None:
+        task = tasks_by_id.get(outcome_record.task_id)
+    elif action_execution is not None:
+        task = tasks_by_id.get(action_execution.task_id)
+    else:
+        task = tasks_by_id.get(decision_record.task_id) if decision_record is not None else None
+
+    if outcome_record is not None and outcome_record.deliverable_id:
+        deliverable = deliverables_by_id.get(outcome_record.deliverable_id)
+    elif decision_record is not None and decision_record.deliverable_id:
+        deliverable = deliverables_by_id.get(decision_record.deliverable_id)
+    elif task is not None:
+        deliverable = _latest_deliverable(task)
+    else:
+        deliverable = None
+
+    summary = (
+        outcome_record.summary
+        if outcome_record is not None
+        else action_execution.execution_note
+        if action_execution is not None
+        else decision_record.decision_summary
+        if decision_record is not None
+        else ""
+    )
+    action_state_summary = (
+        f"目前 action 狀態：{_progression_status_label(action_execution.status)}。"
+        if action_execution is not None
+        else "目前還沒有正式 action progression update。"
+    )
+    outcome_summary = (
+        outcome_record.summary
+        if outcome_record is not None
+        else "目前還沒有新的 outcome observation。"
+    )
+    created_at = (
+        outcome_record.created_at
+        if outcome_record is not None
+        else action_execution.updated_at
+        if action_execution is not None
+        else decision_record.created_at
+        if decision_record is not None
+        else None
+    )
+
+    return schemas.ProgressionSnapshotRead(
+        record_id=(
+            outcome_record.id
+            if outcome_record is not None
+            else action_execution.id
+            if action_execution is not None
+            else decision_record.id
+            if decision_record is not None
+            else None
+        ),
+        task_id=task.id if task is not None else None,
+        task_title=task.title if task is not None else "",
+        deliverable_id=deliverable.id if deliverable is not None else None,
+        deliverable_title=deliverable.title if deliverable is not None else None,
+        summary=summary,
+        action_state_summary=action_state_summary,
+        outcome_summary=outcome_summary,
+        created_at=created_at,
+    )
+
+
+def _build_progression_recommendation_states(
+    *,
+    latest_decision_record: models.DecisionRecord | None,
+    latest_action_plan: models.ActionPlan | None,
+    recommendations_by_id: dict[str, models.Recommendation],
+    action_items_by_id: dict[str, models.ActionItem],
+) -> list[schemas.ProgressionStateItemRead]:
+    if latest_decision_record is None:
+        return []
+
+    adopted_action_items = [
+        action_items_by_id[item_id]
+        for item_id in (latest_action_plan.action_item_ids if latest_action_plan else [])
+        if item_id in action_items_by_id
+    ]
+    matched_recommendation_ids: set[str] = set()
+    adopted_items: list[schemas.ProgressionStateItemRead] = []
+    for action_item in adopted_action_items[:4]:
+        adopted_items.append(
+            schemas.ProgressionStateItemRead(
+                title=action_item.description,
+                state="adopted",
+                summary="這項建議已被採納，並已轉成可追蹤的 action。",
+            )
+        )
+        for recommendation_id in latest_decision_record.recommendation_ids:
+            recommendation = recommendations_by_id.get(recommendation_id)
+            if recommendation is None:
+                continue
+            if _texts_overlap_for_progression(recommendation.summary, action_item.description):
+                matched_recommendation_ids.add(recommendation_id)
+
+    pending_items = [
+        schemas.ProgressionStateItemRead(
+            title=recommendation.summary,
+            state="pending",
+            summary="這項建議仍停留在 decision / deliverable 層，尚未進入明確執行狀態。",
+        )
+        for recommendation_id in latest_decision_record.recommendation_ids
+        if recommendation_id not in matched_recommendation_ids
+        and (recommendation := recommendations_by_id.get(recommendation_id)) is not None
+    ]
+    return [*adopted_items, *pending_items][:6]
+
+
+def _build_progression_action_states(
+    *,
+    latest_decision_record: models.DecisionRecord | None,
+    latest_action_plan: models.ActionPlan | None,
+    action_execution_rows: list[models.ActionExecution],
+    action_items_by_id: dict[str, models.ActionItem],
+) -> list[schemas.ProgressionStateItemRead]:
+    action_item_ids = list(latest_action_plan.action_item_ids) if latest_action_plan else []
+    if not action_item_ids and latest_decision_record is not None:
+        action_item_ids = list(latest_decision_record.action_item_ids)
+
+    items: list[schemas.ProgressionStateItemRead] = []
+    for action_item_id in action_item_ids[:6]:
+        action_item = action_items_by_id.get(action_item_id)
+        if action_item is None:
+            continue
+        latest_execution = next(
+            (item for item in action_execution_rows if item.action_item_id == action_item.id),
+            None,
+        )
+        status = latest_execution.status if latest_execution is not None else action_item.status
+        items.append(
+            schemas.ProgressionStateItemRead(
+                title=action_item.description,
+                state=status or "planned",
+                summary=_progression_state_summary(status or "planned"),
+            )
+        )
+    return items
+
+
+def _build_progression_outcome_signals(
+    outcome_record_rows: list[models.OutcomeRecord],
+) -> list[str]:
+    return [
+        _truncate_progression_summary(item.summary)
+        for item in outcome_record_rows[:4]
+        if _normalize_whitespace(item.summary)
+    ]
+
+
+def _build_progression_what_changed(
+    *,
+    latest_action_execution: models.ActionExecution | None,
+    previous_action_execution: models.ActionExecution | None,
+    action_states: list[schemas.ProgressionStateItemRead],
+    latest_outcome_record: models.OutcomeRecord | None,
+) -> list[str]:
+    summary: list[str] = []
+    if (
+        latest_action_execution is not None
+        and previous_action_execution is not None
+        and latest_action_execution.status != previous_action_execution.status
+    ):
+        summary.append(
+            f"主要 action 狀態從「{_progression_status_label(previous_action_execution.status)}」轉為「{_progression_status_label(latest_action_execution.status)}」。"
+        )
+    blocked_count = sum(1 for item in action_states if item.state == "blocked")
+    if blocked_count > 0:
+        summary.append(f"目前有 {blocked_count} 項 action 處於受阻狀態，需要先解卡。")
+    completed_count = sum(1 for item in action_states if item.state == "completed")
+    if completed_count > 0:
+        summary.append(f"目前有 {completed_count} 項 action 已完成，下一步應確認是否已出現新的 outcome。")
+    reopened_count = sum(1 for item in action_states if item.state == "review_required")
+    if reopened_count > 0:
+        summary.append(f"目前有 {reopened_count} 項 action 需要重開或重新檢查。")
+    if latest_outcome_record is not None:
+        summary.append(f"最新 outcome 訊號：{_truncate_progression_summary(latest_outcome_record.summary)}")
+    if not summary:
+        summary.append("這輪 continuous progression 主要是在延續既有 action / outcome 基線。")
+    return summary[:4]
+
+
+def _build_progression_evidence_update_goal(
+    *,
+    action_states: list[schemas.ProgressionStateItemRead],
+    latest_outcome_record: models.OutcomeRecord | None,
+) -> str:
+    if any(item.state == "blocked" for item in action_states):
+        return "這次補件主要是為了釐清哪些 action 為什麼卡住，以及還缺哪份 supporting evidence 才能解卡。"
+    if any(item.state == "review_required" for item in action_states):
+        return "這次補件主要是為了確認哪些 action 需要重開，並補強重新判斷所需的 evidence。"
+    if any(item.state == "completed" for item in action_states):
+        return "這次補件主要是為了確認已完成 action 是否真的產生新的 outcome 訊號，是否需要刷新 deliverable。"
+    if latest_outcome_record is not None:
+        return "這次補件主要是為了驗證最新 outcome 訊號是否足以改寫 recommendation、action priority 或 deliverable。"
+    return "這次補件主要是為了補強 continuous progression 的下一步判斷基礎。"
+
+
+def _build_progression_next_actions(
+    *,
+    action_states: list[schemas.ProgressionStateItemRead],
+    next_best_actions: list[str],
+    latest_deliverable: models.Deliverable | None,
+) -> list[str]:
+    actions: list[str] = []
+    if any(item.state == "blocked" for item in action_states):
+        actions.append("先補能解除受阻 action 的來源與證據，再決定是否要改寫 deliverable。")
+    if any(item.state == "review_required" for item in action_states):
+        actions.append("先重新檢查需要重開的 action，確認是否要調整 recommendation 與下一步。")
+    if any(item.state == "in_progress" for item in action_states):
+        actions.append("先記錄進行中 action 的最新 outcome 訊號，再決定要不要刷新 deliverable。")
+    if any(item.state == "completed" for item in action_states) and latest_deliverable is not None:
+        actions.append("確認是否要刷新最新 deliverable，讓已完成 action 的 outcome 被正式寫回。")
+    actions.extend(next_best_actions)
+    if not actions:
+        actions.append("回案件工作面補一筆 progression update，確認目前最重要的 action 與 outcome。")
+    return _unique_preserve_order(actions)[:4]
+
+
+def _build_progression_lane(
+    *,
+    ordered_tasks: list[models.Task],
+    current_task_id: str,
+    next_progression_actions: list[str],
+) -> schemas.ProgressionLaneRead | None:
+    if not ordered_tasks:
+        return None
+
+    current_task = next((item for item in ordered_tasks if item.id == current_task_id), ordered_tasks[0])
+    tasks_by_id = {task.id: task for task in ordered_tasks}
+    deliverables_by_id = {
+        deliverable.id: deliverable
+        for task in ordered_tasks
+        for deliverable in task.deliverables
+    }
+    recommendations_by_id = {
+        recommendation.id: recommendation
+        for task in ordered_tasks
+        for recommendation in task.recommendations
+    }
+    action_items_by_id = {
+        action_item.id: action_item
+        for task in ordered_tasks
+        for action_item in task.action_items
+    }
+
+    decision_record_rows = sorted(
+        [record for task in ordered_tasks for record in task.decision_records],
+        key=lambda item: item.created_at,
+        reverse=True,
+    )
+    outcome_record_rows = sorted(
+        [record for task in ordered_tasks for record in task.outcome_records],
+        key=lambda item: item.created_at,
+        reverse=True,
+    )
+    action_execution_rows = sorted(
+        [record for task in ordered_tasks for record in task.action_executions],
+        key=lambda item: item.updated_at,
+        reverse=True,
+    )
+    latest_decision_record = decision_record_rows[0] if decision_record_rows else None
+    latest_action_plan = next(
+        iter(
+            sorted(
+                [
+                    plan
+                    for task in ordered_tasks
+                    for plan in task.action_plans
+                    if latest_decision_record is not None and plan.decision_record_id == latest_decision_record.id
+                ],
+                key=lambda item: item.updated_at,
+                reverse=True,
+            )
+        ),
+        None,
+    )
+    latest_action_execution = action_execution_rows[0] if action_execution_rows else None
+    previous_action_execution = action_execution_rows[1] if len(action_execution_rows) > 1 else None
+    latest_outcome_record = outcome_record_rows[0] if outcome_record_rows else None
+    previous_outcome_record = outcome_record_rows[1] if len(outcome_record_rows) > 1 else None
+
+    latest_progression = _build_progression_snapshot_read(
+        tasks_by_id=tasks_by_id,
+        deliverables_by_id=deliverables_by_id,
+        outcome_record=latest_outcome_record,
+        action_execution=latest_action_execution,
+        decision_record=latest_decision_record,
+    )
+    previous_progression = _build_progression_snapshot_read(
+        tasks_by_id=tasks_by_id,
+        deliverables_by_id=deliverables_by_id,
+        outcome_record=previous_outcome_record,
+        action_execution=previous_action_execution,
+        decision_record=decision_record_rows[1] if len(decision_record_rows) > 1 else None,
+    )
+    recent_progressions = [
+        snapshot
+        for snapshot in (
+            _build_progression_snapshot_read(
+                tasks_by_id=tasks_by_id,
+                deliverables_by_id=deliverables_by_id,
+                outcome_record=item,
+            )
+            for item in outcome_record_rows[:3]
+        )
+        if snapshot is not None
+    ]
+    if not recent_progressions:
+        recent_progressions = [
+            snapshot
+            for snapshot in (
+                _build_progression_snapshot_read(
+                    tasks_by_id=tasks_by_id,
+                    deliverables_by_id=deliverables_by_id,
+                    action_execution=item,
+                )
+                for item in action_execution_rows[:3]
+            )
+            if snapshot is not None
+        ]
+    if not recent_progressions and latest_progression is not None:
+        recent_progressions = [latest_progression]
+
+    recommendation_states = _build_progression_recommendation_states(
+        latest_decision_record=latest_decision_record,
+        latest_action_plan=latest_action_plan,
+        recommendations_by_id=recommendations_by_id,
+        action_items_by_id=action_items_by_id,
+    )
+    action_states = _build_progression_action_states(
+        latest_decision_record=latest_decision_record,
+        latest_action_plan=latest_action_plan,
+        action_execution_rows=action_execution_rows,
+        action_items_by_id=action_items_by_id,
+    )
+    what_changed = _build_progression_what_changed(
+        latest_action_execution=latest_action_execution,
+        previous_action_execution=previous_action_execution,
+        action_states=action_states,
+        latest_outcome_record=latest_outcome_record,
+    )
+
+    return schemas.ProgressionLaneRead(
+        latest_progression=latest_progression,
+        previous_progression=previous_progression,
+        recent_progressions=recent_progressions,
+        what_changed=what_changed,
+        recommendation_states=recommendation_states,
+        action_states=action_states,
+        outcome_signals=_build_progression_outcome_signals(outcome_record_rows),
+        next_progression_actions=_build_progression_next_actions(
+            action_states=action_states,
+            next_best_actions=next_progression_actions,
+            latest_deliverable=_latest_deliverable(current_task),
+        ),
+        evidence_update_goal=_build_progression_evidence_update_goal(
+            action_states=action_states,
+            latest_outcome_record=latest_outcome_record,
+        ),
+    )
+
+
 def _build_continuation_surface(
     *,
     continuity_mode: EngagementContinuityMode,
@@ -4479,6 +4898,7 @@ def _build_continuation_surface(
     decision_record_count: int,
     outcome_record_count: int,
     follow_up_lane: schemas.FollowUpLaneRead | None = None,
+    progression_lane: schemas.ProgressionLaneRead | None = None,
 ) -> schemas.ContinuationSurfaceRead:
     workflow_layer = _resolve_continuation_workflow_layer(continuity_mode)
     is_closed_one_off = (
@@ -4644,28 +5064,37 @@ def _build_continuation_surface(
             current_state="progression_ready",
             title="這案目前適合記錄進度與 outcome",
             summary=(
-                "continuous 案件才需要較完整的 progression surface；"
-                "現在可以記錄 action 是否開始 / 卡住 / 完成，以及 outcome 是否出現新訊號。"
+                (
+                    progression_lane.what_changed[0]
+                    if progression_lane is not None and progression_lane.what_changed
+                    else "continuous 案件才需要較完整的 progression surface；"
+                )
+                + (
+                    f" 下一步建議：{progression_lane.next_progression_actions[0]}"
+                    if progression_lane is not None and progression_lane.next_progression_actions
+                    else " 現在可以記錄 action 是否開始 / 卡住 / 完成，以及 outcome 是否出現新訊號。"
+                )
             ),
             primary_action=_build_continuation_action(
                 "record_outcome",
-                "記錄 outcome / 進度",
-                "把這輪新的進度訊號或 outcome observation 掛回同一個案件世界。",
+                "更新 progression / outcome",
+                "把這輪新的 action 狀態或 outcome observation 掛回同一個案件世界。",
             ),
             secondary_actions=[
                 _build_continuation_action(
-                    "record_checkpoint",
-                    "更新 decision checkpoint",
-                    "若這輪更像 milestone update，也可以先記 checkpoint 再續推。",
+                    "supplement_evidence",
+                    "先補件",
+                    "若 action 受阻或 outcome 仍不清楚，先補來源與證據再續推。",
                 ),
                 _build_continuation_action(
                     "open_deliverable",
                     "回看最新交付物",
-                    "先確認上一輪 deliverable 的建議與限制，再記錄新的進度。",
+                    "先確認上一輪 deliverable 的建議與限制，再更新這輪 progression。",
                 ),
             ],
             checkpoint_enabled=True,
             outcome_logging_enabled=True,
+            progression_lane=progression_lane,
         )
 
     return schemas.ContinuationSurfaceRead(
@@ -4692,6 +5121,7 @@ def _build_continuation_surface(
         ],
         checkpoint_enabled=True,
         outcome_logging_enabled=True,
+        progression_lane=progression_lane,
     )
 
 
@@ -6214,6 +6644,21 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
         if summary.engagement_continuity_mode == EngagementContinuityMode.FOLLOW_UP
         else None
     )
+    progression_lane = (
+        _build_progression_lane(
+            ordered_tasks=related_tasks,
+            current_task_id=latest_task.id,
+            next_progression_actions=(
+                list(matter_workspace.case_world_state.next_best_actions or [])
+                if matter_workspace.case_world_state is not None
+                else list(latest_task.case_world_drafts[0].next_best_actions)
+                if latest_task.case_world_drafts
+                else []
+            ),
+        )
+        if summary.engagement_continuity_mode == EngagementContinuityMode.CONTINUOUS
+        else None
+    )
     continuation_surface = _build_continuation_surface(
         continuity_mode=summary.engagement_continuity_mode,
         writeback_depth=summary.writeback_depth,
@@ -6224,6 +6669,7 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
         decision_record_count=len(decision_records),
         outcome_record_count=len(outcome_records),
         follow_up_lane=follow_up_lane,
+        progression_lane=progression_lane,
     )
 
     return schemas.MatterWorkspaceResponse(
@@ -6969,6 +7415,21 @@ def get_artifact_evidence_workspace(
         if matter_summary.engagement_continuity_mode == EngagementContinuityMode.FOLLOW_UP
         else None
     )
+    progression_lane = (
+        _build_progression_lane(
+            ordered_tasks=related_tasks,
+            current_task_id=latest_task.id,
+            next_progression_actions=(
+                list(matter_workspace.case_world_state.next_best_actions or [])
+                if matter_workspace.case_world_state is not None
+                else list(latest_task.case_world_drafts[0].next_best_actions)
+                if latest_task.case_world_drafts
+                else []
+            ),
+        )
+        if matter_summary.engagement_continuity_mode == EngagementContinuityMode.CONTINUOUS
+        else None
+    )
     latest_deliverable_title = (
         _latest_deliverable(related_tasks[0]).title
         if related_tasks and _latest_deliverable(related_tasks[0]) is not None
@@ -6984,6 +7445,7 @@ def get_artifact_evidence_workspace(
         decision_record_count=sum(len(task.decision_records) for task in related_tasks),
         outcome_record_count=sum(len(task.outcome_records) for task in related_tasks),
         follow_up_lane=follow_up_lane,
+        progression_lane=progression_lane,
     )
 
     return schemas.ArtifactEvidenceWorkspaceResponse(
@@ -7278,6 +7740,26 @@ def get_deliverable_workspace(
         if task_aggregate.engagement_continuity_mode == EngagementContinuityMode.FOLLOW_UP
         else None
     )
+    progression_lane = (
+        _build_progression_lane(
+            ordered_tasks=_load_tasks_for_matter_workspaces(db, [task_aggregate.matter_workspace.id]).get(
+                task_aggregate.matter_workspace.id,
+                [task],
+            )
+            if task_aggregate.matter_workspace is not None
+            else [task],
+            current_task_id=task.id,
+            next_progression_actions=(
+                list(task_aggregate.case_world_state.next_best_actions)
+                if task_aggregate.case_world_state is not None
+                else list(task_aggregate.case_world_draft.next_best_actions)
+                if task_aggregate.case_world_draft is not None
+                else []
+            ),
+        )
+        if task_aggregate.engagement_continuity_mode == EngagementContinuityMode.CONTINUOUS
+        else None
+    )
     continuation_surface = _build_continuation_surface(
         continuity_mode=task_aggregate.engagement_continuity_mode,
         writeback_depth=task_aggregate.writeback_depth,
@@ -7288,6 +7770,7 @@ def get_deliverable_workspace(
         decision_record_count=len(task_aggregate.decision_records),
         outcome_record_count=len(task_aggregate.outcome_records),
         follow_up_lane=follow_up_lane,
+        progression_lane=progression_lane,
     )
 
     return schemas.DeliverableWorkspaceResponse(
@@ -8850,6 +9333,21 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         if continuity_mode == EngagementContinuityMode.FOLLOW_UP
         else None
     )
+    progression_lane = (
+        _build_progression_lane(
+            ordered_tasks=related_tasks_for_lane,
+            current_task_id=task.id,
+            next_progression_actions=(
+                list(case_world_state_row.next_best_actions or [])
+                if case_world_state_row is not None
+                else list(case_world_draft_row.next_best_actions)
+                if case_world_draft_row is not None
+                else []
+            ),
+        )
+        if continuity_mode == EngagementContinuityMode.CONTINUOUS
+        else None
+    )
     continuation_surface = _build_continuation_surface(
         continuity_mode=continuity_mode,
         writeback_depth=writeback_depth,
@@ -8860,6 +9358,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         decision_record_count=len(task.decision_records),
         outcome_record_count=len(task.outcome_records),
         follow_up_lane=follow_up_lane,
+        progression_lane=progression_lane,
     )
 
     return schemas.TaskAggregateResponse(
