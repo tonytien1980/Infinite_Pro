@@ -216,6 +216,25 @@ On the visible product surface, `/new` should now expose one unified intake area
   - how many failed
   - how many are blocking
   - what the most recent retry / processing results were
+- the next refinement layer is deeper ingest diagnostics, which should also answer:
+  - what category the current problem most likely belongs to
+  - whether the problem is temporary or structural
+  - whether retry is actually worth trying again
+  - what the current usable scope is right now
+  - whether the item can still stay as reference-level material
+  - what the most practical fallback material strategy is
+- the preferred diagnostic categories are:
+  - format unsupported
+  - fetch / access failure
+  - empty / invalid content
+  - parse failed
+  - parse pending / not finished
+  - limited-support reference-only
+  - accepted but limited extraction
+- diagnostics should stay consultant-first:
+  - do not expose raw stack traces
+  - do not imply unsupported items will become usable automatically
+  - do not imply pending parse already means正文抽取成功
 
 Every intake path must first enter the same `case world compilation` stage. Host should then decide:
 - how sparse or dense the current materials are

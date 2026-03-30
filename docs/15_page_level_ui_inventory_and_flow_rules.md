@@ -110,6 +110,10 @@
   - 為什麼是這個狀態
   - 這會影響什麼
   - 下一步最建議怎麼補救
+- item-level diagnostics：
+  - diagnostic category（這是哪一類問題）
+  - current usable scope（現在還能做什麼 / 不能做什麼）
+  - retryability explanation（retry 是否值得，為什麼）
 - item-level action semantics：
   - 是否 blocking
   - retry / replace / remove / keep-as-reference 中哪個是現在最合理的動作

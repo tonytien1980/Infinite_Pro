@@ -68,6 +68,24 @@ Infinite Pro 不再把 `/new` 的三種 intake patterns 理解成三個不同 on
   - partially usable batch
   - blocked batch
   - latest retry result / latest attempt state
+- 若再往前補 deeper ingest diagnostics，則 item-level 與 batch-level 語義都應補上：
+  - diagnostic category
+  - likely cause
+  - current usable scope
+  - retryability explanation
+  - recommended remediation
+- 建議優先區分的 diagnostic 語義為：
+  - format unsupported
+  - fetch / access failure
+  - empty / invalid content
+  - parse failed
+  - parse pending / not finished
+  - limited-support reference-only
+  - accepted but limited extraction
+- `current usable scope` 至少要回答：
+  - 是否可直接進文字 evidence chain
+  - 是否只能保留為 metadata / reference-level
+  - 是否目前完全不可用、只能等待替代材料
 
 ### 2.3 Case World Compiler 是正式第一站
 任何 intake 都必須先進入：

@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   buildIntakePreviewItems,
   defaultProgressInfoForPreviewItem,
+  describeRuntimeMaterialHandling,
   progressInfoFromRuntimeHandling,
   summarizeBatchProgress,
 } from "../src/lib/intake.ts";
@@ -109,4 +110,77 @@ test("runtime handling distinguishes retryable and non-retryable failures", () =
   });
   assert.equal(nonRetryable.phase, "failed");
   assert.equal(nonRetryable.retryable, false);
+});
+
+test("preview items expose clearer diagnostic category and usable scope", () => {
+  const items = buildIntakePreviewItems({
+    files: [
+      new File(["img"], "diagram.png", { type: "image/png" }),
+      new File(["pdf"], "scan.pdf", { type: "application/pdf" }),
+      new File(["deck"], "deck.pptx", {
+        type: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      }),
+    ],
+    urls: ["https://example.com/report"],
+    pastedText: "manual note",
+    context: { lane: "follow_up", updateGoal: "補齊 checkpoint 缺口" },
+  });
+
+  const png = items.find((item) => item.title === "diagram.png");
+  const pdf = items.find((item) => item.title === "scan.pdf");
+  const pptx = items.find((item) => item.title === "deck.pptx");
+  const text = items.find((item) => item.kind === "text");
+
+  assert.equal(png?.diagnosticCategory, "reference_only");
+  assert.equal(png?.usableScopeLabel, "僅可 reference-level 保留");
+  assert.match(png?.impactDetail ?? "", /checkpoint/i);
+
+  assert.equal(pdf?.diagnosticCategory, "parse_pending");
+  assert.equal(pdf?.retryabilityLabel, "先等解析，不必先重試");
+
+  assert.equal(pptx?.diagnosticCategory, "format_unsupported");
+  assert.equal(pptx?.retryabilityLabel, "重試通常沒有幫助");
+
+  assert.equal(text?.diagnosticCategory, "accepted_full");
+  assert.equal(text?.retryabilityLabel, "不需要重試");
+});
+
+test("runtime handling exposes diagnostic category, retryability explanation, and usable scope", () => {
+  const fetchFailure = describeRuntimeMaterialHandling({
+    supportLevel: "unsupported",
+    ingestStatus: "failed",
+    ingestStrategy: "remote_fetch",
+    metadataOnly: true,
+    ingestionError: "403 forbidden while fetching source",
+    context: { lane: "continuous", updateGoal: "驗證 action handoff" },
+  });
+  assert.equal(fetchFailure.diagnosticCategory, "fetch_access_failure");
+  assert.equal(fetchFailure.retryable, false);
+  assert.equal(fetchFailure.retryabilityLabel, "不建議直接重試");
+  assert.match(fetchFailure.retryabilityDetail, /權限|存取/);
+  assert.match(fetchFailure.impactDetail, /progression/i);
+
+  const limited = describeRuntimeMaterialHandling({
+    supportLevel: "limited",
+    ingestStatus: "processed",
+    ingestStrategy: "reference_image",
+    metadataOnly: true,
+    ingestionError: null,
+    context: { lane: "follow_up", updateGoal: "補強 latest checkpoint" },
+  });
+  assert.equal(limited.diagnosticCategory, "reference_only");
+  assert.equal(limited.usableScopeLabel, "僅可 reference-level 保留");
+  assert.equal(limited.retryabilityLabel, "重試通常沒有幫助");
+  assert.match(limited.retryabilityDetail, /不是暫時性失敗/);
+
+  const pending = describeRuntimeMaterialHandling({
+    supportLevel: "full",
+    ingestStatus: "pending",
+    ingestStrategy: "remote_text_extract",
+    metadataOnly: false,
+    ingestionError: null,
+    context: { lane: "intake" },
+  });
+  assert.equal(pending.diagnosticCategory, "parse_pending");
+  assert.equal(pending.status, "pending");
 });

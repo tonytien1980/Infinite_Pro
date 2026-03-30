@@ -12,6 +12,7 @@ import {
   type IntakeSessionItemState,
   type IntakeItemProgressInfo,
   inferInputEntryModeFromMaterialUnits,
+  latestAttemptDetailFromHandling,
   MAX_INTAKE_MATERIAL_UNITS,
   previewItemBlocksSubmit,
   progressInfoFromRuntimeHandling,
@@ -646,7 +647,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
           ...progress,
           attemptCount: nextAttemptCount,
           latestAttemptLabel: `第 ${nextAttemptCount} 次結果：${progress.label}`,
-          latestAttemptDetail: progress.detail,
+          latestAttemptDetail: latestAttemptDetailFromHandling(handling),
           lastUpdatedAt: Date.now(),
         } satisfies IntakeItemProgressInfo;
         setItemProgress(item.id, nextProgress);
@@ -687,7 +688,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
           ...progress,
           attemptCount: nextAttemptCount,
           latestAttemptLabel: `第 ${nextAttemptCount} 次結果：${progress.label}`,
-          latestAttemptDetail: progress.detail,
+          latestAttemptDetail: latestAttemptDetailFromHandling(handling),
           lastUpdatedAt: Date.now(),
         } satisfies IntakeItemProgressInfo;
         setItemProgress(item.id, nextProgress);
@@ -723,7 +724,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
         ...progress,
         attemptCount: nextAttemptCount,
         latestAttemptLabel: `第 ${nextAttemptCount} 次結果：${progress.label}`,
-        latestAttemptDetail: progress.detail,
+        latestAttemptDetail: latestAttemptDetailFromHandling(handling),
         lastUpdatedAt: Date.now(),
       } satisfies IntakeItemProgressInfo;
       setItemProgress(item.id, nextProgress);
@@ -743,7 +744,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
         ...progressInfoFromRuntimeHandling(handling),
         attemptCount: (progressByItemId[item.id]?.attemptCount ?? 0) + 1,
         latestAttemptLabel: `第 ${(progressByItemId[item.id]?.attemptCount ?? 0) + 1} 次結果：處理失敗`,
-        latestAttemptDetail: handling.statusDetail,
+        latestAttemptDetail: latestAttemptDetailFromHandling(handling),
         lastUpdatedAt: Date.now(),
       } satisfies IntakeItemProgressInfo;
       setItemProgress(item.id, progress);

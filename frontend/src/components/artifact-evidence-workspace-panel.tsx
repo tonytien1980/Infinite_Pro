@@ -20,6 +20,7 @@ import {
   describeRuntimeMaterialHandling,
   type IntakeSessionItemState,
   type IntakeItemProgressInfo,
+  latestAttemptDetailFromHandling,
   MAX_INTAKE_MATERIAL_UNITS,
   previewItemBlocksSubmit,
   progressInfoFromRuntimeHandling,
@@ -89,7 +90,7 @@ function DisclosurePanel({
   );
 }
 
-function buildEvidenceIssueGuidance({
+function buildEvidenceIssueDiagnostic({
   evidenceType,
   workflowLayer,
   updateGoal,
@@ -105,22 +106,32 @@ function buildEvidenceIssueGuidance({
     return null;
   }
 
-  const laneSpecificTail =
+  const laneImpact =
     workflowLayer === "checkpoint"
       ? updateGoal
-        ? ` 這輪 follow-up 主要想補的是：${updateGoal}`
-        : " 這輪 follow-up 不應把它誤當成已可直接引用的正文。"
+        ? `這會直接影響這輪 follow-up 想補的缺口：${updateGoal}`
+        : "這會直接影響這輪 follow-up 能不能站穩。"
       : workflowLayer === "progression"
         ? updateGoal
-          ? ` 這輪 continuous 主要想驗證的是：${updateGoal}`
-          : " 這輪 continuous 不應把它誤當成已可直接引用的正文。"
-        : " 先把它當成限制提示，而不是正式內容證據。";
+          ? `這會直接影響這輪 continuous 想驗證的 action / outcome：${updateGoal}`
+          : "這會直接影響這輪 continuous 判斷能不能續推。"
+        : "先把它當成限制提示，而不是正式內容證據。";
 
   if (isIngestIssue) {
-    return `這則 evidence 代表來源匯入異常，不等於可直接採用的內容證據。若你還需要它，建議補文字版、可讀 URL 或人工摘要，再回主線續推。${laneSpecificTail}`;
+    return {
+      diagnosticLabel: "來源匯入異常",
+      usableScopeLabel: "目前不可當正式內容證據",
+      usableScopeDetail: "只能視為問題提示，不能直接當成已可正文引用的 evidence。",
+      guidance: `若你還需要它，建議補文字版、可讀 URL 或人工摘要，再回主線續推。${laneImpact}`,
+    };
   }
 
-  return `這則 evidence 代表來源仍待解析，現在不能先假設已成功抽出正文。若後續仍只停在 pending / metadata-only，建議補文字版、可讀 URL 或摘要。${laneSpecificTail}`;
+  return {
+    diagnosticLabel: "來源仍待解析",
+    usableScopeLabel: "目前不可先當正文引用",
+    usableScopeDetail: "現在不能先假設已成功抽出正文；若後續仍只停在 pending / metadata-only，仍需補替代材料。",
+    guidance: `若後續仍只停在 pending / metadata-only，建議補文字版、可讀 URL 或摘要。${laneImpact}`,
+  };
 }
 
 export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string }) {
@@ -419,7 +430,7 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
           ...progress,
           attemptCount: nextAttemptCount,
           latestAttemptLabel: `第 ${nextAttemptCount} 次結果：${progress.label}`,
-          latestAttemptDetail: progress.detail,
+          latestAttemptDetail: latestAttemptDetailFromHandling(handling),
           lastUpdatedAt: Date.now(),
         } satisfies IntakeItemProgressInfo;
         setItemProgress(item.id, nextProgress);
@@ -460,7 +471,7 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
           ...progress,
           attemptCount: nextAttemptCount,
           latestAttemptLabel: `第 ${nextAttemptCount} 次結果：${progress.label}`,
-          latestAttemptDetail: progress.detail,
+          latestAttemptDetail: latestAttemptDetailFromHandling(handling),
           lastUpdatedAt: Date.now(),
         } satisfies IntakeItemProgressInfo;
         setItemProgress(item.id, nextProgress);
@@ -496,7 +507,7 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
         ...progress,
         attemptCount: nextAttemptCount,
         latestAttemptLabel: `第 ${nextAttemptCount} 次結果：${progress.label}`,
-        latestAttemptDetail: progress.detail,
+        latestAttemptDetail: latestAttemptDetailFromHandling(handling),
         lastUpdatedAt: Date.now(),
       } satisfies IntakeItemProgressInfo;
       setItemProgress(item.id, nextProgress);
@@ -516,7 +527,7 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
         ...progressInfoFromRuntimeHandling(handling),
         attemptCount: (progressByItemId[item.id]?.attemptCount ?? 0) + 1,
         latestAttemptLabel: `第 ${(progressByItemId[item.id]?.attemptCount ?? 0) + 1} 次結果：處理失敗`,
-        latestAttemptDetail: handling.statusDetail,
+        latestAttemptDetail: latestAttemptDetailFromHandling(handling),
         lastUpdatedAt: Date.now(),
       } satisfies IntakeItemProgressInfo;
       setItemProgress(item.id, progress);
@@ -1302,6 +1313,14 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                             {item.source_ref ? `｜${item.source_ref}` : ""}
                           </p>
                           <p className="content-block">{item.summary || "目前沒有可顯示的來源摘要。"}</p>
+                          <p className="muted-text">
+                            <strong>問題類型：</strong>
+                            {handling.diagnosticLabel}
+                          </p>
+                          <p className="muted-text">
+                            <strong>可能原因：</strong>
+                            {handling.likelyCauseDetail}
+                          </p>
                           <p
                             className={
                               handling.status === "accepted"
@@ -1314,8 +1333,16 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                             {handling.statusDetail}
                           </p>
                           <p className="muted-text">
+                            <strong>目前可用範圍：</strong>
+                            {handling.usableScopeLabel}｜{handling.usableScopeDetail}
+                          </p>
+                          <p className="muted-text">
                             <strong>會影響什麼：</strong>
                             {handling.impactDetail}
+                          </p>
+                          <p className="muted-text">
+                            <strong>retry 判斷：</strong>
+                            {handling.retryabilityLabel}｜{handling.retryabilityDetail}
                           </p>
                           <p className="muted-text">
                             <strong>建議下一步：</strong>
@@ -1412,7 +1439,16 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
               >
                 <div className="detail-list">
                   {workspace.evidence_chains.length > 0 ? (
-                    workspace.evidence_chains.map((item) => (
+                    workspace.evidence_chains.map((item) => {
+                      const evidenceIssueDiagnostic = buildEvidenceIssueDiagnostic({
+                        evidenceType: item.evidence.evidence_type,
+                        workflowLayer: continuationSurface?.workflow_layer,
+                        updateGoal:
+                          progressionLane?.evidence_update_goal ||
+                          followUpLane?.evidence_update_goal,
+                      });
+
+                      return (
                       <div className="detail-item" key={item.evidence.id}>
                         <div className="meta-row">
                           <span className="pill">{labelForEvidenceType(item.evidence.evidence_type)}</span>
@@ -1428,23 +1464,23 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                         </p>
                         <p className="content-block">{item.evidence.excerpt_or_summary}</p>
                         <p className="muted-text">{item.sufficiency_note}</p>
-                        {buildEvidenceIssueGuidance({
-                          evidenceType: item.evidence.evidence_type,
-                          workflowLayer: continuationSurface?.workflow_layer,
-                          updateGoal:
-                            progressionLane?.evidence_update_goal ||
-                            followUpLane?.evidence_update_goal,
-                        }) ? (
-                          <p className="muted-text">
-                            <strong>補救導引：</strong>
-                            {buildEvidenceIssueGuidance({
-                              evidenceType: item.evidence.evidence_type,
-                              workflowLayer: continuationSurface?.workflow_layer,
-                              updateGoal:
-                                progressionLane?.evidence_update_goal ||
-                                followUpLane?.evidence_update_goal,
-                            })}
-                          </p>
+                        {evidenceIssueDiagnostic ? (
+                          <>
+                            <p className="muted-text">
+                              <strong>問題類型：</strong>
+                              {evidenceIssueDiagnostic.diagnosticLabel}
+                            </p>
+                            <p className="muted-text">
+                              <strong>目前可用範圍：</strong>
+                              {evidenceIssueDiagnostic.usableScopeLabel}
+                              ｜
+                              {evidenceIssueDiagnostic.usableScopeDetail}
+                            </p>
+                            <p className="muted-text">
+                              <strong>補救導引：</strong>
+                              {evidenceIssueDiagnostic.guidance}
+                            </p>
+                          </>
                         ) : null}
 
                         {item.linked_recommendations.length > 0 ? (
@@ -1513,7 +1549,8 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                           打開來源工作紀錄：{item.task_title}
                         </Link>
                       </div>
-                    ))
+                    );
+                    })
                   ) : (
                     <p className="empty-text">目前還沒有可顯示的證據支撐鏈。</p>
                   )}

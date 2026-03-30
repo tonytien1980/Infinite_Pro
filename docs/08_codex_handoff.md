@@ -291,11 +291,18 @@ Codex 應把它理解為已完成的正式交付物工作面，至少承接：
   - 哪些已完成
   - 哪些仍待解析
   - 最近重試過什麼，結果如何
+- 若再往前補 deeper ingest diagnostics，則 item-level 與卡片層還應明確分開：
+  - status：accepted / limited support / pending parse / unsupported / failed ingest
+  - diagnostic category：這次更像格式問題、抓取 / 權限問題、空白 / 無效內容、解析失敗，還是 limited-support reference-only
+  - retryability：為什麼值得 retry，或為什麼不值得
+  - usable scope：目前還能不能保留成 reference-level、能不能直接進文字 evidence chain
+  - lane-aware impact：這會卡住哪個 checkpoint gap、action / outcome 驗證，或 one_off 交付物成立
 - 正式支援格式應理解為：`.md / .txt / .docx / .xlsx / .csv / text-first PDF / URL / 純文字補充`
 - 有限支援格式應理解為：`.jpg / .jpeg / .png / .webp / 掃描型 PDF`
 - 有限支援的意思是可建立 metadata / reference-level record，但不預設做高成本 OCR，也不宣稱與 text-first 文件同等成熟
 - pending-parse 的意思是尚待實際解析結果，不可先假設已成功抽取正文
 - unsupported / failed ingest 都必須提供保守但可執行的補救導引，而不是只顯示 generic error
+- retryable 與 non-retryable 不能只剩布林；至少要讓顧問看懂這次 retry 比較像暫時性阻塞，還是結構性需要換材料
 - storage architecture 必須正式區分：
   - DB metadata
   - raw intake storage
