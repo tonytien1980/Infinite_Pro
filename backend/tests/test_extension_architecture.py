@@ -56,6 +56,16 @@ def test_extension_registry_contains_completed_pack_baseline_and_agents() -> Non
     clinic_pack = next(pack for pack in industry_packs if pack.pack_id == "healthcare_clinic_pack")
     assert clinic_pack.evidence_expectations
 
+    for pack in [*domain_packs, *industry_packs]:
+        assert pack.common_problem_patterns
+        assert pack.evidence_expectations
+        assert pack.decision_patterns
+        assert pack.deliverable_presets
+        assert pack.pack_rationale
+        assert (
+            pack.key_kpis_or_operating_signals or pack.key_kpis
+        ), f"{pack.pack_id} should expose KPI or signal guidance"
+
 
 def test_pack_resolver_selects_domain_and_industry_packs() -> None:
     registry = ExtensionRegistry()

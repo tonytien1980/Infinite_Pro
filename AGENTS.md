@@ -350,6 +350,17 @@ Industry Packs provide context modules for industry-specific patterns, such as:
 - `manufacturing_pack`
 - `healthcare_clinic_pack`
 
+Industry Packs should also be treated as full pack specs rather than light labels.
+At minimum, each should preserve:
+- industry definition
+- common business models
+- common problem patterns
+- evidence expectations
+- key indicators / KPIs
+- decision patterns
+- deliverable presets
+- pack rationale
+
 ### 9.3 What packs are not
 Do not treat packs as:
 - labels

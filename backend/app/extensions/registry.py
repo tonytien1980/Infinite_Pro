@@ -950,6 +950,12 @@ def build_pack_catalog() -> list[PackSpec]:
                 "顧問式教學 / tutoring",
                 "B2B 教育授權",
             ],
+            common_problem_patterns=[
+                "招生有量，但 lead-to-enrollment conversion、完成率與退款率無法同時站穩",
+                "課程 / cohort 組合擴張後，教學品質、助教 support 與講師產能開始互相拉扯",
+                "表面營收成長，但 learner retention、repeat purchase 與完成率沒有一起改善",
+                "B2C 與 B2B 教育產品線混在一起，導致 pricing、銷售與交付節奏失真",
+            ],
             stage_specific_heuristics={
                 "創業階段": [
                     "先驗證學習成果與招生訊息是否能形成穩定轉單。",
@@ -1028,6 +1034,12 @@ def build_pack_catalog() -> list[PackSpec]:
             pack_notes=[
                 "對教育型生意，不能只看營收，還要同步檢查完成率、退款與交付品質。",
             ],
+            pack_rationale=[
+                "這個 pack 值得獨立存在，因為教育型生意的核心不是只把內容賣出去，而是學習成果、完成率與招生漏斗能否同時成立。",
+                "它與 Media / Creator Pack 的邊界在於：Online Education 更聚焦 completion 與教學交付，Creator 更聚焦 audience asset 與內容變現。",
+                "它最常出現在課程組合、cohort model、B2B 教育授權、招生漏斗與教學產能相關任務。",
+                "若定義太窄，會只剩招生漏斗；若定義太廣，則會把 creator business、內容媒體與一般顧問服務都混進來。",
+            ],
         ),
         PackSpec(
             pack_id="ecommerce_pack",
@@ -1041,6 +1053,12 @@ def build_pack_catalog() -> list[PackSpec]:
                 "社群電商 / 直播帶貨",
                 "訂閱制補貨",
                 "零售批發混合通路",
+            ],
+            common_problem_patterns=[
+                "流量與 GMV 看起來成長，但 conversion、AOV、repeat purchase 與 contribution margin 沒有一起改善",
+                "通路變多後，platform dependency、促銷依賴與品牌定位互相拉扯",
+                "SKU 組合擴張太快，導致庫存週轉、退貨與毛利結構惡化",
+                "履約與供應鏈壓力被表面營收掩蓋，造成交期、客訴與工作資本風險",
             ],
             stage_specific_heuristics={
                 "創業階段": [
@@ -1121,6 +1139,12 @@ def build_pack_catalog() -> list[PackSpec]:
             pack_notes=[
                 "電商案件應同時看通路、毛利、庫存與回購，不可只看流量與營收表面成長。",
             ],
+            pack_rationale=[
+                "這個 pack 值得獨立存在，因為電商的通路 mix、SKU economics、回購與 fulfillment 壓力有非常明顯的產業特性。",
+                "它與 Marketing / Sales Pack 的邊界在於：後者更聚焦 demand 與 acquisition，Ecommerce 更強調 channel economics、inventory 與 fulfillment reality。",
+                "它最常出現在 channel mix、SKU rationalization、retention versus acquisition、庫存與退貨治理等任務。",
+                "若定義太窄，會只剩廣告成效；若定義太廣，則會把零售、品牌、供應鏈與一般成長問題全部混在一起。",
+            ],
         ),
         PackSpec(
             pack_id="gaming_pack",
@@ -1134,6 +1158,12 @@ def build_pack_catalog() -> list[PackSpec]:
                 "廣告變現",
                 "訂閱 / season pass",
                 "發行 / 聯運 / IP 授權",
+            ],
+            common_problem_patterns=[
+                "下載或 wishlists 看起來不錯，但 retention 與 payer conversion 沒有跟上",
+                "live ops、內容 cadence 與 monetization loop 彼此脫節，導致玩家體驗與收入不穩",
+                "擴大買量前沒有先驗證 retention、LTV 與 CPI 是否能撐住 economics",
+                "作品 / 平台組合複雜化後，portfolio risk、商店政策與資源配置開始失控",
             ],
             stage_specific_heuristics={
                 "創業階段": [
@@ -1215,6 +1245,12 @@ def build_pack_catalog() -> list[PackSpec]:
             pack_notes=[
                 "遊戲案件應先判斷 retention / monetization / content cadence 三者是否同時成立，再談規模化買量。",
             ],
+            pack_rationale=[
+                "這個 pack 值得獨立存在，因為遊戲生意同時受 retention、player economy、content cadence 與平台規則支配，不像一般內容或軟體產品。",
+                "它與 SaaS Pack 的邊界在於：Gaming 更重玩家行為、留存與 live ops；SaaS 更重 recurring revenue、activation 與 implementation。",
+                "它最常出現在 launch readiness、UA versus retention、monetization design、portfolio allocation 與平台風險任務。",
+                "若定義太窄，會只剩下載或營收指標；若定義太廣，則會把 creator、media、SaaS 與一般產品問題混在一起。",
+            ],
         ),
         PackSpec(
             pack_id="funeral_services_pack",
@@ -1228,6 +1264,12 @@ def build_pack_catalog() -> list[PackSpec]:
                 "生前契約 / pre-need",
                 "殯儀轉介與合作通路",
                 "塔位 / 周邊紀念服務",
+            ],
+            common_problem_patterns=[
+                "服務信任、資訊揭露與價格透明度不足，導致轉換與口碑承壓",
+                "高度依賴單一轉介來源或特定合作夥伴，讓 pipeline 非常脆弱",
+                "個案高峰與淡季的人力 / 容量錯配，使服務品質與獲利波動很大",
+                "pre-need、at-need 與紀念服務沒有分開治理，導致報價、毛利與交付節奏失真",
             ],
             stage_specific_heuristics={
                 "創業階段": [
@@ -1305,6 +1347,12 @@ def build_pack_catalog() -> list[PackSpec]:
             pack_notes=[
                 "喪葬服務案件需要把信任、法遵、轉介結構與人力容量一起視為核心決策條件。",
             ],
+            pack_rationale=[
+                "這個 pack 值得獨立存在，因為喪葬服務的信任敏感度、法遵要求、轉介結構與服務容量治理與一般服務業非常不同。",
+                "它與 Professional Services Pack 的邊界在於：Funeral Services 更強調 bereavement context、reputation sensitivity 與 pre-need / at-need dynamics。",
+                "它最常出現在服務組合、轉介依賴、pre-need strategy、法遵治理與人力容量任務。",
+                "若定義太窄，會只剩禮儀流程；若定義太廣，則會把一般服務、醫療與高信任產業問題都混進來。",
+            ],
         ),
         PackSpec(
             pack_id="health_supplements_pack",
@@ -1318,6 +1366,12 @@ def build_pack_catalog() -> list[PackSpec]:
                 "平台電商銷售",
                 "藥局 / 零售通路",
                 "代工 / 聯名 / 專業通路合作",
+            ],
+            common_problem_patterns=[
+                "買量與銷售能做大，但 repeat purchase、subscription retention 與 SKU economics 沒有一起站穩",
+                "claim、成分、平台政策與廣告素材之間存在合規張力，讓成長變得脆弱",
+                "SKU 與通路擴張過快，導致庫存效期、品質信任與毛利結構惡化",
+                "看起來有需求，但低回購、高退貨或高客訴讓 CAC 無法回收",
             ],
             stage_specific_heuristics={
                 "創業階段": [
@@ -1397,6 +1451,12 @@ def build_pack_catalog() -> list[PackSpec]:
             pack_notes=[
                 "保健品案件不應只看流量與營收，必須把回購、claim 合規、品質信任與 SKU 結構一起看。",
             ],
+            pack_rationale=[
+                "這個 pack 值得獨立存在，因為保健品生意同時受 claim compliance、repeat purchase、channel policy 與 SKU trust dynamics 支配。",
+                "它與 Ecommerce Pack 的邊界在於：Health Supplements 更強調成分 / claim / 品質信任與法規邊界，不只是通路與轉換。",
+                "它最常出現在 hero SKU、claim strategy、channel mix、subscription retention 與品質治理任務。",
+                "若定義太窄，會只剩廣告成效；若定義太廣，則會把一般 DTC、醫療服務與健康內容生意全部混在一起。",
+            ],
         ),
         PackSpec(
             pack_id="energy_pack",
@@ -1410,6 +1470,12 @@ def build_pack_catalog() -> list[PackSpec]:
                 "EPC / O&M / 系統整合",
                 "設備銷售與長期維運",
                 "能源管理 / 節能服務",
+            ],
+            common_problem_patterns=[
+                "project pipeline 看起來很多，但 contracted revenue coverage、counterparty quality 與 conversion 不穩",
+                "法規、tariff、permit 與專案 economics 彼此拉扯，導致成長敘事和現金流現實脫節",
+                "capex、交付時程與 uptime 治理不足，讓專案回收期與可用率承壓",
+                "portfolio 擴張過快，供應鏈、維運與資本配置開始互相卡住",
             ],
             stage_specific_heuristics={
                 "創業階段": [
@@ -1511,6 +1577,12 @@ def build_pack_catalog() -> list[PackSpec]:
                 "Usage-based SaaS",
                 "Software + services / implementation hybrid",
             ],
+            common_problem_patterns=[
+                "pipeline 看起來健康，但 activation、time-to-value 與 churn 沒有同時站穩",
+                "PLG、sales-led 與 services revenue 混在一起，導致 commercial model 與 segment economics 失真",
+                "pricing / packaging 與 implementation load 不匹配，讓 expansion 與毛利承壓",
+                "看似成長中的 ARR 掩蓋了 retention、support load 與 onboarding bottleneck",
+            ],
             stage_specific_heuristics={
                 "創業階段": [
                     "先驗證 activation、time-to-value 與初步 retention，不要只靠 demo pipeline 幻覺判斷 PMF。",
@@ -1609,6 +1681,12 @@ def build_pack_catalog() -> list[PackSpec]:
                 "會員 / 社群",
                 "課程 / 內容產品",
                 "affiliate / 聯名 / 授權",
+            ],
+            common_problem_patterns=[
+                "表面流量成長，但 owned audience、paid conversion 與 revenue quality 沒有一起提升",
+                "收入過度集中在 sponsorship 或單一平台，導致 algorithm risk 與商務波動放大",
+                "內容節奏、creator capacity 與 monetization 承諾互相衝突，讓品質與可持續性下降",
+                "想 productize audience-facing offer，但 audience intent 與 content-to-offer 路徑還不清楚",
             ],
             stage_specific_heuristics={
                 "創業階段": [
@@ -1710,6 +1788,12 @@ def build_pack_catalog() -> list[PackSpec]:
                 "agency / 代操 / 代管",
                 "服務 + 教育 / 產品 hybrid",
             ],
+            common_problem_patterns=[
+                "pipeline 有量，但 utilization、scope control 與 gross margin 沒有一起成立",
+                "創辦人或少數資深顧問成為成交與交付單點，讓組織無法複製",
+                "服務線變多後，報價、交付與 client mix 變得失焦",
+                "project 與 retainer 混在一起管理，導致 capacity 與 revenue predictability 失真",
+            ],
             stage_specific_heuristics={
                 "創業階段": [
                     "先確認 hero service、核心客群與報價邏輯，而不是同時接太多類型的客製案。",
@@ -1808,6 +1892,12 @@ def build_pack_catalog() -> list[PackSpec]:
                 "品牌製造",
                 "工業零組件",
                 "客製加工 / job shop",
+            ],
+            common_problem_patterns=[
+                "營收在成長，但 OEE、yield、on-time delivery 與 inventory turns 沒有一起改善",
+                "產品 / 客戶組合複雜化後，排程、品質與 working capital 壓力同步升高",
+                "供應鏈、交期與 backlog 可見度不足，讓擴產或接單決策失真",
+                "表面出貨掩蓋了 scrap、返工、客戶集中與毛利下滑問題",
             ],
             stage_specific_heuristics={
                 "創業階段": [
@@ -1908,6 +1998,12 @@ def build_pack_catalog() -> list[PackSpec]:
                 "長期追蹤 / chronic care",
                 "檢查 / 診斷服務",
                 "轉介 / 合作醫療網絡",
+            ],
+            common_problem_patterns=[
+                "病患需求存在，但 appointment fill、no-show、wait time 與 provider capacity 沒有一起站穩",
+                "服務組合與 pricing 在成長，但 revisit、patient trust 與 compliance 邊界沒有同步治理",
+                "院點 / 醫師 / 轉介結構擴張後，服務品質與品牌體驗開始不一致",
+                "營收看起來成長，但 service mix margin、人力負荷與病患體驗彼此衝突",
             ],
             stage_specific_heuristics={
                 "創業階段": [
