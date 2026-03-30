@@ -457,8 +457,17 @@ Infinite Pro 的正式系統流可理解為：
 - 4 core agents + 3 specialists 是正式上限
 - UI 只要 task form + result page
 - packs 先不算正式層
+- catalog agent 與 runtime binding 暫時不完全 1:1，就代表 agent catalog 可以被重新壓回較少名稱
 
 這些只能作為實作先後順序，不是架構定義。
+
+補充：
+- Agent catalog 的治理語義仍應維持 `Host + 11 個非 Host agents`
+- runtime execution path 可在過渡期先由較少或較多的 runtime bindings 承接
+- 但 Host 必須誠實寫回：
+  - 這輪選了哪些 catalog agents
+  - 實際用了哪些 runtime agents
+  - 哪些 catalog agents 仍是 shared-runtime 過渡狀態
 
 ---
 

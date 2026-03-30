@@ -2066,7 +2066,7 @@ def build_agent_catalog() -> list[AgentSpec]:
             agent_id="finance_agent",
             agent_name="Finance Agent",
             agent_type=AgentType.REASONING,
-            description="Handles economics, capital, cash flow, and fundraising-oriented reasoning.",
+            description="Handles economics, capital, cash flow, fundraising readiness, and decision-critical financial assumptions.",
             supported_capabilities=[
                 CapabilityArchetype.DIAGNOSE_ASSESS,
                 CapabilityArchetype.DECIDE_CONVERGE,
@@ -2086,8 +2086,8 @@ def build_agent_catalog() -> list[AgentSpec]:
                 "healthcare_clinic_pack",
             ],
             input_requirements=["Financial artifacts", "Assumptions", "Evidence"],
-            output_contract=["Financial insights", "Risks", "Recommendations"],
-            invocation_rules=["Prefer when capital, pricing, or economics are decision-critical"],
+            output_contract=["Financial insights", "Assumption risks", "Recommendations", "Action framing"],
+            invocation_rules=["Prefer when capital, pricing, runway, or unit economics are decision-critical"],
             escalation_rules=["Escalate if financial assumptions are missing or contradictory"],
         ),
         AgentSpec(
@@ -2175,7 +2175,7 @@ def build_agent_catalog() -> list[AgentSpec]:
             agent_id="research_intelligence_agent",
             agent_name="Research / Intelligence Agent",
             agent_type=AgentType.REASONING,
-            description="Synthesizes external signals, research inputs, and multi-source evidence into decision-useful frames.",
+            description="Owns investigation-oriented research: external discovery, source quality, evidence-gap closure, contradiction tracking, and uncertainty framing.",
             supported_capabilities=[
                 CapabilityArchetype.SYNTHESIZE_BRIEF,
                 CapabilityArchetype.DIAGNOSE_ASSESS,
@@ -2197,15 +2197,15 @@ def build_agent_catalog() -> list[AgentSpec]:
                 "healthcare_clinic_pack",
             ],
             input_requirements=["Source materials", "Evidence", "DecisionContext"],
-            output_contract=["Synthesis briefs", "Evidence summaries", "Uncertainty framing"],
-            invocation_rules=["Prefer for external-research-heavy or sparse-input cases"],
+            output_contract=["Investigation findings", "Evidence summaries", "Source-quality notes", "Uncertainty framing"],
+            invocation_rules=["Prefer for external-research-heavy, sparse-input, or evidence-gap-heavy cases"],
             escalation_rules=["Escalate if source quality is too weak to support claims"],
         ),
         AgentSpec(
             agent_id="document_communication_agent",
             agent_name="Document / Communication Agent",
             agent_type=AgentType.REASONING,
-            description="Shapes documents, narratives, drafts, and communication-oriented deliverables.",
+            description="Shapes audience-aware documents, narratives, drafts, and communication-oriented deliverables.",
             supported_capabilities=[
                 CapabilityArchetype.RESTRUCTURE_REFRAME,
                 CapabilityArchetype.SYNTHESIZE_BRIEF,
@@ -2221,8 +2221,8 @@ def build_agent_catalog() -> list[AgentSpec]:
                 "professional_services_pack",
             ],
             input_requirements=["Artifacts", "Audience", "Goals"],
-            output_contract=["Restructured drafts", "Communication recommendations", "Audience-aware deliverables"],
-            invocation_rules=["Prefer when artifact restructuring or narrative shaping is required"],
+            output_contract=["Narrative insights", "Communication recommendations", "Audience-aware deliverable guidance"],
+            invocation_rules=["Prefer when audience fit, message order, or document adoption is a core concern"],
             escalation_rules=["Escalate if target audience or deliverable purpose is missing"],
         ),
         AgentSpec(

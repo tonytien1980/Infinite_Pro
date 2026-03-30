@@ -76,7 +76,16 @@ CAPABILITY_LABELS = {
 }
 DEFAULT_CORE_AGENT_ORDER = [
     "strategy_business_analysis",
+    "research_intelligence",
+    "operations",
+    "finance_capital",
+    "risk_challenge",
     "market_research_insight",
+    "document_communication",
+]
+DEFAULT_MULTI_AGENT_FALLBACK = [
+    "strategy_business_analysis",
+    "research_intelligence",
     "operations",
     "risk_challenge",
 ]
@@ -886,7 +895,7 @@ class HostOrchestrator:
         )
         resolver_notes = list(resolution.resolver_notes)
         if preferred_execution_mode == FlowMode.MULTI_AGENT and not selected_runtime_agents:
-            selected_runtime_agents = DEFAULT_CORE_AGENT_ORDER.copy()
+            selected_runtime_agents = DEFAULT_MULTI_AGENT_FALLBACK.copy()
             resolver_notes.append(
                 "目前沒有解析到更合適的 reasoning runtime set，因此 Host 先回退到預設的 multi-agent convergence runtime 組合。"
             )
@@ -933,9 +942,12 @@ class HostOrchestrator:
     ) -> tuple[list[str], list[str]]:
         scores = {
             "strategy_business_analysis": 40,
-            "market_research_insight": 30,
-            "operations": 20,
-            "risk_challenge": 10,
+            "research_intelligence": 32,
+            "operations": 26,
+            "finance_capital": 22,
+            "risk_challenge": 18,
+            "market_research_insight": 16,
+            "document_communication": 12,
         }
         routing_notes: list[str] = []
         domain_lenses = {item for item in payload.domain_lenses if item and item != DEFAULT_DOMAIN_LENS}
@@ -956,9 +968,10 @@ class HostOrchestrator:
         if capability in {
             CapabilityArchetype.SYNTHESIZE_BRIEF,
             CapabilityArchetype.SCENARIO_COMPARISON,
-        } or domain_lenses.intersection({"行銷", "銷售", "募資"}):
-            scores["market_research_insight"] += 18
-            routing_notes.append("這輪包含研究 / 市場訊號需求，因此提高 Market / Research Insight 的優先順序。")
+        } or domain_lenses.intersection({"行銷", "銷售", "募資", "研究", "情報"}):
+            scores["research_intelligence"] += 18
+            scores["market_research_insight"] += 10
+            routing_notes.append("這輪包含研究 / 市場訊號需求，因此提高 Research / Intelligence 與市場洞察視角的優先順序。")
 
         if capability in {
             CapabilityArchetype.DIAGNOSE_ASSESS,
@@ -981,11 +994,20 @@ class HostOrchestrator:
             scores["risk_challenge"] += 24
             routing_notes.append("這輪需要優先檢查限制、假設與風險，因此把 Risk / Challenge Agent 提前。")
 
+        if capability in {
+            CapabilityArchetype.SYNTHESIZE_BRIEF,
+            CapabilityArchetype.RESTRUCTURE_REFRAME,
+            CapabilityArchetype.PLAN_ROADMAP,
+        }:
+            scores["document_communication"] += 16
+            routing_notes.append("這輪交付明顯受文件結構與 audience 溝通影響，因此提高 Document / Communication Agent 的優先順序。")
+
         if client_type == "大型企業":
             scores["operations"] += 4
             scores["risk_challenge"] += 4
         elif client_type == "自媒體":
             scores["market_research_insight"] += 4
+            scores["document_communication"] += 4
         elif client_type == "個人品牌與服務":
             scores["market_research_insight"] += 3
             scores["strategy_business_analysis"] += 2
@@ -994,22 +1016,24 @@ class HostOrchestrator:
             scores["operations"] += 18
             routing_notes.append("因選到 Operations Pack，Host 會提高 Operations Agent 的優先順序。")
         if "finance_fundraising_pack" in selected_pack_ids:
+            scores["finance_capital"] += 20
             scores["strategy_business_analysis"] += 8
             scores["risk_challenge"] += 8
-            routing_notes.append("因選到 Finance / Fundraising Pack，Host 會提高策略與風險視角的收斂優先序。")
+            routing_notes.append("因選到 Finance / Fundraising Pack，Host 會提高財務 / 資本、策略與風險視角的收斂優先序。")
         if "legal_risk_pack" in selected_pack_ids:
             scores["risk_challenge"] += 16
             routing_notes.append("因選到 Legal / Risk Pack，Host 會提高 Risk / Challenge Agent 的優先順序。")
         if "marketing_sales_pack" in selected_pack_ids:
             scores["market_research_insight"] += 16
-            routing_notes.append("因選到 Marketing / Sales Pack，Host 會提高 Market / Research Insight 的優先順序。")
+            scores["document_communication"] += 8
+            routing_notes.append("因選到 Marketing / Sales Pack，Host 會提高市場洞察與文件溝通視角的優先順序。")
         if "business_development_pack" in selected_pack_ids:
             scores["market_research_insight"] += 10
             scores["strategy_business_analysis"] += 6
             routing_notes.append("因選到 Business Development Pack，Host 會優先檢查商務拓展與策略收斂。")
         if "research_intelligence_pack" in selected_pack_ids:
-            scores["market_research_insight"] += 18
-            routing_notes.append("因選到 Research / Intelligence Pack，Host 會提高研究與外部訊號整理的優先順序。")
+            scores["research_intelligence"] += 20
+            routing_notes.append("因選到 Research / Intelligence Pack，Host 會提高研究、來源品質與外部訊號整理的優先順序。")
         if "organization_people_pack" in selected_pack_ids:
             scores["operations"] += 14
             scores["strategy_business_analysis"] += 8
@@ -1018,59 +1042,78 @@ class HostOrchestrator:
             scores["strategy_business_analysis"] += 10
             scores["market_research_insight"] += 10
             scores["operations"] += 6
+            scores["finance_capital"] += 6
+            scores["document_communication"] += 6
             routing_notes.append("因選到 Product / Service Pack，Host 會優先檢查 offer architecture、定價與 promise-versus-delivery 的匹配度。")
         if "online_education_pack" in selected_pack_ids:
             scores["market_research_insight"] += 10
             scores["operations"] += 8
+            scores["document_communication"] += 4
             routing_notes.append("因選到 Online Education Pack，Host 會優先檢查招生漏斗、完成率與教學交付能力。")
         if "ecommerce_pack" in selected_pack_ids:
             scores["market_research_insight"] += 10
             scores["operations"] += 8
             scores["strategy_business_analysis"] += 5
+            scores["finance_capital"] += 10
             routing_notes.append("因選到 Ecommerce Pack，Host 會優先檢查通路效率、SKU 毛利、回購與履約能力。")
         if "gaming_pack" in selected_pack_ids:
             scores["market_research_insight"] += 11
             scores["strategy_business_analysis"] += 8
+            scores["research_intelligence"] += 6
+            scores["finance_capital"] += 6
             scores["risk_challenge"] += 4
             routing_notes.append("因選到 Gaming Pack，Host 會優先檢查留存、變現、live ops 節奏與平台風險。")
         if "funeral_services_pack" in selected_pack_ids:
             scores["operations"] += 10
             scores["risk_challenge"] += 10
             scores["strategy_business_analysis"] += 4
+            scores["document_communication"] += 6
             routing_notes.append("因選到 Funeral Services Pack，Host 會優先檢查服務信任、法遵、轉介結構與人力容量。")
         if "health_supplements_pack" in selected_pack_ids:
             scores["market_research_insight"] += 8
             scores["risk_challenge"] += 10
             scores["strategy_business_analysis"] += 5
+            scores["finance_capital"] += 6
             routing_notes.append("因選到 Health Supplements Pack，Host 會優先檢查回購、claim 合規、通路效率與 SKU 結構。")
         if "energy_pack" in selected_pack_ids:
             scores["operations"] += 10
             scores["strategy_business_analysis"] += 10
+            scores["finance_capital"] += 14
+            scores["research_intelligence"] += 4
             scores["risk_challenge"] += 8
             routing_notes.append("因選到 Energy Pack，Host 會優先檢查法規約束、專案 economics、可用率與 counterparty quality。")
         if "saas_pack" in selected_pack_ids:
             scores["market_research_insight"] += 10
             scores["strategy_business_analysis"] += 9
             scores["operations"] += 5
+            scores["finance_capital"] += 10
+            scores["document_communication"] += 5
             routing_notes.append("因選到 SaaS Pack，Host 會優先檢查 activation、retention、pricing、pipeline 與 time-to-value。")
         if "media_creator_pack" in selected_pack_ids:
             scores["market_research_insight"] += 13
             scores["strategy_business_analysis"] += 5
+            scores["document_communication"] += 10
+            scores["research_intelligence"] += 6
             routing_notes.append("因選到 Media / Creator Pack，Host 會優先檢查 audience asset、平台依賴、內容節奏與收入組合。")
         if "professional_services_pack" in selected_pack_ids:
             scores["operations"] += 9
             scores["strategy_business_analysis"] += 8
             scores["market_research_insight"] += 5
+            scores["finance_capital"] += 8
+            scores["document_communication"] += 8
             routing_notes.append("因選到 Professional Services Pack，Host 會優先檢查 utilization、scope、pricing 與交付經濟性。")
         if "manufacturing_pack" in selected_pack_ids:
             scores["operations"] += 14
             scores["strategy_business_analysis"] += 8
+            scores["finance_capital"] += 10
+            scores["research_intelligence"] += 6
             scores["risk_challenge"] += 4
             routing_notes.append("因選到 Manufacturing Pack，Host 會優先檢查產能、品質、供應鏈、交期與工作資本壓力。")
         if "healthcare_clinic_pack" in selected_pack_ids:
             scores["operations"] += 10
             scores["risk_challenge"] += 10
             scores["market_research_insight"] += 5
+            scores["finance_capital"] += 6
             routing_notes.append("因選到 Healthcare / Clinic Pack，Host 會優先檢查 provider capacity、排程、病患體驗與 compliance-sensitive growth。")
 
         ordered = sorted(
@@ -2302,7 +2345,7 @@ class HostOrchestrator:
             )
             payload, capability_frame, readiness, workflow_mode = self._prepare_host_context(task, workflow_mode)
             readiness = self._preserve_sparse_case_intent(readiness, external_data_report)
-            fixed_core_agents = capability_frame.selected_core_agents or DEFAULT_CORE_AGENT_ORDER
+            fixed_core_agents = capability_frame.selected_core_agents or DEFAULT_MULTI_AGENT_FALLBACK
             logger.info(
                 "Starting multi-agent flow for task %s with capability=%s agents=%s",
                 task.id,

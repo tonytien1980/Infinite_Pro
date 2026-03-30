@@ -11,6 +11,7 @@ from sqlalchemy import select
 from app.agents.host import HostOrchestrator
 from app.core.database import SessionLocal
 from app.domain import models
+from app.ingestion import remote as remote_ingestion
 from app.ingestion.remote import RemoteSourceContent
 from app.services.external_search import SearchResult
 from app.services.tasks import get_loaded_task
@@ -1618,6 +1619,53 @@ def test_source_ingestion_from_url_extracts_text_and_metadata(
     assert ingested["source_document"]["participation"]["compatibility_task_id"] == task["id"]
 
 
+def test_fetch_remote_source_normalizes_non_ascii_request_urls(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    requested: dict[str, object] = {}
+
+    class _FakeHeaders:
+        @staticmethod
+        def get_content_type() -> str:
+            return "text/html"
+
+    class _FakeResponse:
+        headers = _FakeHeaders()
+
+        def __enter__(self) -> "_FakeResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:  # noqa: ANN001
+            return None
+
+        @staticmethod
+        def read() -> bytes:
+            return "<html><head><title>中文頁面標題</title></head><body><p>這是一段足夠長的中文內容，讓抽取器可以保留它作為有效文字材料。</p></body></html>".encode(
+                "utf-8"
+            )
+
+        def geturl(self) -> str:
+            return requested["full_url"]  # type: ignore[return-value]
+
+    def fake_urlopen(http_request, timeout):  # noqa: ANN001
+        requested["full_url"] = http_request.full_url
+        requested["timeout"] = timeout
+        return _FakeResponse()
+
+    monkeypatch.setattr(remote_ingestion.request, "urlopen", fake_urlopen)
+
+    source = remote_ingestion.fetch_remote_source(
+        "https://例子.測試/路徑?q=測試 值",
+        timeout_seconds=12,
+    )
+
+    assert requested["full_url"] == "https://xn--fsqu00a.xn--g6w251d/%E8%B7%AF%E5%BE%91?q=%E6%B8%AC%E8%A9%A6%20%E5%80%BC"
+    assert requested["timeout"] == 12
+    assert source.source_url == "https://例子.測試/路徑?q=測試 值"
+    assert source.title == "中文頁面標題"
+    assert "這是一段足夠長的中文內容" in source.normalized_text
+
+
 def test_source_ingestion_rejects_more_than_ten_material_units_per_request(
     client: TestClient,
 ) -> None:
@@ -2096,7 +2144,7 @@ def test_multi_agent_happy_path_converges_and_saves_history(client: TestClient) 
     assert "strategy_business_analysis" in content["participating_agents"]
     assert set(content["participating_agents"]) == {
         "strategy_business_analysis",
-        "market_research_insight",
+        "research_intelligence",
         "operations",
         "risk_challenge",
     }
@@ -2828,7 +2876,7 @@ def test_multi_agent_still_uses_model_router(
     assert response.status_code == 200
     assert set(calls) == {
         "strategy_business_analysis",
-        "market_research_insight",
+        "research_intelligence",
         "operations",
         "risk_challenge",
     }

@@ -30,6 +30,7 @@ Before making any structural, product, ontology, agent, or UI decisions, read th
 14. `docs/11_intake_storage_architecture.md` when touching intake, canonical intake pipeline, entry presets, source materials, storage, retention, purge, or artifact file lifecycle
 15. `docs/12_runtime_persistence_and_release_integrity.md` when touching continuity mode, writeback depth, revision, rollback, publish, artifact registry, fallback, degraded mode, or sync recovery
 16. `docs/13_system_provider_settings_and_credentials.md` when touching system provider settings, model runtime config, credential storage, provider validation, or env precedence
+17. `.impeccable.md` when touching visual direction, theme behavior, typography, motion, accessibility posture, or interaction polish
 
 If implementation ideas conflict with the documents, prefer the documents over assumptions.
 
@@ -40,6 +41,7 @@ If要判斷某一頁面第一屏應顯示什麼、主按鈕是什麼、哪些資
 If intake modes, canonical intake pipeline, case world compilation entry semantics, source material ingestion, storage boundaries, retention, or purge lifecycle questions appear, treat `docs/11_intake_storage_architecture.md` as the primary governance guide.
 If正文 persistence、continuity mode、writeback depth、decision writeback、revision、rollback、publish / artifact record、fail-closed、degraded mode、re-sync 邊界 questions appear, treat `docs/12_runtime_persistence_and_release_integrity.md` as the primary governance guide.
 If系統級 provider 設定、credential storage、active runtime config、provider validation、env precedence questions appear, treat `docs/13_system_provider_settings_and_credentials.md` as the primary governance guide.
+If visual tone, brand feeling, light/dark theme parity, typography, motion restraint, or accessibility tradeoffs appear, treat `.impeccable.md` as the design context source of truth and keep shipped code aligned with that file.
 
 ---
 
@@ -283,6 +285,11 @@ Future work in this area should normally mean:
 - new packs
 - new agent families
 - multi-user / marketplace / organizational governance layers
+
+Current runtime alignment note:
+- the management / catalog surface currently preserves `Host + 11 non-Host agents`
+- runtime execution no longer needs to be treated as the early `4 core + 3 specialist` validation slice
+- catalog selection and runtime binding may still be transitional in some families, but Host must keep both visible in payloads and deliverable metadata
 
 Do not bypass Host Agent by letting UI-only logic or direct model calls decide the core workflow.
 

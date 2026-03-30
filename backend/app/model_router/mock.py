@@ -133,6 +133,20 @@ class MockModelProvider(ModelProvider):
             risks = [
                 "策略風險：在補入更多來源資料前，目前的優先順序仍可能變動。"
             ]
+        elif request.agent_id == "finance_capital":
+            if not findings:
+                findings = [
+                    "財務 / 資本視角目前仍缺乏足夠穩定的數字與假設，因此難以形成高信心判斷。",
+                ]
+            recommendations = [
+                "先把最影響決策的財務假設、現金壓力與回收節奏獨立標示。",
+            ]
+            action_items = [
+                "請先確認關鍵假設、現金流壓力與價格 / 投入邏輯是否一致。",
+            ]
+            risks = [
+                "財務風險：若關鍵數字與假設未先校正，後續策略與行動排序都可能失真。"
+            ]
         elif request.agent_id == "market_research_insight":
             if not findings:
                 findings = [
@@ -146,6 +160,20 @@ class MockModelProvider(ModelProvider):
             ]
             risks = [
                 "訊號風險：證據不足時，容易把外部市場事實與內部假設混在一起。"
+            ]
+        elif request.agent_id == "research_intelligence":
+            if not findings:
+                findings = [
+                    "研究 / 情報視角目前仍缺乏足夠可靠的來源覆蓋，因此無法穩定辨識外部訊號與證據缺口。",
+                ]
+            recommendations = [
+                "先把來源品質、時間新鮮度與仍待查證的缺口明確拆開。",
+            ]
+            action_items = [
+                "在重用前，先標示哪些內容是高可信來源、哪些仍屬待驗證訊號。",
+            ]
+            risks = [
+                "研究風險：若來源品質與新鮮度未先分級，後續很容易把弱訊號誤當成可採用事實。"
             ]
         elif request.agent_id == "operations":
             if not findings:
@@ -161,6 +189,20 @@ class MockModelProvider(ModelProvider):
             ]
             risks = [
                 "營運風險：即使方向正確，若順序與責任不清，執行仍可能卡住。"
+            ]
+        elif request.agent_id == "document_communication":
+            if not findings:
+                findings = [
+                    "文件 / 溝通視角目前仍缺乏足夠明確的受眾與交付目的，因此無法穩定排出最佳敘事順序。",
+                ]
+            recommendations = [
+                "先把受眾、主訊息與閱讀順序釐清，再重排文件結構。",
+            ]
+            action_items = [
+                "請先確認這份交付物最終要說服誰、解決哪個決策問題。",
+            ]
+            risks = [
+                "溝通風險：即使內容正確，若結構與訊息順序不對，交付物仍可能無法被採納。"
             ]
         else:
             if not findings:

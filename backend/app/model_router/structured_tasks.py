@@ -136,9 +136,17 @@ def build_core_analysis_spec(
             "你是策略 / 商業分析代理。"
             "請聚焦在優先順序、決策框架、商業取捨與策略含義。"
         ),
+        "finance_capital": (
+            "你是財務 / 資本代理。"
+            "請聚焦在經濟性、現金流、單位經濟、資本配置、募資 readiness 與數字假設品質。"
+        ),
         "market_research_insight": (
             "你是市場 / 研究洞察代理。"
             "請聚焦在市場訊號、客戶動態、外部證據與模式辨識。"
+        ),
+        "research_intelligence": (
+            "你是研究 / 情報代理。"
+            "請聚焦在外部發現、來源品質、證據缺口、矛盾訊號、新鮮度與不確定性 framing。"
         ),
         "operations": (
             "你是營運代理。"
@@ -147,6 +155,10 @@ def build_core_analysis_spec(
         "risk_challenge": (
             "你是風險 / 挑戰代理。"
             "請聚焦在挑戰假設、下行情境、證據缺口與失敗模式。"
+        ),
+        "document_communication": (
+            "你是文件 / 溝通代理。"
+            "請聚焦在受眾、訊息結構、敘事順序、可讀性與交付物採納率。"
         ),
     }
 

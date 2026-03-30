@@ -192,6 +192,22 @@ Agents 應依能力面與專業責任分類，而不是只依目前已落地 flo
 - 新 pack 與新 agent family 的擴充
 - multi-user / marketplace / 組織治理
 
+目前 runtime 對齊還要再多記住一條：
+- catalog / management surface 維持 `Host + 11 個非 Host agents`
+- 目前 reasoning runtime 已至少拆到：
+  - `strategy_business_analysis`
+  - `operations`
+  - `finance_capital`
+  - `market_research_insight`
+  - `research_intelligence`
+  - `risk_challenge`
+  - `document_communication`
+- 目前 specialist runtime 已至少包括：
+  - `contract_review`
+  - `research_synthesis`
+  - `document_restructuring`
+- catalog agent 若仍共用 runtime，Codex 不可把它誤寫成已 fully independent，也不可反過來把 catalog 重新壓縮回較少的 agent 名稱
+
 ### 7.3 Pack Layer
 Packs 應被視為正式能力層，不得退化為 tags。
 

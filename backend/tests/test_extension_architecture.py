@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from app.domain.enums import CapabilityArchetype, DeliverableClass, InputEntryMode
 from app.extensions.registry import ExtensionRegistry
-from app.extensions.resolver import AgentResolver, PackResolver
+from app.extensions.resolver import AgentResolver, PackResolver, resolve_runtime_agent_binding
 from app.extensions.schemas import AgentResolverInput, AgentType, PackResolverInput, PackType
 
 
@@ -148,3 +148,9 @@ def test_extension_manager_snapshot_surfaces_pack_and_agent_catalogs() -> None:
     assert snapshot.pack_registry.active_pack_ids
     assert snapshot.agent_registry.host_agent_id == "host_agent"
     assert "host_agent" in snapshot.agent_registry.active_agent_ids
+
+
+def test_runtime_agent_bindings_promote_distinct_research_finance_and_document_paths() -> None:
+    assert resolve_runtime_agent_binding("finance_agent") == "finance_capital"
+    assert resolve_runtime_agent_binding("research_intelligence_agent") == "research_intelligence"
+    assert resolve_runtime_agent_binding("document_communication_agent") == "document_communication"

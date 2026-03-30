@@ -3,8 +3,11 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from app.agents.base import AgentDescriptor, CoreAnalysisAgent, SpecialistAgent
+from app.agents.core.document_communication import DocumentCommunicationAgent
+from app.agents.core.finance_capital import FinanceCapitalAgent
 from app.agents.core.market_research_insight import MarketResearchInsightAgent
 from app.agents.core.operations import OperationsAgent
+from app.agents.core.research_intelligence import ResearchIntelligenceAgent
 from app.agents.core.risk_challenge import RiskChallengeAgent
 from app.agents.core.strategy_business_analysis import StrategyBusinessAnalysisAgent
 from app.agents.specialists.contract_review import ContractReviewAgent
@@ -43,6 +46,19 @@ def build_agent_catalog() -> list[AgentDescriptor]:
             status=AgentStatus.ACTIVE,
         ),
         AgentDescriptor(
+            agent_id="finance_capital",
+            agent_type="core_analysis",
+            display_name="Finance / Capital Agent",
+            agent_category=AgentCategory.CORE,
+            supported_task_types=["complex_convergence"],
+            supported_flow_modes=[FlowMode.MULTI_AGENT],
+            required_inputs=["Task", "FinancialArtifacts", "Assumption", "Evidence"],
+            produced_objects=["Insight", "Risk", "Recommendation", "ActionItem"],
+            default_model_policy="balanced",
+            version="0.2.0",
+            status=AgentStatus.ACTIVE,
+        ),
+        AgentDescriptor(
             agent_id="market_research_insight",
             agent_type="core_analysis",
             display_name="Market / Research Insight Agent",
@@ -56,6 +72,19 @@ def build_agent_catalog() -> list[AgentDescriptor]:
             status=AgentStatus.ACTIVE,
         ),
         AgentDescriptor(
+            agent_id="research_intelligence",
+            agent_type="core_analysis",
+            display_name="Research / Intelligence Agent",
+            agent_category=AgentCategory.CORE,
+            supported_task_types=["complex_convergence"],
+            supported_flow_modes=[FlowMode.MULTI_AGENT],
+            required_inputs=["Task", "DecisionContext", "SourceMaterial", "Evidence"],
+            produced_objects=["Insight", "Risk", "Recommendation", "ActionItem"],
+            default_model_policy="balanced",
+            version="0.2.0",
+            status=AgentStatus.ACTIVE,
+        ),
+        AgentDescriptor(
             agent_id="risk_challenge",
             agent_type="core_analysis",
             display_name="Risk / Challenge Agent",
@@ -66,6 +95,19 @@ def build_agent_catalog() -> list[AgentDescriptor]:
             produced_objects=["Risk", "Recommendation"],
             default_model_policy="balanced",
             version="0.1.0",
+            status=AgentStatus.ACTIVE,
+        ),
+        AgentDescriptor(
+            agent_id="document_communication",
+            agent_type="core_analysis",
+            display_name="Document / Communication Agent",
+            agent_category=AgentCategory.CORE,
+            supported_task_types=["complex_convergence"],
+            supported_flow_modes=[FlowMode.MULTI_AGENT],
+            required_inputs=["Task", "Audience", "Goal", "Evidence"],
+            produced_objects=["Insight", "Risk", "Recommendation", "ActionItem"],
+            default_model_policy="balanced",
+            version="0.2.0",
             status=AgentStatus.ACTIVE,
         ),
         AgentDescriptor(
@@ -115,9 +157,12 @@ class AgentRegistry:
         self.catalog = build_agent_catalog()
         self._core_agents = {
             "strategy_business_analysis": StrategyBusinessAnalysisAgent(model_provider=model_provider),
+            "finance_capital": FinanceCapitalAgent(model_provider=model_provider),
             "market_research_insight": MarketResearchInsightAgent(model_provider=model_provider),
+            "research_intelligence": ResearchIntelligenceAgent(model_provider=model_provider),
             "operations": OperationsAgent(model_provider=model_provider),
             "risk_challenge": RiskChallengeAgent(model_provider=model_provider),
+            "document_communication": DocumentCommunicationAgent(model_provider=model_provider),
         }
         self._specialist_agents = {
             "contract_review": ContractReviewAgent(model_provider=model_provider),

@@ -401,6 +401,33 @@ Host 應根據以下輸入決定 agent 組合：
 - runtime-compatible agent selection writeback
 - selection 對 execution path、readiness governance 與 deliverable shaping 的正式影響
 
+### 11.3.1 目前 runtime realization（2026-03 baseline）
+目前單人版正式 runtime 應理解為：
+- catalog / management surface 維持 `Host + 11 個非 Host agents`
+- Host 仍是唯一 orchestration center
+- reasoning / specialist selection 仍以 catalog agent ids、resolver notes、omitted / deferred / escalation notes 為正式治理語義
+- 但 runtime execution path 已不再停留在早期的 `4 core + 3 specialist` 最小驗證切片
+
+目前正式 runtime baseline 至少包括以下 reasoning runtimes：
+- `strategy_business_analysis`
+- `operations`
+- `finance_capital`
+- `market_research_insight`
+- `research_intelligence`
+- `risk_challenge`
+- `document_communication`
+
+目前正式 specialist runtimes 至少包括：
+- `contract_review`
+- `research_synthesis`
+- `document_restructuring`
+
+正式理解應是：
+- catalog agent 與 runtime binding 可以暫時不是 1:1
+- 但 Host 必須把 selected catalog agents 與實際 runtime path 一起寫回 aggregate / workspace payload / deliverable metadata
+- 若 catalog agent 仍共用 runtime，文件與 UI 不可假裝它們已完全獨立實作
+- 後續擴充的優先順序，應是逐步減少「catalog 已分化、runtime 仍共用」的落差
+
 ### 11.4 Agent Management Surface
 單人版最小管理能力應能讓顧問：
 - 查看 agent 列表
@@ -448,6 +475,7 @@ Host 應根據以下輸入決定 agent 組合：
 - 把 specialist flow 名稱直接當產品主分類
 - 把 Host Agent 降成最後的文案整理員
 - 把 packs 視為後補標籤
+- 把 catalog agent 已分化、但 runtime 仍暫時共用的過渡狀態誤寫成最終架構
 
 後續應做的是：
 - 讓 Host 真正控制能力選擇與收斂
