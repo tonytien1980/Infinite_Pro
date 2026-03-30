@@ -50,12 +50,29 @@ export interface RuntimeMaterialHandlingSummary {
   impactDetail: string;
   recommendedNextStep: string;
   fallbackStrategy: string | null;
+  retryable: boolean;
 }
 
 export interface MaterialRemediationContext {
   lane: "intake" | "one_off" | "follow_up" | "continuous" | "workspace";
   updateGoal?: string | null;
   nextAction?: string | null;
+}
+
+export type IntakeItemProgressPhase =
+  | "ready"
+  | "uploading"
+  | "parsing"
+  | "done"
+  | "failed"
+  | "blocked";
+
+export interface IntakeItemProgressInfo {
+  phase: IntakeItemProgressPhase;
+  label: string;
+  detail: string;
+  blocksSubmit: boolean;
+  retryable: boolean;
 }
 
 function extensionFromName(fileName: string) {
@@ -178,6 +195,7 @@ function classifyFailedIngest(errorText: string | null | undefined) {
         "先重新補件；若急著分析，改提供更乾淨的文字版、可讀 URL 或手動摘要。",
       fallbackStrategy:
         "最穩定的替代方式是補 text-first PDF、DOCX、TXT、可公開讀取的 URL，或直接貼純文字摘要。",
+      retryable: true,
     };
   }
   if (normalized.includes("空白") || normalized.includes("empty")) {
@@ -187,6 +205,7 @@ function classifyFailedIngest(errorText: string | null | undefined) {
       recommendedNextStep:
         "請改上傳有內容的版本；如果暫時只有口頭資訊，先貼純文字摘要也可以。",
       fallbackStrategy: "若原檔還在整理中，先補一段可讀摘要，之後再補正式檔案。",
+      retryable: false,
     };
   }
   if (
@@ -202,6 +221,7 @@ function classifyFailedIngest(errorText: string | null | undefined) {
       recommendedNextStep:
         "請改用可公開讀取的 URL、可下載檔案，或直接補貼文字版內容。",
       fallbackStrategy: "如果只能用受限來源，請至少補一段人工摘要，避免這筆材料完全無法參與分析。",
+      retryable: false,
     };
   }
   if (
@@ -215,6 +235,7 @@ function classifyFailedIngest(errorText: string | null | undefined) {
       recommendedNextStep:
         "請改成正式支援格式，或直接貼文字摘要 / 改用可讀 URL。",
       fallbackStrategy: "常見替代方式是匯出成 PDF、DOCX、TXT、CSV，或直接整理成條列摘要。",
+      retryable: false,
     };
   }
   if (
@@ -229,6 +250,7 @@ function classifyFailedIngest(errorText: string | null | undefined) {
       recommendedNextStep:
         "可以先重試一次；若急著推進，請改補更穩定的文字版、摘要或替代來源。",
       fallbackStrategy: "若外部抓取不穩，最保守的替代方式是直接貼純文字內容或上傳文字版文件。",
+      retryable: true,
     };
   }
   return {
@@ -238,6 +260,119 @@ function classifyFailedIngest(errorText: string | null | undefined) {
       "請優先換成更乾淨的文字版、補純文字摘要，或改用可讀 URL 後再補件。",
     fallbackStrategy:
       "如果同一份原始材料仍然重要，建議另外準備 text-first PDF、DOCX 或手動整理重點摘要。",
+    retryable: false,
+  };
+}
+
+export function previewItemBlocksSubmit(item: IntakeMaterialPreviewItem) {
+  return item.status === "unsupported" || item.status === "issue";
+}
+
+export function previewItemCanKeepAsReference(item: IntakeMaterialPreviewItem) {
+  return item.status === "limited";
+}
+
+export function defaultProgressInfoForPreviewItem(
+  item: IntakeMaterialPreviewItem,
+  options?: {
+    keepAsReference?: boolean;
+  },
+): IntakeItemProgressInfo {
+  if (previewItemBlocksSubmit(item)) {
+    return {
+      phase: "blocked",
+      label: "阻擋送出",
+      detail: "這份材料要先移除、修正或替換，否則這批不能送出。",
+      blocksSubmit: true,
+      retryable: false,
+    };
+  }
+  if (item.status === "limited" && options?.keepAsReference) {
+    return {
+      phase: "ready",
+      label: "將保留 reference",
+      detail: "這份材料不擋送出，會以 metadata / reference-level 方式保留。",
+      blocksSubmit: false,
+      retryable: false,
+    };
+  }
+  if (item.status === "pending") {
+    return {
+      phase: "ready",
+      label: "待送出 / 待解析",
+      detail: "這份材料目前不擋送出，但建立後仍要看最終解析結果。",
+      blocksSubmit: false,
+      retryable: false,
+    };
+  }
+  if (item.status === "limited") {
+    return {
+      phase: "ready",
+      label: "可保留 reference",
+      detail: "這份材料不擋送出，但目前最適合先當 reference-level 來源。",
+      blocksSubmit: false,
+      retryable: false,
+    };
+  }
+  return {
+    phase: "ready",
+    label: "待送出",
+    detail: "這份材料目前不擋送出，可沿正式主鏈處理。",
+    blocksSubmit: false,
+    retryable: false,
+  };
+}
+
+export function progressInfoFromRuntimeHandling(
+  handling: RuntimeMaterialHandlingSummary,
+  options?: {
+    keepAsReference?: boolean;
+  },
+): IntakeItemProgressInfo {
+  if (handling.status === "issue") {
+    return {
+      phase: "failed",
+      label: handling.retryable ? "失敗，可重試" : "失敗，需替換",
+      detail: handling.retryable
+        ? "這份材料本輪沒有成功，但可直接重試。"
+        : "這份材料本輪沒有成功，較適合改用替換、移除或 fallback 材料。",
+      blocksSubmit: false,
+      retryable: handling.retryable,
+    };
+  }
+  if (handling.status === "unsupported") {
+    return {
+      phase: "blocked",
+      label: "尚未正式支援",
+      detail: "這份材料不能當成正式可解析來源，需替換或移除。",
+      blocksSubmit: true,
+      retryable: false,
+    };
+  }
+  if (handling.status === "limited") {
+    return {
+      phase: "done",
+      label: options?.keepAsReference ? "已保留 reference" : "有限支援 / 已保留",
+      detail: "這份材料已被保留，但目前只作 metadata / reference-level 用途。",
+      blocksSubmit: false,
+      retryable: false,
+    };
+  }
+  if (handling.status === "pending") {
+    return {
+      phase: "parsing",
+      label: "待解析",
+      detail: "這份材料已送出，但最終解析層級仍待確認。",
+      blocksSubmit: false,
+      retryable: false,
+    };
+  }
+  return {
+    phase: "done",
+    label: "已接受",
+    detail: "這份材料已正式進主鏈，可直接參與後續分析。",
+    blocksSubmit: false,
+    retryable: false,
   };
 }
 
@@ -537,6 +672,7 @@ export function describeRuntimeMaterialHandling({
         workspace: failed.recommendedNextStep,
       }),
       fallbackStrategy: failed.fallbackStrategy,
+      retryable: failed.retryable,
     };
   }
 
@@ -554,6 +690,7 @@ export function describeRuntimeMaterialHandling({
         workspace: "請改補正式支援格式、公開可讀來源，或直接貼出文字摘要。",
       }),
       fallbackStrategy: "常見替代是 PDF、DOCX、TXT、CSV、可讀 URL，或直接補重點摘要。",
+      retryable: false,
     };
   }
 
@@ -583,6 +720,7 @@ export function describeRuntimeMaterialHandling({
         workspace: "若你希望它真的參與 evidence chain，請補文字版、OCR 後文字或人工摘要。",
       }),
       fallbackStrategy: "較佳替代方式是 text-first PDF、DOCX、TXT、可讀 URL，或直接補貼文字重點。",
+      retryable: false,
     };
   }
 
@@ -600,6 +738,7 @@ export function describeRuntimeMaterialHandling({
         workspace: "可直接回看 evidence chain，確認它實際支撐了哪些 recommendation / risk / action。",
       }),
       fallbackStrategy: null,
+      retryable: false,
     };
   }
 
@@ -617,6 +756,7 @@ export function describeRuntimeMaterialHandling({
         workspace: "可直接回看它目前支撐了哪些證據與輸出，不需要先做 remediation。",
       }),
       fallbackStrategy: null,
+      retryable: false,
     };
   }
 
@@ -633,5 +773,6 @@ export function describeRuntimeMaterialHandling({
       workspace: "先確認最終解析結果；若最後只有 metadata-only 或失敗，請補文字版、摘要或替代來源。",
     }),
     fallbackStrategy: "最保守的替代方式是 text-first PDF、DOCX、TXT、可讀 URL，或直接補文字摘要。",
+    retryable: false,
   };
 }

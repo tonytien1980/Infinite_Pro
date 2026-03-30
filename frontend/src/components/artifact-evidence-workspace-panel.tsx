@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChangeEvent, FormEvent, ReactNode, useEffect, useState } from "react";
+import { ChangeEvent, FormEvent, ReactNode, useEffect, useRef, useState } from "react";
 
 import { IntakeMaterialPreviewList } from "@/components/intake-material-preview-list";
 import {
@@ -18,7 +18,10 @@ import {
   buildIntakePreviewItems,
   countIntakeMaterialUnits,
   describeRuntimeMaterialHandling,
+  type IntakeItemProgressInfo,
   MAX_INTAKE_MATERIAL_UNITS,
+  previewItemBlocksSubmit,
+  progressInfoFromRuntimeHandling,
 } from "@/lib/intake";
 import type { ArtifactEvidenceWorkspace } from "@/lib/types";
 import {
@@ -128,6 +131,16 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
   const [submitting, setSubmitting] = useState(false);
   const [supplementMessage, setSupplementMessage] = useState<string | null>(null);
   const [supplementError, setSupplementError] = useState<string | null>(null);
+  const [progressByItemId, setProgressByItemId] = useState<
+    Record<string, IntakeItemProgressInfo>
+  >({});
+  const [keepAsReferenceByItemId, setKeepAsReferenceByItemId] = useState<
+    Record<string, boolean>
+  >({});
+  const [replaceTargetId, setReplaceTargetId] = useState<string | null>(null);
+  const fileReplaceInputRef = useRef<HTMLInputElement | null>(null);
+  const urlFieldRef = useRef<HTMLTextAreaElement | null>(null);
+  const pastedTextFieldRef = useRef<HTMLTextAreaElement | null>(null);
 
   async function loadWorkspace() {
     try {
@@ -299,9 +312,214 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
     pastedText,
     context: remediationContext,
   });
-  const blockingPendingItems = pendingPreviewItems.filter(
-    (item) => item.status === "unsupported" || item.status === "issue",
+  const blockingPendingItems = pendingPreviewItems.filter((item) =>
+    previewItemBlocksSubmit(item),
   );
+
+  function setItemProgress(itemId: string, progress: IntakeItemProgressInfo) {
+    setProgressByItemId((previous) => ({
+      ...previous,
+      [itemId]: progress,
+    }));
+  }
+
+  function buildHandlingFromRuntimeItem(runtimeItem: {
+    source_document: {
+      support_level: string;
+      ingest_status: string;
+      ingest_strategy: string;
+      metadata_only: boolean;
+      ingestion_error: string | null;
+    };
+    source_material?: {
+      support_level: string;
+      ingest_status: string;
+      ingest_strategy: string;
+      metadata_only: boolean;
+      ingestion_error?: string | null;
+    } | null;
+  }) {
+    return describeRuntimeMaterialHandling({
+      supportLevel:
+        runtimeItem.source_material?.support_level ?? runtimeItem.source_document.support_level,
+      ingestStatus:
+        runtimeItem.source_material?.ingest_status ?? runtimeItem.source_document.ingest_status,
+      ingestStrategy:
+        runtimeItem.source_material?.ingest_strategy ?? runtimeItem.source_document.ingest_strategy,
+      metadataOnly:
+        runtimeItem.source_material?.metadata_only ?? runtimeItem.source_document.metadata_only,
+      ingestionError:
+        runtimeItem.source_material?.ingestion_error ??
+        runtimeItem.source_document.ingestion_error,
+      context: remediationContext,
+    });
+  }
+
+  async function processPendingPreviewItem(
+    item: (typeof pendingPreviewItems)[number],
+  ) {
+    try {
+      if (item.kind === "file") {
+        const index = Number(item.id.replace("file-", ""));
+        const file = files[index];
+        if (!file) {
+          throw new Error("找不到要處理的檔案，請重新選取。");
+        }
+        setItemProgress(item.id, {
+          phase: "uploading",
+          label: "上傳中",
+          detail: "這份檔案正在掛回目前案件世界。",
+          blocksSubmit: false,
+          retryable: false,
+        });
+        const uploadResult = await uploadMatterFiles(matterId, [file]);
+        const runtimeItem = uploadResult.uploaded[0];
+        if (!runtimeItem) {
+          throw new Error("這份檔案沒有收到可用的 upload result。");
+        }
+        const handling = buildHandlingFromRuntimeItem(runtimeItem);
+        const progress = progressInfoFromRuntimeHandling(handling, {
+          keepAsReference: Boolean(keepAsReferenceByItemId[item.id]),
+        });
+        setItemProgress(item.id, progress);
+        return progress;
+      }
+
+      if (item.kind === "url") {
+        const index = Number(item.id.replace("url-", ""));
+        const url = normalizedUrls[index];
+        if (!url) {
+          throw new Error("找不到要處理的網址，請先回網址欄確認。");
+        }
+        setItemProgress(item.id, {
+          phase: "parsing",
+          label: "解析中",
+          detail: "系統正在抓取這個 URL 的正文與標題。",
+          blocksSubmit: false,
+          retryable: false,
+        });
+        const ingestResult = await ingestMatterSources(matterId, {
+          urls: [url],
+          pasted_text: "",
+        });
+        const runtimeItem = ingestResult.ingested[0];
+        if (!runtimeItem) {
+          throw new Error("這個網址沒有收到可用的 ingest result。");
+        }
+        const handling = buildHandlingFromRuntimeItem(runtimeItem);
+        const progress = progressInfoFromRuntimeHandling(handling, {
+          keepAsReference: Boolean(keepAsReferenceByItemId[item.id]),
+        });
+        setItemProgress(item.id, progress);
+        return progress;
+      }
+
+      setItemProgress(item.id, {
+        phase: "uploading",
+        label: "掛接中",
+        detail: "這段補充文字正在掛回目前案件世界。",
+        blocksSubmit: false,
+        retryable: false,
+      });
+      const ingestResult = await ingestMatterSources(matterId, {
+        urls: [],
+        pasted_text: pastedText,
+        pasted_title: pastedText.trim() ? "案件補充說明" : undefined,
+      });
+      const runtimeItem = ingestResult.ingested[0];
+      if (!runtimeItem) {
+        throw new Error("這段補充文字沒有收到可用的 ingest result。");
+      }
+      const handling = buildHandlingFromRuntimeItem(runtimeItem);
+      const progress = progressInfoFromRuntimeHandling(handling, {
+        keepAsReference: Boolean(keepAsReferenceByItemId[item.id]),
+      });
+      setItemProgress(item.id, progress);
+      return progress;
+    } catch (submitError) {
+      const handling = describeRuntimeMaterialHandling({
+        supportLevel: "unsupported",
+        ingestStatus: "failed",
+        ingestStrategy: "unsupported",
+        metadataOnly: true,
+        ingestionError:
+          submitError instanceof Error ? submitError.message : "補件時發生未知錯誤。",
+        context: remediationContext,
+      });
+      const progress = progressInfoFromRuntimeHandling(handling);
+      setItemProgress(item.id, progress);
+      return progress;
+    }
+  }
+
+  async function retryPendingPreviewItem(item: (typeof pendingPreviewItems)[number]) {
+    setSubmitting(true);
+    setSupplementMessage(null);
+    setSupplementError(null);
+    const progress = await processPendingPreviewItem(item);
+    if (progress.phase === "done" || progress.phase === "parsing") {
+      dropResolvedPendingItems([item.id]);
+      setSupplementMessage("這份材料已重新處理完成；你可以繼續補其他材料，或回主線續推。");
+      await loadWorkspace();
+    } else {
+      setSupplementError("這份材料重試後仍未成功；建議改用替換、移除或 fallback 材料。");
+    }
+    setSubmitting(false);
+  }
+
+  function toggleKeepAsReference(item: (typeof pendingPreviewItems)[number]) {
+    setKeepAsReferenceByItemId((previous) => ({
+      ...previous,
+      [item.id]: !previous[item.id],
+    }));
+    setProgressByItemId((previous) => {
+      const next = { ...previous };
+      delete next[item.id];
+      return next;
+    });
+    setSupplementMessage(
+      keepAsReferenceByItemId[item.id]
+        ? "已取消這份材料的 reference 保留標記。"
+        : "已標記這份材料可先以 reference-level 保留。",
+    );
+    setSupplementError(null);
+  }
+
+  function replacePendingPreviewItem(item: (typeof pendingPreviewItems)[number]) {
+    if (item.kind === "file") {
+      setReplaceTargetId(item.id);
+      fileReplaceInputRef.current?.click();
+      return;
+    }
+    if (item.kind === "url") {
+      setSupplementError("這筆來源請直接回網址欄修正；修正後 item row 會立即刷新。");
+      urlFieldRef.current?.focus();
+      return;
+    }
+    setSupplementError("這段補充文字請直接回補充文字欄改寫；改寫後 item row 會立即刷新。");
+    pastedTextFieldRef.current?.focus();
+  }
+
+  function handleReplaceFileSelection(event: ChangeEvent<HTMLInputElement>) {
+    const nextFile = event.target.files?.[0];
+    if (!replaceTargetId || !nextFile) {
+      event.currentTarget.value = "";
+      return;
+    }
+    const index = Number(replaceTargetId.replace("file-", ""));
+    setFiles((previous) =>
+      previous.map((file, fileIndex) => (fileIndex === index ? nextFile : file)),
+    );
+    setProgressByItemId((previous) => {
+      const next = { ...previous };
+      delete next[replaceTargetId];
+      return next;
+    });
+    setReplaceTargetId(null);
+    event.currentTarget.value = "";
+    setSupplementError(null);
+    setSupplementMessage("已替換這份檔案；新的 item 會沿用同一列重新判斷狀態。");
+  }
 
   async function handleSupplementSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -330,23 +548,27 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
     }
 
     try {
-      const notes: string[] = [];
-      if (files.length > 0) {
-        const uploadResult = await uploadMatterFiles(matterId, files);
-        notes.push(`已掛接 ${uploadResult.uploaded.length} 份檔案材料`);
+      let failedCount = 0;
+      const resolvedItemIds: string[] = [];
+      for (const item of pendingPreviewItems.filter((entry) => !previewItemBlocksSubmit(entry))) {
+        const progress = await processPendingPreviewItem(item);
+        if (progress.phase === "failed") {
+          failedCount += 1;
+        } else {
+          resolvedItemIds.push(item.id);
+        }
       }
-      if (normalizedUrls.length > 0 || pastedText.trim()) {
-        const ingestResult = await ingestMatterSources(matterId, {
-          urls: normalizedUrls,
-          pasted_text: pastedText,
-          pasted_title: pastedText.trim() ? "案件補充說明" : undefined,
-        });
-        notes.push(`已新增 ${ingestResult.ingested.length} 則網址 / 文字材料`);
+      dropResolvedPendingItems(resolvedItemIds);
+      if (failedCount > 0) {
+        setSupplementMessage(
+          `這輪補件已掛回案件世界，但仍有 ${failedCount} 份材料待補救；你可以先逐項重試 / 替換，再回主線續推。`,
+        );
+        await loadWorkspace();
+        return;
       }
-      setFiles([]);
-      setUrlsText("");
-      setPastedText("");
-      setSupplementMessage(`${notes.join("；")}。案件來源世界已更新。`);
+      setProgressByItemId({});
+      setKeepAsReferenceByItemId({});
+      setSupplementMessage("這輪補件已逐項處理完成，案件來源世界已更新。");
       await loadWorkspace();
     } catch (submitError) {
       setSupplementError(
@@ -361,10 +583,23 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
     setFiles((previous) =>
       appendSelectedFiles(previous, Array.from(event.target.files ?? [])),
     );
+    setProgressByItemId({});
+    setSupplementMessage(null);
+    setSupplementError(null);
     event.currentTarget.value = "";
   }
 
   function handleRemovePendingPreviewItem(itemId: string) {
+    setProgressByItemId((previous) => {
+      const next = { ...previous };
+      delete next[itemId];
+      return next;
+    });
+    setKeepAsReferenceByItemId((previous) => {
+      const next = { ...previous };
+      delete next[itemId];
+      return next;
+    });
     if (itemId.startsWith("file-")) {
       const index = Number(itemId.replace("file-", ""));
       setFiles((previous) => previous.filter((_, itemIndex) => itemIndex !== index));
@@ -378,6 +613,49 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
     if (itemId === "text-0") {
       setPastedText("");
     }
+    setSupplementMessage(null);
+    setSupplementError(null);
+  }
+
+  function dropResolvedPendingItems(itemIds: string[]) {
+    if (itemIds.length === 0) {
+      return;
+    }
+    const fileIndexes = new Set(
+      itemIds
+        .filter((itemId) => itemId.startsWith("file-"))
+        .map((itemId) => Number(itemId.replace("file-", ""))),
+    );
+    const urlIndexes = new Set(
+      itemIds
+        .filter((itemId) => itemId.startsWith("url-"))
+        .map((itemId) => Number(itemId.replace("url-", ""))),
+    );
+    const clearPastedText = itemIds.includes("text-0");
+
+    if (fileIndexes.size > 0) {
+      setFiles((previous) => previous.filter((_, itemIndex) => !fileIndexes.has(itemIndex)));
+    }
+    if (urlIndexes.size > 0) {
+      setUrlsText(normalizedUrls.filter((_, itemIndex) => !urlIndexes.has(itemIndex)).join("\n"));
+    }
+    if (clearPastedText) {
+      setPastedText("");
+    }
+    setProgressByItemId((previous) => {
+      const next = { ...previous };
+      itemIds.forEach((itemId) => {
+        delete next[itemId];
+      });
+      return next;
+    });
+    setKeepAsReferenceByItemId((previous) => {
+      const next = { ...previous };
+      itemIds.forEach((itemId) => {
+        delete next[itemId];
+      });
+      return next;
+    });
   }
 
   return (
@@ -707,6 +985,13 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                   accept=".md,.txt,.docx,.xlsx,.csv,.pdf,.jpg,.jpeg,.png,.webp,text/plain,text/markdown,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/jpeg,image/png,image/webp"
                   onChange={handleFileChange}
                 />
+                <input
+                  ref={fileReplaceInputRef}
+                  type="file"
+                  accept=".md,.txt,.docx,.xlsx,.csv,.pdf,.jpg,.jpeg,.png,.webp,text/plain,text/markdown,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/jpeg,image/png,image/webp"
+                  style={{ display: "none" }}
+                  onChange={handleReplaceFileSelection}
+                />
                 <small>支援一次掛多份材料；若同一內容重複上傳，storage 會先走 digest 邊界。</small>
               </div>
 
@@ -715,7 +1000,13 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                 <textarea
                   id="matter-urls"
                   value={urlsText}
-                  onChange={(event) => setUrlsText(event.target.value)}
+                  onChange={(event) => {
+                    setUrlsText(event.target.value);
+                    setProgressByItemId({});
+                    setSupplementMessage(null);
+                    setSupplementError(null);
+                  }}
+                  ref={urlFieldRef}
                   placeholder={"每行一個網址，例如：\nhttps://example.com/report\nhttps://docs.google.com/document/d/..."}
                 />
               </div>
@@ -725,7 +1016,13 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                 <textarea
                   id="matter-text"
                   value={pastedText}
-                  onChange={(event) => setPastedText(event.target.value)}
+                  onChange={(event) => {
+                    setPastedText(event.target.value);
+                    setProgressByItemId({});
+                    setSupplementMessage(null);
+                    setSupplementError(null);
+                  }}
+                  ref={pastedTextFieldRef}
                   placeholder="可直接貼上會議摘要、客戶補充說明、原始筆記或任何需要掛回案件的文字材料。"
                 />
                 {followUpLane ? (
@@ -742,14 +1039,20 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                 <label>這次待補的材料</label>
                 <IntakeMaterialPreviewList
                   items={pendingPreviewItems}
+                  progressByItemId={progressByItemId}
+                  keepAsReferenceByItemId={keepAsReferenceByItemId}
                   onRemove={(item) => {
                     handleRemovePendingPreviewItem(item.id);
                     setSupplementError(null);
+                    setSupplementMessage(null);
                   }}
+                  onRetry={retryPendingPreviewItem}
+                  onReplace={replacePendingPreviewItem}
+                  onKeepAsReference={toggleKeepAsReference}
                   emptyText="先補一句明確材料就夠了；這裡會逐項列出待補檔案、URL 與補充文字。"
                 />
                 <small>
-                  補件材料會逐項顯示限制、影響與補救方式；若有無法成功進主鏈的材料，請先移除或修正。
+                  補件材料會逐項顯示限制、影響、blocking 與下一步動作；若這輪有 retryable failure，也可直接在 item 上重試。
                 </small>
               </div>
 
@@ -876,6 +1179,9 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                               {handling.fallbackStrategy}
                             </p>
                           ) : null}
+                          <Link className="back-link" href="#evidence-supplement">
+                            回補件入口處理這份材料
+                          </Link>
                           <div className="meta-row">
                             <span>{item.linked_evidence_count} 則已連結證據</span>
                             <span>{item.linked_output_count} 項已連結輸出</span>

@@ -1872,6 +1872,9 @@ export function MatterWorkspacePanel({
                                     {handling.fallbackStrategy}
                                   </p>
                                 ) : null}
+                                <Link className="back-link" href={`/matters/${matterId}/evidence#evidence-supplement`}>
+                                  回補件入口處理這份材料
+                                </Link>
                                 <div className="meta-row">
                                   {item.availability_state ? (
                                     <span>{labelForStorageAvailability(item.availability_state)}</span>

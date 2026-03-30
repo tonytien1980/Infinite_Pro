@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import { IntakeMaterialPreviewList } from "@/components/intake-material-preview-list";
 import { createTask, ingestTaskSources, uploadTaskFiles } from "@/lib/api";
@@ -8,8 +8,12 @@ import {
   appendSelectedFiles,
   buildIntakePreviewItems,
   countIntakeMaterialUnits,
+  describeRuntimeMaterialHandling,
+  type IntakeItemProgressInfo,
   inferInputEntryModeFromMaterialUnits,
   MAX_INTAKE_MATERIAL_UNITS,
+  previewItemBlocksSubmit,
+  progressInfoFromRuntimeHandling,
 } from "@/lib/intake";
 import type {
   EngagementContinuityMode,
@@ -376,6 +380,17 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [createdTask, setCreatedTask] = useState<TaskAggregate | null>(null);
+  const [progressByItemId, setProgressByItemId] = useState<
+    Record<string, IntakeItemProgressInfo>
+  >({});
+  const [keepAsReferenceByItemId, setKeepAsReferenceByItemId] = useState<
+    Record<string, boolean>
+  >({});
+  const [replaceTargetId, setReplaceTargetId] = useState<string | null>(null);
+  const fileReplaceInputRef = useRef<HTMLInputElement | null>(null);
+  const urlFieldRef = useRef<HTMLTextAreaElement | null>(null);
+  const pastedTextFieldRef = useRef<HTMLTextAreaElement | null>(null);
 
   const resolvedFlowValue =
     workflowPreference === "auto"
@@ -413,9 +428,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
   const inputModeGuidance = INPUT_MODE_GUIDANCE[inputMode];
   const needsProblemStatement = !description.trim();
   const materialLimitExceeded = materialUnitCount > MAX_INTAKE_MATERIAL_UNITS;
-  const blockingItems = previewItems.filter(
-    (item) => item.status === "unsupported" || item.status === "issue",
-  );
+  const blockingItems = previewItems.filter((item) => previewItemBlocksSubmit(item));
   const consultantBrief = useMemo(
     () =>
       buildConsultantBrief({
@@ -454,6 +467,16 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
   }, [continuityManuallyTouched, inputMode, writebackManuallyTouched]);
 
   function handleRemovePreviewItem(itemId: string) {
+    setProgressByItemId((previous) => {
+      const next = { ...previous };
+      delete next[itemId];
+      return next;
+    });
+    setKeepAsReferenceByItemId((previous) => {
+      const next = { ...previous };
+      delete next[itemId];
+      return next;
+    });
     if (itemId.startsWith("file-")) {
       const index = Number(itemId.replace("file-", ""));
       setFiles((previous) => previous.filter((_, itemIndex) => itemIndex !== index));
@@ -467,6 +490,255 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
     if (itemId === "text-0") {
       setPastedContent("");
     }
+    setSuccess(null);
+    setError(null);
+  }
+
+  function dropResolvedPreviewItems(itemIds: string[]) {
+    if (itemIds.length === 0) {
+      return;
+    }
+    const fileIndexes = new Set(
+      itemIds
+        .filter((itemId) => itemId.startsWith("file-"))
+        .map((itemId) => Number(itemId.replace("file-", ""))),
+    );
+    const urlIndexes = new Set(
+      itemIds
+        .filter((itemId) => itemId.startsWith("url-"))
+        .map((itemId) => Number(itemId.replace("url-", ""))),
+    );
+    const clearPastedText = itemIds.includes("text-0");
+
+    if (fileIndexes.size > 0) {
+      setFiles((previous) => previous.filter((_, itemIndex) => !fileIndexes.has(itemIndex)));
+    }
+    if (urlIndexes.size > 0) {
+      setUrlsText(normalizedUrls.filter((_, itemIndex) => !urlIndexes.has(itemIndex)).join("\n"));
+    }
+    if (clearPastedText) {
+      setPastedContent("");
+    }
+    setProgressByItemId((previous) => {
+      const next = { ...previous };
+      itemIds.forEach((itemId) => {
+        delete next[itemId];
+      });
+      return next;
+    });
+    setKeepAsReferenceByItemId((previous) => {
+      const next = { ...previous };
+      itemIds.forEach((itemId) => {
+        delete next[itemId];
+      });
+      return next;
+    });
+  }
+
+  function setItemProgress(itemId: string, progress: IntakeItemProgressInfo) {
+    setProgressByItemId((previous) => ({
+      ...previous,
+      [itemId]: progress,
+    }));
+  }
+
+  function buildHandlingFromRuntimeItem(runtimeItem: {
+    source_document: {
+      support_level: string;
+      ingest_status: string;
+      ingest_strategy: string;
+      metadata_only: boolean;
+      ingestion_error: string | null;
+    };
+    source_material?: {
+      support_level: string;
+      ingest_status: string;
+      ingest_strategy: string;
+      metadata_only: boolean;
+      ingestion_error?: string | null;
+    } | null;
+  }) {
+    return describeRuntimeMaterialHandling({
+      supportLevel:
+        runtimeItem.source_material?.support_level ?? runtimeItem.source_document.support_level,
+      ingestStatus:
+        runtimeItem.source_material?.ingest_status ?? runtimeItem.source_document.ingest_status,
+      ingestStrategy:
+        runtimeItem.source_material?.ingest_strategy ?? runtimeItem.source_document.ingest_strategy,
+      metadataOnly:
+        runtimeItem.source_material?.metadata_only ?? runtimeItem.source_document.metadata_only,
+      ingestionError:
+        runtimeItem.source_material?.ingestion_error ??
+        runtimeItem.source_document.ingestion_error,
+      context: { lane: "intake" },
+    });
+  }
+
+  async function processPreviewItem(taskId: string, item: (typeof previewItems)[number]) {
+    try {
+      if (item.kind === "file") {
+        const index = Number(item.id.replace("file-", ""));
+        const file = files[index];
+        if (!file) {
+          throw new Error("找不到要處理的檔案，請重新選取。");
+        }
+        setItemProgress(item.id, {
+          phase: "uploading",
+          label: "上傳中",
+          detail: "這份檔案正在送出，稍後會回填最終 ingest 結果。",
+          blocksSubmit: false,
+          retryable: false,
+        });
+        const uploadResult = await uploadTaskFiles(taskId, [file]);
+        const runtimeItem = uploadResult.uploaded[0];
+        if (!runtimeItem) {
+          throw new Error("這份檔案沒有收到可用的 upload result。");
+        }
+        const handling = buildHandlingFromRuntimeItem(runtimeItem);
+        const progress = progressInfoFromRuntimeHandling(handling, {
+          keepAsReference: Boolean(keepAsReferenceByItemId[item.id]),
+        });
+        setItemProgress(item.id, progress);
+        return progress;
+      }
+
+      if (item.kind === "url") {
+        const index = Number(item.id.replace("url-", ""));
+        const url = normalizedUrls[index];
+        if (!url) {
+          throw new Error("找不到要處理的網址，請先回網址欄確認。");
+        }
+        setItemProgress(item.id, {
+          phase: "parsing",
+          label: "解析中",
+          detail: "系統正在抓取這個 URL 的正文與標題。",
+          blocksSubmit: false,
+          retryable: false,
+        });
+        const ingestResult = await ingestTaskSources(taskId, {
+          urls: [url],
+          pasted_text: "",
+        });
+        const runtimeItem = ingestResult.ingested[0];
+        if (!runtimeItem) {
+          throw new Error("這個網址沒有收到可用的 ingest result。");
+        }
+        const handling = buildHandlingFromRuntimeItem(runtimeItem);
+        const progress = progressInfoFromRuntimeHandling(handling, {
+          keepAsReference: Boolean(keepAsReferenceByItemId[item.id]),
+        });
+        setItemProgress(item.id, progress);
+        return progress;
+      }
+
+      setItemProgress(item.id, {
+        phase: "uploading",
+        label: "掛接中",
+        detail: "這段補充文字正在掛回同一個案件世界。",
+        blocksSubmit: false,
+        retryable: false,
+      });
+      const ingestResult = await ingestTaskSources(taskId, {
+        urls: [],
+        pasted_text: pastedContent,
+        pasted_title: pastedContent.trim() ? "手動貼上內容" : undefined,
+      });
+      const runtimeItem = ingestResult.ingested[0];
+      if (!runtimeItem) {
+        throw new Error("這段補充文字沒有收到可用的 ingest result。");
+      }
+      const handling = buildHandlingFromRuntimeItem(runtimeItem);
+      const progress = progressInfoFromRuntimeHandling(handling, {
+        keepAsReference: Boolean(keepAsReferenceByItemId[item.id]),
+      });
+      setItemProgress(item.id, progress);
+      return progress;
+    } catch (submitError) {
+      const handling = describeRuntimeMaterialHandling({
+        supportLevel: "unsupported",
+        ingestStatus: "failed",
+        ingestStrategy: "unsupported",
+        metadataOnly: true,
+        ingestionError:
+          submitError instanceof Error ? submitError.message : "建立材料時發生未知錯誤。",
+        context: { lane: "intake" },
+      });
+      const progress = progressInfoFromRuntimeHandling(handling);
+      setItemProgress(item.id, progress);
+      return progress;
+    }
+  }
+
+  async function retryPreviewItem(item: (typeof previewItems)[number]) {
+    if (!createdTask) {
+      setError("案件世界尚未建立；請先建立案件，再重試這份材料。");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    setSuccess(null);
+    const progress = await processPreviewItem(createdTask.id, item);
+    if (progress.phase === "done" || progress.phase === "parsing") {
+      dropResolvedPreviewItems([item.id]);
+      setSuccess("這份材料已重新處理完成；你可以繼續補件，或直接打開案件工作台。");
+    } else {
+      setError("這份材料重試後仍未成功；建議改用替換、移除或 fallback 材料。");
+    }
+    setSubmitting(false);
+  }
+
+  function toggleKeepAsReference(item: (typeof previewItems)[number]) {
+    setKeepAsReferenceByItemId((previous) => ({
+      ...previous,
+      [item.id]: !previous[item.id],
+    }));
+    setProgressByItemId((previous) => {
+      const next = { ...previous };
+      delete next[item.id];
+      return next;
+    });
+    setError(null);
+    setSuccess(
+      keepAsReferenceByItemId[item.id]
+        ? "已取消這份材料的 reference 保留標記。"
+        : "已標記這份材料可先以 reference-level 保留。",
+    );
+  }
+
+  function replacePreviewItem(item: (typeof previewItems)[number]) {
+    if (item.kind === "file") {
+      setReplaceTargetId(item.id);
+      fileReplaceInputRef.current?.click();
+      return;
+    }
+    if (item.kind === "url") {
+      setError("這筆來源請直接回網址欄修正；修正後 item row 會立即刷新。");
+      urlFieldRef.current?.focus();
+      return;
+    }
+    setError("這段補充文字請直接回補充文字欄改寫；改寫後 item row 會立即刷新。");
+    pastedTextFieldRef.current?.focus();
+  }
+
+  function handleReplaceFileSelection(event: React.ChangeEvent<HTMLInputElement>) {
+    const nextFile = event.target.files?.[0];
+    if (!replaceTargetId || !nextFile) {
+      event.currentTarget.value = "";
+      return;
+    }
+    const index = Number(replaceTargetId.replace("file-", ""));
+    setFiles((previous) =>
+      previous.map((file, fileIndex) => (fileIndex === index ? nextFile : file)),
+    );
+    setProgressByItemId((previous) => {
+      const next = { ...previous };
+      delete next[replaceTargetId];
+      return next;
+    });
+    setReplaceTargetId(null);
+    event.currentTarget.value = "";
+    setError(null);
+    setSuccess("已替換這份檔案；新的 item 會沿用同一列重新判斷狀態。");
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -543,20 +815,32 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
     };
 
     try {
-      const task = await createTask(payload);
-      if (files.length > 0) {
-        await uploadTaskFiles(task.id, files);
+      const task = createdTask ?? (await createTask(payload));
+      setCreatedTask(task);
+
+      const itemsToProcess = previewItems.filter((item) => !previewItemBlocksSubmit(item));
+      let failedCount = 0;
+      const resolvedItemIds: string[] = [];
+
+      for (const item of itemsToProcess) {
+        const progress = await processPreviewItem(task.id, item);
+        if (progress.phase === "failed") {
+          failedCount += 1;
+        } else {
+          resolvedItemIds.push(item.id);
+        }
       }
 
-      if (normalizedUrls.length > 0 || hasPastedContent) {
-        await ingestTaskSources(task.id, {
-          urls: normalizedUrls,
-          pasted_text: pastedContent,
-          pasted_title: pastedContent.trim() ? "手動貼上內容" : undefined,
-        });
+      dropResolvedPreviewItems(resolvedItemIds);
+
+      if (failedCount > 0) {
+        setSuccess(
+          `案件世界已建立，但目前仍有 ${failedCount} 份材料待補救。你可以先逐項重試 / 替換，或直接打開案件工作台續處理。`,
+        );
+        return;
       }
 
-      setSuccess("案件世界已先建立，接下來會直接回到案件工作台；task 會作為同一個世界裡的 work slice 持續推進。");
+      setSuccess("案件世界已先建立，所有材料也已逐項處理完成；接下來會直接回到案件工作台。");
       onCreated(task);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "建立任務失敗。");
@@ -648,8 +932,11 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
               value={urlsText}
               onChange={(event) => {
                 setUrlsText(event.target.value);
+                setProgressByItemId({});
                 setError(null);
+                setSuccess(null);
               }}
+              ref={urlFieldRef}
               placeholder={"每行一個網址，例如：\nhttps://example.com/article\nhttps://docs.google.com/document/d/..."}
             />
             <small>每個 URL 會算 1 份材料，可和檔案或補充文字混合成同一個案件起手。</small>
@@ -666,9 +953,18 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
                 setFiles((previous) =>
                   appendSelectedFiles(previous, Array.from(event.target.files ?? [])),
                 );
+                setProgressByItemId({});
                 setError(null);
+                setSuccess(null);
                 event.currentTarget.value = "";
               }}
+            />
+            <input
+              ref={fileReplaceInputRef}
+              type="file"
+              accept=".md,.txt,.docx,.xlsx,.csv,.pdf,.jpg,.jpeg,.png,.webp,text/plain,text/markdown,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/jpeg,image/png,image/webp"
+              style={{ display: "none" }}
+              onChange={handleReplaceFileSelection}
             />
             <small>檔案與 URL / 補充文字一起共用同一個 10 份上限；若超過，請先建立案件後再分批補件。</small>
           </div>
@@ -680,8 +976,11 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
               value={pastedContent}
               onChange={(event) => {
                 setPastedContent(event.target.value);
+                setProgressByItemId({});
                 setError(null);
+                setSuccess(null);
               }}
+              ref={pastedTextFieldRef}
               placeholder="直接貼上會議摘要、研究摘錄、內部筆記或任何可供分析的原始內容"
             />
             <small>補充文字會算 1 份材料，並作為正式 source material 掛回同一個案件。</small>
@@ -691,13 +990,19 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
             <label>目前待送出的材料</label>
             <IntakeMaterialPreviewList
               items={previewItems}
+              progressByItemId={progressByItemId}
+              keepAsReferenceByItemId={keepAsReferenceByItemId}
               onRemove={(item) => {
                 handleRemovePreviewItem(item.id);
                 setError(null);
+                setSuccess(null);
               }}
+              onRetry={createdTask ? retryPreviewItem : undefined}
+              onReplace={replacePreviewItem}
+              onKeepAsReference={toggleKeepAsReference}
               emptyText="你可以先只輸入一句問題；如果要帶材料，這裡會逐項列出檔案、URL 與補充文字。"
             />
-            <small>每一份材料都會逐項顯示限制、影響與補救方式；若有無法成功進主鏈的材料，請先移除或修正。</small>
+            <small>每一份材料都會逐項顯示限制、影響、blocking 與下一步動作；若送出後有 retryable failure，也可直接在 item 上重試。</small>
           </div>
 
           <div className="summary-grid">
@@ -765,12 +1070,29 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
             type="submit"
             disabled={submitting || materialLimitExceeded || blockingItems.length > 0}
           >
-            {submitting ? "建立案件中..." : inputModeGuidance.submitLabel}
+            {submitting
+              ? createdTask
+                ? "續處理材料中..."
+                : "建立案件中..."
+              : createdTask
+                ? "續處理剩餘材料"
+                : inputModeGuidance.submitLabel}
           </button>
         </div>
 
         {error ? <p className="error-text">{error}</p> : null}
         {success ? <p className="success-text">{success}</p> : null}
+        {createdTask ? (
+          <div className="button-row" style={{ justifyContent: "flex-start" }}>
+            <button
+              className="button-secondary"
+              type="button"
+              onClick={() => onCreated(createdTask)}
+            >
+              打開已建立的案件工作台
+            </button>
+          </div>
+        ) : null}
 
         <section className="intake-section">
           <div className="panel-header">

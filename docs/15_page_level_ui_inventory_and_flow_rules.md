@@ -110,6 +110,14 @@
   - 為什麼是這個狀態
   - 這會影響什麼
   - 下一步最建議怎麼補救
+- item-level action semantics：
+  - 是否 blocking
+  - retry / replace / remove / keep-as-reference 中哪個是現在最合理的動作
+- item-level progress semantics：
+  - 待送出
+  - 處理中 / 解析中
+  - 已完成
+  - 失敗 / 阻擋送出
 - continuity strategy / writeback depth（若已展開進階設定）
 - continuity 選擇對後續 workflow 的影響：
   `one_off` 偏正式結案、`follow_up` 偏 checkpoint、`continuous` 偏 progression / outcome
@@ -242,6 +250,7 @@
 - 若為 `follow_up`，補件區本身也需顯示 latest update、previous checkpoint、what changed、next follow-up action
 - 若為 `continuous`，需顯示這次補件主要想驗證哪個 action / outcome / recommendation，以及最新 progression 的最小脈絡
 - 若補件或既有材料屬 limited-support、pending-parse、unsupported 或 failed ingest，卡片與補件區也需顯示目前可用範圍、限制與補救方式
+- 若補件 item 為 retryable failure，補件區也需直接提供 retry；若非 retryable，則應偏向 replace / remove / fallback 材料
 - 段落導覽
 
 **延後揭露**

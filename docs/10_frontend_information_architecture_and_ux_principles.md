@@ -179,6 +179,12 @@ Infinite Pro 的正式第一層主導覽應為：
   - 為什麼是這個狀態
   - 這會影響什麼
   - 現在最建議怎麼補救
+- 當 remediation 已能收斂到明確動作時，item row 應進一步把 next action 做實：
+  - retry
+  - replace
+  - remove
+  - keep-as-reference
+- blocking 與 non-blocking item 應在 row 上直接可見，而不是只體現在最下方整批錯誤提示
 - 若只有材料、沒有主問題，UI 應要求至少補一句主問題，而不是直接讓材料孤立進件
 - `.md / .txt / .docx / .xlsx / .csv / text-first PDF / URL / 純文字補充` 應在 UI 上明確標示為正式支援
 - `.jpg / .jpeg / .png / .webp / 掃描型 PDF` 應在 UI 上明確標示為有限支援，意思是 metadata / reference-level ingestion，不預設 OCR

@@ -505,6 +505,7 @@ If a change touches intake semantics, verify:
 - unified intake keeps one visible entry surface while item-level preview / remove / warning stays usable
 - limited-support and unsupported materials are shown honestly at item level rather than being implied by generic copy
 - limited-support / pending-parse / unsupported / failed ingest states now also explain impact and recommended remediation, rather than stopping at raw status pills
+- per-item retry / replace / remove / keep-as-reference semantics should stay aligned with blocking vs non-blocking intake rules, rather than drifting into a generic upload manager
 
 If a change touches continuity / writeback behavior, test at least:
 - `one_off` minimal traceability

@@ -342,6 +342,7 @@ publish / artifact records 用來描述正式發布與正式輸出物。
   - 這個狀態代表什麼
   - 會影響哪個 checkpoint 缺口
   - 下一步最建議怎麼補救
+  - 若可 retry，應提供 retry；若不適合 retry，則應偏 replace / remove / fallback 材料
 
 ### 8.4 continuous
 - 在 `follow_up` 基礎上
@@ -355,6 +356,7 @@ publish / artifact records 用來描述正式發布與正式輸出物。
   - 這個狀態代表什麼
   - 會影響哪個 action / outcome / recommendation 驗證
   - 下一步最建議怎麼補救
+  - 若可 retry，應提供 retry；若不適合 retry，則應偏 replace / remove / fallback 材料
 
 正式規則：
 - 所有案件都至少要保留最小 history / traceability

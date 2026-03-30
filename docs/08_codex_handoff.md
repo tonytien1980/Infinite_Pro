@@ -280,6 +280,12 @@ Codex 應把它理解為已完成的正式交付物工作面，至少承接：
   - 這會影響什麼
   - 下一步最建議怎麼補救
   - 是否有更穩定的替代材料策略
+- 若本輪進一步補 per-item retry / upload progress，則還應明確區分：
+  - blocking item
+  - non-blocking item
+  - retryable failure
+  - non-retryable failure
+  - keep-as-reference 與 replace / remove 的不同後果
 - 正式支援格式應理解為：`.md / .txt / .docx / .xlsx / .csv / text-first PDF / URL / 純文字補充`
 - 有限支援格式應理解為：`.jpg / .jpeg / .png / .webp / 掃描型 PDF`
 - 有限支援的意思是可建立 metadata / reference-level record，但不預設做高成本 OCR，也不宣稱與 text-first 文件同等成熟

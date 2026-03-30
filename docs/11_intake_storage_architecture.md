@@ -58,6 +58,11 @@ Infinite Pro 不再把 `/new` 的三種 intake patterns 理解成三個不同 on
   - 這會影響什麼
   - 建議下一步怎麼補救
   - 若需要更穩定分析，應補哪種替代材料
+- 若 item-level retry / upload progress 已正式打開，則統一材料區還應逐項區分：
+  - blocking item：會阻擋建立 / 補件送出
+  - non-blocking item：可保留並繼續進主鏈或 reference-level
+  - retryable failure：可直接 retry
+  - non-retryable failure：應偏 replace / remove / fallback 材料
 
 ### 2.3 Case World Compiler 是正式第一站
 任何 intake 都必須先進入：

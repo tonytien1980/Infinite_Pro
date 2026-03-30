@@ -1,7 +1,12 @@
 "use client";
 
 import { formatFileSize } from "@/lib/ui-labels";
-import type { IntakeMaterialPreviewItem } from "@/lib/intake";
+import {
+  defaultProgressInfoForPreviewItem,
+  previewItemCanKeepAsReference,
+  type IntakeItemProgressInfo,
+  type IntakeMaterialPreviewItem,
+} from "@/lib/intake";
 
 function itemStatusClass(status: IntakeMaterialPreviewItem["status"]) {
   if (status === "accepted") {
@@ -26,6 +31,29 @@ function itemNoteClass(status: IntakeMaterialPreviewItem["status"]) {
   return "success-text";
 }
 
+function progressClass(phase: IntakeItemProgressInfo["phase"]) {
+  if (phase === "done") {
+    return "intake-progress-pill intake-progress-done";
+  }
+  if (phase === "uploading" || phase === "parsing") {
+    return "intake-progress-pill intake-progress-active";
+  }
+  if (phase === "blocked" || phase === "failed") {
+    return "intake-progress-pill intake-progress-blocked";
+  }
+  return "intake-progress-pill intake-progress-ready";
+}
+
+function replaceLabelForItem(item: IntakeMaterialPreviewItem) {
+  if (item.kind === "file") {
+    return "替換";
+  }
+  if (item.kind === "url") {
+    return "回網址欄修正";
+  }
+  return "回文字欄改寫";
+}
+
 function normalizeMetadata(item: IntakeMaterialPreviewItem) {
   return item.metadata.map((entry) => {
     if (/^\d+(\.\d+)?\s*KB$/i.test(entry)) {
@@ -41,10 +69,20 @@ function normalizeMetadata(item: IntakeMaterialPreviewItem) {
 export function IntakeMaterialPreviewList({
   items,
   onRemove,
+  onRetry,
+  onReplace,
+  onKeepAsReference,
+  progressByItemId,
+  keepAsReferenceByItemId,
   emptyText = "目前還沒有待送出的材料。",
 }: {
   items: IntakeMaterialPreviewItem[];
   onRemove?: (item: IntakeMaterialPreviewItem) => void;
+  onRetry?: (item: IntakeMaterialPreviewItem) => void;
+  onReplace?: (item: IntakeMaterialPreviewItem) => void;
+  onKeepAsReference?: (item: IntakeMaterialPreviewItem) => void;
+  progressByItemId?: Record<string, IntakeItemProgressInfo>;
+  keepAsReferenceByItemId?: Record<string, boolean>;
   emptyText?: string;
 }) {
   if (items.length === 0) {
@@ -55,26 +93,35 @@ export function IntakeMaterialPreviewList({
     <div className="intake-item-list">
       {items.map((item) => (
         <div className="intake-item" key={item.id}>
+          {(() => {
+            const markedReference = Boolean(keepAsReferenceByItemId?.[item.id]);
+            const progress =
+              progressByItemId?.[item.id] ??
+              defaultProgressInfoForPreviewItem(item, {
+                keepAsReference: markedReference,
+              });
+            return (
+              <>
           <div className="intake-item-header">
             <div className="meta-row">
               <span className="pill">{item.kindLabel}</span>
               <span className={itemStatusClass(item.status)}>{item.statusLabel}</span>
+              <span className={progressClass(progress.phase)}>{progress.label}</span>
             </div>
-            {onRemove ? (
-              <button
-                className="button-secondary intake-item-remove"
-                type="button"
-                onClick={() => onRemove(item)}
-              >
-                移除
-              </button>
-            ) : null}
           </div>
           <h4>{item.title}</h4>
           {normalizeMetadata(item).length > 0 ? (
             <p className="muted-text">{normalizeMetadata(item).join("｜")}</p>
           ) : null}
           {item.preview ? <p className="content-block">{item.preview}</p> : null}
+          <p className="muted-text">
+            <strong>是否擋住送出：</strong>
+            {progress.blocksSubmit ? "會，這份材料需要先處理。" : "不會，這份材料可依目前規則一起送出。"}
+          </p>
+          <p className="muted-text">
+            <strong>目前進度：</strong>
+            {progress.detail}
+          </p>
           <div className="detail-list" style={{ marginTop: "12px" }}>
             <div className="detail-item" style={{ padding: "12px 14px" }}>
               <p className={itemNoteClass(item.status)} style={{ marginBottom: "8px" }}>
@@ -97,6 +144,47 @@ export function IntakeMaterialPreviewList({
               ) : null}
             </div>
           </div>
+          <div className="button-row" style={{ justifyContent: "flex-start", marginTop: "12px" }}>
+            {onRetry && progress.phase === "failed" && progress.retryable ? (
+              <button
+                className="button-secondary"
+                type="button"
+                onClick={() => onRetry(item)}
+              >
+                重試
+              </button>
+            ) : null}
+            {onReplace ? (
+              <button
+                className="button-secondary"
+                type="button"
+                onClick={() => onReplace(item)}
+              >
+                {replaceLabelForItem(item)}
+              </button>
+            ) : null}
+            {onKeepAsReference && previewItemCanKeepAsReference(item) ? (
+              <button
+                className="button-secondary"
+                type="button"
+                onClick={() => onKeepAsReference(item)}
+              >
+                {markedReference ? "已標記 reference" : "保留為 reference"}
+              </button>
+            ) : null}
+            {onRemove ? (
+              <button
+                className="button-secondary intake-item-remove"
+                type="button"
+                onClick={() => onRemove(item)}
+              >
+                移除
+              </button>
+            ) : null}
+          </div>
+              </>
+            );
+          })()}
         </div>
       ))}
     </div>

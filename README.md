@@ -204,6 +204,12 @@ On the visible product surface, `/new` should now expose one unified intake area
   - what this state affects
   - what the recommended next step is
   - what the safer fallback material strategy is when needed
+- the item row should also make the next action explicit when possible:
+  - retry
+  - replace
+  - remove
+  - keep as reference
+- blocking and non-blocking items should be visibly different, so users can tell whether an item stops the batch or can stay as reference-level material
 
 Every intake path must first enter the same `case world compilation` stage. Host should then decide:
 - how sparse or dense the current materials are
