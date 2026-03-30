@@ -334,6 +334,8 @@ export interface MatterMaterialSummary {
   file_size: number;
   ingest_status: string | null;
   support_level: string | null;
+  ingest_strategy: string | null;
+  ingestion_error: string | null;
   retention_policy: string | null;
   purge_at: string | null;
   availability_state: string | null;
@@ -520,6 +522,7 @@ export interface SourceMaterial {
   availability_state: string;
   metadata_only: boolean;
   summary: string;
+  ingestion_error: string | null;
   participation: ObjectParticipation | null;
   created_at: string;
   updated_at: string;
@@ -852,6 +855,36 @@ export interface FollowUpLane {
   evidence_update_goal: string;
 }
 
+export interface ProgressionSnapshot {
+  record_id: string | null;
+  task_id: string | null;
+  task_title: string;
+  deliverable_id: string | null;
+  deliverable_title: string | null;
+  summary: string;
+  action_state_summary: string;
+  outcome_summary: string;
+  created_at: string | null;
+}
+
+export interface ProgressionStateItem {
+  title: string;
+  state: string;
+  summary: string;
+}
+
+export interface ProgressionLane {
+  latest_progression: ProgressionSnapshot | null;
+  previous_progression: ProgressionSnapshot | null;
+  recent_progressions: ProgressionSnapshot[];
+  what_changed: string[];
+  recommendation_states: ProgressionStateItem[];
+  action_states: ProgressionStateItem[];
+  outcome_signals: string[];
+  next_progression_actions: string[];
+  evidence_update_goal: string;
+}
+
 export interface ContinuationSurface {
   workflow_layer: "closure" | "checkpoint" | "progression";
   mode: EngagementContinuityMode;
@@ -866,6 +899,7 @@ export interface ContinuationSurface {
   checkpoint_enabled: boolean;
   outcome_logging_enabled: boolean;
   follow_up_lane: FollowUpLane | null;
+  progression_lane: ProgressionLane | null;
 }
 
 export interface TaskAggregate {
@@ -1011,6 +1045,7 @@ export interface ArtifactEvidenceMaterial {
   ingest_status: string | null;
   support_level: string | null;
   ingest_strategy: string | null;
+  ingestion_error: string | null;
   source_ref: string | null;
   file_extension: string | null;
   content_type: string | null;

@@ -318,6 +318,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const deliverable = workspace?.deliverable ?? null;
   const continuationSurface = workspace?.continuation_surface ?? null;
   const followUpLane = continuationSurface?.follow_up_lane ?? null;
+  const progressionLane = continuationSurface?.progression_lane ?? null;
   const workspaceView = workspace ? buildDeliverableWorkspaceView(workspace) : null;
   const readiness = task ? assessTaskReadiness(task) : null;
   const readinessGovernance =
@@ -441,7 +442,9 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
             ? `這份交付物目前對應 follow-up checkpoint「${followUpLane.latest_update.summary}」。先確認這輪更新重點，再決定是回案件工作面補 checkpoint，還是先補件重跑。`
             : "這份交付物目前更像 follow-up checkpoint 的基線。先回看結果，再決定要不要回案件工作面補一筆 checkpoint。"
           : continuationSurface?.workflow_layer === "progression"
-            ? "這份交付物目前更像持續推進的基線。先回看結論與依據，再回案件工作面記錄進度或 outcome。"
+            ? progressionLane?.latest_progression?.summary
+              ? `這份交付物目前承接 continuous progression「${progressionLane.latest_progression.summary}」。先確認 action / outcome 最新變化，再決定要不要刷新 deliverable。`
+              : "這份交付物目前更像持續推進的基線。先回看結論與依據，再回案件工作面記錄進度或 outcome。"
       : deliverableStatus === "final"
         ? "現在最有效率的做法是匯出正式版本，或回到下方檢查依據來源、版本紀錄與連續性。"
       : deliverableStatus === "archived"
@@ -1052,6 +1055,22 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                   </div>
                 </>
               ) : null}
+              {progressionLane ? (
+                <>
+                  <div className="section-card">
+                    <h4>最新 progression</h4>
+                    <p className="content-block">
+                      {progressionLane.latest_progression?.summary || "目前還沒有 progression update。"}
+                    </p>
+                  </div>
+                  <div className="section-card">
+                    <h4>下一步最建議做什麼</h4>
+                    <p className="content-block">
+                      {progressionLane.next_progression_actions[0] || "回案件工作面更新 progression。"}
+                    </p>
+                  </div>
+                </>
+              ) : null}
             </div>
             <ul className="list-content" style={{ marginTop: "16px" }}>
               {deliverableActionChecklist.map((item) => (
@@ -1233,6 +1252,61 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                       目前這輪主要是在延續既有 checkpoint，尚未形成額外的 continuity 變化摘要。
                     </p>
                   )}
+                </div>
+              </div>
+            ) : null}
+            {progressionLane ? (
+              <div className="detail-list" style={{ marginTop: "18px" }}>
+                <div className="detail-item">
+                  <h3>這份交付物目前的 progression 位置</h3>
+                  <ul className="list-content">
+                    <li>最新 progression：{progressionLane.latest_progression?.summary || "目前還沒有 progression update。"}</li>
+                    <li>上一個 progression：{progressionLane.previous_progression?.summary || "目前沒有更早的 progression snapshot。"}</li>
+                    {progressionLane.what_changed.map((item) => (
+                      <li key={`deliverable-progression-change-${item}`}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="detail-item">
+                  <h3>建議採納 / action / outcome</h3>
+                  <div className="summary-grid">
+                    <div className="section-card">
+                      <h4>建議採納</h4>
+                      {progressionLane.recommendation_states.length > 0 ? (
+                        <ul className="list-content">
+                          {progressionLane.recommendation_states.slice(0, 3).map((item, index) => (
+                            <li key={`${item.state}-${item.title}-${index}`}>{item.title}：{item.summary}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="empty-text">目前沒有可顯示的建議採納摘要。</p>
+                      )}
+                    </div>
+                    <div className="section-card">
+                      <h4>Action 狀態</h4>
+                      {progressionLane.action_states.length > 0 ? (
+                        <ul className="list-content">
+                          {progressionLane.action_states.slice(0, 3).map((item, index) => (
+                            <li key={`${item.state}-${item.title}-${index}`}>{item.title}：{item.summary}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="empty-text">目前沒有可顯示的 action 狀態摘要。</p>
+                      )}
+                    </div>
+                    <div className="section-card">
+                      <h4>Outcome 訊號</h4>
+                      {progressionLane.outcome_signals.length > 0 ? (
+                        <ul className="list-content">
+                          {progressionLane.outcome_signals.slice(0, 3).map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="empty-text">目前還沒有新的 outcome 訊號摘要。</p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             ) : null}

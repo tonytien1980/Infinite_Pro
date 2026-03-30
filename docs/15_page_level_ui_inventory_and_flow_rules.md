@@ -93,16 +93,31 @@
 - 建立後如何產出結果
 
 **Primary action**
-- 建立案件骨架 / 用材料建立案件
+- 建立案件 / 開始正式進件
 
 **Secondary actions**
-- 切換 entry preset
 - 補上可選材料
 - 展開進階設定
 
 **首屏必顯**
 - canonical intake pipeline 說明
-- 當前 entry preset 規則
+- 系統目前判讀出的 intake pattern
+- 單次最多 10 份材料與可分批補件的規則
+- 統一材料區（file / URL / pasted text）
+- 材料 item-level preview / remove / warning
+- item-level handling status（accepted / limited support / pending parse / unsupported / failed ingest）
+- item-level remediation guidance：
+  - 為什麼是這個狀態
+  - 這會影響什麼
+  - 下一步最建議怎麼補救
+- item-level action semantics：
+  - 是否 blocking
+  - retry / replace / remove / keep-as-reference 中哪個是現在最合理的動作
+- item-level progress semantics：
+  - 待送出
+  - 處理中 / 解析中
+  - 已完成
+  - 失敗 / 阻擋送出
 - continuity strategy / writeback depth（若已展開進階設定）
 - continuity 選擇對後續 workflow 的影響：
   `one_off` 偏正式結案、`follow_up` 偏 checkpoint、`continuous` 偏 progression / outcome
@@ -172,6 +187,12 @@
   - `follow_up`：補件 / 更新 checkpoint / 打開最新交付物
   - `continuous`：補件 / 記錄 outcome / 打開最新交付物
 
+**continuous 額外首屏必顯**
+- latest progression state
+- previous progression snapshot
+- action / outcome 最重要的變化
+- next progression action
+
 **Secondary actions**
 - 打開焦點工作紀錄
 - 切頁籤到決策問題 / 來源與證據 / 交付物 / 工作紀錄
@@ -226,6 +247,10 @@
 - research provenance 摘要
 - 補件導引
 - 若為 `follow_up`，需顯示這次補件主要想更新什麼，以及上一個 / 最新 checkpoint 的輕量脈絡
+- 若為 `follow_up`，補件區本身也需顯示 latest update、previous checkpoint、what changed、next follow-up action
+- 若為 `continuous`，需顯示這次補件主要想驗證哪個 action / outcome / recommendation，以及最新 progression 的最小脈絡
+- 若補件或既有材料屬 limited-support、pending-parse、unsupported 或 failed ingest，卡片與補件區也需顯示目前可用範圍、限制與補救方式
+- 若補件 item 為 retryable failure，補件區也需直接提供 retry；若非 retryable，則應偏向 replace / remove / fallback 材料
 - 段落導覽
 
 **延後揭露**
@@ -265,6 +290,7 @@
 - task 身份與狀態
 - 目前工作導引
 - case world draft 摘要
+- 若為 `continuous`，需顯示這筆工作接在哪個 progression update 後面，以及這輪是在補強、刷新還是應對新 outcome
 - 來源厚度 / 結果狀態
 - 若為 `follow_up`，需顯示這筆分析接在哪一次 checkpoint 後面，以及這輪是在延續、修正還是補強
 - 主按鈕
@@ -346,6 +372,7 @@
 - 一句話結論
 - 版本 / 狀態 / 所屬案件
 - 若為 `follow_up`，需顯示這份 deliverable 對應哪個 checkpoint 階段、上一輪是什麼、以及下一步建議回 checkpoint 還是先補件 / 再分析
+- 若為 `continuous`，需顯示這份 deliverable 對應哪個 progression state、最近 action / outcome 有何變化，以及下一步建議回案件工作面續推、先補件，還是刷新 deliverable
 - continuity mode / writeback depth 摘要
 - 導引層
 - 段落導覽

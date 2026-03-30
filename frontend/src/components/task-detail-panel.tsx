@@ -398,6 +398,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
   const runMeta = task ? buildRunMeta(task) : null;
   const continuationSurface = task?.continuation_surface ?? null;
   const followUpLane = continuationSurface?.follow_up_lane ?? null;
+  const progressionLane = continuationSurface?.progression_lane ?? null;
   const successCriteria = task ? getGoalSuccessCriteria(task.goals) : [];
   const latestContext = task?.contexts[0];
   const workflowKey = task ? resolveWorkflowKey(task.task_type, task.mode) : null;
@@ -520,7 +521,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
     ? continuationSurface?.workflow_layer === "checkpoint"
       ? "你現在可以回看最新交付物、補件後重跑，或回到案件工作面把這輪結果寫成 checkpoint。"
       : continuationSurface?.workflow_layer === "progression"
-        ? "你現在可以回看最新交付物、補件後重跑，或回到案件工作面記錄 outcome / progression。"
+        ? progressionLane?.what_changed[0]
+          ? `${progressionLane.what_changed[0]} 你現在可以回看最新交付物、補件後重跑，或回到案件工作面更新 progression。`
+          : "你現在可以回看最新交付物、補件後重跑，或回到案件工作面記錄 outcome / progression。"
         : "你現在可以直接打開交付物工作面，也可以先回看來源 / 證據與執行框架，再決定要不要重跑。"
     : hasThinTaskEvidence
       ? "目前資料仍偏薄，但不用卡住。你可以先補來源與證據，或直接讓 Host 先產出一版可回看的工作成果。"
@@ -534,7 +537,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
       ? continuationSurface?.workflow_layer === "checkpoint"
         ? `最新結果已整理成「${latestDeliverable.title}」，接下來更像是 checkpoint 更新，不是完整 continuous loop。`
         : continuationSurface?.workflow_layer === "progression"
-          ? `最新結果已整理成「${latestDeliverable.title}」，接下來可回案件工作面補記 progression / outcome。`
+          ? `最新結果已整理成「${latestDeliverable.title}」，接下來更像是在延續 progression；${progressionLane?.next_progression_actions[0] || "可回案件工作面補記 progression / outcome。"}`
           : `最新結果已整理成「${latestDeliverable.title}」，可以直接進入正式交付物工作面。`
       : "真正會產出結果的是這頁的執行分析，不是只停在閱讀摘要。",
   ];
@@ -839,6 +842,33 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                         ) : (
                           <p className="empty-text">目前沒有額外的 follow-up 變化摘要。</p>
                         )}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+                {progressionLane ? (
+                  <div className="detail-item">
+                    <h3>這筆 continuous progression 跟上一輪相比</h3>
+                    <div className="summary-grid">
+                      <div className="section-card">
+                        <h4>最新 progression</h4>
+                        <p className="content-block">
+                          {progressionLane.latest_progression?.summary || "目前還沒有 progression update。"}
+                        </p>
+                      </div>
+                      <div className="section-card">
+                        <h4>Action / outcome 變化</h4>
+                        <ul className="list-content">
+                          {progressionLane.what_changed.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="section-card">
+                        <h4>下一步最建議做什麼</h4>
+                        <p className="content-block">
+                          {progressionLane.next_progression_actions[0] || "回案件工作面更新 progression。"}
+                        </p>
                       </div>
                     </div>
                   </div>

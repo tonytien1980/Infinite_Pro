@@ -97,7 +97,7 @@ Host Agent 一開始就必須負責：
 
 3. **case world compilation**
    - 所有 intake 都必須先形成 `case_world_draft`
-   - `一句話問題 / 單文件進件 / 多材料案件` 只應是 entry presets，不可當成三種 ontology worlds
+   - `只有一句話 / 一句話 + 1 份材料 / 一句話 + 多份材料` 只應是系統判讀的 intake patterns，不可當成三種 ontology worlds
    - 編譯結果應先提升 / 同步成 `CaseWorldState`
    - 後續才決定要在這個世界中建立或推進哪些 task slices
 
@@ -256,7 +256,7 @@ Agent 架構不應再把 mode 與產品分類混在一起。
 同樣地，也不應把 mode taxonomy 誤當成 ontology 本身。
 mode 與 capability 是在 ontology world model 上執行的工作方式，不是世界模型本體。
 
-同樣地，`一句話問題 / 單文件進件 / 多材料案件` 也不應再被視為 ontology modes，而只能是 canonical intake pipeline 的 entry presets。
+同樣地，`只有一句話 / 一句話 + 1 份材料 / 一句話 + 多份材料` 也不應再被視為 ontology modes，而只能是 canonical intake pipeline 內部推導出的 intake patterns。
 
 應區分：
 

@@ -457,7 +457,7 @@ UI 應逐步反映：
 Deliverable 應被視為 ontology chain 的正式成果，而不是任意長文。
 
 ### 10.4 對 intake 的約束
-- `一句話問題`、`單文件進件`、`多材料案件` 只應是 entry presets
+- `只有一句話`、`一句話 + 1 份材料`、`一句話 + 多份材料` 只應是系統判讀出的 intake patterns
 - 不可被視為 ontology 上不同案件型別
 - 任何 intake 都必須先進入同一個 `CaseWorldDraft`
 

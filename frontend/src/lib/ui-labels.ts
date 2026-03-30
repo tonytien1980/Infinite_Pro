@@ -141,9 +141,9 @@ const EXTERNAL_DATA_STRATEGY_LABELS: Record<string, string> = {
 };
 
 const INPUT_ENTRY_MODE_LABELS: Record<string, string> = {
-  one_line_inquiry: "一句話問題",
-  single_document_intake: "單文件進件",
-  multi_material_case: "多材料案件",
+  one_line_inquiry: "一句話起手",
+  single_document_intake: "單材料起手",
+  multi_material_case: "多來源案件",
 };
 
 const ENGAGEMENT_CONTINUITY_MODE_LABELS: Record<string, string> = {

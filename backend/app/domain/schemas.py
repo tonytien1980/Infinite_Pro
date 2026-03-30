@@ -410,6 +410,7 @@ class SourceMaterialRead(ORMModel):
     availability_state: str
     metadata_only: bool
     summary: str
+    ingestion_error: str | None = None
     participation: ObjectParticipationRead | None = None
     created_at: datetime
     updated_at: datetime
@@ -852,6 +853,36 @@ class FollowUpLaneRead(BaseModel):
     evidence_update_goal: str = ""
 
 
+class ProgressionSnapshotRead(BaseModel):
+    record_id: str | None = None
+    task_id: str | None = None
+    task_title: str = ""
+    deliverable_id: str | None = None
+    deliverable_title: str | None = None
+    summary: str = ""
+    action_state_summary: str = ""
+    outcome_summary: str = ""
+    created_at: datetime | None = None
+
+
+class ProgressionStateItemRead(BaseModel):
+    title: str
+    state: str
+    summary: str
+
+
+class ProgressionLaneRead(BaseModel):
+    latest_progression: ProgressionSnapshotRead | None = None
+    previous_progression: ProgressionSnapshotRead | None = None
+    recent_progressions: list[ProgressionSnapshotRead] = Field(default_factory=list)
+    what_changed: list[str] = Field(default_factory=list)
+    recommendation_states: list[ProgressionStateItemRead] = Field(default_factory=list)
+    action_states: list[ProgressionStateItemRead] = Field(default_factory=list)
+    outcome_signals: list[str] = Field(default_factory=list)
+    next_progression_actions: list[str] = Field(default_factory=list)
+    evidence_update_goal: str = ""
+
+
 class ContinuationSurfaceRead(BaseModel):
     workflow_layer: Literal["closure", "checkpoint", "progression"]
     mode: EngagementContinuityMode
@@ -866,6 +897,7 @@ class ContinuationSurfaceRead(BaseModel):
     checkpoint_enabled: bool = False
     outcome_logging_enabled: bool = False
     follow_up_lane: FollowUpLaneRead | None = None
+    progression_lane: ProgressionLaneRead | None = None
 
 
 class MatterWorkspaceSummaryRead(BaseModel):
@@ -979,6 +1011,8 @@ class MatterMaterialSummaryRead(BaseModel):
     file_size: int = 0
     ingest_status: str | None = None
     support_level: str | None = None
+    ingest_strategy: str | None = None
+    ingestion_error: str | None = None
     retention_policy: str | None = None
     purge_at: datetime | None = None
     availability_state: str | None = None
@@ -1034,6 +1068,7 @@ class ArtifactEvidenceMaterialRead(BaseModel):
     ingest_status: str | None = None
     support_level: str | None = None
     ingest_strategy: str | None = None
+    ingestion_error: str | None = None
     source_ref: str | None = None
     file_extension: str | None = None
     content_type: str | None = None

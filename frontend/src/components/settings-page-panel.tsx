@@ -947,29 +947,24 @@ export function SettingsPagePanel() {
           <section className="panel">
             <div className="panel-header">
               <div>
-                <h2 className="panel-title">建立新案件預設</h2>
-                <p className="panel-copy">這些設定會套用在新的進件工作頁，幫你更快進入常用輸入模式。</p>
+                <h2 className="panel-title">統一進件入口</h2>
+                <p className="panel-copy">`/new` 現在只保留一個可見 intake surface，系統會依主問題與材料組成自動判讀 sparse inquiry、單材料起手或 multi-source case。</p>
               </div>
             </div>
 
             <div className="form-grid">
-              <div className="field">
-                <label htmlFor="settings-input-mode">新案件頁預設輸入模式</label>
-                <select
-                  id="settings-input-mode"
-                  value={draft.newTaskDefaultInputMode}
-                  onChange={(event) =>
-                    updateDraft(
-                      "newTaskDefaultInputMode",
-                      event.target.value as WorkbenchSettings["newTaskDefaultInputMode"],
-                    )
-                  }
-                >
-                  <option value="one_line_inquiry">一句話問題</option>
-                  <option value="single_document_intake">單文件進件</option>
-                  <option value="multi_material_case">多材料案件</option>
-                </select>
-                <small>會影響新案件頁預設展開與輔助提示，不變更現有後端契約。</small>
+              <div className="setting-note-card">
+                <h3>系統判讀規則</h3>
+                <p className="content-block">
+                  只有主問題時會以 sparse inquiry 起手；加入 1 份材料時會變成單材料起手；加入 2 到 10 份混合材料時會變成 multi-source case。
+                </p>
+              </div>
+
+              <div className="setting-note-card">
+                <h3>材料區邊界</h3>
+                <p className="content-block">
+                  新案件頁與後續補件都把檔案、URL、補充文字視為 source material inputs。單次最多 10 份，但同一案件可分批補件。
+                </p>
               </div>
 
               <div className="setting-note-card">

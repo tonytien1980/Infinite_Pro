@@ -64,7 +64,16 @@ Infinite Pro 的核心原則是：
 
 7. **canonical intake pipeline**
    - 系統只有一條 canonical intake pipeline
-   - `/new` 上的 `一句話問題 / 單文件進件 / 多材料案件` 只是 entry presets
+   - `/new` 對使用者可見的應只有一個 unified intake surface
+   - `只有一句話 / 一句話 + 1 份材料 / 一句話 + 多份材料` 是系統內部判讀的 intake patterns
+   - unified material area 應可逐項預覽、移除並顯示 warning / support 狀態，而不是只顯示批次總數
+   - item-level status 應至少可分辨 accepted、limited support、pending parse、unsupported / rejected、failed ingest
+   - item-level remediation guidance 應回答：
+     - 為什麼是這個狀態
+     - 這會影響什麼
+     - 現在最建議怎麼補救
+     - 是否有更穩定的 fallback material strategy
+   - 若 remediation 已能收斂到明確 next action，則 item row 也應清楚分辨 blocking / non-blocking、retryable / non-retryable，並提供最合理的 retry / replace / remove / keep-as-reference 動作
    - 任何 intake 都必須先進入 `Case World Compiler`
    - `Case World Compiler` 之後應先形成 / 同步 `CaseWorldState`
    - `Task` 應被理解成 `CaseWorldState` 內的 work slice
@@ -137,7 +146,7 @@ Infinite Pro 的工作世界至少應圍繞以下主鏈理解：
 - Deliverable 不是自由文字的終點
 - Recommendation / Risk / ActionItem 不是獨立散落的欄位
 - 每一段輸出都應儘量能回到 shared objects 與 links
-- `/new` 的一句話問題、單文件進件、多材料案件，都必須匯進這同一條 canonical intake pipeline，而不是三套互不相容的 intake 流程
+- `/new` 的 unified intake surface 不論是只有一句話、單材料起手，或多來源案件，都必須匯進這同一條 canonical intake pipeline，而不是三套互不相容的 intake 流程
 
 在這條主鏈之前，Host 還必須先形成：
 - `CaseWorldDraft`
@@ -293,10 +302,11 @@ Infinite Pro 的工作世界至少應圍繞以下主鏈理解：
 
 ### Intake / Storage 邊界的正式地位
 在目前單人正式 beta 階段，以下能力也應被視為正式 architecture responsibility：
-- 三種 entry presets：
-  - 一句話問題
-  - 單文件進件
-  - 多材料案件
+- 一個 unified intake surface
+- 三種由系統內部推導的 intake patterns：
+  - 只有一句話
+  - 一句話 + 1 份材料
+  - 一句話 + 多份材料
 - one canonical intake pipeline
 - `Case World Compiler`
 - multi-source ingestion
@@ -336,7 +346,11 @@ Infinite Pro 現在正式支援：
 - `follow_up` 應有輕量 checkpoint / milestone 更新語義，而不是被迫進入完整 action-outcome tracking
 - `follow_up` 應讓顧問看得出上一個 checkpoint、最新更新、這次差異與下一步建議
 - `follow_up` 應讓 recommendation / risk / action continuity 可見，但仍維持輕量 lane，而不是長期 CRM timeline
+- `follow_up` 的補件工作面也應看得出 evidence update goal 與這次補件主要想補哪個缺口
 - `continuous` 才應顯示較完整的 progression / outcome logging surface
+- `continuous` 應讓顧問看得出 latest progression state、previous progression snapshot、what changed、next progression action
+- `continuous` 應讓 recommendation adoption、action status、outcome signals 可見，但仍維持輕量 progression workbench，而不是 project tracker
+- `continuous` 的補件工作面應說明這次主要想驗證哪個 action / outcome / recommendation，而不是 generic upload
 
 ### Persistence / Release Integrity 的正式地位
 在目前單人正式 beta 階段，以下也應被視為正式 architecture responsibility：

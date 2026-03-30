@@ -377,7 +377,8 @@ UI 不是只做表單與結果頁，而是正式工作面。
 
 正式更新後應理解為：
 - one canonical intake pipeline
-- three visible entry presets
+- one unified intake surface
+- three inferred intake patterns from actual input composition
 - all intake first enters `case world compilation`
 - follow-up supplements go back into the same case world rather than opening a parallel intake branch
 

@@ -334,19 +334,29 @@ publish / artifact records 用來描述正式發布與正式輸出物。
 - 若後續又有新資料，應以 reopen 重新啟動，而不是默默假裝仍在 continuous 狀態
 
 ### 8.3 follow_up
-- 在 `one_off` 基礎上
-- 允許 decision checkpoints
-- 允許 milestone-level writeback
-- 允許後續追蹤，但不要求完整 continuous loop
-- UI / workflow 應偏向 checkpoint、milestone note、updated recommendation / risk / action summary
-- UI / workflow 應可見上一個 checkpoint、最新更新摘要、what changed、next follow-up action
-- follow_up 補件應能說明這次主要是為了更新哪一類 recommendation / risk / action continuity
+- 允許 checkpoint / milestone-level writeback
+- 補件仍應優先掛回同一個案件世界與 evidence chain
+- matter / evidence 工作面應能顯示 latest update、previous checkpoint、what changed、next follow-up action
+- follow-up 補件區不應只是 generic upload；應顯示這次補件主要想補哪個 evidence gap / update goal
+- 若補進來的材料屬 limited-support、pending-parse、unsupported 或 failed ingest，補件區與材料卡也應明確說明：
+  - 這個狀態代表什麼
+  - 會影響哪個 checkpoint 缺口
+  - 下一步最建議怎麼補救
+  - 若可 retry，應提供 retry；若不適合 retry，則應偏 replace / remove / fallback 材料
 
 ### 8.4 continuous
 - 在 `follow_up` 基礎上
 - 正式支援 decision -> action -> outcome 閉環
 - 支援長期更新案件世界
 - manual outcome logging 與 progression surface 只應在這一層被正式打開
+- UI / workflow 應可見 latest progression state、previous progression snapshot、what changed、next progression action
+- UI / workflow 應可見 recommendation adoption、action status 與 outcome signals，但仍維持顧問工作面，而不是 records 牆
+- continuous 補件應能說明這次主要是為了驗證哪個 action / outcome / recommendation
+- 若補進來的材料屬 limited-support、pending-parse、unsupported 或 failed ingest，補件區與材料卡也應明確說明：
+  - 這個狀態代表什麼
+  - 會影響哪個 action / outcome / recommendation 驗證
+  - 下一步最建議怎麼補救
+  - 若可 retry，應提供 retry；若不適合 retry，則應偏 replace / remove / fallback 材料
 
 正式規則：
 - 所有案件都至少要保留最小 history / traceability

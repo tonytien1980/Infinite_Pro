@@ -265,17 +265,32 @@ Codex 應把它理解為已完成的正式交付物工作面，至少承接：
 ### 7.7 正式進件模式與 storage 邊界
 在目前單人正式 beta 範圍內，Codex 應把以下能力視為已成立的正式主鏈，而不是暫時 hack：
 
-- `/new` 承接三種 entry presets：
-  - 一句話問題
-  - 單文件進件
-  - 多材料案件
-- 但從正式語義上，它們都只是同一條 canonical intake pipeline 的不同入口
+- `/new` 現在應只保留一個 unified intake surface
+- 系統內部仍支援三種 intake patterns：
+  - 只有一句話
+  - 一句話 + 1 份材料
+  - 一句話 + 多份材料
 - 所有 intake 都必須先進入 `Case World Compiler`
-- 三種入口都應匯進同一條 `task → matter → source material / artifact → evidence → deliverable` 主鏈
+- 三種 intake patterns 都應匯進同一條 `task → matter → source material / artifact → evidence → deliverable` 主鏈
 - 同一個案件可持續補檔案、網址與補充文字，不可被資料模型限制成單檔心智
+- unified material area 應支援 item-level preview / remove / warning，而不是只顯示批次總數
+- item-level 規則應可讓使用者看出每份材料是已接受、有限支援、待解析，還是尚未正式支援
+- remediation guidance 也應逐項回答：
+  - 為什麼是這個狀態
+  - 這會影響什麼
+  - 下一步最建議怎麼補救
+  - 是否有更穩定的替代材料策略
+- 若本輪進一步補 per-item retry / upload progress，則還應明確區分：
+  - blocking item
+  - non-blocking item
+  - retryable failure
+  - non-retryable failure
+  - keep-as-reference 與 replace / remove 的不同後果
 - 正式支援格式應理解為：`.md / .txt / .docx / .xlsx / .csv / text-first PDF / URL / 純文字補充`
 - 有限支援格式應理解為：`.jpg / .jpeg / .png / .webp / 掃描型 PDF`
 - 有限支援的意思是可建立 metadata / reference-level record，但不預設做高成本 OCR，也不宣稱與 text-first 文件同等成熟
+- pending-parse 的意思是尚待實際解析結果，不可先假設已成功抽取正文
+- unsupported / failed ingest 都必須提供保守但可執行的補救導引，而不是只顯示 generic error
 - storage architecture 必須正式區分：
   - DB metadata
   - raw intake storage
@@ -298,6 +313,7 @@ Codex 必須正式保留以下欄位與行為：
 正式規則：
 - `one_off` 至少保留最小 history / traceability / deliverable lineage
 - `follow_up` 允許 decision checkpoints 與 milestone-level writeback
+- `follow_up` 的補件導引應回答 latest update、previous checkpoint、what changed、next follow-up action 與這次補件主要想補哪個 evidence gap / update goal
 - `continuous` 必須能形成 decision -> action -> outcome 的最小閉環
 - writeback 不是所有案件都 full，但也不可以把所有案件都做成無法回看的孤立結果
 

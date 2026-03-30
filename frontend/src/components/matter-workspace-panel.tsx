@@ -11,6 +11,7 @@ import {
   rollbackMatterContentRevision,
   runTask,
 } from "@/lib/api";
+import { describeRuntimeMaterialHandling } from "@/lib/intake";
 import { truncateText } from "@/lib/text-format";
 import type {
   ContinuationSurface,
@@ -29,7 +30,6 @@ import {
   labelForMatterStatus,
   labelForRetentionPolicy,
   labelForRetentionState,
-  labelForSourceSupportLevel,
   labelForStorageAvailability,
   labelForTaskStatus,
   labelForWritebackDepth,
@@ -464,6 +464,28 @@ export function MatterWorkspacePanel({
   const latestDeliverable = matter?.related_deliverables[0] ?? null;
   const continuationSurface = matter?.continuation_surface ?? null;
   const followUpLane = continuationSurface?.follow_up_lane ?? null;
+  const progressionLane = continuationSurface?.progression_lane ?? null;
+  const continuityMode = matter?.summary.engagement_continuity_mode ?? null;
+  const remediationContext =
+    continuityMode === "follow_up"
+      ? {
+          lane: "follow_up" as const,
+          updateGoal: followUpLane?.evidence_update_goal,
+          nextAction: followUpLane?.next_follow_up_actions[0],
+        }
+      : continuityMode === "continuous"
+        ? {
+            lane: "continuous" as const,
+            updateGoal: progressionLane?.evidence_update_goal,
+            nextAction: progressionLane?.next_progression_actions[0],
+          }
+        : continuityMode === "one_off"
+          ? {
+              lane: "one_off" as const,
+            }
+          : {
+              lane: "workspace" as const,
+            };
   const recentTask = matter?.related_tasks[0] ?? null;
   const focusTask =
     matter?.related_tasks.find((task) => task.id === createdTaskId) ?? recentTask ?? null;
@@ -842,6 +864,38 @@ export function MatterWorkspacePanel({
                       </ul>
                     </div>
                   ) : null}
+                  {followUpLane ? (
+                    <div className="summary-grid" style={{ marginTop: "12px" }}>
+                      <div className="section-card">
+                        <h4>這次補件要補什麼</h4>
+                        <p className="content-block">
+                          {followUpLane.evidence_update_goal || "先補強這輪 follow-up 要更新的支撐鏈。"}
+                        </p>
+                      </div>
+                      <div className="section-card">
+                        <h4>補完後最建議做什麼</h4>
+                        <p className="content-block">
+                          {followUpLane.next_follow_up_actions[0] || "回案件工作面更新 checkpoint。"}
+                        </p>
+                      </div>
+                    </div>
+                  ) : null}
+                  {progressionLane ? (
+                    <div className="summary-grid" style={{ marginTop: "12px" }}>
+                      <div className="section-card">
+                        <h4>最新 progression state</h4>
+                        <p className="content-block">
+                          {progressionLane.latest_progression?.summary || "目前還沒有 progression update。"}
+                        </p>
+                      </div>
+                      <div className="section-card">
+                        <h4>上一個 progression snapshot</h4>
+                        <p className="content-block">
+                          {progressionLane.previous_progression?.summary || "目前還沒有更早的 progression snapshot。"}
+                        </p>
+                      </div>
+                    </div>
+                  ) : null}
                   {continuationSurface?.primary_action?.action_id === "record_checkpoint" ? (
                     <div className="field" style={{ marginTop: "12px" }}>
                       <label htmlFor="matter-checkpoint-note">這輪 checkpoint 要留下什麼？</label>
@@ -858,38 +912,100 @@ export function MatterWorkspacePanel({
                     </div>
                   ) : null}
                   {continuationSurface?.primary_action?.action_id === "record_outcome" ? (
-                    <div className="form-grid" style={{ marginTop: "12px" }}>
-                      <div className="field">
-                        <label htmlFor="matter-outcome-status">目前進度</label>
-                        <select
-                          id="matter-outcome-status"
-                          value={continuationActionStatus}
-                          onChange={(event) =>
-                            setContinuationActionStatus(
-                              event.target.value as
-                                | "planned"
-                                | "in_progress"
-                                | "blocked"
-                                | "completed"
-                                | "review_required",
-                            )
-                          }
-                        >
-                          <option value="planned">已規劃</option>
-                          <option value="in_progress">進行中</option>
-                          <option value="blocked">受阻</option>
-                          <option value="completed">已完成</option>
-                          <option value="review_required">待重新檢查</option>
-                        </select>
-                      </div>
-                      <div className="field">
-                        <label htmlFor="matter-outcome-summary">這輪 outcome / 新訊號</label>
-                        <textarea
-                          id="matter-outcome-summary"
-                          value={continuationSummary}
-                          onChange={(event) => setContinuationSummary(event.target.value)}
-                          placeholder="例如：建議已開始執行，但第一週卡在跨部門 handoff；需要刷新 deliverable 的下一步。"
-                        />
+                    <div className="detail-stack" style={{ marginTop: "12px" }}>
+                      {progressionLane ? (
+                        <>
+                          <div className="section-card">
+                            <h4>這次最重要的 progression 變化</h4>
+                            <ul className="list-content">
+                              {progressionLane.what_changed.map((item) => (
+                                <li key={item}>{item}</li>
+                              ))}
+                            </ul>
+                          </div>
+                          <div className="summary-grid">
+                            <div className="section-card">
+                              <h4>建議採納狀態</h4>
+                              {progressionLane.recommendation_states.length > 0 ? (
+                                <ul className="list-content">
+                                  {progressionLane.recommendation_states.slice(0, 3).map((item) => (
+                                    <li key={`${item.state}-${item.title}`}>{item.title}：{item.summary}</li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <p className="empty-text">目前還沒有可顯示的建議採納摘要。</p>
+                              )}
+                            </div>
+                            <div className="section-card">
+                              <h4>目前 action 狀態</h4>
+                              {progressionLane.action_states.length > 0 ? (
+                                <ul className="list-content">
+                                  {progressionLane.action_states.slice(0, 3).map((item) => (
+                                    <li key={`${item.state}-${item.title}`}>{item.title}：{item.summary}</li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <p className="empty-text">目前還沒有可顯示的 action 狀態摘要。</p>
+                              )}
+                            </div>
+                            <div className="section-card">
+                              <h4>最新 outcome 訊號</h4>
+                              {progressionLane.outcome_signals.length > 0 ? (
+                                <ul className="list-content">
+                                  {progressionLane.outcome_signals.slice(0, 3).map((item) => (
+                                    <li key={item}>{item}</li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <p className="empty-text">目前還沒有新的 outcome 訊號摘要。</p>
+                              )}
+                            </div>
+                            <div className="section-card">
+                              <h4>下一步最建議做什麼</h4>
+                              <p className="content-block">
+                                {progressionLane.next_progression_actions[0] || "回案件工作面補一筆 progression update。"}
+                              </p>
+                            </div>
+                          </div>
+                        </>
+                      ) : null}
+                      <div className="form-grid">
+                        <div className="field">
+                          <label htmlFor="matter-outcome-status">目前 action 狀態</label>
+                          <select
+                            id="matter-outcome-status"
+                            value={continuationActionStatus}
+                            onChange={(event) =>
+                              setContinuationActionStatus(
+                                event.target.value as
+                                  | "planned"
+                                  | "in_progress"
+                                  | "blocked"
+                                  | "completed"
+                                  | "review_required",
+                              )
+                            }
+                          >
+                            <option value="planned">已規劃</option>
+                            <option value="in_progress">進行中</option>
+                            <option value="blocked">受阻</option>
+                            <option value="completed">已完成</option>
+                            <option value="review_required">待重新檢查</option>
+                          </select>
+                        </div>
+                        <div className="field">
+                          <label htmlFor="matter-outcome-summary">這輪 progression / outcome 更新</label>
+                          <textarea
+                            id="matter-outcome-summary"
+                            value={continuationSummary}
+                            onChange={(event) => setContinuationSummary(event.target.value)}
+                            placeholder={
+                              progressionLane?.latest_progression?.summary
+                                ? `例如：延續「${progressionLane.latest_progression.summary.slice(0, 40)}...」，這輪主要補了哪些進度訊號、阻塞點或新 outcome。`
+                                : "例如：action 已開始推進，但目前卡在哪裡；或 outcome 已出現新訊號，需要刷新 deliverable。"
+                            }
+                          />
+                        </div>
                       </div>
                     </div>
                   ) : null}
@@ -1209,6 +1325,33 @@ export function MatterWorkspacePanel({
                             ) : (
                               <p className="empty-text">目前沒有額外的 action continuity 摘要。</p>
                             )}
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
+                    {progressionLane ? (
+                      <div className="detail-item">
+                        <h3>Progression continuity</h3>
+                        <div className="summary-grid">
+                          <div className="section-card">
+                            <h4>最近 progression</h4>
+                            <p className="content-block">
+                              {progressionLane.latest_progression?.summary || "目前還沒有 progression update。"}
+                            </p>
+                          </div>
+                          <div className="section-card">
+                            <h4>Action / outcome 摘要</h4>
+                            <ul className="list-content">
+                              {progressionLane.what_changed.map((item) => (
+                                <li key={item}>{item}</li>
+                              ))}
+                            </ul>
+                          </div>
+                          <div className="section-card">
+                            <h4>下一步建議</h4>
+                            <p className="content-block">
+                              {progressionLane.next_progression_actions[0] || "回案件工作面補一筆 progression update。"}
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -1675,37 +1818,81 @@ export function MatterWorkspacePanel({
                   </div>
                   <div className="detail-list">
                     {visibleMaterials.length > 0 ? (
-                      visibleMaterials.map((item) => (
-                        <div className="detail-item" key={`${item.object_type}-${item.object_id}`}>
-                          <div className="meta-row">
-                            <span className="pill">{item.object_type === "artifact" ? "工作物件" : "來源材料"}</span>
-                            {item.support_level ? <span>{labelForSourceSupportLevel(item.support_level)}</span> : null}
-                            <span>{formatDisplayDate(item.created_at)}</span>
-                          </div>
-                          <h3>{item.title}</h3>
-                          <p className="muted-text">
-                            {item.task_title}
-                            {item.file_extension ? `｜${labelForFileExtension(item.file_extension)}` : ""}
-                            {item.file_size ? `｜${formatFileSize(item.file_size)}` : ""}
-                          </p>
-                          <p className="content-block">{truncateText(item.summary || "目前沒有額外摘要。", 118)}</p>
-                          {item.object_type !== "artifact" ? (
+                      visibleMaterials.map((item) => {
+                        const handling = describeRuntimeMaterialHandling({
+                          supportLevel: item.support_level,
+                          ingestStatus: item.ingest_status,
+                          ingestStrategy: item.ingest_strategy,
+                          metadataOnly: item.metadata_only,
+                          ingestionError: item.ingestion_error,
+                          context: remediationContext,
+                        });
+                        return (
+                          <div className="detail-item" key={`${item.object_type}-${item.object_id}`}>
                             <div className="meta-row">
-                              {item.availability_state ? (
-                                <span>{labelForStorageAvailability(item.availability_state)}</span>
-                              ) : null}
-                              {item.retention_policy ? (
-                                <span>{labelForRetentionPolicy(item.retention_policy)}</span>
-                              ) : null}
-                              {item.purge_at ? (
-                                <span>
-                                  {labelForRetentionState(item.purge_at)}｜{formatDisplayDate(item.purge_at)}
+                              <span className="pill">{item.object_type === "artifact" ? "工作物件" : "來源材料"}</span>
+                              {item.support_level ? (
+                                <span className={`intake-status-pill intake-status-${handling.status}`}>
+                                  {handling.statusLabel}
                                 </span>
                               ) : null}
+                              <span>{formatDisplayDate(item.created_at)}</span>
                             </div>
-                          ) : null}
-                        </div>
-                      ))
+                            <h3>{item.title}</h3>
+                            <p className="muted-text">
+                              {item.task_title}
+                              {item.file_extension ? `｜${labelForFileExtension(item.file_extension)}` : ""}
+                              {item.file_size ? `｜${formatFileSize(item.file_size)}` : ""}
+                            </p>
+                            <p className="content-block">{truncateText(item.summary || "目前沒有額外摘要。", 118)}</p>
+                            {item.object_type !== "artifact" ? (
+                              <>
+                                <p
+                                  className={
+                                    handling.status === "accepted"
+                                      ? "success-text"
+                                      : handling.status === "limited" || handling.status === "pending"
+                                        ? "muted-text"
+                                        : "error-text"
+                                  }
+                                >
+                                  {handling.statusDetail}
+                                </p>
+                                <p className="muted-text">
+                                  <strong>會影響什麼：</strong>
+                                  {handling.impactDetail}
+                                </p>
+                                <p className="muted-text">
+                                  <strong>建議下一步：</strong>
+                                  {handling.recommendedNextStep}
+                                </p>
+                                {handling.fallbackStrategy ? (
+                                  <p className="muted-text">
+                                    <strong>較佳替代方式：</strong>
+                                    {handling.fallbackStrategy}
+                                  </p>
+                                ) : null}
+                                <Link className="back-link" href={`/matters/${matterId}/evidence#evidence-supplement`}>
+                                  回補件入口處理這份材料
+                                </Link>
+                                <div className="meta-row">
+                                  {item.availability_state ? (
+                                    <span>{labelForStorageAvailability(item.availability_state)}</span>
+                                  ) : null}
+                                  {item.retention_policy ? (
+                                    <span>{labelForRetentionPolicy(item.retention_policy)}</span>
+                                  ) : null}
+                                  {item.purge_at ? (
+                                    <span>
+                                      {labelForRetentionState(item.purge_at)}｜{formatDisplayDate(item.purge_at)}
+                                    </span>
+                                  ) : null}
+                                </div>
+                              </>
+                            ) : null}
+                          </div>
+                        );
+                      })
                     ) : (
                       <p className="empty-text">目前還沒有可顯示的來源或證據材料。</p>
                     )}

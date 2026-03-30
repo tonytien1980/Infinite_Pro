@@ -177,11 +177,11 @@ Two additional runtime governance files now matter for day-to-day development:
 
 ## Canonical intake and case world compilation
 
-Infinite Pro no longer treats `一句話問題`、`單文件進件`、`多材料案件` as three different ontology worlds.
+Infinite Pro no longer treats `一句話起手`、`單材料起手`、`多來源案件` as three different ontology worlds.
 
 The formal rule is:
 
-> **There is one canonical intake pipeline, and the three visible choices on `/new` are only entry presets.**
+> **There is one canonical intake pipeline, and `/new` is now one unified intake surface.**
 
 For the runtime, formal intake always means:
 - a problem statement
@@ -191,6 +191,25 @@ For the runtime, formal intake always means:
   - pasted text
   - structured data
 - follow-up supplements
+
+On the visible product surface, `/new` should now expose one unified intake area:
+- one main question field
+- one shared material area for files, URLs, and pasted text
+- system-inferred intake patterns instead of a manual mode chooser
+- a single-batch limit of 10 material units, with later supplements still allowed on the same matter
+- item-level preview, remove, and warning behavior for every pending material
+- clear item-level handling states such as accepted, limited support, pending parse, unsupported, and failed ingest
+- each item should answer four questions quickly:
+  - why it is in this state
+  - what this state affects
+  - what the recommended next step is
+  - what the safer fallback material strategy is when needed
+- the item row should also make the next action explicit when possible:
+  - retry
+  - replace
+  - remove
+  - keep as reference
+- blocking and non-blocking items should be visibly different, so users can tell whether an item stops the batch or can stay as reference-level material
 
 Every intake path must first enter the same `case world compilation` stage. Host should then decide:
 - how sparse or dense the current materials are
@@ -306,15 +325,21 @@ Formal behavior:
   - supports lightweight checkpoint-style continuation without turning the case into a CRM loop
   - should show the previous checkpoint, the latest update, what changed, and the next suggested follow-up action
   - should make recommendation / risk / action continuity visible without forcing a full action-outcome tracking surface
+  - should make evidence supplements feel like purposeful consulting updates, not generic uploads
+  - should show the evidence update goal and the gap this supplement is meant to close
 - `continuous`
   - keeps the `follow_up` baseline
   - supports decision -> action -> outcome continuity over time
   - is the only mode that should expose richer progression / outcome logging UX
+  - should show the latest progression state, the previous progression snapshot, what changed, and the next progression-aware action
+  - should make recommendation adoption, action status, and outcome signals visible without turning the workbench into a heavy CRM wall
+  - should make evidence supplements feel tied to the current progression goal, not like generic uploads
 
 This means writeback is no longer treated as "all or nothing".
 All matters must keep minimum history and deliverable lineage, but only follow-up and continuous cases should deepen the feedback loop.
 Primary actions in matter, task, deliverable, and evidence workspaces should now change with this policy: one-off cases should bias toward closure, follow-up cases toward checkpoint updates, and continuous cases toward progression / outcome observation.
 For follow-up specifically, the workbench should answer three questions quickly: what the last checkpoint said, what changed this time, and what the consultant should do next.
+For continuous specifically, the workbench should answer four questions quickly: where progression stands now, which actions are moving or blocked, whether new outcomes appeared, and what the consultant should do next.
 
 ## Core ontology objects
 
@@ -365,10 +390,13 @@ The repository currently contains a working early implementation slice within th
 - a formal `Matter / Engagement Workspace` for single-consultant case continuity
 - a formal `Artifact / Evidence Workspace` for source, evidence, support-chain, and gap governance
 - a formal `Deliverable Workspace` for deliverable identity, linkage, limitations, and continuity
-- one canonical intake pipeline on `/new`, currently entered through three presets:
-  - `一句話問題`
-  - `單文件進件`
-  - `多材料案件`
+- one canonical intake pipeline on `/new`, now exposed as one unified intake surface
+- three inferred intake patterns:
+  - `只有一句話`
+  - `一句話 + 1 份材料`
+  - `一句話 + 多份材料`
+- item-level preview / remove / warning on the unified material area
+- item-level ingestion result messaging for accepted, limited-support, pending-parse, and unsupported materials
 - matter-level supplement flow for additional files, URLs, and pasted text
 - source material metadata with support level, ingest strategy, retention, purge state, and availability state
 - formal support for `.md / .txt / .docx / .xlsx / .csv / text-first PDF / URL / 純文字補充`

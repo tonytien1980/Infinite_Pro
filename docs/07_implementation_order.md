@@ -74,7 +74,7 @@ Infinite Pro 的施工原則應改為：
 先把治理語言、objects、links、context layers 對齊。
 
 此波次現在正式包含：
-- canonical intake pipeline 與 entry preset 語義一致化
+- canonical intake pipeline 與 unified intake semantics 一致化
 - `Case World Compiler / case_world_draft`
 - `CaseWorldState`
 - `engagement_continuity_mode / writeback_depth`
@@ -84,7 +84,7 @@ Infinite Pro 的施工原則應改為：
 先讓正式物件、contracts、persistence 邊界與歷史 / writeback 分層成形。
 
 此波次現在也正式包含：
-- `/new` 的三種 entry presets
+- `/new` 的單一 unified intake surface
 - one canonical intake pipeline
 - `CaseWorldDraft / CaseWorldState / EvidenceGap / ResearchRun / DecisionRecord / ActionPlan / ActionExecution / OutcomeRecord` 的最小 contract
 - continuity policy 與 writeback depth 的正式 persistence
@@ -159,7 +159,7 @@ Infinite Pro 的施工原則應改為：
 - evidence creation
 - source metadata
 - history writeback
-- 三種 entry presets 共用同一條 task / matter / source / evidence 主鏈
+- 三種 intake patterns 共用同一條 task / matter / source / evidence 主鏈
 - raw / derived / released storage metadata 與 retention 邊界
 - research 結果回到同一條 source / evidence 主鏈
 

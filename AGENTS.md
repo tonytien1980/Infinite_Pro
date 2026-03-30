@@ -501,13 +501,19 @@ If a change touches orchestration, ontology, or context modeling, test both:
 
 If a change touches intake semantics, verify:
 - one-line inquiry still enters the same canonical intake pipeline
-- single-document and multi-material entry remain entry presets rather than different ontology worlds
+- single-material and multi-source starts remain inferred intake patterns rather than different ontology worlds
+- unified intake keeps one visible entry surface while item-level preview / remove / warning stays usable
+- limited-support and unsupported materials are shown honestly at item level rather than being implied by generic copy
+- limited-support / pending-parse / unsupported / failed ingest states now also explain impact and recommended remediation, rather than stopping at raw status pills
+- per-item retry / replace / remove / keep-as-reference semantics should stay aligned with blocking vs non-blocking intake rules, rather than drifting into a generic upload manager
 
 If a change touches continuity / writeback behavior, test at least:
 - `one_off` minimal traceability
 - `follow_up` milestone checkpoint behavior
 - `continuous` decision -> action -> outcome writeback visibility
 - one_off closure / reopen semantics and continuation-aware primary actions on matter / task / deliverable surfaces
+- follow_up supplement guidance on matter / evidence surfaces still answers what changed, what this supplement is for, and what to do next
+- continuous progression surfaces on matter / task / deliverable / evidence pages still answer where progression stands now, what changed, and what to do next without turning into a records wall
 
 If a change affects workbench structure, validate:
 - main work surface readability

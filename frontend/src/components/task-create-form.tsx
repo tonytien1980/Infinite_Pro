@@ -1,8 +1,20 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
+import { IntakeMaterialPreviewList } from "@/components/intake-material-preview-list";
 import { createTask, ingestTaskSources, uploadTaskFiles } from "@/lib/api";
+import {
+  appendSelectedFiles,
+  buildIntakePreviewItems,
+  countIntakeMaterialUnits,
+  describeRuntimeMaterialHandling,
+  type IntakeItemProgressInfo,
+  inferInputEntryModeFromMaterialUnits,
+  MAX_INTAKE_MATERIAL_UNITS,
+  previewItemBlocksSubmit,
+  progressInfoFromRuntimeHandling,
+} from "@/lib/intake";
 import type {
   EngagementContinuityMode,
   ExternalDataStrategy,
@@ -13,7 +25,6 @@ import type {
 } from "@/lib/types";
 
 interface TaskCreateFormProps {
-  defaultInputMode: InputEntryMode;
   onCreated: (task: TaskAggregate) => void;
 }
 
@@ -80,18 +91,18 @@ const INPUT_MODE_OPTIONS: Array<{
 }> = [
   {
     value: "one_line_inquiry",
-    label: "一句話問題",
-    description: "先從核心問題開始，適合快速開案。",
+    label: "一句話起手",
+    description: "只有主問題、沒有材料時，系統會先以 sparse inquiry 起手。",
   },
   {
     value: "single_document_intake",
-    label: "單文件進件",
-    description: "你已有一份主文件，先上傳或貼上內容再展開分析。",
+    label: "單材料起手",
+    description: "已有 1 份材料時，不論是檔案、URL 或補充文字，都會先以單材料起手。",
   },
   {
     value: "multi_material_case",
-    label: "多材料案件",
-    description: "你有多個來源、網址或背景限制，需要一次整理進案件。",
+    label: "多來源案件",
+    description: "已有 2 到 10 份材料或混合來源時，系統會以 multi-source case 起手。",
   },
 ];
 
@@ -149,22 +160,22 @@ const INPUT_MODE_GUIDANCE: Record<
   }
 > = {
   one_line_inquiry: {
-    requirement: "只要一句核心問題就能開案，不要求先上傳材料。",
-    workflowNote: "系統會先建立 task / decision context 骨架，再由 Host 決定後續補證與工作流。",
-    materialHint: "可先空手開案，之後再到案件世界補檔案、網址或補充文字。",
-    submitLabel: "先建立案件骨架",
+    requirement: "目前只有主問題，系統會先以 sparse inquiry 起手。",
+    workflowNote: "這輪會先建立正式 task / matter / decision context 主鏈，不要求你先準備材料。",
+    materialHint: "你可以先空手開案，之後再到案件世界補檔案、網址或補充文字。",
+    submitLabel: "建立案件",
   },
   single_document_intake: {
-    requirement: "建立當下需附上一份主文件，作為第一份正式 source material。",
-    workflowNote: "系統會先圍繞這份主文件建立案件主線，後續仍可回案件世界補件。",
-    materialHint: "本模式建立時僅接受一份檔案，不混入多個網址或額外補充文字。",
-    submitLabel: "用主文件建立案件",
+    requirement: "目前偵測到 1 份材料，會先以單材料起手。",
+    workflowNote: "這份材料可以是檔案、URL 或補充文字；系統會先把它掛回同一個案件世界。",
+    materialHint: "單材料不等於單文件；任何一種正式支援的單一材料都成立。",
+    submitLabel: "建立案件",
   },
   multi_material_case: {
-    requirement: "建立當下至少要掛兩份材料，可混合檔案、網址與補充文字。",
+    requirement: `目前偵測到多份材料，會先以 multi-source case 起手。單次最多 ${MAX_INTAKE_MATERIAL_UNITS} 份。`,
     workflowNote: "所有材料都會進到同一個案件世界，不拆成互不相容的子流程。",
-    materialHint: "適合已知要一起整理多份檔案、外部網址與內部補充說明的案件。",
-    submitLabel: "建立多材料案件",
+    materialHint: "可混合檔案、網址與補充文字；如果超過 10 份，請分批補件。",
+    submitLabel: "建立案件並掛接材料",
   },
 };
 
@@ -347,11 +358,7 @@ function buildConsultantBrief({
     .join("\n");
 }
 
-export function TaskCreateForm({
-  defaultInputMode,
-  onCreated,
-}: TaskCreateFormProps) {
-  const [inputMode, setInputMode] = useState<InputEntryMode>(defaultInputMode);
+export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
   const [workflowPreference, setWorkflowPreference] = useState<WorkflowPreference>("auto");
   const [description, setDescription] = useState("");
   const [subjectName, setSubjectName] = useState("");
@@ -360,14 +367,11 @@ export function TaskCreateForm({
   const [files, setFiles] = useState<File[]>([]);
   const [externalDataStrategy, setExternalDataStrategy] =
     useState<ExternalDataStrategy>("supplemental");
-  const [showAdvanced, setShowAdvanced] =
-    useState(defaultInputMode === "multi_material_case");
-  const [continuityMode, setContinuityMode] = useState<EngagementContinuityMode>(
-    defaultContinuityModeForInputMode(defaultInputMode),
-  );
-  const [writebackDepth, setWritebackDepth] = useState<WritebackDepth>(
-    defaultWritebackDepthForInputMode(defaultInputMode),
-  );
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [continuityMode, setContinuityMode] = useState<EngagementContinuityMode>("one_off");
+  const [writebackDepth, setWritebackDepth] = useState<WritebackDepth>("minimal");
+  const [continuityManuallyTouched, setContinuityManuallyTouched] = useState(false);
+  const [writebackManuallyTouched, setWritebackManuallyTouched] = useState(false);
   const [analysisDepth, setAnalysisDepth] = useState("");
   const [constraintInput, setConstraintInput] = useState("");
   const [assumptions, setAssumptions] = useState("");
@@ -376,6 +380,17 @@ export function TaskCreateForm({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [createdTask, setCreatedTask] = useState<TaskAggregate | null>(null);
+  const [progressByItemId, setProgressByItemId] = useState<
+    Record<string, IntakeItemProgressInfo>
+  >({});
+  const [keepAsReferenceByItemId, setKeepAsReferenceByItemId] = useState<
+    Record<string, boolean>
+  >({});
+  const [replaceTargetId, setReplaceTargetId] = useState<string | null>(null);
+  const fileReplaceInputRef = useRef<HTMLInputElement | null>(null);
+  const urlFieldRef = useRef<HTMLTextAreaElement | null>(null);
+  const pastedTextFieldRef = useRef<HTMLTextAreaElement | null>(null);
 
   const resolvedFlowValue =
     workflowPreference === "auto"
@@ -383,8 +398,37 @@ export function TaskCreateForm({
       : workflowPreference;
   const flow = FLOW_OPTIONS.find((item) => item.value === resolvedFlowValue) ?? FLOW_OPTIONS[0];
   const derivedTitle = useMemo(() => deriveTaskTitle(description), [description]);
+  const normalizedUrls = useMemo(
+    () =>
+      urlsText
+        .split("\n")
+        .map((item) => item.trim())
+        .filter(Boolean),
+    [urlsText],
+  );
+  const hasPastedContent = Boolean(pastedContent.trim());
+  const materialUnitCount = countIntakeMaterialUnits({
+    fileCount: files.length,
+    urlCount: normalizedUrls.length,
+    hasPastedText: hasPastedContent,
+  });
+  const previewItems = useMemo(
+    () =>
+      buildIntakePreviewItems({
+        files,
+        urls: normalizedUrls,
+        pastedText: pastedContent,
+        context: { lane: "intake" },
+      }),
+    [files, normalizedUrls, pastedContent],
+  );
+  const inputMode = inferInputEntryModeFromMaterialUnits(materialUnitCount);
   const selectedInputMode =
     INPUT_MODE_OPTIONS.find((option) => option.value === inputMode) ?? INPUT_MODE_OPTIONS[0];
+  const inputModeGuidance = INPUT_MODE_GUIDANCE[inputMode];
+  const needsProblemStatement = !description.trim();
+  const materialLimitExceeded = materialUnitCount > MAX_INTAKE_MATERIAL_UNITS;
+  const blockingItems = previewItems.filter((item) => previewItemBlocksSubmit(item));
   const consultantBrief = useMemo(
     () =>
       buildConsultantBrief({
@@ -412,17 +456,290 @@ export function TaskCreateForm({
       derivedTitle,
     ],
   );
-  const inputModeGuidance = INPUT_MODE_GUIDANCE[inputMode];
-  const normalizedUrls = useMemo(
-    () =>
-      urlsText
-        .split("\n")
-        .map((item) => item.trim())
-        .filter(Boolean),
-    [urlsText],
-  );
-  const hasPastedContent = Boolean(pastedContent.trim());
-  const materialUnitCount = files.length + normalizedUrls.length + (hasPastedContent ? 1 : 0);
+
+  useEffect(() => {
+    if (!continuityManuallyTouched) {
+      setContinuityMode(defaultContinuityModeForInputMode(inputMode));
+    }
+    if (!writebackManuallyTouched) {
+      setWritebackDepth(defaultWritebackDepthForInputMode(inputMode));
+    }
+  }, [continuityManuallyTouched, inputMode, writebackManuallyTouched]);
+
+  function handleRemovePreviewItem(itemId: string) {
+    setProgressByItemId((previous) => {
+      const next = { ...previous };
+      delete next[itemId];
+      return next;
+    });
+    setKeepAsReferenceByItemId((previous) => {
+      const next = { ...previous };
+      delete next[itemId];
+      return next;
+    });
+    if (itemId.startsWith("file-")) {
+      const index = Number(itemId.replace("file-", ""));
+      setFiles((previous) => previous.filter((_, itemIndex) => itemIndex !== index));
+      return;
+    }
+    if (itemId.startsWith("url-")) {
+      const index = Number(itemId.replace("url-", ""));
+      setUrlsText(normalizedUrls.filter((_, itemIndex) => itemIndex !== index).join("\n"));
+      return;
+    }
+    if (itemId === "text-0") {
+      setPastedContent("");
+    }
+    setSuccess(null);
+    setError(null);
+  }
+
+  function dropResolvedPreviewItems(itemIds: string[]) {
+    if (itemIds.length === 0) {
+      return;
+    }
+    const fileIndexes = new Set(
+      itemIds
+        .filter((itemId) => itemId.startsWith("file-"))
+        .map((itemId) => Number(itemId.replace("file-", ""))),
+    );
+    const urlIndexes = new Set(
+      itemIds
+        .filter((itemId) => itemId.startsWith("url-"))
+        .map((itemId) => Number(itemId.replace("url-", ""))),
+    );
+    const clearPastedText = itemIds.includes("text-0");
+
+    if (fileIndexes.size > 0) {
+      setFiles((previous) => previous.filter((_, itemIndex) => !fileIndexes.has(itemIndex)));
+    }
+    if (urlIndexes.size > 0) {
+      setUrlsText(normalizedUrls.filter((_, itemIndex) => !urlIndexes.has(itemIndex)).join("\n"));
+    }
+    if (clearPastedText) {
+      setPastedContent("");
+    }
+    setProgressByItemId((previous) => {
+      const next = { ...previous };
+      itemIds.forEach((itemId) => {
+        delete next[itemId];
+      });
+      return next;
+    });
+    setKeepAsReferenceByItemId((previous) => {
+      const next = { ...previous };
+      itemIds.forEach((itemId) => {
+        delete next[itemId];
+      });
+      return next;
+    });
+  }
+
+  function setItemProgress(itemId: string, progress: IntakeItemProgressInfo) {
+    setProgressByItemId((previous) => ({
+      ...previous,
+      [itemId]: progress,
+    }));
+  }
+
+  function buildHandlingFromRuntimeItem(runtimeItem: {
+    source_document: {
+      support_level: string;
+      ingest_status: string;
+      ingest_strategy: string;
+      metadata_only: boolean;
+      ingestion_error: string | null;
+    };
+    source_material?: {
+      support_level: string;
+      ingest_status: string;
+      ingest_strategy: string;
+      metadata_only: boolean;
+      ingestion_error?: string | null;
+    } | null;
+  }) {
+    return describeRuntimeMaterialHandling({
+      supportLevel:
+        runtimeItem.source_material?.support_level ?? runtimeItem.source_document.support_level,
+      ingestStatus:
+        runtimeItem.source_material?.ingest_status ?? runtimeItem.source_document.ingest_status,
+      ingestStrategy:
+        runtimeItem.source_material?.ingest_strategy ?? runtimeItem.source_document.ingest_strategy,
+      metadataOnly:
+        runtimeItem.source_material?.metadata_only ?? runtimeItem.source_document.metadata_only,
+      ingestionError:
+        runtimeItem.source_material?.ingestion_error ??
+        runtimeItem.source_document.ingestion_error,
+      context: { lane: "intake" },
+    });
+  }
+
+  async function processPreviewItem(taskId: string, item: (typeof previewItems)[number]) {
+    try {
+      if (item.kind === "file") {
+        const index = Number(item.id.replace("file-", ""));
+        const file = files[index];
+        if (!file) {
+          throw new Error("找不到要處理的檔案，請重新選取。");
+        }
+        setItemProgress(item.id, {
+          phase: "uploading",
+          label: "上傳中",
+          detail: "這份檔案正在送出，稍後會回填最終 ingest 結果。",
+          blocksSubmit: false,
+          retryable: false,
+        });
+        const uploadResult = await uploadTaskFiles(taskId, [file]);
+        const runtimeItem = uploadResult.uploaded[0];
+        if (!runtimeItem) {
+          throw new Error("這份檔案沒有收到可用的 upload result。");
+        }
+        const handling = buildHandlingFromRuntimeItem(runtimeItem);
+        const progress = progressInfoFromRuntimeHandling(handling, {
+          keepAsReference: Boolean(keepAsReferenceByItemId[item.id]),
+        });
+        setItemProgress(item.id, progress);
+        return progress;
+      }
+
+      if (item.kind === "url") {
+        const index = Number(item.id.replace("url-", ""));
+        const url = normalizedUrls[index];
+        if (!url) {
+          throw new Error("找不到要處理的網址，請先回網址欄確認。");
+        }
+        setItemProgress(item.id, {
+          phase: "parsing",
+          label: "解析中",
+          detail: "系統正在抓取這個 URL 的正文與標題。",
+          blocksSubmit: false,
+          retryable: false,
+        });
+        const ingestResult = await ingestTaskSources(taskId, {
+          urls: [url],
+          pasted_text: "",
+        });
+        const runtimeItem = ingestResult.ingested[0];
+        if (!runtimeItem) {
+          throw new Error("這個網址沒有收到可用的 ingest result。");
+        }
+        const handling = buildHandlingFromRuntimeItem(runtimeItem);
+        const progress = progressInfoFromRuntimeHandling(handling, {
+          keepAsReference: Boolean(keepAsReferenceByItemId[item.id]),
+        });
+        setItemProgress(item.id, progress);
+        return progress;
+      }
+
+      setItemProgress(item.id, {
+        phase: "uploading",
+        label: "掛接中",
+        detail: "這段補充文字正在掛回同一個案件世界。",
+        blocksSubmit: false,
+        retryable: false,
+      });
+      const ingestResult = await ingestTaskSources(taskId, {
+        urls: [],
+        pasted_text: pastedContent,
+        pasted_title: pastedContent.trim() ? "手動貼上內容" : undefined,
+      });
+      const runtimeItem = ingestResult.ingested[0];
+      if (!runtimeItem) {
+        throw new Error("這段補充文字沒有收到可用的 ingest result。");
+      }
+      const handling = buildHandlingFromRuntimeItem(runtimeItem);
+      const progress = progressInfoFromRuntimeHandling(handling, {
+        keepAsReference: Boolean(keepAsReferenceByItemId[item.id]),
+      });
+      setItemProgress(item.id, progress);
+      return progress;
+    } catch (submitError) {
+      const handling = describeRuntimeMaterialHandling({
+        supportLevel: "unsupported",
+        ingestStatus: "failed",
+        ingestStrategy: "unsupported",
+        metadataOnly: true,
+        ingestionError:
+          submitError instanceof Error ? submitError.message : "建立材料時發生未知錯誤。",
+        context: { lane: "intake" },
+      });
+      const progress = progressInfoFromRuntimeHandling(handling);
+      setItemProgress(item.id, progress);
+      return progress;
+    }
+  }
+
+  async function retryPreviewItem(item: (typeof previewItems)[number]) {
+    if (!createdTask) {
+      setError("案件世界尚未建立；請先建立案件，再重試這份材料。");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    setSuccess(null);
+    const progress = await processPreviewItem(createdTask.id, item);
+    if (progress.phase === "done" || progress.phase === "parsing") {
+      dropResolvedPreviewItems([item.id]);
+      setSuccess("這份材料已重新處理完成；你可以繼續補件，或直接打開案件工作台。");
+    } else {
+      setError("這份材料重試後仍未成功；建議改用替換、移除或 fallback 材料。");
+    }
+    setSubmitting(false);
+  }
+
+  function toggleKeepAsReference(item: (typeof previewItems)[number]) {
+    setKeepAsReferenceByItemId((previous) => ({
+      ...previous,
+      [item.id]: !previous[item.id],
+    }));
+    setProgressByItemId((previous) => {
+      const next = { ...previous };
+      delete next[item.id];
+      return next;
+    });
+    setError(null);
+    setSuccess(
+      keepAsReferenceByItemId[item.id]
+        ? "已取消這份材料的 reference 保留標記。"
+        : "已標記這份材料可先以 reference-level 保留。",
+    );
+  }
+
+  function replacePreviewItem(item: (typeof previewItems)[number]) {
+    if (item.kind === "file") {
+      setReplaceTargetId(item.id);
+      fileReplaceInputRef.current?.click();
+      return;
+    }
+    if (item.kind === "url") {
+      setError("這筆來源請直接回網址欄修正；修正後 item row 會立即刷新。");
+      urlFieldRef.current?.focus();
+      return;
+    }
+    setError("這段補充文字請直接回補充文字欄改寫；改寫後 item row 會立即刷新。");
+    pastedTextFieldRef.current?.focus();
+  }
+
+  function handleReplaceFileSelection(event: React.ChangeEvent<HTMLInputElement>) {
+    const nextFile = event.target.files?.[0];
+    if (!replaceTargetId || !nextFile) {
+      event.currentTarget.value = "";
+      return;
+    }
+    const index = Number(replaceTargetId.replace("file-", ""));
+    setFiles((previous) =>
+      previous.map((file, fileIndex) => (fileIndex === index ? nextFile : file)),
+    );
+    setProgressByItemId((previous) => {
+      const next = { ...previous };
+      delete next[replaceTargetId];
+      return next;
+    });
+    setReplaceTargetId(null);
+    event.currentTarget.value = "";
+    setError(null);
+    setSuccess("已替換這份檔案；新的 item 會沿用同一列重新判斷狀態。");
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -430,17 +747,21 @@ export function TaskCreateForm({
     setError(null);
     setSuccess(null);
 
-    if (inputMode === "single_document_intake") {
-      if (files.length !== 1 || normalizedUrls.length > 0 || hasPastedContent) {
-        setSubmitting(false);
-        setError("單文件進件建立時需附上一份主文件，且不可同時混入網址或額外補充文字。");
-        return;
-      }
+    if (needsProblemStatement) {
+      setSubmitting(false);
+      setError("請至少補一句主問題，讓系統知道這批材料要幫你釐清什麼。");
+      return;
     }
 
-    if (inputMode === "multi_material_case" && materialUnitCount < 2) {
+    if (materialLimitExceeded) {
       setSubmitting(false);
-      setError("多材料案件建立時，至少要掛兩份材料，可混合檔案、網址或補充文字。");
+      setError(`單次建立案件最多只能帶入 ${MAX_INTAKE_MATERIAL_UNITS} 份材料；請先精簡，或建立後分批補件。`);
+      return;
+    }
+
+    if (blockingItems.length > 0) {
+      setSubmitting(false);
+      setError("目前有無法成功進主鏈的材料；請先移除或修正，再建立案件。");
       return;
     }
 
@@ -494,20 +815,32 @@ export function TaskCreateForm({
     };
 
     try {
-      const task = await createTask(payload);
-      if (files.length > 0) {
-        await uploadTaskFiles(task.id, files);
+      const task = createdTask ?? (await createTask(payload));
+      setCreatedTask(task);
+
+      const itemsToProcess = previewItems.filter((item) => !previewItemBlocksSubmit(item));
+      let failedCount = 0;
+      const resolvedItemIds: string[] = [];
+
+      for (const item of itemsToProcess) {
+        const progress = await processPreviewItem(task.id, item);
+        if (progress.phase === "failed") {
+          failedCount += 1;
+        } else {
+          resolvedItemIds.push(item.id);
+        }
       }
 
-      if (normalizedUrls.length > 0 || hasPastedContent) {
-        await ingestTaskSources(task.id, {
-          urls: normalizedUrls,
-          pasted_text: pastedContent,
-          pasted_title: pastedContent.trim() ? "手動貼上內容" : undefined,
-        });
+      dropResolvedPreviewItems(resolvedItemIds);
+
+      if (failedCount > 0) {
+        setSuccess(
+          `案件世界已建立，但目前仍有 ${failedCount} 份材料待補救。你可以先逐項重試 / 替換，或直接打開案件工作台續處理。`,
+        );
+        return;
       }
 
-      setSuccess("案件世界已先建立，接下來會直接回到案件工作台；task 會作為同一個世界裡的 work slice 持續推進。");
+      setSuccess("案件世界已先建立，所有材料也已逐項處理完成；接下來會直接回到案件工作台。");
       onCreated(task);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "建立任務失敗。");
@@ -520,9 +853,9 @@ export function TaskCreateForm({
     <section className="panel">
       <div className="panel-header">
         <div>
-          <h2 className="panel-title">建立任務</h2>
+          <h2 className="panel-title">統一進件入口</h2>
           <p className="panel-copy">
-            先把你真正想判斷的問題寫下來，Infinite Pro 會先編譯案件世界，再把這輪工作掛成可推進的 work slice。
+            先說明你要釐清的問題，再視需要補材料。系統會自動判讀這次是 sparse inquiry、單材料起手，還是 multi-source case，並統一落到同一條 canonical intake pipeline。
           </p>
         </div>
       </div>
@@ -530,50 +863,18 @@ export function TaskCreateForm({
       <form className="form-grid" onSubmit={handleSubmit}>
         <section className="intake-section">
           <div className="section-heading">
-            <h3>進件入口</h3>
-            <p>這三種只是進入同一條 canonical intake pipeline 的不同入口；系統會先形成案件世界，再在其中開出第一個 task work slice。</p>
-          </div>
-
-          <div className="page-tabs" role="tablist" aria-label="新案件進件入口">
-            {INPUT_MODE_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                className={`page-tab${inputMode === option.value ? " page-tab-active" : ""}`}
-                type="button"
-                onClick={() => {
-                  setInputMode(option.value);
-                  setContinuityMode((current) =>
-                    current === defaultContinuityModeForInputMode(inputMode)
-                      ? defaultContinuityModeForInputMode(option.value)
-                      : current,
-                  );
-                  setWritebackDepth((current) =>
-                    current === defaultWritebackDepthForInputMode(inputMode)
-                      ? defaultWritebackDepthForInputMode(option.value)
-                      : current,
-                  );
-                  if (option.value === "multi_material_case") {
-                    setShowAdvanced(true);
-                  }
-                }}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="setting-note-card">
-            <h3>{selectedInputMode.label}</h3>
-            <p className="content-block">{selectedInputMode.description}</p>
-            <div className="meta-row" style={{ marginTop: "12px" }}>
-              <span>{inputModeGuidance.requirement}</span>
-            </div>
+            <h3>統一進件入口</h3>
+            <p>這裡只有一個可見 intake surface。系統會根據主問題與材料組成，自動判讀這次是 sparse inquiry、單材料起手，還是 multi-source case。</p>
           </div>
 
           <div className="summary-grid">
             <div className="section-card">
-              <h4>建立要求</h4>
-              <p className="content-block">{inputModeGuidance.requirement}</p>
+              <h4>系統目前判讀</h4>
+              <p className="content-block">
+                {needsProblemStatement
+                  ? "還缺一句主問題；請先說明你想釐清什麼，再建立案件。"
+                  : `${selectedInputMode.label}｜${inputModeGuidance.requirement}`}
+              </p>
             </div>
             <div className="section-card">
               <h4>工作流節奏</h4>
@@ -581,7 +882,9 @@ export function TaskCreateForm({
             </div>
             <div className="section-card">
               <h4>材料規則</h4>
-              <p className="content-block">{inputModeGuidance.materialHint}</p>
+              <p className="content-block">
+                {inputModeGuidance.materialHint} 同一批最多 {MAX_INTAKE_MATERIAL_UNITS} 份材料，之後仍可分批補件。
+              </p>
             </div>
             <div className="section-card">
               <h4>案件連續性</h4>
@@ -595,12 +898,8 @@ export function TaskCreateForm({
 
         <section className="intake-section">
           <div className="section-heading">
-            <h3>從問題開始</h3>
-            <p>
-              {inputMode === "one_line_inquiry"
-                ? "先用一句話描述你想判斷的問題，系統會自動生成任務名稱與工作流程。"
-                : "先把這次要判斷的核心問題定清楚，再補上文件、網址或多份來源。"}
-            </p>
+            <h3>主問題</h3>
+            <p>你現在要釐清什麼問題？請先描述你的疑問、案件或希望分析的事情，不要求你先有材料。</p>
           </div>
 
           <div className="field">
@@ -608,28 +907,21 @@ export function TaskCreateForm({
             <textarea
               id="task-description"
               value={description}
-              onChange={(event) => setDescription(event.target.value)}
-              placeholder="例如：我想評估做一個幣圈數據工具是否值得投入"
-              required
+              onChange={(event) => {
+                setDescription(event.target.value);
+                setError(null);
+              }}
+              placeholder="例如：我想釐清這份提案是否值得繼續投資、目前最大風險在哪裡、下一步應該先做什麼"
             />
             <small>系統會自動用你的問題生成任務名稱，並先用最合適的分析流程啟動。</small>
           </div>
-
-          <div className="button-row" style={{ justifyContent: "flex-start", marginTop: "12px" }}>
-            <button className="button-primary" type="submit" disabled={submitting}>
-              {submitting ? "建立案件中..." : inputModeGuidance.submitLabel}
-            </button>
-          </div>
-
-          {error ? <p className="error-text">{error}</p> : null}
-          {success ? <p className="success-text">{success}</p> : null}
         </section>
 
         <section className="intake-section">
           <div className="section-heading">
-            <h3 style={{ fontSize: "1rem", marginBottom: "6px" }}>（選填）補充資料</h3>
+            <h3 style={{ fontSize: "1rem", marginBottom: "6px" }}>統一材料區</h3>
             <p style={{ marginTop: 0 }}>
-              正式支援：MD、TXT、DOCX、XLSX、CSV、text-based PDF、URL、補充文字。有限支援：JPG / JPEG、PNG、WEBP、掃描型 PDF 目前只建立 metadata / reference，不預設 OCR。
+              同一個區域可同時接收檔案、URL 與補充文字。正式支援：MD、TXT、DOCX、XLSX、CSV、text-based PDF、URL、補充文字。有限支援：JPG / JPEG、PNG、WEBP、掃描型 PDF 目前只建立 metadata / reference，不預設 OCR。
             </p>
           </div>
 
@@ -638,16 +930,16 @@ export function TaskCreateForm({
             <textarea
               id="source-urls"
               value={urlsText}
-              onChange={(event) => setUrlsText(event.target.value)}
+              onChange={(event) => {
+                setUrlsText(event.target.value);
+                setProgressByItemId({});
+                setError(null);
+                setSuccess(null);
+              }}
+              ref={urlFieldRef}
               placeholder={"每行一個網址，例如：\nhttps://example.com/article\nhttps://docs.google.com/document/d/..."}
             />
-            <small>
-              {inputMode === "single_document_intake"
-                ? "單文件進件建立時不接受網址；若後續需要補件，請先開案後再到案件世界追加。"
-                : inputMode === "multi_material_case"
-                  ? "可一次整理多個來源網址，適合把外部研究、客戶文件與背景材料一起帶進來。"
-                  : "支援網頁、新聞、部落格、PDF 網址與 Google Docs。"}
-            </small>
+            <small>每個 URL 會算 1 份材料，可和檔案或補充文字混合成同一個案件起手。</small>
           </div>
 
           <div className="field">
@@ -657,15 +949,24 @@ export function TaskCreateForm({
               type="file"
               multiple
               accept=".md,.txt,.docx,.xlsx,.csv,.pdf,.jpg,.jpeg,.png,.webp,text/plain,text/markdown,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/jpeg,image/png,image/webp"
-              onChange={(event) => setFiles(Array.from(event.target.files ?? []))}
+              onChange={(event) => {
+                setFiles((previous) =>
+                  appendSelectedFiles(previous, Array.from(event.target.files ?? [])),
+                );
+                setProgressByItemId({});
+                setError(null);
+                setSuccess(null);
+                event.currentTarget.value = "";
+              }}
             />
-            <small>
-              {inputMode === "single_document_intake"
-                ? "單文件進件會優先把這份主文件整理成案件工作底稿，建立時請只附上一份檔案。"
-                : inputMode === "multi_material_case"
-                  ? "多材料案件可同時掛多份檔案，之後也能持續補件。"
-                  : "若你手上已有檔案，也可一開始就一起帶進案件世界。"}
-            </small>
+            <input
+              ref={fileReplaceInputRef}
+              type="file"
+              accept=".md,.txt,.docx,.xlsx,.csv,.pdf,.jpg,.jpeg,.png,.webp,text/plain,text/markdown,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/jpeg,image/png,image/webp"
+              style={{ display: "none" }}
+              onChange={handleReplaceFileSelection}
+            />
+            <small>檔案與 URL / 補充文字一起共用同一個 10 份上限；若超過，請先建立案件後再分批補件。</small>
           </div>
 
           <div className="field">
@@ -673,30 +974,70 @@ export function TaskCreateForm({
             <textarea
               id="source-paste"
               value={pastedContent}
-              onChange={(event) => setPastedContent(event.target.value)}
+              onChange={(event) => {
+                setPastedContent(event.target.value);
+                setProgressByItemId({});
+                setError(null);
+                setSuccess(null);
+              }}
+              ref={pastedTextFieldRef}
               placeholder="直接貼上會議摘要、研究摘錄、內部筆記或任何可供分析的原始內容"
             />
-            <small>
-              {inputMode === "single_document_intake"
-                ? "單文件進件建立時不混用補充文字；請先用主文件開案，之後再進案件世界補件。"
-                : "補充文字會被當成正式 source material 掛回同一個案件。"}
-            </small>
+            <small>補充文字會算 1 份材料，並作為正式 source material 掛回同一個案件。</small>
+          </div>
+
+          <div className="field">
+            <label>目前待送出的材料</label>
+            <IntakeMaterialPreviewList
+              items={previewItems}
+              progressByItemId={progressByItemId}
+              keepAsReferenceByItemId={keepAsReferenceByItemId}
+              onRemove={(item) => {
+                handleRemovePreviewItem(item.id);
+                setError(null);
+                setSuccess(null);
+              }}
+              onRetry={createdTask ? retryPreviewItem : undefined}
+              onReplace={replacePreviewItem}
+              onKeepAsReference={toggleKeepAsReference}
+              emptyText="你可以先只輸入一句問題；如果要帶材料，這裡會逐項列出檔案、URL 與補充文字。"
+            />
+            <small>每一份材料都會逐項顯示限制、影響、blocking 與下一步動作；若送出後有 retryable failure，也可直接在 item 上重試。</small>
           </div>
 
           <div className="summary-grid">
             <div className="section-card">
               <h4>目前材料數</h4>
-              <p className="content-block">{materialUnitCount} 個材料單位</p>
+              <p className="content-block">
+                {materialUnitCount} / {MAX_INTAKE_MATERIAL_UNITS} 份
+              </p>
             </div>
             <div className="section-card">
-              <h4>原始檔保留</h4>
-              <p className="content-block">原始進件檔預設短期保存；正式 artifact 保留較久，但 publish / audit record 不會跟著 raw file 一起消失。</p>
+              <h4>材料組成</h4>
+              <p className="content-block">
+                {files.length} 份檔案 / {normalizedUrls.length} 個 URL / {hasPastedContent ? "1" : "0"} 段補充文字
+              </p>
             </div>
             <div className="section-card">
               <h4>建立後可做什麼</h4>
               <p className="content-block">完成後會直接進入案件工作台，後續可在來源與證據工作面補檔、補網址、補文字，不會中斷同一案件脈絡。</p>
             </div>
+            <div className="section-card">
+              <h4>原始檔保留</h4>
+              <p className="content-block">原始進件檔預設短期保存；正式 artifact 保留較久，但 publish / audit record 不會跟著 raw file 一起消失。</p>
+            </div>
           </div>
+
+          {materialLimitExceeded ? (
+            <p className="error-text">
+              單次最多只能帶入 {MAX_INTAKE_MATERIAL_UNITS} 份材料；請先精簡，或建立後再分批補件。
+            </p>
+          ) : null}
+          {!materialLimitExceeded && blockingItems.length > 0 ? (
+            <p className="error-text">
+              目前有 {blockingItems.length} 份材料無法成功進主鏈；請先移除或修正，再建立案件。
+            </p>
+          ) : null}
 
           <div className="field">
             <label htmlFor="external-data-strategy">需要系統幫你補充資料嗎？</label>
@@ -722,6 +1063,36 @@ export function TaskCreateForm({
             </small>
           </div>
         </section>
+
+        <div className="button-row" style={{ justifyContent: "flex-start" }}>
+          <button
+            className="button-primary"
+            type="submit"
+            disabled={submitting || materialLimitExceeded || blockingItems.length > 0}
+          >
+            {submitting
+              ? createdTask
+                ? "續處理材料中..."
+                : "建立案件中..."
+              : createdTask
+                ? "續處理剩餘材料"
+                : inputModeGuidance.submitLabel}
+          </button>
+        </div>
+
+        {error ? <p className="error-text">{error}</p> : null}
+        {success ? <p className="success-text">{success}</p> : null}
+        {createdTask ? (
+          <div className="button-row" style={{ justifyContent: "flex-start" }}>
+            <button
+              className="button-secondary"
+              type="button"
+              onClick={() => onCreated(createdTask)}
+            >
+              打開已建立的案件工作台
+            </button>
+          </div>
+        ) : null}
 
         <section className="intake-section">
           <div className="panel-header">
@@ -768,9 +1139,10 @@ export function TaskCreateForm({
                 <select
                   id="continuity-mode"
                   value={continuityMode}
-                  onChange={(event) =>
-                    setContinuityMode(event.target.value as EngagementContinuityMode)
-                  }
+                  onChange={(event) => {
+                    setContinuityMode(event.target.value as EngagementContinuityMode);
+                    setContinuityManuallyTouched(true);
+                  }}
                 >
                   {CONTINUITY_MODE_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -792,9 +1164,10 @@ export function TaskCreateForm({
                 <select
                   id="writeback-depth"
                   value={writebackDepth}
-                  onChange={(event) =>
-                    setWritebackDepth(event.target.value as WritebackDepth)
-                  }
+                  onChange={(event) => {
+                    setWritebackDepth(event.target.value as WritebackDepth);
+                    setWritebackManuallyTouched(true);
+                  }}
                 >
                   {WRITEBACK_DEPTH_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
