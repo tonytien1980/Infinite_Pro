@@ -117,12 +117,12 @@ const CONTINUITY_MODE_OPTIONS: Array<{
   {
     value: "one_off",
     label: "單次案件",
-    description: "適合正式結案型案件：保留最小 history、evidence basis 與 deliverable lineage，不強迫持續追蹤。",
+    description: "適合正式結案型案件：保留最小歷史、證據基礎與交付物脈絡，不強迫持續追蹤。",
   },
   {
     value: "follow_up",
-    label: "可追蹤 follow-up",
-    description: "適合輕量後續案件：保留 decision checkpoints 與 milestone 更新，但不要求完整 action-outcome loop。",
+    label: "可追蹤後續案件",
+    description: "適合輕量後續案件：保留決策檢查點與里程碑更新，但不要求完整的行動－結果閉環。",
   },
   {
     value: "continuous",
@@ -139,17 +139,17 @@ const WRITEBACK_DEPTH_OPTIONS: Array<{
   {
     value: "minimal",
     label: "最小寫回",
-    description: "保留 history、evidence basis 與 deliverable lineage，適合 one_off 正式結案。",
+    description: "保留歷史、證據基礎與交付物脈絡，適合單次案件正式結案。",
   },
   {
     value: "milestone",
     label: "里程碑寫回",
-    description: "在最小寫回上再保留 decision checkpoints 與 milestone 節點，適合 follow_up。",
+    description: "在最小寫回上再保留決策檢查點與里程碑節點，適合後續案件。",
   },
   {
     value: "full",
     label: "完整閉環寫回",
-    description: "會追蹤 decision、action execution 與 outcome records，適合 continuous。",
+    description: "會追蹤決策、行動執行與結果紀錄，適合持續追蹤案件。",
   },
 ];
 
@@ -1176,12 +1176,12 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
           ) : null}
 
           {materialLimitExceeded ? (
-            <p className="error-text">
+            <p className="error-text" role="alert" aria-live="assertive">
               單次最多只能帶入 {MAX_INTAKE_MATERIAL_UNITS} 份材料；請先精簡，或建立後再分批補件。
             </p>
           ) : null}
           {!materialLimitExceeded && blockingItems.length > 0 ? (
-            <p className="error-text">
+            <p className="error-text" role="alert" aria-live="assertive">
               目前有 {blockingItems.length} 份材料無法成功進主鏈；請先移除或修正，再建立案件。
             </p>
           ) : null}
@@ -1227,8 +1227,16 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
           </button>
         </div>
 
-        {error ? <p className="error-text">{error}</p> : null}
-        {success ? <p className="success-text">{success}</p> : null}
+        {error ? (
+          <p className="error-text" role="alert" aria-live="assertive">
+            {error}
+          </p>
+        ) : null}
+        {success ? (
+          <p className="success-text" role="status" aria-live="polite">
+            {success}
+          </p>
+        ) : null}
         {createdTask ? (
           <div className="button-row" style={{ justifyContent: "flex-start" }}>
             <button

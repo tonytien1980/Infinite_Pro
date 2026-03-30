@@ -27,6 +27,7 @@ export type TaskType =
   | "document_restructuring"
   | "complex_convergence";
 export type HomepageDisplayPreference = "matters" | "deliverables" | "evidence";
+export type ThemePreference = "light" | "dark" | "system";
 export type DensityPreference = "standard" | "compact";
 export type DeliverableSortPreference =
   | "updated_desc"
@@ -45,6 +46,7 @@ export type ProviderValidationStatus =
 
 export interface WorkbenchSettings {
   interfaceLanguage: "zh-Hant" | "en";
+  themePreference: ThemePreference;
   homepageDisplayPreference: HomepageDisplayPreference;
   historyDefaultPageSize: number;
   showRecentActivity: boolean;

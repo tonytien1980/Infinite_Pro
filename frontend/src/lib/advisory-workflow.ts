@@ -20,11 +20,13 @@ import {
   type WorkflowKey,
 } from "@/lib/workflow-modes";
 import {
+  labelForAgentName,
   labelForDeliverableClass,
   labelForDeliverableType,
   labelForDeliverableWorkspaceStatus,
   labelForEvidenceType,
   labelForInputEntryMode,
+  labelForPackName,
   labelForPresenceState,
   labelForSourceType,
 } from "@/lib/ui-labels";
@@ -1651,13 +1653,13 @@ export function buildTaskListWorkspaceSummary(task: TaskListItem): TaskListWorks
     packSummary:
       task.pack_summary?.trim() ||
       (task.selected_pack_names.length > 0
-        ? `模組包：${joinNaturalList(task.selected_pack_names.slice(0, 3))}`
+        ? `模組包：${joinNaturalList(task.selected_pack_names.slice(0, 3).map((item) => labelForPackName(item)))}`
         : "目前尚未選到模組包"),
     agentSummary:
       task.agent_summary?.trim() ||
       (task.selected_agent_names.length > 0
-        ? `代理：${joinNaturalList(task.selected_agent_names.slice(0, 3))}`
-        : "目前仍以 Host 的最小協調脈絡為主"),
+        ? `代理：${joinNaturalList(task.selected_agent_names.slice(0, 3).map((item) => labelForAgentName(item)))}`
+        : "目前仍以主控代理的最小協調脈絡為主"),
   };
 }
 
@@ -1675,11 +1677,11 @@ export function buildMatterWorkspaceCard(
     activeWork: matter.active_work_summary,
     packSummary:
       matter.selected_pack_names.length > 0
-        ? `模組包：${joinNaturalList(matter.selected_pack_names.slice(0, 4))}`
+        ? `模組包：${joinNaturalList(matter.selected_pack_names.slice(0, 4).map((item) => labelForPackName(item)))}`
         : "目前尚未形成可顯示的模組包脈絡。",
     agentSummary:
       matter.selected_agent_names.length > 0
-        ? `代理：${joinNaturalList(matter.selected_agent_names.slice(0, 4))}`
+        ? `代理：${joinNaturalList(matter.selected_agent_names.slice(0, 4).map((item) => labelForAgentName(item)))}`
         : "目前尚未形成可顯示的代理脈絡。",
     counts: [
       `${matter.total_task_count} 筆工作紀錄`,

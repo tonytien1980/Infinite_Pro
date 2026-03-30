@@ -61,18 +61,18 @@ import { WorkspaceSectionGuide } from "@/components/workspace-section-guide";
 function buildRunMeta(task: TaskAggregate) {
   if (task.continuation_surface?.workflow_layer === "checkpoint") {
     return {
-      title: "更新這輪 follow-up 分析",
+      title: "更新這輪後續分析",
       copy:
-        "這筆工作屬於輕量 follow-up / checkpoint 鏈。先刷新這輪判斷，再決定要不要把 milestone checkpoint 寫回案件世界。",
-      buttonIdle: "執行 follow-up 分析",
-      buttonRunning: "follow-up 分析執行中...",
+        "這筆工作屬於輕量後續／檢查點鏈。先刷新這輪判斷，再決定要不要把里程碑檢查點寫回案件世界。",
+      buttonIdle: "執行後續分析",
+      buttonRunning: "後續分析執行中...",
     };
   }
   if (task.continuation_surface?.workflow_layer === "progression") {
     return {
       title: "刷新這輪持續推進分析",
       copy:
-        "這筆工作屬於 continuous progression 鏈。先刷新判斷與交付結果，再回到案件工作面記錄進度與 outcome。",
+        "這筆工作屬於持續推進鏈。先刷新判斷與交付結果，再回到案件工作面記錄進度與結果。",
       buttonIdle: "執行持續推進分析",
       buttonRunning: "持續推進分析執行中...",
     };
@@ -81,8 +81,8 @@ function buildRunMeta(task: TaskAggregate) {
     title: "啟動這輪分析",
     copy:
       task.mode === "multi_agent"
-        ? "Host 會沿用目前的多代理工作模式，把各視角收斂進同一份決策結果。"
-        : "Host 會沿用目前的專家工作模式，把這輪分析寫回同一份決策工作台。",
+        ? "主控代理會沿用目前的多代理工作模式，把各視角收斂進同一份決策結果。"
+        : "主控代理會沿用目前的專家工作模式，把這輪分析寫回同一份決策工作台。",
     buttonIdle: "執行分析",
     buttonRunning: "分析執行中...",
   };
@@ -458,21 +458,21 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
       caseWorldState.engagement_id &&
       caseWorldState.workstream_id &&
       caseWorldState.decision_context_id
-      ? "這筆 task 只是案件世界裡的一個 work slice；核心 Client / Engagement / Workstream / DecisionContext 已掛在 matter/world spine，task reference 只作相容層入口，Host 與主要讀取路徑都優先回到這條 spine。"
-      : "案件世界已建立，但底層 identity 仍在 bridge sync。"
-    : "目前尚未形成正式案件世界 authority。";
+      ? "這筆工作只是案件世界裡的一個工作切片；核心客戶 / 委託 / 工作流 / 決策脈絡已掛在案件世界主脈絡上，工作參照只作相容層入口，主控代理與主要讀取路徑都優先回到這條主脈絡。"
+      : "案件世界已建立，但底層身份仍在橋接同步。"
+    : "目前尚未形成正式案件世界權威。";
   const sharedContinuitySummary = task
     ? task.uploads.some((item) => item.continuity_scope === "world_shared") ||
       task.source_materials.some((item) => item.continuity_scope === "world_shared") ||
       task.evidence.some((item) => item.continuity_scope === "world_shared")
       ? sharedParticipationCount > 0
-        ? `這筆工作已可回看同一案件世界下共享的 source / material / evidence chains；目前至少有 ${sharedParticipationCount} 條 shared chains 透過正式 participation mapping 被多個 work slices 共同使用。`
-        : "這筆工作已可回看同一案件世界下共享的 source / material / evidence chains，不必把補件再拆成孤立流程。"
-      : "目前這筆工作還沒有顯示可跨 slice 共用的 source / material / evidence chains。"
-    : "目前這筆工作還沒有顯示可跨 slice 共用的 source / material / evidence chains。";
+        ? `這筆工作已可回看同一案件世界下共享的來源／材料／證據鏈；目前至少有 ${sharedParticipationCount} 條共享鏈透過正式參與映射被多個工作切片共同使用。`
+        : "這筆工作已可回看同一案件世界下共享的來源／材料／證據鏈，不必把補件再拆成孤立流程。"
+      : "目前這筆工作還沒有顯示可跨工作切片共用的來源／材料／證據鏈。"
+    : "目前這筆工作還沒有顯示可跨工作切片共用的來源／材料／證據鏈。";
   const localOverlaySummary = sliceDecisionContext
-    ? `目前這筆 task 仍保留 ${sliceOverlayFieldCount} 項 local decision delta，供在途工作與相容層使用；正式 core/context authority 與主讀取路徑已優先回到案件世界。`
-    : "目前沒有額外的 slice-local decision overlay。";
+    ? `目前這筆工作仍保留 ${sliceOverlayFieldCount} 項本地決策差異，供在途工作與相容層使用；正式核心／脈絡權威與主讀取路徑已優先回到案件世界。`
+    : "目前沒有額外的本地決策覆層。";
   const sortedRecommendations = task?.recommendations
     ? [...task.recommendations].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
@@ -510,7 +510,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
   );
   const taskActionTitle = latestDeliverable
     ? continuationSurface?.workflow_layer === "checkpoint"
-      ? "這筆工作屬於 follow-up checkpoint 鏈"
+      ? "這筆工作屬於後續檢查點鏈"
       : continuationSurface?.workflow_layer === "progression"
         ? "這筆工作屬於持續推進鏈"
         : "這筆工作已有可回看的正式交付物"
@@ -519,14 +519,14 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
       : "這筆工作可以直接執行分析";
   const taskActionSummary = latestDeliverable
     ? continuationSurface?.workflow_layer === "checkpoint"
-      ? "你現在可以回看最新交付物、補件後重跑，或回到案件工作面把這輪結果寫成 checkpoint。"
+      ? "你現在可以回看最新交付物、補件後重跑，或回到案件工作面把這輪結果寫成檢查點。"
       : continuationSurface?.workflow_layer === "progression"
         ? progressionLane?.what_changed[0]
-          ? `${progressionLane.what_changed[0]} 你現在可以回看最新交付物、補件後重跑，或回到案件工作面更新 progression。`
-          : "你現在可以回看最新交付物、補件後重跑，或回到案件工作面記錄 outcome / progression。"
+          ? `${progressionLane.what_changed[0]} 你現在可以回看最新交付物、補件後重跑，或回到案件工作面更新推進狀態。`
+          : "你現在可以回看最新交付物、補件後重跑，或回到案件工作面記錄結果／推進狀態。"
         : "你現在可以直接打開交付物工作面，也可以先回看來源 / 證據與執行框架，再決定要不要重跑。"
     : hasThinTaskEvidence
-      ? "目前資料仍偏薄，但不用卡住。你可以先補來源與證據，或直接讓 Host 先產出一版可回看的工作成果。"
+      ? "目前資料仍偏薄，但不用卡住。你可以先補來源與證據，或直接讓主控代理先產出一版可回看的工作成果。"
       : "這筆工作已具備基本資料厚度，現在最有效率的做法是直接執行分析，再回到交付物工作面整理版本。";
   const taskActionChecklist = [
     "先確認上方的原始問題與決策問題是否對準你現在真正要判斷的事。",
@@ -535,9 +535,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
       : "目前資料已達基本可運作狀態，執行分析會比繼續空看頁面更有幫助。",
     latestDeliverable
       ? continuationSurface?.workflow_layer === "checkpoint"
-        ? `最新結果已整理成「${latestDeliverable.title}」，接下來更像是 checkpoint 更新，不是完整 continuous loop。`
+        ? `最新結果已整理成「${latestDeliverable.title}」，接下來更像是檢查點更新，不是完整持續推進閉環。`
         : continuationSurface?.workflow_layer === "progression"
-          ? `最新結果已整理成「${latestDeliverable.title}」，接下來更像是在延續 progression；${progressionLane?.next_progression_actions[0] || "可回案件工作面補記 progression / outcome。"}`
+          ? `最新結果已整理成「${latestDeliverable.title}」，接下來更像是在延續推進狀態；${progressionLane?.next_progression_actions[0] || "可回案件工作面補記推進狀態／結果。"}`
           : `最新結果已整理成「${latestDeliverable.title}」，可以直接進入正式交付物工作面。`
       : "真正會產出結果的是這頁的執行分析，不是只停在閱讀摘要。",
   ];
@@ -634,9 +634,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
             {followUpLane ? (
               <div className="summary-grid" style={{ marginTop: "16px" }}>
                 <div className="section-card">
-                  <h4>上一個 checkpoint</h4>
+                  <h4>上一個檢查點</h4>
                   <p className="content-block">
-                    {followUpLane.previous_checkpoint?.summary || "目前沒有更早的 checkpoint 可比較。"}
+                    {followUpLane.previous_checkpoint?.summary || "目前沒有更早的檢查點可比較。"}
                   </p>
                 </div>
                 <div className="section-card">
@@ -687,8 +687,8 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
           />
 
           <DisclosurePanel
-            title="Case world draft 與寫回策略"
-            description="只有在你要檢查 Host 目前怎麼理解這筆工作、這個 task 在案件世界裡屬於哪個 work slice、以及 world authority 現在掛在哪裡時，再展開這層。"
+            title="案件世界草稿與寫回策略"
+            description="只有在你要檢查主控代理目前怎麼理解這筆工作、這個工作在案件世界裡屬於哪個工作切片、以及世界權威目前掛在哪裡時，再展開這層。"
           >
             <div className="summary-grid">
               <div className="section-card">
@@ -699,7 +699,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                 </p>
               </div>
               <div className="section-card">
-                <h4>World-first 狀態</h4>
+                <h4>世界優先狀態</h4>
                 <p className="content-block">
                   {caseWorldState
                     ? `${caseWorldState.compiler_status}｜${task.world_work_slice_summary}`
@@ -707,7 +707,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                 </p>
               </div>
               <div className="section-card">
-                <h4>世界身份 authority</h4>
+                <h4>世界身份權威</h4>
                 <p className="content-block">{worldAuthoritySummary}</p>
               </div>
               <div className="section-card">
@@ -719,21 +719,21 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                           latestCaseWorldDraft?.canonical_intake_summary.problem_statement ||
                           "未顯示")
                       }`
-                    : "目前尚未形成 case world draft。"}
+                    : "目前尚未形成案件世界草稿。"}
                 </p>
               </div>
               <div className="section-card">
-                <h4>最近 writeback</h4>
+                <h4>最近寫回</h4>
                 <p className="content-block">
-                  {task.decision_records.length} 筆 decision records / {task.outcome_records.length} 筆 outcome records
+                  {task.decision_records.length} 筆決策紀錄 / {task.outcome_records.length} 筆結果紀錄
                 </p>
               </div>
               <div className="section-card">
-                <h4>research provenance</h4>
+                <h4>研究來源脈絡</h4>
                 <p className="content-block">
                   {task.research_runs.length > 0
-                    ? `已留存 ${task.research_runs.length} 筆 research runs。`
-                    : "目前沒有 research provenance。"}
+                    ? `已留存 ${task.research_runs.length} 筆研究執行紀錄。`
+                    : "目前沒有研究來源脈絡。"}
                 </p>
               </div>
               <div className="section-card">
@@ -741,7 +741,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                 <p className="content-block">{sharedContinuitySummary}</p>
               </div>
               <div className="section-card">
-                <h4>Local overlay</h4>
+                <h4>本地覆層</h4>
                 <p className="content-block">{localOverlaySummary}</p>
               </div>
             </div>
@@ -749,72 +749,72 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                 {caseWorldState || latestCaseWorldDraft ? (
               <div className="detail-list" style={{ marginTop: "18px" }}>
                 <div className="detail-item">
-                  <h3>Facts</h3>
+                  <h3>已知事實</h3>
                   <ExpandableList
                     items={(caseWorldState?.facts ?? latestCaseWorldDraft?.facts ?? []).map(
                       (item) => `${item.title}：${item.detail}`,
                     )}
-                    emptyText="目前沒有額外 facts。"
+                    emptyText="目前沒有額外已知事實。"
                   />
                 </div>
                 <div className="detail-item">
-                  <h3>Assumptions</h3>
+                  <h3>假設</h3>
                   <ExpandableList
                     items={(caseWorldState?.assumptions ?? latestCaseWorldDraft?.assumptions ?? []).map(
                       (item) => `${item.title}：${item.detail}`,
                     )}
-                    emptyText="目前沒有額外 assumptions。"
+                    emptyText="目前沒有額外假設。"
                   />
                 </div>
                 <div className="detail-item">
-                  <h3>Evidence gaps</h3>
+                  <h3>證據缺口</h3>
                   <ExpandableList
                     items={openEvidenceGaps.map((item) => `${item.title}：${item.description}`)}
-                    emptyText="目前沒有高優先 evidence gaps。"
+                    emptyText="目前沒有高優先證據缺口。"
                   />
                 </div>
                 {sliceDecisionContext ? (
                   <div className="detail-item">
-                    <h3>Slice-local decision overlay</h3>
+                    <h3>工作切片在地決策覆層</h3>
                     <ExpandableList
                       items={[
                         sliceDecisionContext.judgment_to_make,
                         sliceDecisionContext.title,
                         sliceDecisionContext.summary,
-                        ...sliceDecisionContext.goals.map((item) => `Goal delta：${item}`),
-                        ...sliceDecisionContext.constraints.map((item) => `Constraint delta：${item}`),
-                        ...sliceDecisionContext.assumptions.map((item) => `Assumption delta：${item}`),
+                        ...sliceDecisionContext.goals.map((item) => `目標差異：${item}`),
+                        ...sliceDecisionContext.constraints.map((item) => `限制差異：${item}`),
+                        ...sliceDecisionContext.assumptions.map((item) => `假設差異：${item}`),
                       ].filter((item): item is string => Boolean(item))}
-                      emptyText="目前沒有額外的 slice-local overlay。"
+                      emptyText="目前沒有額外的工作切片覆層。"
                     />
                   </div>
                 ) : null}
                 {caseWorldState?.last_supplement_summary ? (
                   <div className="detail-item">
-                    <h3>最近 world update</h3>
+                    <h3>最近案件世界更新</h3>
                     <p className="content-block">
-                      follow-up 先更新了案件世界，再回到這個 work slice：{caseWorldState.last_supplement_summary}
+                      後續補件已先更新案件世界，再回到這個工作切片：{caseWorldState.last_supplement_summary}
                     </p>
                   </div>
                 ) : null}
                 <div className="detail-item">
-                  <h3>最近 decision / outcome</h3>
+                  <h3>最近決策 / 結果</h3>
                   <ExpandableList
                     items={[
-                      ...recentDecisionRecords.map((item) => `Decision：${item.decision_summary}`),
-                      ...recentOutcomeRecords.map((item) => `Outcome：${item.summary}`),
+                      ...recentDecisionRecords.map((item) => `決策：${item.decision_summary}`),
+                      ...recentOutcomeRecords.map((item) => `結果：${item.summary}`),
                     ]}
-                    emptyText="目前還沒有可回看的 writeback records。"
+                    emptyText="目前還沒有可回看的寫回紀錄。"
                   />
                 </div>
                 {followUpLane ? (
                   <div className="detail-item">
-                    <h3>這筆 follow-up 跟上一輪相比</h3>
+                    <h3>這筆後續工作和上一輪相比</h3>
                     <div className="summary-grid">
                       <div className="section-card">
                         <h4>最近更新</h4>
                         <p className="content-block">
-                          {followUpLane.latest_update?.summary || "尚未形成正式 checkpoint。"}
+                          {followUpLane.latest_update?.summary || "尚未形成正式檢查點。"}
                         </p>
                       </div>
                       <div className="section-card">
@@ -840,7 +840,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                               ))}
                           </ul>
                         ) : (
-                          <p className="empty-text">目前沒有額外的 follow-up 變化摘要。</p>
+                          <p className="empty-text">目前沒有額外的後續變化摘要。</p>
                         )}
                       </div>
                     </div>
@@ -848,16 +848,16 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                 ) : null}
                 {progressionLane ? (
                   <div className="detail-item">
-                    <h3>這筆 continuous progression 跟上一輪相比</h3>
+                    <h3>這筆持續推進工作和上一輪相比</h3>
                     <div className="summary-grid">
                       <div className="section-card">
-                        <h4>最新 progression</h4>
+                        <h4>最新推進狀態</h4>
                         <p className="content-block">
-                          {progressionLane.latest_progression?.summary || "目前還沒有 progression update。"}
+                          {progressionLane.latest_progression?.summary || "目前還沒有新的推進更新。"}
                         </p>
                       </div>
                       <div className="section-card">
-                        <h4>Action / outcome 變化</h4>
+                        <h4>行動／結果變化</h4>
                         <ul className="list-content">
                           {progressionLane.what_changed.map((item) => (
                             <li key={item}>{item}</li>
@@ -867,7 +867,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                       <div className="section-card">
                         <h4>下一步最建議做什麼</h4>
                         <p className="content-block">
-                          {progressionLane.next_progression_actions[0] || "回案件工作面更新 progression。"}
+                          {progressionLane.next_progression_actions[0] || "回案件工作面更新推進狀態。"}
                         </p>
                       </div>
                     </div>

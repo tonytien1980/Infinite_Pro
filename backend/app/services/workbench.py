@@ -23,6 +23,7 @@ def _get_or_create_preference_row(db: Session) -> models.WorkbenchPreference:
     row = models.WorkbenchPreference(
         profile_key=DEFAULT_WORKBENCH_PROFILE,
         interface_language=DEFAULT_WORKBENCH_PREFERENCES.interface_language,
+        theme_preference=DEFAULT_WORKBENCH_PREFERENCES.theme_preference,
         homepage_display_preference=DEFAULT_WORKBENCH_PREFERENCES.homepage_display_preference,
         history_default_page_size=DEFAULT_WORKBENCH_PREFERENCES.history_default_page_size,
         show_recent_activity=DEFAULT_WORKBENCH_PREFERENCES.show_recent_activity,
@@ -42,6 +43,7 @@ def _serialize_preferences(
 ) -> schemas.WorkbenchPreferenceResponse:
     return schemas.WorkbenchPreferenceResponse(
         interface_language=row.interface_language,  # type: ignore[arg-type]
+        theme_preference=row.theme_preference,  # type: ignore[arg-type]
         homepage_display_preference=row.homepage_display_preference,  # type: ignore[arg-type]
         history_default_page_size=row.history_default_page_size,
         show_recent_activity=row.show_recent_activity,
@@ -63,6 +65,7 @@ def update_workbench_preferences(
 ) -> schemas.WorkbenchPreferenceResponse:
     row = _get_or_create_preference_row(db)
     row.interface_language = payload.interface_language
+    row.theme_preference = payload.theme_preference
     row.homepage_display_preference = payload.homepage_display_preference
     row.history_default_page_size = payload.history_default_page_size
     row.show_recent_activity = payload.show_recent_activity

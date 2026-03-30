@@ -116,6 +116,36 @@ def test_health_endpoint(client: TestClient) -> None:
     assert response.json() == {"status": "ok"}
 
 
+def test_workbench_preferences_round_trip_theme_preference(client: TestClient) -> None:
+    initial = client.get("/api/v1/workbench/preferences")
+
+    assert initial.status_code == 200
+    assert initial.json()["theme_preference"] == "light"
+
+    update = client.put(
+        "/api/v1/workbench/preferences",
+        json={
+            "interface_language": "zh-Hant",
+            "theme_preference": "dark",
+            "homepage_display_preference": "matters",
+            "history_default_page_size": 20,
+            "show_recent_activity": True,
+            "show_quick_actions": True,
+            "show_system_trace": False,
+            "density": "standard",
+            "deliverable_sort_preference": "updated_desc",
+        },
+    )
+
+    assert update.status_code == 200
+    assert update.json()["theme_preference"] == "dark"
+
+    refreshed = client.get("/api/v1/workbench/preferences")
+
+    assert refreshed.status_code == 200
+    assert refreshed.json()["theme_preference"] == "dark"
+
+
 def test_task_creation_attaches_background_text_as_context_and_evidence(client: TestClient) -> None:
     response = client.post("/api/v1/tasks", json=create_task_payload())
 

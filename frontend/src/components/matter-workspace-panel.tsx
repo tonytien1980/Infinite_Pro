@@ -58,6 +58,24 @@ const MATTER_TABS: Array<{ key: MatterTab; label: string }> = [
   { key: "history", label: "工作紀錄" },
 ];
 
+const MATTER_TAB_PANEL_IDS: Record<MatterTab, string> = {
+  overview: "matter-tabpanel-overview",
+  decision: "matter-tabpanel-decision",
+  evidence: "matter-tabpanel-evidence",
+  deliverables: "matter-tabpanel-deliverables",
+  history: "matter-tabpanel-history",
+};
+
+function getNextMatterTabKey(current: MatterTab, direction: "next" | "previous") {
+  const currentIndex = MATTER_TABS.findIndex((tab) => tab.key === current);
+  if (currentIndex === -1) {
+    return MATTER_TABS[0].key;
+  }
+  const offset = direction === "next" ? 1 : -1;
+  const nextIndex = (currentIndex + offset + MATTER_TABS.length) % MATTER_TABS.length;
+  return MATTER_TABS[nextIndex].key;
+}
+
 function DisclosurePanel({
   id,
   title,
@@ -540,9 +558,52 @@ export function MatterWorkspacePanel({
     : "目前尚未形成正式案件世界 authority。";
   const sharedContinuitySummary = matter
     ? matter.summary.source_material_count > 0 || matter.summary.artifact_count > 0
-      ? `目前已有 ${matter.summary.source_material_count} 份 source materials、${matter.summary.artifact_count} 份 artifacts 可跨 task slices 回看。`
-      : "目前還沒有可跨 task slices 重訪的共享材料。"
+      ? `目前已有 ${matter.summary.source_material_count} 份來源材料、${matter.summary.artifact_count} 份工作物件可跨工作切片回看。`
+      : "目前還沒有可跨工作切片重訪的共享材料。"
     : "目前還沒有可顯示的共享材料連續性。";
+  const heroStrategySummary = continuityStrategySummary
+    ? `案件策略：${continuityStrategySummary}`
+    : "案件策略尚未完整建立。";
+  const heroStateSummary = followUpLane
+    ? `最新檢查點：${followUpLane.latest_update?.summary || "尚未形成正式檢查點。"}`
+    : progressionLane
+      ? `最新推進狀態：${progressionLane.latest_progression?.summary || "目前還沒有新的推進更新。"}`
+      : latestDeliverable
+        ? `最近交付物：${latestDeliverable.title}`
+        : focusTask
+          ? `焦點工作紀錄：${focusTask.title}`
+          : "目前還沒有焦點工作紀錄。";
+  const heroNextActionSummary = followUpLane?.next_follow_up_actions[0]
+    || progressionLane?.next_progression_actions[0]
+    || advanceGuide.primaryActionLabel
+    || "先確認這個案件頁面的主線是否已對準你現在真正要推進的判斷。";
+
+  function handleMatterTabKeyDown(
+    event: React.KeyboardEvent<HTMLButtonElement>,
+    currentKey: MatterTab,
+  ) {
+    let nextKey: MatterTab | null = null;
+
+    if (event.key === "ArrowRight") {
+      nextKey = getNextMatterTabKey(currentKey, "next");
+    } else if (event.key === "ArrowLeft") {
+      nextKey = getNextMatterTabKey(currentKey, "previous");
+    } else if (event.key === "Home") {
+      nextKey = MATTER_TABS[0].key;
+    } else if (event.key === "End") {
+      nextKey = MATTER_TABS[MATTER_TABS.length - 1].key;
+    }
+
+    if (!nextKey) {
+      return;
+    }
+
+    event.preventDefault();
+    setActiveTab(nextKey);
+    requestAnimationFrame(() => {
+      document.getElementById(`matter-tab-${nextKey}`)?.focus();
+    });
+  }
 
   async function handleAdvanceMatter() {
     if (latestDeliverable) {
@@ -601,7 +662,7 @@ export function MatterWorkspacePanel({
           : payloadAction === "reopen"
             ? "案件已重新開啟，可回到同一個案件世界續推。"
             : payloadAction === "checkpoint"
-              ? "Checkpoint 已寫回這個案件世界。"
+              ? "檢查點已寫回這個案件世界。"
               : "Outcome / 進度已寫回這個案件世界。",
       );
       setContinuationSummary("");
@@ -796,8 +857,16 @@ export function MatterWorkspacePanel({
         <span className="workspace-breadcrumb-current">{displayTitle || "案件工作面"}</span>
       </nav>
 
-      {loading ? <p className="status-text">正在載入案件工作台...</p> : null}
-      {error ? <p className="error-text">{error}</p> : null}
+      {loading ? (
+        <p className="status-text" role="status" aria-live="polite">
+          正在載入案件工作台...
+        </p>
+      ) : null}
+      {error ? (
+        <p className="error-text" role="alert" aria-live="assertive">
+          {error}
+        </p>
+      ) : null}
 
       {matter ? (
         <>
@@ -826,79 +895,21 @@ export function MatterWorkspacePanel({
                   <h4>{advanceGuide.title}</h4>
                   <p className="content-block">{advanceGuide.summary}</p>
                   <p className="muted-text" style={{ marginTop: "8px" }}>
-                    目前信號：{matter.summary.source_material_count} 份來源 / {evidenceCount} 則證據 / {matter.summary.active_task_count} 筆進行中工作
+                    {heroStrategySummary}｜{matter.summary.source_material_count} 份來源 / {evidenceCount} 則證據 / {matter.summary.active_task_count} 筆進行中工作
                   </p>
-                  {focusTask ? (
-                    <p className="muted-text" style={{ marginTop: "8px" }}>
-                      焦點工作紀錄：{focusTask.title}｜{labelForTaskStatus(focusTask.status)}
-                    </p>
-                  ) : null}
-                  <ul className="list-content" style={{ marginTop: "12px" }}>
-                    {advanceGuide.checklist.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
-                  {followUpLane ? (
-                    <div className="summary-grid" style={{ marginTop: "12px" }}>
-                      <div className="section-card">
-                        <h4>最近更新</h4>
-                        <p className="content-block">
-                          {followUpLane.latest_update?.summary || "目前還沒有正式 checkpoint。"}
-                        </p>
-                      </div>
-                      <div className="section-card">
-                        <h4>上一個 checkpoint</h4>
-                        <p className="content-block">
-                          {followUpLane.previous_checkpoint?.summary || "目前還沒有上一個 checkpoint 可比較。"}
-                        </p>
-                      </div>
+                  <div className="detail-list" style={{ marginTop: "12px" }}>
+                    <div className="detail-item">
+                      <h3>現在最重要的變化</h3>
+                      <p className="content-block">{heroStateSummary}</p>
                     </div>
-                  ) : null}
-                  {followUpLane?.what_changed.length ? (
-                    <div className="section-card" style={{ marginTop: "12px" }}>
-                      <h4>這次更新重點</h4>
-                      <ul className="list-content">
-                        {followUpLane.what_changed.map((item) => (
-                          <li key={item}>{item}</li>
-                        ))}
-                      </ul>
+                    <div className="detail-item">
+                      <h3>下一步最建議做什麼</h3>
+                      <p className="content-block">{heroNextActionSummary}</p>
                     </div>
-                  ) : null}
-                  {followUpLane ? (
-                    <div className="summary-grid" style={{ marginTop: "12px" }}>
-                      <div className="section-card">
-                        <h4>這次補件要補什麼</h4>
-                        <p className="content-block">
-                          {followUpLane.evidence_update_goal || "先補強這輪 follow-up 要更新的支撐鏈。"}
-                        </p>
-                      </div>
-                      <div className="section-card">
-                        <h4>補完後最建議做什麼</h4>
-                        <p className="content-block">
-                          {followUpLane.next_follow_up_actions[0] || "回案件工作面更新 checkpoint。"}
-                        </p>
-                      </div>
-                    </div>
-                  ) : null}
-                  {progressionLane ? (
-                    <div className="summary-grid" style={{ marginTop: "12px" }}>
-                      <div className="section-card">
-                        <h4>最新 progression state</h4>
-                        <p className="content-block">
-                          {progressionLane.latest_progression?.summary || "目前還沒有 progression update。"}
-                        </p>
-                      </div>
-                      <div className="section-card">
-                        <h4>上一個 progression snapshot</h4>
-                        <p className="content-block">
-                          {progressionLane.previous_progression?.summary || "目前還沒有更早的 progression snapshot。"}
-                        </p>
-                      </div>
-                    </div>
-                  ) : null}
+                  </div>
                   {continuationSurface?.primary_action?.action_id === "record_checkpoint" ? (
                     <div className="field" style={{ marginTop: "12px" }}>
-                      <label htmlFor="matter-checkpoint-note">這輪 checkpoint 要留下什麼？</label>
+                      <label htmlFor="matter-checkpoint-note">這輪檢查點要留下什麼？</label>
                       <textarea
                         id="matter-checkpoint-note"
                         value={continuationSummary}
@@ -906,7 +917,7 @@ export function MatterWorkspacePanel({
                         placeholder={
                           followUpLane?.latest_update?.summary
                             ? `例如：延續「${followUpLane.latest_update.summary.slice(0, 36)}...」，這輪主要更新哪些建議 / 風險 / 下一步。`
-                            : "例如：這輪只更新 milestone 判斷、風險變化與下一步建議，不需要完整 outcome loop。"
+                            : "例如：這輪只更新里程碑判斷、風險變化與下一步建議，不需要完整結果閉環。"
                         }
                       />
                     </div>
@@ -914,64 +925,18 @@ export function MatterWorkspacePanel({
                   {continuationSurface?.primary_action?.action_id === "record_outcome" ? (
                     <div className="detail-stack" style={{ marginTop: "12px" }}>
                       {progressionLane ? (
-                        <>
-                          <div className="section-card">
-                            <h4>這次最重要的 progression 變化</h4>
-                            <ul className="list-content">
-                              {progressionLane.what_changed.map((item) => (
-                                <li key={item}>{item}</li>
-                              ))}
-                            </ul>
-                          </div>
-                          <div className="summary-grid">
-                            <div className="section-card">
-                              <h4>建議採納狀態</h4>
-                              {progressionLane.recommendation_states.length > 0 ? (
-                                <ul className="list-content">
-                                  {progressionLane.recommendation_states.slice(0, 3).map((item) => (
-                                    <li key={`${item.state}-${item.title}`}>{item.title}：{item.summary}</li>
-                                  ))}
-                                </ul>
-                              ) : (
-                                <p className="empty-text">目前還沒有可顯示的建議採納摘要。</p>
-                              )}
-                            </div>
-                            <div className="section-card">
-                              <h4>目前 action 狀態</h4>
-                              {progressionLane.action_states.length > 0 ? (
-                                <ul className="list-content">
-                                  {progressionLane.action_states.slice(0, 3).map((item) => (
-                                    <li key={`${item.state}-${item.title}`}>{item.title}：{item.summary}</li>
-                                  ))}
-                                </ul>
-                              ) : (
-                                <p className="empty-text">目前還沒有可顯示的 action 狀態摘要。</p>
-                              )}
-                            </div>
-                            <div className="section-card">
-                              <h4>最新 outcome 訊號</h4>
-                              {progressionLane.outcome_signals.length > 0 ? (
-                                <ul className="list-content">
-                                  {progressionLane.outcome_signals.slice(0, 3).map((item) => (
-                                    <li key={item}>{item}</li>
-                                  ))}
-                                </ul>
-                              ) : (
-                                <p className="empty-text">目前還沒有新的 outcome 訊號摘要。</p>
-                              )}
-                            </div>
-                            <div className="section-card">
-                              <h4>下一步最建議做什麼</h4>
-                              <p className="content-block">
-                                {progressionLane.next_progression_actions[0] || "回案件工作面補一筆 progression update。"}
-                              </p>
-                            </div>
-                          </div>
-                        </>
+                        <div className="section-card">
+                          <h4>這輪推進提示</h4>
+                          <p className="content-block">
+                            {progressionLane.what_changed[0]
+                              || progressionLane.latest_progression?.summary
+                              || "先記錄這輪最重要的進度／結果變化。"}
+                          </p>
+                        </div>
                       ) : null}
                       <div className="form-grid">
                         <div className="field">
-                          <label htmlFor="matter-outcome-status">目前 action 狀態</label>
+                          <label htmlFor="matter-outcome-status">目前行動狀態</label>
                           <select
                             id="matter-outcome-status"
                             value={continuationActionStatus}
@@ -994,15 +959,15 @@ export function MatterWorkspacePanel({
                           </select>
                         </div>
                         <div className="field">
-                          <label htmlFor="matter-outcome-summary">這輪 progression / outcome 更新</label>
+                          <label htmlFor="matter-outcome-summary">這輪推進／結果更新</label>
                           <textarea
                             id="matter-outcome-summary"
                             value={continuationSummary}
                             onChange={(event) => setContinuationSummary(event.target.value)}
                             placeholder={
                               progressionLane?.latest_progression?.summary
-                                ? `例如：延續「${progressionLane.latest_progression.summary.slice(0, 40)}...」，這輪主要補了哪些進度訊號、阻塞點或新 outcome。`
-                                : "例如：action 已開始推進，但目前卡在哪裡；或 outcome 已出現新訊號，需要刷新 deliverable。"
+                                ? `例如：延續「${progressionLane.latest_progression.summary.slice(0, 40)}...」，這輪主要補了哪些進度訊號、阻塞點或新結果。`
+                                : "例如：行動已開始推進，但目前卡在哪裡；或結果已出現新訊號，需要刷新交付物。"
                             }
                           />
                         </div>
@@ -1062,6 +1027,8 @@ export function MatterWorkspacePanel({
                             : "muted-text"
                       }
                       style={{ marginTop: "12px" }}
+                      role={advanceTone === "error" ? "alert" : "status"}
+                      aria-live={advanceTone === "error" ? "assertive" : "polite"}
                     >
                       {advanceMessage}
                     </p>
@@ -1077,6 +1044,12 @@ export function MatterWorkspacePanel({
                 key={tab.key}
                 className={`page-tab${activeTab === tab.key ? " page-tab-active" : ""}`}
                 type="button"
+                role="tab"
+                id={`matter-tab-${tab.key}`}
+                aria-selected={activeTab === tab.key}
+                aria-controls={MATTER_TAB_PANEL_IDS[tab.key]}
+                tabIndex={activeTab === tab.key ? 0 : -1}
+                onKeyDown={(event) => handleMatterTabKeyDown(event, tab.key)}
                 onClick={() => setActiveTab(tab.key)}
               >
                 {tab.label}
@@ -1085,7 +1058,12 @@ export function MatterWorkspacePanel({
           </div>
 
           {activeTab === "overview" ? (
-            <div className="detail-stack">
+            <div
+              className="detail-stack"
+              role="tabpanel"
+              id={MATTER_TAB_PANEL_IDS.overview}
+              aria-labelledby="matter-tab-overview"
+            >
               <section className="panel">
                 <div className="panel-header">
                   <div>
@@ -1098,6 +1076,14 @@ export function MatterWorkspacePanel({
                   <div className="detail-item">
                     <h3>目前主線</h3>
                     <p className="content-block">{coreQuestion}</p>
+                  </div>
+                  <div className="detail-item">
+                    <h3>這頁先做什麼</h3>
+                    <ul className="list-content">
+                      {advanceGuide.checklist.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
                   </div>
                   {continuationSurface ? (
                     <div className="detail-item">
@@ -1424,8 +1410,10 @@ export function MatterWorkspacePanel({
                         ? "error-text"
                         : saveTone === "success"
                           ? "success-text"
-                          : "muted-text"
+                        : "muted-text"
                     }
+                    role={saveTone === "error" ? "alert" : "status"}
+                    aria-live={saveTone === "error" ? "assertive" : "polite"}
                   >
                     {saveMessage}
                   </p>
@@ -1510,7 +1498,12 @@ export function MatterWorkspacePanel({
           ) : null}
 
           {activeTab === "decision" ? (
-            <div className="detail-grid">
+            <div
+              className="detail-grid"
+              role="tabpanel"
+              id={MATTER_TAB_PANEL_IDS.decision}
+              aria-labelledby="matter-tab-decision"
+            >
               <div className="detail-stack">
                 <section className="panel">
                   <div className="panel-header">
@@ -1597,6 +1590,8 @@ export function MatterWorkspacePanel({
                             ? "success-text"
                             : "muted-text"
                       }
+                      role={saveTone === "error" ? "alert" : "status"}
+                      aria-live={saveTone === "error" ? "assertive" : "polite"}
                     >
                       {saveMessage}
                     </p>
@@ -1770,7 +1765,12 @@ export function MatterWorkspacePanel({
           ) : null}
 
           {activeTab === "evidence" ? (
-            <div className="detail-grid">
+            <div
+              className="detail-grid"
+              role="tabpanel"
+              id={MATTER_TAB_PANEL_IDS.evidence}
+              aria-labelledby="matter-tab-evidence"
+            >
               <div className="detail-stack">
                 <section className="panel">
                   <div className="panel-header">
@@ -1919,7 +1919,12 @@ export function MatterWorkspacePanel({
           ) : null}
 
           {activeTab === "deliverables" ? (
-            <div className="detail-grid">
+            <div
+              className="detail-grid"
+              role="tabpanel"
+              id={MATTER_TAB_PANEL_IDS.deliverables}
+              aria-labelledby="matter-tab-deliverables"
+            >
               <div className="detail-stack">
                 <section className="panel">
                   <div className="panel-header">
@@ -1960,7 +1965,12 @@ export function MatterWorkspacePanel({
           ) : null}
 
           {activeTab === "history" ? (
-            <div className="detail-grid">
+            <div
+              className="detail-grid"
+              role="tabpanel"
+              id={MATTER_TAB_PANEL_IDS.history}
+              aria-labelledby="matter-tab-history"
+            >
               <div className="detail-stack">
                 <section className="panel">
                   <div className="panel-header">

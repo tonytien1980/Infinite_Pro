@@ -62,7 +62,18 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins_list(self) -> list[str]:
-        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+        configured = [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+        local_dev_origins = [
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "http://localhost:3001",
+            "http://127.0.0.1:3001",
+        ]
+        ordered: list[str] = []
+        for origin in [*configured, *local_dev_origins]:
+            if origin not in ordered:
+                ordered.append(origin)
+        return ordered
 
 
 @lru_cache

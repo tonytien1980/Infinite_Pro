@@ -59,7 +59,7 @@ def _extract_text_from_html(raw_html: str) -> str:
 
 def _file_name_from_url(url: str, fallback: str) -> str:
     parsed = parse.urlparse(url)
-    candidate = Path(parsed.path).name
+    candidate = Path(parse.unquote(parsed.path)).name
     return candidate or fallback
 
 
@@ -73,10 +73,48 @@ def _normalize_google_docs_url(url: str) -> tuple[str, str]:
     return export_url, "google_docs"
 
 
+def _normalize_request_url(url: str) -> str:
+    candidate = url.strip()
+    parsed = parse.urlsplit(candidate)
+    if not parsed.scheme or not parsed.netloc:
+        return candidate
+
+    hostname = parsed.hostname
+    if hostname is None:
+        return candidate
+
+    normalized_host = hostname.encode("idna").decode("ascii")
+    if ":" in normalized_host and not normalized_host.startswith("["):
+        normalized_host = f"[{normalized_host}]"
+
+    auth = ""
+    if parsed.username is not None:
+        auth = parse.quote(parsed.username, safe="")
+        if parsed.password is not None:
+            auth += f":{parse.quote(parsed.password, safe='')}"
+        auth += "@"
+
+    port = f":{parsed.port}" if parsed.port is not None else ""
+    normalized_netloc = f"{auth}{normalized_host}{port}"
+    normalized_path = parse.quote(parse.unquote(parsed.path), safe="/%:@!$&'()*+,;=-._~")
+    normalized_query = parse.quote(parse.unquote(parsed.query), safe="=&;%:+,/?@!$'()*-._~")
+    normalized_fragment = parse.quote(parse.unquote(parsed.fragment), safe="=&;%:+,/?@!$'()*-._~")
+    return parse.urlunsplit(
+        (
+            parsed.scheme.lower(),
+            normalized_netloc,
+            normalized_path,
+            normalized_query,
+            normalized_fragment,
+        )
+    )
+
+
 def fetch_remote_source(url: str, timeout_seconds: int = 20) -> RemoteSourceContent:
     resolved_url, source_type = _normalize_google_docs_url(url)
+    request_url = _normalize_request_url(resolved_url)
     http_request = request.Request(
-        resolved_url,
+        request_url,
         headers={
             "User-Agent": "AI-Advisory-OS/0.1 (+https://localhost)",
         },

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { hydrateWorkbenchPreferences } from "@/lib/workbench-persistence";
 import { useWorkbenchSettings } from "@/lib/workbench-store";
@@ -28,6 +28,28 @@ function isActivePath(pathname: string, href: string) {
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [settings, setSettings, hydrated] = useWorkbenchSettings();
+  const [systemTheme, setSystemTheme] = useState<"light" | "dark">("light");
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const updateTheme = () => {
+      setSystemTheme(mediaQuery.matches ? "dark" : "light");
+    };
+
+    updateTheme();
+    mediaQuery.addEventListener("change", updateTheme);
+
+    return () => {
+      mediaQuery.removeEventListener("change", updateTheme);
+    };
+  }, []);
+
+  const resolvedTheme =
+    settings.themePreference === "system" ? systemTheme : settings.themePreference;
 
   useEffect(() => {
     if (!hydrated) {
@@ -57,12 +79,16 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     document.documentElement.dataset.density = settings.density;
+    document.documentElement.dataset.theme = resolvedTheme;
     document.documentElement.lang =
       settings.interfaceLanguage === "en" ? "en" : "zh-Hant";
-  }, [settings.density, settings.interfaceLanguage]);
+  }, [resolvedTheme, settings.density, settings.interfaceLanguage]);
 
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#app-main-content">
+        跳到主要內容
+      </a>
       <header className="app-header">
         <div className="app-header-inner">
           <div className="app-brand-block">
@@ -96,7 +122,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <div className="app-content">{children}</div>
+      <div className="app-content" id="app-main-content" tabIndex={-1}>
+        {children}
+      </div>
     </div>
   );
 }

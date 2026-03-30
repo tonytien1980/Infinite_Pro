@@ -162,11 +162,11 @@ export function AgentManagementPanel() {
     ? "當你已進入編輯模式，這頁的 primary action 就是把名稱、狀態與適用能力整理乾淨後正式儲存。"
     : "這頁的主體應該是列表而不是表單。先確認現有代理是否已能覆蓋需求，再決定是否新增新代理。";
   const agentActionChecklist = [
-    `目前共有 ${managedAgents.length} 個代理，其中 ${activeCount} 個啟用中，${hostCount} 個 Host。`,
+    `目前共有 ${managedAgents.length} 個代理，其中 ${activeCount} 個啟用中，${hostCount} 個主控代理。`,
     editingAgent
       ? `正在編輯「${getAgentCatalogDisplay(editingAgent).primaryName}」。`
       : "若只是查看現況，先用搜尋與篩選縮小列表，不要直接進入新增。",
-    "Host 代理屬正式協調中心，不應與一般代理用同樣心智處理。",
+    "主控代理屬正式協調中心，不應與一般代理用同樣心智處理。",
   ];
 
   function startCreate() {
@@ -200,7 +200,7 @@ export function AgentManagementPanel() {
     }
 
     if (!editingAgentId && payload.agent_type === "host") {
-      setSaveMessage("Host 代理維持系統協調中心，本輪不新增第二個 Host。");
+      setSaveMessage("主控代理維持系統協調中心，本輪不新增第二個主控代理。");
       return;
     }
 
@@ -226,7 +226,7 @@ export function AgentManagementPanel() {
 
   async function handleToggle(agent: AgentCatalogEntry & { source: "system" | "local" }) {
     if (agent.agent_type === "host") {
-      setSaveMessage("Host 代理維持正式協調中心，本輪不提供停用。");
+      setSaveMessage("主控代理維持正式協調中心，本輪不提供停用。");
       return;
     }
 
@@ -272,15 +272,23 @@ export function AgentManagementPanel() {
             <p className="muted-text">目前可被工作流選入的代理。</p>
           </div>
           <div className="section-card">
-            <h3>Host</h3>
+            <h3>主控代理</h3>
             <p className="workbench-metric">{hostCount}</p>
-            <p className="muted-text">仍由 Host 代理維持正式協調中心。</p>
+            <p className="muted-text">仍由主控代理維持正式協調中心。</p>
           </div>
         </div>
       </section>
 
-      {loading ? <p className="status-text">正在載入代理管理頁...</p> : null}
-      {error ? <p className="error-text">{error}</p> : null}
+      {loading ? (
+        <p className="status-text" role="status" aria-live="polite">
+          正在載入代理管理頁...
+        </p>
+      ) : null}
+      {error ? (
+        <p className="error-text" role="alert" aria-live="assertive">
+          {error}
+        </p>
+      ) : null}
 
       {!loading && !error ? (
         <div className="detail-grid">
@@ -345,7 +353,7 @@ export function AgentManagementPanel() {
                     onChange={(event) => setTypeFilter(event.target.value as AgentFilterType)}
                   >
                     <option value="all">全部代理</option>
-                    <option value="host">Host</option>
+                    <option value="host">主控代理</option>
                     <option value="general">一般代理</option>
                   </select>
                 </div>
@@ -367,7 +375,7 @@ export function AgentManagementPanel() {
                           <h3>{display.primaryName}</h3>
                           {display.secondaryName ? (
                             <p className="muted-text">
-                              {display.secondaryName}｜{agent.agent_id}
+                              系統代號：{agent.agent_id}
                             </p>
                           ) : null}
                           <p className="content-block">
@@ -405,7 +413,7 @@ export function AgentManagementPanel() {
                               onClick={() => handleToggle(agent)}
                             >
                               {agent.agent_type === "host"
-                                ? "Host 固定啟用"
+                                ? "主控代理固定啟用"
                                 : agent.status === "active"
                                   ? "停用"
                                   : "啟用"}
@@ -427,7 +435,7 @@ export function AgentManagementPanel() {
               <div className="panel-header">
                 <div>
                   <h2 className="panel-title">{editingAgentId ? "編輯代理" : "新增代理"}</h2>
-                  <p className="panel-copy">版本、狀態與常改欄位會優先寫入正式 persistence；只有後端暫時不可用時才退回本機 fallback。</p>
+                  <p className="panel-copy">版本、狀態與常改欄位會優先寫入正式保存；只有後端暫時不可用時才退回本機備援。</p>
                   {editingAgent ? (
                     <p className="muted-text">
                       顯示名稱：{getAgentCatalogDisplay(editingAgent).primaryName}
@@ -461,7 +469,7 @@ export function AgentManagementPanel() {
                       setDraft((current) => ({ ...current, agent_type: event.target.value }))
                     }
                   >
-                    {editingSystemHost ? <option value="host">Host 代理</option> : null}
+                    {editingSystemHost ? <option value="host">主控代理</option> : null}
                     <option value="reasoning">推理代理</option>
                     <option value="specialist">專家代理</option>
                   </select>
@@ -517,7 +525,7 @@ export function AgentManagementPanel() {
                         supported_capabilities: event.target.value,
                       }))
                     }
-                    placeholder={"每行一個 capability，例如：\ndiagnose_assess\nreview_challenge"}
+                    placeholder={"每行一個能力代號，例如：\ndiagnose_assess\nreview_challenge"}
                   />
                 </div>
 
@@ -526,9 +534,13 @@ export function AgentManagementPanel() {
                     儲存代理
                   </button>
                 </div>
-                {saveMessage ? <p className="success-text">{saveMessage}</p> : null}
+                {saveMessage ? (
+                  <p className="success-text" role="status" aria-live="polite">
+                    {saveMessage}
+                  </p>
+                ) : null}
                 {editingSystemHost ? (
-                  <p className="muted-text">Host 代理維持唯一正式協調中心，本輪只允許更新說明與版本，不允許停用或改型別。</p>
+                  <p className="muted-text">主控代理維持唯一正式協調中心，本輪只允許更新說明與版本，不允許停用或改型別。</p>
                 ) : null}
               </div>
             </section>

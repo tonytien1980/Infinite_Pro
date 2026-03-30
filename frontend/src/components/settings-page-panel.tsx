@@ -15,6 +15,7 @@ import type {
   CurrentProviderConfig,
   ProviderId,
   ProviderModelLevel,
+  ThemePreference,
   ProviderValidationResult,
   SystemProviderSettingsSnapshot,
 } from "@/lib/types";
@@ -33,6 +34,16 @@ const MODEL_LEVEL_OPTIONS: Array<{
   { value: "high_quality", label: "高品質", description: "優先品質與完整度。" },
   { value: "balanced", label: "平衡", description: "兼顧品質、速度與成本。" },
   { value: "low_cost", label: "低成本", description: "優先壓低成本與延遲。" },
+];
+
+const THEME_OPTIONS: Array<{
+  value: ThemePreference;
+  label: string;
+  description: string;
+}> = [
+  { value: "light", label: "淺色", description: "以高可讀性與穩定結構作為預設工作台外觀。" },
+  { value: "dark", label: "深色", description: "保留專業工作台感，但用較低眩光的深色結構承接長時間使用。" },
+  { value: "system", label: "跟隨系統", description: "依作業系統主題自動切換 light / dark mode。" },
 ];
 
 type ProviderDraft = {
@@ -59,7 +70,7 @@ function labelForProviderValidationStatus(status: ProviderValidationResult["vali
     case "invalid_api_key":
       return "API key 無效";
     case "base_url_unreachable":
-      return "Base URL 無法連線";
+      return "基礎網址無法連線";
     case "model_unavailable":
       return "模型不可用";
     case "timeout":
@@ -75,7 +86,7 @@ function labelForProviderSource(config: CurrentProviderConfig | null) {
   if (!config) {
     return "載入中";
   }
-  return config.source === "runtime_config" ? "正式 runtime config" : "env baseline";
+  return config.source === "runtime_config" ? "正式執行設定" : "環境基線";
 }
 
 function labelForProviderRuntimeSupport(
@@ -88,9 +99,9 @@ function labelForProviderRuntimeSupport(
     return "正式可用";
   }
   if (preset.adapterKind === "anthropic_native" || preset.adapterKind === "gemini_native") {
-    return "beta 原生路徑";
+    return "測試中原生路徑";
   }
-  return "beta 相容路徑";
+  return "測試中相容路徑";
 }
 
 function buildProviderDraft(
@@ -258,7 +269,7 @@ export function SettingsPagePanel() {
       apiKey: "",
     });
     setProviderValidation(null);
-    setProviderFeedback(`已帶入 ${preset.displayName} 的預設 Base URL、模型與 timeout。`);
+    setProviderFeedback(`已帶入 ${preset.displayName} 的預設基礎網址、模型與逾時設定。`);
     setProviderError(null);
   }
 
@@ -360,11 +371,11 @@ export function SettingsPagePanel() {
       setProviderEditing(false);
       setProviderFeedback(
         forceSaveWithoutValidation
-          ? "已強制儲存正式 runtime config。請盡快重新驗證目前設定。"
+          ? "已強制儲存正式執行設定。請盡快重新驗證目前設定。"
           : "模型與服務設定已通過驗證並正式套用。",
       );
     } catch (saveError) {
-      setProviderError(normalizeError(saveError, "正式 provider 設定保存失敗。"));
+      setProviderError(normalizeError(saveError, "正式模型與服務設定保存失敗。"));
     } finally {
       setProviderSaving(false);
     }
@@ -378,7 +389,7 @@ export function SettingsPagePanel() {
       const snapshot = await revalidateSystemProviderSettings();
       setProviderSnapshot(snapshot);
       setProviderDraft(buildProviderDraft(snapshot));
-      setProviderFeedback("已重新驗證目前正式 runtime config。");
+      setProviderFeedback("已重新驗證目前正式執行設定。");
     } catch (revalidateError) {
       setProviderError(normalizeError(revalidateError, "重新驗證目前設定失敗。"));
     } finally {
@@ -389,7 +400,7 @@ export function SettingsPagePanel() {
   async function handleProviderResetToEnv() {
     if (
       typeof window !== "undefined" &&
-      !window.confirm("這會移除目前正式 runtime config，並回退到 env baseline。要繼續嗎？")
+      !window.confirm("這會移除目前正式執行設定，並回退到環境基線。要繼續嗎？")
     ) {
       return;
     }
@@ -403,9 +414,9 @@ export function SettingsPagePanel() {
       setProviderDraft(buildProviderDraft(snapshot));
       setProviderValidation(null);
       setProviderEditing(false);
-      setProviderFeedback("已回退到 env baseline。若要重新建立正式設定，請再次編輯並套用。");
+      setProviderFeedback("已回退到環境基線。若要重新建立正式設定，請再次編輯並套用。");
     } catch (resetError) {
-      setProviderError(normalizeError(resetError, "回復 env baseline 失敗。"));
+      setProviderError(normalizeError(resetError, "回復環境基線失敗。"));
     } finally {
       setProviderResetting(false);
     }
@@ -420,16 +431,16 @@ export function SettingsPagePanel() {
     providerValidation?.message || currentProvider?.lastValidationMessage || "目前尚未驗證正式設定。";
   const settingsActionTitle = providerEditing ? "現在先完成正式設定編輯" : "先分清楚：你是在調系統模型，還是調介面偏好";
   const settingsActionSummary = providerEditing
-    ? "當你進入 provider 編輯模式，這頁的 primary action 是完成驗證並正式套用，不應同時分心去調別的偏好。"
-    : "這頁同時承接兩種責任：系統級 provider 設定，以及個人 workbench 偏好。先確認你現在要改的是哪一種。";
+    ? "當你進入模型與服務編輯模式，這頁的主要操作就是完成驗證並正式套用，不應同時分心去調別的偏好。"
+    : "這頁同時承接兩種責任：系統級模型與服務設定，以及個人 workbench 偏好。先確認你現在要改的是哪一種。";
   const settingsActionChecklist = [
     currentProvider
       ? `目前生效來源是 ${labelForProviderSource(currentProvider)}，供應商為 ${currentProvider.providerDisplayName}。`
-      : "目前正式 provider 設定尚未載入。",
+      : "目前正式模型與服務設定尚未載入。",
     providerEditing
-      ? "若正在編輯 provider，請先測試連線或正式套用，再回頭調其他顯示偏好。"
+      ? "若正在編輯模型與服務設定，請先測試連線或正式套用，再回頭調其他顯示偏好。"
       : "若只是想讓頁面更順手，優先調整介面偏好與新案件預設，不必進到 provider 編輯模式。",
-    "credential、驗證與正式 runtime config 屬 fail-closed；不可把它們和一般偏好變更混成同一個成功心智。",
+    "憑證、驗證與正式執行設定屬於失敗即停止；不可把它們和一般偏好變更混成同一個成功心智。",
   ];
 
   return (
@@ -461,7 +472,7 @@ export function SettingsPagePanel() {
           <div className="section-card">
             <h4>主操作分流</h4>
             <p className="content-block">
-              provider 設定：編輯設定 / 測試連線 / 儲存並套用
+              模型與服務設定：編輯設定 / 測試連線 / 儲存並套用
               {"\n"}
               介面偏好：儲存並套用 / 回復預設
             </p>
@@ -474,14 +485,22 @@ export function SettingsPagePanel() {
           <div>
             <h2 className="panel-title">模型與服務設定</h2>
             <p className="panel-copy">
-              這裡只管理單人版 owner 的系統級 active provider config。credential 只存 backend，不會進 local fallback。
+              這裡只管理單人版 owner 的系統級正式執行設定。憑證只存 backend，不會進本機備援。
             </p>
           </div>
         </div>
 
-        {providerError ? <p className="error-text">{providerError}</p> : null}
+        {providerError ? (
+          <p className="error-text" role="alert" aria-live="assertive">
+            {providerError}
+          </p>
+        ) : null}
         {providerFeedback ? (
-          <p className={latestValidationStatus === "success" ? "success-text" : "muted-text"}>
+          <p
+            className={latestValidationStatus === "success" ? "success-text" : "muted-text"}
+            role="status"
+            aria-live="polite"
+          >
             {providerFeedback}
           </p>
         ) : null}
@@ -550,7 +569,7 @@ export function SettingsPagePanel() {
 
             {currentProvider?.source === "env_baseline" ? (
               <p className="muted-text" style={{ marginTop: "12px" }}>
-                目前仍使用 env baseline。
+                目前仍使用環境基線。
                 {envBaseline?.providerDisplayName
                   ? ` 基線供應商是 ${envBaseline.providerDisplayName}。`
                   : ""}
@@ -566,7 +585,7 @@ export function SettingsPagePanel() {
                       <div>
                         <h3 className="panel-title">編輯設定</h3>
                         <p className="panel-copy">
-                          先選供應商，再選模型層級；通常只要填 API key，Base URL 與 timeout 會自動帶入預設。
+                          先選供應商，再選模型層級；通常只要填 API key，基礎網址與逾時設定會自動帶入預設。
                         </p>
                       </div>
                     </div>
@@ -623,7 +642,7 @@ export function SettingsPagePanel() {
                         <small>
                           {canReuseExistingKey()
                             ? `目前已設定 ${currentProvider?.apiKeyMasked || "已遮罩 key"}，留空代表沿用。`
-                            : "前端不會回顯完整 key，也不會把 credential 存到 localStorage。"}
+                            : "前端不會回顯完整 key，也不會把憑證存到本機儲存。"}
                         </small>
                       </div>
 
@@ -635,7 +654,7 @@ export function SettingsPagePanel() {
                           readOnly
                           aria-readonly="true"
                         />
-                        <small>目前會實際送往 provider 驗證與 runtime path 的 model id。</small>
+                        <small>目前會實際送往供應商驗證與執行路徑的模型代號。</small>
                       </div>
                     </div>
 
@@ -659,7 +678,7 @@ export function SettingsPagePanel() {
                     {showAdvancedProviderFields ? (
                       <div className="field-grid" style={{ marginTop: "16px" }}>
                         <div className="field">
-                          <label htmlFor="provider-base-url">Base URL</label>
+                          <label htmlFor="provider-base-url">基礎網址</label>
                           <input
                             id="provider-base-url"
                             value={providerDraft.baseUrl}
@@ -668,7 +687,7 @@ export function SettingsPagePanel() {
                         </div>
 
                         <div className="field">
-                          <label htmlFor="provider-timeout">Timeout（秒）</label>
+                          <label htmlFor="provider-timeout">逾時（秒）</label>
                           <input
                             id="provider-timeout"
                             type="number"
@@ -685,7 +704,7 @@ export function SettingsPagePanel() {
                         </div>
 
                         <div className="field">
-                          <label htmlFor="provider-custom-model-id">自訂 model id</label>
+                          <label htmlFor="provider-custom-model-id">自訂模型代號</label>
                           <input
                             id="provider-custom-model-id"
                             value={providerDraft.customModelId}
@@ -698,12 +717,12 @@ export function SettingsPagePanel() {
                         </div>
 
                         <div className="setting-note-card">
-                          <h3>目前 preset</h3>
+                          <h3>目前預設組</h3>
                           <p className="content-block">
-                            {getProviderPreset(providerDraft.providerId)?.displayName || "目前沒有可用 preset"}
+                            {getProviderPreset(providerDraft.providerId)?.displayName || "目前沒有可用預設"}
                           </p>
                           <p className="muted-text">
-                            預設 Base URL：
+                            預設基礎網址：
                             {getProviderPreset(providerDraft.providerId)?.defaultBaseUrl || "未提供"}
                           </p>
                         </div>
@@ -718,24 +737,24 @@ export function SettingsPagePanel() {
                       <div>
                         <h3 className="panel-title">驗證與套用</h3>
                         <p className="panel-copy">
-                          建議先測試連線，再正式儲存並套用。credential 更新是 fail-closed，不會退回 local fallback。
+                          建議先測試連線，再正式儲存並套用。憑證更新採失敗即停止，不會退回本機備援。
                         </p>
                       </div>
                     </div>
 
                     <div className="summary-grid">
                       <div className="section-card">
-                        <p className="muted-text">將要套用的 provider</p>
+                        <p className="muted-text">將要套用的供應商</p>
                         <strong>{getProviderPreset(providerDraft.providerId)?.displayName || providerDraft.providerId}</strong>
                         <p className="muted-text">
-                          runtime 支援層級：
+                          執行支援層級：
                           {labelForProviderRuntimeSupport(getProviderPreset(providerDraft.providerId))}
                         </p>
                       </div>
                       <div className="section-card">
-                        <p className="muted-text">將要套用的 model</p>
+                        <p className="muted-text">將要套用的模型</p>
                         <strong>{effectiveModelId || "未指定"}</strong>
-                        <p className="muted-text">timeout：{providerDraft.timeoutSeconds} 秒</p>
+                        <p className="muted-text">逾時：{providerDraft.timeoutSeconds} 秒</p>
                       </div>
                     </div>
 
@@ -791,10 +810,10 @@ export function SettingsPagePanel() {
                     <div className="setting-note-card" style={{ marginTop: "16px" }}>
                       <h3>安全與套用規則</h3>
                       <p className="content-block">
-                        完整 API key 只會送到 backend 儲存與驗證，不會回傳到前端，也不會進 localStorage。
+                        完整 API key 只會送到 backend 儲存與驗證，不會回傳到前端，也不會進本機儲存。
                       </p>
                       <p className="muted-text">
-                        若你先強制儲存，系統會把這筆設定標成未驗證；後續 router 仍只會讀 backend 的 active runtime config 或 env baseline。
+                        若你先強制儲存，系統會把這筆設定標成未驗證；後續路由器仍只會讀 backend 的正式執行設定或環境基線。
                       </p>
                     </div>
                   </section>
@@ -832,6 +851,26 @@ export function SettingsPagePanel() {
                   <option value="en">English（測試中）</option>
                 </select>
                 <small>目前正式頁面仍以繁體中文為主，英文選項先保存你的語言偏好。</small>
+              </div>
+
+              <div className="field">
+                <label htmlFor="settings-theme">主題模式</label>
+                <select
+                  id="settings-theme"
+                  value={draft.themePreference}
+                  onChange={(event) =>
+                    updateDraft("themePreference", event.target.value as WorkbenchSettings["themePreference"])
+                  }
+                >
+                  {THEME_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <small>
+                  {THEME_OPTIONS.find((option) => option.value === draft.themePreference)?.description}
+                </small>
               </div>
 
               <div className="field">
@@ -992,9 +1031,15 @@ export function SettingsPagePanel() {
                 回復預設
               </button>
             </div>
-            {success ? <p className="success-text">{success}</p> : null}
+            {success ? (
+              <p className="success-text" role="status" aria-live="polite">
+                {success}
+              </p>
+            ) : null}
             {saveMode === "local-fallback" ? (
-              <p className="muted-text">目前顯示的是 local fallback 狀態，後續可再嘗試同步正式資料。</p>
+              <p className="muted-text" role="status" aria-live="polite">
+                目前顯示的是 local fallback 狀態，後續可再嘗試同步正式資料。
+              </p>
             ) : null}
           </section>
         </div>

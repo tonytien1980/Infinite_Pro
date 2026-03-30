@@ -9,8 +9,10 @@ import { truncateText } from "@/lib/text-format";
 import type { MatterWorkspaceSummary, TaskListItem } from "@/lib/types";
 import {
   formatDisplayDate,
+  labelForAgentName,
   labelForDeliverableClass,
   labelForMatterStatus,
+  labelForPackName,
 } from "@/lib/ui-labels";
 import {
   type MatterLifecycleStatus,
@@ -62,8 +64,8 @@ function buildMatterTaskMap(tasks: TaskListItem[]) {
     };
 
     entry.evidenceCount += task.evidence_count;
-    task.selected_agent_names.forEach((name) => entry.agentNames.add(name));
-    task.selected_pack_names.forEach((name) => entry.packNames.add(name));
+    task.selected_agent_names.forEach((name) => entry.agentNames.add(labelForAgentName(name)));
+    task.selected_pack_names.forEach((name) => entry.packNames.add(labelForPackName(name)));
     metrics.set(matterId, entry);
   });
 
@@ -193,12 +195,12 @@ export function MattersPagePanel() {
       <section className="hero-card">
         <span className="eyebrow">案件工作台</span>
         <h1 className="page-title">案件工作台</h1>
-        <p className="page-subtitle">管理案件基本資訊，並從這裡回到每個案件的正式工作面。</p>
+        <p className="page-subtitle">從這裡找到要繼續處理的案件，直接回到案件頁接著做。</p>
         <div className="workbench-overview-grid" style={{ marginTop: "20px" }}>
           <div className="section-card">
             <h3>全部案件</h3>
             <p className="workbench-metric">{allMatterCards.length}</p>
-            <p className="muted-text">目前已形成工作面的案件數量。</p>
+            <p className="muted-text">目前已建立的案件數量。</p>
           </div>
           <div className="section-card">
             <h3>進行中</h3>
@@ -208,13 +210,21 @@ export function MattersPagePanel() {
           <div className="section-card">
             <h3>封存</h3>
             <p className="workbench-metric">{archivedMatters.length}</p>
-            <p className="muted-text">已收納但仍可回看的案件。</p>
+            <p className="muted-text">先收起來，但之後還能回看的案件。</p>
           </div>
         </div>
       </section>
 
-      {loading ? <p className="status-text">正在載入案件工作台...</p> : null}
-      {error ? <p className="error-text">{error}</p> : null}
+      {loading ? (
+        <p className="status-text" role="status" aria-live="polite">
+          正在載入案件工作台...
+        </p>
+      ) : null}
+      {error ? (
+        <p className="error-text" role="alert" aria-live="assertive">
+          {error}
+        </p>
+      ) : null}
 
       {!loading && !error ? (
         <div className="detail-grid">
@@ -223,7 +233,7 @@ export function MattersPagePanel() {
               <div className="panel-header">
                 <div>
                   <h2 className="panel-title">案件列表</h2>
-                  <p className="panel-copy">先找到要續推的案件，再進到 detail workspace 處理決策問題、來源與交付物。</p>
+                  <p className="panel-copy">先找到要接手的案件，再進案件頁看重點、資料和交付物。</p>
                 </div>
                 <Link className="button-primary" href="/new">
                   建立新案件
@@ -283,7 +293,7 @@ export function MattersPagePanel() {
                       </div>
                       <div className="button-row" style={{ marginTop: "12px" }}>
                         <Link className="button-secondary" href={`/matters/${matter.id}`}>
-                          打開案件工作面
+                          前往案件頁
                         </Link>
                       </div>
                     </article>
@@ -300,10 +310,10 @@ export function MattersPagePanel() {
               <div className="panel-header">
                 <div>
                   <h2 className="panel-title">最近交付物</h2>
-                  <p className="panel-copy">從案件工作台直接回到相關交付物，不必先翻任務列表。</p>
+                  <p className="panel-copy">如果你是要回看結果，可以直接從這裡進交付物。</p>
                 </div>
                 <Link className="button-secondary" href="/deliverables">
-                  查看全部交付物
+                  看全部交付物
                 </Link>
               </div>
 
@@ -342,10 +352,10 @@ export function MattersPagePanel() {
               <div className="panel-header">
                 <div>
                   <h2 className="panel-title">最近工作紀錄</h2>
-                  <p className="panel-copy">需要追最近脈絡時，可以先從這裡回看，再決定是否進一步整理歷史紀錄。</p>
+                  <p className="panel-copy">如果你要找最近做過什麼，先從這裡看最快。</p>
                 </div>
                 <Link className="button-secondary" href="/history">
-                  查看歷史紀錄
+                  看歷史紀錄
                 </Link>
               </div>
 

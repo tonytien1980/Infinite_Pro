@@ -70,6 +70,13 @@ function buildDraft(pack?: PackCatalogEntry): PackDraft {
   };
 }
 
+function getNextPackTab(current: PackTab, direction: "next" | "previous") {
+  const order: PackTab[] = ["domain", "industry"];
+  const currentIndex = order.indexOf(current);
+  const offset = direction === "next" ? 1 : -1;
+  return order[(currentIndex + offset + order.length) % order.length];
+}
+
 export function PackManagementPanel() {
   const [snapshot, setSnapshot] = useState<ExtensionManagerSnapshot | null>(null);
   const [tasks, setTasks] = useState<TaskListItem[]>([]);
@@ -103,6 +110,33 @@ export function PackManagementPanel() {
   useEffect(() => {
     void refresh();
   }, []);
+
+  function handlePackTabKeyDown(
+    event: React.KeyboardEvent<HTMLButtonElement>,
+    current: PackTab,
+  ) {
+    let nextTab: PackTab | null = null;
+
+    if (event.key === "ArrowRight") {
+      nextTab = getNextPackTab(current, "next");
+    } else if (event.key === "ArrowLeft") {
+      nextTab = getNextPackTab(current, "previous");
+    } else if (event.key === "Home") {
+      nextTab = "domain";
+    } else if (event.key === "End") {
+      nextTab = "industry";
+    }
+
+    if (!nextTab) {
+      return;
+    }
+
+    event.preventDefault();
+    setActiveTab(nextTab);
+    requestAnimationFrame(() => {
+      document.getElementById(`pack-tab-${nextTab}`)?.focus();
+    });
+  }
 
   const usageMap = useMemo(() => buildUsageMap(tasks), [tasks]);
   const managedPacks = useMemo(
@@ -146,7 +180,7 @@ export function PackManagementPanel() {
     editingPackId ? "現在正處於模組包編輯模式" : "先決定是問題面向，還是產業模組包";
   const packActionSummary = editingPackId
     ? "當你已進入編輯模式，這頁的 primary action 就是把分類、狀態與描述整理乾淨後正式儲存。"
-    : "這頁不該一開始就落入表單。先確認你要管的是哪一種 pack family，再看現有目錄是否已能滿足需求。";
+    : "這頁不該一開始就落入表單。先確認你要管的是哪一種模組包類別，再看現有目錄是否已能滿足需求。";
   const packActionChecklist = [
     `目前共有 ${domainPacks.length} 個問題面向模組包、${industryPacks.length} 個產業模組包。`,
     activeTab === "domain"
@@ -263,8 +297,16 @@ export function PackManagementPanel() {
         </div>
       </section>
 
-      {loading ? <p className="status-text">正在載入模組包管理頁...</p> : null}
-      {error ? <p className="error-text">{error}</p> : null}
+      {loading ? (
+        <p className="status-text" role="status" aria-live="polite">
+          正在載入模組包管理頁...
+        </p>
+      ) : null}
+      {error ? (
+        <p className="error-text" role="alert" aria-live="assertive">
+          {error}
+        </p>
+      ) : null}
 
       {!loading && !error ? (
         <div className="detail-grid">
@@ -273,7 +315,7 @@ export function PackManagementPanel() {
               <div className="panel-header">
                 <div>
                   <h2 className="panel-title">模組包目錄</h2>
-                  <p className="panel-copy">維持兩大分類管理，不把不同 pack family 再混回同一個列表。</p>
+                  <p className="panel-copy">維持兩大分類管理，不把不同模組包類別再混回同一個列表。</p>
                 </div>
                 <button className="button-primary" type="button" onClick={startCreate}>
                   新增模組包
@@ -299,6 +341,12 @@ export function PackManagementPanel() {
                 <button
                   className={`page-tab${activeTab === "domain" ? " page-tab-active" : ""}`}
                   type="button"
+                  role="tab"
+                  id="pack-tab-domain"
+                  aria-selected={activeTab === "domain"}
+                  aria-controls="pack-tabpanel-domain"
+                  tabIndex={activeTab === "domain" ? 0 : -1}
+                  onKeyDown={(event) => handlePackTabKeyDown(event, "domain")}
                   onClick={() => setActiveTab("domain")}
                 >
                   問題面向模組包
@@ -306,6 +354,12 @@ export function PackManagementPanel() {
                 <button
                   className={`page-tab${activeTab === "industry" ? " page-tab-active" : ""}`}
                   type="button"
+                  role="tab"
+                  id="pack-tab-industry"
+                  aria-selected={activeTab === "industry"}
+                  aria-controls="pack-tabpanel-industry"
+                  tabIndex={activeTab === "industry" ? 0 : -1}
+                  onKeyDown={(event) => handlePackTabKeyDown(event, "industry")}
                   onClick={() => setActiveTab("industry")}
                 >
                   產業模組包
@@ -319,7 +373,7 @@ export function PackManagementPanel() {
                     id="pack-search"
                     value={searchQuery}
                     onChange={(event) => setSearchQuery(event.target.value)}
-                    placeholder="搜尋名稱、問題模式或 KPI"
+                    placeholder="搜尋名稱、問題模式或關鍵指標"
                   />
                 </div>
 
@@ -339,7 +393,13 @@ export function PackManagementPanel() {
                 </div>
               </div>
 
-              <div className="history-list" style={{ marginTop: "18px" }}>
+              <div
+                className="history-list"
+                style={{ marginTop: "18px" }}
+                role="tabpanel"
+                id={activeTab === "domain" ? "pack-tabpanel-domain" : "pack-tabpanel-industry"}
+                aria-labelledby={activeTab === "domain" ? "pack-tab-domain" : "pack-tab-industry"}
+              >
                 {visiblePacks.length > 0 ? (
                   visiblePacks.map((pack) => (
                     (() => {
@@ -355,7 +415,7 @@ export function PackManagementPanel() {
                           <h3>{display.primaryName}</h3>
                           {display.secondaryName ? (
                             <p className="muted-text">
-                              {display.secondaryName}｜{pack.pack_id}
+                              系統代號：{pack.pack_id}
                             </p>
                           ) : null}
                           <p className="content-block">{display.primaryDescription}</p>
@@ -370,19 +430,19 @@ export function PackManagementPanel() {
                           <p className="muted-text">
                             關鍵模式：
                             {pack.common_problem_patterns.length > 0
-                              ? pack.common_problem_patterns.slice(0, 2).join("、")
+                              ? `已整理 ${pack.common_problem_patterns.length} 項`
                               : "目前未標示"}
                           </p>
                           <details className="inline-disclosure">
-                            <summary className="inline-disclosure-summary">查看細節與 KPI</summary>
+                            <summary className="inline-disclosure-summary">查看細節與關鍵指標</summary>
                             <div className="expandable-copy">
                               <p className="content-block">
                                 {pack.description || "目前沒有額外說明。"}
                               </p>
                               <p className="muted-text">
-                                KPI：
+                                關鍵指標：
                                 {pack.key_kpis.length > 0
-                                  ? pack.key_kpis.slice(0, 4).join("、")
+                                  ? `已整理 ${pack.key_kpis.length} 項`
                                   : "目前未標示"}
                               </p>
                             </div>
@@ -419,7 +479,7 @@ export function PackManagementPanel() {
               <div className="panel-header">
                 <div>
                   <h2 className="panel-title">{editingPackId ? "編輯模組包" : "新增模組包"}</h2>
-                  <p className="panel-copy">分類、版本與常改欄位會優先寫入正式 persistence；只有後端暫時不可用時才退回本機 fallback。</p>
+                  <p className="panel-copy">分類、版本與常改欄位會優先寫入正式保存；只有後端暫時不可用時才退回本機備援。</p>
                   {editingPackId ? (
                     <p className="muted-text">
                       顯示名稱：
@@ -518,14 +578,14 @@ export function PackManagementPanel() {
                 </div>
 
                 <div className="field">
-                  <label htmlFor="pack-kpis">關鍵 KPI</label>
+                  <label htmlFor="pack-kpis">關鍵指標</label>
                   <textarea
                     id="pack-kpis"
                     value={draft.key_kpis}
                     onChange={(event) =>
                       setDraft((current) => ({ ...current, key_kpis: event.target.value }))
                     }
-                    placeholder={"每行一個 KPI，例如：\nactivation rate\nconversion rate"}
+                    placeholder={"每行一個關鍵指標，例如：\nactivation rate\nconversion rate"}
                   />
                 </div>
 
@@ -534,7 +594,11 @@ export function PackManagementPanel() {
                     儲存模組包
                   </button>
                 </div>
-                {saveMessage ? <p className="success-text">{saveMessage}</p> : null}
+                {saveMessage ? (
+                  <p className="success-text" role="status" aria-live="polite">
+                    {saveMessage}
+                  </p>
+                ) : null}
               </div>
             </section>
           </div>

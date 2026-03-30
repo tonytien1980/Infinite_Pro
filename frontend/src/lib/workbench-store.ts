@@ -9,6 +9,7 @@ import type {
   HomepageDisplayPreference,
   MatterWorkspaceContentSections,
   PackCatalogEntry,
+  ThemePreference,
   WorkbenchSettings,
 } from "@/lib/types";
 
@@ -16,6 +17,7 @@ export type {
   DensityPreference,
   DeliverableSortPreference,
   HomepageDisplayPreference,
+  ThemePreference,
   WorkbenchSettings,
 } from "@/lib/types";
 
@@ -66,8 +68,11 @@ const STORAGE_KEYS = {
   history: "infinite-pro.workbench.history",
 } as const;
 
+const PERSISTENT_STATE_SYNC_EVENT = "infinite-pro:persistent-state-sync";
+
 export const DEFAULT_WORKBENCH_SETTINGS: WorkbenchSettings = {
   interfaceLanguage: "zh-Hant",
+  themePreference: "light",
   homepageDisplayPreference: "matters",
   historyDefaultPageSize: 20,
   showRecentActivity: true,
@@ -118,6 +123,14 @@ function writeStorage<T>(key: string, value: T) {
   }
 
   window.localStorage.setItem(key, JSON.stringify(value));
+  window.dispatchEvent(
+    new CustomEvent(PERSISTENT_STATE_SYNC_EVENT, {
+      detail: {
+        key,
+        value,
+      },
+    }),
+  );
 }
 
 export function usePersistentState<T>(key: string, initialValue: T) {
@@ -129,6 +142,44 @@ export function usePersistentState<T>(key: string, initialValue: T) {
     setState(readStorage(key, initialRef.current));
     setHydrated(true);
   }, [key]);
+
+  useEffect(() => {
+    if (!hydrated || !canUseStorage()) {
+      return;
+    }
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== key || event.newValue == null) {
+        return;
+      }
+
+      try {
+        setState(JSON.parse(event.newValue) as T);
+      } catch {
+        setState(initialRef.current);
+      }
+    };
+
+    const handlePersistentStateSync = (event: Event) => {
+      const customEvent = event as CustomEvent<{ key?: string; value?: T }>;
+      if (customEvent.detail?.key !== key || customEvent.detail.value === undefined) {
+        return;
+      }
+
+      setState(customEvent.detail.value);
+    };
+
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener(PERSISTENT_STATE_SYNC_EVENT, handlePersistentStateSync as EventListener);
+
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener(
+        PERSISTENT_STATE_SYNC_EVENT,
+        handlePersistentStateSync as EventListener,
+      );
+    };
+  }, [hydrated, key]);
 
   useEffect(() => {
     if (!hydrated) {

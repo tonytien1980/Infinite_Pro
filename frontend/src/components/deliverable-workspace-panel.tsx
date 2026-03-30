@@ -437,14 +437,14 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
         : "你目前有尚未儲存的修改。先把正式內容落盤，再做匯出、發布或版本比對，整體工作流會更穩。"
       : continuationSurface?.workflow_layer === "closure"
         ? continuationSurface.summary
-        : continuationSurface?.workflow_layer === "checkpoint"
-          ? followUpLane?.latest_update?.summary
-            ? `這份交付物目前對應 follow-up checkpoint「${followUpLane.latest_update.summary}」。先確認這輪更新重點，再決定是回案件工作面補 checkpoint，還是先補件重跑。`
-            : "這份交付物目前更像 follow-up checkpoint 的基線。先回看結果，再決定要不要回案件工作面補一筆 checkpoint。"
+      : continuationSurface?.workflow_layer === "checkpoint"
+        ? followUpLane?.latest_update?.summary
+            ? `這份交付物目前對應後續檢查點「${followUpLane.latest_update.summary}」。先確認這輪更新重點，再決定是回案件工作面補檢查點，還是先補件重跑。`
+            : "這份交付物目前更像後續檢查點的基線。先回看結果，再決定要不要回案件工作面補一筆檢查點。"
           : continuationSurface?.workflow_layer === "progression"
             ? progressionLane?.latest_progression?.summary
-              ? `這份交付物目前承接 continuous progression「${progressionLane.latest_progression.summary}」。先確認 action / outcome 最新變化，再決定要不要刷新 deliverable。`
-              : "這份交付物目前更像持續推進的基線。先回看結論與依據，再回案件工作面記錄進度或 outcome。"
+              ? `這份交付物目前承接持續推進狀態「${progressionLane.latest_progression.summary}」。先確認行動／結果的最新變化，再決定要不要刷新交付物。`
+              : "這份交付物目前更像持續推進的基線。先回看結論與依據，再回案件工作面記錄進度或結果。"
       : deliverableStatus === "final"
         ? "現在最有效率的做法是匯出正式版本，或回到下方檢查依據來源、版本紀錄與連續性。"
       : deliverableStatus === "archived"
@@ -509,6 +509,15 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
         },
       ]
     : [];
+  const deliverableVersionSummary = latestPublishRecord
+    ? `最近正式發布：${latestPublishRecord.version_tag}｜${formatDisplayDate(latestPublishRecord.created_at)}`
+    : "目前尚未建立正式發布紀錄。";
+  const deliverableContinuitySummary = followUpLane?.latest_update?.summary
+    ? `最新檢查點：${followUpLane.latest_update.summary}`
+    : progressionLane?.latest_progression?.summary
+      ? `最新推進狀態：${progressionLane.latest_progression.summary}`
+      : continuationSurface?.summary
+        || "這份交付物目前沒有額外的連續性提示。";
 
   async function handleSaveWorkspace(nextStatus?: DeliverableLifecycleStatus) {
     if (!deliverable) {
@@ -790,8 +799,16 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
         </span>
       </nav>
 
-      {loading ? <p className="status-text">正在載入交付物工作面...</p> : null}
-      {error ? <p className="error-text">{error}</p> : null}
+      {loading ? (
+        <p className="status-text" role="status" aria-live="polite">
+          正在載入交付物工作面...
+        </p>
+      ) : null}
+      {error ? (
+        <p className="error-text" role="alert" aria-live="assertive">
+          {error}
+        </p>
+      ) : null}
 
       {workspace && workspaceView && task && deliverable ? (
         <>
@@ -863,97 +880,17 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                       </p>
                     </div>
                     <div className="detail-item">
-                      <h3>所屬案件</h3>
-                      <p className="content-block">
-                        {workspace.matter_workspace?.title || task.engagement?.name || "未掛案件"}
-                      </p>
-                    </div>
-                    <div className="detail-item">
                       <h3>版本說明</h3>
                       <p className="content-block">{buildDeliverableStatusHint(deliverableStatus)}</p>
                     </div>
                     <div className="detail-item">
-                      <h3>發布紀錄</h3>
-                      <p className="content-block">
-                        {latestPublishRecord
-                          ? `${latestPublishRecord.version_tag}｜${formatDisplayDate(
-                              latestPublishRecord.created_at,
-                            )}`
-                          : "目前尚未建立正式發布紀錄。"}
-                      </p>
-                    </div>
-                    <div className="detail-item">
-                      <h3>正文 / 發布關係</h3>
+                      <h3>正式性狀態</h3>
                       <p className="content-block">
                         {hasUnpublishedContentChanges
                           ? "最新正文修訂晚於最近一次正式發布；若要形成新的正式版，需再次發布。"
                           : "目前正文與最近一次正式發布沒有額外的未發布差異。"}
                       </p>
-                    </div>
-                  </div>
-                </div>
-
-                {workspace.version_events[0] ? (
-                  <div className="section-card deliverable-rail-card">
-                    <h4>最新版本事件</h4>
-                    <p className="content-block">{workspace.version_events[0].summary}</p>
-                    <p className="muted-text">
-                      {labelForDeliverableEventType(workspace.version_events[0].event_type)}｜
-                      {formatDisplayDate(workspace.version_events[0].created_at)}
-                    </p>
-                  </div>
-                ) : null}
-
-                {followUpLane ? (
-                  <div className="section-card deliverable-rail-card">
-                    <h4>Checkpoint 脈絡</h4>
-                    <div className="detail-list">
-                      <div className="detail-item">
-                        <h3>最新更新</h3>
-                        <p className="content-block">
-                          {followUpLane.latest_update?.summary || "尚未形成正式 checkpoint。"}
-                        </p>
-                      </div>
-                      <div className="detail-item">
-                        <h3>上一個 checkpoint</h3>
-                        <p className="content-block">
-                          {followUpLane.previous_checkpoint?.summary || "目前沒有更早的 checkpoint 可比較。"}
-                        </p>
-                      </div>
-                      <div className="detail-item">
-                        <h3>下一步建議</h3>
-                        <p className="content-block">
-                          {followUpLane.next_follow_up_actions[0] || "先回案件工作面整理這輪 checkpoint。"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ) : null}
-
-                <div className="section-card deliverable-rail-card">
-                  <h4>工作面快讀</h4>
-                  <div className="deliverable-metric-grid">
-                    <div className="deliverable-metric-card">
-                      <span className="deliverable-metric-label">證據</span>
-                      <strong className="deliverable-metric-value">
-                        {workspace.linked_evidence.length}
-                      </strong>
-                    </div>
-                    <div className="deliverable-metric-card">
-                      <span className="deliverable-metric-label">來源材料</span>
-                      <strong className="deliverable-metric-value">
-                        {workspace.linked_source_materials.length}
-                      </strong>
-                    </div>
-                    <div className="deliverable-metric-card">
-                      <span className="deliverable-metric-label">建議</span>
-                      <strong className="deliverable-metric-value">{recommendations.length}</strong>
-                    </div>
-                    <div className="deliverable-metric-card">
-                      <span className="deliverable-metric-label">高影響缺口</span>
-                      <strong className="deliverable-metric-value">
-                        {workspace.high_impact_gaps.length}
-                      </strong>
+                      <p className="muted-text">{deliverableVersionSummary}</p>
                     </div>
                   </div>
                 </div>
@@ -961,49 +898,22 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                 <div className="section-card deliverable-rail-card">
                   <h4>可信度與適用範圍</h4>
                   <p className="content-block">{workspaceView.confidenceSummary}</p>
+                  <p className="muted-text" style={{ marginTop: "12px" }}>
+                    {workspace.linked_evidence.length} 則證據 / {workspace.linked_source_materials.length} 份來源材料 / {workspace.high_impact_gaps.length} 個高影響缺口
+                  </p>
                 </div>
 
                 <div className="section-card deliverable-rail-card">
-                  <h4>下一個高影響缺口</h4>
-                  <p className="content-block">
+                  <h4>連續性與下一個限制</h4>
+                  <p className="content-block">{deliverableContinuitySummary}</p>
+                  <p className="muted-text" style={{ marginTop: "12px" }}>
                     {workspace.high_impact_gaps[0] || "目前沒有額外高影響缺口。"}
                   </p>
                   {readinessGovernance ? (
-                    <p className="muted-text" style={{ marginTop: "12px" }}>
+                    <p className="muted-text" style={{ marginTop: "8px" }}>
                       {readinessGovernance.summary}
                     </p>
                   ) : null}
-                </div>
-
-                <div className="section-card deliverable-rail-card">
-                  <h4>關聯脈絡</h4>
-                  <div className="detail-list">
-                    <div className="detail-item">
-                      <h3>所屬案件</h3>
-                      <p className="content-block">
-                        {workspace.matter_workspace?.title || task.engagement?.name || "未掛案件"}
-                      </p>
-                    </div>
-                    <div className="detail-item">
-                      <h3>關聯代理</h3>
-                      <p className="content-block">
-                        {capabilityFrame?.selectedAgentDetails.length
-                          ? capabilityFrame.selectedAgentDetails
-                              .map((item) => item.agentName)
-                              .slice(0, 4)
-                              .join("、")
-                          : "目前沒有可顯示的代理脈絡。"}
-                      </p>
-                    </div>
-                    <div className="detail-item">
-                      <h3>關聯模組包</h3>
-                      <p className="content-block">
-                        {selectedPackNames.length > 0
-                          ? selectedPackNames.slice(0, 4).join("、")
-                          : "目前沒有可顯示的模組包脈絡。"}
-                      </p>
-                    </div>
-                  </div>
                 </div>
               </aside>
             </div>
@@ -1042,15 +952,15 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
               {followUpLane ? (
                 <>
                   <div className="section-card">
-                    <h4>最新 checkpoint</h4>
+                    <h4>最新檢查點</h4>
                     <p className="content-block">
-                      {followUpLane.latest_update?.summary || "尚未形成正式 checkpoint。"}
+                      {followUpLane.latest_update?.summary || "尚未形成正式檢查點。"}
                     </p>
                   </div>
                   <div className="section-card">
                     <h4>和上一輪的差異</h4>
                     <p className="content-block">
-                      {followUpLane.what_changed[0] || "這輪主要是在延續既有 checkpoint。"}
+                      {followUpLane.what_changed[0] || "這輪主要是在延續既有檢查點。"}
                     </p>
                   </div>
                 </>
@@ -1058,15 +968,15 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
               {progressionLane ? (
                 <>
                   <div className="section-card">
-                    <h4>最新 progression</h4>
+                    <h4>最新推進狀態</h4>
                     <p className="content-block">
-                      {progressionLane.latest_progression?.summary || "目前還沒有 progression update。"}
+                      {progressionLane.latest_progression?.summary || "目前還沒有新的推進更新。"}
                     </p>
                   </div>
                   <div className="section-card">
                     <h4>下一步最建議做什麼</h4>
                     <p className="content-block">
-                      {progressionLane.next_progression_actions[0] || "回案件工作面更新 progression。"}
+                      {progressionLane.next_progression_actions[0] || "回案件工作面更新推進狀態。"}
                     </p>
                   </div>
                 </>
@@ -1174,7 +1084,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
 
           <DisclosurePanel
             title="Continuity / research / writeback"
-            description="只有在你要確認這份交付物會怎麼寫回案件世界、外部 research 怎麼進鏈、以及目前有哪些 decision / outcome records 時，再展開這層。"
+            description="只有在你要確認這份交付物會怎麼寫回案件世界、外部研究怎麼進鏈，以及目前有哪些決策／結果紀錄時，再展開這層。"
           >
             <div className="summary-grid">
               <div className="section-card">
@@ -1193,15 +1103,15 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                 </div>
               ) : null}
               <div className="section-card">
-                <h4>Research provenance</h4>
+                <h4>研究來源脈絡</h4>
                 <p className="content-block">
                   {workspace.research_runs.length > 0
-                    ? `已留存 ${workspace.research_runs.length} 筆 research runs。`
-                    : "目前沒有 research provenance。"}
+                    ? `已留存 ${workspace.research_runs.length} 筆研究執行紀錄。`
+                    : "目前沒有研究來源脈絡。"}
                 </p>
               </div>
               <div className="section-card">
-                <h4>Decision authority</h4>
+                <h4>決策權威</h4>
                 <p className="content-block">
                   {sliceDecisionContext
                     ? `交付物目前優先依案件世界的 canonical decision context 呈現；slice-local overlay 只保留 ${sliceDecisionContext.changed_fields.length} 項差異給在途工作，core/context authority 不再以 task-local row 為主。`
@@ -1209,36 +1119,36 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                 </p>
               </div>
               <div className="section-card">
-                <h4>Shared participation</h4>
+                <h4>共享參與鏈</h4>
                 <p className="content-block">
                   {sharedEvidenceParticipationCount > 0
-                    ? `這份交付物目前至少回鏈到 ${sharedEvidenceParticipationCount} 條被多個 work slices 共用的正式材料 / 證據鏈。`
-                    : "目前沒有顯示被多個 work slices 共用的正式材料 / 證據鏈。"}
+                    ? `這份交付物目前至少回鏈到 ${sharedEvidenceParticipationCount} 條被多個工作切片共用的正式材料／證據鏈。`
+                    : "目前沒有顯示被多個工作切片共用的正式材料／證據鏈。"}
                 </p>
               </div>
               <div className="section-card">
-                <h4>Decision records</h4>
+                <h4>決策紀錄</h4>
                 <p className="content-block">{workspace.decision_records.length} 筆</p>
               </div>
               <div className="section-card">
-                <h4>Outcome records</h4>
+                <h4>結果紀錄</h4>
                 <p className="content-block">{workspace.outcome_records.length} 筆</p>
               </div>
             </div>
             {followUpLane ? (
               <div className="detail-list" style={{ marginTop: "18px" }}>
                 <div className="detail-item">
-                  <h3>這份交付物接在哪個 checkpoint 後面</h3>
+                  <h3>這份交付物接在哪個檢查點後面</h3>
                   <ul className="list-content">
-                    <li>最新 checkpoint：{followUpLane.latest_update?.summary || "尚未形成正式 checkpoint。"}</li>
-                    <li>上一個 checkpoint：{followUpLane.previous_checkpoint?.summary || "目前沒有更早的 checkpoint 可比較。"}</li>
+                    <li>最新檢查點：{followUpLane.latest_update?.summary || "尚未形成正式檢查點。"}</li>
+                    <li>上一個檢查點：{followUpLane.previous_checkpoint?.summary || "目前沒有更早的檢查點可比較。"}</li>
                     {followUpLane.what_changed.map((item) => (
                       <li key={`deliverable-follow-up-change-${item}`}>{item}</li>
                     ))}
                   </ul>
                 </div>
                 <div className="detail-item">
-                  <h3>建議 / 風險 / action continuity</h3>
+                  <h3>建議／風險／行動延續狀態</h3>
                   {followUpChangeHighlights.length > 0 ? (
                     <ul className="list-content">
                       {followUpChangeHighlights.map((item, index) => (
@@ -1249,7 +1159,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                     </ul>
                   ) : (
                     <p className="empty-text">
-                      目前這輪主要是在延續既有 checkpoint，尚未形成額外的 continuity 變化摘要。
+                      目前這輪主要是在延續既有檢查點，尚未形成額外的延續變化摘要。
                     </p>
                   )}
                 </div>
@@ -1258,10 +1168,10 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
             {progressionLane ? (
               <div className="detail-list" style={{ marginTop: "18px" }}>
                 <div className="detail-item">
-                  <h3>這份交付物目前的 progression 位置</h3>
+                  <h3>這份交付物目前的推進位置</h3>
                   <ul className="list-content">
-                    <li>最新 progression：{progressionLane.latest_progression?.summary || "目前還沒有 progression update。"}</li>
-                    <li>上一個 progression：{progressionLane.previous_progression?.summary || "目前沒有更早的 progression snapshot。"}</li>
+                    <li>最新推進狀態：{progressionLane.latest_progression?.summary || "目前還沒有新的推進更新。"}</li>
+                    <li>上一個推進狀態：{progressionLane.previous_progression?.summary || "目前沒有更早的推進快照。"}</li>
                     {progressionLane.what_changed.map((item) => (
                       <li key={`deliverable-progression-change-${item}`}>{item}</li>
                     ))}
@@ -1283,7 +1193,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                       )}
                     </div>
                     <div className="section-card">
-                      <h4>Action 狀態</h4>
+                      <h4>行動狀態</h4>
                       {progressionLane.action_states.length > 0 ? (
                         <ul className="list-content">
                           {progressionLane.action_states.slice(0, 3).map((item, index) => (
@@ -1291,11 +1201,11 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                           ))}
                         </ul>
                       ) : (
-                        <p className="empty-text">目前沒有可顯示的 action 狀態摘要。</p>
+                        <p className="empty-text">目前沒有可顯示的行動狀態摘要。</p>
                       )}
                     </div>
                     <div className="section-card">
-                      <h4>Outcome 訊號</h4>
+                      <h4>結果訊號</h4>
                       {progressionLane.outcome_signals.length > 0 ? (
                         <ul className="list-content">
                           {progressionLane.outcome_signals.slice(0, 3).map((item) => (
@@ -1303,7 +1213,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                           ))}
                         </ul>
                       ) : (
-                        <p className="empty-text">目前還沒有新的 outcome 訊號摘要。</p>
+                        <p className="empty-text">目前還沒有新的結果訊號摘要。</p>
                       )}
                     </div>
                   </div>
@@ -1665,12 +1575,20 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                 <p className="muted-text">最新正文修訂晚於最近一次正式發布；若要形成新的正式版本，請再次正式發布。</p>
               ) : null}
               {saveMessage ? (
-                <p className={saveTone === "error" ? "error-text" : "success-text"}>
+                <p
+                  className={saveTone === "error" ? "error-text" : "success-text"}
+                  role={saveTone === "error" ? "alert" : "status"}
+                  aria-live={saveTone === "error" ? "assertive" : "polite"}
+                >
                   {saveMessage}
                 </p>
               ) : null}
               {exportMessage ? (
-                <p className={exportTone === "error" ? "error-text" : "success-text"}>
+                <p
+                  className={exportTone === "error" ? "error-text" : "success-text"}
+                  role={exportTone === "error" ? "alert" : "status"}
+                  aria-live={exportTone === "error" ? "assertive" : "polite"}
+                >
                   {exportMessage}
                 </p>
               ) : null}

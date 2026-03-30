@@ -145,35 +145,43 @@ export function DeliverablesPagePanel() {
       <section className="hero-card">
         <span className="eyebrow">交付物</span>
         <h1 className="page-title">交付物</h1>
-        <p className="page-subtitle">集中管理交付物狀態、版本與所屬案件，並從這裡進到正式工作面。</p>
+        <p className="page-subtitle">從這裡找到要回看、修改或準備交付的內容。</p>
         <div className="workbench-overview-grid" style={{ marginTop: "20px" }}>
           <div className="section-card">
             <h3>全部交付物</h3>
             <p className="workbench-metric">{allDeliverables.length}</p>
-            <p className="muted-text">目前可回看的正式交付成果。</p>
+            <p className="muted-text">目前可直接回看的交付物。</p>
           </div>
           <div className="section-card">
             <h3>待確認</h3>
             <p className="workbench-metric">{draftCount + pendingCount}</p>
-            <p className="muted-text">仍在編修或等待確認的交付物。</p>
+            <p className="muted-text">還在整理，還沒正式定稿的交付物。</p>
           </div>
           <div className="section-card">
             <h3>定稿</h3>
             <p className="workbench-metric">{finalCount}</p>
-            <p className="muted-text">已定稿、可持續回看的版本。</p>
+            <p className="muted-text">已定稿、可直接使用的版本。</p>
           </div>
         </div>
       </section>
 
-      {loading ? <p className="status-text">正在載入交付物頁...</p> : null}
-      {error ? <p className="error-text">{error}</p> : null}
+      {loading ? (
+        <p className="status-text" role="status" aria-live="polite">
+          正在載入交付物頁...
+        </p>
+      ) : null}
+      {error ? (
+        <p className="error-text" role="alert" aria-live="assertive">
+          {error}
+        </p>
+      ) : null}
 
       {!loading && !error ? (
         <section className="panel">
           <div className="panel-header">
             <div>
               <h2 className="panel-title">交付物列表</h2>
-              <p className="panel-copy">先找到要續修或回看的交付物，再進到 detail workspace 處理摘要、風險、行動與版本。</p>
+              <p className="panel-copy">先找到要處理的交付物，再進交付物頁整理內容與版本。</p>
             </div>
           </div>
 
@@ -239,11 +247,11 @@ export function DeliverablesPagePanel() {
                   <p className="content-block">{truncateText(item.summary, 92)}</p>
                   <div className="button-row" style={{ marginTop: "12px" }}>
                     <Link className="button-secondary" href={`/deliverables/${item.id}`}>
-                      打開交付物工作面
+                      前往交付物
                     </Link>
                     {item.matterId ? (
                       <Link className="button-secondary" href={`/matters/${item.matterId}`}>
-                        返回案件工作面
+                        回案件頁
                       </Link>
                     ) : null}
                   </div>

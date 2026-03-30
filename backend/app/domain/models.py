@@ -122,6 +122,7 @@ class WorkbenchPreference(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
     profile_key: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     interface_language: Mapped[str] = mapped_column(String(20), default="zh-Hant")
+    theme_preference: Mapped[str] = mapped_column(String(20), default="light")
     homepage_display_preference: Mapped[str] = mapped_column(String(50), default="matters")
     history_default_page_size: Mapped[int] = mapped_column(Integer, default=20)
     show_recent_activity: Mapped[bool] = mapped_column(Boolean, default=True)

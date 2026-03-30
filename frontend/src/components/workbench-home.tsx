@@ -14,7 +14,12 @@ import type {
   MatterWorkspaceSummary,
   TaskListItem,
 } from "@/lib/types";
-import { formatDisplayDate, labelForDeliverableClass } from "@/lib/ui-labels";
+import {
+  formatDisplayDate,
+  labelForAgentName,
+  labelForDeliverableClass,
+  labelForPackName,
+} from "@/lib/ui-labels";
 import {
   useMatterWorkspaceRecords,
   useWorkbenchSettings,
@@ -23,9 +28,15 @@ import {
   isLocalFallbackMatterRecord,
 } from "@/lib/workspace-persistence";
 
-function collectTopItems(items: string[], limit = 4) {
+function collectTopItems(
+  items: string[],
+  formatter: (value: string) => string,
+  limit = 4,
+) {
   const counts = new Map<string, number>();
-  items.forEach((item) => counts.set(item, (counts.get(item) ?? 0) + 1));
+  items
+    .map((item) => formatter(item))
+    .forEach((item) => counts.set(item, (counts.get(item) ?? 0) + 1));
 
   return Array.from(counts.entries())
     .sort((a, b) => b[1] - a[1])
@@ -152,8 +163,14 @@ export function WorkbenchHome() {
     )
     .slice(0, 4);
   const recentActivities = sortedTasks.slice(0, 4);
-  const frequentAgents = collectTopItems(sortedTasks.flatMap((task) => task.selected_agent_names));
-  const frequentPacks = collectTopItems(sortedTasks.flatMap((task) => task.selected_pack_names));
+  const frequentAgents = collectTopItems(
+    sortedTasks.flatMap((task) => task.selected_agent_names),
+    labelForAgentName,
+  );
+  const frequentPacks = collectTopItems(
+    sortedTasks.flatMap((task) => task.selected_pack_names),
+    labelForPackName,
+  );
   const primaryMatter = visibleMatters[0] ?? null;
   const primaryDeliverable = recentDeliverables[0] ?? null;
   const primaryEvidenceTask = pendingEvidenceTasks[0] ?? null;
@@ -167,7 +184,7 @@ export function WorkbenchHome() {
       <section className="hero-card overview-hero">
         <span className="eyebrow">總覽</span>
         <h1 className="page-title">總覽</h1>
-        <p className="page-subtitle">先決定現在要回到哪個工作面，再繼續推進案件、交付物與證據整理。</p>
+        <p className="page-subtitle">先看現在最值得處理的是哪一件事，再回到對應頁面繼續工作。</p>
 
         <div className="summary-grid overview-summary-grid" style={{ marginTop: "20px" }}>
           <div className="section-card overview-focus-card">
@@ -186,7 +203,7 @@ export function WorkbenchHome() {
                 ? truncateText(
                     primaryDeliverable?.latest_deliverable_summary ||
                       primaryDeliverable?.decision_context_title ||
-                      "交付物 detail workspace 會顯示這次判斷的摘要與版本。",
+                      "交付物頁會整理這次結論、版本與可直接採用的內容。",
                     88,
                   )
                 : settings.homepageDisplayPreference === "evidence"
@@ -197,7 +214,7 @@ export function WorkbenchHome() {
                       primaryMatterRecord?.summary ||
                         primaryMatter?.workspace_summary ||
                         primaryMatter?.current_decision_context_title ||
-                        "案件 detail workspace 會承接目前的決策問題。",
+                        "案件頁會接住這次要處理的問題與下一步。",
                       88,
                     )}
             </p>
@@ -208,7 +225,7 @@ export function WorkbenchHome() {
                   className="button-secondary"
                   href={`/deliverables/${primaryDeliverable.latest_deliverable_id}`}
                 >
-                  打開交付物工作面
+                  前往交付物
                 </Link>
               ) : null}
               {settings.homepageDisplayPreference === "evidence" && primaryEvidenceTask ? (
@@ -220,12 +237,12 @@ export function WorkbenchHome() {
                       : `/tasks/${primaryEvidenceTask.id}`
                   }
                 >
-                  打開待補資料
+                  前往補件
                 </Link>
               ) : null}
               {settings.homepageDisplayPreference === "matters" && primaryMatter ? (
                 <Link className="button-secondary" href={`/matters/${primaryMatter.id}`}>
-                  打開案件工作面
+                  前往案件頁
                 </Link>
               ) : null}
             </div>
@@ -249,13 +266,13 @@ export function WorkbenchHome() {
 
           <div className="section-card quick-start-card">
             <h3>建立新案件</h3>
-            <p className="content-block">開始新的顧問工作流時，直接走正式進件頁，完成後會接回案件工作台。</p>
+            <p className="content-block">有新案件時，直接從這裡開始。建立後會自動帶你回到案件頁繼續處理。</p>
             <div className="button-row" style={{ marginTop: "12px" }}>
               <Link className="button-primary" href="/new">
                 建立新案件
               </Link>
               <Link className="button-secondary" href="/matters">
-                打開案件工作台
+                看案件列表
               </Link>
             </div>
           </div>
@@ -263,9 +280,21 @@ export function WorkbenchHome() {
       </section>
 
       {loading || matterLoading ? <p className="status-text">正在載入總覽...</p> : null}
-      {error ? <p className="error-text">{error}</p> : null}
-      {matterError ? <p className="error-text">{matterError}</p> : null}
-      {extensionError ? <p className="error-text">{extensionError}</p> : null}
+      {error ? (
+        <p className="error-text" role="alert" aria-live="assertive">
+          {error}
+        </p>
+      ) : null}
+      {matterError ? (
+        <p className="error-text" role="alert" aria-live="assertive">
+          {matterError}
+        </p>
+      ) : null}
+      {extensionError ? (
+        <p className="error-text" role="alert" aria-live="assertive">
+          {extensionError}
+        </p>
+      ) : null}
 
       {!loading && !matterLoading ? (
         <div className="detail-grid">
@@ -274,10 +303,10 @@ export function WorkbenchHome() {
               <div className="panel-header">
                 <div>
                   <h2 className="panel-title">繼續工作</h2>
-                  <p className="panel-copy">從進行中案件直接回到工作面，先處理最接近現在的主線任務。</p>
+                  <p className="panel-copy">先回到正在推進的案件，通常最能幫你接續剛剛的工作。</p>
                 </div>
                 <Link className="button-secondary" href="/matters">
-                  查看全部案件
+                  看全部案件
                 </Link>
               </div>
 
@@ -324,10 +353,10 @@ export function WorkbenchHome() {
               <div className="panel-header">
                 <div>
                   <h2 className="panel-title">最近交付物</h2>
-                  <p className="panel-copy">保留少量最值得先回看的交付物入口，不讓首頁變成長列表。</p>
+                  <p className="panel-copy">這裡只放最近最值得回看的交付物，方便你快速回到結果。</p>
                 </div>
                 <Link className="button-secondary" href="/deliverables">
-                  查看全部交付物
+                  看全部交付物
                 </Link>
               </div>
 
@@ -371,7 +400,7 @@ export function WorkbenchHome() {
               <div className="panel-header">
                 <div>
                   <h2 className="panel-title">待補資料 / 證據</h2>
-                  <p className="panel-copy">先抓最需要補資料厚度的工作，再決定是否進到來源與證據工作面。</p>
+                  <p className="panel-copy">先看哪些案件最缺資料，再決定要不要補件。</p>
                 </div>
               </div>
 
@@ -408,10 +437,10 @@ export function WorkbenchHome() {
                 <div className="panel-header">
                   <div>
                     <h2 className="panel-title">最近活動</h2>
-                    <p className="panel-copy">首頁只保留少量最近活動摘要，完整整理請到歷史紀錄頁。</p>
+                  <p className="panel-copy">這裡只放最近幾筆更新；要完整回看再去歷史紀錄。</p>
                   </div>
                   <Link className="button-secondary" href="/history">
-                    查看全部歷史紀錄
+                    看全部歷史紀錄
                   </Link>
                 </div>
 
@@ -444,7 +473,7 @@ export function WorkbenchHome() {
                 <div className="panel-header">
                   <div>
                     <h2 className="panel-title">常用代理 / 模組包</h2>
-                    <p className="panel-copy">高頻摘要只留在首頁；正式管理仍在代理管理與模組包管理頁。</p>
+                    <p className="panel-copy">這裡只讓你快速看到常用項目；要調整設定再進管理頁。</p>
                   </div>
                 </div>
 

@@ -18,6 +18,7 @@ ProviderValidationStatus = Literal[
 
 class WorkbenchPreferenceResponse(BaseModel):
     interface_language: Literal["zh-Hant", "en"] = "zh-Hant"
+    theme_preference: Literal["light", "dark", "system"] = "light"
     homepage_display_preference: Literal["matters", "deliverables", "evidence"] = "matters"
     history_default_page_size: int = 20
     show_recent_activity: bool = True

@@ -199,35 +199,43 @@ export function HistoryPagePanel() {
       <section className="hero-card">
         <span className="eyebrow">歷史紀錄</span>
         <h1 className="page-title">歷史紀錄</h1>
-        <p className="page-subtitle">查找、整理並收納工作歷史，快速找回某段案件脈絡。</p>
+        <p className="page-subtitle">用來找回過去做過的工作，快速回到你要接續的脈絡。</p>
           <div className="workbench-overview-grid" style={{ marginTop: "20px" }}>
           <div className="section-card">
             <h3>可回看紀錄</h3>
             <p className="workbench-metric">{visibleTasks.length}</p>
-            <p className="muted-text">目前仍顯示在工作台中的歷史紀錄。</p>
+            <p className="muted-text">目前仍會顯示在系統裡的工作紀錄。</p>
           </div>
           <div className="section-card">
             <h3>已隱藏</h3>
             <p className="workbench-metric">{historyState.hiddenTaskIds.length}</p>
-            <p className="muted-text">已正式記錄為 soft-hide，不做硬刪除。</p>
+            <p className="muted-text">已先隱藏，但沒有真的刪掉。</p>
           </div>
           <div className="section-card">
             <h3>案件數</h3>
             <p className="workbench-metric">{matterOptions.length}</p>
-            <p className="muted-text">可依案件回看歷史脈絡。</p>
+            <p className="muted-text">可依案件回看過去做過的內容。</p>
           </div>
         </div>
       </section>
 
-      {loading ? <p className="status-text">正在載入歷史紀錄...</p> : null}
-      {error ? <p className="error-text">{error}</p> : null}
+      {loading ? (
+        <p className="status-text" role="status" aria-live="polite">
+          正在載入歷史紀錄...
+        </p>
+      ) : null}
+      {error ? (
+        <p className="error-text" role="alert" aria-live="assertive">
+          {error}
+        </p>
+      ) : null}
 
       {!loading && !error ? (
         <section className="panel">
           <div className="panel-header">
             <div>
               <h2 className="panel-title">歷史整理工具</h2>
-              <p className="panel-copy">先用搜尋與篩選縮小範圍，再決定要隱藏單筆、批次清理或打開原始工作紀錄。</p>
+              <p className="panel-copy">先用搜尋和篩選找出你要的紀錄，再決定是打開、隱藏，還是整理這一頁。</p>
             </div>
           </div>
 
@@ -345,7 +353,11 @@ export function HistoryPagePanel() {
               清空全部歷史入口
             </button>
           </div>
-          {historyMessage ? <p className="success-text">{historyMessage}</p> : null}
+          {historyMessage ? (
+            <p className="success-text" role="status" aria-live="polite">
+              {historyMessage}
+            </p>
+          ) : null}
 
           <div className="meta-row" style={{ marginTop: "12px" }}>
             <span>目前顯示 {filteredTasks.length} 筆</span>

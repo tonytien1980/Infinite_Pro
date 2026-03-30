@@ -9,9 +9,13 @@ import type {
   TaskExtensionOverridePayload,
 } from "@/lib/types";
 import {
+  getAgentCatalogDisplay,
+  getPackCatalogDisplay,
   labelForAgentId,
+  labelForAgentName,
   labelForAgentType,
   labelForExtensionStatus,
+  labelForPackName,
   labelForPackType,
 } from "@/lib/ui-labels";
 
@@ -37,7 +41,8 @@ function summarizeList(items: string[], limit = 3) {
 }
 
 function findAgentName(agents: AgentCatalogEntry[], agentId: string) {
-  return agents.find((item) => item.agent_id === agentId)?.agent_name ?? labelForAgentId(agentId);
+  const agentName = agents.find((item) => item.agent_id === agentId)?.agent_name;
+  return agentName ? labelForAgentName(agentName) : labelForAgentId(agentId);
 }
 
 interface ExtensionManagerSurfaceProps {
@@ -83,7 +88,9 @@ export function ExtensionManagerSurface({
   const selectedDomainPackNames = task?.pack_resolution.selected_domain_packs.map((item) => item.pack_name) ?? [];
   const selectedIndustryPackNames =
     task?.pack_resolution.selected_industry_packs.map((item) => item.pack_name) ?? [];
-  const selectedAgentNames = task?.agent_selection.selected_agent_names ?? [];
+  const selectedAgentNames = (task?.agent_selection.selected_agent_names ?? []).map((item) =>
+    labelForAgentName(item),
+  );
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -142,7 +149,7 @@ export function ExtensionManagerSurface({
             <p className="content-block">
               {agents.length} 項
               {"\n"}
-              Host 代理：{findAgentName(agents, snapshot.agent_registry.host_agent_id)}
+              主控代理：{findAgentName(agents, snapshot.agent_registry.host_agent_id)}
             </p>
           </div>
           {task ? (
@@ -163,10 +170,10 @@ export function ExtensionManagerSurface({
           <div className="detail-item">
             <h3>本次選用的模組包</h3>
             <p className="muted-text">
-              問題面向：{selectedDomainPackNames.length > 0 ? selectedDomainPackNames.join("、") : "未選用"}
+              問題面向：{selectedDomainPackNames.length > 0 ? selectedDomainPackNames.map((item) => labelForPackName(item)).join("、") : "未選用"}
             </p>
             <p className="muted-text">
-              產業：{selectedIndustryPackNames.length > 0 ? selectedIndustryPackNames.join("、") : "未選用"}
+              產業：{selectedIndustryPackNames.length > 0 ? selectedIndustryPackNames.map((item) => labelForPackName(item)).join("、") : "未選用"}
             </p>
             {task.pack_resolution.resolver_notes.length > 0 ? (
               <p className="muted-text">解析註記：{summarizeList(task.pack_resolution.resolver_notes, 2)}</p>
@@ -176,10 +183,10 @@ export function ExtensionManagerSurface({
           <div className="detail-item">
             <h3>本次選用的代理</h3>
             <p className="muted-text">
-              Host：{task.agent_selection.host_agent?.agent_name ?? "Host 代理"}
+              主控代理：{task.agent_selection.host_agent?.agent_name ? labelForAgentName(task.agent_selection.host_agent.agent_name) : "主控代理"}
             </p>
             <p className="muted-text">
-              代理：{selectedAgentNames.length > 0 ? selectedAgentNames.join("、") : "目前僅由 Host 最小介入"}
+              代理：{selectedAgentNames.length > 0 ? selectedAgentNames.join("、") : "目前僅由主控代理最小介入"}
             </p>
             {task.agent_selection.rationale.length > 0 ? (
               <p className="muted-text">選用理由：{summarizeList(task.agent_selection.rationale, 2)}</p>
@@ -265,13 +272,13 @@ export function ExtensionManagerSurface({
                     <span>{labelForExtensionStatus(pack.status)}</span>
                     <span>v{pack.version}</span>
                   </div>
-                  <h3>{pack.pack_name}</h3>
-                  <p className="muted-text">{pack.description}</p>
+                  <h3>{getPackCatalogDisplay(pack).primaryName}</h3>
+                  <p className="muted-text">{getPackCatalogDisplay(pack).primaryDescription}</p>
                   <p className="muted-text">
-                    問題型態：{summarizeList(pack.common_problem_patterns, 2)}
+                    問題型態：{pack.common_problem_patterns.length > 0 ? `已整理 ${pack.common_problem_patterns.length} 項` : "目前未標示"}
                   </p>
                   <p className="muted-text">
-                    指標 / 訊號：{summarizeList(pack.key_kpis_or_operating_signals, 3)}
+                    指標／訊號：{pack.key_kpis_or_operating_signals.length > 0 ? `已整理 ${pack.key_kpis_or_operating_signals.length} 項` : "目前未標示"}
                   </p>
                 </div>
               ))}
@@ -290,12 +297,12 @@ export function ExtensionManagerSurface({
                     <span>{labelForExtensionStatus(pack.status)}</span>
                     <span>v{pack.version}</span>
                   </div>
-                  <h3>{pack.pack_name}</h3>
-                  <p className="muted-text">{pack.description}</p>
+                  <h3>{getPackCatalogDisplay(pack).primaryName}</h3>
+                  <p className="muted-text">{getPackCatalogDisplay(pack).primaryDescription}</p>
                   <p className="muted-text">
                     商業模式：{summarizeList(pack.common_business_models, 3)}
                   </p>
-                  <p className="muted-text">關鍵 KPI：{summarizeList(pack.key_kpis, 3)}</p>
+                  <p className="muted-text">關鍵指標：{pack.key_kpis.length > 0 ? `已整理 ${pack.key_kpis.length} 項` : "目前未標示"}</p>
                 </div>
               ))}
             </div>
@@ -311,8 +318,8 @@ export function ExtensionManagerSurface({
                     <span>{labelForExtensionStatus(agent.status)}</span>
                     <span>v{agent.version}</span>
                   </div>
-                  <h3>{agent.agent_name}</h3>
-                  <p className="muted-text">{agent.description}</p>
+                  <h3>{getAgentCatalogDisplay(agent).primaryName}</h3>
+                  <p className="muted-text">{getAgentCatalogDisplay(agent).primaryDescription}</p>
                   <p className="muted-text">
                     可支援工作類型：{summarizeList(agent.supported_capabilities, 3)}
                   </p>

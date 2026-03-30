@@ -39,6 +39,7 @@ def _ensure_incremental_schema_updates() -> None:
     schema_patches = {
         "workbench_preferences": {
             "interface_language": "VARCHAR(20) NOT NULL DEFAULT 'zh-Hant'",
+            "theme_preference": "VARCHAR(20) NOT NULL DEFAULT 'light'",
             "homepage_display_preference": "VARCHAR(50) NOT NULL DEFAULT 'matters'",
             "history_default_page_size": "INTEGER NOT NULL DEFAULT 20",
             "show_recent_activity": "BOOLEAN NOT NULL DEFAULT TRUE",

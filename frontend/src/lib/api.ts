@@ -132,6 +132,7 @@ export async function updateWorkbenchPreferences(
     },
     body: JSON.stringify({
       interface_language: payload.interfaceLanguage,
+      theme_preference: payload.themePreference,
       homepage_display_preference: payload.homepageDisplayPreference,
       history_default_page_size: payload.historyDefaultPageSize,
       show_recent_activity: payload.showRecentActivity,
@@ -214,6 +215,7 @@ export async function resetSystemProviderSettingsToEnv(): Promise<SystemProvider
 async function parseWorkbenchPreferencesPayload(response: Response) {
   return parseResponse<{
     interface_language: WorkbenchSettings["interfaceLanguage"];
+    theme_preference: WorkbenchSettings["themePreference"];
     homepage_display_preference: WorkbenchSettings["homepageDisplayPreference"];
     history_default_page_size: number;
     show_recent_activity: boolean;
@@ -226,6 +228,7 @@ async function parseWorkbenchPreferencesPayload(response: Response) {
 
 function getWorkbenchPreferencesFromPayload(payload: {
   interface_language: WorkbenchSettings["interfaceLanguage"];
+  theme_preference: WorkbenchSettings["themePreference"];
   homepage_display_preference: WorkbenchSettings["homepageDisplayPreference"];
   history_default_page_size: number;
   show_recent_activity: boolean;
@@ -236,6 +239,7 @@ function getWorkbenchPreferencesFromPayload(payload: {
 }): WorkbenchSettings {
   return {
     interfaceLanguage: payload.interface_language,
+    themePreference: payload.theme_preference,
     homepageDisplayPreference: payload.homepage_display_preference,
     historyDefaultPageSize: payload.history_default_page_size,
     showRecentActivity: payload.show_recent_activity,

@@ -109,8 +109,8 @@ function buildEvidenceIssueDiagnostic({
   const laneImpact =
     workflowLayer === "checkpoint"
       ? updateGoal
-        ? `這會直接影響這輪 follow-up 想補的缺口：${updateGoal}`
-        : "這會直接影響這輪 follow-up 能不能站穩。"
+        ? `這會直接影響這輪後續更新想補的缺口：${updateGoal}`
+        : "這會直接影響這輪後續更新能不能站穩。"
       : workflowLayer === "progression"
         ? updateGoal
           ? `這會直接影響這輪 continuous 想驗證的 action / outcome：${updateGoal}`
@@ -829,33 +829,33 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                 <p className="content-block">{workspace.high_impact_gaps.length} 個</p>
               </div>
               <div className="section-card">
-                <h4>跨 slice 共享鏈</h4>
+                <h4>跨工作切片共享鏈</h4>
                 <p className="content-block">{sharedContinuitySummary}</p>
               </div>
               {followUpLane ? (
                 <>
                   <div className="section-card">
-                    <h4>最新 checkpoint</h4>
+                    <h4>最新檢查點</h4>
                     <p className="content-block">
-                      {followUpLane.latest_update?.summary || "尚未形成正式 checkpoint。"}
+                      {followUpLane.latest_update?.summary || "尚未形成正式檢查點。"}
                     </p>
                   </div>
                   <div className="section-card">
-                    <h4>上一個 checkpoint</h4>
+                    <h4>上一個檢查點</h4>
                     <p className="content-block">
-                      {followUpLane.previous_checkpoint?.summary || "目前還沒有上一輪 checkpoint 可對照。"}
+                      {followUpLane.previous_checkpoint?.summary || "目前還沒有上一輪檢查點可對照。"}
                     </p>
                   </div>
                   <div className="section-card">
                     <h4>這次補件主要影響</h4>
                     <p className="content-block">
-                      {followUpLane.evidence_update_goal || "先補齊這輪 follow-up 要更新的支撐鏈。"}
+                      {followUpLane.evidence_update_goal || "先補齊這輪後續更新要補強的支撐鏈。"}
                     </p>
                   </div>
                   <div className="section-card">
                     <h4>下一步最建議做什麼</h4>
                     <p className="content-block">
-                      {followUpLane.next_follow_up_actions[0] || "補完後回案件工作面更新這輪 checkpoint。"}
+                      {followUpLane.next_follow_up_actions[0] || "補完後回案件工作面更新這輪檢查點。"}
                     </p>
                   </div>
                 </>
@@ -863,15 +863,15 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
               {progressionLane ? (
                 <>
                   <div className="section-card">
-                    <h4>最新 progression</h4>
+                    <h4>最新推進狀態</h4>
                     <p className="content-block">
-                      {progressionLane.latest_progression?.summary || "目前還沒有 progression update。"}
+                      {progressionLane.latest_progression?.summary || "目前還沒有新的推進更新。"}
                     </p>
                   </div>
                   <div className="section-card">
                     <h4>下一步最建議做什麼</h4>
                     <p className="content-block">
-                      {progressionLane.next_progression_actions[0] || "回案件工作面更新 progression。"}
+                      {progressionLane.next_progression_actions[0] || "回案件工作面更新推進狀態。"}
                     </p>
                   </div>
                 </>
@@ -971,22 +971,22 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
           </section>
 
           <DisclosurePanel
-            title="Research provenance 與 evidence gap records"
-            description="只有在你要 debug 這輪外部補完是怎麼進入 evidence chain、或確認哪些 gaps 已被正式記錄時，再展開這層。"
+            title="研究來源脈絡與證據缺口紀錄"
+            description="只有在你要追查這輪外部補完是怎麼進入證據鏈，或確認哪些缺口已被正式記錄時，再展開這層。"
           >
             <div className="summary-grid">
               <div className="section-card">
-                <h4>Research runs</h4>
+                <h4>研究執行紀錄</h4>
                 <CompactList
                   items={workspace.research_runs.map((item) => `${item.query}｜${item.result_summary || item.status}`)}
-                  emptyText="目前沒有 research provenance。"
+                  emptyText="目前沒有研究來源脈絡。"
                 />
               </div>
               <div className="section-card">
-                <h4>Evidence gap records</h4>
+                <h4>證據缺口紀錄</h4>
                 <CompactList
                   items={workspace.evidence_gaps.map((item) => `${item.title}：${item.description}`)}
-                  emptyText="目前沒有已記錄的 evidence gaps。"
+                  emptyText="目前沒有已記錄的證據缺口。"
                 />
               </div>
             </div>
@@ -1006,37 +1006,37 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
               {followUpLane ? (
                 <div className="summary-grid">
                   <div className="section-card">
-                    <h4>最新更新（latest update）</h4>
+                    <h4>最新更新</h4>
                     <p className="content-block">
-                      {followUpLane.latest_update?.summary || "目前還沒有正式 latest update。"}
+                      {followUpLane.latest_update?.summary || "目前還沒有正式的最新更新。"}
                     </p>
                   </div>
                   <div className="section-card">
-                    <h4>上一個 checkpoint</h4>
+                    <h4>上一個檢查點</h4>
                     <p className="content-block">
-                      {followUpLane.previous_checkpoint?.summary || "目前還沒有 previous checkpoint 可比較。"}
+                      {followUpLane.previous_checkpoint?.summary || "目前還沒有更早的檢查點可比較。"}
                     </p>
                   </div>
                   <div className="section-card">
-                    <h4>這次差異（what changed）</h4>
+                    <h4>這次變化</h4>
                     <p className="content-block">
-                      {followUpLane.what_changed[0] || "這輪主要是在延續既有 checkpoint，補強判斷基礎。"}
+                      {followUpLane.what_changed[0] || "這輪主要是在延續既有檢查點，補強判斷基礎。"}
                     </p>
                   </div>
                   <div className="section-card">
-                    <h4>下一步建議（next follow-up action）</h4>
+                    <h4>下一步建議</h4>
                     <p className="content-block">
-                      {followUpLane.next_follow_up_actions[0] || "補完之後回案件工作面更新 checkpoint。"}
+                      {followUpLane.next_follow_up_actions[0] || "補完之後回案件工作面更新檢查點。"}
                     </p>
                   </div>
                   <div className="section-card">
                     <h4>這次補件要補哪個缺口</h4>
                     <p className="content-block">
-                      {followUpLane.evidence_update_goal || "這次補件主要是為了補強最新 follow-up 更新的判斷基礎。"}
+                      {followUpLane.evidence_update_goal || "這次補件主要是為了補強最新後續更新的判斷基礎。"}
                     </p>
                   </div>
                   <div className="section-card">
-                    <h4>目前最顯著的 evidence gap</h4>
+                    <h4>目前最顯著的證據缺口</h4>
                     <p className="content-block">
                       {workspace.high_impact_gaps[0] || "目前沒有額外高影響缺口，補件可先圍繞最近更新做精修。"}
                     </p>
@@ -1046,21 +1046,21 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
               {progressionLane ? (
                 <div className="summary-grid">
                   <div className="section-card">
-                    <h4>最新 progression（latest progression）</h4>
+                    <h4>最新推進狀態</h4>
                     <p className="content-block">
-                      {progressionLane.latest_progression?.summary || "目前還沒有 progression update。"}
+                      {progressionLane.latest_progression?.summary || "目前還沒有新的推進更新。"}
                     </p>
                   </div>
                   <div className="section-card">
-                    <h4>上一個 progression snapshot</h4>
+                    <h4>上一個推進快照</h4>
                     <p className="content-block">
-                      {progressionLane.previous_progression?.summary || "目前還沒有更早的 progression snapshot。"}
+                      {progressionLane.previous_progression?.summary || "目前還沒有更早的推進快照。"}
                     </p>
                   </div>
                   <div className="section-card">
-                    <h4>這次差異（what changed）</h4>
+                    <h4>這次變化</h4>
                     <p className="content-block">
-                      {progressionLane.what_changed[0] || "這輪主要是在延續既有 progression 基線。"}
+                      {progressionLane.what_changed[0] || "這輪主要是在延續既有推進基線。"}
                     </p>
                   </div>
                   <div className="section-card">
