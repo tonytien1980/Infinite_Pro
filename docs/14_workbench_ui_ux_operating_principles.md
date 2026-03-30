@@ -339,6 +339,10 @@ Infinite Pro 應正式使用以下漸進揭露方式：
 
 四者同時爭奪第一層注意力。
 
+補充：
+- 對代理相關工作面，catalog agent 名稱應優先作為第一層語言
+- runtime binding 應保留可見，但宜落在次層說明 / disclosure / metadata，而不是取代第一層 agent identity
+
 正式規則：
 - 列表是主體
 - 編輯是次體

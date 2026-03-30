@@ -1333,7 +1333,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                         <h3>代理選用</h3>
                         <div className="detail-list">
                           <div className="detail-item">
-                            <h4>Host 代理</h4>
+                            <h4>主控代理</h4>
                             <p className="content-block">{labelForAgentId(capabilityFrame.hostAgent)}</p>
                           </div>
                           {capabilityFrame.selectedAgentDetails.length > 0 ? (

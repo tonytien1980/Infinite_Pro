@@ -45,6 +45,20 @@ function findAgentName(agents: AgentCatalogEntry[], agentId: string) {
   return agentName ? labelForAgentName(agentName) : labelForAgentId(agentId);
 }
 
+function buildSelectedAgentRuntimeRows(task: TaskAggregate) {
+  return [
+    ...(task.agent_selection.host_agent ? [task.agent_selection.host_agent] : []),
+    ...task.agent_selection.selected_reasoning_agents,
+    ...task.agent_selection.selected_specialist_agents,
+  ]
+    .filter((agent) => agent.runtime_binding)
+    .map((agent) => ({
+      agentName: labelForAgentName(agent.agent_name),
+      runtimeName: labelForAgentId(agent.runtime_binding ?? ""),
+      reason: agent.reason,
+    }));
+}
+
 interface ExtensionManagerSurfaceProps {
   snapshot: ExtensionManagerSnapshot | null;
   loading?: boolean;
@@ -91,6 +105,10 @@ export function ExtensionManagerSurface({
   const selectedAgentNames = (task?.agent_selection.selected_agent_names ?? []).map((item) =>
     labelForAgentName(item),
   );
+  const selectedAgentRuntimeRows = task ? buildSelectedAgentRuntimeRows(task) : [];
+  const runtimePathSummary = selectedAgentRuntimeRows.length > 0
+    ? Array.from(new Set(selectedAgentRuntimeRows.map((item) => item.runtimeName)))
+    : [];
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -188,6 +206,9 @@ export function ExtensionManagerSurface({
             <p className="muted-text">
               代理：{selectedAgentNames.length > 0 ? selectedAgentNames.join("、") : "目前僅由主控代理最小介入"}
             </p>
+            <p className="muted-text">
+              執行路徑：{runtimePathSummary.length > 0 ? runtimePathSummary.join("、") : "目前沒有額外的 runtime 綁定顯示"}
+            </p>
             {task.agent_selection.rationale.length > 0 ? (
               <p className="muted-text">選用理由：{summarizeList(task.agent_selection.rationale, 2)}</p>
             ) : null}
@@ -195,6 +216,20 @@ export function ExtensionManagerSurface({
               <p className="muted-text">
                 省略代理：{summarizeList(task.agent_selection.omitted_agent_notes, 1)}
               </p>
+            ) : null}
+            {selectedAgentRuntimeRows.length > 0 ? (
+              <details className="inline-disclosure" style={{ marginTop: "10px" }}>
+                <summary className="inline-disclosure-summary">查看代理與執行綁定</summary>
+                <div className="detail-list" style={{ marginTop: "12px" }}>
+                  {selectedAgentRuntimeRows.map((item) => (
+                    <div className="detail-item" key={`${item.agentName}-${item.runtimeName}`}>
+                      <h4>{item.agentName}</h4>
+                      <p className="muted-text">執行綁定：{item.runtimeName}</p>
+                      <p className="content-block">{item.reason}</p>
+                    </div>
+                  ))}
+                </div>
+              </details>
             ) : null}
           </div>
 

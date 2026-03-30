@@ -261,6 +261,7 @@ Infinite Pro 的正式第一層主導覽應為：
 至少應承接：
 - available agents
 - selected agents
+- selected agents 對應的 runtime binding visibility
 - version / status
 - spec 摘要
 - task-level override 與相關說明

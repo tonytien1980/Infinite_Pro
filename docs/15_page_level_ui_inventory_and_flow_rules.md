@@ -437,13 +437,14 @@
 **首屏必顯**
 - 全部代理數
 - 啟用中數
-- Host 數
+- 主控代理數
 - 代理列表
 
 **延後揭露**
 - 長篇描述
 - 細節結構
 - 使用紀錄全文
+- selected agent 與 runtime binding 的細節對照（若此頁承接 task-level override / selection context）
 
 **正式跳轉**
 - 無跨頁主線跳轉要求，但應保留與 task-level override 的概念連結
