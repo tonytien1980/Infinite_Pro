@@ -378,6 +378,10 @@ Treat packs as structured extensions that can influence:
 - deliverable shape
 - routing hints
 
+Formal pack quality bar:
+- do not leave `common_problem_patterns`, `evidence_expectations`, `decision_patterns`, `deliverable_presets`, or `pack_rationale` effectively empty
+- preserve both KPI-oriented and operating-signal-oriented guidance, even if one side is derived from the other for consistency
+
 Even if only a subset is implemented first, the architecture must preserve this layer clearly.
 
 ## 10. Capability / Pack / Agent boundary rules

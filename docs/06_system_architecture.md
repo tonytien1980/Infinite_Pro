@@ -302,6 +302,8 @@ Pack Layer 應至少具備：
 其中：
 - `domain_definition`、`common_problem_patterns`、`key_kpis_or_operating_signals`、`scope_boundaries`、`pack_rationale` 對 Domain / Functional Packs 特別重要
 - `industry_definition`、`common_business_models`、`common_problem_patterns`、產業型 `key_kpis`、`evidence_expectations`、`decision_patterns`、`deliverable_presets` 與 `pack_rationale` 對 Industry Packs 特別重要
+- 不論 domain 或 industry，正式 pack spec 都不應讓 `common_problem_patterns`、`evidence_expectations`、`decision_patterns`、`deliverable_presets`、`pack_rationale` 退化成空集合
+- `key_kpis` 與 `key_kpis_or_operating_signals` 應維持正式可用，不可只剩其中一側
 
 ### Capability / Pack / Agent 的層次差異
 - Capability Layer 決定這次要做哪種顧問工作
