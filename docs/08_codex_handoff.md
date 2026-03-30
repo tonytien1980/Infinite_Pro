@@ -198,15 +198,16 @@ Agents 應依能力面與專業責任分類，而不是只依目前已落地 flo
   - `strategy_business_analysis`
   - `operations`
   - `finance_capital`
-  - `market_research_insight`
+  - `legal_risk`
+  - `marketing_growth`
+  - `sales_business_development`
   - `research_intelligence`
-  - `risk_challenge`
   - `document_communication`
 - 目前 specialist runtime 已至少包括：
   - `contract_review`
   - `research_synthesis`
   - `document_restructuring`
-- catalog agent 若仍共用 runtime，Codex 不可把它誤寫成已 fully independent，也不可反過來把 catalog 重新壓縮回較少的 agent 名稱
+- catalog agent 與 runtime 命名可暫時不完全一致，但不應再把不同 reasoning families 壓回同一條 shared runtime path
 
 ### 7.3 Pack Layer
 Packs 應被視為正式能力層，不得退化為 tags。

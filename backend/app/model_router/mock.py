@@ -175,6 +175,20 @@ class MockModelProvider(ModelProvider):
             risks = [
                 "研究風險：若來源品質與新鮮度未先分級，後續很容易把弱訊號誤當成可採用事實。"
             ]
+        elif request.agent_id == "legal_risk":
+            if not findings:
+                findings = [
+                    "法務 / 風險視角目前仍缺乏足夠完整的條款、責任與合規脈絡，因此無法形成高信心邊界判斷。",
+                ]
+            recommendations = [
+                "先把法務邊界、責任分配與需要 escalation 的議題獨立標示。",
+            ]
+            action_items = [
+                "在正式依賴結論前，請先補齊關鍵條款、法遵要求或需升級審閱的素材。",
+            ]
+            risks = [
+                "法律風險：若權利義務與合規邊界未先釐清，後續商務或執行決策可能建立在錯誤前提上。"
+            ]
         elif request.agent_id == "operations":
             if not findings:
                 findings = [
@@ -189,6 +203,34 @@ class MockModelProvider(ModelProvider):
             ]
             risks = [
                 "營運風險：即使方向正確，若順序與責任不清，執行仍可能卡住。"
+            ]
+        elif request.agent_id == "marketing_growth":
+            if not findings:
+                findings = [
+                    "行銷 / 成長視角目前仍缺乏足夠受眾與需求訊號，因此難以判斷最有效的獲客與訊息方向。",
+                ]
+            recommendations = [
+                "先把最關鍵的受眾、訊息與成長機制拆開，再決定優先試哪一條路徑。",
+            ]
+            action_items = [
+                "請先確認目前最值得放大的需求訊號與渠道假設是否一致。",
+            ]
+            risks = [
+                "成長風險：若定位與訊息不清，就算投入渠道也可能放大低品質流量。"
+            ]
+        elif request.agent_id == "sales_business_development":
+            if not findings:
+                findings = [
+                    "銷售 / 商務開發視角目前仍缺乏足夠的商機與合作脈絡，因此難以判斷最佳成交與拓展路徑。",
+                ]
+            recommendations = [
+                "先把 pipeline、商務動作與夥伴結構拆開，再決定最值得推進的機會路徑。",
+            ]
+            action_items = [
+                "請先釐清目前成交阻力、夥伴角色與下一步商務動作是否一致。",
+            ]
+            risks = [
+                "商務風險：若成交路徑與夥伴結構不清，機會開發很容易停在表面接觸而無法轉成實際進展。"
             ]
         elif request.agent_id == "document_communication":
             if not findings:

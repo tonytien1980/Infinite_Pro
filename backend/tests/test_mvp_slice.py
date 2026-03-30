@@ -2146,7 +2146,7 @@ def test_multi_agent_happy_path_converges_and_saves_history(client: TestClient) 
         "strategy_business_analysis",
         "research_intelligence",
         "operations",
-        "risk_challenge",
+        "legal_risk",
     }
     assert content["findings"]
     assert content["insights"]
@@ -2279,7 +2279,7 @@ def test_host_routes_multi_agent_based_on_context_spine(
     content = response.json()["deliverable"]["content_structure"]
     assert content["capability_frame"]["capability"] == "risk_surfacing"
     assert content["participating_agents"][0] == "operations"
-    assert "Risk / Challenge Agent 提前" in " ".join(content["capability_frame"]["routing_rationale"])
+    assert "Legal / Risk Agent 提前" in " ".join(content["capability_frame"]["routing_rationale"])
 
 
 def test_operations_agent_participates_in_multi_agent_convergence(client: TestClient) -> None:
@@ -2878,7 +2878,7 @@ def test_multi_agent_still_uses_model_router(
         "strategy_business_analysis",
         "research_intelligence",
         "operations",
-        "risk_challenge",
+        "legal_risk",
     }
     assert len(calls) == 4
 

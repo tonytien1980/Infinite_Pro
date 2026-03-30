@@ -412,9 +412,10 @@ Host 應根據以下輸入決定 agent 組合：
 - `strategy_business_analysis`
 - `operations`
 - `finance_capital`
-- `market_research_insight`
+- `legal_risk`
+- `marketing_growth`
+- `sales_business_development`
 - `research_intelligence`
-- `risk_challenge`
 - `document_communication`
 
 目前正式 specialist runtimes 至少包括：
@@ -423,10 +424,10 @@ Host 應根據以下輸入決定 agent 組合：
 - `document_restructuring`
 
 正式理解應是：
-- catalog agent 與 runtime binding 可以暫時不是 1:1
+- catalog agent 與 runtime binding 在命名上可以暫時不是 1:1
 - 但 Host 必須把 selected catalog agents 與實際 runtime path 一起寫回 aggregate / workspace payload / deliverable metadata
-- 若 catalog agent 仍共用 runtime，文件與 UI 不可假裝它們已完全獨立實作
-- 後續擴充的優先順序，應是逐步減少「catalog 已分化、runtime 仍共用」的落差
+- 目前 reasoning families 應優先對齊成 dedicated runtime path，而不是再退回 shared-runtime 最小切片
+- 後續擴充的優先順序，應是補強各 runtime 的能力深度與 eval，而不是重新壓縮 catalog agent family
 
 ### 11.4 Agent Management Surface
 單人版最小管理能力應能讓顧問：
@@ -475,7 +476,7 @@ Host 應根據以下輸入決定 agent 組合：
 - 把 specialist flow 名稱直接當產品主分類
 - 把 Host Agent 降成最後的文案整理員
 - 把 packs 視為後補標籤
-- 把 catalog agent 已分化、但 runtime 仍暫時共用的過渡狀態誤寫成最終架構
+- 把已經對齊好的 agent family 다시壓縮回較少的 shared runtime 名稱
 
 後續應做的是：
 - 讓 Host 真正控制能力選擇與收斂

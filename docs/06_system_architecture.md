@@ -463,11 +463,11 @@ Infinite Pro 的正式系統流可理解為：
 
 補充：
 - Agent catalog 的治理語義仍應維持 `Host + 11 個非 Host agents`
-- runtime execution path 可在過渡期先由較少或較多的 runtime bindings 承接
+- runtime execution path 在命名上可與 catalog agent 不完全一致
 - 但 Host 必須誠實寫回：
   - 這輪選了哪些 catalog agents
   - 實際用了哪些 runtime agents
-  - 哪些 catalog agents 仍是 shared-runtime 過渡狀態
+  - runtime path 是否已對齊成該 family 的 dedicated execution path
 
 ---
 

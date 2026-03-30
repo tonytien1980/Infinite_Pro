@@ -152,5 +152,11 @@ def test_extension_manager_snapshot_surfaces_pack_and_agent_catalogs() -> None:
 
 def test_runtime_agent_bindings_promote_distinct_research_finance_and_document_paths() -> None:
     assert resolve_runtime_agent_binding("finance_agent") == "finance_capital"
+    assert resolve_runtime_agent_binding("legal_risk_agent") == "legal_risk"
+    assert resolve_runtime_agent_binding("marketing_growth_agent") == "marketing_growth"
+    assert (
+        resolve_runtime_agent_binding("sales_business_development_agent")
+        == "sales_business_development"
+    )
     assert resolve_runtime_agent_binding("research_intelligence_agent") == "research_intelligence"
     assert resolve_runtime_agent_binding("document_communication_agent") == "document_communication"

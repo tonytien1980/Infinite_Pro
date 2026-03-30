@@ -289,7 +289,8 @@ Future work in this area should normally mean:
 Current runtime alignment note:
 - the management / catalog surface currently preserves `Host + 11 non-Host agents`
 - runtime execution no longer needs to be treated as the early `4 core + 3 specialist` validation slice
-- catalog selection and runtime binding may still be transitional in some families, but Host must keep both visible in payloads and deliverable metadata
+- current reasoning families should preserve dedicated runtime paths even if runtime ids and catalog ids are not always textually identical
+- Host must keep both catalog selection and runtime path visible in payloads and deliverable metadata
 
 Do not bypass Host Agent by letting UI-only logic or direct model calls decide the core workflow.
 

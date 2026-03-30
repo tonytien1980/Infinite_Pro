@@ -148,13 +148,21 @@ def build_core_analysis_spec(
             "你是研究 / 情報代理。"
             "請聚焦在外部發現、來源品質、證據缺口、矛盾訊號、新鮮度與不確定性 framing。"
         ),
+        "legal_risk": (
+            "你是法務 / 風險代理。"
+            "請聚焦在法務邊界、合規責任、契約影響、法律曝險與 escalation 需求。"
+        ),
         "operations": (
             "你是營運代理。"
             "請聚焦在限制條件、可執行性、順序安排、執行依賴與營運風險。"
         ),
-        "risk_challenge": (
-            "你是風險 / 挑戰代理。"
-            "請聚焦在挑戰假設、下行情境、證據缺口與失敗模式。"
+        "marketing_growth": (
+            "你是行銷 / 成長代理。"
+            "請聚焦在定位、需求生成、訊息、受眾反應、渠道與 growth mechanism。"
+        ),
+        "sales_business_development": (
+            "你是銷售 / 商務開發代理。"
+            "請聚焦在 pipeline、商務動作、夥伴結構、商機開發與成交阻力。"
         ),
         "document_communication": (
             "你是文件 / 溝通代理。"
