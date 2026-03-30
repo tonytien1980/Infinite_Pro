@@ -209,6 +209,16 @@ Agents 應依能力面與專業責任分類，而不是只依目前已落地 flo
   - `document_restructuring`
 - catalog agent 與 runtime 命名可暫時不完全一致，但不應再把不同 reasoning families 壓回同一條 shared runtime path
 
+另外，後續若新增或深化 agents，Codex 應遵守：
+- 所有 agents 都要回到 `docs/05_agent_architecture.md` 的統一 Agent Spec Baseline
+- 不得只補 `agent_id / agent_name / description` 就視為完成 agent 設計
+- 若深化 `research_intelligence_agent`，正式方向應是把它做成 `Research / Investigation Agent`，並同步檢查：
+  - Host research trigger governance
+  - research depth selection（Light / Standard / Deep）
+  - `research_synthesis_specialist` handoff boundary
+  - research provenance / evidence gap / citation handoff writeback
+  - workbench research visibility
+
 ### 7.3 Pack Layer
 Packs 應被視為正式能力層，不得退化為 tags。
 

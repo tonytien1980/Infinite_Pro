@@ -170,6 +170,7 @@ Capability Layer 是產品主體，不應被簡化成少數 workflow mode 名稱
 ### 原則
 Agent Layer 不是 prompt 集合，而是 capability execution layer。
 它也不應停留在抽象概念層；至少要有正式 registry / resolver，讓 Host 能把 selected agents、omitted / deferred / escalation notes 寫進 aggregate、workspace payload 與 deliverable metadata。
+後續新增或深化 agents 時，也應回到 `docs/05_agent_architecture.md` 的統一 Agent Spec Baseline，而不是只補 catalog 名稱與 description。
 
 在單人顧問完整工作台範圍內，Agent Orchestration 應視為已完成的正式能力，而不是之後還要再補一輪的 foundation。
 

@@ -373,6 +373,83 @@ Pack 也必須正式進入以下五個核心能力：
   - `inactive`
   - `deprecated`
 
+### 11.1.1 統一 Agent Spec Baseline
+為了避免 agent catalog 變成只剩名稱與描述的鬆散清單，所有現有與未來新增 agents 都應以同一個 baseline 規格撰寫。
+
+正式 baseline 應至少回答以下八個問題：
+
+1. **這個 agent 是誰**
+   - `agent_id`
+   - `agent_name`
+   - `agent_type`
+   - `version`
+   - `status`
+
+2. **這個 agent 到底負責什麼**
+   - `description`
+   - `primary_responsibilities`
+   - `supported_capabilities`
+
+3. **它不負責什麼**
+   - `out_of_scope`
+   - `defer_rules`
+
+4. **它在什麼 context 下最有價值**
+   - `relevant_domain_packs`
+   - `relevant_industry_packs`
+   - `preferred_execution_modes`
+
+5. **它需要吃進哪些東西才算合理啟動**
+   - `input_requirements`
+   - `minimum_evidence_readiness`
+   - `required_context_fields`
+
+6. **它產出什麼，而且產出要如何進入正式主鏈**
+   - `output_contract`
+   - `produced_objects`
+   - `deliverable_impact`
+   - `writeback_expectations`
+
+7. **Host 何時應叫它，何時不該叫它**
+   - `invocation_rules`
+   - `defer_rules`
+   - `escalation_rules`
+   - `handoff_targets`
+
+8. **怎麼判斷它做得好不好**
+   - `evaluation_focus`
+   - `failure_modes_to_watch`
+   - `trace_requirements`
+
+### 11.1.2 目前 machine-readable subset 與正式 baseline 的關係
+目前 registry 中已正式落地的 machine-readable subset 主要包括：
+- `agent_id`
+- `agent_name`
+- `agent_type`
+- `description`
+- `supported_capabilities`
+- `relevant_domain_packs`
+- `relevant_industry_packs`
+- `input_requirements`
+- `output_contract`
+- `invocation_rules`
+- `escalation_rules`
+- `version`
+- `status`
+
+這代表：
+- 目前 runtime / resolver / management surface 已經有正式可用的最小 spec 骨架
+- 但之後新增 agent 時，設計與文件不應只停在這個最小 subset
+- 新增 agent 的設計審查，應以上述完整 baseline 為準，再決定哪些欄位要進一步下放到 machine-readable registry
+
+### 11.1.3 後續新增 agent 的最低交件標準
+未來若要新增任何一個 agent，不論是 reasoning 或 specialist，至少應同時交付：
+- 一份符合統一 Agent Spec Baseline 的文件規格
+- registry / resolver 對應條目
+- Host selection / omission / defer / escalation 邏輯
+- 最小 management surface visibility
+- 至少一條測試用例，驗證它不只是 catalog 可見，而是真的影響 execution path 或 writeback
+
 ### 11.2 Agent Registry
 系統應有正式 registry 來表達：
 - 有哪些 agents 存在
@@ -447,7 +524,248 @@ Host 應根據以下輸入決定 agent 組合：
 
 ---
 
-## 12. 第一波實作與第二波實作
+## 12. Research / Investigation Agent 的正式深化方向
+
+目前正式對應角色應以現有 `research_intelligence_agent` 為主體深化，而不是先新增第 12 個非 Host agent。
+
+原因是：
+- 它目前已經位於 Reasoning Agent Layer 內的 `Research / Insight` family
+- 它本來就應承接外部研究、來源品質、證據缺口與不確定性 framing
+- 若再新增一個平行「調研 agent」，很容易與 `research_synthesis_specialist` 與 Host 的 research trigger governance 重疊
+
+因此，正式方向應是：
+
+> **把 `research_intelligence_agent` 深化成真正的 Research / Investigation Agent。**
+
+### 12.1 正式責任邊界
+這個 agent 應正式負責：
+- research planning
+- 子問題拆解
+- 外部來源探索
+- 來源品質分級
+- freshness 檢查
+- 矛盾訊號標記
+- evidence gap closure
+- citation-ready handoff
+- uncertainty framing
+
+它不應直接負責：
+- 最終結論拍板
+- 取代 Host 做 workflow orchestration
+- 取代 `research_synthesis_specialist` 做完整敘事型下游綜整
+- 把搜尋結果直接塞進最終 deliverable 當成已驗證事實
+
+### 12.2 三級調研模型
+調研 agent 的正式研究深度應分三級：
+
+#### 12.2.1 Light completion
+適用於：
+- freshness 敏感但問題相對單純
+- 只需要補 1 到 3 個高權威來源
+- evidence gap 明確且範圍窄
+
+正式責任：
+- 補最小可信來源
+- 回答最新狀態 / 是否已變動
+- 標示明顯 evidence gap
+
+#### 12.2.2 Standard investigation
+適用於：
+- 大多數顧問案件的外部補完
+- 問題需要拆成數個研究子題
+- 需要處理來源品質、矛盾訊號與 citation handoff
+
+正式責任：
+- 子問題拆解
+- 來源分級
+- freshness / quality / coverage 標記
+- contradiction notes
+- evidence map
+- citation-ready handoff
+
+這應是大多數案件的預設研究層級。
+
+#### 12.2.3 Deep research
+適用於：
+- sparse、open-ended、外部依賴高
+- pack evidence expectations 很強
+- 單案價值高，值得承受更高 latency / token / orchestration 成本
+
+正式責任：
+- 多輪研究規劃
+- 多個研究子題的擴展探索
+- gap-oriented follow-up search
+- 更完整的 evidence map / contradiction map / uncertainty boundary
+
+正式原則：
+- Deep research 不是預設
+- 必須由 Host 明確升級
+- 不應在所有案件中常態啟動
+
+### 12.3 正式輸出契約
+Research / Investigation Agent 的正式輸出，不應只剩一般 findings / recommendations。
+
+它至少應能正式形成：
+- `ResearchRun / ExternalResearchRun`
+- `SourceMaterial`
+- `Evidence`
+- `EvidenceGap`
+- `SourceQualityNote`
+- `FreshnessNote`
+- `ContradictionNote`
+- `EvidenceMap`
+- `citation_ready_handoff`
+
+正式主鏈應理解為：
+
+> `ResearchRun -> SourceMaterial -> Evidence -> EvidenceGap -> Host / other reasoning agents / specialist handoff`
+
+### 12.4 正式 evaluation focus
+這個 agent 的評估不應只看「有沒有找到資料」，還應至少看：
+- query / sub-question decomposition quality
+- source quality classification quality
+- freshness handling
+- contradiction handling
+- evidence-gap precision
+- citation handoff usability
+- 是否把弱訊號誤包裝成高信心結論
+
+---
+
+## 13. 與 Host / specialist / other reasoning agents 的正式分工草案
+
+### 13.1 與 Host 的分工
+Host 仍是唯一 orchestration center。
+
+Host 應負責：
+- 判斷是否需要 research
+- 決定 research 深度是 `Light / Standard / Deep`
+- 決定何時停止 research 並進入 convergence
+- 決定研究結果如何影響 selected agents 與 deliverable shaping
+
+Research / Investigation Agent 應負責：
+- 把 research 本身做乾淨
+- 把來源、證據、缺口與 citation handoff 整理好
+- 不直接越權下最終結論
+
+### 13.2 與 `research_synthesis_specialist` 的分工
+`research_synthesis_specialist` 應視為：
+- 在研究材料已相對齊備後
+- 將 findings / implications / gaps 整理成 decision-useful brief 的 specialist
+
+因此兩者邊界應是：
+- `research_intelligence_agent` 偏 discovery / investigation / evidence gap closure
+- `research_synthesis_specialist` 偏 synthesis / implication shaping / deliverable-oriented summarization
+
+正式 stop condition 應是：
+- 當研究主鏈仍未穩定時，不應過早交給 `research_synthesis_specialist`
+- 當 research handoff 已足夠支撐敘事整理時，才交給 `research_synthesis_specialist`
+
+### 13.3 與其他 reasoning agents 的分工
+其他 reasoning agents 應消費 research agent 整理過的正式輸出，而不是各自直接重做一輪薄搜尋。
+
+正式理解應是：
+- `strategy_decision_agent` 消費 research implications 與 uncertainty framing
+- `finance_agent` 消費 market / benchmark / capital / external signal evidence
+- `legal_risk_agent` 消費法規 / 政策 /責任邊界 research results
+- `marketing_growth_agent` 消費 audience / channel / competitor / market-signal evidence
+- `sales_business_development_agent` 消費 GTM / partner / market-access evidence
+- `document_communication_agent` 消費 citation-ready handoff 與 provenanced findings
+
+也就是說：
+- research agent 不應取代它們的專業判斷
+- 但應成為外部 research provenance 的正式上游
+
+---
+
+## 14. Host 與其他 agent 需要同步調整的地方
+
+若要正式深化 `research_intelligence_agent`，至少要同步調整以下部分：
+
+### 14.1 Host research trigger governance
+目前 Host 對外部 research 的理解仍偏向：
+- 要不要 search
+- 補幾筆公開來源
+
+後續應提升為：
+- 要不要 research
+- research 的深度級別
+- research 的子問題範圍
+- 何時停止 research
+- 哪些 gaps 還必須保留到 deliverable limitations
+
+### 14.2 Host readiness governance
+目前 readiness 需要能更正式回答：
+- 這輪缺的是一般資料，還是 research-specific evidence gap
+- 目前適合 `Light / Standard / Deep` 哪一級 research
+- 哪些 agent 應該先 defer，等 research handoff 完成再進入
+
+### 14.3 Research provenance writeback
+目前 research writeback 雖已存在，但仍偏 `Host external completion`。
+
+後續應進一步區分：
+- Host-triggered research
+- investigation depth
+- query plan / sub-questions
+- source quality summary
+- contradiction summary
+- evidence gap summary
+- citation handoff summary
+
+### 14.4 Agent Resolver / Selector
+Resolver 後續應不只選到 `research_intelligence_agent` 本身，還應讓以下因素真正影響 selection：
+- pack evidence expectations
+- freshness sensitivity
+- sparse-input external-heavy cases
+- contradiction-heavy cases
+- company-specific certainty 尚不足的情況
+
+### 14.5 Specialist handoff
+`research_synthesis_specialist` 的啟動條件應更明確依賴：
+- research handoff completeness
+- evidence coverage
+- contradiction status
+- citation readiness
+
+### 14.6 Management Surface / Workbench visibility
+前端至少應逐步看得到：
+- 這輪 research depth 是哪一級
+- research run 現在在做什麼
+- 補了哪些來源
+- 哪些來源可信度較高
+- 還缺哪些 evidence gaps
+- 是否已達 citation-ready handoff
+
+---
+
+## 15. 建議實作順序
+
+若後續正式落地，建議順序如下：
+
+### 15.1 第一階段：規格與治理對齊
+- 統一 Agent Spec Baseline
+- 明確定義 Research / Investigation Agent 的責任邊界
+- 明確定義 Host / specialist handoff 邊界
+
+### 15.2 第二階段：Host 與 research orchestration 深化
+- Host research trigger governance
+- research depth selection
+- research provenance writeback enrich
+- resolver / readiness synchronization
+
+### 15.3 第三階段：runtime 與 UI 落地
+- 深化 `research_intelligence` runtime
+- 調整 `research_synthesis_specialist` handoff
+- 補 task / matter / evidence surfaces 的 research visibility
+
+### 15.4 第四階段：eval 與 hardening
+- 加 research-depth routing tests
+- 加 source quality / contradiction / evidence-gap writeback tests
+- 加 UI visibility regression tests
+
+---
+
+## 16. 第一波實作與第二波實作
 
 ### 10.1 第一波實作可優先落地
 - Host Agent
@@ -469,7 +787,7 @@ Host 應根據以下輸入決定 agent 組合：
 
 ---
 
-## 13. 對後續實作的約束
+## 17. 對後續實作的約束
 
 後續實作時，不應再：
 - 把 4 core agents + 3 specialist agents 視為固定上限
@@ -483,10 +801,11 @@ Host 應根據以下輸入決定 agent 組合：
 - 讓 agent families 與 ontology / context / pack 結構對齊
 - 讓 specialist agents 成為正式可擴充能力，而不是零散功能
 - 讓 research、decision writeback 與 continuity policy 一起進入 Host 的正式責任範圍
+- 讓所有新增 agents 都遵守統一 Agent Spec Baseline，而不是只補一段 description
 
 ---
 
-## 14. 文件結論
+## 18. 文件結論
 
 Infinite Pro 的 Agent Architecture 現在應被視為：
 
