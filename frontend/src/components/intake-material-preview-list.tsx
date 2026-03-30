@@ -122,6 +122,13 @@ export function IntakeMaterialPreviewList({
             <strong>目前進度：</strong>
             {progress.detail}
           </p>
+          {(progress.attemptCount ?? 0) > 0 || progress.latestAttemptLabel ? (
+            <p className="muted-text">
+              <strong>最近一次處理：</strong>
+              {progress.latestAttemptLabel || `第 ${progress.attemptCount} 次結果已更新。`}
+              {progress.latestAttemptDetail ? `｜${progress.latestAttemptDetail}` : ""}
+            </p>
+          ) : null}
           <div className="detail-list" style={{ marginTop: "12px" }}>
             <div className="detail-item" style={{ padding: "12px 14px" }}>
               <p className={itemNoteClass(item.status)} style={{ marginBottom: "8px" }}>

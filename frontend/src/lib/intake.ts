@@ -73,6 +73,28 @@ export interface IntakeItemProgressInfo {
   detail: string;
   blocksSubmit: boolean;
   retryable: boolean;
+  referenceOnly?: boolean;
+  attemptCount?: number;
+  latestAttemptLabel?: string | null;
+  latestAttemptDetail?: string | null;
+  lastUpdatedAt?: number | null;
+}
+
+export interface IntakeSessionItemState {
+  itemId: string;
+  title: string;
+  kindLabel: string;
+  progress: IntakeItemProgressInfo;
+}
+
+export interface IntakeBatchProgressSummary {
+  total: number;
+  completed: number;
+  processing: number;
+  pending: number;
+  failed: number;
+  blocking: number;
+  referenceOnly: number;
 }
 
 function extensionFromName(fileName: string) {
@@ -285,6 +307,7 @@ export function defaultProgressInfoForPreviewItem(
       detail: "這份材料要先移除、修正或替換，否則這批不能送出。",
       blocksSubmit: true,
       retryable: false,
+      referenceOnly: false,
     };
   }
   if (item.status === "limited" && options?.keepAsReference) {
@@ -294,6 +317,7 @@ export function defaultProgressInfoForPreviewItem(
       detail: "這份材料不擋送出，會以 metadata / reference-level 方式保留。",
       blocksSubmit: false,
       retryable: false,
+      referenceOnly: true,
     };
   }
   if (item.status === "pending") {
@@ -303,6 +327,7 @@ export function defaultProgressInfoForPreviewItem(
       detail: "這份材料目前不擋送出，但建立後仍要看最終解析結果。",
       blocksSubmit: false,
       retryable: false,
+      referenceOnly: false,
     };
   }
   if (item.status === "limited") {
@@ -312,6 +337,7 @@ export function defaultProgressInfoForPreviewItem(
       detail: "這份材料不擋送出，但目前最適合先當 reference-level 來源。",
       blocksSubmit: false,
       retryable: false,
+      referenceOnly: true,
     };
   }
   return {
@@ -320,6 +346,7 @@ export function defaultProgressInfoForPreviewItem(
     detail: "這份材料目前不擋送出，可沿正式主鏈處理。",
     blocksSubmit: false,
     retryable: false,
+    referenceOnly: false,
   };
 }
 
@@ -338,6 +365,7 @@ export function progressInfoFromRuntimeHandling(
         : "這份材料本輪沒有成功，較適合改用替換、移除或 fallback 材料。",
       blocksSubmit: false,
       retryable: handling.retryable,
+      referenceOnly: false,
     };
   }
   if (handling.status === "unsupported") {
@@ -347,6 +375,7 @@ export function progressInfoFromRuntimeHandling(
       detail: "這份材料不能當成正式可解析來源，需替換或移除。",
       blocksSubmit: true,
       retryable: false,
+      referenceOnly: false,
     };
   }
   if (handling.status === "limited") {
@@ -356,6 +385,7 @@ export function progressInfoFromRuntimeHandling(
       detail: "這份材料已被保留，但目前只作 metadata / reference-level 用途。",
       blocksSubmit: false,
       retryable: false,
+      referenceOnly: true,
     };
   }
   if (handling.status === "pending") {
@@ -365,6 +395,7 @@ export function progressInfoFromRuntimeHandling(
       detail: "這份材料已送出，但最終解析層級仍待確認。",
       blocksSubmit: false,
       retryable: false,
+      referenceOnly: false,
     };
   }
   return {
@@ -373,7 +404,69 @@ export function progressInfoFromRuntimeHandling(
     detail: "這份材料已正式進主鏈，可直接參與後續分析。",
     blocksSubmit: false,
     retryable: false,
+    referenceOnly: false,
   };
+}
+
+export function summarizeBatchProgress({
+  items,
+  progressByItemId,
+  keepAsReferenceByItemId,
+  sessionStates = [],
+}: {
+  items: IntakeMaterialPreviewItem[];
+  progressByItemId?: Record<string, IntakeItemProgressInfo>;
+  keepAsReferenceByItemId?: Record<string, boolean>;
+  sessionStates?: IntakeSessionItemState[];
+}): IntakeBatchProgressSummary {
+  const currentIds = new Set(items.map((item) => item.id));
+  const currentStates = items.map((item) => ({
+    itemId: item.id,
+    progress:
+      progressByItemId?.[item.id] ??
+      defaultProgressInfoForPreviewItem(item, {
+        keepAsReference: Boolean(keepAsReferenceByItemId?.[item.id]),
+      }),
+  }));
+  const combinedStates = [
+    ...sessionStates.filter((entry) => !currentIds.has(entry.itemId)),
+    ...currentStates,
+  ];
+
+  const summary: IntakeBatchProgressSummary = {
+    total: combinedStates.length,
+    completed: 0,
+    processing: 0,
+    pending: 0,
+    failed: 0,
+    blocking: 0,
+    referenceOnly: 0,
+  };
+
+  combinedStates.forEach(({ progress }) => {
+    if (progress.referenceOnly) {
+      summary.referenceOnly += 1;
+    }
+    if (progress.phase === "done") {
+      summary.completed += 1;
+      return;
+    }
+    if (progress.phase === "uploading" || progress.phase === "parsing") {
+      summary.processing += 1;
+      return;
+    }
+    if (progress.phase === "failed") {
+      summary.failed += 1;
+      return;
+    }
+    if (progress.phase === "blocked") {
+      summary.blocking += 1;
+      return;
+    }
+    summary.pending += 1;
+  });
+
+  return summary;
 }
 
 function buildFilePreviewItem(

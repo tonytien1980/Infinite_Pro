@@ -18,10 +18,12 @@ import {
   buildIntakePreviewItems,
   countIntakeMaterialUnits,
   describeRuntimeMaterialHandling,
+  type IntakeSessionItemState,
   type IntakeItemProgressInfo,
   MAX_INTAKE_MATERIAL_UNITS,
   previewItemBlocksSubmit,
   progressInfoFromRuntimeHandling,
+  summarizeBatchProgress,
 } from "@/lib/intake";
 import type { ArtifactEvidenceWorkspace } from "@/lib/types";
 import {
@@ -137,6 +139,7 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
   const [keepAsReferenceByItemId, setKeepAsReferenceByItemId] = useState<
     Record<string, boolean>
   >({});
+  const [sessionItemStates, setSessionItemStates] = useState<IntakeSessionItemState[]>([]);
   const [replaceTargetId, setReplaceTargetId] = useState<string | null>(null);
   const fileReplaceInputRef = useRef<HTMLInputElement | null>(null);
   const urlFieldRef = useRef<HTMLTextAreaElement | null>(null);
@@ -315,12 +318,38 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
   const blockingPendingItems = pendingPreviewItems.filter((item) =>
     previewItemBlocksSubmit(item),
   );
+  const batchSummary = summarizeBatchProgress({
+    items: pendingPreviewItems,
+    progressByItemId,
+    keepAsReferenceByItemId,
+    sessionStates: sessionItemStates,
+  });
+  const recentAttemptItems = [...sessionItemStates]
+    .filter((item) => (item.progress.attemptCount ?? 0) > 0 || item.progress.latestAttemptLabel)
+    .sort((left, right) => (right.progress.lastUpdatedAt ?? 0) - (left.progress.lastUpdatedAt ?? 0))
+    .slice(0, 4);
 
   function setItemProgress(itemId: string, progress: IntakeItemProgressInfo) {
     setProgressByItemId((previous) => ({
       ...previous,
       [itemId]: progress,
     }));
+  }
+
+  function rememberSessionItemState(
+    item: (typeof pendingPreviewItems)[number],
+    progress: IntakeItemProgressInfo,
+  ) {
+    setSessionItemStates((previous) => {
+      const next = previous.filter((entry) => entry.itemId !== item.id);
+      next.push({
+        itemId: item.id,
+        title: item.title,
+        kindLabel: item.kindLabel,
+        progress,
+      });
+      return next;
+    });
   }
 
   function buildHandlingFromRuntimeItem(runtimeItem: {
@@ -359,6 +388,7 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
     item: (typeof pendingPreviewItems)[number],
   ) {
     try {
+      const nextAttemptCount = (progressByItemId[item.id]?.attemptCount ?? 0) + 1;
       if (item.kind === "file") {
         const index = Number(item.id.replace("file-", ""));
         const file = files[index];
@@ -371,6 +401,10 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
           detail: "這份檔案正在掛回目前案件世界。",
           blocksSubmit: false,
           retryable: false,
+          attemptCount: nextAttemptCount,
+          latestAttemptLabel: `第 ${nextAttemptCount} 次處理：上傳中`,
+          latestAttemptDetail: "系統正在送出這份檔案。",
+          lastUpdatedAt: Date.now(),
         });
         const uploadResult = await uploadMatterFiles(matterId, [file]);
         const runtimeItem = uploadResult.uploaded[0];
@@ -381,8 +415,16 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
         const progress = progressInfoFromRuntimeHandling(handling, {
           keepAsReference: Boolean(keepAsReferenceByItemId[item.id]),
         });
-        setItemProgress(item.id, progress);
-        return progress;
+        const nextProgress = {
+          ...progress,
+          attemptCount: nextAttemptCount,
+          latestAttemptLabel: `第 ${nextAttemptCount} 次結果：${progress.label}`,
+          latestAttemptDetail: progress.detail,
+          lastUpdatedAt: Date.now(),
+        } satisfies IntakeItemProgressInfo;
+        setItemProgress(item.id, nextProgress);
+        rememberSessionItemState(item, nextProgress);
+        return nextProgress;
       }
 
       if (item.kind === "url") {
@@ -397,6 +439,10 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
           detail: "系統正在抓取這個 URL 的正文與標題。",
           blocksSubmit: false,
           retryable: false,
+          attemptCount: nextAttemptCount,
+          latestAttemptLabel: `第 ${nextAttemptCount} 次處理：解析中`,
+          latestAttemptDetail: "系統正在抓取這個網址。",
+          lastUpdatedAt: Date.now(),
         });
         const ingestResult = await ingestMatterSources(matterId, {
           urls: [url],
@@ -410,8 +456,16 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
         const progress = progressInfoFromRuntimeHandling(handling, {
           keepAsReference: Boolean(keepAsReferenceByItemId[item.id]),
         });
-        setItemProgress(item.id, progress);
-        return progress;
+        const nextProgress = {
+          ...progress,
+          attemptCount: nextAttemptCount,
+          latestAttemptLabel: `第 ${nextAttemptCount} 次結果：${progress.label}`,
+          latestAttemptDetail: progress.detail,
+          lastUpdatedAt: Date.now(),
+        } satisfies IntakeItemProgressInfo;
+        setItemProgress(item.id, nextProgress);
+        rememberSessionItemState(item, nextProgress);
+        return nextProgress;
       }
 
       setItemProgress(item.id, {
@@ -420,6 +474,10 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
         detail: "這段補充文字正在掛回目前案件世界。",
         blocksSubmit: false,
         retryable: false,
+        attemptCount: nextAttemptCount,
+        latestAttemptLabel: `第 ${nextAttemptCount} 次處理：掛接中`,
+        latestAttemptDetail: "系統正在掛接這段補充文字。",
+        lastUpdatedAt: Date.now(),
       });
       const ingestResult = await ingestMatterSources(matterId, {
         urls: [],
@@ -434,8 +492,16 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
       const progress = progressInfoFromRuntimeHandling(handling, {
         keepAsReference: Boolean(keepAsReferenceByItemId[item.id]),
       });
-      setItemProgress(item.id, progress);
-      return progress;
+      const nextProgress = {
+        ...progress,
+        attemptCount: nextAttemptCount,
+        latestAttemptLabel: `第 ${nextAttemptCount} 次結果：${progress.label}`,
+        latestAttemptDetail: progress.detail,
+        lastUpdatedAt: Date.now(),
+      } satisfies IntakeItemProgressInfo;
+      setItemProgress(item.id, nextProgress);
+      rememberSessionItemState(item, nextProgress);
+      return nextProgress;
     } catch (submitError) {
       const handling = describeRuntimeMaterialHandling({
         supportLevel: "unsupported",
@@ -446,8 +512,15 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
           submitError instanceof Error ? submitError.message : "補件時發生未知錯誤。",
         context: remediationContext,
       });
-      const progress = progressInfoFromRuntimeHandling(handling);
+      const progress = {
+        ...progressInfoFromRuntimeHandling(handling),
+        attemptCount: (progressByItemId[item.id]?.attemptCount ?? 0) + 1,
+        latestAttemptLabel: `第 ${(progressByItemId[item.id]?.attemptCount ?? 0) + 1} 次結果：處理失敗`,
+        latestAttemptDetail: handling.statusDetail,
+        lastUpdatedAt: Date.now(),
+      } satisfies IntakeItemProgressInfo;
       setItemProgress(item.id, progress);
+      rememberSessionItemState(item, progress);
       return progress;
     }
   }
@@ -483,6 +556,23 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
         : "已標記這份材料可先以 reference-level 保留。",
     );
     setSupplementError(null);
+    const progress = {
+      ...progressByItemId[item.id],
+      ...(progressByItemId[item.id] ?? {
+        phase: "ready" as const,
+        label: "將保留 reference",
+        detail: "這份材料不擋送出，會以 metadata / reference-level 方式保留。",
+        blocksSubmit: false,
+        retryable: false,
+      }),
+      referenceOnly: !keepAsReferenceByItemId[item.id],
+      latestAttemptLabel: !keepAsReferenceByItemId[item.id] ? "已標記保留為 reference" : "已取消保留為 reference",
+      latestAttemptDetail: !keepAsReferenceByItemId[item.id]
+        ? "這份材料這輪會先保留為 reference-level。"
+        : "這份材料已取消 reference 標記，將回到一般處理判斷。",
+      lastUpdatedAt: Date.now(),
+    } satisfies IntakeItemProgressInfo;
+    rememberSessionItemState(item, progress);
   }
 
   function replacePendingPreviewItem(item: (typeof pendingPreviewItems)[number]) {
@@ -515,6 +605,9 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
       delete next[replaceTargetId];
       return next;
     });
+    setSessionItemStates((previous) =>
+      previous.filter((entry) => entry.itemId !== replaceTargetId),
+    );
     setReplaceTargetId(null);
     event.currentTarget.value = "";
     setSupplementError(null);
@@ -584,12 +677,16 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
       appendSelectedFiles(previous, Array.from(event.target.files ?? [])),
     );
     setProgressByItemId({});
+    setSessionItemStates((previous) =>
+      previous.filter((entry) => !entry.itemId.startsWith("file-")),
+    );
     setSupplementMessage(null);
     setSupplementError(null);
     event.currentTarget.value = "";
   }
 
   function handleRemovePendingPreviewItem(itemId: string) {
+    setSessionItemStates((previous) => previous.filter((entry) => entry.itemId !== itemId));
     setProgressByItemId((previous) => {
       const next = { ...previous };
       delete next[itemId];
@@ -600,6 +697,8 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
       delete next[itemId];
       return next;
     });
+    setSupplementMessage(null);
+    setSupplementError(null);
     if (itemId.startsWith("file-")) {
       const index = Number(itemId.replace("file-", ""));
       setFiles((previous) => previous.filter((_, itemIndex) => itemIndex !== index));
@@ -613,8 +712,6 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
     if (itemId === "text-0") {
       setPastedText("");
     }
-    setSupplementMessage(null);
-    setSupplementError(null);
   }
 
   function dropResolvedPendingItems(itemIds: string[]) {
@@ -1003,6 +1100,9 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                   onChange={(event) => {
                     setUrlsText(event.target.value);
                     setProgressByItemId({});
+                    setSessionItemStates((previous) =>
+                      previous.filter((entry) => !entry.itemId.startsWith("url-")),
+                    );
                     setSupplementMessage(null);
                     setSupplementError(null);
                   }}
@@ -1019,6 +1119,9 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                   onChange={(event) => {
                     setPastedText(event.target.value);
                     setProgressByItemId({});
+                    setSessionItemStates((previous) =>
+                      previous.filter((entry) => entry.itemId !== "text-0"),
+                    );
                     setSupplementMessage(null);
                     setSupplementError(null);
                   }}
@@ -1055,6 +1158,51 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                   補件材料會逐項顯示限制、影響、blocking 與下一步動作；若這輪有 retryable failure，也可直接在 item 上重試。
                 </small>
               </div>
+
+              <div className="summary-grid">
+                <div className="section-card">
+                  <h4>這輪補件目前進度</h4>
+                  <p className="content-block">
+                    {batchSummary.total === 0
+                      ? "尚未加入待補材料。"
+                      : `已完成 ${batchSummary.completed} 份｜處理中/待解析 ${batchSummary.processing} 份｜失敗 ${batchSummary.failed} 份｜阻擋 ${batchSummary.blocking} 份`}
+                  </p>
+                </div>
+                <div className="section-card">
+                  <h4>Reference 保留</h4>
+                  <p className="content-block">
+                    {batchSummary.referenceOnly > 0
+                      ? `${batchSummary.referenceOnly} 份目前會以 reference-level 保留`
+                      : "目前沒有 reference-only 材料。"}
+                  </p>
+                </div>
+                <div className="section-card">
+                  <h4>這輪是否可送出</h4>
+                  <p className="content-block">
+                    {batchSummary.blocking > 0
+                      ? `還不行，仍有 ${batchSummary.blocking} 份 blocking item。`
+                      : "可以，這輪目前沒有 blocking item。"}
+                  </p>
+                </div>
+              </div>
+
+              {recentAttemptItems.length > 0 ? (
+                <div className="detail-list">
+                  {recentAttemptItems.map((item) => (
+                    <div className="detail-item" key={`${item.itemId}-${item.progress.lastUpdatedAt ?? 0}`}>
+                      <div className="meta-row">
+                        <span className="pill">{item.kindLabel}</span>
+                        <span>{item.progress.latestAttemptLabel || "最近一次結果未標示"}</span>
+                      </div>
+                      <p className="content-block">
+                        {item.title}
+                        {"｜"}
+                        {item.progress.latestAttemptDetail || item.progress.detail}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
 
               <div className="button-row">
                 <button

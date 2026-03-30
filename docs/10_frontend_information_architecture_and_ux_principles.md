@@ -185,6 +185,13 @@ Infinite Pro 的正式第一層主導覽應為：
   - remove
   - keep-as-reference
 - blocking 與 non-blocking item 應在 row 上直接可見，而不是只體現在最下方整批錯誤提示
+- 若這輪已打開 richer upload progress / retry history，則 `/new` 與補件區還應提供輕量整批視角：
+  - 目前總共有幾份
+  - 幾份已完成
+  - 幾份仍在處理中 / 待解析
+  - 幾份失敗
+  - 幾份 blocking
+  - 最近一次重試 / 最近一次處理結果
 - 若只有材料、沒有主問題，UI 應要求至少補一句主問題，而不是直接讓材料孤立進件
 - `.md / .txt / .docx / .xlsx / .csv / text-first PDF / URL / 純文字補充` 應在 UI 上明確標示為正式支援
 - `.jpg / .jpeg / .png / .webp / 掃描型 PDF` 應在 UI 上明確標示為有限支援，意思是 metadata / reference-level ingestion，不預設 OCR

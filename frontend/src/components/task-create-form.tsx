@@ -9,11 +9,13 @@ import {
   buildIntakePreviewItems,
   countIntakeMaterialUnits,
   describeRuntimeMaterialHandling,
+  type IntakeSessionItemState,
   type IntakeItemProgressInfo,
   inferInputEntryModeFromMaterialUnits,
   MAX_INTAKE_MATERIAL_UNITS,
   previewItemBlocksSubmit,
   progressInfoFromRuntimeHandling,
+  summarizeBatchProgress,
 } from "@/lib/intake";
 import type {
   EngagementContinuityMode,
@@ -388,6 +390,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
     Record<string, boolean>
   >({});
   const [replaceTargetId, setReplaceTargetId] = useState<string | null>(null);
+  const [sessionItemStates, setSessionItemStates] = useState<IntakeSessionItemState[]>([]);
   const fileReplaceInputRef = useRef<HTMLInputElement | null>(null);
   const urlFieldRef = useRef<HTMLTextAreaElement | null>(null);
   const pastedTextFieldRef = useRef<HTMLTextAreaElement | null>(null);
@@ -429,6 +432,24 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
   const needsProblemStatement = !description.trim();
   const materialLimitExceeded = materialUnitCount > MAX_INTAKE_MATERIAL_UNITS;
   const blockingItems = previewItems.filter((item) => previewItemBlocksSubmit(item));
+  const batchSummary = useMemo(
+    () =>
+      summarizeBatchProgress({
+        items: previewItems,
+        progressByItemId,
+        keepAsReferenceByItemId,
+        sessionStates: sessionItemStates,
+      }),
+    [keepAsReferenceByItemId, previewItems, progressByItemId, sessionItemStates],
+  );
+  const recentAttemptItems = useMemo(
+    () =>
+      [...sessionItemStates]
+        .filter((item) => (item.progress.attemptCount ?? 0) > 0 || item.progress.latestAttemptLabel)
+        .sort((left, right) => (right.progress.lastUpdatedAt ?? 0) - (left.progress.lastUpdatedAt ?? 0))
+        .slice(0, 4),
+    [sessionItemStates],
+  );
   const consultantBrief = useMemo(
     () =>
       buildConsultantBrief({
@@ -467,6 +488,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
   }, [continuityManuallyTouched, inputMode, writebackManuallyTouched]);
 
   function handleRemovePreviewItem(itemId: string) {
+    setSessionItemStates((previous) => previous.filter((entry) => entry.itemId !== itemId));
     setProgressByItemId((previous) => {
       const next = { ...previous };
       delete next[itemId];
@@ -477,6 +499,8 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
       delete next[itemId];
       return next;
     });
+    setSuccess(null);
+    setError(null);
     if (itemId.startsWith("file-")) {
       const index = Number(itemId.replace("file-", ""));
       setFiles((previous) => previous.filter((_, itemIndex) => itemIndex !== index));
@@ -490,8 +514,6 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
     if (itemId === "text-0") {
       setPastedContent("");
     }
-    setSuccess(null);
-    setError(null);
   }
 
   function dropResolvedPreviewItems(itemIds: string[]) {
@@ -542,6 +564,22 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
     }));
   }
 
+  function rememberSessionItemState(
+    item: (typeof previewItems)[number],
+    progress: IntakeItemProgressInfo,
+  ) {
+    setSessionItemStates((previous) => {
+      const next = previous.filter((entry) => entry.itemId !== item.id);
+      next.push({
+        itemId: item.id,
+        title: item.title,
+        kindLabel: item.kindLabel,
+        progress,
+      });
+      return next;
+    });
+  }
+
   function buildHandlingFromRuntimeItem(runtimeItem: {
     source_document: {
       support_level: string;
@@ -576,6 +614,8 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
 
   async function processPreviewItem(taskId: string, item: (typeof previewItems)[number]) {
     try {
+      const nextAttemptCount =
+        (progressByItemId[item.id]?.attemptCount ?? 0) + 1;
       if (item.kind === "file") {
         const index = Number(item.id.replace("file-", ""));
         const file = files[index];
@@ -588,6 +628,10 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
           detail: "這份檔案正在送出，稍後會回填最終 ingest 結果。",
           blocksSubmit: false,
           retryable: false,
+          attemptCount: nextAttemptCount,
+          latestAttemptLabel: `第 ${nextAttemptCount} 次處理：上傳中`,
+          latestAttemptDetail: "系統正在送出這份檔案。",
+          lastUpdatedAt: Date.now(),
         });
         const uploadResult = await uploadTaskFiles(taskId, [file]);
         const runtimeItem = uploadResult.uploaded[0];
@@ -598,8 +642,16 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
         const progress = progressInfoFromRuntimeHandling(handling, {
           keepAsReference: Boolean(keepAsReferenceByItemId[item.id]),
         });
-        setItemProgress(item.id, progress);
-        return progress;
+        const nextProgress = {
+          ...progress,
+          attemptCount: nextAttemptCount,
+          latestAttemptLabel: `第 ${nextAttemptCount} 次結果：${progress.label}`,
+          latestAttemptDetail: progress.detail,
+          lastUpdatedAt: Date.now(),
+        } satisfies IntakeItemProgressInfo;
+        setItemProgress(item.id, nextProgress);
+        rememberSessionItemState(item, nextProgress);
+        return nextProgress;
       }
 
       if (item.kind === "url") {
@@ -614,6 +666,10 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
           detail: "系統正在抓取這個 URL 的正文與標題。",
           blocksSubmit: false,
           retryable: false,
+          attemptCount: nextAttemptCount,
+          latestAttemptLabel: `第 ${nextAttemptCount} 次處理：解析中`,
+          latestAttemptDetail: "系統正在抓取這個網址。",
+          lastUpdatedAt: Date.now(),
         });
         const ingestResult = await ingestTaskSources(taskId, {
           urls: [url],
@@ -627,8 +683,16 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
         const progress = progressInfoFromRuntimeHandling(handling, {
           keepAsReference: Boolean(keepAsReferenceByItemId[item.id]),
         });
-        setItemProgress(item.id, progress);
-        return progress;
+        const nextProgress = {
+          ...progress,
+          attemptCount: nextAttemptCount,
+          latestAttemptLabel: `第 ${nextAttemptCount} 次結果：${progress.label}`,
+          latestAttemptDetail: progress.detail,
+          lastUpdatedAt: Date.now(),
+        } satisfies IntakeItemProgressInfo;
+        setItemProgress(item.id, nextProgress);
+        rememberSessionItemState(item, nextProgress);
+        return nextProgress;
       }
 
       setItemProgress(item.id, {
@@ -637,6 +701,10 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
         detail: "這段補充文字正在掛回同一個案件世界。",
         blocksSubmit: false,
         retryable: false,
+        attemptCount: nextAttemptCount,
+        latestAttemptLabel: `第 ${nextAttemptCount} 次處理：掛接中`,
+        latestAttemptDetail: "系統正在掛接這段補充文字。",
+        lastUpdatedAt: Date.now(),
       });
       const ingestResult = await ingestTaskSources(taskId, {
         urls: [],
@@ -651,8 +719,16 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
       const progress = progressInfoFromRuntimeHandling(handling, {
         keepAsReference: Boolean(keepAsReferenceByItemId[item.id]),
       });
-      setItemProgress(item.id, progress);
-      return progress;
+      const nextProgress = {
+        ...progress,
+        attemptCount: nextAttemptCount,
+        latestAttemptLabel: `第 ${nextAttemptCount} 次結果：${progress.label}`,
+        latestAttemptDetail: progress.detail,
+        lastUpdatedAt: Date.now(),
+      } satisfies IntakeItemProgressInfo;
+      setItemProgress(item.id, nextProgress);
+      rememberSessionItemState(item, nextProgress);
+      return nextProgress;
     } catch (submitError) {
       const handling = describeRuntimeMaterialHandling({
         supportLevel: "unsupported",
@@ -663,8 +739,15 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
           submitError instanceof Error ? submitError.message : "建立材料時發生未知錯誤。",
         context: { lane: "intake" },
       });
-      const progress = progressInfoFromRuntimeHandling(handling);
+      const progress = {
+        ...progressInfoFromRuntimeHandling(handling),
+        attemptCount: (progressByItemId[item.id]?.attemptCount ?? 0) + 1,
+        latestAttemptLabel: `第 ${(progressByItemId[item.id]?.attemptCount ?? 0) + 1} 次結果：處理失敗`,
+        latestAttemptDetail: handling.statusDetail,
+        lastUpdatedAt: Date.now(),
+      } satisfies IntakeItemProgressInfo;
       setItemProgress(item.id, progress);
+      rememberSessionItemState(item, progress);
       return progress;
     }
   }
@@ -703,6 +786,23 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
         ? "已取消這份材料的 reference 保留標記。"
         : "已標記這份材料可先以 reference-level 保留。",
     );
+    const progress = {
+      ...progressByItemId[item.id],
+      ...(progressByItemId[item.id] ?? {
+        phase: "ready" as const,
+        label: "將保留 reference",
+        detail: "這份材料不擋送出，會以 metadata / reference-level 方式保留。",
+        blocksSubmit: false,
+        retryable: false,
+      }),
+      referenceOnly: !keepAsReferenceByItemId[item.id],
+      latestAttemptLabel: !keepAsReferenceByItemId[item.id] ? "已標記保留為 reference" : "已取消保留為 reference",
+      latestAttemptDetail: !keepAsReferenceByItemId[item.id]
+        ? "這份材料這輪會先保留為 reference-level。"
+        : "這份材料已取消 reference 標記，將回到一般處理判斷。",
+      lastUpdatedAt: Date.now(),
+    } satisfies IntakeItemProgressInfo;
+    rememberSessionItemState(item, progress);
   }
 
   function replacePreviewItem(item: (typeof previewItems)[number]) {
@@ -735,6 +835,9 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
       delete next[replaceTargetId];
       return next;
     });
+    setSessionItemStates((previous) =>
+      previous.filter((entry) => entry.itemId !== replaceTargetId),
+    );
     setReplaceTargetId(null);
     event.currentTarget.value = "";
     setError(null);
@@ -933,6 +1036,9 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
               onChange={(event) => {
                 setUrlsText(event.target.value);
                 setProgressByItemId({});
+                setSessionItemStates((previous) =>
+                  previous.filter((entry) => !entry.itemId.startsWith("url-")),
+                );
                 setError(null);
                 setSuccess(null);
               }}
@@ -954,6 +1060,9 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
                   appendSelectedFiles(previous, Array.from(event.target.files ?? [])),
                 );
                 setProgressByItemId({});
+                setSessionItemStates((previous) =>
+                  previous.filter((entry) => !entry.itemId.startsWith("file-")),
+                );
                 setError(null);
                 setSuccess(null);
                 event.currentTarget.value = "";
@@ -977,6 +1086,9 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
               onChange={(event) => {
                 setPastedContent(event.target.value);
                 setProgressByItemId({});
+                setSessionItemStates((previous) =>
+                  previous.filter((entry) => entry.itemId !== "text-0"),
+                );
                 setError(null);
                 setSuccess(null);
               }}
@@ -1013,9 +1125,25 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
               </p>
             </div>
             <div className="section-card">
+              <h4>這批目前進度</h4>
+              <p className="content-block">
+                {batchSummary.total === 0
+                  ? "尚未加入材料。"
+                  : `已完成 ${batchSummary.completed} 份｜處理中/待解析 ${batchSummary.processing} 份｜失敗 ${batchSummary.failed} 份｜阻擋 ${batchSummary.blocking} 份`}
+              </p>
+            </div>
+            <div className="section-card">
               <h4>材料組成</h4>
               <p className="content-block">
                 {files.length} 份檔案 / {normalizedUrls.length} 個 URL / {hasPastedContent ? "1" : "0"} 段補充文字
+              </p>
+            </div>
+            <div className="section-card">
+              <h4>Reference 保留</h4>
+              <p className="content-block">
+                {batchSummary.referenceOnly > 0
+                  ? `${batchSummary.referenceOnly} 份目前會以 reference-level 保留`
+                  : "目前沒有 reference-only 材料。"}
               </p>
             </div>
             <div className="section-card">
@@ -1027,6 +1155,24 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
               <p className="content-block">原始進件檔預設短期保存；正式 artifact 保留較久，但 publish / audit record 不會跟著 raw file 一起消失。</p>
             </div>
           </div>
+
+          {recentAttemptItems.length > 0 ? (
+            <div className="detail-list" style={{ marginTop: "16px" }}>
+              {recentAttemptItems.map((item) => (
+                <div className="detail-item" key={`${item.itemId}-${item.progress.lastUpdatedAt ?? 0}`}>
+                  <div className="meta-row">
+                    <span className="pill">{item.kindLabel}</span>
+                    <span>{item.progress.latestAttemptLabel || "最近一次結果未標示"}</span>
+                  </div>
+                  <p className="content-block">
+                    {item.title}
+                    {"｜"}
+                    {item.progress.latestAttemptDetail || item.progress.detail}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : null}
 
           {materialLimitExceeded ? (
             <p className="error-text">

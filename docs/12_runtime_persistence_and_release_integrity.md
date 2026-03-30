@@ -343,6 +343,11 @@ publish / artifact records 用來描述正式發布與正式輸出物。
   - 會影響哪個 checkpoint 缺口
   - 下一步最建議怎麼補救
   - 若可 retry，應提供 retry；若不適合 retry，則應偏 replace / remove / fallback 材料
+- 補件區若已打開 richer progress / retry history，還應讓顧問看懂：
+  - 這輪補件目前已完成幾份
+  - 哪些仍待解析
+  - 哪些剛 retry 過
+  - 哪些仍在阻擋這輪送出
 
 ### 8.4 continuous
 - 在 `follow_up` 基礎上
@@ -357,6 +362,11 @@ publish / artifact records 用來描述正式發布與正式輸出物。
   - 會影響哪個 action / outcome / recommendation 驗證
   - 下一步最建議怎麼補救
   - 若可 retry，應提供 retry；若不適合 retry，則應偏 replace / remove / fallback 材料
+- continuous 補件區若已打開 richer progress / retry history，也應讓顧問看懂：
+  - 這輪 progression 補件目前已完成幾份
+  - 哪些仍待解析
+  - 哪些剛 retry 過
+  - 哪些仍在阻擋這輪 progression 補件送出
 
 正式規則：
 - 所有案件都至少要保留最小 history / traceability

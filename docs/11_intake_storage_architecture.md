@@ -63,6 +63,11 @@ Infinite Pro 不再把 `/new` 的三種 intake patterns 理解成三個不同 on
   - non-blocking item：可保留並繼續進主鏈或 reference-level
   - retryable failure：可直接 retry
   - non-retryable failure：應偏 replace / remove / fallback 材料
+- 若再往前補 richer upload progress / retry history，則統一材料區也應提供最小 batch-level 可見性：
+  - completed batch
+  - partially usable batch
+  - blocked batch
+  - latest retry result / latest attempt state
 
 ### 2.3 Case World Compiler 是正式第一站
 任何 intake 都必須先進入：

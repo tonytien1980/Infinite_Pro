@@ -267,6 +267,12 @@ Infinite Pro 應正式使用以下漸進揭露方式：
   - 現在是否 blocking
   - 目前進度是在待送出、處理中、待解析、已完成，還是失敗
   - 現在最適合的動作是 retry、replace、remove，還是 keep-as-reference
+- 若再往前補 richer upload progress / retry history，則第一層還應補一個輕量整批視角：
+  - 這輪總共有幾份
+  - 幾份已完成
+  - 幾份仍待解析
+  - 幾份失敗 / blocking
+  - 最近一次處理過什麼
 - `Task detail` 應可見最小 `case world draft` 摘要，但全量 facts / assumptions / evidence gaps 應預設收合
 - `Matter workspace` 應可見 `engagement_continuity_mode / writeback_depth`，且第一屏 primary action 應隨模式分流：
   `one_off` 偏 closure、`follow_up` 偏 checkpoint、`continuous` 偏 progression / outcome

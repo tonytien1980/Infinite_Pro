@@ -210,6 +210,12 @@ On the visible product surface, `/new` should now expose one unified intake area
   - remove
   - keep as reference
 - blocking and non-blocking items should be visibly different, so users can tell whether an item stops the batch or can stay as reference-level material
+- the intake surface should also expose a lightweight batch view:
+  - how many items are already done
+  - how many are still parsing
+  - how many failed
+  - how many are blocking
+  - what the most recent retry / processing results were
 
 Every intake path must first enter the same `case world compilation` stage. Host should then decide:
 - how sparse or dense the current materials are
