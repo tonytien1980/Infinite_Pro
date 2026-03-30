@@ -179,17 +179,30 @@ Infinite Pro 的正式第一層主導覽應為：
   - 為什麼是這個狀態
   - 這會影響什麼
   - 現在最建議怎麼補救
+- deeper ingest diagnostics 應再補一層更可理解的欄位：
+  - diagnostic category：這是哪一類問題
+  - likely cause：為什麼比較像這一類
+  - current usable scope：現在還能做什麼、不能做什麼
+  - retryability explanation：retry 是否值得，為什麼
 - 當 remediation 已能收斂到明確動作時，item row 應進一步把 next action 做實：
   - retry
   - replace
   - remove
   - keep-as-reference
 - blocking 與 non-blocking item 應在 row 上直接可見，而不是只體現在最下方整批錯誤提示
+- 若這輪已打開 richer upload progress / retry history，則 `/new` 與補件區還應提供輕量整批視角：
+  - 目前總共有幾份
+  - 幾份已完成
+  - 幾份仍在處理中 / 待解析
+  - 幾份失敗
+  - 幾份 blocking
+  - 最近一次重試 / 最近一次處理結果
 - 若只有材料、沒有主問題，UI 應要求至少補一句主問題，而不是直接讓材料孤立進件
 - `.md / .txt / .docx / .xlsx / .csv / text-first PDF / URL / 純文字補充` 應在 UI 上明確標示為正式支援
 - `.jpg / .jpeg / .png / .webp / 掃描型 PDF` 應在 UI 上明確標示為有限支援，意思是 metadata / reference-level ingestion，不預設 OCR
 - 正式支援、有限支援與未支援應在 UI 上明確分層，不可寫得像所有格式都同等成熟
 - pending-parse 不可被寫成已成功抽取；failed ingest 也不可被包裝成已接受
+- `/new`、follow_up 補件、continuous 補件與 source/material/evidence cards 應共用同一套 diagnostic 語義，不可一處寫成「待解析」、另一處又把它暗示成已可正文引用
 
 ### A. 總覽
 

@@ -110,6 +110,10 @@
   - 為什麼是這個狀態
   - 這會影響什麼
   - 下一步最建議怎麼補救
+- item-level diagnostics：
+  - diagnostic category（這是哪一類問題）
+  - current usable scope（現在還能做什麼 / 不能做什麼）
+  - retryability explanation（retry 是否值得，為什麼）
 - item-level action semantics：
   - 是否 blocking
   - retry / replace / remove / keep-as-reference 中哪個是現在最合理的動作
@@ -118,6 +122,13 @@
   - 處理中 / 解析中
   - 已完成
   - 失敗 / 阻擋送出
+- batch-level progress semantics：
+  - 現在整批總共有幾份
+  - 已完成幾份
+  - 待解析幾份
+  - 失敗幾份
+  - blocking 幾份
+  - 最近一次處理 / 重試結果
 - continuity strategy / writeback depth（若已展開進階設定）
 - continuity 選擇對後續 workflow 的影響：
   `one_off` 偏正式結案、`follow_up` 偏 checkpoint、`continuous` 偏 progression / outcome
@@ -251,6 +262,7 @@
 - 若為 `continuous`，需顯示這次補件主要想驗證哪個 action / outcome / recommendation，以及最新 progression 的最小脈絡
 - 若補件或既有材料屬 limited-support、pending-parse、unsupported 或 failed ingest，卡片與補件區也需顯示目前可用範圍、限制與補救方式
 - 若補件 item 為 retryable failure，補件區也需直接提供 retry；若非 retryable，則應偏向 replace / remove / fallback 材料
+- 若補件區已打開 richer progress / retry history，則也需顯示這輪補件目前進度與最近處理結果，但不應退成工程式 queue dashboard
 - 段落導覽
 
 **延後揭露**

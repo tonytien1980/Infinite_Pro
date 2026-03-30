@@ -1847,6 +1847,14 @@ export function MatterWorkspacePanel({
                             <p className="content-block">{truncateText(item.summary || "目前沒有額外摘要。", 118)}</p>
                             {item.object_type !== "artifact" ? (
                               <>
+                                <p className="muted-text">
+                                  <strong>問題類型：</strong>
+                                  {handling.diagnosticLabel}
+                                </p>
+                                <p className="muted-text">
+                                  <strong>可能原因：</strong>
+                                  {handling.likelyCauseDetail}
+                                </p>
                                 <p
                                   className={
                                     handling.status === "accepted"
@@ -1859,8 +1867,16 @@ export function MatterWorkspacePanel({
                                   {handling.statusDetail}
                                 </p>
                                 <p className="muted-text">
+                                  <strong>目前可用範圍：</strong>
+                                  {handling.usableScopeLabel}｜{handling.usableScopeDetail}
+                                </p>
+                                <p className="muted-text">
                                   <strong>會影響什麼：</strong>
                                   {handling.impactDetail}
+                                </p>
+                                <p className="muted-text">
+                                  <strong>retry 判斷：</strong>
+                                  {handling.retryabilityLabel}｜{handling.retryabilityDetail}
                                 </p>
                                 <p className="muted-text">
                                   <strong>建議下一步：</strong>

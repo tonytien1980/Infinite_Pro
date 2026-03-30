@@ -267,6 +267,17 @@ Infinite Pro 應正式使用以下漸進揭露方式：
   - 現在是否 blocking
   - 目前進度是在待送出、處理中、待解析、已完成，還是失敗
   - 現在最適合的動作是 retry、replace、remove，還是 keep-as-reference
+- 若再往前補 richer upload progress / retry history，則第一層還應補一個輕量整批視角：
+  - 這輪總共有幾份
+  - 幾份已完成
+  - 幾份仍待解析
+  - 幾份失敗 / blocking
+  - 最近一次處理過什麼
+- 若再往前補 deeper ingest diagnostics，則第一層還應讓顧問快速看懂：
+  - 這是哪一類問題
+  - 目前可用範圍到哪裡
+  - retry 是否值得
+  - 若不值得，應偏 replace、remove 還是 fallback 材料
 - `Task detail` 應可見最小 `case world draft` 摘要，但全量 facts / assumptions / evidence gaps 應預設收合
 - `Matter workspace` 應可見 `engagement_continuity_mode / writeback_depth`，且第一屏 primary action 應隨模式分流：
   `one_off` 偏 closure、`follow_up` 偏 checkpoint、`continuous` 偏 progression / outcome
@@ -278,7 +289,9 @@ Infinite Pro 應正式使用以下漸進揭露方式：
 - `Artifact / Evidence workspace` 在 `continuous` 模式下應明確提示這次補件主要想驗證哪個 action / outcome / recommendation，並顯示最新 progression 的最小脈絡
 - `Artifact / Evidence workspace` 與 `Matter workspace` 的來源 / 材料卡若遇到 limited-support、pending-parse、unsupported 或 failed ingest，第一層就應先回答：
   - 這份材料現在可不可直接用
+  - 問題是哪一類
   - 限制是什麼
+  - 目前還能不能保留成 reference-level
   - 我現在怎麼補救
 - 若這輪不直接在卡片上做真正的 reprocess / delete，卡片也至少要清楚指向補件入口，而不是只顯示 static limitation note
 - `Deliverable workspace` 應可見這份交付物如何被寫回案件世界，以及它目前更接近 closure、checkpoint 或 progression，但 writeback 細節應維持按需展開

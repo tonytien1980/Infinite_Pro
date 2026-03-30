@@ -340,9 +340,17 @@ publish / artifact records 用來描述正式發布與正式輸出物。
 - follow-up 補件區不應只是 generic upload；應顯示這次補件主要想補哪個 evidence gap / update goal
 - 若補進來的材料屬 limited-support、pending-parse、unsupported 或 failed ingest，補件區與材料卡也應明確說明：
   - 這個狀態代表什麼
+  - 問題比較像哪一類 diagnostic category
   - 會影響哪個 checkpoint 缺口
+  - 目前還能不能保留成 reference-level / usable source
+  - retry 是否值得，以及為什麼
   - 下一步最建議怎麼補救
   - 若可 retry，應提供 retry；若不適合 retry，則應偏 replace / remove / fallback 材料
+- 補件區若已打開 richer progress / retry history，還應讓顧問看懂：
+  - 這輪補件目前已完成幾份
+  - 哪些仍待解析
+  - 哪些剛 retry 過
+  - 哪些仍在阻擋這輪送出
 
 ### 8.4 continuous
 - 在 `follow_up` 基礎上
@@ -354,9 +362,17 @@ publish / artifact records 用來描述正式發布與正式輸出物。
 - continuous 補件應能說明這次主要是為了驗證哪個 action / outcome / recommendation
 - 若補進來的材料屬 limited-support、pending-parse、unsupported 或 failed ingest，補件區與材料卡也應明確說明：
   - 這個狀態代表什麼
+  - 問題比較像哪一類 diagnostic category
   - 會影響哪個 action / outcome / recommendation 驗證
+  - 目前還能不能保留成 reference-level / usable source
+  - retry 是否值得，以及為什麼
   - 下一步最建議怎麼補救
   - 若可 retry，應提供 retry；若不適合 retry，則應偏 replace / remove / fallback 材料
+- continuous 補件區若已打開 richer progress / retry history，也應讓顧問看懂：
+  - 這輪 progression 補件目前已完成幾份
+  - 哪些仍待解析
+  - 哪些剛 retry 過
+  - 哪些仍在阻擋這輪 progression 補件送出
 
 正式規則：
 - 所有案件都至少要保留最小 history / traceability

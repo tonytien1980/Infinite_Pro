@@ -122,15 +122,38 @@ export function IntakeMaterialPreviewList({
             <strong>目前進度：</strong>
             {progress.detail}
           </p>
+          {(progress.attemptCount ?? 0) > 0 || progress.latestAttemptLabel ? (
+            <p className="muted-text">
+              <strong>最近一次處理：</strong>
+              {progress.latestAttemptLabel || `第 ${progress.attemptCount} 次結果已更新。`}
+              {progress.latestAttemptDetail ? `｜${progress.latestAttemptDetail}` : ""}
+            </p>
+          ) : null}
           <div className="detail-list" style={{ marginTop: "12px" }}>
             <div className="detail-item" style={{ padding: "12px 14px" }}>
+              <p className="muted-text" style={{ marginBottom: "8px" }}>
+                <strong>問題類型：</strong>
+                {item.diagnosticLabel}
+              </p>
+              <p className="muted-text" style={{ marginBottom: "8px" }}>
+                <strong>可能原因：</strong>
+                {item.likelyCauseDetail}
+              </p>
               <p className={itemNoteClass(item.status)} style={{ marginBottom: "8px" }}>
                 <strong>這代表什麼：</strong>
                 {item.statusDetail}
               </p>
               <p className="muted-text" style={{ marginBottom: "8px" }}>
+                <strong>目前可用範圍：</strong>
+                {item.usableScopeLabel}｜{item.usableScopeDetail}
+              </p>
+              <p className="muted-text" style={{ marginBottom: "8px" }}>
                 <strong>會影響什麼：</strong>
                 {item.impactDetail}
+              </p>
+              <p className="muted-text" style={{ marginBottom: "8px" }}>
+                <strong>retry 判斷：</strong>
+                {item.retryabilityLabel}｜{item.retryabilityDetail}
               </p>
               <p className="muted-text" style={{ marginBottom: 0 }}>
                 <strong>建議下一步：</strong>

@@ -506,6 +506,9 @@ If a change touches intake semantics, verify:
 - limited-support and unsupported materials are shown honestly at item level rather than being implied by generic copy
 - limited-support / pending-parse / unsupported / failed ingest states now also explain impact and recommended remediation, rather than stopping at raw status pills
 - per-item retry / replace / remove / keep-as-reference semantics should stay aligned with blocking vs non-blocking intake rules, rather than drifting into a generic upload manager
+- if a change touches intake retry/progress, verify both item-level actions and batch-level visibility so the user can tell what finished, what is still parsing, what failed, and what is blocking
+- if a change touches ingest diagnostics, verify status, diagnostic category, retryability explanation, usable scope, and recommended action all stay aligned
+- if a change touches lane-aware supplement diagnostics, verify `follow_up` still points back to checkpoint gaps, `continuous` still points back to action / outcome validation, and `one_off` still stays closure-first
 
 If a change touches continuity / writeback behavior, test at least:
 - `one_off` minimal traceability
