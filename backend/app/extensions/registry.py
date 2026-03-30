@@ -15,8 +15,43 @@ from app.extensions.schemas import (
 )
 
 
+def _unique_preserve_order(values: list[str]) -> list[str]:
+    ordered: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        normalized = value.strip()
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        ordered.append(normalized)
+    return ordered
+
+
+def _finalize_pack_spec(pack: PackSpec) -> PackSpec:
+    key_kpis = _unique_preserve_order(
+        pack.key_kpis if pack.key_kpis else pack.key_kpis_or_operating_signals
+    )
+    key_kpis_or_operating_signals = _unique_preserve_order(
+        pack.key_kpis_or_operating_signals
+        if pack.key_kpis_or_operating_signals
+        else pack.key_kpis
+    )
+    if (
+        key_kpis == pack.key_kpis
+        and key_kpis_or_operating_signals == pack.key_kpis_or_operating_signals
+    ):
+        return pack
+
+    payload = pack.model_dump()
+    payload["key_kpis"] = key_kpis
+    payload["key_kpis_or_operating_signals"] = key_kpis_or_operating_signals
+    return PackSpec(**payload)
+
+
 def build_pack_catalog() -> list[PackSpec]:
     return [
+        _finalize_pack_spec(pack)
+        for pack in [
         PackSpec(
             pack_id="operations_pack",
             pack_type=PackType.DOMAIN,
@@ -2092,7 +2127,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "若定義太窄，會只剩排班；若定義太廣，則會把保健、醫材與一般服務型業務全都混成醫療 pack。",
             ],
         ),
-    ]
+    ]]
 
 
 def build_agent_catalog() -> list[AgentSpec]:

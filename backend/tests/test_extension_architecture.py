@@ -62,9 +62,8 @@ def test_extension_registry_contains_completed_pack_baseline_and_agents() -> Non
         assert pack.decision_patterns
         assert pack.deliverable_presets
         assert pack.pack_rationale
-        assert (
-            pack.key_kpis_or_operating_signals or pack.key_kpis
-        ), f"{pack.pack_id} should expose KPI or signal guidance"
+        assert pack.key_kpis_or_operating_signals, f"{pack.pack_id} should expose KPI / signal guidance"
+        assert pack.key_kpis, f"{pack.pack_id} should expose KPI guidance"
 
 
 def test_pack_resolver_selects_domain_and_industry_packs() -> None:
