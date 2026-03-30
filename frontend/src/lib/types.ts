@@ -215,11 +215,26 @@ export interface PackCatalogEntry {
   industry_definition: string;
   common_business_models: string[];
   common_problem_patterns: string[];
+  stage_specific_heuristics: Record<string, string[]>;
   key_kpis_or_operating_signals: string[];
   key_kpis: string[];
+  domain_lenses: string[];
+  relevant_client_types: string[];
+  relevant_client_stages: string[];
+  default_decision_context_patterns: string[];
+  evidence_expectations: string[];
+  risk_libraries: string[];
+  common_risks: string[];
+  decision_patterns: string[];
   deliverable_presets: string[];
+  recommendation_patterns: string[];
+  routing_hints: string[];
+  pack_notes: string[];
+  scope_boundaries: string[];
+  pack_rationale: string[];
   version: string;
   status: string;
+  override_rules: string[];
 }
 
 export interface AgentCatalogEntry {

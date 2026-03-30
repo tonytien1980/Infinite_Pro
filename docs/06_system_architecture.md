@@ -239,7 +239,7 @@ Pack Layer 應至少具備：
 - `Pack Spec` 定義 pack 的正式欄位與版本
 - `Pack Registry` 定義有哪些 pack 可用、哪些為 active / inactive / draft
 - `Pack Resolver` 定義 Host 如何選 pack、疊加 pack、處理衝突與 override
-- `Pack Management Surface` 則讓顧問能查看 pack 列表、版本、狀態，以及本次任務用到了哪些 pack
+- `Pack Management Surface` 則讓顧問能查看 pack 列表、版本、狀態、本次任務用到了哪些 pack，以及它們的核心 pack contract 是否完整
 
 單人版 Pack 基本盤至少應保留：
 - Domain / Functional Packs
@@ -358,6 +358,7 @@ UI 不是只做表單與結果頁，而是正式工作面。
 - 已在單人版工作台中以最小 surface 形式正式存在
 - 可以同時管理 pack catalog 與 agent catalog
 - 可以承接 task-level override 與 selection visibility
+- 若 task 已選定 packs，應能看出 pack 對 evidence expectations、decision patterns 與 deliverable presets 的影響，而不只是看到 pack 名稱
 - 但不代表 Pack Layer 與 Agent Layer 合併
 - 也不代表系統新增第七層
 

@@ -132,11 +132,26 @@ class PackCatalogEntryUpdateRequest(BaseModel):
     industry_definition: str = ""
     common_business_models: list[str] = Field(default_factory=list)
     common_problem_patterns: list[str] = Field(default_factory=list)
+    stage_specific_heuristics: dict[str, list[str]] = Field(default_factory=dict)
     key_kpis_or_operating_signals: list[str] = Field(default_factory=list)
     key_kpis: list[str] = Field(default_factory=list)
+    domain_lenses: list[str] = Field(default_factory=list)
+    relevant_client_types: list[str] = Field(default_factory=list)
+    relevant_client_stages: list[str] = Field(default_factory=list)
+    default_decision_context_patterns: list[str] = Field(default_factory=list)
+    evidence_expectations: list[str] = Field(default_factory=list)
+    risk_libraries: list[str] = Field(default_factory=list)
+    common_risks: list[str] = Field(default_factory=list)
+    decision_patterns: list[str] = Field(default_factory=list)
     deliverable_presets: list[str] = Field(default_factory=list)
+    recommendation_patterns: list[str] = Field(default_factory=list)
+    routing_hints: list[str] = Field(default_factory=list)
+    pack_notes: list[str] = Field(default_factory=list)
+    scope_boundaries: list[str] = Field(default_factory=list)
+    pack_rationale: list[str] = Field(default_factory=list)
     version: str = Field(min_length=1, max_length=50, default="1.0.0")
     status: Literal["draft", "active", "inactive", "deprecated"] = "active"
+    override_rules: list[str] = Field(default_factory=list)
     is_custom: bool = False
 
 

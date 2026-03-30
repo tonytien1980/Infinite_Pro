@@ -134,6 +134,8 @@ Infinite Pro 的正式第一層主導覽應為：
 5. **模組包管理**
    - 正式管理頁
    - 用來查看與管理 Pack catalog、status、version、selected packs 與 task-level override
+   - 不應只顯示 pack 名稱與狀態；至少要讓顧問看見 definition、common problem patterns、KPI / operating signals、evidence expectations、decision patterns、deliverable presets 與 pack rationale
+   - 在單人版管理面中，也應能直接編輯上述核心 pack contract，而不是只把完整定義留在 registry 程式碼裡
    - 它應分為兩個頁籤：
      - 問題面向模組包
      - 產業模組包

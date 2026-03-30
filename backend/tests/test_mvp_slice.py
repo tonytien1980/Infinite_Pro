@@ -146,6 +146,93 @@ def test_workbench_preferences_round_trip_theme_preference(client: TestClient) -
     assert refreshed.json()["theme_preference"] == "dark"
 
 
+def test_pack_management_round_trip_core_contract_fields(client: TestClient) -> None:
+    update = client.put(
+        "/api/v1/extensions/packs/operations_pack",
+        json={
+            "pack_id": "operations_pack",
+            "pack_type": "domain",
+            "pack_name": "Operations Pack",
+            "description": "Refresh the operating pack contract for management surface coverage.",
+            "domain_definition": "For operations-heavy consulting work where execution rhythm, capacity, and process visibility need a structured operating lens.",
+            "industry_definition": "",
+            "common_business_models": [],
+            "common_problem_patterns": [
+                "handoff friction between sales and delivery",
+                "throughput is constrained by unclear prioritization",
+            ],
+            "stage_specific_heuristics": {
+                "創業階段": ["founder throughput is the first bottleneck to verify"],
+            },
+            "key_kpis_or_operating_signals": [
+                "cycle time",
+                "on-time completion rate",
+            ],
+            "key_kpis": [
+                "cycle time",
+                "on-time completion rate",
+            ],
+            "domain_lenses": ["operations", "execution"],
+            "relevant_client_types": ["中小企業"],
+            "relevant_client_stages": ["制度化階段"],
+            "default_decision_context_patterns": [
+                "should this workflow be redesigned before scaling",
+            ],
+            "evidence_expectations": [
+                "recent backlog and throughput snapshots",
+                "handoff ownership map",
+            ],
+            "risk_libraries": ["execution slippage"],
+            "common_risks": ["capacity looks fine on paper but breaks during peak demand"],
+            "decision_patterns": ["whether to redesign workflow ownership before adding headcount"],
+            "deliverable_presets": ["operating diagnosis memo", "execution reset action plan"],
+            "recommendation_patterns": ["stabilize intake before expanding capacity"],
+            "routing_hints": ["prioritize operations_agent when execution visibility is thin"],
+            "pack_notes": ["treat missing throughput data as a first-order evidence gap"],
+            "scope_boundaries": ["does not replace detailed ERP implementation design"],
+            "pack_rationale": ["operations work needs a dedicated pack because evidence and remedies differ from generic strategy work"],
+            "version": "1.2.0",
+            "status": "active",
+            "override_rules": ["task-level overrides can force operations_pack even without explicit domain lens"],
+            "is_custom": False,
+        },
+    )
+
+    assert update.status_code == 200
+    operations_pack = next(
+        item
+        for item in update.json()["pack_registry"]["packs"]
+        if item["pack_id"] == "operations_pack"
+    )
+    assert operations_pack["domain_definition"].startswith("For operations-heavy consulting work")
+    assert operations_pack["stage_specific_heuristics"]["創業階段"] == [
+        "founder throughput is the first bottleneck to verify"
+    ]
+    assert operations_pack["evidence_expectations"] == [
+        "recent backlog and throughput snapshots",
+        "handoff ownership map",
+    ]
+    assert operations_pack["decision_patterns"] == [
+        "whether to redesign workflow ownership before adding headcount"
+    ]
+    assert operations_pack["deliverable_presets"] == [
+        "operating diagnosis memo",
+        "execution reset action plan",
+    ]
+    assert operations_pack["routing_hints"] == [
+        "prioritize operations_agent when execution visibility is thin"
+    ]
+    assert operations_pack["scope_boundaries"] == [
+        "does not replace detailed ERP implementation design"
+    ]
+    assert operations_pack["pack_rationale"] == [
+        "operations work needs a dedicated pack because evidence and remedies differ from generic strategy work"
+    ]
+    assert operations_pack["override_rules"] == [
+        "task-level overrides can force operations_pack even without explicit domain lens"
+    ]
+
+
 def test_task_creation_attaches_background_text_as_context_and_evidence(client: TestClient) -> None:
     response = client.post("/api/v1/tasks", json=create_task_payload())
 

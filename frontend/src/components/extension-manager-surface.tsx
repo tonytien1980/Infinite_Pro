@@ -5,6 +5,8 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import type {
   AgentCatalogEntry,
   ExtensionManagerSnapshot,
+  PackCatalogEntry,
+  SelectedPack,
   TaskAggregate,
   TaskExtensionOverridePayload,
 } from "@/lib/types";
@@ -18,6 +20,32 @@ import {
   labelForPackName,
   labelForPackType,
 } from "@/lib/ui-labels";
+
+type PackSurfaceLike = Pick<
+  SelectedPack,
+  | "pack_id"
+  | "pack_type"
+  | "pack_name"
+  | "description"
+  | "domain_definition"
+  | "industry_definition"
+  | "common_business_models"
+  | "common_problem_patterns"
+  | "key_kpis_or_operating_signals"
+  | "key_kpis"
+  | "evidence_expectations"
+  | "common_risks"
+  | "decision_patterns"
+  | "deliverable_presets"
+  | "routing_hints"
+  | "pack_notes"
+  | "scope_boundaries"
+  | "pack_rationale"
+  | "status"
+  | "version"
+> & {
+  reason?: string;
+};
 
 function parseOverrideInput(value: string) {
   return Array.from(
@@ -45,6 +73,21 @@ function findAgentName(agents: AgentCatalogEntry[], agentId: string) {
   return agentName ? labelForAgentName(agentName) : labelForAgentId(agentId);
 }
 
+function getPackDefinition(pack: Pick<PackSurfaceLike, "pack_type" | "domain_definition" | "industry_definition" | "description">) {
+  if (pack.pack_type === "domain") {
+    return pack.domain_definition || pack.description;
+  }
+  return pack.industry_definition || pack.description;
+}
+
+function getPackSignalItems(
+  pack: Pick<PackSurfaceLike, "key_kpis_or_operating_signals" | "key_kpis">,
+) {
+  return pack.key_kpis_or_operating_signals.length > 0
+    ? pack.key_kpis_or_operating_signals
+    : pack.key_kpis;
+}
+
 function buildSelectedAgentRuntimeRows(task: TaskAggregate) {
   return [
     ...(task.agent_selection.host_agent ? [task.agent_selection.host_agent] : []),
@@ -57,6 +100,124 @@ function buildSelectedAgentRuntimeRows(task: TaskAggregate) {
       runtimeName: labelForAgentId(agent.runtime_binding ?? ""),
       reason: agent.reason,
     }));
+}
+
+function PackContractBlock({
+  title,
+  items,
+  emptyText,
+}: {
+  title: string;
+  items: string[];
+  emptyText: string;
+}) {
+  return (
+    <div className="detail-item">
+      <h4>{title}</h4>
+      {items.length > 0 ? (
+        <ul className="list-content">
+          {items.map((item) => (
+            <li key={`${title}-${item}`}>{item}</li>
+          ))}
+        </ul>
+      ) : (
+        <p className="muted-text">{emptyText}</p>
+      )}
+    </div>
+  );
+}
+
+function PackContractCard({
+  pack,
+  reason,
+}: {
+  pack: PackSurfaceLike;
+  reason?: string;
+}) {
+  const display = getPackCatalogDisplay(pack);
+  const signalItems = getPackSignalItems(pack);
+  const influenceSummary = [
+    ...pack.evidence_expectations,
+    ...pack.decision_patterns,
+    ...pack.deliverable_presets,
+  ];
+
+  return (
+    <div className="detail-item">
+      <div className="meta-row">
+        <span className="pill">{labelForPackType(pack.pack_type)}</span>
+        <span>{labelForExtensionStatus(pack.status)}</span>
+        <span>v{pack.version}</span>
+      </div>
+      <h3>{display.primaryName}</h3>
+      <p className="content-block">{getPackDefinition(pack) || display.primaryDescription}</p>
+      {reason ? <p className="muted-text">選用原因：{reason}</p> : null}
+      <p className="muted-text">
+        證據 / 決策 / 交付影響：{summarizeList(influenceSummary, 4)}
+      </p>
+      <p className="muted-text">
+        存在理由：{summarizeList(pack.pack_rationale, 2)}
+      </p>
+      <details className="inline-disclosure" style={{ marginTop: "10px" }}>
+        <summary className="inline-disclosure-summary">查看完整 pack contract</summary>
+        <div className="detail-list" style={{ marginTop: "12px" }}>
+          {pack.pack_type === "industry" ? (
+            <PackContractBlock
+              title="常見商業模式"
+              items={pack.common_business_models}
+              emptyText="目前沒有標示商業模式。"
+            />
+          ) : (
+            <PackContractBlock
+              title="範圍邊界"
+              items={pack.scope_boundaries}
+              emptyText="目前沒有標示邊界。"
+            />
+          )}
+          <PackContractBlock
+            title="常見問題型態"
+            items={pack.common_problem_patterns}
+            emptyText="目前沒有整理常見問題型態。"
+          />
+          <PackContractBlock
+            title={pack.pack_type === "domain" ? "關鍵指標／經營訊號" : "關鍵指標"}
+            items={signalItems}
+            emptyText="目前沒有整理關鍵指標或訊號。"
+          />
+          <PackContractBlock
+            title="證據期待"
+            items={pack.evidence_expectations}
+            emptyText="目前沒有整理證據期待。"
+          />
+          <PackContractBlock
+            title="常見風險"
+            items={pack.common_risks}
+            emptyText="目前沒有整理常見風險。"
+          />
+          <PackContractBlock
+            title="決策模式"
+            items={pack.decision_patterns}
+            emptyText="目前沒有整理決策模式。"
+          />
+          <PackContractBlock
+            title="交付預設"
+            items={pack.deliverable_presets}
+            emptyText="目前沒有整理交付預設。"
+          />
+          <PackContractBlock
+            title="路由提示"
+            items={pack.routing_hints}
+            emptyText="目前沒有額外路由提示。"
+          />
+          <PackContractBlock
+            title="備註"
+            items={pack.pack_notes}
+            emptyText="目前沒有額外備註。"
+          />
+        </div>
+      </details>
+    </div>
+  );
 }
 
 interface ExtensionManagerSurfaceProps {
@@ -99,16 +260,18 @@ export function ExtensionManagerSurface({
   );
   const agents = snapshot?.agent_registry.agents ?? [];
 
-  const selectedDomainPackNames = task?.pack_resolution.selected_domain_packs.map((item) => item.pack_name) ?? [];
-  const selectedIndustryPackNames =
-    task?.pack_resolution.selected_industry_packs.map((item) => item.pack_name) ?? [];
+  const selectedDomainPacks = task?.pack_resolution.selected_domain_packs ?? [];
+  const selectedIndustryPacks = task?.pack_resolution.selected_industry_packs ?? [];
+  const selectedDomainPackNames = selectedDomainPacks.map((item) => item.pack_name);
+  const selectedIndustryPackNames = selectedIndustryPacks.map((item) => item.pack_name);
   const selectedAgentNames = (task?.agent_selection.selected_agent_names ?? []).map((item) =>
     labelForAgentName(item),
   );
   const selectedAgentRuntimeRows = task ? buildSelectedAgentRuntimeRows(task) : [];
-  const runtimePathSummary = selectedAgentRuntimeRows.length > 0
-    ? Array.from(new Set(selectedAgentRuntimeRows.map((item) => item.runtimeName)))
-    : [];
+  const runtimePathSummary =
+    selectedAgentRuntimeRows.length > 0
+      ? Array.from(new Set(selectedAgentRuntimeRows.map((item) => item.runtimeName)))
+      : [];
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -188,29 +351,71 @@ export function ExtensionManagerSurface({
           <div className="detail-item">
             <h3>本次選用的模組包</h3>
             <p className="muted-text">
-              問題面向：{selectedDomainPackNames.length > 0 ? selectedDomainPackNames.map((item) => labelForPackName(item)).join("、") : "未選用"}
+              問題面向：
+              {selectedDomainPackNames.length > 0
+                ? selectedDomainPackNames.map((item) => labelForPackName(item)).join("、")
+                : "未選用"}
             </p>
             <p className="muted-text">
-              產業：{selectedIndustryPackNames.length > 0 ? selectedIndustryPackNames.map((item) => labelForPackName(item)).join("、") : "未選用"}
+              產業：
+              {selectedIndustryPackNames.length > 0
+                ? selectedIndustryPackNames.map((item) => labelForPackName(item)).join("、")
+                : "未選用"}
             </p>
             {task.pack_resolution.resolver_notes.length > 0 ? (
-              <p className="muted-text">解析註記：{summarizeList(task.pack_resolution.resolver_notes, 2)}</p>
+              <p className="muted-text">
+                解析註記：{summarizeList(task.pack_resolution.resolver_notes, 2)}
+              </p>
+            ) : null}
+            {(selectedDomainPacks.length > 0 || selectedIndustryPacks.length > 0) ? (
+              <details className="inline-disclosure" style={{ marginTop: "10px" }}>
+                <summary className="inline-disclosure-summary">
+                  查看 pack 如何影響這次任務
+                </summary>
+                <div className="detail-list" style={{ marginTop: "12px" }}>
+                  {selectedDomainPacks.map((pack) => (
+                    <PackContractCard
+                      key={`selected-domain-${pack.pack_id}`}
+                      pack={pack}
+                      reason={pack.reason}
+                    />
+                  ))}
+                  {selectedIndustryPacks.map((pack) => (
+                    <PackContractCard
+                      key={`selected-industry-${pack.pack_id}`}
+                      pack={pack}
+                      reason={pack.reason}
+                    />
+                  ))}
+                </div>
+              </details>
             ) : null}
           </div>
 
           <div className="detail-item">
             <h3>本次選用的代理</h3>
             <p className="muted-text">
-              主控代理：{task.agent_selection.host_agent?.agent_name ? labelForAgentName(task.agent_selection.host_agent.agent_name) : "主控代理"}
+              主控代理：
+              {task.agent_selection.host_agent?.agent_name
+                ? labelForAgentName(task.agent_selection.host_agent.agent_name)
+                : "主控代理"}
             </p>
             <p className="muted-text">
-              代理：{selectedAgentNames.length > 0 ? selectedAgentNames.join("、") : "目前僅由主控代理最小介入"}
+              代理：
+              {selectedAgentNames.length > 0
+                ? selectedAgentNames.join("、")
+                : "目前僅由主控代理最小介入"}
             </p>
             <p className="muted-text">
-              執行路徑：{runtimePathSummary.length > 0 ? runtimePathSummary.join("、") : "目前沒有額外的 runtime 綁定顯示"}
+              執行路徑：
+              {runtimePathSummary.length > 0
+                ? runtimePathSummary.join("、")
+                : "目前沒有額外的 runtime 綁定顯示"}
             </p>
             {task.agent_selection.rationale.length > 0 ? (
-              <p className="muted-text">選用理由：{summarizeList(task.agent_selection.rationale, 2)}</p>
+              <p className="muted-text">
+                選用理由：{summarizeList(task.agent_selection.rationale, 2)}
+              </p>
             ) : null}
             {task.agent_selection.omitted_agent_notes.length > 0 ? (
               <p className="muted-text">
@@ -236,21 +441,29 @@ export function ExtensionManagerSurface({
           <div className="detail-item">
             <h3>目前覆寫狀態</h3>
             <p className="muted-text">
-              模組包覆寫：{task.pack_resolution.override_pack_ids.length > 0 ? task.pack_resolution.override_pack_ids.join("、") : "未設定"}
+              模組包覆寫：
+              {task.pack_resolution.override_pack_ids.length > 0
+                ? task.pack_resolution.override_pack_ids.join("、")
+                : "未設定"}
             </p>
             <p className="muted-text">
-              代理覆寫：{task.agent_selection.override_agent_ids.length > 0 ? task.agent_selection.override_agent_ids.join("、") : "未設定"}
+              代理覆寫：
+              {task.agent_selection.override_agent_ids.length > 0
+                ? task.agent_selection.override_agent_ids.join("、")
+                : "未設定"}
             </p>
             {(task.pack_resolution.deliverable_presets.length > 0 ||
-              task.pack_resolution.evidence_expectations.length > 0) ? (
+              task.pack_resolution.evidence_expectations.length > 0 ||
+              task.pack_resolution.decision_patterns.length > 0) ? (
               <p className="muted-text">
-                交付 / 證據提示：
+                Pack 影響摘要：
                 {summarizeList(
                   [
-                    ...task.pack_resolution.deliverable_presets,
                     ...task.pack_resolution.evidence_expectations,
+                    ...task.pack_resolution.decision_patterns,
+                    ...task.pack_resolution.deliverable_presets,
                   ],
-                  3,
+                  4,
                 )}
               </p>
             ) : null}
@@ -286,7 +499,12 @@ export function ExtensionManagerSurface({
             <button className="button-primary" type="submit" disabled={saving}>
               {saving ? "儲存中..." : "套用本次覆寫"}
             </button>
-            <button className="button-secondary" type="button" disabled={saving} onClick={() => void handleClear()}>
+            <button
+              className="button-secondary"
+              type="button"
+              disabled={saving}
+              onClick={() => void handleClear()}
+            >
               清除覆寫
             </button>
           </div>
@@ -301,21 +519,7 @@ export function ExtensionManagerSurface({
             </summary>
             <div className="detail-list" style={{ marginTop: "12px" }}>
               {domainPacks.map((pack) => (
-                <div className="detail-item" key={pack.pack_id}>
-                  <div className="meta-row">
-                    <span className="pill">{labelForPackType(pack.pack_type)}</span>
-                    <span>{labelForExtensionStatus(pack.status)}</span>
-                    <span>v{pack.version}</span>
-                  </div>
-                  <h3>{getPackCatalogDisplay(pack).primaryName}</h3>
-                  <p className="muted-text">{getPackCatalogDisplay(pack).primaryDescription}</p>
-                  <p className="muted-text">
-                    問題型態：{pack.common_problem_patterns.length > 0 ? `已整理 ${pack.common_problem_patterns.length} 項` : "目前未標示"}
-                  </p>
-                  <p className="muted-text">
-                    指標／訊號：{pack.key_kpis_or_operating_signals.length > 0 ? `已整理 ${pack.key_kpis_or_operating_signals.length} 項` : "目前未標示"}
-                  </p>
-                </div>
+                <PackContractCard key={`catalog-domain-${pack.pack_id}`} pack={pack as PackCatalogEntry} />
               ))}
             </div>
           </details>
@@ -326,19 +530,7 @@ export function ExtensionManagerSurface({
             </summary>
             <div className="detail-list" style={{ marginTop: "12px" }}>
               {industryPacks.map((pack) => (
-                <div className="detail-item" key={pack.pack_id}>
-                  <div className="meta-row">
-                    <span className="pill">{labelForPackType(pack.pack_type)}</span>
-                    <span>{labelForExtensionStatus(pack.status)}</span>
-                    <span>v{pack.version}</span>
-                  </div>
-                  <h3>{getPackCatalogDisplay(pack).primaryName}</h3>
-                  <p className="muted-text">{getPackCatalogDisplay(pack).primaryDescription}</p>
-                  <p className="muted-text">
-                    商業模式：{summarizeList(pack.common_business_models, 3)}
-                  </p>
-                  <p className="muted-text">關鍵指標：{pack.key_kpis.length > 0 ? `已整理 ${pack.key_kpis.length} 項` : "目前未標示"}</p>
-                </div>
+                <PackContractCard key={`catalog-industry-${pack.pack_id}`} pack={pack as PackCatalogEntry} />
               ))}
             </div>
           </details>
@@ -360,10 +552,10 @@ export function ExtensionManagerSurface({
                   </p>
                   <p className="muted-text">
                     相關模組包：
-                    {summarizeList([
-                      ...agent.relevant_domain_packs,
-                      ...agent.relevant_industry_packs,
-                    ], 4)}
+                    {summarizeList(
+                      [...agent.relevant_domain_packs, ...agent.relevant_industry_packs],
+                      4,
+                    )}
                   </p>
                 </div>
               ))}

@@ -63,13 +63,36 @@ def _build_pack_payload(
         "industry_definition": payload.industry_definition.strip(),
         "common_business_models": [item.strip() for item in payload.common_business_models if item.strip()],
         "common_problem_patterns": [item.strip() for item in payload.common_problem_patterns if item.strip()],
+        "stage_specific_heuristics": {
+            key.strip(): [item.strip() for item in values if item.strip()]
+            for key, values in payload.stage_specific_heuristics.items()
+            if key.strip()
+        },
         "key_kpis_or_operating_signals": [
             item.strip() for item in payload.key_kpis_or_operating_signals if item.strip()
         ],
         "key_kpis": [item.strip() for item in payload.key_kpis if item.strip()],
+        "domain_lenses": [item.strip() for item in payload.domain_lenses if item.strip()],
+        "relevant_client_types": [item.strip() for item in payload.relevant_client_types if item.strip()],
+        "relevant_client_stages": [item.strip() for item in payload.relevant_client_stages if item.strip()],
+        "default_decision_context_patterns": [
+            item.strip() for item in payload.default_decision_context_patterns if item.strip()
+        ],
+        "evidence_expectations": [item.strip() for item in payload.evidence_expectations if item.strip()],
+        "risk_libraries": [item.strip() for item in payload.risk_libraries if item.strip()],
+        "common_risks": [item.strip() for item in payload.common_risks if item.strip()],
+        "decision_patterns": [item.strip() for item in payload.decision_patterns if item.strip()],
         "deliverable_presets": [item.strip() for item in payload.deliverable_presets if item.strip()],
+        "recommendation_patterns": [
+            item.strip() for item in payload.recommendation_patterns if item.strip()
+        ],
+        "routing_hints": [item.strip() for item in payload.routing_hints if item.strip()],
+        "pack_notes": [item.strip() for item in payload.pack_notes if item.strip()],
+        "scope_boundaries": [item.strip() for item in payload.scope_boundaries if item.strip()],
+        "pack_rationale": [item.strip() for item in payload.pack_rationale if item.strip()],
         "version": payload.version.strip(),
         "status": payload.status,
+        "override_rules": [item.strip() for item in payload.override_rules if item.strip()],
     }
 
 
@@ -154,11 +177,26 @@ def _pack_spec_from_payload(data: dict, base: PackSpec | None = None) -> PackSpe
             "industry_definition": data["industry_definition"],
             "common_business_models": data["common_business_models"],
             "common_problem_patterns": data["common_problem_patterns"],
+            "stage_specific_heuristics": data["stage_specific_heuristics"],
             "key_kpis_or_operating_signals": data["key_kpis_or_operating_signals"],
             "key_kpis": data["key_kpis"],
+            "domain_lenses": data["domain_lenses"],
+            "relevant_client_types": data["relevant_client_types"],
+            "relevant_client_stages": data["relevant_client_stages"],
+            "default_decision_context_patterns": data["default_decision_context_patterns"],
+            "evidence_expectations": data["evidence_expectations"],
+            "risk_libraries": data["risk_libraries"],
+            "common_risks": data["common_risks"],
+            "decision_patterns": data["decision_patterns"],
             "deliverable_presets": data["deliverable_presets"],
+            "recommendation_patterns": data["recommendation_patterns"],
+            "routing_hints": data["routing_hints"],
+            "pack_notes": data["pack_notes"],
+            "scope_boundaries": data["scope_boundaries"],
+            "pack_rationale": data["pack_rationale"],
             "version": data["version"],
             "status": data["status"],
+            "override_rules": data["override_rules"],
         }
     )
     return PackSpec.model_validate(base_data)

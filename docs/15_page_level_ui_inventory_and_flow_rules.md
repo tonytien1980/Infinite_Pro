@@ -459,6 +459,7 @@
 **第一屏必答**
 - 現在正在看哪一種 pack family
 - 哪些可用、哪些啟用中
+- 目前有多少 pack 已補齊核心 contract
 
 **Primary action**
 - 新增模組包 或 儲存模組包
@@ -472,12 +473,13 @@
 **首屏必顯**
 - 兩類 pack family 數量
 - 啟用中數
+- 核心定義完整數
 - 當前 tab 列表
 
 **延後揭露**
-- KPI 細節
-- 長篇描述
-- 全量 problem pattern 展示
+- 長篇定義與商業模式說明
+- 全量 problem patterns、evidence expectations、decision patterns、deliverable presets 與 pack rationale 展示
+- pack contract 編輯表單中的深層欄位
 
 **正式跳轉**
 - 無跨頁主線跳轉要求，但應保留與 task-level pack selection 的概念連結
