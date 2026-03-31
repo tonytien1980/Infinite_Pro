@@ -227,6 +227,23 @@ Agent / Pack 管理面的「精簡建立 -> 正式 contract draft」同樣屬於
 - 若有外部搜尋補完，也應由 backend 一併治理搜尋查詢、來源摘要與錯誤處理
 - 補完結果仍應回到正式 schema 驗證，再交給管理面儲存或微調
 
+### 10.2 管理面 contract synthesis 的 backend guardrails
+管理面補完不應只是「模型回什麼就存什麼」。
+
+正式 backend guardrails 至少應包括：
+- structured-output schema 約束
+- bounded external search
+- post-synthesis normalization
+- whitelist / registry-aware validation
+- fail-closed 的正式寫入路徑
+
+更具體地說：
+- `agent_type`、`supported_capabilities`、`relevant_*_packs`
+  應限制在正式 Agent / Pack / Capability 語義集合內
+- `domain_lenses`、`relevant_client_types`、`relevant_client_stages`
+  應限制在正式治理詞彙內
+- 不合法值應被清理、保守降級或拒絕，而不是直接落進 registry
+
 ---
 
 ## 11. 第一波 provider 支援層級

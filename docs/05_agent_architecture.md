@@ -469,6 +469,39 @@ Pack 也必須正式進入以下五個核心能力：
 - 生成結果仍必須回到統一 Agent Spec Baseline 驗證，而不是直接繞過正式欄位定義
 - management surface 應能回看這次補完的搜尋查詢、來源摘要與 generation notes，避免「系統自動補齊」變成不可審視的黑箱
 
+更精確地說，標準使用者流程不應要求顧問先手動定義：
+- `supported_capabilities`
+- `relevant_domain_packs`
+- `relevant_industry_packs`
+- `agent_type`
+- 逐欄 technical contract 欄位
+
+這些欄位應先由 backend synthesis path 推導，再回到正式 baseline 中被驗證與正規化。
+
+### 11.1.4 Agent synthesis guardrails
+當 Agent 由「精簡建立 -> AI + 搜尋補完」生成時，backend 至少應提供以下 guardrails：
+
+1. **固定 contract schema**
+   - 模型不應自由輸出任意欄位
+   - 所有結果都必須回到正式 Agent Spec Baseline
+
+2. **受控推導欄位**
+   - `agent_type`
+   - `supported_capabilities`
+   - `relevant_domain_packs`
+   - `relevant_industry_packs`
+   這些可以由模型推導，但不可跳過正式驗證
+
+3. **post-synthesis normalization**
+   - capability ids 應限制在正式 Capability Archetype 集合內
+   - pack ids 應限制在正式 Registry 既有 pack ids 內
+   - 不合法值應被清理、回退或保守降級，而不是直接寫進 registry
+
+4. **Host-centered governance**
+   - 建立一個 agent contract，不等於之後每個案件都必然啟用它
+   - 是否真正拉入案件流程，仍應由 Host 在 task / pack / evidence / readiness context 下判斷
+   - Agent creation 是 catalog / capability governance；Agent invocation 是 Host orchestration
+
 ### 11.2 Agent Registry
 系統應有正式 registry 來表達：
 - 有哪些 agents 存在
@@ -542,6 +575,13 @@ Host 應根據以下輸入決定 agent 組合：
   - 使用了哪一組搜尋查詢
   - 補入了哪些外部來源
   - 這次草案的 synthesis summary / generation notes 是什麼
+
+標準使用者管理面不應預設暴露：
+- capability 勾選器
+- pack 綁定勾選器
+- 完整 agent contract 的逐欄手動編輯表單
+
+因為這些屬於 contract internals，不應要求一般顧問在建立第一步就自己定義。
 
 全域啟用 / 停用與更完整治理介面，可留到後續 manager / marketplace 擴張再處理。
 

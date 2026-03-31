@@ -212,6 +212,7 @@ Agents 應依能力面與專業責任分類，而不是只依目前已落地 flo
 另外，後續若新增或深化 agents，Codex 應遵守：
 - 所有 agents 都要回到 `docs/05_agent_architecture.md` 的統一 Agent Spec Baseline
 - 不得只補 `agent_id / agent_name / description` 就視為完成 agent 設計
+- 若是透過管理面精簡建立新增 agent，應確認標準使用者流程沒有重新暴露 capability / pack 綁定 / 逐欄 contract 表單
 - 若深化 `research_intelligence_agent`，正式方向應是把它做成 `Research / Investigation Agent`，並同步檢查：
   - Host research trigger governance
   - research depth selection（Light / Standard / Deep）
@@ -260,6 +261,13 @@ Domain / Functional Packs 應被理解為：
 - 企業常見經營問題與顧問職能面向的正式 context modules
 - 會影響 evidence expectations、readiness、routing 與 deliverable hints
 - 不是 agents，也不是 capability archetypes
+
+另外，若新增 / 深化 Agent 或 Pack creation flow，Codex 應同步檢查：
+- backend 是否仍經過正式 provider boundary
+- 是否仍保留 bounded external search
+- synthesis output 是否仍經過 schema validation
+- 影響 routing 的欄位是否仍經過 whitelist / normalization
+- Host 是否仍然是唯一負責「要不要用這個 Agent / Pack」的人，而不是在建立階段就被預設綁死
 
 ### 7.4 Matter / Engagement Workspace
 在單人版範圍內，`Matter / Engagement Workspace` 不應再被視為未來工作面或 partial object-aware deepening。

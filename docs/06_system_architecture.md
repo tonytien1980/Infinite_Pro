@@ -177,6 +177,12 @@ Agent Resolver 與 Pack Resolver 也應逐步提供 relevance score / matched si
 - 使用目前 active provider 與外部搜尋生成正式 contract draft
 - 再回到 registry / resolver / management surface 的正式欄位與 writeback 路徑
 
+正式 runtime 理解還應包括：
+- 使用者建立 agent，不等於 Host 之後一定會使用這個 agent
+- 建立完成只代表 catalog 中新增一個正式 capability module
+- 是否在某個案件中被選入，仍由 Host 根據 capability、packs、decision context、readiness 與 evidence sufficiency 判斷
+- 因此「建立規格」與「實際執行選用」必須保持分層，不可混成同一步
+
 在單人顧問完整工作台範圍內，Agent Orchestration 應視為已完成的正式能力，而不是之後還要再補一輪的 foundation。
 
 Host 第一階段現在必須正式被理解為：
@@ -251,6 +257,19 @@ Pack Layer 應至少具備：
 - 一般使用者只填最少必要資訊
 - backend 使用目前 active provider 與外部搜尋生成正式 pack contract draft
 - draft 仍需回到 Pack Spec / Registry 的正式欄位，不可停留在前端模板或 local-only 補值
+
+### Pack / Agent contract synthesis guardrails
+當 Agent / Pack 由精簡建立生成時，正式系統層至少應包含：
+- fixed structured-output schema
+- provider-boundary execution
+- bounded external search
+- post-synthesis normalization
+- registry-safe write path
+
+也就是說：
+- 模型可以補完，但不能自由定義整套 ontology / pack / capability 語義
+- 影響 routing 與 selection 的關鍵欄位，應先經過正式 whitelist / normalization
+- registry / resolver 才是最終正式治理層，而不是模型輸出本身
 
 單人版 Pack 基本盤至少應保留：
 - Domain / Functional Packs

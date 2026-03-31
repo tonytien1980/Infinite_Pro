@@ -453,6 +453,7 @@
 - 使用紀錄全文
 - selected agent 與 runtime binding 的細節對照（若此頁承接 task-level override / selection context）
 - 這次 AI 補完的搜尋查詢、來源摘要與 synthesis summary
+- Agent 是否實際在案件中被選用，應留給 Host 在 task flow 中決定，而不是在建立頁面預先綁死
 
 **正式跳轉**
 - 無跨頁主線跳轉要求，但應保留與 task-level override 的概念連結
@@ -488,6 +489,7 @@
 - 長篇定義與商業模式說明
 - 全量 problem patterns、evidence expectations、decision patterns、deliverable presets 與 pack rationale 展示
 - 這次 AI 補完的搜尋查詢、來源摘要與 synthesis summary
+- Pack 是否實際在案件中被套用，應留給 Host 在 task flow 中決定，而不是在建立頁面預先綁死
 
 **正式跳轉**
 - 無跨頁主線跳轉要求，但應保留與 task-level pack selection 的概念連結
