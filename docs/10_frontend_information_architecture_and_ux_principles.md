@@ -133,7 +133,7 @@ Infinite Pro 的正式第一層主導覽應為：
    - task-level selected agents 也應能看見 Host 為什麼選它、選擇分數大概多高、命中了哪些 selection signals
    - 新增 / 編輯代理時，預設應先提供「精簡建立」模式，讓一般人只填少數必要欄位；系統再用目前啟用的 AI 模型搭配外部搜尋補齊正式 contract
    - 精簡建立不應只把補值藏在前端模板；UI 至少應讓使用者看見這次補完的搜尋查詢、來源摘要與 synthesis summary
-   - 在單人版管理面中，也應能直接編輯上述核心 agent contract，而不是只把完整定義留在 registry 程式碼裡
+   - 標準使用者流程不應要求顧問手動填 capability、pack 綁定或逐欄 contract；這些應交由 backend synthesis path 補完
    - 它不是附屬小功能，也不是 debug panel
 
 5. **模組包管理**
@@ -143,7 +143,7 @@ Infinite Pro 的正式第一層主導覽應為：
    - task-level selected packs 也應能看見 Host 為什麼選它、選擇分數大概多高、命中了哪些 selection signals
    - 新增 / 編輯模組包時，預設應先提供「精簡建立」模式，讓一般人只填少數必要欄位；系統再用目前啟用的 AI 模型搭配外部搜尋補齊正式 contract
    - 精簡建立不應只把補值藏在前端模板；UI 至少應讓使用者看見這次補完的搜尋查詢、來源摘要與 synthesis summary
-   - 在單人版管理面中，也應能直接編輯上述核心 pack contract，而不是只把完整定義留在 registry 程式碼裡
+   - 標準使用者流程不應要求顧問手動填商業模式、問題型態、指標與證據欄位；這些應交由 backend synthesis path 補完
    - 它應分為兩個頁籤：
      - 問題面向模組包
      - 產業模組包

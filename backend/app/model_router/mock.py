@@ -532,6 +532,25 @@ class MockModelProvider(ModelProvider):
             generation_notes.append(f"Mock provider 參考了外部來源標題：{'、'.join(source_titles)}。")
 
         return AgentContractSynthesisOutput(
+            agent_type=(
+                "specialist"
+                if any(
+                    keyword in " ".join(
+                        [request.agent_name, request.description, request.role_focus]
+                    )
+                    for keyword in ["審閱", "review", "重構", "rewrite", "專家", "specialist"]
+                )
+                else "reasoning"
+            ),
+            supported_capabilities=_unique(
+                request.supported_capabilities
+                or [
+                    "synthesize_brief",
+                    "diagnose_assess",
+                ]
+            ),
+            relevant_domain_packs=_unique(request.relevant_domain_packs),
+            relevant_industry_packs=_unique(request.relevant_industry_packs),
             description=description,
             primary_responsibilities=primary_responsibilities,
             out_of_scope=out_of_scope,

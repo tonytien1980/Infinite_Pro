@@ -26,6 +26,57 @@ DEFAULT_LANGUAGE_INSTRUCTION = (
     "只有在任務內容明確要求英文時，才改用英文。"
 )
 
+ALLOWED_AGENT_TYPES = ["reasoning", "specialist"]
+ALLOWED_AGENT_CAPABILITIES = [
+    "diagnose_assess",
+    "decide_converge",
+    "review_challenge",
+    "synthesize_brief",
+    "restructure_reframe",
+    "plan_roadmap",
+    "scenario_comparison",
+    "risk_surfacing",
+]
+KNOWN_DOMAIN_PACK_IDS = [
+    "operations_pack",
+    "finance_fundraising_pack",
+    "legal_risk_pack",
+    "marketing_sales_pack",
+    "business_development_pack",
+    "research_intelligence_pack",
+    "organization_people_pack",
+    "product_service_pack",
+]
+KNOWN_INDUSTRY_PACK_IDS = [
+    "online_education_pack",
+    "ecommerce_pack",
+    "gaming_pack",
+    "funeral_services_pack",
+    "health_supplements_pack",
+    "energy_pack",
+    "saas_pack",
+    "media_creator_pack",
+    "professional_services_pack",
+    "manufacturing_pack",
+    "healthcare_clinic_pack",
+]
+STANDARD_DOMAIN_LENSES = [
+    "operations",
+    "finance",
+    "fundraising",
+    "legal",
+    "risk",
+    "marketing",
+    "sales",
+    "business_development",
+    "research",
+    "intelligence",
+    "organization",
+    "people",
+    "product",
+    "service",
+]
+
 
 @dataclass(frozen=True)
 class StructuredTaskSpec:
@@ -376,6 +427,10 @@ def build_agent_contract_synthesis_spec(
         "type": "object",
         "additionalProperties": False,
         "properties": {
+            "agent_type": {"type": "string", "enum": ALLOWED_AGENT_TYPES},
+            "supported_capabilities": _string_list_schema("Supported capability ids."),
+            "relevant_domain_packs": _string_list_schema("Relevant domain pack ids, if strongly coupled."),
+            "relevant_industry_packs": _string_list_schema("Relevant industry pack ids, if strongly coupled."),
             "description": {"type": "string"},
             "primary_responsibilities": _string_list_schema("Primary responsibilities for this agent."),
             "out_of_scope": _string_list_schema("Explicit out-of-scope boundaries."),
@@ -425,6 +480,13 @@ def build_agent_contract_synthesis_spec(
                 if request_payload.relevant_industry_packs
                 else "- 目前未提供。"
             ),
+            "允許使用的 agent_type：\n" + "\n".join(f"- {item}" for item in ALLOWED_AGENT_TYPES),
+            "允許使用的 supported_capabilities：\n"
+            + "\n".join(f"- {item}" for item in ALLOWED_AGENT_CAPABILITIES),
+            "若真的需要填 relevant_domain_packs，請只從下列 IDs 中選擇；若這個 agent 預設應是通用型，就回傳空陣列：\n"
+            + "\n".join(f"- {item}" for item in KNOWN_DOMAIN_PACK_IDS),
+            "若真的需要填 relevant_industry_packs，請只從下列 IDs 中選擇；若這個 agent 預設應是跨產業通用型，就回傳空陣列：\n"
+            + "\n".join(f"- {item}" for item in KNOWN_INDUSTRY_PACK_IDS),
             f"這個代理最擅長幫什麼：\n{request_payload.role_focus or '目前未提供。'}",
             f"它通常需要哪些輸入：\n{request_payload.input_focus or '目前未提供。'}",
             f"你希望它交出什麼結果：\n{request_payload.output_focus or '目前未提供。'}",
@@ -442,6 +504,8 @@ def build_agent_contract_synthesis_spec(
             "你是 Infinite Pro 的 Agent contract synthesizer。"
             "請根據使用者提供的最少輸入，加上外部搜尋結果，為單人顧問完整工作台生成一份正式 agent contract 草案。"
             "重要原則：Host 是唯一 orchestration center；agents 是能力模組，不是人格扮演；packs 是 context modules，不是 agents。"
+            "使用者不需要先定義 capability、pack 綁定或 agent type；你應先推導這些欄位，再補完其餘 contract。"
+            "除非這個 agent 明顯只屬於某個特殊 pack，否則 relevant_domain_packs / relevant_industry_packs 應優先維持空陣列。"
             "請把輸出寫成可直接進 registry 的正式規格，而不是行銷文案。"
             "請優先生成高訊號、可採用的短版 contract：description 保持單一精實段落，各 list 欄位盡量控制在 2-6 條，不要為了看起來完整而展開冗長百科式列舉。"
             "搜尋結果只能用來補強對產業、能力與常見風險的理解，不能編造成確定事實。"
@@ -515,6 +579,8 @@ def build_pack_contract_synthesis_spec(
             f"Pack 類型：{request_payload.pack_type}",
             f"一句話說明：{request_payload.description or '目前未提供。'}",
             f"核心定義：\n{request_payload.definition or '目前未提供。'}",
+            "標準 domain_lenses（若適用請優先使用這組）:\n"
+            + "\n".join(f"- {item}" for item in STANDARD_DOMAIN_LENSES),
             "主要對應問題面向：\n"
             + (
                 "\n".join(f"- {item}" for item in request_payload.domain_lenses)

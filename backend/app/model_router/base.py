@@ -137,6 +137,10 @@ class ContractReviewOutput(BaseModel):
 
 
 class AgentContractSynthesisOutput(BaseModel):
+    agent_type: str
+    supported_capabilities: list[str]
+    relevant_domain_packs: list[str]
+    relevant_industry_packs: list[str]
     description: str
     primary_responsibilities: list[str]
     out_of_scope: list[str]

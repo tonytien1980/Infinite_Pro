@@ -24,7 +24,6 @@ import {
   labelForAgentType,
   labelForCapability,
   labelForExtensionStatus,
-  labelForPackName,
 } from "@/lib/ui-labels";
 import {
   createLocalId,
@@ -35,53 +34,10 @@ import {
 type AgentFilterStatus = "all" | "active" | "inactive";
 type AgentFilterType = "all" | "host" | "general";
 
-type AgentDraft = {
-  agent_name: string;
-  agent_type: string;
-  description: string;
-  supported_capabilities: string;
-  relevant_domain_packs: string;
-  relevant_industry_packs: string;
-  primary_responsibilities: string;
-  out_of_scope: string;
-  defer_rules: string;
-  preferred_execution_modes: string;
-  input_requirements: string;
-  minimum_evidence_readiness: string;
-  required_context_fields: string;
-  output_contract: string;
-  produced_objects: string;
-  deliverable_impact: string;
-  writeback_expectations: string;
-  invocation_rules: string;
-  escalation_rules: string;
-  handoff_targets: string;
-  evaluation_focus: string;
-  failure_modes_to_watch: string;
-  trace_requirements: string;
-  version: string;
-  status: string;
-};
-
 type AgentQualityCheck = {
   label: string;
   ready: boolean;
 };
-
-const CAPABILITY_OPTIONS = [
-  "diagnose_assess",
-  "decide_converge",
-  "review_challenge",
-  "synthesize_brief",
-  "restructure_reframe",
-  "plan_roadmap",
-  "scenario_comparison",
-  "risk_surfacing",
-] as const;
-
-function toggleSelection(values: string[], value: string) {
-  return values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
-}
 
 function buildUsageMap(tasks: TaskListItem[]) {
   const usage = new Map<string, { count: number; lastUsedAt: string }>();
@@ -98,48 +54,6 @@ function buildUsageMap(tasks: TaskListItem[]) {
   });
 
   return usage;
-}
-
-function splitLines(value: string) {
-  return value
-    .split("\n")
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
-function joinLines(values?: string[]) {
-  return values?.join("\n") ?? "";
-}
-
-function buildEmptyAgentEntry(agentType: string, agentId: string): AgentCatalogEntry {
-  return {
-    agent_id: agentId,
-    agent_name: "",
-    agent_type: agentType,
-    description: "",
-    supported_capabilities: [],
-    relevant_domain_packs: [],
-    relevant_industry_packs: [],
-    primary_responsibilities: [],
-    out_of_scope: [],
-    defer_rules: [],
-    preferred_execution_modes: [],
-    input_requirements: [],
-    minimum_evidence_readiness: [],
-    required_context_fields: [],
-    output_contract: [],
-    produced_objects: [],
-    deliverable_impact: [],
-    writeback_expectations: [],
-    invocation_rules: [],
-    escalation_rules: [],
-    handoff_targets: [],
-    evaluation_focus: [],
-    failure_modes_to_watch: [],
-    trace_requirements: [],
-    version: "1.0.0",
-    status: "active",
-  };
 }
 
 function toAgentCatalogEntry(
@@ -176,72 +90,6 @@ function toAgentCatalogEntry(
     trace_requirements: agent.trace_requirements,
     version: agent.version,
     status: agent.status,
-  };
-}
-
-function buildDraft(agent?: Partial<AgentCatalogEntry>): AgentDraft {
-  return {
-    agent_name: agent?.agent_name ?? "",
-    agent_type: agent?.agent_type ?? "specialist",
-    description: agent?.description ?? "",
-    supported_capabilities: joinLines(agent?.supported_capabilities),
-    relevant_domain_packs: joinLines(agent?.relevant_domain_packs),
-    relevant_industry_packs: joinLines(agent?.relevant_industry_packs),
-    primary_responsibilities: joinLines(agent?.primary_responsibilities),
-    out_of_scope: joinLines(agent?.out_of_scope),
-    defer_rules: joinLines(agent?.defer_rules),
-    preferred_execution_modes: joinLines(agent?.preferred_execution_modes),
-    input_requirements: joinLines(agent?.input_requirements),
-    minimum_evidence_readiness: joinLines(agent?.minimum_evidence_readiness),
-    required_context_fields: joinLines(agent?.required_context_fields),
-    output_contract: joinLines(agent?.output_contract),
-    produced_objects: joinLines(agent?.produced_objects),
-    deliverable_impact: joinLines(agent?.deliverable_impact),
-    writeback_expectations: joinLines(agent?.writeback_expectations),
-    invocation_rules: joinLines(agent?.invocation_rules),
-    escalation_rules: joinLines(agent?.escalation_rules),
-    handoff_targets: joinLines(agent?.handoff_targets),
-    evaluation_focus: joinLines(agent?.evaluation_focus),
-    failure_modes_to_watch: joinLines(agent?.failure_modes_to_watch),
-    trace_requirements: joinLines(agent?.trace_requirements),
-    version: agent?.version ?? "1.0.0",
-    status: agent?.status ?? "active",
-  };
-}
-
-function buildPayloadFromDraft(
-  draft: AgentDraft,
-  agentId: string,
-  baseAgent?: AgentCatalogEntry,
-): AgentCatalogEntry {
-  return {
-    ...(baseAgent ?? buildEmptyAgentEntry(draft.agent_type, agentId)),
-    agent_id: agentId,
-    agent_name: draft.agent_name.trim(),
-    agent_type: draft.agent_type,
-    description: draft.description.trim(),
-    supported_capabilities: splitLines(draft.supported_capabilities),
-    relevant_domain_packs: splitLines(draft.relevant_domain_packs),
-    relevant_industry_packs: splitLines(draft.relevant_industry_packs),
-    primary_responsibilities: splitLines(draft.primary_responsibilities),
-    out_of_scope: splitLines(draft.out_of_scope),
-    defer_rules: splitLines(draft.defer_rules),
-    preferred_execution_modes: splitLines(draft.preferred_execution_modes),
-    input_requirements: splitLines(draft.input_requirements),
-    minimum_evidence_readiness: splitLines(draft.minimum_evidence_readiness),
-    required_context_fields: splitLines(draft.required_context_fields),
-    output_contract: splitLines(draft.output_contract),
-    produced_objects: splitLines(draft.produced_objects),
-    deliverable_impact: splitLines(draft.deliverable_impact),
-    writeback_expectations: splitLines(draft.writeback_expectations),
-    invocation_rules: splitLines(draft.invocation_rules),
-    escalation_rules: splitLines(draft.escalation_rules),
-    handoff_targets: splitLines(draft.handoff_targets),
-    evaluation_focus: splitLines(draft.evaluation_focus),
-    failure_modes_to_watch: splitLines(draft.failure_modes_to_watch),
-    trace_requirements: splitLines(draft.trace_requirements),
-    version: draft.version.trim() || "1.0.0",
-    status: draft.status,
   };
 }
 
@@ -299,7 +147,6 @@ export function AgentManagementPanel() {
   const [statusFilter, setStatusFilter] = useState<AgentFilterStatus>("all");
   const [typeFilter, setTypeFilter] = useState<AgentFilterType>("all");
   const [editingAgentId, setEditingAgentId] = useState<string | null>(null);
-  const [draft, setDraft] = useState<AgentDraft>(buildDraft());
   const [guidedDraft, setGuidedDraft] = useState<GuidedAgentDraft>(buildGuidedAgentDraft());
   const [guidedResult, setGuidedResult] = useState<AgentContractDraftResult | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -379,17 +226,12 @@ export function AgentManagementPanel() {
   const hostCount = managedAgents.filter((agent) => agent.agent_type === "host").length;
   const activeCount = managedAgents.filter((agent) => agent.status === "active").length;
   const completeSpecCount = managedAgents.filter((agent) => hasCoreContract(agent)).length;
-  const domainPackOptions =
-    snapshot?.pack_registry.packs.filter((pack) => pack.pack_type === "domain") ?? [];
-  const industryPackOptions =
-    snapshot?.pack_registry.packs.filter((pack) => pack.pack_type === "industry") ?? [];
   const editingAgent =
     editingAgentId ? managedAgents.find((agent) => agent.agent_id === editingAgentId) ?? null : null;
-  const editingSystemHost = editingAgent?.agent_type === "host" && editingAgent.source === "system";
   const agentActionTitle =
     editingAgentId ? "現在正處於代理編輯模式" : "先看 agent contract 是否真的完整";
   const agentActionSummary = editingAgentId
-    ? "這一輪會直接編輯 agent 的正式規格，而不是只改名稱與版本。儲存前請確認責任、邊界、handoff 與 trace 要求是否一致。"
+    ? "這一輪會用最少必要資訊重新生成 agent contract，而不是要求你逐欄微調技術規格。"
     : "先確認現有代理是否已經具備足夠完整的 contract，再決定是否新增。這頁的重點不是 catalog 數量，而是 agent spec 是否扎實。";
   const agentActionChecklist = [
     `目前共有 ${managedAgents.length} 個代理，其中 ${activeCount} 個啟用中，${hostCount} 個主控代理。`,
@@ -400,17 +242,14 @@ export function AgentManagementPanel() {
   ];
 
   function startCreate() {
-    const emptyEntry = buildEmptyAgentEntry("specialist", createLocalId("local-agent-draft"));
     setEditingAgentId(null);
-    setDraft(buildDraft(emptyEntry));
-    setGuidedDraft(buildGuidedAgentDraft(emptyEntry));
+    setGuidedDraft(buildGuidedAgentDraft());
     setGuidedResult(null);
     setSaveMessage(null);
   }
 
   function startEdit(agent: AgentCatalogEntry) {
     setEditingAgentId(agent.agent_id);
-    setDraft(buildDraft(agent));
     setGuidedDraft(buildGuidedAgentDraft(agent));
     setGuidedResult(null);
     setSaveMessage(null);
@@ -440,20 +279,11 @@ export function AgentManagementPanel() {
       }
 
       setEditingAgentId(payload.agent_id);
-      setDraft(buildDraft(payload));
       setGuidedDraft(buildGuidedAgentDraft(payload));
       setSaveMessage(buildAgentPersistenceFeedback(result.source, payload.agent_name));
     } catch (saveError) {
       setSaveMessage(saveError instanceof Error ? saveError.message : "保存代理失敗。");
     }
-  }
-
-  async function handleAdvancedSave() {
-    const agentId = editingAgentId ?? createLocalId("local-agent");
-    const baseAgentRow = managedAgents.find((agent) => agent.agent_id === agentId);
-    const baseAgent = baseAgentRow ? toAgentCatalogEntry(baseAgentRow) : undefined;
-    const payload = buildPayloadFromDraft(draft, agentId, baseAgent);
-    await saveAgentPayload(payload);
   }
 
   async function handleGuidedSave() {
@@ -470,9 +300,9 @@ export function AgentManagementPanel() {
         relevant_domain_packs: guidedDraft.relevant_domain_packs,
         relevant_industry_packs: guidedDraft.relevant_industry_packs,
         role_focus: guidedDraft.role_focus,
-        input_focus: guidedDraft.input_focus,
-        output_focus: guidedDraft.output_focus,
-        when_to_use: guidedDraft.when_to_use,
+        input_focus: "",
+        output_focus: "",
+        when_to_use: "",
         boundary_focus: guidedDraft.boundary_focus,
         version: guidedDraft.version.trim() || "1.0.0",
         status: guidedDraft.status,
@@ -800,7 +630,7 @@ export function AgentManagementPanel() {
                 <div>
                   <h2 className="panel-title">{editingAgentId ? "編輯代理" : "新增代理"}</h2>
                   <p className="panel-copy">
-                    先用精簡建立填入少數必要資訊，系統會用目前啟用的 AI 模型搭配外部搜尋補齊正式 agent contract；只有在你要微調細節時，再打開完整模式。
+                    這裡只收最少必要資訊。你不用先決定 capability、pack 綁定或技術欄位，系統會用目前啟用的 AI 模型搭配外部搜尋補成正式 agent contract，再交給 Host 之後判斷要不要拉進案件流程。
                   </p>
                   {editingAgent ? (
                     <p className="muted-text">
@@ -812,17 +642,17 @@ export function AgentManagementPanel() {
 
               <div className="summary-grid" style={{ marginBottom: "18px" }}>
                 <div className="section-card">
-                  <h4>一般人先填這些就夠</h4>
+                  <h4>現在只需要你提供</h4>
                   <p className="content-block">
-                    你只需要說清楚這個代理叫什麼、擅長幫什麼、通常吃哪些輸入、會交出什麼結果，以及什麼情況該啟用。
+                    代理名稱、它大致在做什麼，以及你最希望它幫你補哪一種判斷或工作。若你有特別限制或禁區，再補一句就夠。
                   </p>
                 </div>
                 <div className="section-card">
-                  <h4>系統會自動補齊什麼</h4>
+                  <h4>系統會自己推導</h4>
                   <ul className="list-content">
-                    <li>責任邊界、defer 規則、最小證據條件</li>
-                    <li>輸出契約、handoff、evaluation focus、trace 要求</li>
-                    <li>會參考目前系統模型與外部搜尋結果，生成可直接寫入 registry 的正式 agent contract</li>
+                    <li>這個代理比較像推理代理還是專家代理</li>
+                    <li>適用能力面、責任邊界、輸出契約與 trace 要求</li>
+                    <li>必要時才補 pack hints；若它應該是通用型代理，就不會先綁死在特定 pack</li>
                   </ul>
                 </div>
               </div>
@@ -836,194 +666,43 @@ export function AgentManagementPanel() {
                     onChange={(event) =>
                       setGuidedDraft((current) => ({ ...current, agent_name: event.target.value }))
                     }
-                    placeholder="例如：法規觀察代理、商務提案代理"
+                    placeholder="例如：市場觀察代理、商務提案代理"
                   />
                 </div>
 
                 <div className="field">
-                  <label htmlFor="agent-guided-type">代理類型</label>
-                  <select
-                    id="agent-guided-type"
-                    value={guidedDraft.agent_type}
-                    disabled={editingSystemHost}
-                    onChange={(event) =>
-                      setGuidedDraft((current) => ({ ...current, agent_type: event.target.value }))
-                    }
-                  >
-                    {editingSystemHost ? <option value="host">主控代理</option> : null}
-                    <option value="reasoning">推理代理</option>
-                    <option value="specialist">專家代理</option>
-                  </select>
-                </div>
-
-                <div className="field">
-                  <label htmlFor="agent-guided-version">版本</label>
-                  <input
-                    id="agent-guided-version"
-                    value={guidedDraft.version}
-                    onChange={(event) =>
-                      setGuidedDraft((current) => ({ ...current, version: event.target.value }))
-                    }
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="agent-guided-status">狀態</label>
-                  <select
-                    id="agent-guided-status"
-                    value={guidedDraft.status}
-                    disabled={editingSystemHost}
-                    onChange={(event) =>
-                      setGuidedDraft((current) => ({ ...current, status: event.target.value }))
-                    }
-                  >
-                    <option value="active">啟用中</option>
-                    {!editingSystemHost ? <option value="inactive">停用中</option> : null}
-                    <option value="draft">草稿</option>
-                  </select>
-                </div>
-
-                <div className="field">
-                  <label htmlFor="agent-guided-description">一句話說明</label>
+                  <label htmlFor="agent-guided-description">這個代理大致是做什麼的</label>
                   <textarea
                     id="agent-guided-description"
                     value={guidedDraft.description}
                     onChange={(event) =>
                       setGuidedDraft((current) => ({ ...current, description: event.target.value }))
                     }
-                    placeholder="用一句話說清楚這個代理主要幫你補哪一種判斷。"
+                    placeholder="用一句話或一小段描述它主要想補哪一種判斷。"
                   />
                 </div>
 
                 <div className="field">
-                  <label>主要工作類型</label>
-                  <div className="checkbox-grid">
-                    {CAPABILITY_OPTIONS.map((capability) => (
-                      <label key={capability} className="checkbox-option">
-                        <input
-                          type="checkbox"
-                          checked={guidedDraft.supported_capabilities.includes(capability)}
-                          onChange={() =>
-                            setGuidedDraft((current) => ({
-                              ...current,
-                              supported_capabilities: toggleSelection(
-                                current.supported_capabilities,
-                                capability,
-                              ),
-                            }))
-                          }
-                        />
-                        <span>{labelForCapability(capability)}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="field">
-                  <label>相關問題面向模組包</label>
-                  <div className="checkbox-grid">
-                    {domainPackOptions.map((pack) => (
-                      <label key={pack.pack_id} className="checkbox-option">
-                        <input
-                          type="checkbox"
-                          checked={guidedDraft.relevant_domain_packs.includes(pack.pack_id)}
-                          onChange={() =>
-                            setGuidedDraft((current) => ({
-                              ...current,
-                              relevant_domain_packs: toggleSelection(
-                                current.relevant_domain_packs,
-                                pack.pack_id,
-                              ),
-                            }))
-                          }
-                        />
-                        <span>{labelForPackName(pack.pack_name)}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="field">
-                  <label>相關產業模組包</label>
-                  <div className="checkbox-grid">
-                    {industryPackOptions.map((pack) => (
-                      <label key={pack.pack_id} className="checkbox-option">
-                        <input
-                          type="checkbox"
-                          checked={guidedDraft.relevant_industry_packs.includes(pack.pack_id)}
-                          onChange={() =>
-                            setGuidedDraft((current) => ({
-                              ...current,
-                              relevant_industry_packs: toggleSelection(
-                                current.relevant_industry_packs,
-                                pack.pack_id,
-                              ),
-                            }))
-                          }
-                        />
-                        <span>{labelForPackName(pack.pack_name)}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="field">
-                  <label htmlFor="agent-guided-role-focus">這個代理最擅長幫什麼</label>
+                  <label htmlFor="agent-guided-role-focus">你最希望它幫你補哪一種判斷或工作</label>
                   <textarea
                     id="agent-guided-role-focus"
                     value={guidedDraft.role_focus}
                     onChange={(event) =>
                       setGuidedDraft((current) => ({ ...current, role_focus: event.target.value }))
                     }
-                    placeholder={"每行一點，例如：\n拆解問題並抓主要取捨\n補足某個專業視角的判斷"}
+                    placeholder={"例如：\n幫我把外部市場變化整理成可引用重點\n幫我補商務開發上的機會與阻力"}
                   />
                 </div>
 
                 <div className="field">
-                  <label htmlFor="agent-guided-input-focus">它通常需要哪些輸入</label>
-                  <textarea
-                    id="agent-guided-input-focus"
-                    value={guidedDraft.input_focus}
-                    onChange={(event) =>
-                      setGuidedDraft((current) => ({ ...current, input_focus: event.target.value }))
-                    }
-                    placeholder={"每行一點，例如：\n清楚的決策問題\n可引用的材料或證據"}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="agent-guided-output-focus">你希望它交出什麼結果</label>
-                  <textarea
-                    id="agent-guided-output-focus"
-                    value={guidedDraft.output_focus}
-                    onChange={(event) =>
-                      setGuidedDraft((current) => ({ ...current, output_focus: event.target.value }))
-                    }
-                    placeholder={"每行一點，例如：\n可採用的建議\n明確的風險與缺口"}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="agent-guided-when-to-use">什麼情況適合啟用它</label>
-                  <textarea
-                    id="agent-guided-when-to-use"
-                    value={guidedDraft.when_to_use}
-                    onChange={(event) =>
-                      setGuidedDraft((current) => ({ ...current, when_to_use: event.target.value }))
-                    }
-                    placeholder={"每行一點，例如：\n資料已經有一定厚度，需要財務角度\n這輪要做正式文件重組"}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="agent-guided-boundaries">如果你知道，也可以補充它不該做什麼</label>
+                  <label htmlFor="agent-guided-boundaries">可選：若有特別限制、禁區或提醒再補充</label>
                   <textarea
                     id="agent-guided-boundaries"
                     value={guidedDraft.boundary_focus}
                     onChange={(event) =>
                       setGuidedDraft((current) => ({ ...current, boundary_focus: event.target.value }))
                     }
-                    placeholder={"每行一點，例如：\n不取代 Host 最終拍板\n不假裝有正式法律意見"}
+                    placeholder={"例如：\n不要把它當成最終拍板者\n不要輸出像正式法律意見的內容"}
                   />
                 </div>
 
@@ -1034,7 +713,7 @@ export function AgentManagementPanel() {
                     disabled={guidedSaving}
                     onClick={handleGuidedSave}
                   >
-                    {guidedSaving ? "正在用 AI 補完代理..." : "用 AI + 搜尋補完並儲存代理"}
+                    {guidedSaving ? "正在用 AI 補完代理..." : "建立代理，並讓系統自動補完正式 contract"}
                   </button>
                 </div>
                 {saveMessage ? (
@@ -1068,355 +747,6 @@ export function AgentManagementPanel() {
                   </div>
                 </section>
               ) : null}
-
-              <details className="inline-disclosure" style={{ marginTop: "18px" }}>
-                <summary className="inline-disclosure-summary">切換完整模式微調正式 contract</summary>
-                <div className="form-grid" style={{ marginTop: "14px" }}>
-                <div className="field">
-                  <label htmlFor="agent-name">代理名稱</label>
-                  <input
-                    id="agent-name"
-                    value={draft.agent_name}
-                    onChange={(event) =>
-                      setDraft((current) => ({ ...current, agent_name: event.target.value }))
-                    }
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="agent-type">代理類型</label>
-                  <select
-                    id="agent-type"
-                    value={draft.agent_type}
-                    disabled={editingSystemHost}
-                    onChange={(event) =>
-                      setDraft((current) => ({ ...current, agent_type: event.target.value }))
-                    }
-                  >
-                    {editingSystemHost ? <option value="host">主控代理</option> : null}
-                    <option value="reasoning">推理代理</option>
-                    <option value="specialist">專家代理</option>
-                  </select>
-                </div>
-
-                <div className="field">
-                  <label htmlFor="agent-version">版本</label>
-                  <input
-                    id="agent-version"
-                    value={draft.version}
-                    onChange={(event) =>
-                      setDraft((current) => ({ ...current, version: event.target.value }))
-                    }
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="agent-status">狀態</label>
-                  <select
-                    id="agent-status"
-                    value={draft.status}
-                    disabled={editingSystemHost}
-                    onChange={(event) =>
-                      setDraft((current) => ({ ...current, status: event.target.value }))
-                    }
-                  >
-                    <option value="active">啟用中</option>
-                    {!editingSystemHost ? <option value="inactive">停用中</option> : null}
-                    <option value="draft">草稿</option>
-                  </select>
-                </div>
-
-                <div className="field">
-                  <label htmlFor="agent-description">代理說明</label>
-                  <textarea
-                    id="agent-description"
-                    value={draft.description}
-                    onChange={(event) =>
-                      setDraft((current) => ({ ...current, description: event.target.value }))
-                    }
-                    placeholder="描述這個代理負責的工作範圍與角色。"
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="agent-capabilities">適用工作類型</label>
-                  <textarea
-                    id="agent-capabilities"
-                    value={draft.supported_capabilities}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        supported_capabilities: event.target.value,
-                      }))
-                    }
-                    placeholder={"每行一個 capability，例如：\ndiagnose_assess\nsynthesize_brief"}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="agent-domain-packs">相關問題面向模組包</label>
-                  <textarea
-                    id="agent-domain-packs"
-                    value={draft.relevant_domain_packs}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        relevant_domain_packs: event.target.value,
-                      }))
-                    }
-                    placeholder={"每行一個 pack id，例如：\noperations_pack\nresearch_intelligence_pack"}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="agent-industry-packs">相關產業模組包</label>
-                  <textarea
-                    id="agent-industry-packs"
-                    value={draft.relevant_industry_packs}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        relevant_industry_packs: event.target.value,
-                      }))
-                    }
-                    placeholder={"每行一個 pack id，例如：\necommerce_pack\nsaas_pack"}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="agent-responsibilities">主要責任</label>
-                  <textarea
-                    id="agent-responsibilities"
-                    value={draft.primary_responsibilities}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        primary_responsibilities: event.target.value,
-                      }))
-                    }
-                    placeholder={"每行一個責任，例如：\n拆解決策問題\n整理 trade-off"}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="agent-out-of-scope">非責任範圍</label>
-                  <textarea
-                    id="agent-out-of-scope"
-                    value={draft.out_of_scope}
-                    onChange={(event) =>
-                      setDraft((current) => ({ ...current, out_of_scope: event.target.value }))
-                    }
-                    placeholder={"每行一個邊界，例如：\n不取代正式法律意見\n不直接拍板最終結論"}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="agent-defer-rules">延後 / defer 規則</label>
-                  <textarea
-                    id="agent-defer-rules"
-                    value={draft.defer_rules}
-                    onChange={(event) =>
-                      setDraft((current) => ({ ...current, defer_rules: event.target.value }))
-                    }
-                    placeholder={"每行一個規則，例如：\n資料太薄時先 defer 精細結論"}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="agent-execution-modes">偏好執行模式</label>
-                  <textarea
-                    id="agent-execution-modes"
-                    value={draft.preferred_execution_modes}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        preferred_execution_modes: event.target.value,
-                      }))
-                    }
-                    placeholder={"每行一個模式，例如：\nmulti_agent\nspecialist"}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="agent-inputs">輸入要求</label>
-                  <textarea
-                    id="agent-inputs"
-                    value={draft.input_requirements}
-                    onChange={(event) =>
-                      setDraft((current) => ({ ...current, input_requirements: event.target.value }))
-                    }
-                    placeholder={"每行一個輸入，例如：\nDecisionContext\nEvidence"}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="agent-readiness">最小證據就緒條件</label>
-                  <textarea
-                    id="agent-readiness"
-                    value={draft.minimum_evidence_readiness}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        minimum_evidence_readiness: event.target.value,
-                      }))
-                    }
-                    placeholder={"每行一個條件，例如：\n至少要有明確的 decision question"}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="agent-context-fields">必要 context 欄位</label>
-                  <textarea
-                    id="agent-context-fields"
-                    value={draft.required_context_fields}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        required_context_fields: event.target.value,
-                      }))
-                    }
-                    placeholder={"每行一個欄位，例如：\nDecisionContext\nGoals"}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="agent-output-contract">輸出契約</label>
-                  <textarea
-                    id="agent-output-contract"
-                    value={draft.output_contract}
-                    onChange={(event) =>
-                      setDraft((current) => ({ ...current, output_contract: event.target.value }))
-                    }
-                    placeholder={"每行一個輸出，例如：\nInsights\nRecommendations"}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="agent-produced-objects">產出物件</label>
-                  <textarea
-                    id="agent-produced-objects"
-                    value={draft.produced_objects}
-                    onChange={(event) =>
-                      setDraft((current) => ({ ...current, produced_objects: event.target.value }))
-                    }
-                    placeholder={"每行一個物件，例如：\nInsight\nEvidenceGap"}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="agent-deliverable-impact">對交付物的影響</label>
-                  <textarea
-                    id="agent-deliverable-impact"
-                    value={draft.deliverable_impact}
-                    onChange={(event) =>
-                      setDraft((current) => ({ ...current, deliverable_impact: event.target.value }))
-                    }
-                    placeholder={"每行一個影響，例如：\n決定主結論的 framing"}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="agent-writeback">寫回要求</label>
-                  <textarea
-                    id="agent-writeback"
-                    value={draft.writeback_expectations}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        writeback_expectations: event.target.value,
-                      }))
-                    }
-                    placeholder={"每行一個要求，例如：\n保留信心邊界與來源依據"}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="agent-invocation">啟動規則</label>
-                  <textarea
-                    id="agent-invocation"
-                    value={draft.invocation_rules}
-                    onChange={(event) =>
-                      setDraft((current) => ({ ...current, invocation_rules: event.target.value }))
-                    }
-                    placeholder={"每行一個規則，例如：\n適合用在 evidence-gap-heavy case"}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="agent-escalation">升級 / escalation 規則</label>
-                  <textarea
-                    id="agent-escalation"
-                    value={draft.escalation_rules}
-                    onChange={(event) =>
-                      setDraft((current) => ({ ...current, escalation_rules: event.target.value }))
-                    }
-                    placeholder={"每行一個規則，例如：\n當缺少關鍵文件時要升級"}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="agent-handoffs">交接對象</label>
-                  <textarea
-                    id="agent-handoffs"
-                    value={draft.handoff_targets}
-                    onChange={(event) =>
-                      setDraft((current) => ({ ...current, handoff_targets: event.target.value }))
-                    }
-                    placeholder={"每行一個對象，例如：\nHost Agent\nResearch Synthesis Specialist"}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="agent-evaluation">評估焦點</label>
-                  <textarea
-                    id="agent-evaluation"
-                    value={draft.evaluation_focus}
-                    onChange={(event) =>
-                      setDraft((current) => ({ ...current, evaluation_focus: event.target.value }))
-                    }
-                    placeholder={"每行一個焦點，例如：\n來源品質分級品質"}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="agent-failure-modes">常見失敗模式</label>
-                  <textarea
-                    id="agent-failure-modes"
-                    value={draft.failure_modes_to_watch}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        failure_modes_to_watch: event.target.value,
-                      }))
-                    }
-                    placeholder={"每行一個失敗模式，例如：\n把弱訊號誤當成已驗證事實"}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="agent-trace">Trace 要求</label>
-                  <textarea
-                    id="agent-trace"
-                    value={draft.trace_requirements}
-                    onChange={(event) =>
-                      setDraft((current) => ({ ...current, trace_requirements: event.target.value }))
-                    }
-                    placeholder={"每行一個要求，例如：\n要保留推理依據與 handoff 線索"}
-                  />
-                </div>
-
-                <div className="button-row">
-                  <button className="button-primary" type="button" onClick={handleAdvancedSave}>
-                    儲存代理
-                  </button>
-                </div>
-                {saveMessage ? (
-                  <p className="success-text" role="status" aria-live="polite">
-                    {saveMessage}
-                  </p>
-                ) : null}
-              </div>
-              </details>
             </section>
           </div>
         </div>

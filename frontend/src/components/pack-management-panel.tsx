@@ -33,48 +33,10 @@ import {
 type PackTab = "domain" | "industry";
 type PackFilterStatus = "all" | "active" | "inactive";
 
-type PackDraft = {
-  pack_name: string;
-  pack_type: PackTab;
-  description: string;
-  definition: string;
-  common_business_models: string;
-  common_problem_patterns: string;
-  key_signals: string;
-  evidence_expectations: string;
-  common_risks: string;
-  decision_patterns: string;
-  deliverable_presets: string;
-  routing_hints: string;
-  scope_boundaries: string;
-  pack_rationale: string;
-  pack_notes: string;
-  version: string;
-  status: string;
-};
-
 type PackQualityCheck = {
   label: string;
   ready: boolean;
 };
-
-const DOMAIN_LENS_OPTIONS = [
-  "營運",
-  "財務",
-  "募資",
-  "法務",
-  "行銷",
-  "銷售",
-  "商務開發",
-  "研究",
-  "綜合",
-  "組織人力",
-  "產品服務",
-] as const;
-
-function toggleSelection(values: string[], value: string) {
-  return values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
-}
 
 function buildUsageMap(tasks: TaskListItem[]) {
   const usage = new Map<string, { count: number; lastUsedAt: string }>();
@@ -226,77 +188,6 @@ function toPackCatalogEntry(
   };
 }
 
-function buildDraft(pack?: Partial<PackCatalogEntry>): PackDraft {
-  const packType = (pack?.pack_type as PackTab) ?? "domain";
-
-  return {
-    pack_name: pack?.pack_name ?? "",
-    pack_type: packType,
-    description: pack?.description ?? "",
-    definition:
-      packType === "domain"
-        ? pack?.domain_definition ?? ""
-        : pack?.industry_definition ?? "",
-    common_business_models: joinLines(pack?.common_business_models),
-    common_problem_patterns: joinLines(pack?.common_problem_patterns),
-    key_signals: joinLines(
-      pack?.key_kpis_or_operating_signals?.length
-        ? pack.key_kpis_or_operating_signals
-        : pack?.key_kpis,
-    ),
-    evidence_expectations: joinLines(pack?.evidence_expectations),
-    common_risks: joinLines(pack?.common_risks),
-    decision_patterns: joinLines(pack?.decision_patterns),
-    deliverable_presets: joinLines(pack?.deliverable_presets),
-    routing_hints: joinLines(pack?.routing_hints),
-    scope_boundaries: joinLines(pack?.scope_boundaries),
-    pack_rationale: joinLines(pack?.pack_rationale),
-    pack_notes: joinLines(pack?.pack_notes),
-    version: pack?.version ?? "1.0.0",
-    status: pack?.status ?? "active",
-  };
-}
-
-function buildPayloadFromDraft(
-  draft: PackDraft,
-  packId: string,
-  basePack?: PackCatalogEntry,
-): PackCatalogEntry {
-  const next = {
-    ...(basePack ?? buildEmptyPackEntry(draft.pack_type, packId)),
-    pack_id: packId,
-    pack_type: draft.pack_type,
-    pack_name: draft.pack_name.trim(),
-    description: draft.description.trim(),
-    domain_definition: draft.pack_type === "domain" ? draft.definition.trim() : "",
-    industry_definition: draft.pack_type === "industry" ? draft.definition.trim() : "",
-    common_business_models:
-      draft.pack_type === "industry" ? splitLines(draft.common_business_models) : [],
-    common_problem_patterns: splitLines(draft.common_problem_patterns),
-    key_kpis_or_operating_signals: splitLines(draft.key_signals),
-    key_kpis: splitLines(draft.key_signals),
-    evidence_expectations: splitLines(draft.evidence_expectations),
-    common_risks: splitLines(draft.common_risks),
-    decision_patterns: splitLines(draft.decision_patterns),
-    deliverable_presets: splitLines(draft.deliverable_presets),
-    routing_hints: splitLines(draft.routing_hints),
-    scope_boundaries:
-      draft.pack_type === "domain" ? splitLines(draft.scope_boundaries) : [],
-    pack_rationale: splitLines(draft.pack_rationale),
-    pack_notes: splitLines(draft.pack_notes),
-    version: draft.version.trim() || "1.0.0",
-    status: draft.status,
-  };
-
-  if (draft.pack_type === "domain") {
-    next.common_business_models = [];
-  } else {
-    next.scope_boundaries = [];
-  }
-
-  return next;
-}
-
 function getNextPackTab(current: PackTab, direction: "next" | "previous") {
   const order: PackTab[] = ["domain", "industry"];
   const currentIndex = order.indexOf(current);
@@ -336,7 +227,6 @@ export function PackManagementPanel() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<PackFilterStatus>("all");
   const [editingPackId, setEditingPackId] = useState<string | null>(null);
-  const [draft, setDraft] = useState<PackDraft>(buildDraft());
   const [guidedDraft, setGuidedDraft] = useState<GuidedPackDraft>(buildGuidedPackDraft());
   const [guidedResult, setGuidedResult] = useState<PackContractDraftResult | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -445,7 +335,7 @@ export function PackManagementPanel() {
   const packActionTitle =
     editingPackId ? "現在正處於模組包編輯模式" : "先決定是問題面向，還是產業模組包";
   const packActionSummary = editingPackId
-    ? "這一輪會直接編輯 pack contract，而不是只改名稱與版本。儲存前請確認定義、證據期待、決策模式與交付 preset 是否一致。"
+    ? "這一輪會用最少必要資訊重新生成 pack contract，而不是要求你逐欄微調技術規格。"
     : "先確認你要查看的是哪一類 pack，再檢查它的核心 contract 是否完整，而不是一開始就落進新增表單。";
   const packActionChecklist = [
     `目前共有 ${domainPacks.length} 個問題面向模組包、${industryPacks.length} 個產業模組包。`,
@@ -454,25 +344,19 @@ export function PackManagementPanel() {
       ? "現在正在看問題面向模組包；先看它是否把工作邊界、證據期待與交付形狀講清楚。"
       : "現在正在看產業模組包；先看它是否把商業模式、指標、常見決策模式講清楚。",
     editingPackId
-      ? `正在編輯「${draft.pack_name || editingPackId}」。`
+      ? `正在編輯「${guidedDraft.pack_name || editingPackId}」。`
       : "若只是查看現況，先搜尋與切換 tab，不要直接進入新增。",
   ];
 
-  const definitionLabel = draft.pack_type === "domain" ? "問題面向定義" : "產業定義";
-  const signalLabel = draft.pack_type === "domain" ? "關鍵指標／經營訊號" : "關鍵指標";
-
   function startCreate() {
-    const emptyPack = buildEmptyPackEntry(activeTab, createLocalId("local-pack-draft"));
     setEditingPackId(null);
-    setDraft(buildDraft({ pack_type: activeTab } as PackCatalogEntry));
-    setGuidedDraft(buildGuidedPackDraft(emptyPack));
+    setGuidedDraft(buildGuidedPackDraft({ pack_type: activeTab } as PackCatalogEntry));
     setGuidedResult(null);
     setSaveMessage(null);
   }
 
   function startEdit(pack: PackCatalogEntry) {
     setEditingPackId(pack.pack_id);
-    setDraft(buildDraft(pack));
     setGuidedDraft(buildGuidedPackDraft(pack));
     setGuidedResult(null);
     setSaveMessage(null);
@@ -498,20 +382,11 @@ export function PackManagementPanel() {
 
       setEditingPackId(payload.pack_id);
       setActiveTab(payload.pack_type as PackTab);
-      setDraft(buildDraft(payload));
       setGuidedDraft(buildGuidedPackDraft(payload));
       setSaveMessage(buildPackPersistenceFeedback(result.source, payload.pack_name));
     } catch (saveError) {
       setSaveMessage(saveError instanceof Error ? saveError.message : "保存模組包失敗。");
     }
-  }
-
-  async function handleAdvancedSave() {
-    const packId = editingPackId ?? createLocalId("local-pack");
-    const basePackRow = managedPacks.find((pack) => pack.pack_id === packId);
-    const basePack = basePackRow ? toPackCatalogEntry(basePackRow) : undefined;
-    const payload = buildPayloadFromDraft(draft, packId, basePack);
-    await savePackPayload(payload);
   }
 
   async function handleGuidedSave() {
@@ -526,12 +401,12 @@ export function PackManagementPanel() {
         description: guidedDraft.description.trim(),
         definition: guidedDraft.definition.trim(),
         domain_lenses: guidedDraft.domain_lenses,
-        routing_keywords: guidedDraft.routing_keywords,
-        common_business_models: guidedDraft.common_business_models,
-        common_problem_patterns: guidedDraft.common_problem_patterns,
-        key_signals: guidedDraft.key_signals,
-        evidence_expectations: guidedDraft.evidence_expectations,
-        common_risks: guidedDraft.common_risks,
+        routing_keywords: guidedDraft.additional_notes,
+        common_business_models: "",
+        common_problem_patterns: "",
+        key_signals: "",
+        evidence_expectations: "",
+        common_risks: "",
         version: guidedDraft.version.trim() || "1.0.0",
         status: guidedDraft.status,
       });
@@ -847,14 +722,14 @@ export function PackManagementPanel() {
                 <div>
                   <h2 className="panel-title">{editingPackId ? "編輯模組包" : "新增模組包"}</h2>
                   <p className="panel-copy">
-                    先用精簡建立填入少數必要資訊，系統會用目前啟用的 AI 模型搭配外部搜尋補齊 pack contract；只有在你要微調細節時，再打開完整模式。
+                    這裡只收最少必要資訊。你不用先列商業模式、問題型態、指標與證據欄位，系統會用目前啟用的 AI 模型搭配外部搜尋補成正式 pack contract。
                   </p>
                   {editingPackId ? (
                     <p className="muted-text">
                       顯示名稱：
                       {getPackCatalogDisplay(
                         managedPacks.find((pack) => pack.pack_id === editingPackId) ??
-                          buildEmptyPackEntry(draft.pack_type, editingPackId),
+                          buildEmptyPackEntry(guidedDraft.pack_type, editingPackId),
                       ).primaryName}
                     </p>
                   ) : null}
@@ -863,17 +738,17 @@ export function PackManagementPanel() {
 
               <div className="summary-grid" style={{ marginBottom: "18px" }}>
                 <div className="section-card">
-                  <h4>一般人先填這些就夠</h4>
+                  <h4>現在只需要你提供</h4>
                   <p className="content-block">
-                    你只需要說清楚這個模組包是什麼、常見問題、會看哪些訊號、通常需要哪些資料，以及最常見的風險。
+                    它屬於問題面向還是產業、它叫什麼、它大致在講什麼，以及可選的補充說明或關鍵詞。
                   </p>
                 </div>
                 <div className="section-card">
-                  <h4>系統會自動補齊什麼</h4>
+                  <h4>系統會自己推導</h4>
                   <ul className="list-content">
-                    <li>decision patterns、deliverable presets、routing hints</li>
-                    <li>domain / industry 邊界、存在理由與基礎備註</li>
-                    <li>會參考目前系統模型與外部搜尋結果，生成可直接進 registry 的正式 pack contract</li>
+                    <li>問題型態、關鍵指標、證據期待、風險與決策模式</li>
+                    <li>deliverable presets、routing hints、scope boundaries 與 pack rationale</li>
+                    <li>只要你先把範圍講清楚，其餘 contract 都由 AI + 外部搜尋補完</li>
                   </ul>
                 </div>
               </div>
@@ -909,32 +784,6 @@ export function PackManagementPanel() {
                 </div>
 
                 <div className="field">
-                  <label htmlFor="pack-guided-version">版本</label>
-                  <input
-                    id="pack-guided-version"
-                    value={guidedDraft.version}
-                    onChange={(event) =>
-                      setGuidedDraft((current) => ({ ...current, version: event.target.value }))
-                    }
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="pack-guided-status">狀態</label>
-                  <select
-                    id="pack-guided-status"
-                    value={guidedDraft.status}
-                    onChange={(event) =>
-                      setGuidedDraft((current) => ({ ...current, status: event.target.value }))
-                    }
-                  >
-                    <option value="active">啟用中</option>
-                    <option value="inactive">停用中</option>
-                    <option value="draft">草稿</option>
-                  </select>
-                </div>
-
-                <div className="field">
                   <label htmlFor="pack-guided-description">一句話說明</label>
                   <textarea
                     id="pack-guided-description"
@@ -964,107 +813,18 @@ export function PackManagementPanel() {
                   />
                 </div>
 
-                {guidedDraft.pack_type === "domain" ? (
-                  <div className="field">
-                    <label>主要對應哪些問題面向</label>
-                    <div className="checkbox-grid">
-                      {DOMAIN_LENS_OPTIONS.map((lens) => (
-                        <label key={lens} className="checkbox-option">
-                          <input
-                            type="checkbox"
-                            checked={guidedDraft.domain_lenses.includes(lens)}
-                            onChange={() =>
-                              setGuidedDraft((current) => ({
-                                ...current,
-                                domain_lenses: toggleSelection(current.domain_lenses, lens),
-                              }))
-                            }
-                          />
-                          <span>{lens}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="field">
-                    <label htmlFor="pack-guided-business-models">常見商業模式</label>
-                    <textarea
-                      id="pack-guided-business-models"
-                      value={guidedDraft.common_business_models}
-                      onChange={(event) =>
-                        setGuidedDraft((current) => ({
-                          ...current,
-                          common_business_models: event.target.value,
-                        }))
-                      }
-                      placeholder={"每行一個，例如：\n訂閱制\n專案制\nDTC 電商"}
-                    />
-                  </div>
-                )}
-
                 <div className="field">
-                  <label htmlFor="pack-guided-patterns">常見問題型態</label>
+                  <label htmlFor="pack-guided-notes">可選：若你知道特殊場景、限制或關鍵詞，再補充</label>
                   <textarea
-                    id="pack-guided-patterns"
-                    value={guidedDraft.common_problem_patterns}
+                    id="pack-guided-notes"
+                    value={guidedDraft.additional_notes}
                     onChange={(event) =>
                       setGuidedDraft((current) => ({
                         ...current,
-                        common_problem_patterns: event.target.value,
+                        additional_notes: event.target.value,
                       }))
                     }
-                    placeholder={"每行一點，例如：\n定價與價值主張不匹配\n渠道效率下滑"}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="pack-guided-signals">關鍵指標／經營訊號</label>
-                  <textarea
-                    id="pack-guided-signals"
-                    value={guidedDraft.key_signals}
-                    onChange={(event) =>
-                      setGuidedDraft((current) => ({ ...current, key_signals: event.target.value }))
-                    }
-                    placeholder={"每行一點，例如：\n回購率\n毛利率\n轉化率"}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="pack-guided-evidence">通常需要哪些資料</label>
-                  <textarea
-                    id="pack-guided-evidence"
-                    value={guidedDraft.evidence_expectations}
-                    onChange={(event) =>
-                      setGuidedDraft((current) => ({
-                        ...current,
-                        evidence_expectations: event.target.value,
-                      }))
-                    }
-                    placeholder={"每行一點，例如：\n近三期經營數據\n流程文件\n顧客回饋"}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="pack-guided-risks">常見風險或提醒</label>
-                  <textarea
-                    id="pack-guided-risks"
-                    value={guidedDraft.common_risks}
-                    onChange={(event) =>
-                      setGuidedDraft((current) => ({ ...current, common_risks: event.target.value }))
-                    }
-                    placeholder={"每行一點，例如：\n容易把短期波動誤判成結構性問題"}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="pack-guided-routing">常見提法 / 搜尋線索</label>
-                  <textarea
-                    id="pack-guided-routing"
-                    value={guidedDraft.routing_keywords}
-                    onChange={(event) =>
-                      setGuidedDraft((current) => ({ ...current, routing_keywords: event.target.value }))
-                    }
-                    placeholder={"每行一點，例如：\n門市\n零售\n加盟\n到店"}
+                    placeholder={"例如：\n這個 pack 比較偏連鎖門市，不要寫成電商 pack\n如果資料薄，請把限制寫保守一點"}
                   />
                 </div>
 
@@ -1075,7 +835,7 @@ export function PackManagementPanel() {
                     disabled={guidedSaving}
                     onClick={handleGuidedSave}
                   >
-                    {guidedSaving ? "正在用 AI 補完模組包..." : "用 AI + 搜尋補完並儲存模組包"}
+                    {guidedSaving ? "正在用 AI 補完模組包..." : "建立模組包，並讓系統自動補完正式 contract"}
                   </button>
                 </div>
                 {saveMessage ? (
@@ -1109,263 +869,6 @@ export function PackManagementPanel() {
                   </div>
                 </section>
               ) : null}
-
-              <details className="inline-disclosure" style={{ marginTop: "18px" }}>
-                <summary className="inline-disclosure-summary">切換完整模式微調正式 contract</summary>
-                <div className="form-grid" style={{ marginTop: "14px" }}>
-                <div className="field">
-                  <label htmlFor="pack-name">模組包名稱</label>
-                  <input
-                    id="pack-name"
-                    value={draft.pack_name}
-                    onChange={(event) =>
-                      setDraft((current) => ({ ...current, pack_name: event.target.value }))
-                    }
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="pack-type">分類</label>
-                  <select
-                    id="pack-type"
-                    value={draft.pack_type}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        pack_type: event.target.value as PackTab,
-                        definition: "",
-                        common_business_models:
-                          event.target.value === "industry"
-                            ? current.common_business_models
-                            : "",
-                        scope_boundaries:
-                          event.target.value === "domain" ? current.scope_boundaries : "",
-                      }))
-                    }
-                  >
-                    <option value="domain">問題面向模組包</option>
-                    <option value="industry">產業模組包</option>
-                  </select>
-                </div>
-
-                <div className="field">
-                  <label htmlFor="pack-version">版本</label>
-                  <input
-                    id="pack-version"
-                    value={draft.version}
-                    onChange={(event) =>
-                      setDraft((current) => ({ ...current, version: event.target.value }))
-                    }
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="pack-status">狀態</label>
-                  <select
-                    id="pack-status"
-                    value={draft.status}
-                    onChange={(event) =>
-                      setDraft((current) => ({ ...current, status: event.target.value }))
-                    }
-                  >
-                    <option value="active">啟用中</option>
-                    <option value="inactive">停用中</option>
-                    <option value="draft">草稿</option>
-                  </select>
-                </div>
-
-                <div className="field">
-                  <label htmlFor="pack-description">模組包說明</label>
-                  <textarea
-                    id="pack-description"
-                    value={draft.description}
-                    onChange={(event) =>
-                      setDraft((current) => ({ ...current, description: event.target.value }))
-                    }
-                    placeholder="說明這個模組包最適合處理的問題脈絡。"
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="pack-definition">{definitionLabel}</label>
-                  <textarea
-                    id="pack-definition"
-                    value={draft.definition}
-                    onChange={(event) =>
-                      setDraft((current) => ({ ...current, definition: event.target.value }))
-                    }
-                    placeholder={
-                      draft.pack_type === "domain"
-                        ? "說明這個問題面向 pack 主要要處理哪一類顧問工作與邊界。"
-                        : "說明這個產業 pack 的核心商業結構、限制與觀察重點。"
-                    }
-                  />
-                </div>
-
-                {draft.pack_type === "industry" ? (
-                  <div className="field">
-                    <label htmlFor="pack-business-models">常見商業模式</label>
-                    <textarea
-                      id="pack-business-models"
-                      value={draft.common_business_models}
-                      onChange={(event) =>
-                        setDraft((current) => ({
-                          ...current,
-                          common_business_models: event.target.value,
-                        }))
-                      }
-                      placeholder={"每行一個模式，例如：\n訂閱制\nDTC 電商"}
-                    />
-                  </div>
-                ) : (
-                  <div className="field">
-                    <label htmlFor="pack-scope-boundaries">範圍邊界</label>
-                    <textarea
-                      id="pack-scope-boundaries"
-                      value={draft.scope_boundaries}
-                      onChange={(event) =>
-                        setDraft((current) => ({
-                          ...current,
-                          scope_boundaries: event.target.value,
-                        }))
-                      }
-                      placeholder={"每行一個邊界，例如：\n不處理稅務申報\n不取代正式法遵意見"}
-                    />
-                  </div>
-                )}
-
-                <div className="field">
-                  <label htmlFor="pack-patterns">常見問題型態</label>
-                  <textarea
-                    id="pack-patterns"
-                    value={draft.common_problem_patterns}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        common_problem_patterns: event.target.value,
-                      }))
-                    }
-                    placeholder={"每行一個模式，例如：\n定價混亂\n渠道衝突"}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="pack-signals">{signalLabel}</label>
-                  <textarea
-                    id="pack-signals"
-                    value={draft.key_signals}
-                    onChange={(event) =>
-                      setDraft((current) => ({ ...current, key_signals: event.target.value }))
-                    }
-                    placeholder={"每行一個項目，例如：\nactivation rate\nconversion rate"}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="pack-evidence">證據期待</label>
-                  <textarea
-                    id="pack-evidence"
-                    value={draft.evidence_expectations}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        evidence_expectations: event.target.value,
-                      }))
-                    }
-                    placeholder={"每行一個期待，例如：\n近三期 pipeline 數據\n渠道分層成效"}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="pack-risks">常見風險</label>
-                  <textarea
-                    id="pack-risks"
-                    value={draft.common_risks}
-                    onChange={(event) =>
-                      setDraft((current) => ({ ...current, common_risks: event.target.value }))
-                    }
-                    placeholder={"每行一個風險，例如：\n對單一渠道過度依賴\nSKU 擴張拖累現金流"}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="pack-decisions">決策模式</label>
-                  <textarea
-                    id="pack-decisions"
-                    value={draft.decision_patterns}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        decision_patterns: event.target.value,
-                      }))
-                    }
-                    placeholder={"每行一個模式，例如：\n是否該重做 pricing / packaging\n是否該縮減渠道"}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="pack-deliverables">交付預設</label>
-                  <textarea
-                    id="pack-deliverables"
-                    value={draft.deliverable_presets}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        deliverable_presets: event.target.value,
-                      }))
-                    }
-                    placeholder={"每行一個 preset，例如：\n優先級行動清單\n商業診斷 memo"}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="pack-routing">路由提示</label>
-                  <textarea
-                    id="pack-routing"
-                    value={draft.routing_hints}
-                    onChange={(event) =>
-                      setDraft((current) => ({ ...current, routing_hints: event.target.value }))
-                    }
-                    placeholder={"每行一個提示，例如：\n優先拉入 research_intelligence_agent\n需要 finance 視角"}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="pack-rationale">存在理由</label>
-                  <textarea
-                    id="pack-rationale"
-                    value={draft.pack_rationale}
-                    onChange={(event) =>
-                      setDraft((current) => ({ ...current, pack_rationale: event.target.value }))
-                    }
-                    placeholder={"每行一個理由，例如：\n這類案件的 evidence 與一般營運診斷差異很大"}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="pack-notes">備註</label>
-                  <textarea
-                    id="pack-notes"
-                    value={draft.pack_notes}
-                    onChange={(event) =>
-                      setDraft((current) => ({ ...current, pack_notes: event.target.value }))
-                    }
-                    placeholder={"每行一個備註，例如：\n若資料只到渠道層，先標記 evidence gap"}
-                  />
-                </div>
-
-                <div className="button-row">
-                  <button className="button-primary" type="button" onClick={handleAdvancedSave}>
-                    儲存模組包
-                  </button>
-                </div>
-                {saveMessage ? (
-                  <p className="success-text" role="status" aria-live="polite">
-                    {saveMessage}
-                  </p>
-                ) : null}
-              </div>
-              </details>
             </section>
           </div>
         </div>
