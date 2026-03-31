@@ -5,10 +5,12 @@ from collections.abc import Iterable
 from app.domain.enums import CapabilityArchetype, DeliverableClass, InputEntryMode
 from app.extensions.registry import ExtensionRegistry
 from app.extensions.schemas import (
+    AgentSpec,
     AgentResolution,
     AgentResolverInput,
     AgentType,
     ExtensionStatus,
+    PackSpec,
     PackResolution,
     PackResolverInput,
     PackType,
@@ -187,6 +189,15 @@ RUNTIME_AGENT_BINDINGS = {
     "document_restructuring_specialist": "document_restructuring",
 }
 
+EXPLICIT_SELECTION_BONUS = 100
+
+
+def _scored_sort(ids: list[str], score_map: dict[str, int]) -> list[str]:
+    return sorted(
+        ids,
+        key=lambda item: (-score_map.get(item, 0), item),
+    )
+
 
 class PackResolver:
     def __init__(self, registry: ExtensionRegistry):
@@ -257,22 +268,42 @@ class PackResolver:
             if selected_industry:
                 notes.append("Selected industry packs from industry hints.")
 
+        selected_domain = list(dict.fromkeys(selected_domain))
+        selected_industry = list(dict.fromkeys(selected_industry))
+        pack_scores: dict[str, int] = {}
+        pack_signals: dict[str, list[str]] = {}
+        for pack_id in [*selected_domain, *selected_industry]:
+            pack = self.registry.get_pack(pack_id)
+            if pack is None:
+                continue
+            score, signals = score_pack_relevance(pack, payload)
+            pack_scores[pack_id] = score
+            pack_signals[pack_id] = signals
+
+        selected_domain = _scored_sort(selected_domain, pack_scores)
+        selected_industry = _scored_sort(selected_industry, pack_scores)
         stack_order = selected_domain + selected_industry
         if selected_domain and selected_industry:
             notes.append("Pack stack order applies domain packs before industry packs.")
         elif not stack_order:
             notes.append("No active packs were resolved from the current payload.")
+        if stack_order:
+            notes.append(
+                f"Top pack by relevance score: {stack_order[0]} ({pack_scores.get(stack_order[0], 0)})."
+            )
 
         if len(set(stack_order)) != len(stack_order):
             conflicts.append("Duplicate pack selection detected in stack order.")
 
         return PackResolution(
-            selected_domain_pack_ids=list(dict.fromkeys(selected_domain)),
-            selected_industry_pack_ids=list(dict.fromkeys(selected_industry)),
+            selected_domain_pack_ids=selected_domain,
+            selected_industry_pack_ids=selected_industry,
             override_pack_ids=list(dict.fromkeys(override_pack_ids)),
             conflicts=conflicts,
             stack_order=list(dict.fromkeys(stack_order)),
             resolver_notes=notes,
+            pack_scores=pack_scores,
+            pack_signals=pack_signals,
         )
 
 
@@ -461,6 +492,29 @@ class AgentResolver:
 
         reasoning_agent_ids = _filter_active_agents(self.registry, reasoning_agent_ids, AgentType.REASONING)
         specialist_agent_ids = _filter_active_agents(self.registry, specialist_agent_ids, AgentType.SPECIALIST)
+        agent_scores: dict[str, int] = {}
+        agent_signals: dict[str, list[str]] = {}
+        for agent_id in [*reasoning_agent_ids, *specialist_agent_ids]:
+            agent = self.registry.get_agent(agent_id)
+            if agent is None:
+                continue
+            score, signals = score_agent_relevance(agent, payload)
+            agent_scores[agent_id] = score
+            agent_signals[agent_id] = signals
+
+        reasoning_agent_ids = _scored_sort(reasoning_agent_ids, agent_scores)
+        specialist_agent_ids = _scored_sort(specialist_agent_ids, agent_scores)
+        if agent_scores:
+            top_reasoning = reasoning_agent_ids[0] if reasoning_agent_ids else None
+            top_specialist = specialist_agent_ids[0] if specialist_agent_ids else None
+            if top_reasoning is not None:
+                resolver_notes.append(
+                    f"Top reasoning agent by relevance score: {top_reasoning} ({agent_scores.get(top_reasoning, 0)})."
+                )
+            if top_specialist is not None:
+                resolver_notes.append(
+                    f"Top specialist agent by relevance score: {top_specialist} ({agent_scores.get(top_specialist, 0)})."
+                )
 
         return AgentResolution(
             host_agent_id=self.registry.get_host_agent().agent_id,
@@ -468,6 +522,8 @@ class AgentResolver:
             specialist_agent_ids=specialist_agent_ids,
             override_agent_ids=override_agent_ids,
             resolver_notes=resolver_notes,
+            agent_scores=agent_scores,
+            agent_signals=agent_signals,
             omitted_agent_notes=_unique_preserve_order(omitted_agent_notes),
             deferred_agent_notes=_unique_preserve_order(deferred_agent_notes),
             escalation_notes=_unique_preserve_order(escalation_notes),
@@ -546,6 +602,130 @@ def _matches_industry_hint_text(pack, hint_text: str) -> bool:
         for candidate in candidates
         if _contains_cjk(candidate) and len(candidate) >= 2
     )
+
+
+def score_pack_relevance(
+    pack: PackSpec,
+    payload: PackResolverInput,
+) -> tuple[int, list[str]]:
+    score = 0
+    signals: list[str] = []
+
+    if pack.pack_id in payload.explicit_pack_ids:
+        score += EXPLICIT_SELECTION_BONUS
+        signals.append("由使用者或上游流程明確指定覆寫。")
+
+    decision_tokens = _normalize_tokens([payload.decision_context_summary or ""])
+    if pack.pack_type == PackType.DOMAIN:
+        requested_lenses = _normalize_domain_lenses(payload.domain_lenses)
+        matched_lenses = [lens for lens in requested_lenses if lens in _pack_domain_tokens(pack)]
+        if matched_lenses:
+            score += 35 + min(len(matched_lenses), 3) * 8
+            signals.append(f"對齊 DomainLens：{', '.join(matched_lenses[:3])}。")
+        routing_matches = sorted(decision_tokens.intersection(_normalize_tokens(pack.routing_hints)))
+        if routing_matches:
+            score += 12 + min(len(routing_matches), 2) * 4
+            signals.append(f"DecisionContext 也命中了 pack routing hints：{', '.join(routing_matches[:2])}。")
+    else:
+        hint_tokens = _normalize_tokens(payload.industry_hints)
+        hint_text = " ".join(
+            item.lower()
+            for item in [*payload.industry_hints, payload.decision_context_summary or ""]
+            if item
+        )
+        matched_hint_tokens = sorted(hint_tokens.intersection(_pack_industry_tokens(pack)))
+        matched_hint_text = _matches_industry_hint_text(pack, hint_text)
+        if matched_hint_tokens or matched_hint_text:
+            score += 35 + min(len(matched_hint_tokens), 3) * 7 + (8 if matched_hint_text else 0)
+            if matched_hint_tokens:
+                signals.append(f"對齊產業線索：{', '.join(matched_hint_tokens[:3])}。")
+            else:
+                signals.append("對齊產業線索文字脈絡。")
+        if payload.client_type and payload.client_type in pack.relevant_client_types:
+            score += 12
+            signals.append(f"對齊客戶型態：{payload.client_type}。")
+        if payload.client_stage and payload.client_stage in pack.relevant_client_stages:
+            score += 12
+            signals.append(f"對齊客戶階段：{payload.client_stage}。")
+        routing_matches = sorted(decision_tokens.intersection(_normalize_tokens(pack.routing_hints)))
+        if routing_matches:
+            score += 10 + min(len(routing_matches), 2) * 3
+            signals.append(f"DecisionContext 命中產業 routing hints：{', '.join(routing_matches[:2])}。")
+
+    if score == 0:
+        signals.append("由 Host 依目前 context spine 與最小相關性推定。")
+    return score, signals
+
+
+def score_agent_relevance(
+    agent: AgentSpec,
+    payload: AgentResolverInput,
+) -> tuple[int, list[str]]:
+    score = 0
+    signals: list[str] = []
+
+    if agent.agent_id in payload.explicit_agent_ids:
+        score += EXPLICIT_SELECTION_BONUS
+        signals.append("由使用者或上游流程明確指定覆寫。")
+
+    if payload.capability in agent.supported_capabilities:
+        score += 35
+        signals.append(f"對齊 Capability Archetype：{payload.capability.value}。")
+
+    matched_domain_packs = [
+        pack_id for pack_id in agent.relevant_domain_packs if pack_id in payload.selected_domain_pack_ids
+    ]
+    if matched_domain_packs:
+        score += 16 + min(len(matched_domain_packs), 3) * 6
+        signals.append(f"對齊 {len(matched_domain_packs)} 個 Domain Packs。")
+
+    matched_industry_packs = [
+        pack_id for pack_id in agent.relevant_industry_packs if pack_id in payload.selected_industry_pack_ids
+    ]
+    if matched_industry_packs:
+        score += 12 + min(len(matched_industry_packs), 2) * 5
+        signals.append(f"對齊 {len(matched_industry_packs)} 個 Industry Packs。")
+
+    if payload.external_research_heavy_case and agent.agent_id == "research_intelligence_agent":
+        score += 20
+        signals.append("本輪屬於 external-research-heavy case，因此調研能力被正式拉高。")
+
+    if (
+        payload.input_entry_mode == InputEntryMode.ONE_LINE_INQUIRY
+        and agent.agent_id in {"strategy_decision_agent", "research_intelligence_agent"}
+    ):
+        score += 8
+        signals.append("一句話 sparse input 需要較強的 framing / research 補完。")
+
+    if (
+        payload.deliverable_class == DeliverableClass.EXPLORATORY_BRIEF
+        and agent.agent_id in {"research_intelligence_agent", "document_communication_agent"}
+    ):
+        score += 6
+        signals.append("目前 deliverable 仍偏 exploratory，較需要 research / narrative 收斂。")
+
+    if (
+        payload.allow_specialists
+        and payload.artifact_count > 0
+        and agent.agent_id in {
+            "contract_review_specialist",
+            "document_restructuring_specialist",
+            "research_synthesis_specialist",
+        }
+    ):
+        score += 6
+        signals.append("目前已有可引用 artifact / source material，specialist 可更直接承接輸入。")
+
+    if not payload.decision_context_clear and agent.agent_id in {
+        "strategy_decision_agent",
+        "research_intelligence_agent",
+    }:
+        score += 4
+        signals.append("DecisionContext 仍偏模糊，因此保留較強的 framing / investigation 能力。")
+
+    if score == 0:
+        signals.append("由 Host 依目前 readiness 與 routing fallback 推定。")
+    return score, signals
 
 
 def _base_reasoning_agents_for_capability(capability: CapabilityArchetype) -> list[str]:

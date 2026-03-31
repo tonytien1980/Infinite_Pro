@@ -130,6 +130,7 @@ Infinite Pro 的正式第一層主導覽應為：
    - 正式管理頁
    - 用來查看、理解與控制 agents catalog、status、version、selected agents 與 task-level override
    - 不應只顯示 agent 名稱與狀態；至少要讓顧問看見 responsibilities、out-of-scope、input requirements、output contract、handoff targets、evaluation focus 與 trace requirements
+   - task-level selected agents 也應能看見 Host 為什麼選它、選擇分數大概多高、命中了哪些 selection signals
    - 在單人版管理面中，也應能直接編輯上述核心 agent contract，而不是只把完整定義留在 registry 程式碼裡
    - 它不是附屬小功能，也不是 debug panel
 
@@ -137,6 +138,7 @@ Infinite Pro 的正式第一層主導覽應為：
    - 正式管理頁
    - 用來查看與管理 Pack catalog、status、version、selected packs 與 task-level override
    - 不應只顯示 pack 名稱與狀態；至少要讓顧問看見 definition、common problem patterns、KPI / operating signals、evidence expectations、decision patterns、deliverable presets 與 pack rationale
+   - task-level selected packs 也應能看見 Host 為什麼選它、選擇分數大概多高、命中了哪些 selection signals
    - 在單人版管理面中，也應能直接編輯上述核心 pack contract，而不是只把完整定義留在 registry 程式碼裡
    - 它應分為兩個頁籤：
      - 問題面向模組包

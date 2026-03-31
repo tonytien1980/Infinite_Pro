@@ -151,6 +151,8 @@ export interface SelectedPack {
   key_kpis_or_operating_signals: string[];
   key_kpis: string[];
   reason: string;
+  selection_score: number;
+  selection_signals: string[];
   status: string;
   version: string;
   evidence_expectations: string[];
@@ -204,6 +206,8 @@ export interface SelectedAgent {
   failure_modes_to_watch: string[];
   trace_requirements: string[];
   reason: string;
+  selection_score: number;
+  selection_signals: string[];
   runtime_binding: string | null;
   status: string;
   version: string;

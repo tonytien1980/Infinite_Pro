@@ -319,6 +319,7 @@
 - research provenance 全量列表
 - Host 的 research delegation 治理細節
   需至少包含 research depth recommendation、research handoff target、research stop condition 與 research delegation notes
+- selected packs / agents 的 selection score 與 matched signals 明細
 - decision / outcome writeback 記錄
 
 **正式跳轉**

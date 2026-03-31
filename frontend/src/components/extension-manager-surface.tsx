@@ -46,6 +46,8 @@ type PackSurfaceLike = Pick<
   | "version"
 > & {
   reason?: string;
+  selection_score?: number;
+  selection_signals?: string[];
 };
 
 type AgentSurfaceLike = Pick<
@@ -78,6 +80,8 @@ type AgentSurfaceLike = Pick<
   | "version"
 > & {
   reason?: string;
+  selection_score?: number;
+  selection_signals?: string[];
   runtime_binding?: string | null;
 };
 
@@ -186,6 +190,12 @@ function PackContractCard({
       <h3>{display.primaryName}</h3>
       <p className="content-block">{getPackDefinition(pack) || display.primaryDescription}</p>
       {reason ? <p className="muted-text">選用原因：{reason}</p> : null}
+      {typeof pack.selection_score === "number" && pack.selection_score > 0 ? (
+        <p className="muted-text">Host 選擇分數：{pack.selection_score}</p>
+      ) : null}
+      {pack.selection_signals && pack.selection_signals.length > 0 ? (
+        <p className="muted-text">命中訊號：{summarizeList(pack.selection_signals, 2)}</p>
+      ) : null}
       <p className="muted-text">
         證據 / 決策 / 交付影響：{summarizeList(influenceSummary, 4)}
       </p>
@@ -274,6 +284,12 @@ function AgentContractCard({
       <h3>{display.primaryName}</h3>
       <p className="content-block">{display.primaryDescription}</p>
       {reason ? <p className="muted-text">選用原因：{reason}</p> : null}
+      {typeof agent.selection_score === "number" && agent.selection_score > 0 ? (
+        <p className="muted-text">Host 選擇分數：{agent.selection_score}</p>
+      ) : null}
+      {agent.selection_signals && agent.selection_signals.length > 0 ? (
+        <p className="muted-text">命中訊號：{summarizeList(agent.selection_signals, 2)}</p>
+      ) : null}
       <p className="muted-text">
         執行綁定：{agent.runtime_binding ? labelForAgentId(agent.runtime_binding) : "目前沒有額外 runtime 綁定"}
       </p>

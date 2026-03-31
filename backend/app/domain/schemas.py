@@ -262,6 +262,8 @@ class SelectedPackRead(BaseModel):
     key_kpis_or_operating_signals: list[str] = Field(default_factory=list)
     key_kpis: list[str] = Field(default_factory=list)
     reason: str = ""
+    selection_score: int = 0
+    selection_signals: list[str] = Field(default_factory=list)
     status: str = "active"
     version: str = "1.0.0"
     evidence_expectations: list[str] = Field(default_factory=list)
@@ -315,6 +317,8 @@ class SelectedAgentRead(BaseModel):
     failure_modes_to_watch: list[str] = Field(default_factory=list)
     trace_requirements: list[str] = Field(default_factory=list)
     reason: str = ""
+    selection_score: int = 0
+    selection_signals: list[str] = Field(default_factory=list)
     runtime_binding: str | None = None
     status: str = "active"
     version: str = "1.0.0"

@@ -105,6 +105,8 @@ class PackResolution(BaseModel):
     conflicts: list[str] = Field(default_factory=list)
     stack_order: list[str] = Field(default_factory=list)
     resolver_notes: list[str] = Field(default_factory=list)
+    pack_scores: dict[str, int] = Field(default_factory=dict)
+    pack_signals: dict[str, list[str]] = Field(default_factory=dict)
 
 
 class AgentResolverInput(BaseModel):
@@ -128,6 +130,8 @@ class AgentResolution(BaseModel):
     specialist_agent_ids: list[str] = Field(default_factory=list)
     override_agent_ids: list[str] = Field(default_factory=list)
     resolver_notes: list[str] = Field(default_factory=list)
+    agent_scores: dict[str, int] = Field(default_factory=dict)
+    agent_signals: dict[str, list[str]] = Field(default_factory=dict)
     omitted_agent_notes: list[str] = Field(default_factory=list)
     deferred_agent_notes: list[str] = Field(default_factory=list)
     escalation_notes: list[str] = Field(default_factory=list)

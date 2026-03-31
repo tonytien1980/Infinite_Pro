@@ -1401,6 +1401,8 @@ def test_task_aggregate_includes_pack_resolution_from_context_spine(client: Test
         for item in body["pack_resolution"]["selected_domain_packs"]
         if item["pack_id"] == "operations_pack"
     )
+    assert operations_pack["selection_score"] > 0
+    assert operations_pack["selection_signals"]
     assert operations_pack["domain_definition"]
     assert operations_pack["common_problem_patterns"]
     assert operations_pack["key_kpis_or_operating_signals"]
@@ -1415,6 +1417,8 @@ def test_task_aggregate_includes_pack_resolution_from_context_spine(client: Test
         for item in body["pack_resolution"]["selected_industry_packs"]
         if item["pack_id"] == "ecommerce_pack"
     )
+    assert ecommerce_pack["selection_score"] > 0
+    assert ecommerce_pack["selection_signals"]
     assert ecommerce_pack["industry_definition"]
     assert ecommerce_pack["key_kpis"]
     assert ecommerce_pack["decision_patterns"]
@@ -1423,8 +1427,14 @@ def test_task_aggregate_includes_pack_resolution_from_context_spine(client: Test
     assert "operations_pack" in body["case_world_state"]["selected_domain_packs"]
     assert "ecommerce_pack" in body["case_world_state"]["selected_industry_packs"]
     assert body["agent_selection"]["host_agent"]["agent_id"] == "host_agent"
+    assert body["agent_selection"]["host_agent"]["selection_score"] >= 100
+    assert body["agent_selection"]["host_agent"]["selection_signals"]
     assert body["agent_selection"]["selected_agent_ids"]
     assert body["agent_selection"]["selected_agent_names"]
+    assert all(
+        item["selection_score"] > 0 and item["selection_signals"]
+        for item in body["agent_selection"]["selected_reasoning_agents"]
+    )
     assert "deferred_agent_notes" in body["agent_selection"]
     assert "escalation_notes" in body["agent_selection"]
 
@@ -1463,9 +1473,21 @@ def test_task_aggregate_supports_second_wave_industry_and_new_domain_packs(clien
     assert {
         item["pack_id"] for item in body["pack_resolution"]["selected_industry_packs"]
     } == {"saas_pack"}
+    assert all(
+        item["selection_score"] > 0 and item["selection_signals"]
+        for item in body["pack_resolution"]["selected_domain_packs"]
+    )
+    assert all(
+        item["selection_score"] > 0 and item["selection_signals"]
+        for item in body["pack_resolution"]["selected_industry_packs"]
+    )
     assert body["pack_resolution"]["deliverable_presets"]
     assert body["pack_resolution"]["evidence_expectations"]
     assert "strategy_decision_agent" in body["agent_selection"]["selected_agent_ids"]
+    assert all(
+        item["selection_score"] > 0 and item["selection_signals"]
+        for item in body["agent_selection"]["selected_reasoning_agents"]
+    )
     assert body["agent_selection"]["rationale"]
     assert any("Domain / Functional Packs" in item for item in body["agent_selection"]["rationale"])
     assert any("Industry Packs" in item for item in body["agent_selection"]["rationale"])

@@ -22,7 +22,12 @@ from app.domain.enums import (
     WritebackDepth,
 )
 from app.extensions.registry import ExtensionRegistry
-from app.extensions.resolver import AgentResolver, PackResolver, resolve_runtime_agent_binding
+from app.extensions.resolver import (
+    EXPLICIT_SELECTION_BONUS,
+    AgentResolver,
+    PackResolver,
+    resolve_runtime_agent_binding,
+)
 from app.extensions.schemas import AgentResolverInput, AgentSpec, PackResolverInput, PackSpec, PackType
 from app.services.artifact_storage import load_artifact_content
 from app.services.content_revisions import (
@@ -1747,6 +1752,8 @@ def _serialize_selected_pack(
     client_type: str | None,
     client_stage: str | None,
     industry_hints: list[str],
+    selection_score: int = 0,
+    selection_signals: list[str] | None = None,
 ) -> schemas.SelectedPackRead:
     return schemas.SelectedPackRead(
         pack_id=pack.pack_id,
@@ -1768,6 +1775,8 @@ def _serialize_selected_pack(
             client_stage=client_stage,
             industry_hints=industry_hints,
         ),
+        selection_score=selection_score,
+        selection_signals=selection_signals or [],
         status=pack.status.value,
         version=pack.version,
         evidence_expectations=pack.evidence_expectations,
@@ -1974,6 +1983,8 @@ def _serialize_selected_agent(
     explicit_agent_ids: list[str],
     selected_domain_packs: list[schemas.SelectedPackRead],
     selected_industry_packs: list[schemas.SelectedPackRead],
+    selection_score: int = 0,
+    selection_signals: list[str] | None = None,
 ) -> schemas.SelectedAgentRead:
     return schemas.SelectedAgentRead(
         agent_id=agent.agent_id,
@@ -2007,6 +2018,8 @@ def _serialize_selected_agent(
             selected_domain_packs=selected_domain_packs,
             selected_industry_packs=selected_industry_packs,
         ),
+        selection_score=selection_score,
+        selection_signals=selection_signals or [],
         runtime_binding=resolve_runtime_agent_binding(agent.agent_id),
         status=agent.status.value,
         version=agent.version,
@@ -2061,6 +2074,8 @@ def resolve_agent_selection_for_task(
             explicit_agent_ids=explicit_agent_ids,
             selected_domain_packs=pack_resolution.selected_domain_packs,
             selected_industry_packs=pack_resolution.selected_industry_packs,
+            selection_score=resolution.agent_scores.get(agent.agent_id, 0),
+            selection_signals=resolution.agent_signals.get(agent.agent_id, []),
         )
         for agent_id in resolution.reasoning_agent_ids
         if (agent := EXTENSION_REGISTRY.get_agent(agent_id)) is not None
@@ -2072,6 +2087,8 @@ def resolve_agent_selection_for_task(
             explicit_agent_ids=explicit_agent_ids,
             selected_domain_packs=pack_resolution.selected_domain_packs,
             selected_industry_packs=pack_resolution.selected_industry_packs,
+            selection_score=resolution.agent_scores.get(agent.agent_id, 0),
+            selection_signals=resolution.agent_signals.get(agent.agent_id, []),
         )
         for agent_id in resolution.specialist_agent_ids
         if (agent := EXTENSION_REGISTRY.get_agent(agent_id)) is not None
@@ -2120,6 +2137,8 @@ def resolve_agent_selection_for_task(
                 explicit_agent_ids=explicit_agent_ids,
                 selected_domain_packs=pack_resolution.selected_domain_packs,
                 selected_industry_packs=pack_resolution.selected_industry_packs,
+                selection_score=EXPLICIT_SELECTION_BONUS,
+                selection_signals=["Host 是唯一 orchestration center，因此固定為最高優先權。"],
             )
             if host_agent is not None
             else None
@@ -2169,6 +2188,8 @@ def resolve_pack_selection_for_task(
             client_type=client_type,
             client_stage=client_stage,
             industry_hints=industry_hints,
+            selection_score=resolution.pack_scores.get(pack.pack_id, 0),
+            selection_signals=resolution.pack_signals.get(pack.pack_id, []),
         )
         for pack_id in resolution.selected_domain_pack_ids
         if (pack := EXTENSION_REGISTRY.get_pack(pack_id))
@@ -2181,6 +2202,8 @@ def resolve_pack_selection_for_task(
             client_type=client_type,
             client_stage=client_stage,
             industry_hints=industry_hints,
+            selection_score=resolution.pack_scores.get(pack.pack_id, 0),
+            selection_signals=resolution.pack_signals.get(pack.pack_id, []),
         )
         for pack_id in resolution.selected_industry_pack_ids
         if (pack := EXTENSION_REGISTRY.get_pack(pack_id))

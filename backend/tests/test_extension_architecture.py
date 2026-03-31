@@ -102,11 +102,15 @@ def test_pack_resolver_selects_domain_and_industry_packs() -> None:
     assert "operations_pack" in resolution.selected_domain_pack_ids
     assert "finance_fundraising_pack" in resolution.selected_domain_pack_ids
     assert "ecommerce_pack" in resolution.selected_industry_pack_ids
-    assert resolution.stack_order[:2] == [
+    assert set(resolution.stack_order[:2]) == {
         "operations_pack",
         "finance_fundraising_pack",
-    ]
+    }
     assert resolution.resolver_notes
+    assert resolution.pack_scores["operations_pack"] > 0
+    assert resolution.pack_signals["operations_pack"]
+    assert resolution.pack_scores["ecommerce_pack"] > 0
+    assert resolution.pack_signals["ecommerce_pack"]
 
 
 def test_pack_resolver_selects_second_wave_domain_and_industry_packs() -> None:
@@ -150,6 +154,36 @@ def test_agent_resolver_maps_capability_and_packs() -> None:
     assert "operations_agent" in resolution.reasoning_agent_ids
     assert "finance_agent" in resolution.reasoning_agent_ids
     assert "marketing_growth_agent" in resolution.reasoning_agent_ids
+    assert resolution.agent_scores["strategy_decision_agent"] > 0
+    assert resolution.agent_signals["strategy_decision_agent"]
+    assert resolution.agent_scores["finance_agent"] > 0
+    assert resolution.agent_signals["finance_agent"]
+
+
+def test_research_heavy_agent_resolution_elevates_research_score() -> None:
+    registry = ExtensionRegistry()
+    resolver = AgentResolver(registry)
+
+    resolution = resolver.resolve(
+        AgentResolverInput(
+            capability=CapabilityArchetype.SYNTHESIZE_BRIEF,
+            selected_domain_pack_ids=["research_intelligence_pack"],
+            selected_industry_pack_ids=["ecommerce_pack"],
+            input_entry_mode=InputEntryMode.ONE_LINE_INQUIRY,
+            deliverable_class=DeliverableClass.EXPLORATORY_BRIEF,
+            decision_context_clear=False,
+            evidence_count=0,
+            artifact_count=1,
+            external_research_heavy_case=True,
+            allow_specialists=True,
+        )
+    )
+
+    assert resolution.reasoning_agent_ids[0] == "research_intelligence_agent"
+    assert resolution.agent_scores["research_intelligence_agent"] >= resolution.agent_scores.get(
+        "document_communication_agent", 0
+    )
+    assert resolution.agent_signals["research_intelligence_agent"]
 
 
 def test_agent_resolver_honors_sparse_readiness_when_specialists_are_not_ready() -> None:
