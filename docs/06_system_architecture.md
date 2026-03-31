@@ -172,6 +172,10 @@ Agent Layer 不是 prompt 集合，而是 capability execution layer。
 它也不應停留在抽象概念層；至少要有正式 registry / resolver，讓 Host 能把 selected agents、omitted / deferred / escalation notes 寫進 aggregate、workspace payload 與 deliverable metadata。
 後續新增或深化 agents 時，也應回到 `docs/05_agent_architecture.md` 的統一 Agent Spec Baseline，而不是只補 catalog 名稱與 description。
 Agent Resolver 與 Pack Resolver 也應逐步提供 relevance score / matched signals，讓 Host 的 selection quality 可被解釋，而不是只剩下靜態名單。
+若管理面允許使用者以最少資訊新增 agent，補完流程也必須走正式 backend synthesis path：
+- 先形成最少輸入草稿
+- 使用目前 active provider 與外部搜尋生成正式 contract draft
+- 再回到 registry / resolver / management surface 的正式欄位與 writeback 路徑
 
 在單人顧問完整工作台範圍內，Agent Orchestration 應視為已完成的正式能力，而不是之後還要再補一輪的 foundation。
 
@@ -242,6 +246,11 @@ Pack Layer 應至少具備：
 - `Pack Registry` 定義有哪些 pack 可用、哪些為 active / inactive / draft
 - `Pack Resolver` 定義 Host 如何選 pack、疊加 pack、處理衝突與 override
 - `Pack Management Surface` 則讓顧問能查看 pack 列表、版本、狀態、本次任務用到了哪些 pack，以及它們的核心 pack contract 是否完整
+
+若 Pack Management Surface 採精簡建立模式，正式規則也應是：
+- 一般使用者只填最少必要資訊
+- backend 使用目前 active provider 與外部搜尋生成正式 pack contract draft
+- draft 仍需回到 Pack Spec / Registry 的正式欄位，不可停留在前端模板或 local-only 補值
 
 單人版 Pack 基本盤至少應保留：
 - Domain / Functional Packs

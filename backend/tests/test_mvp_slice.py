@@ -13,6 +13,8 @@ from app.core.database import SessionLocal
 from app.domain import models
 from app.ingestion import remote as remote_ingestion
 from app.ingestion.remote import RemoteSourceContent
+from app.model_router.base import PackContractSynthesisRequest
+from app.model_router.structured_tasks import build_pack_contract_synthesis_spec
 from app.services.external_search import SearchResult
 from app.services.tasks import get_loaded_task
 
@@ -322,6 +324,128 @@ def test_agent_management_round_trip_core_contract_fields(client: TestClient) ->
     assert research_agent["trace_requirements"] == [
         "must preserve research depth, gaps, and citation handoff",
     ]
+
+
+def test_agent_contract_draft_generation_uses_search_and_returns_full_contract(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fake_search(query: str, *, max_results: int = 3, timeout_seconds: int = 20):
+        assert "Research Investigation Agent" in query
+        return [
+            SearchResult(
+                title="Market research methods",
+                url="https://example.com/research",
+                snippet="Research plans should preserve source quality and evidence gaps.",
+            ),
+            SearchResult(
+                title="Consulting investigation workflow",
+                url="https://example.com/workflow",
+                snippet="A good investigation workflow separates sub-questions and citation handoff.",
+            ),
+        ]
+
+    monkeypatch.setattr(
+        "app.services.extension_contract_synthesis.search_external_sources",
+        fake_search,
+    )
+
+    response = client.post(
+        "/api/v1/extensions/agents/contract-draft",
+        json={
+            "agent_id": "custom_research_agent",
+            "agent_name": "Research Investigation Agent",
+            "agent_type": "reasoning",
+            "description": "Helps the Host plan and execute outside research.",
+            "supported_capabilities": ["synthesize_brief", "diagnose_assess"],
+            "relevant_domain_packs": ["research_intelligence_pack"],
+            "relevant_industry_packs": ["saas_pack"],
+            "role_focus": "拆研究子問題\n補外部資料缺口",
+            "input_focus": "DecisionContext\n可引用材料",
+            "output_focus": "來源品質摘要\ncitation-ready handoff",
+            "when_to_use": "證據不足，需要外部補完時",
+            "boundary_focus": "不取代 Host 最終拍板",
+            "version": "1.0.0",
+            "status": "active",
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert "Research Investigation Agent" in payload["search_query"]
+    assert len(payload["sources"]) == 2
+    assert payload["draft"]["agent_id"] == "custom_research_agent"
+    assert payload["draft"]["agent_name"] == "Research Investigation Agent"
+    assert payload["draft"]["primary_responsibilities"]
+    assert payload["draft"]["output_contract"]
+    assert payload["draft"]["trace_requirements"]
+    assert payload["generation_notes"]
+
+
+def test_pack_contract_draft_generation_uses_search_and_returns_full_contract(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fake_search(query: str, *, max_results: int = 3, timeout_seconds: int = 20):
+        assert "Clinic Growth Pack" in query
+        return [
+            SearchResult(
+                title="Clinic patient retention metrics",
+                url="https://example.com/clinic-metrics",
+                snippet="Retention, visit frequency, and utilization are common clinic signals.",
+            ),
+        ]
+
+    monkeypatch.setattr(
+        "app.services.extension_contract_synthesis.search_external_sources",
+        fake_search,
+    )
+
+    response = client.post(
+        "/api/v1/extensions/packs/contract-draft",
+        json={
+            "pack_id": "clinic_growth_pack",
+            "pack_type": "industry",
+            "pack_name": "Clinic Growth Pack",
+            "description": "Supports clinic growth and operating decisions.",
+            "definition": "Private clinics balancing acquisition, utilization, and retention.",
+            "domain_lenses": [],
+            "routing_keywords": "clinic\npatient flow\nretention",
+            "common_business_models": "self-pay\nmembership",
+            "common_problem_patterns": "new patient acquisition is unstable\nfollow-up visits are dropping",
+            "key_signals": "new patient count\nretention rate\nprovider utilization",
+            "evidence_expectations": "monthly patient funnel\nprovider schedule utilization",
+            "common_risks": "over-investing in acquisition before fixing retention",
+            "version": "1.0.0",
+            "status": "active",
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert "Clinic Growth Pack" in payload["search_query"]
+    assert len(payload["sources"]) == 1
+    assert payload["draft"]["pack_id"] == "clinic_growth_pack"
+    assert payload["draft"]["pack_name"] == "Clinic Growth Pack"
+    assert payload["draft"]["common_problem_patterns"]
+    assert payload["draft"]["decision_patterns"]
+    assert payload["draft"]["deliverable_presets"]
+    assert payload["draft"]["pack_rationale"]
+    assert payload["generation_notes"]
+
+
+def test_pack_contract_synthesis_schema_uses_strict_stage_keys() -> None:
+    spec = build_pack_contract_synthesis_spec(
+        PackContractSynthesisRequest(
+            pack_id="sample_pack",
+            pack_type="domain",
+            pack_name="Sample Pack",
+        )
+    )
+
+    stage_schema = spec.schema["properties"]["stage_specific_heuristics"]
+    assert stage_schema["additionalProperties"] is False
+    assert stage_schema["required"] == ["創業階段", "制度化階段", "規模化階段"]
 
 
 def test_task_creation_attaches_background_text_as_context_and_evidence(client: TestClient) -> None:

@@ -324,6 +324,62 @@ export interface PackCatalogEntryUpdatePayload extends PackCatalogEntry {
   is_custom: boolean;
 }
 
+export interface ExtensionSynthesisSource {
+  title: string;
+  url: string;
+  snippet: string;
+}
+
+export interface AgentContractDraftPayload {
+  agent_id: string;
+  agent_name: string;
+  agent_type: string;
+  description: string;
+  supported_capabilities: string[];
+  relevant_domain_packs: string[];
+  relevant_industry_packs: string[];
+  role_focus: string;
+  input_focus: string;
+  output_focus: string;
+  when_to_use: string;
+  boundary_focus: string;
+  version: string;
+  status: string;
+}
+
+export interface AgentContractDraftResult {
+  search_query: string;
+  sources: ExtensionSynthesisSource[];
+  synthesis_summary: string;
+  generation_notes: string[];
+  draft: AgentCatalogEntry;
+}
+
+export interface PackContractDraftPayload {
+  pack_id: string;
+  pack_type: string;
+  pack_name: string;
+  description: string;
+  definition: string;
+  domain_lenses: string[];
+  routing_keywords: string;
+  common_business_models: string;
+  common_problem_patterns: string;
+  key_signals: string;
+  evidence_expectations: string;
+  common_risks: string;
+  version: string;
+  status: string;
+}
+
+export interface PackContractDraftResult {
+  search_query: string;
+  sources: ExtensionSynthesisSource[];
+  synthesis_summary: string;
+  generation_notes: string[];
+  draft: PackCatalogEntry;
+}
+
 export interface MatterWorkspaceSummary {
   id: string;
   title: string;

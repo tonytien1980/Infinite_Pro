@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from typing import Any
 
 from app.model_router.base import (
+    AgentContractSynthesisOutput,
+    AgentContractSynthesisRequest,
     ContractReviewOutput,
     ContractReviewRequest,
     CoreAnalysisOutput,
@@ -12,6 +14,8 @@ from app.model_router.base import (
     DocumentRestructuringOutput,
     DocumentRestructuringRequest,
     ModelProviderError,
+    PackContractSynthesisOutput,
+    PackContractSynthesisRequest,
     ResearchSynthesisOutput,
     ResearchSynthesisRequest,
 )
@@ -79,6 +83,25 @@ def render_request_context(
             "證據：\n" + ("\n\n".join(evidence_blocks) if evidence_blocks else "目前未提供上傳證據。"),
         ]
     )
+
+
+def render_search_results_context(results: list[dict[str, Any]]) -> str:
+    if not results:
+        return "外部搜尋結果：\n目前沒有額外搜尋結果。"
+
+    blocks: list[str] = []
+    for index, item in enumerate(results, start=1):
+        blocks.append(
+            "\n".join(
+                [
+                    f"搜尋結果 {index}：",
+                    f"- title: {item.get('title', '')}",
+                    f"- url: {item.get('url', '')}",
+                    f"- snippet: {_truncate(str(item.get('snippet', '')), limit=400)}",
+                ]
+            )
+        )
+    return "外部搜尋結果：\n" + "\n\n".join(blocks)
 
 
 def build_research_synthesis_spec(
@@ -342,6 +365,187 @@ def build_contract_review_spec(
             evidence=request_payload.evidence,
         ),
         output_model=ContractReviewOutput,
+    )
+
+
+def build_agent_contract_synthesis_spec(
+    request_payload: AgentContractSynthesisRequest,
+) -> StructuredTaskSpec:
+    search_results = [item.model_dump(mode="json") for item in request_payload.search_results]
+    schema = {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {
+            "description": {"type": "string"},
+            "primary_responsibilities": _string_list_schema("Primary responsibilities for this agent."),
+            "out_of_scope": _string_list_schema("Explicit out-of-scope boundaries."),
+            "defer_rules": _string_list_schema("Conditions where this agent should defer or stay conservative."),
+            "preferred_execution_modes": _string_list_schema("Preferred execution modes."),
+            "input_requirements": _string_list_schema("Inputs this agent expects."),
+            "minimum_evidence_readiness": _string_list_schema("Minimum evidence readiness before strong use."),
+            "required_context_fields": _string_list_schema("Context fields this agent depends on."),
+            "output_contract": _string_list_schema("What this agent should output for Host."),
+            "produced_objects": _string_list_schema("Ontology objects or output objects this agent tends to produce."),
+            "deliverable_impact": _string_list_schema("How this agent changes deliverable shaping."),
+            "writeback_expectations": _string_list_schema("What should be preserved in writeback."),
+            "invocation_rules": _string_list_schema("When Host should invoke this agent."),
+            "escalation_rules": _string_list_schema("When Host should escalate or defer instead."),
+            "handoff_targets": _string_list_schema("Downstream handoff targets."),
+            "evaluation_focus": _string_list_schema("How to evaluate whether this agent did a good job."),
+            "failure_modes_to_watch": _string_list_schema("Common failure modes to watch."),
+            "trace_requirements": _string_list_schema("Traceability requirements."),
+            "synthesis_summary": {"type": "string"},
+            "generation_notes": _string_list_schema("Notes about how this contract was generated or bounded."),
+        },
+    }
+    schema["required"] = list(schema["properties"].keys())
+
+    user_prompt = "\n\n".join(
+        [
+            "你正在為 Infinite Pro 生成一份正式 Agent contract 草案。",
+            f"Agent ID：{request_payload.agent_id}",
+            f"Agent 名稱：{request_payload.agent_name}",
+            f"Agent 類型：{request_payload.agent_type}",
+            f"一句話說明：{request_payload.description or '目前未提供。'}",
+            "希望具備的能力：\n"
+            + (
+                "\n".join(f"- {item}" for item in request_payload.supported_capabilities)
+                if request_payload.supported_capabilities
+                else "- 目前未提供。"
+            ),
+            "相關問題面向模組包：\n"
+            + (
+                "\n".join(f"- {item}" for item in request_payload.relevant_domain_packs)
+                if request_payload.relevant_domain_packs
+                else "- 目前未提供。"
+            ),
+            "相關產業模組包：\n"
+            + (
+                "\n".join(f"- {item}" for item in request_payload.relevant_industry_packs)
+                if request_payload.relevant_industry_packs
+                else "- 目前未提供。"
+            ),
+            f"這個代理最擅長幫什麼：\n{request_payload.role_focus or '目前未提供。'}",
+            f"它通常需要哪些輸入：\n{request_payload.input_focus or '目前未提供。'}",
+            f"你希望它交出什麼結果：\n{request_payload.output_focus or '目前未提供。'}",
+            f"什麼情況適合啟用它：\n{request_payload.when_to_use or '目前未提供。'}",
+            f"已知邊界／不該做什麼：\n{request_payload.boundary_focus or '目前未提供。'}",
+            f"外部搜尋查詢：\n{request_payload.search_query or '目前未提供。'}",
+            render_search_results_context(search_results),
+        ]
+    )
+
+    return StructuredTaskSpec(
+        schema_name="agent_contract_synthesis_output",
+        schema=schema,
+        system_prompt=(
+            "你是 Infinite Pro 的 Agent contract synthesizer。"
+            "請根據使用者提供的最少輸入，加上外部搜尋結果，為單人顧問完整工作台生成一份正式 agent contract 草案。"
+            "重要原則：Host 是唯一 orchestration center；agents 是能力模組，不是人格扮演；packs 是 context modules，不是 agents。"
+            "請把輸出寫成可直接進 registry 的正式規格，而不是行銷文案。"
+            "請優先生成高訊號、可採用的短版 contract：description 保持單一精實段落，各 list 欄位盡量控制在 2-6 條，不要為了看起來完整而展開冗長百科式列舉。"
+            "搜尋結果只能用來補強對產業、能力與常見風險的理解，不能編造成確定事實。"
+            + DEFAULT_LANGUAGE_INSTRUCTION
+        ),
+        user_prompt=user_prompt,
+        output_model=AgentContractSynthesisOutput,
+    )
+
+
+def build_pack_contract_synthesis_spec(
+    request_payload: PackContractSynthesisRequest,
+) -> StructuredTaskSpec:
+    search_results = [item.model_dump(mode="json") for item in request_payload.search_results]
+    stage_heuristics_schema = {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {
+            "創業階段": {
+                "type": "array",
+                "items": {"type": "string"},
+            },
+            "制度化階段": {
+                "type": "array",
+                "items": {"type": "string"},
+            },
+            "規模化階段": {
+                "type": "array",
+                "items": {"type": "string"},
+            },
+        },
+        "required": ["創業階段", "制度化階段", "規模化階段"],
+    }
+    schema = {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {
+            "description": {"type": "string"},
+            "domain_definition": {"type": "string"},
+            "industry_definition": {"type": "string"},
+            "common_business_models": _string_list_schema("Common business models if relevant."),
+            "common_problem_patterns": _string_list_schema("Common problem patterns."),
+            "stage_specific_heuristics": stage_heuristics_schema,
+            "key_kpis_or_operating_signals": _string_list_schema("Key KPIs or operating signals."),
+            "key_kpis": _string_list_schema("Key KPIs."),
+            "domain_lenses": _string_list_schema("Domain lenses relevant to this pack."),
+            "relevant_client_types": _string_list_schema("Relevant client types."),
+            "relevant_client_stages": _string_list_schema("Relevant client stages."),
+            "default_decision_context_patterns": _string_list_schema("Default decision-context patterns."),
+            "evidence_expectations": _string_list_schema("Evidence expectations."),
+            "risk_libraries": _string_list_schema("Risk library anchors."),
+            "common_risks": _string_list_schema("Common risks."),
+            "decision_patterns": _string_list_schema("Decision patterns."),
+            "deliverable_presets": _string_list_schema("Deliverable presets."),
+            "recommendation_patterns": _string_list_schema("Recommendation patterns."),
+            "routing_hints": _string_list_schema("Routing hints."),
+            "pack_notes": _string_list_schema("Pack notes."),
+            "scope_boundaries": _string_list_schema("Scope boundaries."),
+            "pack_rationale": _string_list_schema("Why this pack should exist independently."),
+            "synthesis_summary": {"type": "string"},
+            "generation_notes": _string_list_schema("Notes about how this contract was generated or bounded."),
+        },
+    }
+    schema["required"] = list(schema["properties"].keys())
+
+    user_prompt = "\n\n".join(
+        [
+            "你正在為 Infinite Pro 生成一份正式 Pack contract 草案。",
+            f"Pack ID：{request_payload.pack_id}",
+            f"Pack 名稱：{request_payload.pack_name}",
+            f"Pack 類型：{request_payload.pack_type}",
+            f"一句話說明：{request_payload.description or '目前未提供。'}",
+            f"核心定義：\n{request_payload.definition or '目前未提供。'}",
+            "主要對應問題面向：\n"
+            + (
+                "\n".join(f"- {item}" for item in request_payload.domain_lenses)
+                if request_payload.domain_lenses
+                else "- 目前未提供。"
+            ),
+            f"常見提法 / 搜尋線索：\n{request_payload.routing_keywords or '目前未提供。'}",
+            f"常見商業模式：\n{request_payload.common_business_models or '目前未提供。'}",
+            f"常見問題型態：\n{request_payload.common_problem_patterns or '目前未提供。'}",
+            f"關鍵指標 / 經營訊號：\n{request_payload.key_signals or '目前未提供。'}",
+            f"通常需要哪些資料：\n{request_payload.evidence_expectations or '目前未提供。'}",
+            f"常見風險或提醒：\n{request_payload.common_risks or '目前未提供。'}",
+            f"外部搜尋查詢：\n{request_payload.search_query or '目前未提供。'}",
+            render_search_results_context(search_results),
+        ]
+    )
+
+    return StructuredTaskSpec(
+        schema_name="pack_contract_synthesis_output",
+        schema=schema,
+        system_prompt=(
+            "你是 Infinite Pro 的 Pack contract synthesizer。"
+            "請根據使用者提供的最少輸入，加上外部搜尋結果，生成一份正式 pack contract 草案。"
+            "重要原則：packs 是 structured context modules，不是 agents；要能影響 evidence expectations、decision patterns、deliverable presets 與 routing hints。"
+            "若是 domain pack，重點是問題邊界與顧問工作模組；若是 industry pack，重點是商業模式、常見指標、產業限制與情境。"
+            "請優先生成高訊號、可採用的短版 contract：definition / description 保持單一精實段落，各 list 欄位盡量控制在 2-6 條，不要為了看起來完整而展開冗長百科式列舉。"
+            "搜尋結果只能用來補強常見問題、指標與情境，不可把模糊外部訊號包裝成高確定性事實。"
+            + DEFAULT_LANGUAGE_INSTRUCTION
+        ),
+        user_prompt=user_prompt,
+        output_model=PackContractSynthesisOutput,
     )
 
 

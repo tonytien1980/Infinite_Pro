@@ -172,6 +172,62 @@ class PackCatalogEntryUpdateRequest(BaseModel):
     is_custom: bool = False
 
 
+class ExtensionSynthesisSourceResponse(BaseModel):
+    title: str
+    url: str
+    snippet: str = ""
+
+
+class AgentContractDraftRequest(BaseModel):
+    agent_id: str = Field(min_length=1, max_length=255)
+    agent_name: str = Field(min_length=1, max_length=255)
+    agent_type: Literal["host", "reasoning", "specialist"]
+    description: str = ""
+    supported_capabilities: list[str] = Field(default_factory=list)
+    relevant_domain_packs: list[str] = Field(default_factory=list)
+    relevant_industry_packs: list[str] = Field(default_factory=list)
+    role_focus: str = ""
+    input_focus: str = ""
+    output_focus: str = ""
+    when_to_use: str = ""
+    boundary_focus: str = ""
+    version: str = Field(min_length=1, max_length=50, default="1.0.0")
+    status: Literal["draft", "active", "inactive", "deprecated"] = "active"
+
+
+class AgentContractDraftResponse(BaseModel):
+    search_query: str
+    sources: list[ExtensionSynthesisSourceResponse] = Field(default_factory=list)
+    synthesis_summary: str = ""
+    generation_notes: list[str] = Field(default_factory=list)
+    draft: AgentCatalogEntryUpdateRequest
+
+
+class PackContractDraftRequest(BaseModel):
+    pack_id: str = Field(min_length=1, max_length=255)
+    pack_type: Literal["domain", "industry"]
+    pack_name: str = Field(min_length=1, max_length=255)
+    description: str = ""
+    definition: str = ""
+    domain_lenses: list[str] = Field(default_factory=list)
+    routing_keywords: str = ""
+    common_business_models: str = ""
+    common_problem_patterns: str = ""
+    key_signals: str = ""
+    evidence_expectations: str = ""
+    common_risks: str = ""
+    version: str = Field(min_length=1, max_length=50, default="1.0.0")
+    status: Literal["draft", "active", "inactive", "deprecated"] = "active"
+
+
+class PackContractDraftResponse(BaseModel):
+    search_query: str
+    sources: list[ExtensionSynthesisSourceResponse] = Field(default_factory=list)
+    synthesis_summary: str = ""
+    generation_notes: list[str] = Field(default_factory=list)
+    draft: PackCatalogEntryUpdateRequest
+
+
 class HistoryVisibilityStateResponse(BaseModel):
     hidden_task_ids: list[str] = Field(default_factory=list)
 

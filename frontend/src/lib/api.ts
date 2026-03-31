@@ -1,5 +1,7 @@
 import {
   ArtifactEvidenceWorkspace,
+  AgentContractDraftPayload,
+  AgentContractDraftResult,
   AgentCatalogEntryUpdatePayload,
   DeliverableArtifactRecord,
   DeliverablePublishPayload,
@@ -13,6 +15,8 @@ import {
   MatterContinuationActionPayload,
   MatterWorkspaceMetadataUpdatePayload,
   MatterWorkspaceSummary,
+  PackContractDraftPayload,
+  PackContractDraftResult,
   ProviderValidationResult,
   MatterWorkspaceUpdatePayload,
   PackCatalogEntryUpdatePayload,
@@ -113,6 +117,34 @@ export async function updatePackCatalogEntry(
     body: JSON.stringify(payload),
   });
   return parseResponse<ExtensionManagerSnapshot>(response);
+}
+
+export async function draftAgentContract(
+  payload: AgentContractDraftPayload,
+): Promise<AgentContractDraftResult> {
+  const apiBaseUrl = getApiBaseUrl();
+  const response = await fetch(`${apiBaseUrl}/extensions/agents/contract-draft`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  return parseResponse<AgentContractDraftResult>(response);
+}
+
+export async function draftPackContract(
+  payload: PackContractDraftPayload,
+): Promise<PackContractDraftResult> {
+  const apiBaseUrl = getApiBaseUrl();
+  const response = await fetch(`${apiBaseUrl}/extensions/packs/contract-draft`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  return parseResponse<PackContractDraftResult>(response);
 }
 
 export async function getWorkbenchPreferences(): Promise<WorkbenchSettings> {

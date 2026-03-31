@@ -6,6 +6,8 @@ from typing import Any
 from urllib import error, request
 
 from app.model_router.base import (
+    AgentContractSynthesisOutput,
+    AgentContractSynthesisRequest,
     ContractReviewOutput,
     ContractReviewRequest,
     CoreAnalysisOutput,
@@ -14,15 +16,19 @@ from app.model_router.base import (
     DocumentRestructuringRequest,
     ModelProvider,
     ModelProviderError,
+    PackContractSynthesisOutput,
+    PackContractSynthesisRequest,
     ResearchSynthesisOutput,
     ResearchSynthesisRequest,
 )
 from app.model_router.structured_tasks import (
     StructuredTaskSpec,
+    build_agent_contract_synthesis_spec,
     build_contract_review_spec,
     build_core_analysis_spec,
     build_document_restructuring_spec,
     build_json_only_instruction,
+    build_pack_contract_synthesis_spec,
     build_research_synthesis_spec,
     extract_json_payload,
 )
@@ -152,3 +158,19 @@ class GeminiModelProvider(ModelProvider):
         request_payload: ContractReviewRequest,
     ) -> ContractReviewOutput:
         return self._request_structured_output(spec=build_contract_review_spec(request_payload))
+
+    def generate_agent_contract_synthesis(
+        self,
+        request_payload: AgentContractSynthesisRequest,
+    ) -> AgentContractSynthesisOutput:
+        return self._request_structured_output(
+            spec=build_agent_contract_synthesis_spec(request_payload)
+        )
+
+    def generate_pack_contract_synthesis(
+        self,
+        request_payload: PackContractSynthesisRequest,
+    ) -> PackContractSynthesisOutput:
+        return self._request_structured_output(
+            spec=build_pack_contract_synthesis_spec(request_payload)
+        )

@@ -218,6 +218,15 @@
 - Host orchestration 不可因設定頁加入而直接從前端呼叫 provider
 - `/settings` 只負責管理 active runtime config，不負責執行模型請求
 
+### 10.1 管理面 contract synthesis 也屬於正式 provider 呼叫
+Agent / Pack 管理面的「精簡建立 -> 正式 contract draft」同樣屬於正式模型呼叫。
+
+正式規則：
+- 精簡建立補完必須由 backend 執行，不可在前端直接打 provider
+- 應沿用目前 active runtime config，而不是額外藏一套獨立模型設定
+- 若有外部搜尋補完，也應由 backend 一併治理搜尋查詢、來源摘要與錯誤處理
+- 補完結果仍應回到正式 schema 驗證，再交給管理面儲存或微調
+
 ---
 
 ## 11. 第一波 provider 支援層級

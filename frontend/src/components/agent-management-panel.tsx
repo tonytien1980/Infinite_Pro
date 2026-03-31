@@ -2,9 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import { getExtensionManager, listTasks } from "@/lib/api";
+import { draftAgentContract, getExtensionManager, listTasks } from "@/lib/api";
 import {
-  buildAgentPayloadFromGuidedDraft,
   buildGuidedAgentDraft,
   type GuidedAgentDraft,
 } from "@/lib/extension-guided-builders";
@@ -14,7 +13,12 @@ import {
   clearLocalAgentEntry,
   persistAgentCatalogEntry,
 } from "@/lib/workbench-persistence";
-import type { AgentCatalogEntry, ExtensionManagerSnapshot, TaskListItem } from "@/lib/types";
+import type {
+  AgentCatalogEntry,
+  AgentContractDraftResult,
+  ExtensionManagerSnapshot,
+  TaskListItem,
+} from "@/lib/types";
 import {
   getAgentCatalogDisplay,
   labelForAgentType,
@@ -297,9 +301,11 @@ export function AgentManagementPanel() {
   const [editingAgentId, setEditingAgentId] = useState<string | null>(null);
   const [draft, setDraft] = useState<AgentDraft>(buildDraft());
   const [guidedDraft, setGuidedDraft] = useState<GuidedAgentDraft>(buildGuidedAgentDraft());
+  const [guidedResult, setGuidedResult] = useState<AgentContractDraftResult | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [agentState, setAgentState] = useAgentManagerState();
   const [loading, setLoading] = useState(true);
+  const [guidedSaving, setGuidedSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function refresh() {
@@ -398,6 +404,7 @@ export function AgentManagementPanel() {
     setEditingAgentId(null);
     setDraft(buildDraft(emptyEntry));
     setGuidedDraft(buildGuidedAgentDraft(emptyEntry));
+    setGuidedResult(null);
     setSaveMessage(null);
   }
 
@@ -405,6 +412,7 @@ export function AgentManagementPanel() {
     setEditingAgentId(agent.agent_id);
     setDraft(buildDraft(agent));
     setGuidedDraft(buildGuidedAgentDraft(agent));
+    setGuidedResult(null);
     setSaveMessage(null);
   }
 
@@ -450,12 +458,37 @@ export function AgentManagementPanel() {
 
   async function handleGuidedSave() {
     const agentId = editingAgentId ?? createLocalId("local-agent");
-    const baseAgentRow = managedAgents.find((agent) => agent.agent_id === agentId);
-    const baseAgent = baseAgentRow
-      ? toAgentCatalogEntry(baseAgentRow)
-      : buildEmptyAgentEntry(guidedDraft.agent_type, agentId);
-    const payload = buildAgentPayloadFromGuidedDraft(guidedDraft, agentId, baseAgent);
-    await saveAgentPayload(payload);
+    setGuidedSaving(true);
+    setSaveMessage(null);
+    try {
+      const result = await draftAgentContract({
+        agent_id: agentId,
+        agent_name: guidedDraft.agent_name.trim(),
+        agent_type: guidedDraft.agent_type,
+        description: guidedDraft.description.trim(),
+        supported_capabilities: guidedDraft.supported_capabilities,
+        relevant_domain_packs: guidedDraft.relevant_domain_packs,
+        relevant_industry_packs: guidedDraft.relevant_industry_packs,
+        role_focus: guidedDraft.role_focus,
+        input_focus: guidedDraft.input_focus,
+        output_focus: guidedDraft.output_focus,
+        when_to_use: guidedDraft.when_to_use,
+        boundary_focus: guidedDraft.boundary_focus,
+        version: guidedDraft.version.trim() || "1.0.0",
+        status: guidedDraft.status,
+      });
+      setGuidedResult(result);
+      await saveAgentPayload(result.draft);
+      setSaveMessage(
+        `已用目前系統模型與 ${result.sources.length} 筆外部來源補完「${result.draft.agent_name}」的正式 agent contract，並寫入管理狀態。`,
+      );
+    } catch (saveError) {
+      setSaveMessage(
+        saveError instanceof Error ? saveError.message : "目前無法用 AI 補完正式代理規格。",
+      );
+    } finally {
+      setGuidedSaving(false);
+    }
   }
 
   async function handleToggle(agent: AgentCatalogEntry & { source: "system" | "local" }) {
@@ -767,7 +800,7 @@ export function AgentManagementPanel() {
                 <div>
                   <h2 className="panel-title">{editingAgentId ? "編輯代理" : "新增代理"}</h2>
                   <p className="panel-copy">
-                    先用精簡建立填入少數必要資訊，系統會自動補齊正式 agent contract；只有在你要微調細節時，再打開完整模式。
+                    先用精簡建立填入少數必要資訊，系統會用目前啟用的 AI 模型搭配外部搜尋補齊正式 agent contract；只有在你要微調細節時，再打開完整模式。
                   </p>
                   {editingAgent ? (
                     <p className="muted-text">
@@ -789,7 +822,7 @@ export function AgentManagementPanel() {
                   <ul className="list-content">
                     <li>責任邊界、defer 規則、最小證據條件</li>
                     <li>輸出契約、handoff、evaluation focus、trace 要求</li>
-                    <li>可直接寫入 registry 的正式 agent contract</li>
+                    <li>會參考目前系統模型與外部搜尋結果，生成可直接寫入 registry 的正式 agent contract</li>
                   </ul>
                 </div>
               </div>
@@ -995,8 +1028,13 @@ export function AgentManagementPanel() {
                 </div>
 
                 <div className="button-row">
-                  <button className="button-primary" type="button" onClick={handleGuidedSave}>
-                    用精簡模式儲存代理
+                  <button
+                    className="button-primary"
+                    type="button"
+                    disabled={guidedSaving}
+                    onClick={handleGuidedSave}
+                  >
+                    {guidedSaving ? "正在用 AI 補完代理..." : "用 AI + 搜尋補完並儲存代理"}
                   </button>
                 </div>
                 {saveMessage ? (
@@ -1005,6 +1043,31 @@ export function AgentManagementPanel() {
                   </p>
                 ) : null}
               </div>
+
+              {guidedResult ? (
+                <section className="summary-grid" style={{ marginTop: "18px" }}>
+                  <div className="section-card">
+                    <h4>AI 補完摘要</h4>
+                    <p className="content-block">{guidedResult.synthesis_summary}</p>
+                    <p className="muted-text">搜尋查詢：{guidedResult.search_query}</p>
+                  </div>
+                  <div className="section-card">
+                    <h4>外部來源與生成備註</h4>
+                    <ul className="list-content">
+                      {guidedResult.sources.map((source) => (
+                        <li key={source.url}>
+                          <a href={source.url} target="_blank" rel="noreferrer">
+                            {source.title}
+                          </a>
+                        </li>
+                      ))}
+                      {guidedResult.generation_notes.map((note) => (
+                        <li key={note}>{note}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </section>
+              ) : null}
 
               <details className="inline-disclosure" style={{ marginTop: "18px" }}>
                 <summary className="inline-disclosure-summary">切換完整模式微調正式 contract</summary>

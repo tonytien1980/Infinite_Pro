@@ -463,6 +463,12 @@ Pack 也必須正式進入以下五個核心能力：
 - 最小 management surface visibility
 - 至少一條測試用例，驗證它不只是 catalog 可見，而是真的影響 execution path 或 writeback
 
+若管理面採用「精簡建立」流程，正式規則應是：
+- 一般使用者先提供最少必要資訊
+- backend 再用目前生效的 provider 與外部搜尋結果生成第一版正式 contract 草案
+- 生成結果仍必須回到統一 Agent Spec Baseline 驗證，而不是直接繞過正式欄位定義
+- management surface 應能回看這次補完的搜尋查詢、來源摘要與 generation notes，避免「系統自動補齊」變成不可審視的黑箱
+
 ### 11.2 Agent Registry
 系統應有正式 registry 來表達：
 - 有哪些 agents 存在
@@ -532,6 +538,10 @@ Host 應根據以下輸入決定 agent 組合：
 - task-level selected agents visibility
 - task-level agent override surface
 - version / status visibility
+- 精簡建立模式下的 AI + 搜尋 contract synthesis 可見性：
+  - 使用了哪一組搜尋查詢
+  - 補入了哪些外部來源
+  - 這次草案的 synthesis summary / generation notes 是什麼
 
 全域啟用 / 停用與更完整治理介面，可留到後續 manager / marketplace 擴張再處理。
 

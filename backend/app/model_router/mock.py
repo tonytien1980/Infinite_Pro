@@ -4,6 +4,8 @@ import re
 from os import getenv
 
 from app.model_router.base import (
+    AgentContractSynthesisOutput,
+    AgentContractSynthesisRequest,
     ContractReviewOutput,
     ContractReviewRequest,
     CoreAnalysisOutput,
@@ -12,6 +14,8 @@ from app.model_router.base import (
     DocumentRestructuringRequest,
     ModelProvider,
     ModelProviderError,
+    PackContractSynthesisOutput,
+    PackContractSynthesisRequest,
     ResearchSynthesisOutput,
     ResearchSynthesisRequest,
 )
@@ -24,6 +28,37 @@ def _clean_text(text: str) -> str:
 def _split_sentences(text: str) -> list[str]:
     chunks = re.split(r"(?<=[.!?。！？])\s+|\n+", text)
     return [chunk.strip(" -") for chunk in chunks if len(chunk.strip()) > 20]
+
+
+def _split_lines(text: str) -> list[str]:
+    return [item.strip() for item in text.splitlines() if item.strip()]
+
+
+def _unique(values: list[str]) -> list[str]:
+    return list(dict.fromkeys(item for item in values if item))
+
+
+CAPABILITY_CONTEXT_FIELDS: dict[str, list[str]] = {
+    "diagnose_assess": ["DecisionContext", "Evidence", "Goals", "Constraints"],
+    "decide_converge": ["DecisionContext", "Options", "Constraints", "Evidence"],
+    "review_challenge": ["Artifact", "DecisionContext", "Evidence"],
+    "synthesize_brief": ["DecisionContext", "SourceMaterial", "Evidence"],
+    "restructure_reframe": ["Artifact", "Audience", "DecisionContext"],
+    "plan_roadmap": ["Goals", "Constraints", "Timeline", "DecisionContext"],
+    "scenario_comparison": ["DecisionContext", "Options", "Evidence"],
+    "risk_surfacing": ["DecisionContext", "Evidence", "Assumptions", "Constraints"],
+}
+
+CAPABILITY_OBJECTS: dict[str, list[str]] = {
+    "diagnose_assess": ["Insight", "Risk", "Recommendation"],
+    "decide_converge": ["Option", "Recommendation", "ActionItem"],
+    "review_challenge": ["Risk", "Recommendation", "EvidenceGap"],
+    "synthesize_brief": ["Insight", "Evidence", "EvidenceGap"],
+    "restructure_reframe": ["Deliverable", "Recommendation"],
+    "plan_roadmap": ["ActionItem", "Recommendation", "Timeline"],
+    "scenario_comparison": ["Option", "Recommendation", "Risk"],
+    "risk_surfacing": ["Risk", "EvidenceGap", "Recommendation"],
+}
 
 
 class MockModelProvider(ModelProvider):
@@ -430,4 +465,207 @@ class MockModelProvider(ModelProvider):
             action_items=action_items,
             missing_information=missing_information,
             clauses_reviewed=clauses_reviewed,
+        )
+
+    def generate_agent_contract_synthesis(
+        self,
+        request: AgentContractSynthesisRequest,
+    ) -> AgentContractSynthesisOutput:
+        if getenv("MODEL_PROVIDER_FAILURE_MODE", "").lower() == "always_fail":
+            raise ModelProviderError("Mock 模型供應器的失敗模式目前已啟用。")
+
+        responsibility_lines = _split_lines(request.role_focus)
+        input_lines = _split_lines(request.input_focus)
+        output_lines = _split_lines(request.output_focus)
+        usage_lines = _split_lines(request.when_to_use)
+        boundary_lines = _split_lines(request.boundary_focus)
+        source_titles = [item.title for item in request.search_results[:3]]
+
+        required_context_fields = _unique(
+            field
+            for capability in request.supported_capabilities
+            for field in CAPABILITY_CONTEXT_FIELDS.get(capability, ["DecisionContext", "Evidence"])
+        ) or ["DecisionContext", "Evidence"]
+        produced_objects = _unique(
+            item
+            for capability in request.supported_capabilities
+            for item in CAPABILITY_OBJECTS.get(capability, ["Insight", "Recommendation"])
+        ) or ["Insight", "Recommendation"]
+
+        if request.agent_type == "host":
+            preferred_execution_modes = ["host"]
+            handoff_targets = ["Reasoning Agents", "Specialist Agents"]
+        elif request.agent_type == "reasoning":
+            preferred_execution_modes = ["multi_agent", "specialist"]
+            handoff_targets = ["Host Agent", "Research Synthesis Specialist"]
+        else:
+            preferred_execution_modes = ["specialist", "multi_agent"]
+            handoff_targets = ["Host Agent"]
+
+        primary_responsibilities = responsibility_lines or [
+            f"{request.agent_name} 會補上這個專業視角最重要的判斷與取捨。",
+            "把自己的專業觀點整理成 Host 可直接採用的分析輸出。",
+        ]
+        out_of_scope = boundary_lines or [
+            "不取代 Host 做最終收斂與拍板。",
+            "不假裝超出自身證據基礎的高確定性結論。",
+        ]
+        input_requirements = input_lines or [
+            "清楚的 DecisionContext 與至少一組可引用材料。",
+            "能看出這輪要支援哪個判斷或交付物。",
+        ]
+        output_contract = output_lines or [
+            "給出可採用的 findings、recommendations 與 missing information。",
+            "保留仍待驗證的假設、限制與信心邊界。",
+        ]
+        invocation_rules = usage_lines or [
+            "當 Host 需要這個專業視角補完判斷時啟用。",
+        ]
+
+        description = request.description.strip() or (
+            f"{request.agent_name} 專責補上 {request.agent_type} 類代理應負責的分析與交接。"
+        )
+        generation_notes = [
+            f"這份代理草案依賴最少輸入與 {len(request.search_results)} 筆外部搜尋結果補完。",
+        ]
+        if source_titles:
+            generation_notes.append(f"Mock provider 參考了外部來源標題：{'、'.join(source_titles)}。")
+
+        return AgentContractSynthesisOutput(
+            description=description,
+            primary_responsibilities=primary_responsibilities,
+            out_of_scope=out_of_scope,
+            defer_rules=[
+                "當 DecisionContext 或材料仍偏薄時，先回報 evidence gap，不硬做結論。",
+                "若缺少這個代理依賴的核心輸入，應先請 Host 補件或降級使用。",
+            ],
+            preferred_execution_modes=preferred_execution_modes,
+            input_requirements=input_requirements,
+            minimum_evidence_readiness=[
+                "至少要有清楚的判斷問題與一份可引用材料。",
+                "若要形成高信心結論，至少要能看出主要 evidence chain。",
+            ],
+            required_context_fields=required_context_fields,
+            output_contract=output_contract,
+            produced_objects=produced_objects,
+            deliverable_impact=[
+                f"{request.agent_name} 的輸出會直接影響 Host 如何塑造交付物主線與限制說明。",
+            ],
+            writeback_expectations=[
+                "保留為何啟用這個代理、它補了哪些判斷、還缺哪些證據。",
+            ],
+            invocation_rules=invocation_rules,
+            escalation_rules=[
+                "當外部研究、權威來源或跨代理收斂需求升高時，先回到 Host 做治理決定。",
+            ],
+            handoff_targets=handoff_targets,
+            evaluation_focus=[
+                "是否真的補到這個代理應負責的判斷，而不是只做泛用摘要。",
+                "輸出是否足夠讓 Host 直接採用或明確 defer。",
+            ],
+            failure_modes_to_watch=[
+                "把弱訊號誤包裝成高確定性結論。",
+                "輸出看起來完整，但沒有真正改善 Host 的判斷品質。",
+            ],
+            trace_requirements=[
+                "需保留被選用原因、主要輸入、主要結論與仍待補的 evidence gap。",
+            ],
+            synthesis_summary=(
+                f"已把 {request.agent_name} 補成正式 agent contract，聚焦在責任邊界、"
+                "輸入輸出契約、handoff 與 trace 要求。"
+            ),
+            generation_notes=generation_notes,
+        )
+
+    def generate_pack_contract_synthesis(
+        self,
+        request: PackContractSynthesisRequest,
+    ) -> PackContractSynthesisOutput:
+        if getenv("MODEL_PROVIDER_FAILURE_MODE", "").lower() == "always_fail":
+            raise ModelProviderError("Mock 模型供應器的失敗模式目前已啟用。")
+
+        definition = request.definition.strip() or request.description.strip()
+        problem_patterns = _split_lines(request.common_problem_patterns)
+        key_signals = _split_lines(request.key_signals)
+        evidence_expectations = _split_lines(request.evidence_expectations)
+        common_risks = _split_lines(request.common_risks)
+        business_models = _split_lines(request.common_business_models)
+        source_titles = [item.title for item in request.search_results[:3]]
+
+        if not problem_patterns:
+            problem_patterns = [f"{request.pack_name} 相關案件目前仍需補更多典型問題型態。"]
+        if not key_signals:
+            key_signals = ["需要至少一組能反映健康度、風險或進展的核心經營訊號。"]
+        if not evidence_expectations:
+            evidence_expectations = ["至少要有可引用材料、背景脈絡與支撐判斷的 evidence chain。"]
+        if not common_risks:
+            common_risks = ["若缺少明確脈絡，容易把這類案件錯當成泛用問題處理。"]
+
+        domain_definition = definition if request.pack_type == "domain" else ""
+        industry_definition = definition if request.pack_type == "industry" else ""
+        if request.pack_type == "industry" and not business_models:
+            business_models = ["主要商業模式仍待補充，但已先建立這個產業脈絡。"]
+
+        generation_notes = [
+            f"這份模組包草案依賴最少輸入與 {len(request.search_results)} 筆外部搜尋結果補完。",
+        ]
+        if source_titles:
+            generation_notes.append(f"Mock provider 參考了外部來源標題：{'、'.join(source_titles)}。")
+
+        return PackContractSynthesisOutput(
+            description=request.description.strip()
+            or f"{request.pack_name} 提供這類案件的核心 context、證據與決策引導。",
+            domain_definition=domain_definition,
+            industry_definition=industry_definition,
+            common_business_models=business_models if request.pack_type == "industry" else [],
+            common_problem_patterns=problem_patterns,
+            stage_specific_heuristics={
+                "創業階段": ["先檢查核心假設是否成立，避免過早擴張流程。"],
+                "制度化階段": ["優先檢查流程、角色與資料是否開始脫節。"],
+                "規模化階段": ["優先檢查治理、風險與複雜度是否已超出舊作法。"],
+            },
+            key_kpis_or_operating_signals=key_signals,
+            key_kpis=key_signals,
+            domain_lenses=request.domain_lenses or (["綜合"] if request.pack_type == "industry" else []),
+            relevant_client_types=["中小企業", "個人品牌與服務", "自媒體", "大型企業"],
+            relevant_client_stages=["創業階段", "制度化階段", "規模化階段"],
+            default_decision_context_patterns=[
+                f"這輪是否應優先處理 {request.pack_name} 相關的核心問題",
+                "應該先補哪些證據，才能做更高信心的判斷",
+            ],
+            evidence_expectations=evidence_expectations,
+            risk_libraries=[
+                f"{request.pack_name} 特有的執行風險與誤判風險",
+            ],
+            common_risks=common_risks,
+            decision_patterns=[
+                f"是否該優先處理：{item}" for item in problem_patterns[:4]
+            ],
+            deliverable_presets=[
+                f"{request.pack_name} 評估備忘",
+                f"{request.pack_name} 決策簡報",
+            ],
+            recommendation_patterns=[
+                "先處理最影響決策品質的 evidence gap，再收斂動作排序。",
+                "把專屬脈絡拉回 Host 的主線，而不是讓 pack 自成平行結論。",
+            ],
+            routing_hints=_unique(
+                [request.pack_name.strip(), *_split_lines(request.routing_keywords), *request.domain_lenses]
+            ),
+            pack_notes=[
+                "這份草案已可直接進 registry；若要調整細節，請切到完整模式微調。",
+            ],
+            scope_boundaries=[
+                "不取代 Host 做跨 pack 收斂與最終取捨。",
+                f"{request.pack_name} 應聚焦在自己的 context module，而不是吞掉所有案件語境。",
+            ],
+            pack_rationale=[
+                f"{request.pack_name} 需要獨立存在，因為它的 evidence、decision 與 deliverable pattern 不應被泛化。",
+                "若只留下名稱，Host 很難把它當成真正可用的 context module。",
+            ],
+            synthesis_summary=(
+                f"已把 {request.pack_name} 補成正式 pack contract，涵蓋定義、問題型態、"
+                "證據期待、決策模式與交付 preset。"
+            ),
+            generation_notes=generation_notes,
         )

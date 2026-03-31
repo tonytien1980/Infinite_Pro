@@ -50,6 +50,46 @@ class ContractReviewRequest(BaseModel):
     evidence: list[dict[str, Any]] = Field(default_factory=list)
 
 
+class SearchResultContext(BaseModel):
+    title: str
+    url: str
+    snippet: str = ""
+
+
+class AgentContractSynthesisRequest(BaseModel):
+    agent_id: str
+    agent_name: str
+    agent_type: str
+    description: str = ""
+    supported_capabilities: list[str] = Field(default_factory=list)
+    relevant_domain_packs: list[str] = Field(default_factory=list)
+    relevant_industry_packs: list[str] = Field(default_factory=list)
+    role_focus: str = ""
+    input_focus: str = ""
+    output_focus: str = ""
+    when_to_use: str = ""
+    boundary_focus: str = ""
+    search_query: str = ""
+    search_results: list[SearchResultContext] = Field(default_factory=list)
+
+
+class PackContractSynthesisRequest(BaseModel):
+    pack_id: str
+    pack_type: str
+    pack_name: str
+    description: str = ""
+    definition: str = ""
+    domain_lenses: list[str] = Field(default_factory=list)
+    routing_keywords: str = ""
+    common_business_models: str = ""
+    common_problem_patterns: str = ""
+    key_signals: str = ""
+    evidence_expectations: str = ""
+    common_risks: str = ""
+    search_query: str = ""
+    search_results: list[SearchResultContext] = Field(default_factory=list)
+
+
 class ResearchSynthesisOutput(BaseModel):
     problem_definition: str
     background_summary: str
@@ -96,6 +136,56 @@ class ContractReviewOutput(BaseModel):
     clauses_reviewed: list[str]
 
 
+class AgentContractSynthesisOutput(BaseModel):
+    description: str
+    primary_responsibilities: list[str]
+    out_of_scope: list[str]
+    defer_rules: list[str]
+    preferred_execution_modes: list[str]
+    input_requirements: list[str]
+    minimum_evidence_readiness: list[str]
+    required_context_fields: list[str]
+    output_contract: list[str]
+    produced_objects: list[str]
+    deliverable_impact: list[str]
+    writeback_expectations: list[str]
+    invocation_rules: list[str]
+    escalation_rules: list[str]
+    handoff_targets: list[str]
+    evaluation_focus: list[str]
+    failure_modes_to_watch: list[str]
+    trace_requirements: list[str]
+    synthesis_summary: str
+    generation_notes: list[str]
+
+
+class PackContractSynthesisOutput(BaseModel):
+    description: str
+    domain_definition: str
+    industry_definition: str
+    common_business_models: list[str]
+    common_problem_patterns: list[str]
+    stage_specific_heuristics: dict[str, list[str]]
+    key_kpis_or_operating_signals: list[str]
+    key_kpis: list[str]
+    domain_lenses: list[str]
+    relevant_client_types: list[str]
+    relevant_client_stages: list[str]
+    default_decision_context_patterns: list[str]
+    evidence_expectations: list[str]
+    risk_libraries: list[str]
+    common_risks: list[str]
+    decision_patterns: list[str]
+    deliverable_presets: list[str]
+    recommendation_patterns: list[str]
+    routing_hints: list[str]
+    pack_notes: list[str]
+    scope_boundaries: list[str]
+    pack_rationale: list[str]
+    synthesis_summary: str
+    generation_notes: list[str]
+
+
 class ModelProvider(ABC):
     @abstractmethod
     def generate_research_synthesis(
@@ -123,4 +213,18 @@ class ModelProvider(ABC):
         self,
         request: ContractReviewRequest,
     ) -> ContractReviewOutput:
+        raise NotImplementedError
+
+    @abstractmethod
+    def generate_agent_contract_synthesis(
+        self,
+        request: AgentContractSynthesisRequest,
+    ) -> AgentContractSynthesisOutput:
+        raise NotImplementedError
+
+    @abstractmethod
+    def generate_pack_contract_synthesis(
+        self,
+        request: PackContractSynthesisRequest,
+    ) -> PackContractSynthesisOutput:
         raise NotImplementedError

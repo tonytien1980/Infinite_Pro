@@ -2,10 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import { getExtensionManager, listTasks } from "@/lib/api";
+import { draftPackContract, getExtensionManager, listTasks } from "@/lib/api";
 import {
   buildGuidedPackDraft,
-  buildPackPayloadFromGuidedDraft,
   type GuidedPackDraft,
 } from "@/lib/extension-guided-builders";
 import {
@@ -14,7 +13,12 @@ import {
   clearLocalPackEntry,
   persistPackCatalogEntry,
 } from "@/lib/workbench-persistence";
-import type { ExtensionManagerSnapshot, PackCatalogEntry, TaskListItem } from "@/lib/types";
+import type {
+  ExtensionManagerSnapshot,
+  PackCatalogEntry,
+  PackContractDraftResult,
+  TaskListItem,
+} from "@/lib/types";
 import {
   getPackCatalogDisplay,
   labelForExtensionStatus,
@@ -334,9 +338,11 @@ export function PackManagementPanel() {
   const [editingPackId, setEditingPackId] = useState<string | null>(null);
   const [draft, setDraft] = useState<PackDraft>(buildDraft());
   const [guidedDraft, setGuidedDraft] = useState<GuidedPackDraft>(buildGuidedPackDraft());
+  const [guidedResult, setGuidedResult] = useState<PackContractDraftResult | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [packState, setPackState] = usePackManagerState();
   const [loading, setLoading] = useState(true);
+  const [guidedSaving, setGuidedSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function refresh() {
@@ -460,6 +466,7 @@ export function PackManagementPanel() {
     setEditingPackId(null);
     setDraft(buildDraft({ pack_type: activeTab } as PackCatalogEntry));
     setGuidedDraft(buildGuidedPackDraft(emptyPack));
+    setGuidedResult(null);
     setSaveMessage(null);
   }
 
@@ -467,6 +474,7 @@ export function PackManagementPanel() {
     setEditingPackId(pack.pack_id);
     setDraft(buildDraft(pack));
     setGuidedDraft(buildGuidedPackDraft(pack));
+    setGuidedResult(null);
     setSaveMessage(null);
   }
 
@@ -508,12 +516,37 @@ export function PackManagementPanel() {
 
   async function handleGuidedSave() {
     const packId = editingPackId ?? createLocalId("local-pack");
-    const basePackRow = managedPacks.find((pack) => pack.pack_id === packId);
-    const basePack = basePackRow
-      ? toPackCatalogEntry(basePackRow)
-      : buildEmptyPackEntry(guidedDraft.pack_type, packId);
-    const payload = buildPackPayloadFromGuidedDraft(guidedDraft, packId, basePack);
-    await savePackPayload(payload);
+    setGuidedSaving(true);
+    setSaveMessage(null);
+    try {
+      const result = await draftPackContract({
+        pack_id: packId,
+        pack_type: guidedDraft.pack_type,
+        pack_name: guidedDraft.pack_name.trim(),
+        description: guidedDraft.description.trim(),
+        definition: guidedDraft.definition.trim(),
+        domain_lenses: guidedDraft.domain_lenses,
+        routing_keywords: guidedDraft.routing_keywords,
+        common_business_models: guidedDraft.common_business_models,
+        common_problem_patterns: guidedDraft.common_problem_patterns,
+        key_signals: guidedDraft.key_signals,
+        evidence_expectations: guidedDraft.evidence_expectations,
+        common_risks: guidedDraft.common_risks,
+        version: guidedDraft.version.trim() || "1.0.0",
+        status: guidedDraft.status,
+      });
+      setGuidedResult(result);
+      await savePackPayload(result.draft);
+      setSaveMessage(
+        `已用目前系統模型與 ${result.sources.length} 筆外部來源補完「${result.draft.pack_name}」的正式 pack contract，並寫入管理狀態。`,
+      );
+    } catch (saveError) {
+      setSaveMessage(
+        saveError instanceof Error ? saveError.message : "目前無法用 AI 補完正式模組包規格。",
+      );
+    } finally {
+      setGuidedSaving(false);
+    }
   }
 
   async function handleToggle(pack: PackCatalogEntry & { source: "system" | "local" }) {
@@ -814,7 +847,7 @@ export function PackManagementPanel() {
                 <div>
                   <h2 className="panel-title">{editingPackId ? "編輯模組包" : "新增模組包"}</h2>
                   <p className="panel-copy">
-                    先用精簡建立填入少數必要資訊，系統會自動補齊 pack contract；只有在你要微調細節時，再打開完整模式。
+                    先用精簡建立填入少數必要資訊，系統會用目前啟用的 AI 模型搭配外部搜尋補齊 pack contract；只有在你要微調細節時，再打開完整模式。
                   </p>
                   {editingPackId ? (
                     <p className="muted-text">
@@ -840,7 +873,7 @@ export function PackManagementPanel() {
                   <ul className="list-content">
                     <li>decision patterns、deliverable presets、routing hints</li>
                     <li>domain / industry 邊界、存在理由與基礎備註</li>
-                    <li>可直接進 registry 的正式 pack contract</li>
+                    <li>會參考目前系統模型與外部搜尋結果，生成可直接進 registry 的正式 pack contract</li>
                   </ul>
                 </div>
               </div>
@@ -1036,8 +1069,13 @@ export function PackManagementPanel() {
                 </div>
 
                 <div className="button-row">
-                  <button className="button-primary" type="button" onClick={handleGuidedSave}>
-                    用精簡模式儲存模組包
+                  <button
+                    className="button-primary"
+                    type="button"
+                    disabled={guidedSaving}
+                    onClick={handleGuidedSave}
+                  >
+                    {guidedSaving ? "正在用 AI 補完模組包..." : "用 AI + 搜尋補完並儲存模組包"}
                   </button>
                 </div>
                 {saveMessage ? (
@@ -1046,6 +1084,31 @@ export function PackManagementPanel() {
                   </p>
                 ) : null}
               </div>
+
+              {guidedResult ? (
+                <section className="summary-grid" style={{ marginTop: "18px" }}>
+                  <div className="section-card">
+                    <h4>AI 補完摘要</h4>
+                    <p className="content-block">{guidedResult.synthesis_summary}</p>
+                    <p className="muted-text">搜尋查詢：{guidedResult.search_query}</p>
+                  </div>
+                  <div className="section-card">
+                    <h4>外部來源與生成備註</h4>
+                    <ul className="list-content">
+                      {guidedResult.sources.map((source) => (
+                        <li key={source.url}>
+                          <a href={source.url} target="_blank" rel="noreferrer">
+                            {source.title}
+                          </a>
+                        </li>
+                      ))}
+                      {guidedResult.generation_notes.map((note) => (
+                        <li key={note}>{note}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </section>
+              ) : null}
 
               <details className="inline-disclosure" style={{ marginTop: "18px" }}>
                 <summary className="inline-disclosure-summary">切換完整模式微調正式 contract</summary>

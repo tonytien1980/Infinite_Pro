@@ -131,7 +131,8 @@ Infinite Pro 的正式第一層主導覽應為：
    - 用來查看、理解與控制 agents catalog、status、version、selected agents 與 task-level override
    - 不應只顯示 agent 名稱與狀態；至少要讓顧問看見 responsibilities、out-of-scope、input requirements、output contract、handoff targets、evaluation focus 與 trace requirements
    - task-level selected agents 也應能看見 Host 為什麼選它、選擇分數大概多高、命中了哪些 selection signals
-   - 新增 / 編輯代理時，預設應先提供「精簡建立」模式，讓一般人只填少數必要欄位；系統再自動補齊正式 contract
+   - 新增 / 編輯代理時，預設應先提供「精簡建立」模式，讓一般人只填少數必要欄位；系統再用目前啟用的 AI 模型搭配外部搜尋補齊正式 contract
+   - 精簡建立不應只把補值藏在前端模板；UI 至少應讓使用者看見這次補完的搜尋查詢、來源摘要與 synthesis summary
    - 在單人版管理面中，也應能直接編輯上述核心 agent contract，而不是只把完整定義留在 registry 程式碼裡
    - 它不是附屬小功能，也不是 debug panel
 
@@ -140,7 +141,8 @@ Infinite Pro 的正式第一層主導覽應為：
    - 用來查看與管理 Pack catalog、status、version、selected packs 與 task-level override
    - 不應只顯示 pack 名稱與狀態；至少要讓顧問看見 definition、common problem patterns、KPI / operating signals、evidence expectations、decision patterns、deliverable presets 與 pack rationale
    - task-level selected packs 也應能看見 Host 為什麼選它、選擇分數大概多高、命中了哪些 selection signals
-   - 新增 / 編輯模組包時，預設應先提供「精簡建立」模式，讓一般人只填少數必要欄位；系統再自動補齊正式 contract
+   - 新增 / 編輯模組包時，預設應先提供「精簡建立」模式，讓一般人只填少數必要欄位；系統再用目前啟用的 AI 模型搭配外部搜尋補齊正式 contract
+   - 精簡建立不應只把補值藏在前端模板；UI 至少應讓使用者看見這次補完的搜尋查詢、來源摘要與 synthesis summary
    - 在單人版管理面中，也應能直接編輯上述核心 pack contract，而不是只把完整定義留在 registry 程式碼裡
    - 它應分為兩個頁籤：
      - 問題面向模組包
