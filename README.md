@@ -335,6 +335,8 @@ Formal fields:
   - `minimal`
   - `milestone`
   - `full`
+- `approval_policy`
+- `approval_status`
 
 Formal behavior:
 - `one_off`
@@ -359,6 +361,13 @@ Formal behavior:
   - should show the latest progression state, the previous progression snapshot, what changed, and the next progression-aware action
   - should make recommendation adoption, action status, and outcome signals visible without turning the workbench into a heavy CRM wall
   - should make evidence supplements feel tied to the current progression goal, not like generic uploads
+
+Wave 1 deepen also formalizes a minimal operational contract on top of the existing writeback chain:
+- `DecisionRecord` and `OutcomeRecord` now carry `function_type`
+- `ActionPlan` and `ActionExecution` now carry `action_type`
+- `DecisionRecord` and `ActionPlan` now carry `approval_policy / approval_status`
+- `AuditEvent` now records writeback generation, approval changes, and continuation actions as an append-only audit trail
+- approval and audit are intentionally disclosure-level surfaces, not new hero-level workflow primitives
 
 This means writeback is no longer treated as "all or nothing".
 All matters must keep minimum history and deliverable lineage, but only follow-up and continuous cases should deepen the feedback loop.
@@ -429,6 +438,10 @@ The repository currently contains a working early implementation slice within th
 - storage separation for raw intake files, derived extracts, and released artifacts
 - matter正文 remote-first persistence with degraded-mode local fallback and manual re-sync
 - deliverable正文 remote-only persistence with revision history, rollback, version events, publish records, and artifact registry
+- minimal Wave 1 action / function / approval / audit contract on top of the existing writeback records
+- append-only audit events for writeback generation, formal approval changes, and continuation actions
+- low-noise approval / audit visibility in matter / task / deliverable disclosure surfaces
+- task-level secondary action for marking pending decision / action writeback as formally approved
 - structured deliverable rendering
 - Markdown and DOCX artifact export with backend artifact records
 - system-level provider settings UI with single active runtime config, backend credential storage, validation, and `DB -> env` precedence

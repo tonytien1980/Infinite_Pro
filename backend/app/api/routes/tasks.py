@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.domain import schemas
 from app.services.tasks import (
+    approve_task_writeback_record,
     create_task,
     get_loaded_task,
     get_task_history,
@@ -45,6 +46,15 @@ def update_task_extensions_route(
 ) -> schemas.TaskAggregateResponse:
     task = update_task_extension_overrides(db, task_id, payload)
     return serialize_task(task)
+
+
+@router.post("/{task_id}/writeback-approval", response_model=schemas.TaskAggregateResponse)
+def approve_task_writeback_route(
+    task_id: str,
+    payload: schemas.TaskWritebackApprovalRequest,
+    db: Session = Depends(get_db),
+) -> schemas.TaskAggregateResponse:
+    return approve_task_writeback_record(db, task_id, payload)
 
 
 @router.get("/{task_id}/history", response_model=schemas.TaskHistoryResponse)

@@ -303,6 +303,14 @@ Wave 0 若仍是 docs-first，則通常不應更新：
 - 保持 consultant-first
 - 不做成重型審批平台
 
+本波最小落地 contract：
+- 在既有 `DecisionRecord / ActionPlan / ActionExecution / OutcomeRecord` 上補正式欄位
+- `DecisionRecord / OutcomeRecord` 先承接 `function_type`
+- `ActionPlan / ActionExecution` 先承接 `action_type`
+- `DecisionRecord / ActionPlan` 先承接 `approval_policy / approval_status`
+- `AuditEvent` 先以 append-only event log 形式落地
+- 本波不建立獨立 approval inbox，也不建立重型 workflow engine
+
 本波 UI exposure policy：
 - approval / audit 僅在高風險或按需展開的 surface 出現
 - 不得讓首屏充滿 approval noise

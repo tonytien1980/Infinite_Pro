@@ -161,6 +161,12 @@ Infinite Pro 的工作世界至少應圍繞以下主鏈理解：
 - `ActionPlan`
 - `ActionExecution`
 - `OutcomeRecord`
+- `AuditEvent`
+
+Wave 1 deepen 後，這些 records 之間還應明確區分：
+- 哪個 `function_type` 產生了這次 decision / outcome
+- 哪個 `action_type` 承接了後續 plan / execution
+- 這份內容目前是模型建議、正式核可，還是僅完成 writeback 記錄
 
 正式核心物件至少包括：
 - Client
@@ -336,6 +342,8 @@ Infinite Pro 現在正式支援：
   - `minimal`
   - `milestone`
   - `full`
+- `approval_policy`
+- `approval_status`
 
 正式規則：
 - `one_off` 至少保留 history、evidence basis 與 deliverable lineage
@@ -344,6 +352,7 @@ Infinite Pro 現在正式支援：
 - research 與 follow-up 補件都必須回到同一個 case world，而不是浮在外面
 - `one_off` 應有正式 closure / reopen 語義，而不是被 continuous UX 汙染
 - `follow_up` 應有輕量 checkpoint / milestone 更新語義，而不是被迫進入完整 action-outcome tracking
+- approval / audit contract 只能深化既有 writeback 主鏈，不可引入新的第七層或新的主導航心智
 - `follow_up` 應讓顧問看得出上一個 checkpoint、最新更新、這次差異與下一步建議
 - `follow_up` 應讓 recommendation / risk / action continuity 可見，但仍維持輕量 lane，而不是長期 CRM timeline
 - `follow_up` 的補件工作面也應看得出 evidence update goal 與這次補件主要想補哪個缺口

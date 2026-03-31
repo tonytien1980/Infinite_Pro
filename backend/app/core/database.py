@@ -164,6 +164,26 @@ def _ensure_incremental_schema_updates() -> None:
             "retention_policy": "VARCHAR(100) NOT NULL DEFAULT 'release_365d'",
             "purge_at": datetime_column_type,
         },
+        "decision_records": {
+            "function_type": "VARCHAR(50) NOT NULL DEFAULT 'synthesize_brief'",
+            "approval_policy": "VARCHAR(50) NOT NULL DEFAULT 'not_required'",
+            "approval_status": "VARCHAR(50) NOT NULL DEFAULT 'not_required'",
+            "approval_summary": "TEXT NOT NULL DEFAULT ''",
+            "approved_at": datetime_column_type,
+        },
+        "action_plans": {
+            "action_type": "VARCHAR(50) NOT NULL DEFAULT 'decision_follow_through'",
+            "approval_policy": "VARCHAR(50) NOT NULL DEFAULT 'not_required'",
+            "approval_status": "VARCHAR(50) NOT NULL DEFAULT 'not_required'",
+            "approval_summary": "TEXT NOT NULL DEFAULT ''",
+            "approved_at": datetime_column_type,
+        },
+        "action_executions": {
+            "action_type": "VARCHAR(50) NOT NULL DEFAULT 'action_execution_tracking'",
+        },
+        "outcome_records": {
+            "function_type": "VARCHAR(50) NOT NULL DEFAULT 'outcome_observation'",
+        },
     }
 
     inspector = inspect(engine)

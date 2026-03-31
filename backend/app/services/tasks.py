@@ -12,11 +12,16 @@ from sqlalchemy.orm import Session, object_session, selectinload
 
 from app.domain import models, schemas
 from app.domain.enums import (
+    ActionType,
+    ApprovalPolicy,
+    ApprovalStatus,
+    AuditEventType,
     CapabilityArchetype,
     DeliverableClass,
     EngagementContinuityMode,
     ExternalDataStrategy,
     InputEntryMode,
+    FunctionType,
     PresenceState,
     TaskStatus,
     WritebackDepth,
@@ -67,6 +72,16 @@ from app.services.source_materials import (
     ensure_source_chain_participation_links,
     infer_artifact_type,
     resolve_participation_canonical_key,
+)
+from app.services.writeback_contracts import (
+    build_audit_event,
+    default_approval_policy,
+    default_approval_summary,
+    initial_approval_status,
+    resolve_action_type_for_execution,
+    resolve_action_type_for_plan,
+    resolve_continuation_action_type,
+    resolve_function_type_for_continuation_action,
 )
 
 logger = logging.getLogger(__name__)
@@ -649,6 +664,7 @@ def task_load_options():
         selectinload(models.Task.action_plans),
         selectinload(models.Task.action_executions),
         selectinload(models.Task.outcome_records),
+        selectinload(models.Task.audit_events),
     )
 
 
@@ -5490,6 +5506,18 @@ def apply_matter_continuation_action(
             )
         matter_workspace.status = "closed"
         db.add(matter_workspace)
+        db.add(
+            build_audit_event(
+                task_id=primary_task.id,
+                matter_workspace_id=matter_workspace.id,
+                deliverable_id=latest_deliverable.id if latest_deliverable else None,
+                event_type=AuditEventType.CONTINUATION_ACTION_APPLIED,
+                action_type=resolve_continuation_action_type(payload.action),
+                actor_label="consultant",
+                summary=summary or "顧問將這個 one_off 案件標記為正式結案。",
+                event_payload={"action": payload.action},
+            )
+        )
         db.commit()
         return get_matter_workspace(db, matter_id)
 
@@ -5501,6 +5529,18 @@ def apply_matter_continuation_action(
             )
         matter_workspace.status = "active"
         db.add(matter_workspace)
+        db.add(
+            build_audit_event(
+                task_id=primary_task.id,
+                matter_workspace_id=matter_workspace.id,
+                deliverable_id=latest_deliverable.id if latest_deliverable else None,
+                event_type=AuditEventType.CONTINUATION_ACTION_APPLIED,
+                action_type=resolve_continuation_action_type(payload.action),
+                actor_label="consultant",
+                summary=summary or "顧問重新開啟這個 one_off 案件，回到同一個案件世界續推。",
+                event_payload={"action": payload.action},
+            )
+        )
         db.commit()
         return get_matter_workspace(db, matter_id)
 
@@ -5516,6 +5556,9 @@ def apply_matter_continuation_action(
                 status_code=400,
                 detail="目前案件策略只有 minimal writeback；請改用正式結案或補件 / 重跑，不支援 checkpoint。",
             )
+        function_type = resolve_function_type_for_continuation_action(payload.action)
+        approval_policy = ApprovalPolicy.CONSULTANT_REVIEW
+        approval_status = ApprovalStatus.APPROVED
         decision_record = models.DecisionRecord(
             task_id=primary_task.id,
             matter_workspace_id=matter_workspace.id,
@@ -5523,6 +5566,16 @@ def apply_matter_continuation_action(
             task_run_id=latest_deliverable.task_run_id if latest_deliverable else None,
             continuity_mode=continuity_mode.value,
             writeback_depth=writeback_depth.value,
+            function_type=function_type.value,
+            approval_policy=approval_policy.value,
+            approval_status=approval_status.value,
+            approval_summary=default_approval_summary(
+                policy=approval_policy,
+                status=approval_status,
+                target_label="這個 checkpoint",
+                manual_confirmation=True,
+            ),
+            approved_at=models.utc_now(),
             title=f"{matter_workspace.title}｜Checkpoint",
             decision_summary=summary or _build_default_checkpoint_summary(
                 matter_workspace,
@@ -5535,6 +5588,23 @@ def apply_matter_continuation_action(
             action_item_ids=[item.id for item in primary_task.action_items][:12],
         )
         db.add(decision_record)
+        db.flush()
+        db.add(
+            build_audit_event(
+                task_id=primary_task.id,
+                matter_workspace_id=matter_workspace.id,
+                deliverable_id=latest_deliverable.id if latest_deliverable else None,
+                decision_record_id=decision_record.id,
+                event_type=AuditEventType.CONTINUATION_ACTION_APPLIED,
+                function_type=function_type,
+                action_type=resolve_continuation_action_type(payload.action),
+                approval_policy=approval_policy,
+                approval_status=approval_status,
+                actor_label="consultant",
+                summary=decision_record.approval_summary or "顧問已把這輪檢查點正式寫回案件世界。",
+                event_payload={"action": payload.action},
+            )
+        )
         db.commit()
         return get_matter_workspace(db, matter_id)
 
@@ -5572,10 +5642,22 @@ def apply_matter_continuation_action(
             None,
         )
         if latest_action_plan is None:
+            manual_plan_policy = ApprovalPolicy.CONSULTANT_REVIEW
+            manual_plan_status = ApprovalStatus.APPROVED
             latest_action_plan = models.ActionPlan(
                 task_id=latest_decision_record.task_id,
                 matter_workspace_id=matter_workspace.id,
                 decision_record_id=latest_decision_record.id,
+                action_type=resolve_action_type_for_plan(continuity_mode).value,
+                approval_policy=manual_plan_policy.value,
+                approval_status=manual_plan_status.value,
+                approval_summary=default_approval_summary(
+                    policy=manual_plan_policy,
+                    status=manual_plan_status,
+                    target_label="這份 continuation plan",
+                    manual_confirmation=True,
+                ),
+                approved_at=models.utc_now(),
                 title=f"{matter_workspace.title}｜Continuation Plan",
                 summary="由 manual outcome logging 補上的最小 progression plan。",
                 status="planned",
@@ -5583,6 +5665,16 @@ def apply_matter_continuation_action(
             )
             db.add(latest_action_plan)
             db.flush()
+        elif latest_action_plan.approval_status != ApprovalStatus.APPROVED.value:
+            latest_action_plan.approval_status = ApprovalStatus.APPROVED.value
+            latest_action_plan.approval_summary = default_approval_summary(
+                policy=ApprovalPolicy.CONSULTANT_REVIEW,
+                status=ApprovalStatus.APPROVED,
+                target_label="這份 continuation plan",
+                manual_confirmation=True,
+            )
+            latest_action_plan.approved_at = models.utc_now()
+            db.add(latest_action_plan)
 
         latest_action_execution = next(
             iter(
@@ -5599,6 +5691,7 @@ def apply_matter_continuation_action(
                 task_id=latest_action_plan.task_id,
                 action_plan_id=latest_action_plan.id,
                 action_item_id=(latest_action_plan.action_item_ids or [None])[0],
+                action_type=resolve_action_type_for_execution(continuity_mode).value,
                 status=payload.action_status or "in_progress",
                 execution_note="由 continuation-aware manual outcome logging 建立的最小 progression execution。",
             )
@@ -5608,18 +5701,43 @@ def apply_matter_continuation_action(
             latest_action_execution.status = payload.action_status
             db.add(latest_action_execution)
 
+        function_type = resolve_function_type_for_continuation_action(payload.action)
         outcome_record = models.OutcomeRecord(
             task_id=latest_action_execution.task_id,
             matter_workspace_id=matter_workspace.id,
             decision_record_id=latest_decision_record.id,
             action_execution_id=latest_action_execution.id,
             deliverable_id=latest_decision_record.deliverable_id,
+            function_type=function_type.value,
             status="observed",
             signal_type="manual_outcome_log",
             summary=summary or _build_default_outcome_summary(matter_workspace, latest_deliverable),
             evidence_note=note or "由 continuous progression 手動補記的 outcome / progress signal。",
         )
         db.add(outcome_record)
+        db.flush()
+        db.add(
+            build_audit_event(
+                task_id=latest_action_execution.task_id,
+                matter_workspace_id=matter_workspace.id,
+                deliverable_id=latest_decision_record.deliverable_id,
+                decision_record_id=latest_decision_record.id,
+                action_plan_id=latest_action_plan.id,
+                action_execution_id=latest_action_execution.id,
+                outcome_record_id=outcome_record.id,
+                event_type=AuditEventType.CONTINUATION_ACTION_APPLIED,
+                function_type=function_type,
+                action_type=resolve_continuation_action_type(payload.action),
+                approval_policy=ApprovalPolicy.CONSULTANT_REVIEW,
+                approval_status=ApprovalStatus.APPROVED,
+                actor_label="consultant",
+                summary=summary or "顧問已把這次 outcome / progression 更新正式寫回案件世界。",
+                event_payload={
+                    "action": payload.action,
+                    "action_status": latest_action_execution.status,
+                },
+            )
+        )
         db.commit()
         return get_matter_workspace(db, matter_id)
 
@@ -6091,6 +6209,79 @@ def update_task_extension_overrides(
     return get_loaded_task(db, task.id)
 
 
+def approve_task_writeback_record(
+    db: Session,
+    task_id: str,
+    payload: schemas.TaskWritebackApprovalRequest,
+) -> schemas.TaskAggregateResponse:
+    task = get_loaded_task(db, task_id)
+    matter_workspace = _get_linked_matter_workspace(task)
+
+    if payload.target_type == "decision_record":
+        target = next((item for item in task.decision_records if item.id == payload.target_id), None)
+        if target is None:
+            raise HTTPException(status_code=404, detail="找不到指定的 decision writeback record。")
+        if target.approval_policy == ApprovalPolicy.NOT_REQUIRED.value:
+            raise HTTPException(status_code=400, detail="這筆 decision record 目前不需要另外標記正式核可。")
+        target.approval_status = ApprovalStatus.APPROVED.value
+        target.approved_at = models.utc_now()
+        target.approval_summary = _normalize_whitespace(payload.note) or default_approval_summary(
+            policy=ApprovalPolicy(target.approval_policy),
+            status=ApprovalStatus.APPROVED,
+            target_label="這筆 decision record",
+            manual_confirmation=True,
+        )
+        db.add(target)
+        db.add(
+            build_audit_event(
+                task_id=task.id,
+                matter_workspace_id=matter_workspace.id if matter_workspace else None,
+                deliverable_id=target.deliverable_id,
+                decision_record_id=target.id,
+                event_type=AuditEventType.APPROVAL_RECORDED,
+                function_type=FunctionType(target.function_type),
+                approval_policy=ApprovalPolicy(target.approval_policy),
+                approval_status=ApprovalStatus.APPROVED,
+                actor_label="consultant",
+                summary=target.approval_summary,
+                event_payload={"target_type": payload.target_type, "target_id": payload.target_id},
+            )
+        )
+    else:
+        target = next((item for item in task.action_plans if item.id == payload.target_id), None)
+        if target is None:
+            raise HTTPException(status_code=404, detail="找不到指定的 action plan。")
+        if target.approval_policy == ApprovalPolicy.NOT_REQUIRED.value:
+            raise HTTPException(status_code=400, detail="這份 action plan 目前不需要另外標記正式核可。")
+        target.approval_status = ApprovalStatus.APPROVED.value
+        target.approved_at = models.utc_now()
+        target.approval_summary = _normalize_whitespace(payload.note) or default_approval_summary(
+            policy=ApprovalPolicy(target.approval_policy),
+            status=ApprovalStatus.APPROVED,
+            target_label="這份 action plan",
+            manual_confirmation=True,
+        )
+        db.add(target)
+        db.add(
+            build_audit_event(
+                task_id=task.id,
+                matter_workspace_id=matter_workspace.id if matter_workspace else None,
+                action_plan_id=target.id,
+                decision_record_id=target.decision_record_id,
+                event_type=AuditEventType.APPROVAL_RECORDED,
+                action_type=ActionType(target.action_type),
+                approval_policy=ApprovalPolicy(target.approval_policy),
+                approval_status=ApprovalStatus.APPROVED,
+                actor_label="consultant",
+                summary=target.approval_summary,
+                event_payload={"target_type": payload.target_type, "target_id": payload.target_id},
+            )
+        )
+
+    db.commit()
+    return serialize_task(get_loaded_task(db, task.id))
+
+
 def create_task(db: Session, payload: schemas.TaskCreateRequest) -> models.Task:
     logger.info(
         "Creating task title=%s task_type=%s mode=%s",
@@ -6535,6 +6726,7 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
     action_plans: list[schemas.ActionPlanRead] = []
     action_executions: list[schemas.ActionExecutionRead] = []
     outcome_records: list[schemas.OutcomeRecordRead] = []
+    audit_events: list[schemas.AuditEventRead] = []
     seen_material_keys: set[str] = set()
     continuity_notes: list[str] = []
 
@@ -6605,6 +6797,10 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
         outcome_records.extend(
             schemas.OutcomeRecordRead.model_validate(item)
             for item in task.outcome_records
+        )
+        audit_events.extend(
+            schemas.AuditEventRead.model_validate(item)
+            for item in task.audit_events
         )
         for deliverable in sorted(task.deliverables, key=lambda item: (item.generated_at, item.version), reverse=True)[:3]:
             related_deliverables.append(
@@ -6766,6 +6962,7 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
         action_plans=sorted(action_plans, key=lambda item: item.created_at, reverse=True)[:6],
         action_executions=sorted(action_executions, key=lambda item: item.updated_at, reverse=True)[:10],
         outcome_records=sorted(outcome_records, key=lambda item: item.created_at, reverse=True)[:10],
+        audit_events=sorted(audit_events, key=lambda item: item.created_at, reverse=True)[:12],
         readiness_hint=readiness_hint,
         continuity_notes=continuity_notes,
         continuation_surface=continuation_surface,
@@ -7859,6 +8056,7 @@ def get_deliverable_workspace(
         action_plans=task_aggregate.action_plans[:6],
         action_executions=task_aggregate.action_executions[:10],
         outcome_records=task_aggregate.outcome_records[:10],
+        audit_events=task_aggregate.audit_events[:12],
         research_runs=task_aggregate.research_runs[:6],
         continuity_notes=_unique_preserve_order(continuity_notes),
         continuation_surface=continuation_surface,
@@ -9505,6 +9703,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
             schemas.ActionExecutionRead.model_validate(item) for item in task.action_executions
         ],
         outcome_records=[schemas.OutcomeRecordRead.model_validate(item) for item in task.outcome_records],
+        audit_events=[schemas.AuditEventRead.model_validate(item) for item in task.audit_events],
         matter_workspace=matter_workspace_summary,
         continuation_surface=continuation_surface,
     )

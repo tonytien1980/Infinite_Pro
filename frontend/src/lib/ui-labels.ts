@@ -177,6 +177,38 @@ const WRITEBACK_DEPTH_LABELS: Record<string, string> = {
   full: "完整閉環寫回",
 };
 
+const FUNCTION_TYPE_LABELS: Record<string, string> = {
+  diagnose_assess: "診斷 / 評估",
+  decide_converge: "決策 / 收斂",
+  review_challenge: "審閱 / Challenge",
+  synthesize_brief: "綜整 / Brief",
+  restructure_reframe: "重構 / Reframe",
+  plan_roadmap: "規劃 / Roadmap",
+  scenario_comparison: "方案比較",
+  risk_surfacing: "風險盤點",
+  checkpoint_update: "檢查點更新",
+  outcome_observation: "結果觀察",
+};
+
+const APPROVAL_POLICY_LABELS: Record<string, string> = {
+  not_required: "不需另外核可",
+  consultant_review: "需顧問確認",
+  consultant_confirmation: "需顧問正式核可",
+};
+
+const APPROVAL_STATUS_LABELS: Record<string, string> = {
+  not_required: "不需核可",
+  pending: "待正式核可",
+  approved: "已正式核可",
+  rejected: "未通過核可",
+};
+
+const AUDIT_EVENT_TYPE_LABELS: Record<string, string> = {
+  writeback_generated: "已建立正式寫回紀錄",
+  approval_recorded: "已記錄正式核可",
+  continuation_action_applied: "已套用後續動作",
+};
+
 const PRESENCE_STATE_LABELS: Record<string, string> = {
   explicit: "明確存在",
   inferred: "推定存在",
@@ -612,6 +644,34 @@ export function labelForEngagementContinuityMode(value: string) {
 
 export function labelForWritebackDepth(value: string) {
   return WRITEBACK_DEPTH_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForFunctionType(value: string | null | undefined) {
+  if (!value) {
+    return "未標示";
+  }
+  return FUNCTION_TYPE_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForApprovalPolicy(value: string | null | undefined) {
+  if (!value) {
+    return "未標示";
+  }
+  return APPROVAL_POLICY_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForApprovalStatus(value: string | null | undefined) {
+  if (!value) {
+    return "未標示";
+  }
+  return APPROVAL_STATUS_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForAuditEventType(value: string | null | undefined) {
+  if (!value) {
+    return "未標示";
+  }
+  return AUDIT_EVENT_TYPE_LABELS[value] ?? fallbackLabel(value);
 }
 
 export function labelForPresenceState(value: string) {

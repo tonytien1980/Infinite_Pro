@@ -20,6 +20,9 @@ from app.agents.base import (
 from app.agents.registry import AgentRegistry
 from app.domain import models, schemas
 from app.domain.enums import (
+    ApprovalPolicy,
+    ApprovalStatus,
+    AuditEventType,
     CapabilityArchetype,
     DeliverableClass,
     EngagementContinuityMode,
@@ -51,6 +54,15 @@ from app.services.tasks import (
     get_loaded_task,
     resolve_continuity_policy_for_task,
     serialize_task,
+)
+from app.services.writeback_contracts import (
+    build_audit_event,
+    default_approval_policy,
+    default_approval_summary,
+    initial_approval_status,
+    resolve_action_type_for_execution,
+    resolve_action_type_for_plan,
+    resolve_function_type_for_task,
 )
 
 REQUIRED_DELIVERABLE_KEYS = (
@@ -3110,6 +3122,13 @@ class HostOrchestrator:
         if writeback_depth == WritebackDepth.MINIMAL:
             return
 
+        function_type = resolve_function_type_for_task(task, deliverable)
+        decision_policy = default_approval_policy(
+            continuity_mode=continuity_mode,
+            writeback_depth=writeback_depth,
+            target="decision_record",
+        )
+        decision_status = initial_approval_status(decision_policy)
         decision_record = models.DecisionRecord(
             task_id=task.id,
             matter_workspace_id=matter_workspace.id if matter_workspace else None,
@@ -3117,6 +3136,14 @@ class HostOrchestrator:
             task_run_id=run.id,
             continuity_mode=continuity_mode.value,
             writeback_depth=writeback_depth.value,
+            function_type=function_type.value,
+            approval_policy=decision_policy.value,
+            approval_status=decision_status.value,
+            approval_summary=default_approval_summary(
+                policy=decision_policy,
+                status=decision_status,
+                target_label="這筆 decision record",
+            ),
             title=deliverable.title,
             decision_summary=(
                 self._coerce_text(deliverable.content_structure.get("executive_summary"))
@@ -3130,11 +3157,41 @@ class HostOrchestrator:
         )
         self.db.add(decision_record)
         self.db.flush()
+        self.db.add(
+            build_audit_event(
+                task_id=task.id,
+                matter_workspace_id=matter_workspace.id if matter_workspace else None,
+                deliverable_id=deliverable.id,
+                decision_record_id=decision_record.id,
+                event_type=AuditEventType.WRITEBACK_GENERATED,
+                function_type=function_type,
+                approval_policy=decision_policy,
+                approval_status=decision_status,
+                actor_label="Host",
+                summary=decision_record.approval_summary,
+                event_payload={"record_type": "decision_record", "task_run_id": run.id},
+            )
+        )
 
+        action_type = resolve_action_type_for_plan(continuity_mode)
+        plan_policy = default_approval_policy(
+            continuity_mode=continuity_mode,
+            writeback_depth=writeback_depth,
+            target="action_plan",
+        )
+        plan_status = initial_approval_status(plan_policy)
         action_plan = models.ActionPlan(
             task_id=task.id,
             matter_workspace_id=matter_workspace.id if matter_workspace else None,
             decision_record_id=decision_record.id,
+            action_type=action_type.value,
+            approval_policy=plan_policy.value,
+            approval_status=plan_status.value,
+            approval_summary=default_approval_summary(
+                policy=plan_policy,
+                status=plan_status,
+                target_label="這份 action plan",
+            ),
             title=f"{deliverable.title}｜Action Plan",
             summary="把本輪 decision output 轉成可持續追蹤的後續行動方案。",
             status="planned",
@@ -3142,6 +3199,22 @@ class HostOrchestrator:
         )
         self.db.add(action_plan)
         self.db.flush()
+        self.db.add(
+            build_audit_event(
+                task_id=task.id,
+                matter_workspace_id=matter_workspace.id if matter_workspace else None,
+                deliverable_id=deliverable.id,
+                decision_record_id=decision_record.id,
+                action_plan_id=action_plan.id,
+                event_type=AuditEventType.WRITEBACK_GENERATED,
+                action_type=action_type,
+                approval_policy=plan_policy,
+                approval_status=plan_status,
+                actor_label="Host",
+                summary=action_plan.approval_summary,
+                event_payload={"record_type": "action_plan", "task_run_id": run.id},
+            )
+        )
 
         if writeback_depth != WritebackDepth.FULL:
             return
@@ -3153,17 +3226,33 @@ class HostOrchestrator:
         ).all()
 
         for execution in previous_open_executions:
+            outcome_record = models.OutcomeRecord(
+                task_id=task.id,
+                matter_workspace_id=matter_workspace.id if matter_workspace else None,
+                decision_record_id=decision_record.id,
+                action_execution_id=execution.id,
+                deliverable_id=deliverable.id,
+                function_type=function_type.value,
+                status="observed",
+                signal_type="follow_up_run",
+                summary="後續補件 / 再分析已形成新的交付物，請回看這次更新如何影響既有 action execution。",
+                evidence_note=f"對應最新 deliverable：{deliverable.title}（{deliverable.version_tag or f'v{deliverable.version}'}）。",
+            )
+            self.db.add(outcome_record)
+            self.db.flush()
             self.db.add(
-                models.OutcomeRecord(
+                build_audit_event(
                     task_id=task.id,
                     matter_workspace_id=matter_workspace.id if matter_workspace else None,
+                    deliverable_id=deliverable.id,
                     decision_record_id=decision_record.id,
                     action_execution_id=execution.id,
-                    deliverable_id=deliverable.id,
-                    status="observed",
-                    signal_type="follow_up_run",
-                    summary="後續補件 / 再分析已形成新的交付物，請回看這次更新如何影響既有 action execution。",
-                    evidence_note=f"對應最新 deliverable：{deliverable.title}（{deliverable.version_tag or f'v{deliverable.version}'}）。",
+                    outcome_record_id=outcome_record.id,
+                    event_type=AuditEventType.WRITEBACK_GENERATED,
+                    function_type=function_type,
+                    actor_label="Host",
+                    summary="Host 已記錄這次 follow-up run 對既有 action execution 的影響。",
+                    event_payload={"record_type": "outcome_record", "signal_type": "follow_up_run"},
                 )
             )
             execution.status = "review_required"
@@ -3173,14 +3262,32 @@ class HostOrchestrator:
             self.db.add(execution)
 
         for action_item in persisted_action_items:
+            execution = models.ActionExecution(
+                task_id=task.id,
+                action_plan_id=action_plan.id,
+                action_item_id=action_item.id,
+                action_type=resolve_action_type_for_execution(continuity_mode).value,
+                status="planned",
+                owner_hint=action_item.suggested_owner,
+                execution_note="由 continuous writeback 自動建立的待追蹤行動 execution。",
+            )
+            self.db.add(execution)
+            self.db.flush()
             self.db.add(
-                models.ActionExecution(
+                build_audit_event(
                     task_id=task.id,
+                    matter_workspace_id=matter_workspace.id if matter_workspace else None,
+                    deliverable_id=deliverable.id,
+                    decision_record_id=decision_record.id,
                     action_plan_id=action_plan.id,
-                    action_item_id=action_item.id,
-                    status="planned",
-                    owner_hint=action_item.suggested_owner,
-                    execution_note="由 continuous writeback 自動建立的待追蹤行動 execution。",
+                    action_execution_id=execution.id,
+                    event_type=AuditEventType.WRITEBACK_GENERATED,
+                    action_type=resolve_action_type_for_execution(continuity_mode),
+                    approval_policy=ApprovalPolicy(plan_policy.value),
+                    approval_status=ApprovalStatus(plan_status.value),
+                    actor_label="Host",
+                    summary="Host 已建立待追蹤的 action execution。",
+                    event_payload={"record_type": "action_execution", "action_item_id": action_item.id},
                 )
             )
         self.db.flush()

@@ -130,14 +130,21 @@ Host Agent 一開始就必須負責：
    - `one_off` 不應被強迫建立完整 continuous loop
    - `continuous` 必須能支撐 decision -> action -> outcome 的最小閉環
 
-11. **world-first follow-up governance**
+11. **writeback contract framing**
+   - Host 必須把本輪輸出對應到正式的 `function_type / action_type`
+   - Host 必須區分「模型建議已產生」與「正式核可已成立」
+   - Host 不可把 model run success 直接等同於 approval success
+   - Host 寫回時應同步留下最小 `AuditEvent`
+
+12. **world-first follow-up governance**
    - follow-up supplements 應先更新既有 `CaseWorldState`
    - 再決定是刷新既有 task slice、建立新的 task slice，或只更新 evidence / deliverable context
 
-12. **history writeback**
+13. **history writeback**
    - 將本輪執行與交付結果寫回系統歷史
 
 Host Agent 不是最後才來做摘要的總結員，而是全流程治理者。
+這也包括：把既有 writeback records 補成更正式的 action / function / approval / audit contract，而不是讓 UI 或單一 model 回傳結果自行決定它們的正式地位。
 
 ---
 

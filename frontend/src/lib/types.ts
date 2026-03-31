@@ -11,6 +11,37 @@ export type EngagementContinuityMode =
   | "follow_up"
   | "continuous";
 export type WritebackDepth = "minimal" | "milestone" | "full";
+export type FunctionType =
+  | "diagnose_assess"
+  | "decide_converge"
+  | "review_challenge"
+  | "synthesize_brief"
+  | "restructure_reframe"
+  | "plan_roadmap"
+  | "scenario_comparison"
+  | "risk_surfacing"
+  | "checkpoint_update"
+  | "outcome_observation";
+export type ActionType =
+  | "decision_follow_through"
+  | "checkpoint_follow_up"
+  | "progression_action"
+  | "action_execution_tracking"
+  | "close_case"
+  | "reopen_case";
+export type ApprovalPolicy =
+  | "not_required"
+  | "consultant_review"
+  | "consultant_confirmation";
+export type ApprovalStatus =
+  | "not_required"
+  | "pending"
+  | "approved"
+  | "rejected";
+export type AuditEventType =
+  | "writeback_generated"
+  | "approval_recorded"
+  | "continuation_action_applied";
 export type PresenceState =
   | "explicit"
   | "inferred"
@@ -889,6 +920,11 @@ export interface DecisionRecord {
   task_run_id: string | null;
   continuity_mode: EngagementContinuityMode;
   writeback_depth: WritebackDepth;
+  function_type: FunctionType;
+  approval_policy: ApprovalPolicy;
+  approval_status: ApprovalStatus;
+  approval_summary: string;
+  approved_at: string | null;
   title: string;
   decision_summary: string;
   evidence_basis_ids: string[];
@@ -903,6 +939,11 @@ export interface ActionPlan {
   task_id: string;
   matter_workspace_id: string | null;
   decision_record_id: string;
+  action_type: ActionType;
+  approval_policy: ApprovalPolicy;
+  approval_status: ApprovalStatus;
+  approval_summary: string;
+  approved_at: string | null;
   title: string;
   summary: string;
   status: string;
@@ -916,6 +957,7 @@ export interface ActionExecution {
   task_id: string;
   action_plan_id: string;
   action_item_id: string | null;
+  action_type: ActionType;
   status: string;
   owner_hint: string | null;
   execution_note: string;
@@ -930,10 +972,31 @@ export interface OutcomeRecord {
   decision_record_id: string | null;
   action_execution_id: string | null;
   deliverable_id: string | null;
+  function_type: FunctionType;
   status: string;
   signal_type: string;
   summary: string;
   evidence_note: string;
+  created_at: string;
+}
+
+export interface AuditEvent {
+  id: string;
+  task_id: string;
+  matter_workspace_id: string | null;
+  deliverable_id: string | null;
+  decision_record_id: string | null;
+  action_plan_id: string | null;
+  action_execution_id: string | null;
+  outcome_record_id: string | null;
+  event_type: AuditEventType;
+  function_type: FunctionType | null;
+  action_type: ActionType | null;
+  approval_policy: ApprovalPolicy | null;
+  approval_status: ApprovalStatus | null;
+  actor_label: string;
+  summary: string;
+  event_payload: Record<string, unknown>;
   created_at: string;
 }
 
@@ -1073,6 +1136,7 @@ export interface TaskAggregate {
   action_plans: ActionPlan[];
   action_executions: ActionExecution[];
   outcome_records: OutcomeRecord[];
+  audit_events: AuditEvent[];
   matter_workspace: MatterWorkspaceSummary | null;
   continuation_surface: ContinuationSurface | null;
 }
@@ -1137,6 +1201,7 @@ export interface MatterWorkspace {
   action_plans: ActionPlan[];
   action_executions: ActionExecution[];
   outcome_records: OutcomeRecord[];
+  audit_events: AuditEvent[];
   readiness_hint: string;
   continuity_notes: string[];
   continuation_surface: ContinuationSurface | null;
@@ -1241,6 +1306,7 @@ export interface DeliverableWorkspace {
   action_plans: ActionPlan[];
   action_executions: ActionExecution[];
   outcome_records: OutcomeRecord[];
+  audit_events: AuditEvent[];
   research_runs: ResearchRun[];
   continuity_notes: string[];
   continuation_surface: ContinuationSurface | null;
@@ -1445,6 +1511,12 @@ export interface TaskCreatePayload {
 export interface TaskExtensionOverridePayload {
   pack_override_ids: string[];
   agent_override_ids: string[];
+}
+
+export interface TaskWritebackApprovalPayload {
+  target_type: "decision_record" | "action_plan";
+  target_id: string;
+  note: string;
 }
 
 export interface MatterWorkspaceMetadataUpdatePayload {

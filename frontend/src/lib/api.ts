@@ -29,6 +29,7 @@ import {
   TaskAggregate,
   TaskCreatePayload,
   TaskExtensionOverridePayload,
+  TaskWritebackApprovalPayload,
   TaskListItem,
   UploadBatchResponse,
   WorkbenchSettings,
@@ -78,6 +79,20 @@ export async function listTasks(): Promise<TaskListItem[]> {
 export async function getTask(taskId: string): Promise<TaskAggregate> {
   const response = await fetch(`${getApiBaseUrl()}/tasks/${taskId}`, {
     cache: "no-store",
+  });
+  return parseResponse<TaskAggregate>(response);
+}
+
+export async function approveTaskWriteback(
+  taskId: string,
+  payload: TaskWritebackApprovalPayload,
+): Promise<TaskAggregate> {
+  const response = await fetch(`${getApiBaseUrl()}/tasks/${taskId}/writeback-approval`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
   });
   return parseResponse<TaskAggregate>(response);
 }

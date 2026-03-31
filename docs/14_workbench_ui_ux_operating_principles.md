@@ -95,10 +95,12 @@ Infinite Pro 是顧問工作台，不是系統內部模型瀏覽器。
 - case world draft 全量欄位
 - research provenance 全量明細
 - decision / outcome records 全量列表
+- approval status / audit trail 全量紀錄
 
 這些都應屬於 `debug / trace / audit` 層，而不是主工作面首屏。
 
 若使用者只有在「覺得結論怪怪的」時才需要打開某區塊，則該區塊預設就不應展開。
+同理，Wave 1 引入的 approval / audit 語義只能作為低噪音 secondary / disclosure surface，不可升成新的首屏主線。
 
 ---
 

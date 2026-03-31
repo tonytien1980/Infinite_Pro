@@ -95,6 +95,9 @@ class Task(Base):
     outcome_records: Mapped[list["OutcomeRecord"]] = relationship(
         back_populates="task", cascade="all, delete-orphan", order_by="OutcomeRecord.created_at.desc()"
     )
+    audit_events: Mapped[list["AuditEvent"]] = relationship(
+        back_populates="task", cascade="all, delete-orphan", order_by="AuditEvent.created_at.desc()"
+    )
     recommendation_evidence_links: Mapped[list["RecommendationEvidenceLink"]] = relationship(
         back_populates="task", cascade="all, delete-orphan"
     )
@@ -1055,6 +1058,11 @@ class DecisionRecord(Base):
     task_run_id: Mapped[str | None] = mapped_column(ForeignKey("task_runs.id"), nullable=True)
     continuity_mode: Mapped[str] = mapped_column(String(30), default="one_off")
     writeback_depth: Mapped[str] = mapped_column(String(30), default="minimal")
+    function_type: Mapped[str] = mapped_column(String(50), default="synthesize_brief")
+    approval_policy: Mapped[str] = mapped_column(String(50), default="not_required")
+    approval_status: Mapped[str] = mapped_column(String(50), default="not_required")
+    approval_summary: Mapped[str] = mapped_column(Text, default="")
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     decision_summary: Mapped[str] = mapped_column(Text, default="")
     evidence_basis_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
@@ -1088,6 +1096,11 @@ class ActionPlan(Base):
         nullable=True,
     )
     decision_record_id: Mapped[str] = mapped_column(ForeignKey("decision_records.id"), nullable=False)
+    action_type: Mapped[str] = mapped_column(String(50), default="decision_follow_through")
+    approval_policy: Mapped[str] = mapped_column(String(50), default="not_required")
+    approval_status: Mapped[str] = mapped_column(String(50), default="not_required")
+    approval_summary: Mapped[str] = mapped_column(Text, default="")
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     summary: Mapped[str] = mapped_column(Text, default="")
     status: Mapped[str] = mapped_column(String(30), default="planned")
@@ -1112,6 +1125,7 @@ class ActionExecution(Base):
     task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
     action_plan_id: Mapped[str] = mapped_column(ForeignKey("action_plans.id"), nullable=False)
     action_item_id: Mapped[str | None] = mapped_column(ForeignKey("action_items.id"), nullable=True)
+    action_type: Mapped[str] = mapped_column(String(50), default="action_execution_tracking")
     status: Mapped[str] = mapped_column(String(30), default="planned")
     owner_hint: Mapped[str | None] = mapped_column(String(255), nullable=True)
     execution_note: Mapped[str] = mapped_column(Text, default="")
@@ -1144,6 +1158,7 @@ class OutcomeRecord(Base):
         nullable=True,
     )
     deliverable_id: Mapped[str | None] = mapped_column(ForeignKey("deliverables.id"), nullable=True)
+    function_type: Mapped[str] = mapped_column(String(50), default="outcome_observation")
     status: Mapped[str] = mapped_column(String(30), default="observed")
     signal_type: Mapped[str] = mapped_column(String(50), default="follow_up_run")
     summary: Mapped[str] = mapped_column(Text, default="")
@@ -1155,6 +1170,45 @@ class OutcomeRecord(Base):
     decision_record: Mapped["DecisionRecord | None"] = relationship(back_populates="outcome_records")
     action_execution: Mapped["ActionExecution | None"] = relationship(back_populates="outcome_records")
     deliverable: Mapped["Deliverable | None"] = relationship()
+
+
+class AuditEvent(Base):
+    __tablename__ = "audit_events"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    matter_workspace_id: Mapped[str | None] = mapped_column(
+        ForeignKey("matter_workspaces.id"),
+        nullable=True,
+    )
+    deliverable_id: Mapped[str | None] = mapped_column(ForeignKey("deliverables.id"), nullable=True)
+    decision_record_id: Mapped[str | None] = mapped_column(
+        ForeignKey("decision_records.id"),
+        nullable=True,
+    )
+    action_plan_id: Mapped[str | None] = mapped_column(
+        ForeignKey("action_plans.id"),
+        nullable=True,
+    )
+    action_execution_id: Mapped[str | None] = mapped_column(
+        ForeignKey("action_executions.id"),
+        nullable=True,
+    )
+    outcome_record_id: Mapped[str | None] = mapped_column(
+        ForeignKey("outcome_records.id"),
+        nullable=True,
+    )
+    event_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    function_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    action_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    approval_policy: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    approval_status: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    actor_label: Mapped[str] = mapped_column(String(100), default="system")
+    summary: Mapped[str] = mapped_column(Text, default="")
+    event_payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    task: Mapped["Task"] = relationship(back_populates="audit_events")
 
 
 class RecommendationEvidenceLink(Base):

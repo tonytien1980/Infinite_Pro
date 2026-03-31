@@ -222,6 +222,7 @@
 - 所有 related items 全量清單
 - case world draft 全量欄位
 - decision / outcome writeback 記錄
+- approval / audit 細節
 
 **正式跳轉**
 - `/matters/[matterId]/evidence`
@@ -264,6 +265,7 @@
 - 若補件 item 為 retryable failure，補件區也需直接提供 retry；若非 retryable，則應偏向 replace / remove / fallback 材料
 - 若補件區已打開 richer progress / retry history，則也需顯示這輪補件目前進度與最近處理結果，但不應退成工程式 queue dashboard
 - 段落導覽
+- approval / audit 若存在，應以次層提示或 disclosure 呈現，不可壓過補件導引與 sufficiency 主線
 
 **延後揭露**
 - 全量來源清單
@@ -402,8 +404,12 @@
 - 相關交付物
 - 完整 evidence / ontology 回鏈明細
 - decision / outcome writeback 記錄
+- approval / audit 細節
 - research provenance 細節
   需至少保留 research depth、source-quality summary、delegation status 與 citation handoff 摘要
+
+**正式規則補充**
+- approval / audit 若存在，應放在 continuity / writeback 類的 disclosure 內，而不是搶走正式發布與交付閱讀的首屏主線
 
 **交付物管理段落規則**
 - 交付物管理不應把唯讀 metadata、版本控制與正文編修塞成同一排密集表單

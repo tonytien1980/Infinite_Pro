@@ -2972,6 +2972,12 @@ def test_continuous_writeback_creates_decision_and_outcome_records(
     assert len(first_aggregate["action_plans"]) == 1
     assert first_aggregate["action_executions"]
     assert first_aggregate["outcome_records"] == []
+    assert first_aggregate["decision_records"][0]["function_type"] == "synthesize_brief"
+    assert first_aggregate["decision_records"][0]["approval_status"] == "pending"
+    assert first_aggregate["action_plans"][0]["action_type"] == "progression_action"
+    assert first_aggregate["action_plans"][0]["approval_status"] == "pending"
+    assert first_aggregate["audit_events"]
+    assert first_aggregate["audit_events"][0]["event_type"] == "writeback_generated"
 
     follow_up_ingest = client.post(
         f"/api/v1/tasks/{task['id']}/sources",
@@ -2988,6 +2994,8 @@ def test_continuous_writeback_creates_decision_and_outcome_records(
     second_aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
     assert len(second_aggregate["decision_records"]) >= 2
     assert len(second_aggregate["outcome_records"]) >= 1
+    assert second_aggregate["outcome_records"][0]["function_type"] == "synthesize_brief"
+    assert second_aggregate["audit_events"]
 
 
 def test_one_off_case_can_close_and_reopen_without_continuous_records(
@@ -3073,6 +3081,9 @@ def test_follow_up_checkpoint_action_creates_lightweight_decision_record(
     assert workspace["outcome_records"] == []
     assert workspace["continuation_surface"]["checkpoint_enabled"] is True
     assert workspace["continuation_surface"]["outcome_logging_enabled"] is False
+    assert workspace["decision_records"][0]["function_type"] == "checkpoint_update"
+    assert workspace["decision_records"][0]["approval_status"] == "approved"
+    assert workspace["audit_events"][0]["event_type"] == "continuation_action_applied"
 
 
 def test_follow_up_surfaces_show_latest_previous_checkpoint_and_change_guidance(
@@ -3211,14 +3222,62 @@ def test_continuous_manual_outcome_logging_updates_progression_surface(
     workspace_after = outcome_response.json()
     assert len(workspace_after["outcome_records"]) == before_outcomes + 1
     assert workspace_after["outcome_records"][0]["signal_type"] == "manual_outcome_log"
+    assert workspace_after["outcome_records"][0]["function_type"] == "outcome_observation"
     assert "跨部門 handoff" in workspace_after["outcome_records"][0]["summary"]
     assert any(item["status"] == "blocked" for item in workspace_after["action_executions"])
+    assert workspace_after["audit_events"][0]["event_type"] == "continuation_action_applied"
     progression_lane = workspace_after["continuation_surface"]["progression_lane"]
     assert progression_lane["latest_progression"]["summary"]
     assert progression_lane["what_changed"]
     assert progression_lane["action_states"]
     assert progression_lane["next_progression_actions"]
     assert progression_lane["evidence_update_goal"]
+
+
+def test_task_writeback_approval_marks_pending_records_approved(
+    client: TestClient,
+) -> None:
+    payload = create_task_payload("Wave 1 approval")
+    payload["external_data_strategy"] = "strict"
+    payload["engagement_continuity_mode"] = "continuous"
+    payload["writeback_depth"] = "full"
+    task = client.post("/api/v1/tasks", json=payload).json()
+
+    upload_response = client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("approval.txt", b"Approval contract should distinguish generated writeback from formal confirmation.", "text/plain"))],
+    )
+    assert upload_response.status_code == 200
+
+    run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
+    assert run_response.status_code == 200
+    aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
+
+    decision_record = aggregate["decision_records"][0]
+    action_plan = aggregate["action_plans"][0]
+    assert decision_record["approval_status"] == "pending"
+    assert action_plan["approval_status"] == "pending"
+
+    approve_decision = client.post(
+        f"/api/v1/tasks/{task['id']}/writeback-approval",
+        json={"target_type": "decision_record", "target_id": decision_record["id"], "note": ""},
+    )
+    assert approve_decision.status_code == 200
+    decision_approved = approve_decision.json()
+    assert decision_approved["decision_records"][0]["approval_status"] == "approved"
+    assert any(item["event_type"] == "approval_recorded" for item in decision_approved["audit_events"])
+
+    approve_plan = client.post(
+        f"/api/v1/tasks/{task['id']}/writeback-approval",
+        json={"target_type": "action_plan", "target_id": action_plan["id"], "note": ""},
+    )
+    assert approve_plan.status_code == 200
+    plan_approved = approve_plan.json()
+    assert plan_approved["action_plans"][0]["approval_status"] == "approved"
+    assert any(
+        item["event_type"] == "approval_recorded" and item["action_plan_id"] == action_plan["id"]
+        for item in plan_approved["audit_events"]
+    )
 
 
 def test_continuous_surfaces_show_latest_previous_progression_and_guidance(

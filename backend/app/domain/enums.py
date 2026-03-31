@@ -19,6 +19,19 @@ class CapabilityArchetype(str, Enum):
     RISK_SURFACING = "risk_surfacing"
 
 
+class FunctionType(str, Enum):
+    DIAGNOSE_ASSESS = "diagnose_assess"
+    DECIDE_CONVERGE = "decide_converge"
+    REVIEW_CHALLENGE = "review_challenge"
+    SYNTHESIZE_BRIEF = "synthesize_brief"
+    RESTRUCTURE_REFRAME = "restructure_reframe"
+    PLAN_ROADMAP = "plan_roadmap"
+    SCENARIO_COMPARISON = "scenario_comparison"
+    RISK_SURFACING = "risk_surfacing"
+    CHECKPOINT_UPDATE = "checkpoint_update"
+    OUTCOME_OBSERVATION = "outcome_observation"
+
+
 class InputEntryMode(str, Enum):
     ONE_LINE_INQUIRY = "one_line_inquiry"
     SINGLE_DOCUMENT_INTAKE = "single_document_intake"
@@ -35,6 +48,34 @@ class WritebackDepth(str, Enum):
     MINIMAL = "minimal"
     MILESTONE = "milestone"
     FULL = "full"
+
+
+class ActionType(str, Enum):
+    DECISION_FOLLOW_THROUGH = "decision_follow_through"
+    CHECKPOINT_FOLLOW_UP = "checkpoint_follow_up"
+    PROGRESSION_ACTION = "progression_action"
+    ACTION_EXECUTION_TRACKING = "action_execution_tracking"
+    CLOSE_CASE = "close_case"
+    REOPEN_CASE = "reopen_case"
+
+
+class ApprovalPolicy(str, Enum):
+    NOT_REQUIRED = "not_required"
+    CONSULTANT_REVIEW = "consultant_review"
+    CONSULTANT_CONFIRMATION = "consultant_confirmation"
+
+
+class ApprovalStatus(str, Enum):
+    NOT_REQUIRED = "not_required"
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
+class AuditEventType(str, Enum):
+    WRITEBACK_GENERATED = "writeback_generated"
+    APPROVAL_RECORDED = "approval_recorded"
+    CONTINUATION_ACTION_APPLIED = "continuation_action_applied"
 
 
 class PresenceState(str, Enum):

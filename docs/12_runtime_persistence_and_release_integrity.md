@@ -245,12 +245,19 @@ publish / artifact records 用來描述正式發布與正式輸出物。
 正式責任：
 - `DecisionRecord`
   - 保留 decision checkpoint、evidence basis、deliverable lineage
+  - 區分 `function_type`
+  - 區分 `approval_policy / approval_status`
 - `ActionPlan`
   - 把 decision 轉成可治理的行動方案
+  - 區分 `action_type`
+  - 區分 `approval_policy / approval_status`
 - `ActionExecution`
   - 追蹤 action 是否啟動、卡住、完成
+  - 保留它承接哪個正式 `action_type`
 - `OutcomeRecord`
   - 把 follow-up 訊號、後續結果與 outcome observation 寫回同一個案件世界
+- `AuditEvent`
+  - append-only 記錄 writeback 建立、approval state 變化，以及 action / outcome contract 的正式轉換
 
 正式規則：
 - `minimal`
@@ -259,6 +266,9 @@ publish / artifact records 用來描述正式發布與正式輸出物。
   - 在 `minimal` 基礎上再保留 decision checkpoints
 - `full`
   - 在 `milestone` 基礎上再保留 action execution + outcome records
+- approval state 不得與 revision history 混成同一層
+- model run success 不得被誤算成 approval success
+- `AuditEvent` 應能回鏈到對應的 decision / action / outcome record，但預設仍屬按需展開層
 
 ---
 

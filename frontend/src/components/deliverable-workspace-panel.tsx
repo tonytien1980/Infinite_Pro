@@ -28,6 +28,8 @@ import {
 import { truncateText } from "@/lib/text-format";
 import type { DeliverableContentRevision, DeliverableWorkspace } from "@/lib/types";
 import {
+  labelForApprovalStatus,
+  labelForAuditEventType,
   formatDisplayDate,
   labelForAgentId,
   labelForDeliverableEventType,
@@ -339,6 +341,10 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
         ],
       ).size
     : 0;
+  const pendingApprovalCount =
+    (workspace?.decision_records.filter((item) => item.approval_status === "pending").length ?? 0) +
+    (workspace?.action_plans.filter((item) => item.approval_status === "pending").length ?? 0);
+  const recentAuditEvents = workspace?.audit_events.slice(0, 4) ?? [];
   const recommendations = task && deliverable ? buildRecommendationCards(task, deliverable) : [];
   const risks = task && deliverable ? buildRiskCards(task, deliverable) : [];
   const actionItems = task && deliverable ? buildActionItemCards(task, deliverable) : [];
@@ -1134,6 +1140,14 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                 <h4>結果紀錄</h4>
                 <p className="content-block">{workspace.outcome_records.length} 筆</p>
               </div>
+              <div className="section-card">
+                <h4>正式核可 / 稽核</h4>
+                <p className="content-block">
+                  {pendingApprovalCount > 0
+                    ? `目前有 ${pendingApprovalCount} 筆待正式核可；若要處理，請回決策工作面。`
+                    : `目前沒有待正式核可項目；已留存 ${workspace.audit_events.length} 筆稽核事件。`}
+                </p>
+              </div>
             </div>
             {followUpLane ? (
               <div className="detail-list" style={{ marginTop: "18px" }}>
@@ -1249,6 +1263,21 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                   </ul>
                 ) : (
                   <p className="empty-text">目前沒有 research runs。</p>
+                )}
+              </div>
+              <div className="detail-item">
+                <h3>最近正式核可 / 稽核</h3>
+                {recentAuditEvents.length > 0 ? (
+                  <ul className="list-content">
+                    {recentAuditEvents.map((item) => (
+                      <li key={item.id}>
+                        {labelForAuditEventType(item.event_type)}｜{item.summary}
+                        {item.approval_status ? `｜${labelForApprovalStatus(item.approval_status)}` : ""}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="empty-text">目前還沒有額外的 writeback / approval 稽核事件。</p>
                 )}
               </div>
             </div>

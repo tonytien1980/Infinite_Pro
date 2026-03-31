@@ -4,7 +4,13 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
-import { getExtensionManager, getTask, runTask, updateTaskExtensions } from "@/lib/api";
+import {
+  approveTaskWriteback,
+  getExtensionManager,
+  getTask,
+  runTask,
+  updateTaskExtensions,
+} from "@/lib/api";
 import {
   assessTaskReadiness,
   buildActionItemCards,
@@ -39,6 +45,10 @@ import {
   resolveWorkflowKey,
 } from "@/lib/workflow-modes";
 import {
+  labelForActionStatus,
+  labelForApprovalPolicy,
+  labelForApprovalStatus,
+  labelForAuditEventType,
   formatDisplayDate,
   labelForAgentId,
   labelForAgentName,
@@ -46,6 +56,7 @@ import {
   labelForExternalDataStrategy,
   labelForEvidenceType,
   labelForFlowMode,
+  labelForFunctionType,
   labelForImpactLevel,
   labelForResearchDelegationStatus,
   labelForResearchDepth,
@@ -329,6 +340,8 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
   const [running, setRunning] = useState(false);
   const [extensionLoading, setExtensionLoading] = useState(true);
   const [savingOverrides, setSavingOverrides] = useState(false);
+  const [approvingTargetId, setApprovingTargetId] = useState<string | null>(null);
+  const [approvalFeedback, setApprovalFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [extensionError, setExtensionError] = useState<string | null>(null);
 
@@ -385,6 +398,32 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
       setError(saveError instanceof Error ? saveError.message : "更新擴充覆寫失敗。");
     } finally {
       setSavingOverrides(false);
+    }
+  }
+
+  async function handleApproveWriteback(
+    targetType: "decision_record" | "action_plan",
+    targetId: string,
+  ) {
+    try {
+      setApprovingTargetId(targetId);
+      setApprovalFeedback(null);
+      setError(null);
+      const response = await approveTaskWriteback(taskId, {
+        target_type: targetType,
+        target_id: targetId,
+        note: "",
+      });
+      setTask(response);
+      setApprovalFeedback(
+        targetType === "decision_record"
+          ? "這筆 decision record 已標記為正式核可。"
+          : "這份 action plan 已標記為正式核可。",
+      );
+    } catch (approveError) {
+      setError(approveError instanceof Error ? approveError.message : "標記正式核可失敗。");
+    } finally {
+      setApprovingTargetId(null);
     }
   }
 
@@ -456,6 +495,12 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
   const openEvidenceGaps = task?.evidence_gaps.filter((item) => item.status !== "resolved") ?? [];
   const recentDecisionRecords = task?.decision_records.slice(0, 3) ?? [];
   const recentOutcomeRecords = task?.outcome_records.slice(0, 3) ?? [];
+  const pendingDecisionApprovals =
+    task?.decision_records.filter((item) => item.approval_status === "pending").slice(0, 2) ?? [];
+  const pendingActionPlanApprovals =
+    task?.action_plans.filter((item) => item.approval_status === "pending").slice(0, 2) ?? [];
+  const pendingApprovalCount = pendingDecisionApprovals.length + pendingActionPlanApprovals.length;
+  const recentAuditEvents = task?.audit_events.slice(0, 4) ?? [];
   const worldAuthoritySummary = caseWorldState
     ? caseWorldState.client_id &&
       caseWorldState.engagement_id &&
@@ -732,6 +777,22 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                 </p>
               </div>
               <div className="section-card">
+                <h4>正式核可狀態</h4>
+                <p className="content-block">
+                  {pendingApprovalCount > 0
+                    ? `目前有 ${pendingApprovalCount} 筆待正式核可的 decision / action 記錄。`
+                    : "目前沒有待正式核可的 writeback 記錄。"}
+                </p>
+              </div>
+              <div className="section-card">
+                <h4>稽核事件</h4>
+                <p className="content-block">
+                  {task.audit_events.length > 0
+                    ? `目前已留存 ${task.audit_events.length} 筆 writeback / approval 稽核事件。`
+                    : "目前還沒有額外的 writeback / approval 稽核事件。"}
+                </p>
+              </div>
+              <div className="section-card">
                 <h4>研究來源脈絡</h4>
                 <p className="content-block">
                   {task.research_runs.length > 0
@@ -809,6 +870,66 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     ]}
                     emptyText="目前還沒有可回看的寫回紀錄。"
                   />
+                </div>
+                <div className="detail-item">
+                  <h3>正式核可 / 稽核</h3>
+                  {approvalFeedback ? <p className="success-text">{approvalFeedback}</p> : null}
+                  <div className="summary-grid">
+                    <div className="section-card">
+                      <h4>待正式核可</h4>
+                      {pendingApprovalCount > 0 ? (
+                        <ul className="list-content">
+                          {pendingDecisionApprovals.map((item) => (
+                            <li key={item.id}>
+                              Decision｜{labelForFunctionType(item.function_type)}｜{labelForApprovalPolicy(item.approval_policy)}
+                              <div className="button-row" style={{ marginTop: "8px" }}>
+                                <button
+                                  className="button-secondary"
+                                  type="button"
+                                  disabled={approvingTargetId === item.id}
+                                  onClick={() => void handleApproveWriteback("decision_record", item.id)}
+                                >
+                                  {approvingTargetId === item.id ? "處理中..." : "標記為正式核可"}
+                                </button>
+                              </div>
+                            </li>
+                          ))}
+                          {pendingActionPlanApprovals.map((item) => (
+                            <li key={item.id}>
+                              Action plan｜{labelForActionStatus(item.status)}｜{labelForApprovalPolicy(item.approval_policy)}
+                              <div className="button-row" style={{ marginTop: "8px" }}>
+                                <button
+                                  className="button-secondary"
+                                  type="button"
+                                  disabled={approvingTargetId === item.id}
+                                  onClick={() => void handleApproveWriteback("action_plan", item.id)}
+                                >
+                                  {approvingTargetId === item.id ? "處理中..." : "標記為正式核可"}
+                                </button>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="empty-text">目前沒有待處理的正式核可項目。</p>
+                      )}
+                    </div>
+                    <div className="section-card">
+                      <h4>最近稽核事件</h4>
+                      {recentAuditEvents.length > 0 ? (
+                        <ul className="list-content">
+                          {recentAuditEvents.map((item) => (
+                            <li key={item.id}>
+                              {labelForAuditEventType(item.event_type)}｜{item.actor_label}｜{item.summary}
+                              {item.approval_status ? `｜${labelForApprovalStatus(item.approval_status)}` : ""}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="empty-text">目前還沒有額外的 writeback / approval 稽核事件。</p>
+                      )}
+                    </div>
+                  </div>
                 </div>
                 {followUpLane ? (
                   <div className="detail-item">

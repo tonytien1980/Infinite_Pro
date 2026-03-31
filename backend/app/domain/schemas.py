@@ -6,10 +6,15 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.domain.enums import (
+    ActionType,
+    ApprovalPolicy,
+    ApprovalStatus,
+    AuditEventType,
     DeliverableClass,
     EngagementContinuityMode,
     ExternalDataStrategy,
     FlowMode,
+    FunctionType,
     InputEntryMode,
     PresenceState,
     RunStatus,
@@ -103,6 +108,12 @@ class MatterContinuationActionRequest(BaseModel):
     summary: str = ""
     note: str = ""
     action_status: Literal["planned", "in_progress", "blocked", "completed", "review_required"] | None = None
+
+
+class TaskWritebackApprovalRequest(BaseModel):
+    target_type: Literal["decision_record", "action_plan"]
+    target_id: str
+    note: str = ""
 
 
 class DeliverableMetadataUpdateRequest(BaseModel):
@@ -797,6 +808,11 @@ class DecisionRecordRead(ORMModel):
     task_run_id: str | None = None
     continuity_mode: EngagementContinuityMode = EngagementContinuityMode.ONE_OFF
     writeback_depth: WritebackDepth = WritebackDepth.MINIMAL
+    function_type: FunctionType = FunctionType.SYNTHESIZE_BRIEF
+    approval_policy: ApprovalPolicy = ApprovalPolicy.NOT_REQUIRED
+    approval_status: ApprovalStatus = ApprovalStatus.NOT_REQUIRED
+    approval_summary: str = ""
+    approved_at: datetime | None = None
     title: str
     decision_summary: str
     evidence_basis_ids: list[str] = Field(default_factory=list)
@@ -811,6 +827,11 @@ class ActionPlanRead(ORMModel):
     task_id: str
     matter_workspace_id: str | None = None
     decision_record_id: str
+    action_type: ActionType = ActionType.DECISION_FOLLOW_THROUGH
+    approval_policy: ApprovalPolicy = ApprovalPolicy.NOT_REQUIRED
+    approval_status: ApprovalStatus = ApprovalStatus.NOT_REQUIRED
+    approval_summary: str = ""
+    approved_at: datetime | None = None
     title: str
     summary: str
     status: str
@@ -824,6 +845,7 @@ class ActionExecutionRead(ORMModel):
     task_id: str
     action_plan_id: str
     action_item_id: str | None = None
+    action_type: ActionType = ActionType.ACTION_EXECUTION_TRACKING
     status: str
     owner_hint: str | None = None
     execution_note: str
@@ -838,10 +860,31 @@ class OutcomeRecordRead(ORMModel):
     decision_record_id: str | None = None
     action_execution_id: str | None = None
     deliverable_id: str | None = None
+    function_type: FunctionType = FunctionType.OUTCOME_OBSERVATION
     status: str
     signal_type: str
     summary: str
     evidence_note: str
+    created_at: datetime
+
+
+class AuditEventRead(ORMModel):
+    id: str
+    task_id: str
+    matter_workspace_id: str | None = None
+    deliverable_id: str | None = None
+    decision_record_id: str | None = None
+    action_plan_id: str | None = None
+    action_execution_id: str | None = None
+    outcome_record_id: str | None = None
+    event_type: AuditEventType
+    function_type: FunctionType | None = None
+    action_type: ActionType | None = None
+    approval_policy: ApprovalPolicy | None = None
+    approval_status: ApprovalStatus | None = None
+    actor_label: str
+    summary: str
+    event_payload: dict[str, Any] = Field(default_factory=dict)
     created_at: datetime
 
 
@@ -1070,6 +1113,7 @@ class MatterWorkspaceResponse(BaseModel):
     action_plans: list[ActionPlanRead] = Field(default_factory=list)
     action_executions: list[ActionExecutionRead] = Field(default_factory=list)
     outcome_records: list[OutcomeRecordRead] = Field(default_factory=list)
+    audit_events: list[AuditEventRead] = Field(default_factory=list)
     readiness_hint: str = ""
     continuity_notes: list[str] = Field(default_factory=list)
     continuation_surface: ContinuationSurfaceRead | None = None
@@ -1206,6 +1250,7 @@ class TaskAggregateResponse(BaseModel):
     action_plans: list[ActionPlanRead] = Field(default_factory=list)
     action_executions: list[ActionExecutionRead] = Field(default_factory=list)
     outcome_records: list[OutcomeRecordRead] = Field(default_factory=list)
+    audit_events: list[AuditEventRead] = Field(default_factory=list)
     matter_workspace: MatterWorkspaceSummaryRead | None = None
     continuation_surface: ContinuationSurfaceRead | None = None
 
@@ -1232,6 +1277,7 @@ class DeliverableWorkspaceResponse(BaseModel):
     action_plans: list[ActionPlanRead] = Field(default_factory=list)
     action_executions: list[ActionExecutionRead] = Field(default_factory=list)
     outcome_records: list[OutcomeRecordRead] = Field(default_factory=list)
+    audit_events: list[AuditEventRead] = Field(default_factory=list)
     research_runs: list[ResearchRunRead] = Field(default_factory=list)
     continuity_notes: list[str] = Field(default_factory=list)
     continuation_surface: ContinuationSurfaceRead | None = None

@@ -22,6 +22,8 @@ import type {
   TaskListItem,
 } from "@/lib/types";
 import {
+  labelForApprovalStatus,
+  labelForAuditEventType,
   formatFileSize,
   formatDisplayDate,
   labelForEngagementContinuityMode,
@@ -545,6 +547,10 @@ export function MatterWorkspacePanel({
     matter?.evidence_gaps.filter((item) => item.status !== "resolved").slice(0, 5) ?? [];
   const recentDecisionRecords = matter?.decision_records.slice(0, 3) ?? [];
   const recentOutcomeRecords = matter?.outcome_records.slice(0, 3) ?? [];
+  const pendingApprovalCount =
+    (matter?.decision_records.filter((item) => item.approval_status === "pending").length ?? 0) +
+    (matter?.action_plans.filter((item) => item.approval_status === "pending").length ?? 0);
+  const recentAuditEvents = matter?.audit_events.slice(0, 3) ?? [];
   const continuityStrategySummary = matter
     ? `${labelForEngagementContinuityMode(matter.summary.engagement_continuity_mode)} / ${labelForWritebackDepth(matter.summary.writeback_depth)}`
     : "";
@@ -1204,6 +1210,14 @@ export function MatterWorkspacePanel({
                     </p>
                   </div>
                   <div className="section-card">
+                    <h4>正式核可 / 稽核</h4>
+                    <p className="content-block">
+                      {pendingApprovalCount > 0
+                        ? `目前有 ${pendingApprovalCount} 筆待正式核可，另有 ${matter?.audit_events.length ?? 0} 筆稽核事件可回看。`
+                        : `目前沒有待正式核可項目；已留存 ${matter?.audit_events.length ?? 0} 筆稽核事件。`}
+                    </p>
+                  </div>
+                  <div className="section-card">
                     <h4>共享材料連續性</h4>
                     <p className="content-block">{sharedContinuitySummary}</p>
                   </div>
@@ -1270,6 +1284,21 @@ export function MatterWorkspacePanel({
                         </ul>
                       ) : (
                         <p className="empty-text">目前還沒有可回看的 writeback records。</p>
+                      )}
+                    </div>
+                    <div className="detail-item">
+                      <h3>最近正式核可 / 稽核</h3>
+                      {recentAuditEvents.length > 0 ? (
+                        <ul className="list-content">
+                          {recentAuditEvents.map((item) => (
+                            <li key={item.id}>
+                              {labelForAuditEventType(item.event_type)}｜{item.summary}
+                              {item.approval_status ? `｜${labelForApprovalStatus(item.approval_status)}` : ""}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="empty-text">目前還沒有額外的 writeback / approval 稽核事件。</p>
                       )}
                     </div>
                     {followUpLane ? (
