@@ -452,6 +452,8 @@
 - responsibilities / out-of-scope / handoff / evaluation / trace 的完整 contract
 - 使用紀錄全文
 - selected agent 與 runtime binding 的細節對照（若此頁承接 task-level override / selection context）
+- 完整 agent contract 的逐欄手動編輯表單
+  預設應先提供精簡建立模式，讓一般人可先填少量必要資訊，再由系統補齊正式欄位
 
 **正式跳轉**
 - 無跨頁主線跳轉要求，但應保留與 task-level override 的概念連結
@@ -487,6 +489,8 @@
 - 長篇定義與商業模式說明
 - 全量 problem patterns、evidence expectations、decision patterns、deliverable presets 與 pack rationale 展示
 - pack contract 編輯表單中的深層欄位
+- 完整 pack contract 的逐欄手動編輯表單
+  預設應先提供精簡建立模式，讓一般人可先填少量必要資訊，再由系統補齊正式欄位
 
 **正式跳轉**
 - 無跨頁主線跳轉要求，但應保留與 task-level pack selection 的概念連結

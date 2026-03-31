@@ -4,6 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 
 import { getExtensionManager, listTasks } from "@/lib/api";
 import {
+  buildAgentPayloadFromGuidedDraft,
+  buildGuidedAgentDraft,
+  type GuidedAgentDraft,
+} from "@/lib/extension-guided-builders";
+import {
   applyAgentFallbackState,
   buildAgentPersistenceFeedback,
   clearLocalAgentEntry,
@@ -15,6 +20,7 @@ import {
   labelForAgentType,
   labelForCapability,
   labelForExtensionStatus,
+  labelForPackName,
 } from "@/lib/ui-labels";
 import {
   createLocalId,
@@ -57,6 +63,21 @@ type AgentQualityCheck = {
   label: string;
   ready: boolean;
 };
+
+const CAPABILITY_OPTIONS = [
+  "diagnose_assess",
+  "decide_converge",
+  "review_challenge",
+  "synthesize_brief",
+  "restructure_reframe",
+  "plan_roadmap",
+  "scenario_comparison",
+  "risk_surfacing",
+] as const;
+
+function toggleSelection(values: string[], value: string) {
+  return values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
+}
 
 function buildUsageMap(tasks: TaskListItem[]) {
   const usage = new Map<string, { count: number; lastUsedAt: string }>();
@@ -275,6 +296,7 @@ export function AgentManagementPanel() {
   const [typeFilter, setTypeFilter] = useState<AgentFilterType>("all");
   const [editingAgentId, setEditingAgentId] = useState<string | null>(null);
   const [draft, setDraft] = useState<AgentDraft>(buildDraft());
+  const [guidedDraft, setGuidedDraft] = useState<GuidedAgentDraft>(buildGuidedAgentDraft());
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [agentState, setAgentState] = useAgentManagerState();
   const [loading, setLoading] = useState(true);
@@ -351,6 +373,10 @@ export function AgentManagementPanel() {
   const hostCount = managedAgents.filter((agent) => agent.agent_type === "host").length;
   const activeCount = managedAgents.filter((agent) => agent.status === "active").length;
   const completeSpecCount = managedAgents.filter((agent) => hasCoreContract(agent)).length;
+  const domainPackOptions =
+    snapshot?.pack_registry.packs.filter((pack) => pack.pack_type === "domain") ?? [];
+  const industryPackOptions =
+    snapshot?.pack_registry.packs.filter((pack) => pack.pack_type === "industry") ?? [];
   const editingAgent =
     editingAgentId ? managedAgents.find((agent) => agent.agent_id === editingAgentId) ?? null : null;
   const editingSystemHost = editingAgent?.agent_type === "host" && editingAgent.source === "system";
@@ -368,23 +394,21 @@ export function AgentManagementPanel() {
   ];
 
   function startCreate() {
+    const emptyEntry = buildEmptyAgentEntry("specialist", createLocalId("local-agent-draft"));
     setEditingAgentId(null);
-    setDraft(buildDraft(buildEmptyAgentEntry("specialist", createLocalId("local-agent-draft"))));
+    setDraft(buildDraft(emptyEntry));
+    setGuidedDraft(buildGuidedAgentDraft(emptyEntry));
     setSaveMessage(null);
   }
 
   function startEdit(agent: AgentCatalogEntry) {
     setEditingAgentId(agent.agent_id);
     setDraft(buildDraft(agent));
+    setGuidedDraft(buildGuidedAgentDraft(agent));
     setSaveMessage(null);
   }
 
-  async function handleSave() {
-    const agentId = editingAgentId ?? createLocalId("local-agent");
-    const baseAgentRow = managedAgents.find((agent) => agent.agent_id === agentId);
-    const baseAgent = baseAgentRow ? toAgentCatalogEntry(baseAgentRow) : undefined;
-    const payload = buildPayloadFromDraft(draft, agentId, baseAgent);
-
+  async function saveAgentPayload(payload: AgentCatalogEntry) {
     if (!payload.agent_name) {
       setSaveMessage("請先填寫代理名稱。");
       return;
@@ -408,10 +432,30 @@ export function AgentManagementPanel() {
       }
 
       setEditingAgentId(payload.agent_id);
+      setDraft(buildDraft(payload));
+      setGuidedDraft(buildGuidedAgentDraft(payload));
       setSaveMessage(buildAgentPersistenceFeedback(result.source, payload.agent_name));
     } catch (saveError) {
       setSaveMessage(saveError instanceof Error ? saveError.message : "保存代理失敗。");
     }
+  }
+
+  async function handleAdvancedSave() {
+    const agentId = editingAgentId ?? createLocalId("local-agent");
+    const baseAgentRow = managedAgents.find((agent) => agent.agent_id === agentId);
+    const baseAgent = baseAgentRow ? toAgentCatalogEntry(baseAgentRow) : undefined;
+    const payload = buildPayloadFromDraft(draft, agentId, baseAgent);
+    await saveAgentPayload(payload);
+  }
+
+  async function handleGuidedSave() {
+    const agentId = editingAgentId ?? createLocalId("local-agent");
+    const baseAgentRow = managedAgents.find((agent) => agent.agent_id === agentId);
+    const baseAgent = baseAgentRow
+      ? toAgentCatalogEntry(baseAgentRow)
+      : buildEmptyAgentEntry(guidedDraft.agent_type, agentId);
+    const payload = buildAgentPayloadFromGuidedDraft(guidedDraft, agentId, baseAgent);
+    await saveAgentPayload(payload);
   }
 
   async function handleToggle(agent: AgentCatalogEntry & { source: "system" | "local" }) {
@@ -723,7 +767,7 @@ export function AgentManagementPanel() {
                 <div>
                   <h2 className="panel-title">{editingAgentId ? "編輯代理" : "新增代理"}</h2>
                   <p className="panel-copy">
-                    這裡編輯的是 agent 的正式 contract。除了名稱、狀態與版本，也要一起維護責任邊界、handoff、評估與 trace 要求。
+                    先用精簡建立填入少數必要資訊，系統會自動補齊正式 agent contract；只有在你要微調細節時，再打開完整模式。
                   </p>
                   {editingAgent ? (
                     <p className="muted-text">
@@ -733,7 +777,238 @@ export function AgentManagementPanel() {
                 </div>
               </div>
 
+              <div className="summary-grid" style={{ marginBottom: "18px" }}>
+                <div className="section-card">
+                  <h4>一般人先填這些就夠</h4>
+                  <p className="content-block">
+                    你只需要說清楚這個代理叫什麼、擅長幫什麼、通常吃哪些輸入、會交出什麼結果，以及什麼情況該啟用。
+                  </p>
+                </div>
+                <div className="section-card">
+                  <h4>系統會自動補齊什麼</h4>
+                  <ul className="list-content">
+                    <li>責任邊界、defer 規則、最小證據條件</li>
+                    <li>輸出契約、handoff、evaluation focus、trace 要求</li>
+                    <li>可直接寫入 registry 的正式 agent contract</li>
+                  </ul>
+                </div>
+              </div>
+
               <div className="form-grid">
+                <div className="field">
+                  <label htmlFor="agent-guided-name">代理名稱</label>
+                  <input
+                    id="agent-guided-name"
+                    value={guidedDraft.agent_name}
+                    onChange={(event) =>
+                      setGuidedDraft((current) => ({ ...current, agent_name: event.target.value }))
+                    }
+                    placeholder="例如：法規觀察代理、商務提案代理"
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="agent-guided-type">代理類型</label>
+                  <select
+                    id="agent-guided-type"
+                    value={guidedDraft.agent_type}
+                    disabled={editingSystemHost}
+                    onChange={(event) =>
+                      setGuidedDraft((current) => ({ ...current, agent_type: event.target.value }))
+                    }
+                  >
+                    {editingSystemHost ? <option value="host">主控代理</option> : null}
+                    <option value="reasoning">推理代理</option>
+                    <option value="specialist">專家代理</option>
+                  </select>
+                </div>
+
+                <div className="field">
+                  <label htmlFor="agent-guided-version">版本</label>
+                  <input
+                    id="agent-guided-version"
+                    value={guidedDraft.version}
+                    onChange={(event) =>
+                      setGuidedDraft((current) => ({ ...current, version: event.target.value }))
+                    }
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="agent-guided-status">狀態</label>
+                  <select
+                    id="agent-guided-status"
+                    value={guidedDraft.status}
+                    disabled={editingSystemHost}
+                    onChange={(event) =>
+                      setGuidedDraft((current) => ({ ...current, status: event.target.value }))
+                    }
+                  >
+                    <option value="active">啟用中</option>
+                    {!editingSystemHost ? <option value="inactive">停用中</option> : null}
+                    <option value="draft">草稿</option>
+                  </select>
+                </div>
+
+                <div className="field">
+                  <label htmlFor="agent-guided-description">一句話說明</label>
+                  <textarea
+                    id="agent-guided-description"
+                    value={guidedDraft.description}
+                    onChange={(event) =>
+                      setGuidedDraft((current) => ({ ...current, description: event.target.value }))
+                    }
+                    placeholder="用一句話說清楚這個代理主要幫你補哪一種判斷。"
+                  />
+                </div>
+
+                <div className="field">
+                  <label>主要工作類型</label>
+                  <div className="checkbox-grid">
+                    {CAPABILITY_OPTIONS.map((capability) => (
+                      <label key={capability} className="checkbox-option">
+                        <input
+                          type="checkbox"
+                          checked={guidedDraft.supported_capabilities.includes(capability)}
+                          onChange={() =>
+                            setGuidedDraft((current) => ({
+                              ...current,
+                              supported_capabilities: toggleSelection(
+                                current.supported_capabilities,
+                                capability,
+                              ),
+                            }))
+                          }
+                        />
+                        <span>{labelForCapability(capability)}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="field">
+                  <label>相關問題面向模組包</label>
+                  <div className="checkbox-grid">
+                    {domainPackOptions.map((pack) => (
+                      <label key={pack.pack_id} className="checkbox-option">
+                        <input
+                          type="checkbox"
+                          checked={guidedDraft.relevant_domain_packs.includes(pack.pack_id)}
+                          onChange={() =>
+                            setGuidedDraft((current) => ({
+                              ...current,
+                              relevant_domain_packs: toggleSelection(
+                                current.relevant_domain_packs,
+                                pack.pack_id,
+                              ),
+                            }))
+                          }
+                        />
+                        <span>{labelForPackName(pack.pack_name)}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="field">
+                  <label>相關產業模組包</label>
+                  <div className="checkbox-grid">
+                    {industryPackOptions.map((pack) => (
+                      <label key={pack.pack_id} className="checkbox-option">
+                        <input
+                          type="checkbox"
+                          checked={guidedDraft.relevant_industry_packs.includes(pack.pack_id)}
+                          onChange={() =>
+                            setGuidedDraft((current) => ({
+                              ...current,
+                              relevant_industry_packs: toggleSelection(
+                                current.relevant_industry_packs,
+                                pack.pack_id,
+                              ),
+                            }))
+                          }
+                        />
+                        <span>{labelForPackName(pack.pack_name)}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="field">
+                  <label htmlFor="agent-guided-role-focus">這個代理最擅長幫什麼</label>
+                  <textarea
+                    id="agent-guided-role-focus"
+                    value={guidedDraft.role_focus}
+                    onChange={(event) =>
+                      setGuidedDraft((current) => ({ ...current, role_focus: event.target.value }))
+                    }
+                    placeholder={"每行一點，例如：\n拆解問題並抓主要取捨\n補足某個專業視角的判斷"}
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="agent-guided-input-focus">它通常需要哪些輸入</label>
+                  <textarea
+                    id="agent-guided-input-focus"
+                    value={guidedDraft.input_focus}
+                    onChange={(event) =>
+                      setGuidedDraft((current) => ({ ...current, input_focus: event.target.value }))
+                    }
+                    placeholder={"每行一點，例如：\n清楚的決策問題\n可引用的材料或證據"}
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="agent-guided-output-focus">你希望它交出什麼結果</label>
+                  <textarea
+                    id="agent-guided-output-focus"
+                    value={guidedDraft.output_focus}
+                    onChange={(event) =>
+                      setGuidedDraft((current) => ({ ...current, output_focus: event.target.value }))
+                    }
+                    placeholder={"每行一點，例如：\n可採用的建議\n明確的風險與缺口"}
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="agent-guided-when-to-use">什麼情況適合啟用它</label>
+                  <textarea
+                    id="agent-guided-when-to-use"
+                    value={guidedDraft.when_to_use}
+                    onChange={(event) =>
+                      setGuidedDraft((current) => ({ ...current, when_to_use: event.target.value }))
+                    }
+                    placeholder={"每行一點，例如：\n資料已經有一定厚度，需要財務角度\n這輪要做正式文件重組"}
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="agent-guided-boundaries">如果你知道，也可以補充它不該做什麼</label>
+                  <textarea
+                    id="agent-guided-boundaries"
+                    value={guidedDraft.boundary_focus}
+                    onChange={(event) =>
+                      setGuidedDraft((current) => ({ ...current, boundary_focus: event.target.value }))
+                    }
+                    placeholder={"每行一點，例如：\n不取代 Host 最終拍板\n不假裝有正式法律意見"}
+                  />
+                </div>
+
+                <div className="button-row">
+                  <button className="button-primary" type="button" onClick={handleGuidedSave}>
+                    用精簡模式儲存代理
+                  </button>
+                </div>
+                {saveMessage ? (
+                  <p className="success-text" role="status" aria-live="polite">
+                    {saveMessage}
+                  </p>
+                ) : null}
+              </div>
+
+              <details className="inline-disclosure" style={{ marginTop: "18px" }}>
+                <summary className="inline-disclosure-summary">切換完整模式微調正式 contract</summary>
+                <div className="form-grid" style={{ marginTop: "14px" }}>
                 <div className="field">
                   <label htmlFor="agent-name">代理名稱</label>
                   <input
@@ -1068,7 +1343,7 @@ export function AgentManagementPanel() {
                 </div>
 
                 <div className="button-row">
-                  <button className="button-primary" type="button" onClick={handleSave}>
+                  <button className="button-primary" type="button" onClick={handleAdvancedSave}>
                     儲存代理
                   </button>
                 </div>
@@ -1078,6 +1353,7 @@ export function AgentManagementPanel() {
                   </p>
                 ) : null}
               </div>
+              </details>
             </section>
           </div>
         </div>

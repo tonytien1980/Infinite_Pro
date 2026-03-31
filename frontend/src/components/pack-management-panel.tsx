@@ -4,6 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 
 import { getExtensionManager, listTasks } from "@/lib/api";
 import {
+  buildGuidedPackDraft,
+  buildPackPayloadFromGuidedDraft,
+  type GuidedPackDraft,
+} from "@/lib/extension-guided-builders";
+import {
   applyPackFallbackState,
   buildPackPersistenceFeedback,
   clearLocalPackEntry,
@@ -48,6 +53,24 @@ type PackQualityCheck = {
   label: string;
   ready: boolean;
 };
+
+const DOMAIN_LENS_OPTIONS = [
+  "營運",
+  "財務",
+  "募資",
+  "法務",
+  "行銷",
+  "銷售",
+  "商務開發",
+  "研究",
+  "綜合",
+  "組織人力",
+  "產品服務",
+] as const;
+
+function toggleSelection(values: string[], value: string) {
+  return values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
+}
 
 function buildUsageMap(tasks: TaskListItem[]) {
   const usage = new Map<string, { count: number; lastUsedAt: string }>();
@@ -310,6 +333,7 @@ export function PackManagementPanel() {
   const [statusFilter, setStatusFilter] = useState<PackFilterStatus>("all");
   const [editingPackId, setEditingPackId] = useState<string | null>(null);
   const [draft, setDraft] = useState<PackDraft>(buildDraft());
+  const [guidedDraft, setGuidedDraft] = useState<GuidedPackDraft>(buildGuidedPackDraft());
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [packState, setPackState] = usePackManagerState();
   const [loading, setLoading] = useState(true);
@@ -432,23 +456,21 @@ export function PackManagementPanel() {
   const signalLabel = draft.pack_type === "domain" ? "關鍵指標／經營訊號" : "關鍵指標";
 
   function startCreate() {
+    const emptyPack = buildEmptyPackEntry(activeTab, createLocalId("local-pack-draft"));
     setEditingPackId(null);
     setDraft(buildDraft({ pack_type: activeTab } as PackCatalogEntry));
+    setGuidedDraft(buildGuidedPackDraft(emptyPack));
     setSaveMessage(null);
   }
 
   function startEdit(pack: PackCatalogEntry) {
     setEditingPackId(pack.pack_id);
     setDraft(buildDraft(pack));
+    setGuidedDraft(buildGuidedPackDraft(pack));
     setSaveMessage(null);
   }
 
-  async function handleSave() {
-    const packId = editingPackId ?? createLocalId("local-pack");
-    const basePackRow = managedPacks.find((pack) => pack.pack_id === packId);
-    const basePack = basePackRow ? toPackCatalogEntry(basePackRow) : undefined;
-    const payload = buildPayloadFromDraft(draft, packId, basePack);
-
+  async function savePackPayload(payload: PackCatalogEntry) {
     if (!payload.pack_name) {
       setSaveMessage("請先填寫模組包名稱。");
       return;
@@ -467,11 +489,31 @@ export function PackManagementPanel() {
       }
 
       setEditingPackId(payload.pack_id);
-      setActiveTab(draft.pack_type);
+      setActiveTab(payload.pack_type as PackTab);
+      setDraft(buildDraft(payload));
+      setGuidedDraft(buildGuidedPackDraft(payload));
       setSaveMessage(buildPackPersistenceFeedback(result.source, payload.pack_name));
     } catch (saveError) {
       setSaveMessage(saveError instanceof Error ? saveError.message : "保存模組包失敗。");
     }
+  }
+
+  async function handleAdvancedSave() {
+    const packId = editingPackId ?? createLocalId("local-pack");
+    const basePackRow = managedPacks.find((pack) => pack.pack_id === packId);
+    const basePack = basePackRow ? toPackCatalogEntry(basePackRow) : undefined;
+    const payload = buildPayloadFromDraft(draft, packId, basePack);
+    await savePackPayload(payload);
+  }
+
+  async function handleGuidedSave() {
+    const packId = editingPackId ?? createLocalId("local-pack");
+    const basePackRow = managedPacks.find((pack) => pack.pack_id === packId);
+    const basePack = basePackRow
+      ? toPackCatalogEntry(basePackRow)
+      : buildEmptyPackEntry(guidedDraft.pack_type, packId);
+    const payload = buildPackPayloadFromGuidedDraft(guidedDraft, packId, basePack);
+    await savePackPayload(payload);
   }
 
   async function handleToggle(pack: PackCatalogEntry & { source: "system" | "local" }) {
@@ -772,7 +814,7 @@ export function PackManagementPanel() {
                 <div>
                   <h2 className="panel-title">{editingPackId ? "編輯模組包" : "新增模組包"}</h2>
                   <p className="panel-copy">
-                    這裡編輯的是 pack 的核心 contract。除了名稱、狀態與版本，也要一起維護證據期待、決策模式與交付預設。
+                    先用精簡建立填入少數必要資訊，系統會自動補齊 pack contract；只有在你要微調細節時，再打開完整模式。
                   </p>
                   {editingPackId ? (
                     <p className="muted-text">
@@ -786,7 +828,228 @@ export function PackManagementPanel() {
                 </div>
               </div>
 
+              <div className="summary-grid" style={{ marginBottom: "18px" }}>
+                <div className="section-card">
+                  <h4>一般人先填這些就夠</h4>
+                  <p className="content-block">
+                    你只需要說清楚這個模組包是什麼、常見問題、會看哪些訊號、通常需要哪些資料，以及最常見的風險。
+                  </p>
+                </div>
+                <div className="section-card">
+                  <h4>系統會自動補齊什麼</h4>
+                  <ul className="list-content">
+                    <li>decision patterns、deliverable presets、routing hints</li>
+                    <li>domain / industry 邊界、存在理由與基礎備註</li>
+                    <li>可直接進 registry 的正式 pack contract</li>
+                  </ul>
+                </div>
+              </div>
+
               <div className="form-grid">
+                <div className="field">
+                  <label htmlFor="pack-guided-name">模組包名稱</label>
+                  <input
+                    id="pack-guided-name"
+                    value={guidedDraft.pack_name}
+                    onChange={(event) =>
+                      setGuidedDraft((current) => ({ ...current, pack_name: event.target.value }))
+                    }
+                    placeholder="例如：門市零售模組包、商務提案模組包"
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="pack-guided-type">分類</label>
+                  <select
+                    id="pack-guided-type"
+                    value={guidedDraft.pack_type}
+                    onChange={(event) =>
+                      setGuidedDraft((current) => ({
+                        ...current,
+                        pack_type: event.target.value as PackTab,
+                      }))
+                    }
+                  >
+                    <option value="domain">問題面向模組包</option>
+                    <option value="industry">產業模組包</option>
+                  </select>
+                </div>
+
+                <div className="field">
+                  <label htmlFor="pack-guided-version">版本</label>
+                  <input
+                    id="pack-guided-version"
+                    value={guidedDraft.version}
+                    onChange={(event) =>
+                      setGuidedDraft((current) => ({ ...current, version: event.target.value }))
+                    }
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="pack-guided-status">狀態</label>
+                  <select
+                    id="pack-guided-status"
+                    value={guidedDraft.status}
+                    onChange={(event) =>
+                      setGuidedDraft((current) => ({ ...current, status: event.target.value }))
+                    }
+                  >
+                    <option value="active">啟用中</option>
+                    <option value="inactive">停用中</option>
+                    <option value="draft">草稿</option>
+                  </select>
+                </div>
+
+                <div className="field">
+                  <label htmlFor="pack-guided-description">一句話說明</label>
+                  <textarea
+                    id="pack-guided-description"
+                    value={guidedDraft.description}
+                    onChange={(event) =>
+                      setGuidedDraft((current) => ({ ...current, description: event.target.value }))
+                    }
+                    placeholder="用一句話說明這個模組包適合處理哪一類案件。"
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="pack-guided-definition">
+                    {guidedDraft.pack_type === "domain" ? "這個問題面向主要在處理什麼" : "這個產業最核心的脈絡是什麼"}
+                  </label>
+                  <textarea
+                    id="pack-guided-definition"
+                    value={guidedDraft.definition}
+                    onChange={(event) =>
+                      setGuidedDraft((current) => ({ ...current, definition: event.target.value }))
+                    }
+                    placeholder={
+                      guidedDraft.pack_type === "domain"
+                        ? "例如：用來判斷門市營運、通路效率與現場交付問題。"
+                        : "例如：這個產業的商業模式、限制條件與常見指標是什麼。"
+                    }
+                  />
+                </div>
+
+                {guidedDraft.pack_type === "domain" ? (
+                  <div className="field">
+                    <label>主要對應哪些問題面向</label>
+                    <div className="checkbox-grid">
+                      {DOMAIN_LENS_OPTIONS.map((lens) => (
+                        <label key={lens} className="checkbox-option">
+                          <input
+                            type="checkbox"
+                            checked={guidedDraft.domain_lenses.includes(lens)}
+                            onChange={() =>
+                              setGuidedDraft((current) => ({
+                                ...current,
+                                domain_lenses: toggleSelection(current.domain_lenses, lens),
+                              }))
+                            }
+                          />
+                          <span>{lens}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="field">
+                    <label htmlFor="pack-guided-business-models">常見商業模式</label>
+                    <textarea
+                      id="pack-guided-business-models"
+                      value={guidedDraft.common_business_models}
+                      onChange={(event) =>
+                        setGuidedDraft((current) => ({
+                          ...current,
+                          common_business_models: event.target.value,
+                        }))
+                      }
+                      placeholder={"每行一個，例如：\n訂閱制\n專案制\nDTC 電商"}
+                    />
+                  </div>
+                )}
+
+                <div className="field">
+                  <label htmlFor="pack-guided-patterns">常見問題型態</label>
+                  <textarea
+                    id="pack-guided-patterns"
+                    value={guidedDraft.common_problem_patterns}
+                    onChange={(event) =>
+                      setGuidedDraft((current) => ({
+                        ...current,
+                        common_problem_patterns: event.target.value,
+                      }))
+                    }
+                    placeholder={"每行一點，例如：\n定價與價值主張不匹配\n渠道效率下滑"}
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="pack-guided-signals">關鍵指標／經營訊號</label>
+                  <textarea
+                    id="pack-guided-signals"
+                    value={guidedDraft.key_signals}
+                    onChange={(event) =>
+                      setGuidedDraft((current) => ({ ...current, key_signals: event.target.value }))
+                    }
+                    placeholder={"每行一點，例如：\n回購率\n毛利率\n轉化率"}
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="pack-guided-evidence">通常需要哪些資料</label>
+                  <textarea
+                    id="pack-guided-evidence"
+                    value={guidedDraft.evidence_expectations}
+                    onChange={(event) =>
+                      setGuidedDraft((current) => ({
+                        ...current,
+                        evidence_expectations: event.target.value,
+                      }))
+                    }
+                    placeholder={"每行一點，例如：\n近三期經營數據\n流程文件\n顧客回饋"}
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="pack-guided-risks">常見風險或提醒</label>
+                  <textarea
+                    id="pack-guided-risks"
+                    value={guidedDraft.common_risks}
+                    onChange={(event) =>
+                      setGuidedDraft((current) => ({ ...current, common_risks: event.target.value }))
+                    }
+                    placeholder={"每行一點，例如：\n容易把短期波動誤判成結構性問題"}
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="pack-guided-routing">常見提法 / 搜尋線索</label>
+                  <textarea
+                    id="pack-guided-routing"
+                    value={guidedDraft.routing_keywords}
+                    onChange={(event) =>
+                      setGuidedDraft((current) => ({ ...current, routing_keywords: event.target.value }))
+                    }
+                    placeholder={"每行一點，例如：\n門市\n零售\n加盟\n到店"}
+                  />
+                </div>
+
+                <div className="button-row">
+                  <button className="button-primary" type="button" onClick={handleGuidedSave}>
+                    用精簡模式儲存模組包
+                  </button>
+                </div>
+                {saveMessage ? (
+                  <p className="success-text" role="status" aria-live="polite">
+                    {saveMessage}
+                  </p>
+                ) : null}
+              </div>
+
+              <details className="inline-disclosure" style={{ marginTop: "18px" }}>
+                <summary className="inline-disclosure-summary">切換完整模式微調正式 contract</summary>
+                <div className="form-grid" style={{ marginTop: "14px" }}>
                 <div className="field">
                   <label htmlFor="pack-name">模組包名稱</label>
                   <input
@@ -1029,7 +1292,7 @@ export function PackManagementPanel() {
                 </div>
 
                 <div className="button-row">
-                  <button className="button-primary" type="button" onClick={handleSave}>
+                  <button className="button-primary" type="button" onClick={handleAdvancedSave}>
                     儲存模組包
                   </button>
                 </div>
@@ -1039,6 +1302,7 @@ export function PackManagementPanel() {
                   </p>
                 ) : null}
               </div>
+              </details>
             </section>
           </div>
         </div>
