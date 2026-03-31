@@ -31,6 +31,7 @@ Before making any structural, product, ontology, agent, or UI decisions, read th
 15. `docs/12_runtime_persistence_and_release_integrity.md` when touching continuity mode, writeback depth, revision, rollback, publish, artifact registry, fallback, degraded mode, or sync recovery
 16. `docs/13_system_provider_settings_and_credentials.md` when touching system provider settings, model runtime config, credential storage, provider validation, or env precedence
 17. `.impeccable.md` when touching visual direction, theme behavior, typography, motion, accessibility posture, or interaction polish
+18. `docs/17_operational_ontology_deepen_program.md` when touching the operational-ontology deepen waves, wave-level exposure policy, `ObjectSet` planning, approval / audit semantics, canonicalization roadmap, chunk / provenance deepen, or stage-by-stage stop conditions
 
 If implementation ideas conflict with the documents, prefer the documents over assumptions.
 
@@ -42,6 +43,7 @@ If intake modes, canonical intake pipeline, case world compilation entry semanti
 If正文 persistence、continuity mode、writeback depth、decision writeback、revision、rollback、publish / artifact record、fail-closed、degraded mode、re-sync 邊界 questions appear, treat `docs/12_runtime_persistence_and_release_integrity.md` as the primary governance guide.
 If系統級 provider 設定、credential storage、active runtime config、provider validation、env precedence questions appear, treat `docs/13_system_provider_settings_and_credentials.md` as the primary governance guide.
 If visual tone, brand feeling, light/dark theme parity, typography, motion restraint, or accessibility tradeoffs appear, treat `.impeccable.md` as the design context source of truth and keep shipped code aligned with that file.
+If the request falls inside the current operational-ontology deepen program, treat `docs/17_operational_ontology_deepen_program.md` as the wave-planning and exposure-policy guide, but do not let it override the formal six-layer boundary defined by the core governance docs.
 
 ---
 
