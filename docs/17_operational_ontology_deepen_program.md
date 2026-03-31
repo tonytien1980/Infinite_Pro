@@ -111,15 +111,17 @@
 這代表本 program 不應另開一套平行的 decision / action / outcome 世界。
 後續 wave 應建立在既有 runtime anchors 上深化，而不是重寫它們的存在理由。
 
-### 3.4 尚未正式成形的深化主題
+### 3.4 尚待後續波次深化的主題
 
-截至本文件撰寫時，下列能力尚未成為 repo 內的正式 contract baseline：
+截至 2026-04-01，以下能力已成為 repo 內的正式 contract baseline：
 - `ActionType`
 - `FunctionType`
 - `ApprovalPolicy`
 - `AuditEvent`
+- matter-scoped canonicalization / merge-split / human-confirmed canonical row contract
+
+仍待後續 wave 深化的主題是：
 - `ObjectSet`
-- matter-scoped canonicalization / merge-split-human-review contract
 - `ChunkObject`
 - `MediaReference`
 - retrieval provenance contract
@@ -324,10 +326,16 @@ Wave 0 若仍是 docs-first，則通常不應更新：
 - 先解同一 matter 下多來源材料造成的重複 object 問題
 
 本波重點：
+- 先從 source-chain family 開始：
+  - `SourceDocument`
+  - `SourceMaterial`
+  - `Artifact`
+  - `Evidence`
 - merge candidate
 - split / keep separate
 - human-confirmed canonical row
 - matter-scoped duplicate reduction
+- canonical owner / local participation boundary
 
 本波 UI exposure policy：
 - 大部分複雜度留在系統內部

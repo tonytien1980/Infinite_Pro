@@ -97,6 +97,8 @@ Infinite Pro 的核心原則是：
   - delta-only `slice_decision_context`
   - canonical host payload context spine
   - canonical-first read / serialize helpers shared by aggregate / workspace / host paths
+  - matter-scoped duplicate reduction contract，能區分 merge candidate / keep separate / split / human-confirmed canonical row
+  - canonicalization 只在同一 matter 內成立，不可把不同案件世界的 rows 提前混成一個全域 identity 池
   - source-chain compatibility closeout 與 identity-line stop condition
   的 authority、write path 與 fallback 順序
 

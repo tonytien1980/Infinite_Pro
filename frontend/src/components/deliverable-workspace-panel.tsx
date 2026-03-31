@@ -345,6 +345,9 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
     (workspace?.decision_records.filter((item) => item.approval_status === "pending").length ?? 0) +
     (workspace?.action_plans.filter((item) => item.approval_status === "pending").length ?? 0);
   const recentAuditEvents = workspace?.audit_events.slice(0, 4) ?? [];
+  const canonicalizationSummary = task?.canonicalization_summary ?? null;
+  const canonicalizationCandidates = task?.canonicalization_candidates.slice(0, 3) ?? [];
+  const canonicalizationMatterId = task?.matter_workspace?.id ?? workspace?.matter_workspace?.id ?? null;
   const recommendations = task && deliverable ? buildRecommendationCards(task, deliverable) : [];
   const risks = task && deliverable ? buildRiskCards(task, deliverable) : [];
   const actionItems = task && deliverable ? buildActionItemCards(task, deliverable) : [];
@@ -1148,6 +1151,14 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                     : `目前沒有待正式核可項目；已留存 ${workspace.audit_events.length} 筆稽核事件。`}
                 </p>
               </div>
+              <div className="section-card">
+                <h4>重複材料確認</h4>
+                <p className="content-block">
+                  {canonicalizationSummary?.current_task_pending_count
+                    ? `目前有 ${canonicalizationSummary.current_task_pending_count} 組近似重複材料和這份交付物的依據鏈有關；若要處理，請回來源 / 證據工作面。`
+                    : canonicalizationSummary?.summary || "目前沒有待處理的重複材料候選。"}
+                </p>
+              </div>
             </div>
             {followUpLane ? (
               <div className="detail-list" style={{ marginTop: "18px" }}>
@@ -1280,6 +1291,26 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                   <p className="empty-text">目前還沒有額外的 writeback / approval 稽核事件。</p>
                 )}
               </div>
+              {canonicalizationCandidates.length > 0 && canonicalizationMatterId ? (
+                <div className="detail-item">
+                  <h3>需確認是否同一份材料</h3>
+                  <ul className="list-content">
+                    {canonicalizationCandidates.map((item) => (
+                      <li key={item.review_key}>
+                        {item.consultant_summary}
+                        <div style={{ marginTop: "8px" }}>
+                          <Link
+                            className="back-link"
+                            href={`/matters/${canonicalizationMatterId}/artifact-evidence#evidence-duplicate-review`}
+                          >
+                            到來源 / 證據工作面確認這組材料
+                          </Link>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
             </div>
           </DisclosurePanel>
 

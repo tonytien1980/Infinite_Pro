@@ -13,6 +13,7 @@ import {
   HistoryVisibilityUpdatePayload,
   MatterWorkspace,
   MatterContinuationActionPayload,
+  MatterCanonicalizationReviewPayload,
   MatterWorkspaceMetadataUpdatePayload,
   MatterWorkspaceSummary,
   PackContractDraftPayload,
@@ -434,6 +435,24 @@ export async function getArtifactEvidenceWorkspace(
   const apiBaseUrl = getApiBaseUrl();
   const response = await fetch(`${apiBaseUrl}/matters/${matterId}/artifact-evidence`, {
     cache: "no-store",
+  });
+  return parseResponse<ArtifactEvidenceWorkspace>(response);
+}
+
+export async function resolveMatterCanonicalizationReview(
+  matterId: string,
+  payload: MatterCanonicalizationReviewPayload,
+): Promise<ArtifactEvidenceWorkspace> {
+  const response = await fetch(`${getApiBaseUrl()}/matters/${matterId}/canonicalization-reviews`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      review_key: payload.review_key,
+      resolution: payload.resolution,
+      note: payload.note ?? "",
+    }),
   });
   return parseResponse<ArtifactEvidenceWorkspace>(response);
 }

@@ -10,6 +10,9 @@ from app.domain.enums import (
     ApprovalPolicy,
     ApprovalStatus,
     AuditEventType,
+    CanonicalizationMatchBasis,
+    CanonicalizationObjectFamily,
+    CanonicalizationReviewStatus,
     DeliverableClass,
     EngagementContinuityMode,
     ExternalDataStrategy,
@@ -113,6 +116,12 @@ class MatterContinuationActionRequest(BaseModel):
 class TaskWritebackApprovalRequest(BaseModel):
     target_type: Literal["decision_record", "action_plan"]
     target_id: str
+    note: str = ""
+
+
+class MatterCanonicalizationReviewRequest(BaseModel):
+    review_key: str
+    resolution: Literal["human_confirmed_canonical_row", "keep_separate", "split"]
     note: str = ""
 
 
@@ -415,6 +424,43 @@ class ObjectParticipationRead(BaseModel):
     participation_type: str | None = None
     participation_task_count: int = 0
     mapping_mode: str | None = None
+
+
+class CanonicalizationSummaryRead(BaseModel):
+    pending_review_count: int = 0
+    human_confirmed_count: int = 0
+    kept_separate_count: int = 0
+    split_count: int = 0
+    current_task_pending_count: int = 0
+    summary: str = ""
+
+
+class CanonicalizationCandidateRead(BaseModel):
+    review_key: str
+    object_family: CanonicalizationObjectFamily = CanonicalizationObjectFamily.SOURCE_CHAIN
+    review_status: CanonicalizationReviewStatus = CanonicalizationReviewStatus.PENDING_REVIEW
+    match_basis: CanonicalizationMatchBasis = CanonicalizationMatchBasis.DISPLAY_NAME_MATCH
+    suggested_action: Literal["merge_candidate"] | None = None
+    confidence_level: str = "medium"
+    consultant_summary: str = ""
+    canonical_title: str = ""
+    canonical_source_document_id: str | None = None
+    canonical_source_material_id: str | None = None
+    canonical_artifact_id: str | None = None
+    canonical_evidence_id: str | None = None
+    source_document_ids: list[str] = Field(default_factory=list)
+    source_material_ids: list[str] = Field(default_factory=list)
+    artifact_ids: list[str] = Field(default_factory=list)
+    evidence_ids: list[str] = Field(default_factory=list)
+    affected_task_ids: list[str] = Field(default_factory=list)
+    affected_task_titles: list[str] = Field(default_factory=list)
+    candidate_count: int = 0
+    task_count: int = 0
+    current_task_involved: bool = False
+    canonical_owner_scope: str = "matter_canonical"
+    local_participation_boundary: str = "task_slice_participation"
+    resolution_note: str = ""
+    resolved_at: datetime | None = None
 
 
 class SourceMaterialRead(ORMModel):
@@ -1114,6 +1160,10 @@ class MatterWorkspaceResponse(BaseModel):
     action_executions: list[ActionExecutionRead] = Field(default_factory=list)
     outcome_records: list[OutcomeRecordRead] = Field(default_factory=list)
     audit_events: list[AuditEventRead] = Field(default_factory=list)
+    canonicalization_summary: CanonicalizationSummaryRead = Field(
+        default_factory=CanonicalizationSummaryRead
+    )
+    canonicalization_candidates: list[CanonicalizationCandidateRead] = Field(default_factory=list)
     readiness_hint: str = ""
     continuity_notes: list[str] = Field(default_factory=list)
     continuation_surface: ContinuationSurfaceRead | None = None
@@ -1191,6 +1241,10 @@ class ArtifactEvidenceWorkspaceResponse(BaseModel):
     high_impact_gaps: list[str] = Field(default_factory=list)
     evidence_gaps: list[EvidenceGapRead] = Field(default_factory=list)
     research_runs: list[ResearchRunRead] = Field(default_factory=list)
+    canonicalization_summary: CanonicalizationSummaryRead = Field(
+        default_factory=CanonicalizationSummaryRead
+    )
+    canonicalization_candidates: list[CanonicalizationCandidateRead] = Field(default_factory=list)
     sufficiency_summary: str = ""
     deliverable_limitations: list[str] = Field(default_factory=list)
     continuity_notes: list[str] = Field(default_factory=list)
@@ -1251,6 +1305,10 @@ class TaskAggregateResponse(BaseModel):
     action_executions: list[ActionExecutionRead] = Field(default_factory=list)
     outcome_records: list[OutcomeRecordRead] = Field(default_factory=list)
     audit_events: list[AuditEventRead] = Field(default_factory=list)
+    canonicalization_summary: CanonicalizationSummaryRead = Field(
+        default_factory=CanonicalizationSummaryRead
+    )
+    canonicalization_candidates: list[CanonicalizationCandidateRead] = Field(default_factory=list)
     matter_workspace: MatterWorkspaceSummaryRead | None = None
     continuation_surface: ContinuationSurfaceRead | None = None
 

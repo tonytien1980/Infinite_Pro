@@ -287,6 +287,11 @@ class MatterWorkspace(Base):
         back_populates="matter_workspace",
         order_by="OutcomeRecord.created_at.desc()",
     )
+    canonicalization_reviews: Mapped[list["MatterCanonicalizationReview"]] = relationship(
+        back_populates="matter_workspace",
+        cascade="all, delete-orphan",
+        order_by="MatterCanonicalizationReview.updated_at.desc()",
+    )
 
 
 class MatterContentRevision(Base):
@@ -324,6 +329,57 @@ class MatterWorkspaceTaskLink(Base):
 
     matter_workspace: Mapped["MatterWorkspace"] = relationship(back_populates="task_links")
     task: Mapped["Task"] = relationship(back_populates="matter_workspace_links")
+
+
+class MatterCanonicalizationReview(Base):
+    __tablename__ = "matter_canonicalization_reviews"
+    __table_args__ = (
+        UniqueConstraint(
+            "matter_workspace_id",
+            "review_key",
+            name="uq_matter_canonicalization_review",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    matter_workspace_id: Mapped[str] = mapped_column(
+        ForeignKey("matter_workspaces.id"),
+        nullable=False,
+    )
+    object_family: Mapped[str] = mapped_column(String(50), default="source_chain")
+    match_basis: Mapped[str] = mapped_column(String(50), default="display_name_match")
+    review_key: Mapped[str] = mapped_column(String(120), nullable=False)
+    review_status: Mapped[str] = mapped_column(String(50), default="pending_review")
+    confidence_level: Mapped[str] = mapped_column(String(30), default="medium")
+    consultant_summary: Mapped[str] = mapped_column(Text, default="")
+    resolution_note: Mapped[str] = mapped_column(Text, default="")
+    resolved_by: Mapped[str] = mapped_column(String(100), default="consultant_manual")
+    canonical_source_document_id: Mapped[str | None] = mapped_column(
+        ForeignKey("source_documents.id"),
+        nullable=True,
+    )
+    canonical_source_material_id: Mapped[str | None] = mapped_column(
+        ForeignKey("source_materials.id"),
+        nullable=True,
+    )
+    canonical_artifact_id: Mapped[str | None] = mapped_column(
+        ForeignKey("artifacts.id"),
+        nullable=True,
+    )
+    canonical_evidence_id: Mapped[str | None] = mapped_column(
+        ForeignKey("evidence.id"),
+        nullable=True,
+    )
+    source_document_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
+    source_material_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
+    artifact_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
+    evidence_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
+    task_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    matter_workspace: Mapped["MatterWorkspace"] = relationship(back_populates="canonicalization_reviews")
 
 
 class TaskObjectParticipationLink(Base):

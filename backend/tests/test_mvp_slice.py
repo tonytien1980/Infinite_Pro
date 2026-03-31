@@ -1118,6 +1118,154 @@ def test_shared_materials_and_evidence_follow_world_spine_across_task_slices(
     assert workspace["summary"]["artifact_count"] >= 1
 
 
+def test_matter_scoped_canonicalization_review_lifecycle_updates_participation(
+    client: TestClient,
+) -> None:
+    first_payload = create_task_payload("Northwind duplicate source 1")
+    first_payload.update(
+        {
+            "client_name": "Northwind Studio",
+            "client_type": "中小企業",
+            "client_stage": "制度化階段",
+            "engagement_name": "Northwind Duplicate Cleanup",
+            "workstream_name": "資料整理與證據治理",
+            "decision_title": "Northwind duplicate review 1",
+            "judgment_to_make": "先判斷這批材料是否需要掛回同一條正式材料鏈。",
+        }
+    )
+    second_payload = create_task_payload("Northwind duplicate source 2")
+    second_payload.update(
+        {
+            "client_name": "Northwind Studio",
+            "client_type": "中小企業",
+            "client_stage": "制度化階段",
+            "engagement_name": "Northwind Duplicate Cleanup",
+            "workstream_name": "資料整理與證據治理",
+            "decision_title": "Northwind duplicate review 2",
+            "judgment_to_make": "先判斷同名材料是否其實是同一份正式來源。",
+        }
+    )
+
+    first_task = client.post("/api/v1/tasks", json=first_payload).json()
+    first_upload = client.post(
+        f"/api/v1/tasks/{first_task['id']}/uploads",
+        files=[("files", ("northwind-plan.txt", b"Northwind planning memo baseline evidence.", "text/plain"))],
+    )
+    assert first_upload.status_code == 200
+    first_material_id = first_upload.json()["uploaded"][0]["source_material"]["id"]
+
+    second_task = client.post("/api/v1/tasks", json=second_payload).json()
+    second_upload = client.post(
+        f"/api/v1/tasks/{second_task['id']}/uploads",
+        files=[("files", ("northwind-plan (1).txt", b"Northwind planning memo updated but still near-duplicate.", "text/plain"))],
+    )
+    assert second_upload.status_code == 200
+    second_material_id = second_upload.json()["uploaded"][0]["source_material"]["id"]
+
+    workspace = client.get(f"/api/v1/matters/{first_task['matter_workspace']['id']}/artifact-evidence").json()
+    assert workspace["canonicalization_summary"]["pending_review_count"] == 1
+    candidate = workspace["canonicalization_candidates"][0]
+    assert candidate["review_status"] == "pending_review"
+    assert candidate["suggested_action"] == "merge_candidate"
+    assert candidate["match_basis"] == "display_name_match"
+    assert candidate["task_count"] == 2
+
+    keep_separate = client.post(
+        f"/api/v1/matters/{first_task['matter_workspace']['id']}/canonicalization-reviews",
+        json={
+            "review_key": candidate["review_key"],
+            "resolution": "keep_separate",
+        },
+    )
+    assert keep_separate.status_code == 200
+    keep_body = keep_separate.json()
+    assert keep_body["canonicalization_summary"]["pending_review_count"] == 0
+    assert keep_body["canonicalization_summary"]["kept_separate_count"] == 1
+
+    kept_task = client.get(f"/api/v1/tasks/{second_task['id']}").json()
+    kept_material = next(item for item in kept_task["source_materials"] if item["id"] == second_material_id)
+    assert kept_material["participation"]["canonical_object_id"] == second_material_id
+    assert kept_material["participation"]["participation_task_count"] == 1
+
+    confirm_merge = client.post(
+        f"/api/v1/matters/{first_task['matter_workspace']['id']}/canonicalization-reviews",
+        json={
+            "review_key": candidate["review_key"],
+            "resolution": "human_confirmed_canonical_row",
+        },
+    )
+    assert confirm_merge.status_code == 200
+    merged_body = confirm_merge.json()
+    assert merged_body["canonicalization_summary"]["pending_review_count"] == 0
+    assert merged_body["canonicalization_summary"]["human_confirmed_count"] == 1
+
+    merged_task = client.get(f"/api/v1/tasks/{second_task['id']}").json()
+    merged_material = next(item for item in merged_task["source_materials"] if item["id"] == second_material_id)
+    assert merged_material["participation"]["canonical_object_id"] == first_material_id
+    assert merged_material["participation"]["participation_task_count"] == 2
+    assert merged_task["canonicalization_summary"]["current_task_pending_count"] == 0
+
+    split_response = client.post(
+        f"/api/v1/matters/{first_task['matter_workspace']['id']}/canonicalization-reviews",
+        json={
+            "review_key": candidate["review_key"],
+            "resolution": "split",
+        },
+    )
+    assert split_response.status_code == 200
+    split_body = split_response.json()
+    assert split_body["canonicalization_summary"]["split_count"] == 1
+
+    split_task = client.get(f"/api/v1/tasks/{second_task['id']}").json()
+    split_material = next(item for item in split_task["source_materials"] if item["id"] == second_material_id)
+    assert split_material["participation"]["canonical_object_id"] == second_material_id
+    assert split_material["participation"]["participation_task_count"] == 1
+
+
+def test_canonicalization_candidates_do_not_cross_matter_boundaries(
+    client: TestClient,
+) -> None:
+    alpha_payload = create_task_payload("Alpha duplicate boundary")
+    alpha_payload.update(
+        {
+            "client_name": "Alpha Studio",
+            "engagement_name": "Alpha Review",
+            "workstream_name": "Alpha Ops",
+        }
+    )
+    beta_payload = create_task_payload("Beta duplicate boundary")
+    beta_payload.update(
+        {
+            "client_name": "Beta Studio",
+            "engagement_name": "Beta Review",
+            "workstream_name": "Beta Ops",
+        }
+    )
+
+    alpha_task = client.post("/api/v1/tasks", json=alpha_payload).json()
+    beta_task = client.post("/api/v1/tasks", json=beta_payload).json()
+
+    alpha_upload = client.post(
+        f"/api/v1/tasks/{alpha_task['id']}/uploads",
+        files=[("files", ("same-name.txt", b"Alpha matter source content.", "text/plain"))],
+    )
+    beta_upload = client.post(
+        f"/api/v1/tasks/{beta_task['id']}/uploads",
+        files=[("files", ("same-name.txt", b"Beta matter source content.", "text/plain"))],
+    )
+    assert alpha_upload.status_code == 200
+    assert beta_upload.status_code == 200
+
+    alpha_workspace = client.get(
+        f"/api/v1/matters/{alpha_task['matter_workspace']['id']}/artifact-evidence"
+    ).json()
+    beta_workspace = client.get(
+        f"/api/v1/matters/{beta_task['matter_workspace']['id']}/artifact-evidence"
+    ).json()
+    assert alpha_workspace["canonicalization_summary"]["pending_review_count"] == 0
+    assert beta_workspace["canonicalization_summary"]["pending_review_count"] == 0
+
+
 def test_core_context_keeps_world_authority_and_slice_overlay_rows(client: TestClient) -> None:
     task = client.post("/api/v1/tasks", json=create_task_payload("Overlay scope rows")).json()
 

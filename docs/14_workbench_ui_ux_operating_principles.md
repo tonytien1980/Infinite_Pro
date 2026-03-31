@@ -101,6 +101,7 @@ Infinite Pro 是顧問工作台，不是系統內部模型瀏覽器。
 
 若使用者只有在「覺得結論怪怪的」時才需要打開某區塊，則該區塊預設就不應展開。
 同理，Wave 1 引入的 approval / audit 語義只能作為低噪音 secondary / disclosure surface，不可升成新的首屏主線。
+同理，Wave 2 的 canonicalization review 只能在真的出現 duplicate candidate、且需要人工確認時，以低噪音 disclosure surface 出現；UI 應優先使用「需確認是否同一份材料」之類的顧問語言，而不是把 `canonicalization` / `merge-split` 直接當作首屏主語言。
 
 ---
 

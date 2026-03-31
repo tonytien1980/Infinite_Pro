@@ -298,6 +298,29 @@ Ontology 不只定義物件名稱，也要定義：
 - 哪個 action / outcome contract 被觸發
 - 這些事件如何回鏈到 task / matter / deliverable / record
 
+### CanonicalizationReview
+代表同一個 matter 內，對來源 / 材料 / 工作物件 / 證據鏈是否其實指向同一份 canonical source chain 的正式判斷紀錄。
+
+Wave 2 的最小正式責任是：
+- 只處理同一 matter 內的 duplicate candidate
+- 正式區分：
+  - `merge_candidate`
+  - `keep_separate`
+  - `split`
+  - `human_confirmed_canonical_row`
+- 明確指出 canonical owner 仍在 matter/world spine，而 task 只保留 local participation / access boundary
+- 把人工確認後的 canonical chain 回寫到 participation mapping，而不是直接假裝完成跨案件世界去重
+
+這個物件的正式語義不是：
+- 新的頂層 layer
+- 全域自動 entity resolution 引擎
+- 每案必經的固定流程
+
+它應更接近：
+- matter-scoped source-chain duplicate governance
+- on-demand human review contract
+- world canonical ownership 與 slice-level participation boundary 的顯性化
+
 ---
 
 ### 5.5 Context extension objects

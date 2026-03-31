@@ -130,6 +130,13 @@ Host 必須在這一階段判斷：
   - `task_id` 若仍保留，應更接近 compatibility-only access path
   - upload / source batch responses 也應能顯示 shared participation，而不是退回 task-local owner 心智
   - participation bridge 應逐步從 helper / scope bridge 推進到更明確的 mapping 結構與 compatibility closeout
+  - 若同一 matter 內仍長出近似重複的 source-chain rows，系統應能形成 matter-scoped canonicalization candidate，而不是默默讓 world spine 變髒
+  - 該 candidate 至少應可承接：
+    - `merge_candidate`
+    - `keep_separate`
+    - `split`
+    - `human_confirmed_canonical_row`
+  - human review 只在真的需要人工判斷時露出，不可把 canonicalization review 變成每次 intake 的必經流程
   - Host payload 與 task / matter / evidence read models 對 core/context 的理解也應繼承同一套 world spine，而不是繞回 task-local rows
   - 若 source-chain family 已能穩定區分 canonical owner / local participation / compatibility fallback，identity 線就應進入 stop-condition 評估，而不是再無限展開
 
@@ -170,6 +177,13 @@ Host 必須在這一階段判斷：
 - Evidence 承接可直接支撐 recommendation / risk / action item / deliverable 的內容
 - metadata-only 或 limited-support 的材料，也可先留下 reference-level evidence，而不是假裝已完整抽文
 - research 補完結果也必須先回到 `SourceMaterial / Artifact / Evidence` 鏈，而不是直接偷塞進答案
+
+### 4.4 Matter-scoped canonicalization
+- intake / supplement 完成後，若同一 matter 內出現近似重複的 source-chain family，系統應形成 candidate review，而不是直接做跨案件世界 merge
+- Wave 2 的正式落點是：
+  - canonical owner 仍落在 matter/world spine
+  - task 只保留 local participation / compatibility boundary
+  - human-confirmed canonical row 只會重寫 matter 內的 participation mapping，不會把 raw rows 靜默刪除
 
 ---
 

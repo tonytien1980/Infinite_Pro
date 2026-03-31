@@ -153,6 +153,18 @@ def ensure_task_object_participation_link(
         return link
 
     changed = False
+    preserve_manual_canonical_mapping = (
+        link.canonical_object_id is not None
+        and link.canonical_object_id != link.object_id
+        and resolved_canonical_id == object_id
+    )
+    if preserve_manual_canonical_mapping:
+        resolved_canonical_id = link.canonical_object_id
+        resolved_source_document_id = link.source_document_id or resolved_source_document_id
+        resolved_source_material_id = link.source_material_id or resolved_source_material_id
+        resolved_artifact_id = link.artifact_id or resolved_artifact_id
+        resolved_evidence_id = link.evidence_id or resolved_evidence_id
+
     if link.matter_workspace_id != matter_workspace_id:
         link.matter_workspace_id = matter_workspace_id
         changed = True
@@ -246,6 +258,8 @@ def ensure_source_chain_participation_links(
 def resolve_participation_canonical_key(
     link: models.TaskObjectParticipationLink,
 ) -> str:
+    if link.canonical_object_id:
+        return link.canonical_object_id
     if link.object_type == OBJECT_TYPE_SOURCE_DOCUMENT and link.source_document_id:
         return link.source_document_id
     if link.object_type == OBJECT_TYPE_SOURCE_MATERIAL and link.source_material_id:

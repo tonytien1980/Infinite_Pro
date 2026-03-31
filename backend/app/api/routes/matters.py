@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.domain import schemas
+from app.services.canonicalization import apply_matter_canonicalization_review
 from app.services.sources import ingest_sources_for_task
 from app.services.tasks import get_primary_task_for_matter
 from app.services.tasks import (
@@ -81,6 +82,23 @@ def get_artifact_evidence_workspace_route(
     matter_id: str,
     db: Session = Depends(get_db),
 ) -> schemas.ArtifactEvidenceWorkspaceResponse:
+    return get_artifact_evidence_workspace(db, matter_id)
+
+
+@router.post(
+    "/{matter_id}/canonicalization-reviews",
+    response_model=schemas.ArtifactEvidenceWorkspaceResponse,
+)
+def apply_matter_canonicalization_review_route(
+    matter_id: str,
+    payload: schemas.MatterCanonicalizationReviewRequest,
+    db: Session = Depends(get_db),
+) -> schemas.ArtifactEvidenceWorkspaceResponse:
+    apply_matter_canonicalization_review(
+        db,
+        matter_workspace_id=matter_id,
+        payload=payload,
+    )
     return get_artifact_evidence_workspace(db, matter_id)
 
 

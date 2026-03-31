@@ -11,6 +11,7 @@ import {
 import {
   getArtifactEvidenceWorkspace,
   ingestMatterSources,
+  resolveMatterCanonicalizationReview,
   uploadMatterFiles,
 } from "@/lib/api";
 import {
@@ -28,6 +29,8 @@ import {
 } from "@/lib/intake";
 import type { ArtifactEvidenceWorkspace } from "@/lib/types";
 import {
+  labelForCanonicalizationMatchBasis,
+  labelForCanonicalizationReviewStatus,
   formatFileSize,
   formatDisplayDate,
   labelForEngagementContinuityMode,
@@ -152,6 +155,9 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
   >({});
   const [sessionItemStates, setSessionItemStates] = useState<IntakeSessionItemState[]>([]);
   const [replaceTargetId, setReplaceTargetId] = useState<string | null>(null);
+  const [resolvingCanonicalizationKey, setResolvingCanonicalizationKey] = useState<string | null>(null);
+  const [canonicalizationMessage, setCanonicalizationMessage] = useState<string | null>(null);
+  const [canonicalizationError, setCanonicalizationError] = useState<string | null>(null);
   const fileReplaceInputRef = useRef<HTMLInputElement | null>(null);
   const urlFieldRef = useRef<HTMLTextAreaElement | null>(null);
   const pastedTextFieldRef = useRef<HTMLTextAreaElement | null>(null);
@@ -174,11 +180,38 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
     void loadWorkspace();
   }, [matterId]);
 
+  async function handleResolveCanonicalization(
+    reviewKey: string,
+    resolution: "human_confirmed_canonical_row" | "keep_separate" | "split",
+    successMessage: string,
+  ) {
+    try {
+      setResolvingCanonicalizationKey(reviewKey);
+      setCanonicalizationMessage(null);
+      setCanonicalizationError(null);
+      setWorkspace(
+        await resolveMatterCanonicalizationReview(matterId, {
+          review_key: reviewKey,
+          resolution,
+        }),
+      );
+      setCanonicalizationMessage(successMessage);
+    } catch (resolveError) {
+      setCanonicalizationError(
+        resolveError instanceof Error ? resolveError.message : "更新重複材料判斷失敗。",
+      );
+    } finally {
+      setResolvingCanonicalizationKey(null);
+    }
+  }
+
   const matterCard = workspace ? buildMatterWorkspaceCard(workspace.matter_summary) : null;
   const workspaceView = workspace ? buildArtifactEvidenceWorkspaceView(workspace) : null;
   const continuationSurface = workspace?.continuation_surface ?? null;
   const followUpLane = continuationSurface?.follow_up_lane ?? null;
   const progressionLane = continuationSurface?.progression_lane ?? null;
+  const canonicalizationSummary = workspace?.canonicalization_summary ?? null;
+  const canonicalizationCandidates = workspace?.canonicalization_candidates ?? [];
   const focusTask = workspace?.related_tasks[0] ?? null;
   const evidenceActionTitle =
     workspace?.matter_summary.engagement_continuity_mode === "one_off" &&
@@ -265,6 +298,20 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
               : "補件後會直接掛回同一個案件世界。"),
           tone: "accent" as const,
         },
+        ...(canonicalizationCandidates.length > 0
+          ? [
+              {
+                href: "#evidence-duplicate-review",
+                eyebrow: "只在需要時",
+                title: "重複材料確認",
+                copy: "只有在系統懷疑同一案件世界裡長出近似重複材料時，才需要回到這裡做人工確認。",
+                meta:
+                  canonicalizationSummary?.summary ||
+                  `目前有 ${canonicalizationCandidates.length} 組待確認候選。`,
+                tone: "warm" as const,
+              },
+            ]
+          : []),
         {
           href: "#evidence-materials",
           eyebrow: "回看原始材料",
@@ -1281,6 +1328,152 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
 
           <div className="detail-grid">
             <div className="detail-stack">
+              {canonicalizationCandidates.length > 0 ? (
+              <DisclosurePanel
+                id="evidence-duplicate-review"
+                title="需確認是否同一份材料"
+                description="只有在系統懷疑同一案件世界裡可能長出近似重複材料時，再展開這層。平常不用先處理。"
+              >
+                <div className="summary-grid">
+                  <div className="section-card">
+                    <h4>目前狀態</h4>
+                    <p className="content-block">
+                      {canonicalizationSummary?.summary || "目前沒有待處理的重複材料候選。"}
+                    </p>
+                  </div>
+                  <div className="section-card">
+                    <h4>待人工確認</h4>
+                    <p className="content-block">
+                      {canonicalizationSummary?.pending_review_count ?? 0} 組
+                    </p>
+                  </div>
+                  <div className="section-card">
+                    <h4>已掛回同一條材料鏈</h4>
+                    <p className="content-block">
+                      {canonicalizationSummary?.human_confirmed_count ?? 0} 組
+                    </p>
+                  </div>
+                  <div className="section-card">
+                    <h4>已保留分開 / 拆回分開</h4>
+                    <p className="content-block">
+                      {(canonicalizationSummary?.kept_separate_count ?? 0) +
+                        (canonicalizationSummary?.split_count ?? 0)}{" "}
+                      組
+                    </p>
+                  </div>
+                </div>
+
+                {canonicalizationMessage ? (
+                  <p className="success-text" style={{ marginTop: "16px" }}>
+                    {canonicalizationMessage}
+                  </p>
+                ) : null}
+                {canonicalizationError ? (
+                  <p className="error-text" style={{ marginTop: "16px" }}>
+                    {canonicalizationError}
+                  </p>
+                ) : null}
+
+                <div className="detail-list" style={{ marginTop: "18px" }}>
+                  {canonicalizationCandidates.length > 0 ? (
+                    canonicalizationCandidates.map((item) => {
+                      const isResolving = resolvingCanonicalizationKey === item.review_key;
+                      const canConfirmMerge =
+                        item.review_status !== "human_confirmed_canonical_row";
+                      const canKeepSeparate = item.review_status === "pending_review";
+                      const canSplit =
+                        item.review_status === "human_confirmed_canonical_row";
+                      return (
+                        <div className="detail-item" key={item.review_key}>
+                          <div className="meta-row">
+                            <span className="pill">
+                              {labelForCanonicalizationReviewStatus(item.review_status)}
+                            </span>
+                            <span>{labelForCanonicalizationMatchBasis(item.match_basis)}</span>
+                            <span>
+                              {item.confidence_level === "high" ? "高信心候選" : "中信心候選"}
+                            </span>
+                            <span>影響 {item.task_count} 個 work slices</span>
+                          </div>
+                          <h3>{item.canonical_title || "未標示來源材料"}</h3>
+                          <p className="content-block">{item.consultant_summary}</p>
+                          <div className="meta-row">
+                            <span>{item.candidate_count} 份近似材料</span>
+                            <span>canonical owner：案件世界</span>
+                            <span>task 只保留工作切片參與</span>
+                          </div>
+                          {item.affected_task_titles.length > 0 ? (
+                            <p className="muted-text">
+                              <strong>涉及工作：</strong>
+                              {item.affected_task_titles.join("、")}
+                            </p>
+                          ) : null}
+                          {item.resolution_note ? (
+                            <p className="muted-text">
+                              <strong>最近判斷：</strong>
+                              {item.resolution_note}
+                            </p>
+                          ) : null}
+                          <div className="button-row" style={{ marginTop: "12px" }}>
+                            {canConfirmMerge ? (
+                              <button
+                                className="button-secondary"
+                                type="button"
+                                disabled={isResolving}
+                                onClick={() =>
+                                  void handleResolveCanonicalization(
+                                    item.review_key,
+                                    "human_confirmed_canonical_row",
+                                    "這組近似材料已確認掛回同一條正式材料鏈。",
+                                  )
+                                }
+                              >
+                                {isResolving ? "處理中..." : "確認掛回同一份材料"}
+                              </button>
+                            ) : null}
+                            {canKeepSeparate ? (
+                              <button
+                                className="button-secondary"
+                                type="button"
+                                disabled={isResolving}
+                                onClick={() =>
+                                  void handleResolveCanonicalization(
+                                    item.review_key,
+                                    "keep_separate",
+                                    "這組近似材料已先保留分開。",
+                                  )
+                                }
+                              >
+                                {isResolving ? "處理中..." : "先保留分開"}
+                              </button>
+                            ) : null}
+                            {canSplit ? (
+                              <button
+                                className="button-secondary"
+                                type="button"
+                                disabled={isResolving}
+                                onClick={() =>
+                                  void handleResolveCanonicalization(
+                                    item.review_key,
+                                    "split",
+                                    "這組材料已拆回分開，不再共用同一條正式材料鏈。",
+                                  )
+                                }
+                              >
+                                {isResolving ? "處理中..." : "改回分開"}
+                              </button>
+                            ) : null}
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="empty-text">目前沒有待處理的重複材料候選。</p>
+                  )}
+                </div>
+              </DisclosurePanel>
+              ) : null}
+
               <DisclosurePanel
                 id="evidence-materials"
                 title="來源材料"

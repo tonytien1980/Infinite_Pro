@@ -270,6 +270,27 @@ publish / artifact records 用來描述正式發布與正式輸出物。
 - model run success 不得被誤算成 approval success
 - `AuditEvent` 應能回鏈到對應的 decision / action / outcome record，但預設仍屬按需展開層
 
+### 5.5 Matter-scoped canonicalization review
+
+這一層用來保留同一 matter 內 duplicate candidate 的正式人工判斷，不屬於 revision history，也不等於全域 entity resolution 平台。
+
+正式責任：
+- 保留同一案件世界下的 `merge_candidate`
+- 保留 `keep_separate`
+- 保留 `split`
+- 保留 `human_confirmed_canonical_row`
+- 明確指出 canonical owner / local participation boundary
+
+正式規則：
+- 只處理同一 matter 內的 source-chain duplicate candidate
+- 不可跨案件世界做 merge
+- human-confirmed canonical row 應只回寫 matter-scoped participation mapping
+- raw source / material / artifact / evidence rows 不得因第一波 canonicalization 被靜默刪除
+- review surface 應屬按需展開層，而不是每案首屏主線
+
+目前正式 table：
+- `matter_canonicalization_reviews`
+
 ---
 
 ## 6. Revision 與 Rollback 的正式規則

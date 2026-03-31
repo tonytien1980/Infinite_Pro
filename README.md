@@ -442,6 +442,10 @@ The repository currently contains a working early implementation slice within th
 - append-only audit events for writeback generation, formal approval changes, and continuation actions
 - low-noise approval / audit visibility in matter / task / deliverable disclosure surfaces
 - task-level secondary action for marking pending decision / action writeback as formally approved
+- minimal Wave 2 matter-scoped canonicalization contract for the source-chain family
+- duplicate candidate handling that can distinguish `merge_candidate / keep_separate / split / human_confirmed_canonical_row`
+- matter-scoped review records that re-point participation mapping without deleting raw source rows or merging across matters
+- low-noise duplicate review visibility in matter / evidence / task disclosure surfaces, with deliverable continuity disclosure staying intact
 - structured deliverable rendering
 - Markdown and DOCX artifact export with backend artifact records
 - system-level provider settings UI with single active runtime config, backend credential storage, validation, and `DB -> env` precedence

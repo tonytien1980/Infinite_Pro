@@ -501,6 +501,10 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
     task?.action_plans.filter((item) => item.approval_status === "pending").slice(0, 2) ?? [];
   const pendingApprovalCount = pendingDecisionApprovals.length + pendingActionPlanApprovals.length;
   const recentAuditEvents = task?.audit_events.slice(0, 4) ?? [];
+  const canonicalizationSummary = task?.canonicalization_summary ?? null;
+  const taskCanonicalizationCandidates = task?.canonicalization_candidates.slice(0, 4) ?? [];
+  const currentTaskPendingCanonicalizationCount =
+    canonicalizationSummary?.current_task_pending_count ?? 0;
   const worldAuthoritySummary = caseWorldState
     ? caseWorldState.client_id &&
       caseWorldState.engagement_id &&
@@ -521,6 +525,11 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
   const localOverlaySummary = sliceDecisionContext
     ? `目前這筆工作仍保留 ${sliceOverlayFieldCount} 項本地決策差異，供在途工作與相容層使用；正式核心／脈絡權威與主讀取路徑已優先回到案件世界。`
     : "目前沒有額外的本地決策覆層。";
+  const canonicalizationSurfaceSummary = canonicalizationSummary
+    ? currentTaskPendingCanonicalizationCount > 0
+      ? `目前有 ${currentTaskPendingCanonicalizationCount} 組近似重複材料和這筆工作有關；若要處理，請到來源 / 證據工作面確認。`
+      : canonicalizationSummary.summary
+    : "目前沒有和這筆工作直接相關的重複材料候選。";
   const sortedRecommendations = task?.recommendations
     ? [...task.recommendations].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
@@ -805,6 +814,10 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                 <p className="content-block">{sharedContinuitySummary}</p>
               </div>
               <div className="section-card">
+                <h4>重複材料確認</h4>
+                <p className="content-block">{canonicalizationSurfaceSummary}</p>
+              </div>
+              <div className="section-card">
                 <h4>本地覆層</h4>
                 <p className="content-block">{localOverlaySummary}</p>
               </div>
@@ -871,6 +884,28 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     emptyText="目前還沒有可回看的寫回紀錄。"
                   />
                 </div>
+                {taskCanonicalizationCandidates.length > 0 ? (
+                  <div className="detail-item">
+                    <h3>需確認是否同一份材料</h3>
+                    <ul className="list-content">
+                      {taskCanonicalizationCandidates.map((item) => (
+                        <li key={item.review_key}>
+                          {item.consultant_summary}
+                          {task.matter_workspace ? (
+                            <div style={{ marginTop: "8px" }}>
+                              <Link
+                                className="back-link"
+                                href={`/matters/${task.matter_workspace.id}/artifact-evidence#evidence-duplicate-review`}
+                              >
+                                到來源 / 證據工作面確認這組材料
+                              </Link>
+                            </div>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
                 <div className="detail-item">
                   <h3>正式核可 / 稽核</h3>
                   {approvalFeedback ? <p className="success-text">{approvalFeedback}</p> : null}

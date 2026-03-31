@@ -639,6 +639,54 @@ export interface ObjectParticipation {
   mapping_mode: string | null;
 }
 
+export type CanonicalizationReviewStatus =
+  | "pending_review"
+  | "human_confirmed_canonical_row"
+  | "keep_separate"
+  | "split";
+
+export type CanonicalizationMatchBasis =
+  | "content_digest_match"
+  | "source_ref_match"
+  | "display_name_match";
+
+export interface CanonicalizationSummary {
+  pending_review_count: number;
+  human_confirmed_count: number;
+  kept_separate_count: number;
+  split_count: number;
+  current_task_pending_count: number;
+  summary: string;
+}
+
+export interface CanonicalizationCandidate {
+  review_key: string;
+  object_family: "source_chain";
+  review_status: CanonicalizationReviewStatus;
+  match_basis: CanonicalizationMatchBasis;
+  suggested_action: "merge_candidate" | null;
+  confidence_level: string;
+  consultant_summary: string;
+  canonical_title: string;
+  canonical_source_document_id: string | null;
+  canonical_source_material_id: string | null;
+  canonical_artifact_id: string | null;
+  canonical_evidence_id: string | null;
+  source_document_ids: string[];
+  source_material_ids: string[];
+  artifact_ids: string[];
+  evidence_ids: string[];
+  affected_task_ids: string[];
+  affected_task_titles: string[];
+  candidate_count: number;
+  task_count: number;
+  current_task_involved: boolean;
+  canonical_owner_scope: string;
+  local_participation_boundary: string;
+  resolution_note: string;
+  resolved_at: string | null;
+}
+
 export interface SourceMaterial {
   id: string;
   task_id: string;
@@ -1137,6 +1185,8 @@ export interface TaskAggregate {
   action_executions: ActionExecution[];
   outcome_records: OutcomeRecord[];
   audit_events: AuditEvent[];
+  canonicalization_summary: CanonicalizationSummary;
+  canonicalization_candidates: CanonicalizationCandidate[];
   matter_workspace: MatterWorkspaceSummary | null;
   continuation_surface: ContinuationSurface | null;
 }
@@ -1202,6 +1252,8 @@ export interface MatterWorkspace {
   action_executions: ActionExecution[];
   outcome_records: OutcomeRecord[];
   audit_events: AuditEvent[];
+  canonicalization_summary: CanonicalizationSummary;
+  canonicalization_candidates: CanonicalizationCandidate[];
   readiness_hint: string;
   continuity_notes: string[];
   continuation_surface: ContinuationSurface | null;
@@ -1279,6 +1331,8 @@ export interface ArtifactEvidenceWorkspace {
   high_impact_gaps: string[];
   evidence_gaps: EvidenceGap[];
   research_runs: ResearchRun[];
+  canonicalization_summary: CanonicalizationSummary;
+  canonicalization_candidates: CanonicalizationCandidate[];
   sufficiency_summary: string;
   deliverable_limitations: string[];
   continuity_notes: string[];
@@ -1527,6 +1581,12 @@ export interface MatterWorkspaceMetadataUpdatePayload {
 
 export interface MatterWorkspaceUpdatePayload extends MatterWorkspaceMetadataUpdatePayload {
   content_sections: MatterWorkspaceContentSections;
+}
+
+export interface MatterCanonicalizationReviewPayload {
+  review_key: string;
+  resolution: "human_confirmed_canonical_row" | "keep_separate" | "split";
+  note?: string;
 }
 
 export interface DeliverableMetadataUpdatePayload {

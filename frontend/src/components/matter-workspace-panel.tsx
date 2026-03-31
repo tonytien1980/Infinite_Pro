@@ -551,6 +551,9 @@ export function MatterWorkspacePanel({
     (matter?.decision_records.filter((item) => item.approval_status === "pending").length ?? 0) +
     (matter?.action_plans.filter((item) => item.approval_status === "pending").length ?? 0);
   const recentAuditEvents = matter?.audit_events.slice(0, 3) ?? [];
+  const canonicalizationSummary = matter?.canonicalization_summary ?? null;
+  const canonicalizationCandidates = matter?.canonicalization_candidates.slice(0, 4) ?? [];
+  const pendingCanonicalizationCount = canonicalizationSummary?.pending_review_count ?? 0;
   const continuityStrategySummary = matter
     ? `${labelForEngagementContinuityMode(matter.summary.engagement_continuity_mode)} / ${labelForWritebackDepth(matter.summary.writeback_depth)}`
     : "";
@@ -567,6 +570,11 @@ export function MatterWorkspacePanel({
       ? `目前已有 ${matter.summary.source_material_count} 份來源材料、${matter.summary.artifact_count} 份工作物件可跨工作切片回看。`
       : "目前還沒有可跨工作切片重訪的共享材料。"
     : "目前還沒有可顯示的共享材料連續性。";
+  const canonicalizationSurfaceSummary = canonicalizationSummary
+    ? pendingCanonicalizationCount > 0
+      ? `目前有 ${pendingCanonicalizationCount} 組需確認是否同一份材料；若要處理，請到來源 / 證據工作面。`
+      : canonicalizationSummary.summary
+    : "目前沒有待處理的重複材料候選。";
   const heroStrategySummary = continuityStrategySummary
     ? `案件策略：${continuityStrategySummary}`
     : "案件策略尚未完整建立。";
@@ -1221,6 +1229,10 @@ export function MatterWorkspacePanel({
                     <h4>共享材料連續性</h4>
                     <p className="content-block">{sharedContinuitySummary}</p>
                   </div>
+                  <div className="section-card">
+                    <h4>重複材料確認</h4>
+                    <p className="content-block">{canonicalizationSurfaceSummary}</p>
+                  </div>
                 </div>
 
                 {caseWorldState || latestCaseWorldDraft ? (
@@ -1301,6 +1313,26 @@ export function MatterWorkspacePanel({
                         <p className="empty-text">目前還沒有額外的 writeback / approval 稽核事件。</p>
                       )}
                     </div>
+                    {canonicalizationCandidates.length > 0 ? (
+                      <div className="detail-item">
+                        <h3>需確認是否同一份材料</h3>
+                        <ul className="list-content">
+                          {canonicalizationCandidates.map((item) => (
+                            <li key={item.review_key}>
+                              {item.consultant_summary}
+                              <div style={{ marginTop: "8px" }}>
+                                <Link
+                                  className="back-link"
+                                  href={`/matters/${matterId}/artifact-evidence#evidence-duplicate-review`}
+                                >
+                                  到來源 / 證據工作面確認這組材料
+                                </Link>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
                     {followUpLane ? (
                       <div className="detail-item">
                         <h3>建議 / 風險 / action continuity</h3>

@@ -209,6 +209,19 @@ const AUDIT_EVENT_TYPE_LABELS: Record<string, string> = {
   continuation_action_applied: "已套用後續動作",
 };
 
+const CANONICALIZATION_REVIEW_STATUS_LABELS: Record<string, string> = {
+  pending_review: "待確認是否同一份材料",
+  human_confirmed_canonical_row: "已確認掛回同一份材料",
+  keep_separate: "已保留分開",
+  split: "已拆回分開",
+};
+
+const CANONICALIZATION_MATCH_BASIS_LABELS: Record<string, string> = {
+  content_digest_match: "內容指紋一致",
+  source_ref_match: "來源相同",
+  display_name_match: "名稱高度相近",
+};
+
 const PRESENCE_STATE_LABELS: Record<string, string> = {
   explicit: "明確存在",
   inferred: "推定存在",
@@ -672,6 +685,20 @@ export function labelForAuditEventType(value: string | null | undefined) {
     return "未標示";
   }
   return AUDIT_EVENT_TYPE_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForCanonicalizationReviewStatus(value: string | null | undefined) {
+  if (!value) {
+    return "未標示";
+  }
+  return CANONICALIZATION_REVIEW_STATUS_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForCanonicalizationMatchBasis(value: string | null | undefined) {
+  if (!value) {
+    return "未標示";
+  }
+  return CANONICALIZATION_MATCH_BASIS_LABELS[value] ?? fallbackLabel(value);
 }
 
 export function labelForPresenceState(value: string) {

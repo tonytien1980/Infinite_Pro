@@ -35,6 +35,7 @@ from app.extensions.resolver import (
 )
 from app.extensions.schemas import AgentResolverInput, AgentSpec, PackResolverInput, PackSpec, PackType
 from app.services.artifact_storage import load_artifact_content
+from app.services.canonicalization import build_matter_canonicalization_contract
 from app.services.content_revisions import (
     CONTENT_REVISION_SOURCE_MANUAL_EDIT,
     CONTENT_REVISION_SOURCE_ROLLBACK,
@@ -959,6 +960,7 @@ def _build_legacy_artifact_read(
 @dataclass
 class _TaskObjectParticipationSnapshot:
     current_links: dict[tuple[str, str], models.TaskObjectParticipationLink]
+    current_object_links: dict[tuple[str, str], models.TaskObjectParticipationLink]
     participation_counts: dict[tuple[str, str], int]
 
 
@@ -969,7 +971,11 @@ def _load_task_object_participation_snapshot(
     task_id: str,
 ) -> _TaskObjectParticipationSnapshot:
     if db is None or matter_workspace_id is None:
-        return _TaskObjectParticipationSnapshot(current_links={}, participation_counts={})
+        return _TaskObjectParticipationSnapshot(
+            current_links={},
+            current_object_links={},
+            participation_counts={},
+        )
 
     rows = db.scalars(
         select(models.TaskObjectParticipationLink)
@@ -977,15 +983,21 @@ def _load_task_object_participation_snapshot(
         .order_by(models.TaskObjectParticipationLink.created_at)
     ).all()
     current_links: dict[tuple[str, str], models.TaskObjectParticipationLink] = {}
-    participation_counts: dict[tuple[str, str], int] = {}
+    current_object_links: dict[tuple[str, str], models.TaskObjectParticipationLink] = {}
+    participation_task_ids: dict[tuple[str, str], set[str]] = {}
     for row in rows:
         canonical_key = resolve_participation_canonical_key(row)
         key = (row.object_type, canonical_key)
-        participation_counts[key] = participation_counts.get(key, 0) + 1
+        participation_task_ids.setdefault(key, set()).add(row.task_id)
         if row.task_id == task_id:
             current_links[key] = row
+            current_object_links[(row.object_type, row.object_id)] = row
+    participation_counts = {
+        key: len(task_ids) for key, task_ids in participation_task_ids.items()
+    }
     return _TaskObjectParticipationSnapshot(
         current_links=current_links,
+        current_object_links=current_object_links,
         participation_counts=participation_counts,
     )
 
@@ -1001,17 +1013,31 @@ def _build_object_participation_read(
     snapshot: _TaskObjectParticipationSnapshot,
 ) -> schemas.ObjectParticipationRead | None:
     if continuity_scope == WORLD_SHARED_CONTINUITY_SCOPE and matter_workspace_id:
-        key = (object_type, object_id)
+        direct_link = snapshot.current_object_links.get((object_type, object_id))
+        canonical_key = (
+            resolve_participation_canonical_key(direct_link)
+            if direct_link is not None
+            else object_id
+        )
+        key = (object_type, canonical_key)
         current_link = snapshot.current_links.get(key)
         participation_count = snapshot.participation_counts.get(key, 0)
-        fallback_to_task_ref = participation_count == 0 and object_task_id == current_task_id
+        fallback_to_task_ref = (
+            direct_link is None and participation_count == 0 and object_task_id == current_task_id
+        )
         return schemas.ObjectParticipationRead(
-            canonical_object_id=object_id,
+            canonical_object_id=(
+                direct_link.canonical_object_id
+                if direct_link is not None and direct_link.canonical_object_id
+                else canonical_key
+            ),
             canonical_owner_scope="world_canonical",
             compatibility_task_id=object_task_id,
-            current_task_participation=current_link is not None or fallback_to_task_ref,
+            current_task_participation=direct_link is not None or current_link is not None or fallback_to_task_ref,
             participation_type=(
-                current_link.participation_type
+                direct_link.participation_type
+                if direct_link is not None
+                else current_link.participation_type
                 if current_link is not None
                 else "direct_ingest" if fallback_to_task_ref else None
             ),
@@ -6930,6 +6956,10 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
         follow_up_lane=follow_up_lane,
         progression_lane=progression_lane,
     )
+    canonicalization_summary, canonicalization_candidates = build_matter_canonicalization_contract(
+        db,
+        matter_workspace_id=matter_workspace.id,
+    )
 
     return schemas.MatterWorkspaceResponse(
         summary=summary,
@@ -6963,6 +6993,8 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
         action_executions=sorted(action_executions, key=lambda item: item.updated_at, reverse=True)[:10],
         outcome_records=sorted(outcome_records, key=lambda item: item.created_at, reverse=True)[:10],
         audit_events=sorted(audit_events, key=lambda item: item.created_at, reverse=True)[:12],
+        canonicalization_summary=canonicalization_summary,
+        canonicalization_candidates=canonicalization_candidates[:8],
         readiness_hint=readiness_hint,
         continuity_notes=continuity_notes,
         continuation_surface=continuation_surface,
@@ -7708,6 +7740,10 @@ def get_artifact_evidence_workspace(
         follow_up_lane=follow_up_lane,
         progression_lane=progression_lane,
     )
+    canonicalization_summary, canonicalization_candidates = build_matter_canonicalization_contract(
+        db,
+        matter_workspace_id=matter_workspace.id,
+    )
 
     return schemas.ArtifactEvidenceWorkspaceResponse(
         matter_summary=matter_summary,
@@ -7724,6 +7760,8 @@ def get_artifact_evidence_workspace(
         high_impact_gaps=_unique_preserve_order(high_impact_gaps)[:8],
         evidence_gaps=sorted(evidence_gap_records, key=lambda item: item.updated_at, reverse=True)[:10],
         research_runs=sorted(research_runs, key=lambda item: item.started_at, reverse=True)[:6],
+        canonicalization_summary=canonicalization_summary,
+        canonicalization_candidates=canonicalization_candidates[:8],
         sufficiency_summary=sufficiency_summary,
         deliverable_limitations=_unique_preserve_order(deliverable_limitations)[:6],
         continuity_notes=_unique_preserve_order(continuity_notes)[:6],
@@ -9622,6 +9660,11 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         follow_up_lane=follow_up_lane,
         progression_lane=progression_lane,
     )
+    canonicalization_summary, canonicalization_candidates = build_matter_canonicalization_contract(
+        db,
+        matter_workspace_id=matter_workspace.id,
+        current_task_id=task.id,
+    )
 
     return schemas.TaskAggregateResponse(
         id=task.id,
@@ -9704,6 +9747,10 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         ],
         outcome_records=[schemas.OutcomeRecordRead.model_validate(item) for item in task.outcome_records],
         audit_events=[schemas.AuditEventRead.model_validate(item) for item in task.audit_events],
+        canonicalization_summary=canonicalization_summary,
+        canonicalization_candidates=[
+            item for item in canonicalization_candidates if item.current_task_involved
+        ][:6],
         matter_workspace=matter_workspace_summary,
         continuation_surface=continuation_surface,
     )
