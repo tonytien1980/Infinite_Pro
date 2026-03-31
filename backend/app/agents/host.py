@@ -113,6 +113,11 @@ class ExternalDataUsageReport:
     source_quality_summary: str = ""
     contradiction_summary: str = ""
     citation_handoff_summary: str = ""
+    delegated_agent_id: str | None = None
+    delegation_reason: str = ""
+    delegation_status: str = "not_needed"
+    delegation_findings: list[str] = field(default_factory=list)
+    delegation_missing_information: list[str] = field(default_factory=list)
     source_documents: list[models.SourceDocument] = field(default_factory=list)
     dependency_note: str = ""
     missing_information: list[str] = field(default_factory=list)
@@ -158,6 +163,10 @@ class ReadinessGovernance:
     pack_evidence_expectations: list[str] = field(default_factory=list)
     pack_high_impact_gaps: list[str] = field(default_factory=list)
     pack_deliverable_presets: list[str] = field(default_factory=list)
+    research_depth_recommendation: str = RESEARCH_DEPTH_LIGHT
+    research_handoff_target: str = ""
+    research_stop_condition: str = ""
+    research_delegation_notes: list[str] = field(default_factory=list)
     missing_information: list[str] = field(default_factory=list)
     conclusion_impact: list[str] = field(default_factory=list)
     agent_selection_implications: list[str] = field(default_factory=list)
@@ -407,6 +416,107 @@ class HostOrchestrator:
             "後續交接時，應保留來源標題、URL、摘要與用途說明。"
             f"目前已形成 {len(results)} 筆可回到 source / evidence 鏈的公開來源入口。"
         )
+
+    def _should_delegate_research_agent(
+        self,
+        payload: AgentInputPayload,
+        capability_frame: CapabilityFrame,
+        readiness: ReadinessGovernance,
+        report: ExternalDataUsageReport,
+        workflow_mode: FlowMode,
+    ) -> bool:
+        if report.delegation_status == "satisfied_by_multi_agent":
+            return False
+        if workflow_mode == FlowMode.MULTI_AGENT and "research_intelligence" in capability_frame.selected_core_agents:
+            return False
+        if report.search_used:
+            return True
+        if report.research_depth in {RESEARCH_DEPTH_STANDARD, RESEARCH_DEPTH_DEEP}:
+            return True
+        if "research_intelligence_pack" in set(self._pack_ids(payload)):
+            return True
+        return readiness.external_research_heavy_case
+
+    def _delegate_research_investigation(
+        self,
+        payload: AgentInputPayload,
+        capability_frame: CapabilityFrame,
+        readiness: ReadinessGovernance,
+        workflow_mode: FlowMode,
+        report: ExternalDataUsageReport,
+    ) -> ExternalDataUsageReport:
+        if workflow_mode == FlowMode.MULTI_AGENT and "research_intelligence" in capability_frame.selected_core_agents:
+            report.delegated_agent_id = "research_intelligence_agent"
+            report.delegation_status = "satisfied_by_multi_agent"
+            report.delegation_reason = (
+                "這輪 multi-agent path 已包含調研 / 情報代理，因此 Host 不另外再跑一條平行調研委派。"
+            )
+            return report
+
+        if not self._should_delegate_research_agent(
+            payload,
+            capability_frame,
+            readiness,
+            report,
+            workflow_mode,
+        ):
+            report.delegation_status = "not_needed"
+            report.delegation_reason = "本輪尚未達到需要額外調研委派的門檻。"
+            return report
+
+        report.delegated_agent_id = "research_intelligence_agent"
+        report.delegation_status = "delegated"
+        report.delegation_reason = (
+            f"Host 判定本輪需要 {report.research_depth} 等級的調研委派，"
+            "因此先由調研 / 情報代理整理外部訊號、來源品質與 citation handoff。"
+        )
+        try:
+            research_agent = self.registry.get_core_agent("research_intelligence")
+            research_result = research_agent.run(payload)
+            report.delegation_findings = self._unique_preserve_order(
+                [
+                    *research_result.findings,
+                    *research_result.source_quality_notes,
+                    *research_result.evidence_gap_notes,
+                ]
+            )[:6]
+            report.delegation_missing_information = self._unique_preserve_order(
+                [
+                    *research_result.missing_information,
+                    *research_result.contradiction_notes,
+                ]
+            )[:6]
+            if research_result.source_quality_notes:
+                report.source_quality_summary = "；".join(research_result.source_quality_notes[:3])
+            if research_result.contradiction_notes:
+                report.contradiction_summary = "；".join(research_result.contradiction_notes[:2])
+            if research_result.citation_handoff:
+                report.citation_handoff_summary = "；".join(research_result.citation_handoff[:2])
+            if research_result.research_sub_questions:
+                report.research_sub_questions = self._unique_preserve_order(
+                    [
+                        *report.research_sub_questions,
+                        *research_result.research_sub_questions,
+                    ]
+                )[:6]
+            if research_result.evidence_gap_notes:
+                report.evidence_gap_focus = self._unique_preserve_order(
+                    [
+                        *report.evidence_gap_focus,
+                        *research_result.evidence_gap_notes,
+                    ]
+                )[:8]
+            report.dependency_note = (
+                report.dependency_note + " "
+                + "Host 已先委派調研 / 情報代理整理 research handoff，再交由後續 path 收斂。"
+            ).strip()
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Research delegation degraded for task %s: %s", payload.task_id, exc)
+            report.delegation_status = "failed"
+            report.delegation_missing_information.append(
+                f"調研委派目前失敗或降級：{exc}"
+            )
+        return report
 
     def _should_search_external_sources(
         self,
@@ -718,6 +828,10 @@ class HostOrchestrator:
             pack_evidence_expectations=readiness.pack_evidence_expectations,
             pack_high_impact_gaps=readiness.pack_high_impact_gaps,
             pack_deliverable_presets=readiness.pack_deliverable_presets,
+            research_depth_recommendation=readiness.research_depth_recommendation,
+            research_handoff_target=readiness.research_handoff_target,
+            research_stop_condition=readiness.research_stop_condition,
+            research_delegation_notes=readiness.research_delegation_notes,
             missing_information=missing_information,
             conclusion_impact=conclusion_impact,
             agent_selection_implications=[
@@ -1738,6 +1852,31 @@ class HostOrchestrator:
 
         return self._unique_preserve_order(gaps)
 
+    def _recommended_research_depth_for_readiness(
+        self,
+        payload: AgentInputPayload,
+        capability_frame: CapabilityFrame,
+        external_research_heavy_case: bool,
+        pack_evidence_expectations: list[str],
+        pack_high_impact_gaps: list[str],
+    ) -> str:
+        if external_research_heavy_case:
+            return RESEARCH_DEPTH_DEEP
+        if "research_intelligence_pack" in set(self._pack_ids(payload)):
+            if payload.input_entry_mode == InputEntryMode.ONE_LINE_INQUIRY:
+                return RESEARCH_DEPTH_STANDARD
+            if pack_evidence_expectations or pack_high_impact_gaps:
+                return RESEARCH_DEPTH_STANDARD
+        if capability_frame.capability in {
+            CapabilityArchetype.SYNTHESIZE_BRIEF,
+            CapabilityArchetype.SCENARIO_COMPARISON,
+            CapabilityArchetype.RISK_SURFACING,
+        } and (pack_evidence_expectations or pack_high_impact_gaps):
+            return RESEARCH_DEPTH_STANDARD
+        if len(pack_high_impact_gaps) >= 2 or len(pack_evidence_expectations) >= 3:
+            return RESEARCH_DEPTH_STANDARD
+        return RESEARCH_DEPTH_LIGHT
+
     def _evaluate_readiness_governance(
         self,
         payload: AgentInputPayload,
@@ -1900,6 +2039,34 @@ class HostOrchestrator:
             supported_deliverable_class,
             external_research_heavy_case,
         )
+        research_depth_recommendation = self._recommended_research_depth_for_readiness(
+            payload,
+            capability_frame,
+            external_research_heavy_case,
+            pack_evidence_expectations,
+            pack_high_impact_gaps,
+        )
+        research_handoff_target = (
+            "Research Synthesis Specialist"
+            if capability_frame.capability == CapabilityArchetype.SYNTHESIZE_BRIEF
+            else "Host Agent"
+        )
+        research_stop_condition = (
+            "當 research 已回答主要子問題、保留來源品質與矛盾訊號、並形成 citation-ready handoff 時，Host 應停止補完並進入收斂。"
+        )
+        research_delegation_notes: list[str] = []
+        if research_depth_recommendation == RESEARCH_DEPTH_LIGHT:
+            research_delegation_notes.append(
+                "這輪 research 應以最小可信補完為主，避免外部搜尋壓過案件主線。"
+            )
+        elif research_depth_recommendation == RESEARCH_DEPTH_STANDARD:
+            research_delegation_notes.append(
+                "這輪 research 應先完成子問題拆解、來源品質註記與 evidence-gap focus，再交回 Host。"
+            )
+        else:
+            research_delegation_notes.append(
+                "這輪 research 屬於 deep investigation，Host 應保留 exploratory-first 的信心邊界直到最後。"
+            )
         conclusion_impact.append(deliverable_guidance)
         agent_selection_implications: list[str] = []
         if supported_deliverable_class == DeliverableClass.EXPLORATORY_BRIEF:
@@ -1930,6 +2097,10 @@ class HostOrchestrator:
             agent_selection_implications.append(
                 "本輪也保留了 escalation notes，說明補哪些資料後可升級到更完整的 agent orchestration。"
             )
+        if research_depth_recommendation in {RESEARCH_DEPTH_STANDARD, RESEARCH_DEPTH_DEEP}:
+            agent_selection_implications.append(
+                f"Host 已判定本輪需要 {research_depth_recommendation} 等級的調研委派，再把結果交回 {research_handoff_target} 或 Host 收斂。"
+            )
 
         return ReadinessGovernance(
             level=level,
@@ -1943,6 +2114,10 @@ class HostOrchestrator:
             pack_evidence_expectations=pack_evidence_expectations,
             pack_high_impact_gaps=pack_high_impact_gaps,
             pack_deliverable_presets=payload.pack_resolution.deliverable_presets,
+            research_depth_recommendation=research_depth_recommendation,
+            research_handoff_target=research_handoff_target,
+            research_stop_condition=research_stop_condition,
+            research_delegation_notes=research_delegation_notes,
             missing_information=missing_information,
             conclusion_impact=conclusion_impact,
             agent_selection_implications=self._unique_preserve_order(agent_selection_implications),
@@ -2195,6 +2370,10 @@ class HostOrchestrator:
             "pack_evidence_expectations": readiness.pack_evidence_expectations,
             "pack_high_impact_gaps": readiness.pack_high_impact_gaps,
             "pack_deliverable_presets": readiness.pack_deliverable_presets,
+            "research_depth_recommendation": readiness.research_depth_recommendation,
+            "research_handoff_target": readiness.research_handoff_target,
+            "research_stop_condition": readiness.research_stop_condition,
+            "research_delegation_notes": readiness.research_delegation_notes,
             "missing_information": readiness.missing_information,
             "conclusion_impact": readiness.conclusion_impact,
             "agent_selection_implications": readiness.agent_selection_implications,
@@ -2467,6 +2646,9 @@ class HostOrchestrator:
             "search_used": report.search_used,
             "sources": sources,
             "analysis_dependency_note": report.dependency_note,
+            "delegated_agent_id": report.delegated_agent_id,
+            "delegation_status": report.delegation_status,
+            "delegation_reason": report.delegation_reason,
         }
         content["research_provenance"] = {
             "source_trace": [item["url"] for item in sources],
@@ -2477,6 +2659,8 @@ class HostOrchestrator:
             "source_quality_summary": report.source_quality_summary,
             "contradiction_summary": report.contradiction_summary,
             "citation_handoff_summary": report.citation_handoff_summary,
+            "delegation_findings": report.delegation_findings,
+            "delegation_missing_information": report.delegation_missing_information,
             "confidence_boundary": "research results must first enter source / evidence chain before affecting deliverable shaping",
         }
         content["external_data_strategy"] = report.strategy.value
@@ -2593,6 +2777,13 @@ class HostOrchestrator:
             )
             payload, capability_frame, readiness, workflow_mode = self._prepare_host_context(task, workflow_mode)
             payload = self._apply_research_plan_to_payload(payload, external_data_report)
+            external_data_report = self._delegate_research_investigation(
+                payload,
+                capability_frame,
+                readiness,
+                workflow_mode,
+                external_data_report,
+            )
             readiness = self._preserve_sparse_case_intent(readiness, external_data_report)
             fixed_core_agents = capability_frame.selected_core_agents or DEFAULT_MULTI_AGENT_FALLBACK
             logger.info(
@@ -2833,6 +3024,13 @@ class HostOrchestrator:
             )
             payload, capability_frame, readiness, workflow_mode = self._prepare_host_context(task, workflow_mode)
             payload = self._apply_research_plan_to_payload(payload, external_data_report)
+            external_data_report = self._delegate_research_investigation(
+                payload,
+                capability_frame,
+                readiness,
+                workflow_mode,
+                external_data_report,
+            )
             readiness = self._preserve_sparse_case_intent(readiness, external_data_report)
             agent = self.registry.get_specialist_agent(agent_id)
             result = self._normalize_result(payload, agent_id, agent.run(payload))

@@ -146,6 +146,19 @@ const EXTERNAL_DATA_STRATEGY_LABELS: Record<string, string> = {
   latest: "優先使用最新外部資料",
 };
 
+const RESEARCH_DEPTH_LABELS: Record<string, string> = {
+  light_completion: "輕量補完",
+  standard_investigation: "標準調研",
+  deep_research: "深度調研",
+};
+
+const RESEARCH_DELEGATION_STATUS_LABELS: Record<string, string> = {
+  not_needed: "本輪不需額外調研委派",
+  delegated: "已正式委派調研代理",
+  satisfied_by_multi_agent: "已由多代理流程內含調研視角承接",
+  failed: "調研委派失敗或降級",
+};
+
 const INPUT_ENTRY_MODE_LABELS: Record<string, string> = {
   one_line_inquiry: "一句話起手",
   single_document_intake: "單材料起手",
@@ -579,6 +592,14 @@ export function labelForRetentionState(purgeAt: string | null | undefined) {
 
 export function labelForExternalDataStrategy(value: string) {
   return EXTERNAL_DATA_STRATEGY_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForResearchDepth(value: string) {
+  return RESEARCH_DEPTH_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForResearchDelegationStatus(value: string) {
+  return RESEARCH_DELEGATION_STATUS_LABELS[value] ?? fallbackLabel(value);
 }
 
 export function labelForInputEntryMode(value: string) {

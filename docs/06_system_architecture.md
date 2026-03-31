@@ -422,7 +422,7 @@ UI 不是只做表單與結果頁，而是正式工作面。
 - recommendation to action item
 - decision context to deliverable
 - research run to source material / evidence
-- research run 也應逐步保留 research depth、sub-questions、evidence-gap focus、source-quality summary 與 citation handoff 等 provenance 欄位，而不是只留 query 與 source count
+- research run 也應逐步保留 research depth、sub-questions、evidence-gap focus、source-quality summary、contradiction summary、citation handoff，以及 Host 的 delegation status / handoff target / stop condition 等 provenance 欄位，而不是只留 query 與 source count
 - deliverable to decision record / action plan / outcome record
 
 ### 5.7 Registry / Resolver Foundation

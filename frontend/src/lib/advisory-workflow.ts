@@ -47,6 +47,17 @@ export interface ReadinessAssessment {
 export interface ExternalDataUsageView {
   strategy: string;
   searchUsed: boolean;
+  delegatedAgentId: string;
+  delegationStatus: string;
+  delegationReason: string;
+  researchDepth: string;
+  researchSubQuestions: string[];
+  evidenceGapFocus: string[];
+  sourceQualitySummary: string;
+  contradictionSummary: string;
+  citationHandoffSummary: string;
+  delegationFindings: string[];
+  delegationMissingInformation: string[];
   sources: Array<{
     title: string;
     url: string;
@@ -175,6 +186,10 @@ export interface ReadinessGovernanceView {
   packEvidenceExpectations: string[];
   packHighImpactGaps: string[];
   packDeliverablePresets: string[];
+  researchDepthRecommendation: string;
+  researchHandoffTarget: string;
+  researchStopCondition: string;
+  researchDelegationNotes: string[];
   agentSelectionImplications: string[];
 }
 
@@ -336,6 +351,7 @@ export function buildExternalDataUsage(
   deliverable: Deliverable | null,
 ): ExternalDataUsageView {
   const usage = deliverable?.content_structure?.external_data_usage;
+  const provenance = asRecord(deliverable?.content_structure?.research_provenance);
   const fallbackSources = getExternalSourceDocuments(task).map((item) => ({
     title: item.file_name,
     url: item.storage_path,
@@ -368,6 +384,17 @@ export function buildExternalDataUsage(
     return {
       strategy: String(usageRecord.strategy ?? task.external_data_strategy),
       searchUsed: Boolean(usageRecord.search_used),
+      delegatedAgentId: String(usageRecord.delegated_agent_id ?? ""),
+      delegationStatus: String(usageRecord.delegation_status ?? ""),
+      delegationReason: String(usageRecord.delegation_reason ?? ""),
+      researchDepth: String(provenance?.research_depth ?? ""),
+      researchSubQuestions: asStringArray(provenance?.sub_questions),
+      evidenceGapFocus: asStringArray(provenance?.evidence_gap_focus),
+      sourceQualitySummary: String(provenance?.source_quality_summary ?? ""),
+      contradictionSummary: String(provenance?.contradiction_summary ?? ""),
+      citationHandoffSummary: String(provenance?.citation_handoff_summary ?? ""),
+      delegationFindings: asStringArray(provenance?.delegation_findings),
+      delegationMissingInformation: asStringArray(provenance?.delegation_missing_information),
       sources: sourceItems,
       dependencyNote:
         String(usageRecord.analysis_dependency_note ?? "").trim() ||
@@ -379,6 +406,17 @@ export function buildExternalDataUsage(
   return {
     strategy: task.external_data_strategy,
     searchUsed,
+    delegatedAgentId: "",
+    delegationStatus: "",
+    delegationReason: "",
+    researchDepth: "",
+    researchSubQuestions: [],
+    evidenceGapFocus: [],
+    sourceQualitySummary: "",
+    contradictionSummary: "",
+    citationHandoffSummary: "",
+    delegationFindings: [],
+    delegationMissingInformation: [],
     sources: fallbackSources,
     dependencyNote: searchUsed
       ? "本輪分析已補充外部搜尋來源，背景摘要、關鍵發現與建議可能部分依賴外部資料。"
@@ -1996,6 +2034,22 @@ export function buildReadinessGovernance(
       asStringArray(governance?.pack_deliverable_presets).length > 0
         ? asStringArray(governance?.pack_deliverable_presets)
         : packSelection.deliverablePresets,
+    researchDepthRecommendation:
+      (typeof governance?.research_depth_recommendation === "string" &&
+      governance.research_depth_recommendation
+        ? governance.research_depth_recommendation
+        : ""),
+    researchHandoffTarget:
+      (typeof governance?.research_handoff_target === "string" &&
+      governance.research_handoff_target
+        ? governance.research_handoff_target
+        : ""),
+    researchStopCondition:
+      (typeof governance?.research_stop_condition === "string" &&
+      governance.research_stop_condition
+        ? governance.research_stop_condition
+        : ""),
+    researchDelegationNotes: asStringArray(governance?.research_delegation_notes),
     agentSelectionImplications,
   };
 }

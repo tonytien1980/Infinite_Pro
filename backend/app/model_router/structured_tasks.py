@@ -225,19 +225,15 @@ def build_core_analysis_spec(
         ]
         user_prompt = user_prompt + "\n\n" + "\n\n".join(research_context_blocks)
 
+    required_fields = list(properties.keys())
+
     return StructuredTaskSpec(
         schema_name=f"{request_payload.agent_id}_core_output",
         schema={
             "type": "object",
             "additionalProperties": False,
             "properties": properties,
-            "required": [
-                "findings",
-                "risks",
-                "recommendations",
-                "action_items",
-                "missing_information",
-            ],
+            "required": required_fields,
         },
         system_prompt=(
             role_prompt_by_agent.get(

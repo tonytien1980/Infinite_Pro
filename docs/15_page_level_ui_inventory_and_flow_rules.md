@@ -272,7 +272,7 @@
 - 證據期待、保留邊界、進件規則等 supporting / debug 資訊
 - evidence gap records
 - research provenance 明細
-  需至少包含 research depth、sub-questions、evidence-gap focus、source-quality summary 與 citation handoff 摘要
+  需至少包含 research depth、sub-questions、evidence-gap focus、source-quality summary、delegation status / reason 與 citation handoff 摘要
 
 **正式跳轉**
 - `/tasks/[taskId]`
@@ -317,6 +317,8 @@
 - 案件世界連續性與 supporting context
 - facts / assumptions / evidence gaps 全量列表
 - research provenance 全量列表
+- Host 的 research delegation 治理細節
+  需至少包含 research depth recommendation、research handoff target、research stop condition 與 research delegation notes
 - decision / outcome writeback 記錄
 
 **正式跳轉**
@@ -400,7 +402,7 @@
 - 完整 evidence / ontology 回鏈明細
 - decision / outcome writeback 記錄
 - research provenance 細節
-  需至少保留 research depth、source-quality summary 與 citation handoff 摘要
+  需至少保留 research depth、source-quality summary、delegation status 與 citation handoff 摘要
 
 **交付物管理段落規則**
 - 交付物管理不應把唯讀 metadata、版本控制與正文編修塞成同一排密集表單

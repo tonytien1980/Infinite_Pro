@@ -2677,7 +2677,22 @@ def test_external_search_persists_research_run_and_source_provenance(
     assert aggregate["research_runs"]
     assert aggregate["research_runs"][0]["source_count"] >= 1
     assert aggregate["research_runs"][0]["query"]
+    assert aggregate["research_runs"][0]["research_depth"] in {
+        "light_completion",
+        "standard_investigation",
+        "deep_research",
+    }
+    assert aggregate["research_runs"][0]["source_quality_summary"]
+    assert aggregate["research_runs"][0]["citation_handoff_summary"]
+    assert aggregate["research_runs"][0]["evidence_gap_focus"]
     assert any(item["research_run_id"] == aggregate["research_runs"][0]["id"] for item in aggregate["uploads"])
+    deliverable = run_response.json()["deliverable"]
+    assert deliverable["content_structure"]["external_data_usage"]["delegation_status"] in {
+        "delegated",
+        "satisfied_by_multi_agent",
+        "not_needed",
+    }
+    assert "research_depth" in deliverable["content_structure"]["research_provenance"]
 
 
 def test_continuous_writeback_creates_decision_and_outcome_records(
@@ -3285,6 +3300,30 @@ def test_openai_provider_parses_structured_response(
 
     assert result.findings == ["Finding one"]
     assert result.recommendations == ["Recommendation one"]
+
+
+def test_research_intelligence_structured_schema_requires_every_property() -> None:
+    from app.model_router.base import CoreAnalysisRequest
+    from app.model_router.structured_tasks import build_core_analysis_spec
+
+    spec = build_core_analysis_spec(
+        CoreAnalysisRequest(
+            agent_id="research_intelligence",
+            task_title="Research schema test",
+            task_description="Ensure the research schema is strict-provider compatible.",
+            background_text="Minimal background",
+            research_depth="standard_investigation",
+            research_sub_questions=["What needs to be answered?"],
+            evidence_gap_focus=["Which evidence gap blocks confidence?"],
+        )
+    )
+
+    schema = spec.schema
+    assert schema["type"] == "object"
+    assert schema["additionalProperties"] is False
+    assert set(schema["required"]) == set(schema["properties"].keys())
+    assert "research_sub_questions" in schema["required"]
+    assert "citation_handoff" in schema["required"]
 
 
 def test_openai_provider_retries_once_after_timeout(

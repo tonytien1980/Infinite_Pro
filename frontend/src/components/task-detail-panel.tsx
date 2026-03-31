@@ -41,11 +41,14 @@ import {
 import {
   formatDisplayDate,
   labelForAgentId,
+  labelForAgentName,
   labelForEngagementContinuityMode,
   labelForExternalDataStrategy,
   labelForEvidenceType,
   labelForFlowMode,
   labelForImpactLevel,
+  labelForResearchDelegationStatus,
+  labelForResearchDepth,
   labelForLikelihoodLevel,
   labelForPriority,
   labelForRunStatus,
@@ -732,7 +735,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                 <h4>研究來源脈絡</h4>
                 <p className="content-block">
                   {task.research_runs.length > 0
-                    ? `已留存 ${task.research_runs.length} 筆研究執行紀錄；最近一筆為 ${task.research_runs[0].research_depth}。`
+                    ? `已留存 ${task.research_runs.length} 筆研究執行紀錄；最近一筆為 ${labelForResearchDepth(task.research_runs[0].research_depth)}。`
                     : "目前沒有研究來源脈絡。"}
                 </p>
               </div>
@@ -1554,6 +1557,33 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                           />
                         </div>
                       ) : null}
+                      {readinessGovernance.researchDepthRecommendation ? (
+                        <div className="section-card">
+                          <h4>調研委派建議</h4>
+                          <ExpandableText
+                            text={[
+                              `Host 建議這輪至少採用 ${labelForResearchDepth(readinessGovernance.researchDepthRecommendation)}。`,
+                              readinessGovernance.researchHandoffTarget
+                                ? `研究結果完成後，應先交回 ${labelForAgentName(readinessGovernance.researchHandoffTarget)} 收斂。`
+                                : "",
+                            ]
+                              .filter(Boolean)
+                              .join(" ")}
+                            emptyText="目前沒有額外的調研委派建議。"
+                            previewChars={220}
+                          />
+                        </div>
+                      ) : null}
+                      {readinessGovernance.researchStopCondition ? (
+                        <div className="section-card">
+                          <h4>調研停止條件</h4>
+                          <ExpandableText
+                            text={readinessGovernance.researchStopCondition}
+                            emptyText="目前沒有額外的調研停止條件。"
+                            previewChars={220}
+                          />
+                        </div>
+                      ) : null}
                     </div>
 
                     {readinessGovernance.packHighImpactGaps.length > 0 ? (
@@ -1562,6 +1592,16 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                         <ExpandableList
                           items={readinessGovernance.packHighImpactGaps}
                           emptyText="目前沒有額外的模組包高影響缺口。"
+                        />
+                      </div>
+                    ) : null}
+
+                    {readinessGovernance.researchDelegationNotes.length > 0 ? (
+                      <div className="detail-item" style={{ marginTop: "14px" }}>
+                        <h3>調研委派備註</h3>
+                        <ExpandableList
+                          items={readinessGovernance.researchDelegationNotes}
+                          emptyText="目前沒有額外的調研委派備註。"
                         />
                       </div>
                     ) : null}
@@ -2064,6 +2104,71 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                           : "沒有，本輪未使用 Host 外部搜尋。"}
                       </p>
                     </div>
+                    {(externalDataUsage.delegationStatus || externalDataUsage.delegationReason) ? (
+                      <div className="detail-item">
+                        <h3>調研委派狀態</h3>
+                        <ExpandableText
+                          text={[
+                            externalDataUsage.delegationStatus
+                              ? labelForResearchDelegationStatus(externalDataUsage.delegationStatus)
+                              : "",
+                            externalDataUsage.delegatedAgentId
+                              ? `主要委派對象：${labelForAgentId(externalDataUsage.delegatedAgentId)}。`
+                              : "",
+                            externalDataUsage.delegationReason,
+                          ]
+                            .filter(Boolean)
+                            .join(" ")}
+                          emptyText="目前沒有額外的調研委派說明。"
+                          previewChars={220}
+                        />
+                      </div>
+                    ) : null}
+                    {(externalDataUsage.researchDepth ||
+                      externalDataUsage.sourceQualitySummary ||
+                      externalDataUsage.citationHandoffSummary) ? (
+                      <div className="detail-item">
+                        <h3>調研深度與交接摘要</h3>
+                        <ExpandableText
+                          text={[
+                            externalDataUsage.researchDepth
+                              ? `這輪以 ${labelForResearchDepth(externalDataUsage.researchDepth)} 為主要研究深度。`
+                              : "",
+                            externalDataUsage.sourceQualitySummary
+                              ? `來源品質：${externalDataUsage.sourceQualitySummary}`
+                              : "",
+                            externalDataUsage.citationHandoffSummary
+                              ? `引用交接：${externalDataUsage.citationHandoffSummary}`
+                              : "",
+                            externalDataUsage.contradictionSummary
+                              ? `矛盾訊號：${externalDataUsage.contradictionSummary}`
+                              : "",
+                          ]
+                            .filter(Boolean)
+                            .join(" ")}
+                          emptyText="目前沒有額外的調研深度與交接摘要。"
+                          previewChars={240}
+                        />
+                      </div>
+                    ) : null}
+                    {externalDataUsage.researchSubQuestions.length > 0 ? (
+                      <div className="detail-item">
+                        <h3>這輪調研主要回答哪些子問題</h3>
+                        <ExpandableList
+                          items={externalDataUsage.researchSubQuestions}
+                          emptyText="目前沒有額外的調研子問題。"
+                        />
+                      </div>
+                    ) : null}
+                    {externalDataUsage.evidenceGapFocus.length > 0 ? (
+                      <div className="detail-item">
+                        <h3>本輪優先補的證據缺口</h3>
+                        <ExpandableList
+                          items={externalDataUsage.evidenceGapFocus}
+                          emptyText="目前沒有額外的證據缺口補完焦點。"
+                        />
+                      </div>
+                    ) : null}
                     <div className="detail-item">
                       <h3>使用了哪些來源</h3>
                       {externalDataUsage.sources.length > 0 ? (
@@ -2086,6 +2191,24 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                         emptyText="目前尚未記錄外部資料依賴說明。"
                       />
                     </div>
+                    {externalDataUsage.delegationFindings.length > 0 ? (
+                      <div className="detail-item">
+                        <h3>調研回交重點</h3>
+                        <ExpandableList
+                          items={externalDataUsage.delegationFindings}
+                          emptyText="目前沒有額外的調研回交重點。"
+                        />
+                      </div>
+                    ) : null}
+                    {externalDataUsage.delegationMissingInformation.length > 0 ? (
+                      <div className="detail-item">
+                        <h3>調研後仍保留的不確定性</h3>
+                        <ExpandableList
+                          items={externalDataUsage.delegationMissingInformation}
+                          emptyText="目前沒有額外的不確定性。"
+                        />
+                      </div>
+                    ) : null}
                   </div>
                 </DisclosurePanel>
               ) : null}
