@@ -4,6 +4,9 @@ from urllib import error
 
 from fastapi import HTTPException
 
+from app.domain.enums import CapabilityArchetype
+from app.extensions.registry import ExtensionRegistry
+from app.extensions.schemas import PackType
 from app.model_router.base import (
     AgentContractSynthesisRequest,
     ModelProviderError,
@@ -13,6 +16,23 @@ from app.model_router.base import (
 from app.model_router.factory import get_model_provider
 from app.services.external_search import SearchResult, search_external_sources
 from app.workbench import schemas as workbench_schemas
+
+SYNTHESIS_REGISTRY = ExtensionRegistry()
+KNOWN_DOMAIN_PACK_IDS = {
+    pack.pack_id for pack in SYNTHESIS_REGISTRY.list_packs(PackType.DOMAIN)
+}
+KNOWN_INDUSTRY_PACK_IDS = {
+    pack.pack_id for pack in SYNTHESIS_REGISTRY.list_packs(PackType.INDUSTRY)
+}
+KNOWN_DOMAIN_LENSES = {
+    lens
+    for pack in SYNTHESIS_REGISTRY.list_packs(PackType.DOMAIN)
+    for lens in pack.domain_lenses
+}
+KNOWN_CLIENT_TYPES = {"中小企業", "個人品牌與服務", "自媒體", "大型企業"}
+KNOWN_CLIENT_STAGES = {"創業階段", "制度化階段", "規模化階段"}
+KNOWN_AGENT_TYPES = {"host", "reasoning", "specialist"}
+KNOWN_CAPABILITY_IDS = {item.value for item in CapabilityArchetype}
 
 
 def _humanize_identifier(value: str) -> str:
@@ -103,6 +123,45 @@ def _serialize_sources(
     ]
 
 
+def _unique_ordered(values: list[str]) -> list[str]:
+    return list(dict.fromkeys(item.strip() for item in values if item.strip()))
+
+
+def _normalize_agent_type(candidate: str, *, fallback: str) -> str:
+    if candidate in KNOWN_AGENT_TYPES:
+        return candidate
+    return fallback if fallback in KNOWN_AGENT_TYPES else "reasoning"
+
+
+def _default_capabilities_for_agent_type(agent_type: str) -> list[str]:
+    if agent_type == "specialist":
+        return ["review_challenge"]
+    if agent_type == "host":
+        return [item.value for item in CapabilityArchetype]
+    return ["diagnose_assess", "synthesize_brief"]
+
+
+def _normalize_capabilities(values: list[str], *, agent_type: str) -> list[str]:
+    normalized = [item for item in _unique_ordered(values) if item in KNOWN_CAPABILITY_IDS]
+    return normalized or _default_capabilities_for_agent_type(agent_type)
+
+
+def _normalize_pack_ids(values: list[str], *, allowed: set[str]) -> list[str]:
+    return [item for item in _unique_ordered(values) if item in allowed]
+
+
+def _normalize_domain_lenses(values: list[str]) -> list[str]:
+    return [item for item in _unique_ordered(values) if item in KNOWN_DOMAIN_LENSES]
+
+
+def _normalize_client_types(values: list[str]) -> list[str]:
+    return [item for item in _unique_ordered(values) if item in KNOWN_CLIENT_TYPES]
+
+
+def _normalize_client_stages(values: list[str]) -> list[str]:
+    return [item for item in _unique_ordered(values) if item in KNOWN_CLIENT_STAGES]
+
+
 def _build_agent_contract_draft(
     payload: workbench_schemas.AgentContractDraftRequest,
     search_query: str,
@@ -134,14 +193,24 @@ def _build_agent_contract_draft(
             ],
         )
     )
+    agent_type = _normalize_agent_type(output.agent_type, fallback=payload.agent_type)
     return workbench_schemas.AgentCatalogEntryUpdateRequest(
         agent_id=payload.agent_id,
         agent_name=payload.agent_name,
-        agent_type=output.agent_type,
+        agent_type=agent_type,
         description=output.description,
-        supported_capabilities=output.supported_capabilities,
-        relevant_domain_packs=output.relevant_domain_packs,
-        relevant_industry_packs=output.relevant_industry_packs,
+        supported_capabilities=_normalize_capabilities(
+            output.supported_capabilities,
+            agent_type=agent_type,
+        ),
+        relevant_domain_packs=_normalize_pack_ids(
+            output.relevant_domain_packs,
+            allowed=KNOWN_DOMAIN_PACK_IDS,
+        ),
+        relevant_industry_packs=_normalize_pack_ids(
+            output.relevant_industry_packs,
+            allowed=KNOWN_INDUSTRY_PACK_IDS,
+        ),
         primary_responsibilities=output.primary_responsibilities,
         out_of_scope=output.out_of_scope,
         defer_rules=output.defer_rules,
@@ -208,9 +277,9 @@ def _build_pack_contract_draft(
         stage_specific_heuristics=output.stage_specific_heuristics,
         key_kpis_or_operating_signals=output.key_kpis_or_operating_signals,
         key_kpis=output.key_kpis,
-        domain_lenses=output.domain_lenses,
-        relevant_client_types=output.relevant_client_types,
-        relevant_client_stages=output.relevant_client_stages,
+        domain_lenses=_normalize_domain_lenses(output.domain_lenses),
+        relevant_client_types=_normalize_client_types(output.relevant_client_types),
+        relevant_client_stages=_normalize_client_stages(output.relevant_client_stages),
         default_decision_context_patterns=output.default_decision_context_patterns,
         evidence_expectations=output.evidence_expectations,
         risk_libraries=output.risk_libraries,

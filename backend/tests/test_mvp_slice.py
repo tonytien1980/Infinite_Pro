@@ -15,8 +15,10 @@ from app.ingestion import remote as remote_ingestion
 from app.ingestion.remote import RemoteSourceContent
 from app.model_router.base import PackContractSynthesisRequest
 from app.model_router.structured_tasks import build_pack_contract_synthesis_spec
+from app.services import extension_contract_synthesis
 from app.services.external_search import SearchResult
 from app.services.tasks import get_loaded_task
+from app.workbench import schemas as workbench_schemas
 
 
 def assert_consultant_output_shell(content: dict) -> None:
@@ -446,6 +448,113 @@ def test_pack_contract_synthesis_schema_uses_strict_stage_keys() -> None:
     stage_schema = spec.schema["properties"]["stage_specific_heuristics"]
     assert stage_schema["additionalProperties"] is False
     assert stage_schema["required"] == ["創業階段", "制度化階段", "規模化階段"]
+
+
+def test_agent_contract_synthesis_normalizes_invalid_model_output(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeProvider:
+        def generate_agent_contract_synthesis(self, request):
+            from app.model_router.base import AgentContractSynthesisOutput
+
+            return AgentContractSynthesisOutput(
+                agent_type="made_up_type",
+                supported_capabilities=["fake_capability"],
+                relevant_domain_packs=["operations_pack", "invented_pack"],
+                relevant_industry_packs=["saas_pack", "invented_industry"],
+                description="Synthetic description",
+                primary_responsibilities=["Do the core work"],
+                out_of_scope=["Do not replace Host"],
+                defer_rules=["Defer when evidence is thin"],
+                preferred_execution_modes=["multi_agent"],
+                input_requirements=["DecisionContext"],
+                minimum_evidence_readiness=["At least one evidence item"],
+                required_context_fields=["DecisionContext"],
+                output_contract=["Findings"],
+                produced_objects=["Insight"],
+                deliverable_impact=["Shapes the memo"],
+                writeback_expectations=["Preserve provenance"],
+                invocation_rules=["Use when needed"],
+                escalation_rules=["Escalate on major uncertainty"],
+                handoff_targets=["Host Agent"],
+                evaluation_focus=["Signal quality"],
+                failure_modes_to_watch=["Weak evidence wrapped as fact"],
+                trace_requirements=["Keep traceability"],
+                synthesis_summary="summary",
+                generation_notes=["note"],
+            )
+
+    monkeypatch.setattr(extension_contract_synthesis, "get_model_provider", lambda: FakeProvider())
+    monkeypatch.setattr(extension_contract_synthesis, "search_external_sources", lambda *args, **kwargs: [])
+
+    response = extension_contract_synthesis.synthesize_agent_contract_draft(
+        workbench_schemas.AgentContractDraftRequest(
+            agent_id="synthetic_agent",
+            agent_name="Synthetic Agent",
+            agent_type="reasoning",
+            description="Handles synthetic work.",
+        )
+    )
+
+    assert response.draft.agent_type == "reasoning"
+    assert response.draft.supported_capabilities == ["diagnose_assess", "synthesize_brief"]
+    assert response.draft.relevant_domain_packs == ["operations_pack"]
+    assert response.draft.relevant_industry_packs == ["saas_pack"]
+
+
+def test_pack_contract_synthesis_normalizes_invalid_model_output(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeProvider:
+        def generate_pack_contract_synthesis(self, request):
+            from app.model_router.base import PackContractSynthesisOutput
+
+            return PackContractSynthesisOutput(
+                description="Synthetic pack description",
+                domain_definition="Synthetic domain definition",
+                industry_definition="",
+                common_business_models=[],
+                common_problem_patterns=["Pattern"],
+                stage_specific_heuristics={
+                    "創業階段": ["A"],
+                    "制度化階段": ["B"],
+                    "規模化階段": ["C"],
+                },
+                key_kpis_or_operating_signals=["Signal"],
+                key_kpis=["Signal"],
+                domain_lenses=["operations", "invented_lens"],
+                relevant_client_types=["中小企業", "未知客群"],
+                relevant_client_stages=["創業階段", "未知階段"],
+                default_decision_context_patterns=["Pattern"],
+                evidence_expectations=["Evidence"],
+                risk_libraries=["Risk library"],
+                common_risks=["Risk"],
+                decision_patterns=["Decision"],
+                deliverable_presets=["Preset"],
+                recommendation_patterns=["Recommendation"],
+                routing_hints=["Hint"],
+                pack_notes=["Note"],
+                scope_boundaries=["Boundary"],
+                pack_rationale=["Rationale"],
+                synthesis_summary="summary",
+                generation_notes=["note"],
+            )
+
+    monkeypatch.setattr(extension_contract_synthesis, "get_model_provider", lambda: FakeProvider())
+    monkeypatch.setattr(extension_contract_synthesis, "search_external_sources", lambda *args, **kwargs: [])
+
+    response = extension_contract_synthesis.synthesize_pack_contract_draft(
+        workbench_schemas.PackContractDraftRequest(
+            pack_id="synthetic_pack",
+            pack_type="domain",
+            pack_name="Synthetic Pack",
+            description="Handles synthetic cases.",
+        )
+    )
+
+    assert response.draft.domain_lenses == ["operations"]
+    assert response.draft.relevant_client_types == ["中小企業"]
+    assert response.draft.relevant_client_stages == ["創業階段"]
 
 
 def test_task_creation_attaches_background_text_as_context_and_evidence(client: TestClient) -> None:
