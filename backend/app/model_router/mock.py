@@ -119,6 +119,12 @@ class MockModelProvider(ModelProvider):
                 f"{request.agent_id} 目前缺乏足夠證據厚度，難以形成高信心分析。"
             )
 
+        research_sub_questions: list[str] = []
+        source_quality_notes: list[str] = []
+        contradiction_notes: list[str] = []
+        evidence_gap_notes: list[str] = []
+        citation_handoff: list[str] = []
+
         if request.agent_id == "strategy_business_analysis":
             if not findings:
                 findings = [
@@ -174,6 +180,23 @@ class MockModelProvider(ModelProvider):
             ]
             risks = [
                 "研究風險：若來源品質與新鮮度未先分級，後續很容易把弱訊號誤當成可採用事實。"
+            ]
+            research_sub_questions = request.research_sub_questions or [
+                "這輪最值得先回答的外部研究問題是什麼",
+                "哪些來源最能補上當前 evidence gap",
+            ]
+            source_quality_notes = [
+                "請先區分高可信來源、一般公開來源與仍待驗證訊號。",
+                f"目前 research depth 為 {request.research_depth or 'standard_investigation'}，來源覆蓋應和這個深度相稱。",
+            ]
+            contradiction_notes = [
+                "若不同來源對同一結論方向不一致，請保留矛盾而不是強行收斂。",
+            ]
+            evidence_gap_notes = request.evidence_gap_focus or [
+                "仍需標示哪些高影響缺口會阻止更強的結論。",
+            ]
+            citation_handoff = [
+                "請保留可直接交給 Host 或 specialist 的來源摘要、用途與限制。",
             ]
         elif request.agent_id == "legal_risk":
             if not findings:
@@ -267,6 +290,11 @@ class MockModelProvider(ModelProvider):
             recommendations=recommendations,
             action_items=action_items,
             missing_information=missing_information,
+            research_sub_questions=research_sub_questions,
+            source_quality_notes=source_quality_notes,
+            contradiction_notes=contradiction_notes,
+            evidence_gap_notes=evidence_gap_notes,
+            citation_handoff=citation_handoff,
         )
 
     def generate_document_restructuring(

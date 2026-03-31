@@ -6,6 +6,7 @@ import type {
   AgentCatalogEntry,
   ExtensionManagerSnapshot,
   PackCatalogEntry,
+  SelectedAgent,
   SelectedPack,
   TaskAggregate,
   TaskExtensionOverridePayload,
@@ -45,6 +46,39 @@ type PackSurfaceLike = Pick<
   | "version"
 > & {
   reason?: string;
+};
+
+type AgentSurfaceLike = Pick<
+  SelectedAgent,
+  | "agent_id"
+  | "agent_name"
+  | "agent_type"
+  | "description"
+  | "supported_capabilities"
+  | "relevant_domain_packs"
+  | "relevant_industry_packs"
+  | "primary_responsibilities"
+  | "out_of_scope"
+  | "defer_rules"
+  | "preferred_execution_modes"
+  | "input_requirements"
+  | "minimum_evidence_readiness"
+  | "required_context_fields"
+  | "output_contract"
+  | "produced_objects"
+  | "deliverable_impact"
+  | "writeback_expectations"
+  | "invocation_rules"
+  | "escalation_rules"
+  | "handoff_targets"
+  | "evaluation_focus"
+  | "failure_modes_to_watch"
+  | "trace_requirements"
+  | "status"
+  | "version"
+> & {
+  reason?: string;
+  runtime_binding?: string | null;
 };
 
 function parseOverrideInput(value: string) {
@@ -213,6 +247,126 @@ function PackContractCard({
             title="備註"
             items={pack.pack_notes}
             emptyText="目前沒有額外備註。"
+          />
+        </div>
+      </details>
+    </div>
+  );
+}
+
+function AgentContractCard({
+  agent,
+  reason,
+}: {
+  agent: AgentSurfaceLike;
+  reason?: string;
+}) {
+  const display = getAgentCatalogDisplay(agent);
+  const relatedPacks = [...agent.relevant_domain_packs, ...agent.relevant_industry_packs];
+
+  return (
+    <div className="detail-item">
+      <div className="meta-row">
+        <span className="pill">{labelForAgentType(agent.agent_type)}</span>
+        <span>{labelForExtensionStatus(agent.status)}</span>
+        <span>v{agent.version}</span>
+      </div>
+      <h3>{display.primaryName}</h3>
+      <p className="content-block">{display.primaryDescription}</p>
+      {reason ? <p className="muted-text">選用原因：{reason}</p> : null}
+      <p className="muted-text">
+        執行綁定：{agent.runtime_binding ? labelForAgentId(agent.runtime_binding) : "目前沒有額外 runtime 綁定"}
+      </p>
+      <p className="muted-text">
+        相關模組包：{summarizeList(relatedPacks, 4)}
+      </p>
+      <details className="inline-disclosure" style={{ marginTop: "10px" }}>
+        <summary className="inline-disclosure-summary">查看完整 agent contract</summary>
+        <div className="detail-list" style={{ marginTop: "12px" }}>
+          <PackContractBlock
+            title="主要責任"
+            items={agent.primary_responsibilities}
+            emptyText="目前沒有整理主要責任。"
+          />
+          <PackContractBlock
+            title="非責任範圍"
+            items={agent.out_of_scope}
+            emptyText="目前沒有整理 out-of-scope。"
+          />
+          <PackContractBlock
+            title="延後 / defer 規則"
+            items={agent.defer_rules}
+            emptyText="目前沒有整理 defer 規則。"
+          />
+          <PackContractBlock
+            title="偏好執行模式"
+            items={agent.preferred_execution_modes}
+            emptyText="目前沒有標示偏好執行模式。"
+          />
+          <PackContractBlock
+            title="輸入要求"
+            items={agent.input_requirements}
+            emptyText="目前沒有整理輸入要求。"
+          />
+          <PackContractBlock
+            title="最小證據就緒條件"
+            items={agent.minimum_evidence_readiness}
+            emptyText="目前沒有整理最小證據就緒條件。"
+          />
+          <PackContractBlock
+            title="必要 context 欄位"
+            items={agent.required_context_fields}
+            emptyText="目前沒有整理必要 context 欄位。"
+          />
+          <PackContractBlock
+            title="輸出契約"
+            items={agent.output_contract}
+            emptyText="目前沒有整理輸出契約。"
+          />
+          <PackContractBlock
+            title="產出物件"
+            items={agent.produced_objects}
+            emptyText="目前沒有整理產出物件。"
+          />
+          <PackContractBlock
+            title="對交付物的影響"
+            items={agent.deliverable_impact}
+            emptyText="目前沒有整理 deliverable impact。"
+          />
+          <PackContractBlock
+            title="寫回要求"
+            items={agent.writeback_expectations}
+            emptyText="目前沒有整理 writeback expectations。"
+          />
+          <PackContractBlock
+            title="啟動規則"
+            items={agent.invocation_rules}
+            emptyText="目前沒有整理 invocation rules。"
+          />
+          <PackContractBlock
+            title="升級 / escalation 規則"
+            items={agent.escalation_rules}
+            emptyText="目前沒有整理 escalation rules。"
+          />
+          <PackContractBlock
+            title="交接對象"
+            items={agent.handoff_targets}
+            emptyText="目前沒有整理 handoff targets。"
+          />
+          <PackContractBlock
+            title="評估焦點"
+            items={agent.evaluation_focus}
+            emptyText="目前沒有整理 evaluation focus。"
+          />
+          <PackContractBlock
+            title="常見失敗模式"
+            items={agent.failure_modes_to_watch}
+            emptyText="目前沒有整理 failure modes。"
+          />
+          <PackContractBlock
+            title="Trace 要求"
+            items={agent.trace_requirements}
+            emptyText="目前沒有整理 trace requirements。"
           />
         </div>
       </details>
@@ -436,6 +590,35 @@ export function ExtensionManagerSurface({
                 </div>
               </details>
             ) : null}
+            {task.agent_selection.host_agent ||
+            task.agent_selection.selected_reasoning_agents.length > 0 ||
+            task.agent_selection.selected_specialist_agents.length > 0 ? (
+              <details className="inline-disclosure" style={{ marginTop: "10px" }}>
+                <summary className="inline-disclosure-summary">查看代理責任與交接</summary>
+                <div className="detail-list" style={{ marginTop: "12px" }}>
+                  {task.agent_selection.host_agent ? (
+                    <AgentContractCard
+                      agent={task.agent_selection.host_agent}
+                      reason={task.agent_selection.host_agent.reason}
+                    />
+                  ) : null}
+                  {task.agent_selection.selected_reasoning_agents.map((agent) => (
+                    <AgentContractCard
+                      key={`selected-reasoning-${agent.agent_id}`}
+                      agent={agent}
+                      reason={agent.reason}
+                    />
+                  ))}
+                  {task.agent_selection.selected_specialist_agents.map((agent) => (
+                    <AgentContractCard
+                      key={`selected-specialist-${agent.agent_id}`}
+                      agent={agent}
+                      reason={agent.reason}
+                    />
+                  ))}
+                </div>
+              </details>
+            ) : null}
           </div>
 
           <div className="detail-item">
@@ -539,25 +722,7 @@ export function ExtensionManagerSurface({
             <summary className="inline-disclosure-summary">查看可用代理（{agents.length}）</summary>
             <div className="detail-list" style={{ marginTop: "12px" }}>
               {agents.map((agent) => (
-                <div className="detail-item" key={agent.agent_id}>
-                  <div className="meta-row">
-                    <span className="pill">{labelForAgentType(agent.agent_type)}</span>
-                    <span>{labelForExtensionStatus(agent.status)}</span>
-                    <span>v{agent.version}</span>
-                  </div>
-                  <h3>{getAgentCatalogDisplay(agent).primaryName}</h3>
-                  <p className="muted-text">{getAgentCatalogDisplay(agent).primaryDescription}</p>
-                  <p className="muted-text">
-                    可支援工作類型：{summarizeList(agent.supported_capabilities, 3)}
-                  </p>
-                  <p className="muted-text">
-                    相關模組包：
-                    {summarizeList(
-                      [...agent.relevant_domain_packs, ...agent.relevant_industry_packs],
-                      4,
-                    )}
-                  </p>
-                </div>
+                <AgentContractCard key={`catalog-agent-${agent.agent_id}`} agent={agent as AgentCatalogEntry} />
               ))}
             </div>
           </details>

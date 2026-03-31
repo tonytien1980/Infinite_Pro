@@ -237,14 +237,76 @@ export function mergeManagedAgents(
   baseAgents: AgentCatalogEntry[],
   state: AgentManagerState,
 ): Array<AgentCatalogEntry & { source: "system" | "local" }> {
+  const normalizeAgent = (agent: Partial<AgentCatalogEntry>): AgentCatalogEntry => ({
+    agent_id: agent.agent_id ?? "",
+    agent_name: agent.agent_name ?? "",
+    agent_type: agent.agent_type ?? "specialist",
+    description: agent.description ?? "",
+    supported_capabilities: agent.supported_capabilities ?? [],
+    relevant_domain_packs: agent.relevant_domain_packs ?? [],
+    relevant_industry_packs: agent.relevant_industry_packs ?? [],
+    primary_responsibilities: agent.primary_responsibilities ?? [],
+    out_of_scope: agent.out_of_scope ?? [],
+    defer_rules: agent.defer_rules ?? [],
+    preferred_execution_modes: agent.preferred_execution_modes ?? [],
+    input_requirements: agent.input_requirements ?? [],
+    minimum_evidence_readiness: agent.minimum_evidence_readiness ?? [],
+    required_context_fields: agent.required_context_fields ?? [],
+    output_contract: agent.output_contract ?? [],
+    produced_objects: agent.produced_objects ?? [],
+    deliverable_impact: agent.deliverable_impact ?? [],
+    writeback_expectations: agent.writeback_expectations ?? [],
+    invocation_rules: agent.invocation_rules ?? [],
+    escalation_rules: agent.escalation_rules ?? [],
+    handoff_targets: agent.handoff_targets ?? [],
+    evaluation_focus: agent.evaluation_focus ?? [],
+    failure_modes_to_watch: agent.failure_modes_to_watch ?? [],
+    trace_requirements: agent.trace_requirements ?? [],
+    version: agent.version ?? "1.0.0",
+    status: agent.status ?? "active",
+  });
+  const mergeAgent = (
+    base: AgentCatalogEntry,
+    override?: Partial<AgentCatalogEntry>,
+  ): AgentCatalogEntry => ({
+    ...base,
+    ...(override ?? {}),
+    supported_capabilities: override?.supported_capabilities ?? base.supported_capabilities,
+    relevant_domain_packs: override?.relevant_domain_packs ?? base.relevant_domain_packs,
+    relevant_industry_packs:
+      override?.relevant_industry_packs ?? base.relevant_industry_packs,
+    primary_responsibilities:
+      override?.primary_responsibilities ?? base.primary_responsibilities,
+    out_of_scope: override?.out_of_scope ?? base.out_of_scope,
+    defer_rules: override?.defer_rules ?? base.defer_rules,
+    preferred_execution_modes:
+      override?.preferred_execution_modes ?? base.preferred_execution_modes,
+    input_requirements: override?.input_requirements ?? base.input_requirements,
+    minimum_evidence_readiness:
+      override?.minimum_evidence_readiness ?? base.minimum_evidence_readiness,
+    required_context_fields:
+      override?.required_context_fields ?? base.required_context_fields,
+    output_contract: override?.output_contract ?? base.output_contract,
+    produced_objects: override?.produced_objects ?? base.produced_objects,
+    deliverable_impact: override?.deliverable_impact ?? base.deliverable_impact,
+    writeback_expectations:
+      override?.writeback_expectations ?? base.writeback_expectations,
+    invocation_rules: override?.invocation_rules ?? base.invocation_rules,
+    escalation_rules: override?.escalation_rules ?? base.escalation_rules,
+    handoff_targets: override?.handoff_targets ?? base.handoff_targets,
+    evaluation_focus: override?.evaluation_focus ?? base.evaluation_focus,
+    failure_modes_to_watch:
+      override?.failure_modes_to_watch ?? base.failure_modes_to_watch,
+    trace_requirements: override?.trace_requirements ?? base.trace_requirements,
+  });
+
   const mergedBase = baseAgents.map((agent) => ({
-    ...agent,
-    ...state.overrides[agent.agent_id],
+    ...mergeAgent(normalizeAgent(agent), state.overrides[agent.agent_id]),
     source: "system" as const,
   }));
 
   const customAgents = state.customAgents.map((agent) => ({
-    ...agent,
+    ...normalizeAgent(agent),
     source: "local" as const,
   }));
 

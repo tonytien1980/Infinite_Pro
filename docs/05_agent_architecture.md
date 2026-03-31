@@ -422,7 +422,7 @@ Pack 也必須正式進入以下五個核心能力：
    - `trace_requirements`
 
 ### 11.1.2 目前 machine-readable subset 與正式 baseline 的關係
-目前 registry 中已正式落地的 machine-readable subset 主要包括：
+目前 registry 中已正式落地的 machine-readable subset，已至少包括：
 - `agent_id`
 - `agent_name`
 - `agent_type`
@@ -430,17 +430,30 @@ Pack 也必須正式進入以下五個核心能力：
 - `supported_capabilities`
 - `relevant_domain_packs`
 - `relevant_industry_packs`
+- `primary_responsibilities`
+- `out_of_scope`
+- `defer_rules`
+- `preferred_execution_modes`
 - `input_requirements`
+- `minimum_evidence_readiness`
+- `required_context_fields`
 - `output_contract`
+- `produced_objects`
+- `deliverable_impact`
+- `writeback_expectations`
 - `invocation_rules`
 - `escalation_rules`
+- `handoff_targets`
+- `evaluation_focus`
+- `failure_modes_to_watch`
+- `trace_requirements`
 - `version`
 - `status`
 
 這代表：
-- 目前 runtime / resolver / management surface 已經有正式可用的最小 spec 骨架
-- 但之後新增 agent 時，設計與文件不應只停在這個最小 subset
-- 新增 agent 的設計審查，應以上述完整 baseline 為準，再決定哪些欄位要進一步下放到 machine-readable registry
+- 目前 runtime / resolver / management surface 已經不只停在最小 spec 骨架
+- 之後新增 agent 時，設計與文件仍不應退回只剩 `agent_id / description` 的薄 catalog
+- 新增 agent 的設計審查，應以完整 baseline 為準，並同步檢查 management surface、selected-agent payload 與 Host writeback 是否一致
 
 ### 11.1.3 後續新增 agent 的最低交件標準
 未來若要新增任何一個 agent，不論是 reasoning 或 specialist，至少應同時交付：

@@ -129,6 +129,8 @@ Infinite Pro 的正式第一層主導覽應為：
 4. **代理管理**
    - 正式管理頁
    - 用來查看、理解與控制 agents catalog、status、version、selected agents 與 task-level override
+   - 不應只顯示 agent 名稱與狀態；至少要讓顧問看見 responsibilities、out-of-scope、input requirements、output contract、handoff targets、evaluation focus 與 trace requirements
+   - 在單人版管理面中，也應能直接編輯上述核心 agent contract，而不是只把完整定義留在 registry 程式碼裡
    - 它不是附屬小功能，也不是 debug panel
 
 5. **模組包管理**

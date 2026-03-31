@@ -1242,7 +1242,8 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                   <ul className="list-content">
                     {workspace.research_runs.slice(0, 3).map((item) => (
                       <li key={item.id}>
-                        {item.query}｜{item.result_summary || item.status}
+                        {item.research_depth}｜{item.query}｜{item.result_summary || item.status}
+                        {item.source_quality_summary ? `｜${item.source_quality_summary}` : ""}
                       </li>
                     ))}
                   </ul>

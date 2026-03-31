@@ -233,6 +233,97 @@ def test_pack_management_round_trip_core_contract_fields(client: TestClient) -> 
     ]
 
 
+def test_agent_management_round_trip_core_contract_fields(client: TestClient) -> None:
+    update = client.put(
+        "/api/v1/extensions/agents/research_intelligence_agent",
+        json={
+            "agent_id": "research_intelligence_agent",
+            "agent_name": "Research / Investigation Agent",
+            "agent_type": "reasoning",
+            "description": "Owns investigation planning, source quality, evidence-gap closure, and citation-ready handoff.",
+            "supported_capabilities": [
+                "synthesize_brief",
+                "diagnose_assess",
+                "scenario_comparison",
+                "risk_surfacing",
+            ],
+            "relevant_domain_packs": ["research_intelligence_pack"],
+            "relevant_industry_packs": ["ecommerce_pack", "saas_pack"],
+            "primary_responsibilities": [
+                "break research into sub-questions",
+                "grade source quality and freshness",
+            ],
+            "out_of_scope": [
+                "does not replace Host as final decision owner",
+                "does not replace downstream synthesis",
+            ],
+            "defer_rules": [
+                "defer finality when source quality is weak",
+            ],
+            "preferred_execution_modes": ["multi_agent", "specialist"],
+            "input_requirements": ["DecisionContext", "SourceMaterial", "Evidence"],
+            "minimum_evidence_readiness": [
+                "at least one researchable question or evidence gap",
+            ],
+            "required_context_fields": ["DecisionContext", "selected packs"],
+            "output_contract": [
+                "investigation findings",
+                "source-quality notes",
+                "citation-ready handoff",
+            ],
+            "produced_objects": ["Insight", "EvidenceGap", "ResearchRun"],
+            "deliverable_impact": [
+                "shapes evidence basis and uncertainty boundary",
+            ],
+            "writeback_expectations": [
+                "write provenance and evidence-gap notes into the chain",
+            ],
+            "invocation_rules": [
+                "prefer for external-research-heavy or evidence-gap-heavy cases",
+            ],
+            "escalation_rules": [
+                "escalate when source quality is too weak to support claims",
+            ],
+            "handoff_targets": ["Host Agent", "Research Synthesis Specialist"],
+            "evaluation_focus": [
+                "sub-question quality",
+                "source-quality handling",
+            ],
+            "failure_modes_to_watch": [
+                "treating search results as validated facts",
+            ],
+            "trace_requirements": [
+                "must preserve research depth, gaps, and citation handoff",
+            ],
+            "version": "1.1.0",
+            "status": "active",
+            "is_custom": False,
+        },
+    )
+
+    assert update.status_code == 200
+    research_agent = next(
+        item
+        for item in update.json()["agent_registry"]["agents"]
+        if item["agent_id"] == "research_intelligence_agent"
+    )
+    assert research_agent["agent_name"] == "Research / Investigation Agent"
+    assert research_agent["primary_responsibilities"] == [
+        "break research into sub-questions",
+        "grade source quality and freshness",
+    ]
+    assert research_agent["preferred_execution_modes"] == ["multi_agent", "specialist"]
+    assert research_agent["output_contract"] == [
+        "investigation findings",
+        "source-quality notes",
+        "citation-ready handoff",
+    ]
+    assert research_agent["handoff_targets"] == ["Host Agent", "Research Synthesis Specialist"]
+    assert research_agent["trace_requirements"] == [
+        "must preserve research depth, gaps, and citation handoff",
+    ]
+
+
 def test_task_creation_attaches_background_text_as_context_and_evidence(client: TestClient) -> None:
     response = client.post("/api/v1/tasks", json=create_task_payload())
 

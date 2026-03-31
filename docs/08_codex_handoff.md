@@ -218,6 +218,7 @@ Agents 應依能力面與專業責任分類，而不是只依目前已落地 flo
   - `research_synthesis_specialist` handoff boundary
   - research provenance / evidence gap / citation handoff writeback
   - workbench research visibility
+  - `/agents` management surface 是否同步呈現完整 agent contract，而不是只有薄 catalog
 
 ### 7.3 Pack Layer
 Packs 應被視為正式能力層，不得退化為 tags。

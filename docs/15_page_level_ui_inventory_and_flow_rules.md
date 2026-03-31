@@ -272,6 +272,7 @@
 - 證據期待、保留邊界、進件規則等 supporting / debug 資訊
 - evidence gap records
 - research provenance 明細
+  需至少包含 research depth、sub-questions、evidence-gap focus、source-quality summary 與 citation handoff 摘要
 
 **正式跳轉**
 - `/tasks/[taskId]`
@@ -399,6 +400,7 @@
 - 完整 evidence / ontology 回鏈明細
 - decision / outcome writeback 記錄
 - research provenance 細節
+  需至少保留 research depth、source-quality summary 與 citation handoff 摘要
 
 **交付物管理段落規則**
 - 交付物管理不應把唯讀 metadata、版本控制與正文編修塞成同一排密集表單
@@ -425,6 +427,7 @@
 - 目前有哪些代理
 - 哪些啟用中
 - 現在要編輯哪一個
+- 目前有多少 agents 已補齊核心 contract
 
 **Primary action**
 - 新增代理 或 儲存代理
@@ -438,11 +441,12 @@
 - 全部代理數
 - 啟用中數
 - 主控代理數
+- 核心定義完整數
 - 代理列表
 
 **延後揭露**
 - 長篇描述
-- 細節結構
+- responsibilities / out-of-scope / handoff / evaluation / trace 的完整 contract
 - 使用紀錄全文
 - selected agent 與 runtime binding 的細節對照（若此頁承接 task-level override / selection context）
 

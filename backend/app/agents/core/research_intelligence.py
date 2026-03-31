@@ -45,6 +45,9 @@ class ResearchIntelligenceAgent(CoreAnalysisAgent):
                     {"id": evidence.id, "title": evidence.title, "content": evidence.excerpt_or_summary}
                     for evidence in payload.evidence
                 ],
+                research_depth=payload.research_depth,
+                research_sub_questions=payload.research_sub_questions,
+                evidence_gap_focus=payload.research_evidence_gap_focus,
             )
         )
         evidence_refs = [item.id for item in payload.evidence][:4]
@@ -84,4 +87,9 @@ class ResearchIntelligenceAgent(CoreAnalysisAgent):
                 for item in response.action_items
             ],
             missing_information=response.missing_information,
+            research_sub_questions=response.research_sub_questions,
+            source_quality_notes=response.source_quality_notes,
+            contradiction_notes=response.contradiction_notes,
+            evidence_gap_notes=response.evidence_gap_notes,
+            citation_handoff=response.citation_handoff,
         )

@@ -978,7 +978,12 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
               <div className="section-card">
                 <h4>研究執行紀錄</h4>
                 <CompactList
-                  items={workspace.research_runs.map((item) => `${item.query}｜${item.result_summary || item.status}`)}
+                  items={workspace.research_runs.map(
+                    (item) =>
+                      `${item.research_depth}｜${item.query}｜${item.result_summary || item.status}${
+                        item.citation_handoff_summary ? `｜${item.citation_handoff_summary}` : ""
+                      }`,
+                  )}
                   emptyText="目前沒有研究來源脈絡。"
                 />
               </div>

@@ -27,6 +27,9 @@ class CoreAnalysisRequest(BaseModel):
     goals: list[str] = Field(default_factory=list)
     constraints: list[str] = Field(default_factory=list)
     evidence: list[dict[str, Any]] = Field(default_factory=list)
+    research_depth: str = ""
+    research_sub_questions: list[str] = Field(default_factory=list)
+    evidence_gap_focus: list[str] = Field(default_factory=list)
 
 
 class DocumentRestructuringRequest(BaseModel):
@@ -63,6 +66,11 @@ class CoreAnalysisOutput(BaseModel):
     recommendations: list[str]
     action_items: list[str]
     missing_information: list[str]
+    research_sub_questions: list[str] = Field(default_factory=list)
+    source_quality_notes: list[str] = Field(default_factory=list)
+    contradiction_notes: list[str] = Field(default_factory=list)
+    evidence_gap_notes: list[str] = Field(default_factory=list)
+    citation_handoff: list[str] = Field(default_factory=list)
 
 
 class DocumentRestructuringOutput(BaseModel):

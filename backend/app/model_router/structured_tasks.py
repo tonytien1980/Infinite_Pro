@@ -170,18 +170,67 @@ def build_core_analysis_spec(
         ),
     }
 
+    is_research_investigation = request_payload.agent_id == "research_intelligence"
+    properties = {
+        "findings": _string_list_schema("Core findings from this perspective."),
+        "risks": _string_list_schema("Risks or challenge points from this perspective."),
+        "recommendations": _string_list_schema("Recommendations from this perspective."),
+        "action_items": _string_list_schema("Immediate actions from this perspective."),
+        "missing_information": _string_list_schema("Uncertainty or missing information."),
+    }
+    if is_research_investigation:
+        properties.update(
+            {
+                "research_sub_questions": _string_list_schema(
+                    "The research sub-questions this investigation is explicitly trying to answer."
+                ),
+                "source_quality_notes": _string_list_schema(
+                    "Notes on source quality, coverage, authority, or freshness."
+                ),
+                "contradiction_notes": _string_list_schema(
+                    "Conflicting or unresolved signals that should be preserved."
+                ),
+                "evidence_gap_notes": _string_list_schema(
+                    "High-impact evidence gaps that still block stronger conclusions."
+                ),
+                "citation_handoff": _string_list_schema(
+                    "Citation-ready handoff notes for downstream reasoning or deliverable shaping."
+                ),
+            }
+        )
+
+    user_prompt = render_request_context(
+        task_title=request_payload.task_title,
+        task_description=request_payload.task_description,
+        background_text=request_payload.background_text,
+        goals=request_payload.goals,
+        constraints=request_payload.constraints,
+        evidence=request_payload.evidence,
+    )
+    if is_research_investigation:
+        research_context_blocks = [
+            "Research depth：\n" + (request_payload.research_depth or "standard_investigation"),
+            "研究子問題：\n"
+            + (
+                "\n".join(f"- {item}" for item in request_payload.research_sub_questions)
+                if request_payload.research_sub_questions
+                else "- 目前未提供。"
+            ),
+            "高影響證據缺口：\n"
+            + (
+                "\n".join(f"- {item}" for item in request_payload.evidence_gap_focus)
+                if request_payload.evidence_gap_focus
+                else "- 目前未提供。"
+            ),
+        ]
+        user_prompt = user_prompt + "\n\n" + "\n\n".join(research_context_blocks)
+
     return StructuredTaskSpec(
         schema_name=f"{request_payload.agent_id}_core_output",
         schema={
             "type": "object",
             "additionalProperties": False,
-            "properties": {
-                "findings": _string_list_schema("Core findings from this perspective."),
-                "risks": _string_list_schema("Risks or challenge points from this perspective."),
-                "recommendations": _string_list_schema("Recommendations from this perspective."),
-                "action_items": _string_list_schema("Immediate actions from this perspective."),
-                "missing_information": _string_list_schema("Uncertainty or missing information."),
-            },
+            "properties": properties,
             "required": [
                 "findings",
                 "risks",
@@ -198,14 +247,7 @@ def build_core_analysis_spec(
             + " 請只使用提供的任務脈絡。輸出要精簡、結構化，且符合顧問式交付語氣：先判斷、後依據。"
             + DEFAULT_LANGUAGE_INSTRUCTION
         ),
-        user_prompt=render_request_context(
-            task_title=request_payload.task_title,
-            task_description=request_payload.task_description,
-            background_text=request_payload.background_text,
-            goals=request_payload.goals,
-            constraints=request_payload.constraints,
-            evidence=request_payload.evidence,
-        ),
+        user_prompt=user_prompt,
         output_model=CoreAnalysisOutput,
     )
 

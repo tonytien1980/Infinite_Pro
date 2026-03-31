@@ -96,6 +96,9 @@ SPECIALIST_TASK_TYPES = {
     "document_restructuring",
 }
 AGENT_OVERRIDE_CONSTRAINT_TYPE = "agent_override"
+RESEARCH_DEPTH_LIGHT = "light_completion"
+RESEARCH_DEPTH_STANDARD = "standard_investigation"
+RESEARCH_DEPTH_DEEP = "deep_research"
 
 
 @dataclass
@@ -104,6 +107,12 @@ class ExternalDataUsageReport:
     search_attempted: bool = False
     search_used: bool = False
     external_research_heavy_case: bool = False
+    research_depth: str = RESEARCH_DEPTH_LIGHT
+    research_sub_questions: list[str] = field(default_factory=list)
+    evidence_gap_focus: list[str] = field(default_factory=list)
+    source_quality_summary: str = ""
+    contradiction_summary: str = ""
+    citation_handoff_summary: str = ""
     source_documents: list[models.SourceDocument] = field(default_factory=list)
     dependency_note: str = ""
     missing_information: list[str] = field(default_factory=list)
@@ -272,6 +281,133 @@ class HostOrchestrator:
         query = " ".join(part for part in query_parts if part).strip()
         return (query or payload.title).strip()[:240]
 
+    def _determine_research_depth(
+        self,
+        payload: AgentInputPayload,
+        strategy: ExternalDataStrategy,
+        capability_frame: CapabilityFrame,
+        readiness: ReadinessGovernance,
+    ) -> str:
+        selected_pack_ids = set(self._pack_ids(payload))
+        if readiness.external_research_heavy_case:
+            return RESEARCH_DEPTH_DEEP
+        if (
+            strategy == ExternalDataStrategy.LATEST
+            and "research_intelligence_pack" in selected_pack_ids
+            and payload.input_entry_mode == InputEntryMode.ONE_LINE_INQUIRY
+        ):
+            return RESEARCH_DEPTH_DEEP
+        if (
+            "research_intelligence_pack" in selected_pack_ids
+            or capability_frame.capability
+            in {
+                CapabilityArchetype.SYNTHESIZE_BRIEF,
+                CapabilityArchetype.SCENARIO_COMPARISON,
+                CapabilityArchetype.RISK_SURFACING,
+            }
+            or len(readiness.pack_high_impact_gaps) >= 2
+            or len(readiness.pack_evidence_expectations) >= 3
+        ):
+            return RESEARCH_DEPTH_STANDARD
+        return RESEARCH_DEPTH_LIGHT
+
+    @staticmethod
+    def _max_results_for_research_depth(research_depth: str) -> int:
+        if research_depth == RESEARCH_DEPTH_DEEP:
+            return 8
+        if research_depth == RESEARCH_DEPTH_STANDARD:
+            return 6
+        return 3
+
+    def _build_research_sub_questions(
+        self,
+        payload: AgentInputPayload,
+        capability_frame: CapabilityFrame,
+        readiness: ReadinessGovernance,
+        research_depth: str,
+    ) -> list[str]:
+        sub_questions: list[str] = []
+        judgment = (
+            payload.decision_context.judgment_to_make
+            if payload.decision_context and payload.decision_context.judgment_to_make
+            else payload.description or payload.title
+        )
+        if judgment:
+            sub_questions.append(f"目前最需要先查清楚的外部事實是什麼，才能回答「{judgment}」？")
+
+        for expectation in readiness.pack_evidence_expectations[:3]:
+            sub_questions.append(f"哪些公開來源最能補上這類證據期待：{expectation}？")
+
+        for gap in readiness.pack_high_impact_gaps[:2]:
+            sub_questions.append(f"若不先釐清「{gap}」，目前結論會在哪裡失真？")
+
+        if capability_frame.capability == CapabilityArchetype.SCENARIO_COMPARISON:
+            sub_questions.append("目前外部訊號是否支持不同方案之間的 trade-off 比較？")
+        if capability_frame.capability == CapabilityArchetype.RISK_SURFACING:
+            sub_questions.append("目前最需要保留的不確定性與矛盾訊號是什麼？")
+        if research_depth == RESEARCH_DEPTH_DEEP:
+            sub_questions.append("哪些高影響子題仍需要第二輪擴展搜尋才能降低不確定性？")
+
+        limit = 2 if research_depth == RESEARCH_DEPTH_LIGHT else 4 if research_depth == RESEARCH_DEPTH_STANDARD else 6
+        return self._unique_preserve_order(sub_questions)[:limit]
+
+    def _build_research_evidence_gap_focus(
+        self,
+        payload: AgentInputPayload,
+        readiness: ReadinessGovernance,
+        research_depth: str,
+    ) -> list[str]:
+        focus: list[str] = [
+            *readiness.pack_high_impact_gaps,
+            *readiness.pack_evidence_expectations[:3],
+        ]
+        for item in readiness.missing_information:
+            if "外部" in item or "來源" in item or "證據" in item or "研究" in item:
+                focus.append(item)
+        limit = 3 if research_depth == RESEARCH_DEPTH_LIGHT else 5 if research_depth == RESEARCH_DEPTH_STANDARD else 7
+        return self._unique_preserve_order(focus)[:limit]
+
+    def _build_source_quality_summary(
+        self,
+        results: list,
+        research_depth: str,
+    ) -> str:
+        if not results:
+            return "這輪沒有形成可用的公開來源，因此無法建立來源品質摘要。"
+
+        domains = self._unique_preserve_order(
+            [
+                item.url.split("/")[2]
+                for item in results
+                if getattr(item, "url", "")
+                and len(item.url.split("/")) > 2
+            ]
+        )
+        return (
+            f"本輪以 {research_depth} 深度補入 {len(results)} 筆公開來源，"
+            f"目前主要涵蓋 { '、'.join(domains[:4]) or '少量公開網域' }。"
+            "Host 只做第一層來源補完；正式的來源品質分級與可引用性判斷仍應由 Research / Investigation Agent 在 evidence stage 繼續收斂。"
+        )
+
+    @staticmethod
+    def _build_contradiction_summary(research_depth: str) -> str:
+        return (
+            f"目前的 {research_depth} research 只完成第一層補完與來源併入；"
+            "若不同來源互相衝突，不應強行消解，而應在後續 investigation / synthesis 中保留 contradiction notes。"
+        )
+
+    def _build_citation_handoff_summary(
+        self,
+        results: list,
+    ) -> str:
+        if not results:
+            return "這輪沒有可交接的 citation-ready handoff。"
+
+        return (
+            "後續交接時，應保留來源標題、URL、摘要與用途說明。"
+            f"目前已形成 {len(results)} 筆可回到 source / evidence 鏈的公開來源入口。"
+        )
+
     def _should_search_external_sources(
         self,
         payload: AgentInputPayload,
@@ -320,6 +456,9 @@ class HostOrchestrator:
         payload: AgentInputPayload,
         capability_frame: CapabilityFrame,
         query: str,
+        research_depth: str,
+        sub_questions: list[str],
+        evidence_gap_focus: list[str],
     ) -> models.ResearchRun:
         matter_workspace = next(
             (
@@ -343,6 +482,7 @@ class HostOrchestrator:
             )
             or "Host 判定 evidence gaps 仍需外部補完。",
             research_scope="host_external_completion",
+            research_depth=research_depth,
             freshness_policy="latest_public_web",
             confidence_note="外部 research 結果必須先回到 source / evidence 鏈，不能直接視為最終結論。",
             source_trace_summary=(
@@ -355,6 +495,8 @@ class HostOrchestrator:
             selected_industry_pack_ids=[
                 item.pack_id for item in payload.pack_resolution.selected_industry_packs
             ],
+            sub_questions=sub_questions,
+            evidence_gap_focus=evidence_gap_focus,
         )
         self.db.add(research_run)
         self.db.commit()
@@ -368,11 +510,17 @@ class HostOrchestrator:
         status: RunStatus,
         source_count: int,
         result_summary: str,
+        source_quality_summary: str = "",
+        contradiction_summary: str = "",
+        citation_handoff_summary: str = "",
         error_message: str | None = None,
     ) -> None:
         research_run.status = status.value
         research_run.source_count = source_count
         research_run.result_summary = result_summary
+        research_run.source_quality_summary = source_quality_summary
+        research_run.contradiction_summary = contradiction_summary
+        research_run.citation_handoff_summary = citation_handoff_summary
         research_run.error_message = error_message
         research_run.completed_at = datetime.now(timezone.utc)
         self.db.add(research_run)
@@ -391,6 +539,23 @@ class HostOrchestrator:
             strategy=strategy,
             external_research_heavy_case=readiness.external_research_heavy_case,
         )
+        report.research_depth = self._determine_research_depth(
+            payload,
+            strategy,
+            capability_frame,
+            readiness,
+        )
+        report.research_sub_questions = self._build_research_sub_questions(
+            payload,
+            capability_frame,
+            readiness,
+            report.research_depth,
+        )
+        report.evidence_gap_focus = self._build_research_evidence_gap_focus(
+            payload,
+            readiness,
+            report.research_depth,
+        )
         existing_external_sources = [
             item
             for item in task.uploads
@@ -404,6 +569,14 @@ class HostOrchestrator:
         if existing_external_sources and strategy != ExternalDataStrategy.LATEST:
             report.search_used = True
             report.source_documents = existing_external_sources
+            report.source_quality_summary = (
+                f"本輪沿用既有外部來源，共 {len(existing_external_sources)} 筆。"
+                "若要做更細的來源品質分級，仍應交給調研 / investigation 路徑進一步處理。"
+            )
+            report.contradiction_summary = self._build_contradiction_summary(report.research_depth)
+            report.citation_handoff_summary = (
+                "沿用既有外部來源時，仍應保留來源標題、URL、摘要與限制說明。"
+            )
             report.dependency_note = (
                 "本輪沿用既有的外部搜尋來源，背景摘要、關鍵發現與建議可能部分依賴外部資料。"
             )
@@ -415,7 +588,15 @@ class HostOrchestrator:
 
         report.search_attempted = True
         search_query = self._build_search_query(payload)
-        research_run = self._start_research_run(task, payload, capability_frame, search_query)
+        research_run = self._start_research_run(
+            task,
+            payload,
+            capability_frame,
+            search_query,
+            report.research_depth,
+            report.research_sub_questions,
+            report.evidence_gap_focus,
+        )
         logger.info(
             "Host considering external search for task %s strategy=%s capability=%s query=%s",
             task.id,
@@ -425,8 +606,24 @@ class HostOrchestrator:
         )
 
         try:
-            results = search_external_sources(search_query)
+            try:
+                results = search_external_sources(
+                    search_query,
+                    max_results=self._max_results_for_research_depth(report.research_depth),
+                )
+            except TypeError as exc:
+                if "max_results" not in str(exc):
+                    raise
+                results = search_external_sources(search_query)
             if results:
+                report.source_quality_summary = self._build_source_quality_summary(
+                    results,
+                    report.research_depth,
+                )
+                report.contradiction_summary = self._build_contradiction_summary(
+                    report.research_depth,
+                )
+                report.citation_handoff_summary = self._build_citation_handoff_summary(results)
                 ingest_remote_urls_for_task(
                     db=self.db,
                     task_id=task.id,
@@ -439,6 +636,9 @@ class HostOrchestrator:
                     status=RunStatus.COMPLETED,
                     source_count=len(results),
                     result_summary=f"Host 已補入 {len(results)} 筆外部公開來源。",
+                    source_quality_summary=report.source_quality_summary,
+                    contradiction_summary=report.contradiction_summary,
+                    citation_handoff_summary=report.citation_handoff_summary,
                 )
             else:
                 report.missing_information.append("Host 已嘗試補充外部搜尋，但目前沒有找到可用的公開來源。")
@@ -447,6 +647,9 @@ class HostOrchestrator:
                     status=RunStatus.COMPLETED,
                     source_count=0,
                     result_summary="Host 已執行外部搜尋，但未找到可用公開來源。",
+                    source_quality_summary="沒有找到可用公開來源，因此無法形成來源品質摘要。",
+                    contradiction_summary=self._build_contradiction_summary(report.research_depth),
+                    citation_handoff_summary="這輪沒有形成 citation-ready handoff。",
                 )
         except Exception as exc:  # noqa: BLE001
             logger.warning("External search degraded for task %s: %s", task.id, exc)
@@ -456,6 +659,9 @@ class HostOrchestrator:
                 status=RunStatus.FAILED,
                 source_count=0,
                 result_summary="外部搜尋失敗，未能形成可用 research provenance。",
+                source_quality_summary="外部搜尋失敗，因此無法形成來源品質摘要。",
+                contradiction_summary=self._build_contradiction_summary(report.research_depth),
+                citation_handoff_summary="外部搜尋失敗，因此沒有 citation-ready handoff。",
                 error_message=str(exc),
             )
 
@@ -769,6 +975,23 @@ class HostOrchestrator:
             supported_capabilities=[item.value for item in agent.supported_capabilities],
             relevant_domain_packs=agent.relevant_domain_packs,
             relevant_industry_packs=agent.relevant_industry_packs,
+            primary_responsibilities=agent.primary_responsibilities,
+            out_of_scope=agent.out_of_scope,
+            defer_rules=agent.defer_rules,
+            preferred_execution_modes=agent.preferred_execution_modes,
+            input_requirements=agent.input_requirements,
+            minimum_evidence_readiness=agent.minimum_evidence_readiness,
+            required_context_fields=agent.required_context_fields,
+            output_contract=agent.output_contract,
+            produced_objects=agent.produced_objects,
+            deliverable_impact=agent.deliverable_impact,
+            writeback_expectations=agent.writeback_expectations,
+            invocation_rules=agent.invocation_rules,
+            escalation_rules=agent.escalation_rules,
+            handoff_targets=agent.handoff_targets,
+            evaluation_focus=agent.evaluation_focus,
+            failure_modes_to_watch=agent.failure_modes_to_watch,
+            trace_requirements=agent.trace_requirements,
             reason=self._build_selected_agent_reason(
                 agent=agent,
                 capability=capability,
@@ -1737,6 +1960,16 @@ class HostOrchestrator:
         readiness = self._evaluate_readiness_governance(payload, capability_frame, resolved_workflow_mode)
         return payload, capability_frame, readiness, resolved_workflow_mode
 
+    @staticmethod
+    def _apply_research_plan_to_payload(
+        payload: AgentInputPayload,
+        report: ExternalDataUsageReport,
+    ) -> AgentInputPayload:
+        payload.research_depth = report.research_depth
+        payload.research_sub_questions = report.research_sub_questions
+        payload.research_evidence_gap_focus = report.evidence_gap_focus
+        return payload
+
     def _build_core_judgment(
         self,
         payload: AgentInputPayload,
@@ -2237,7 +2470,13 @@ class HostOrchestrator:
         }
         content["research_provenance"] = {
             "source_trace": [item["url"] for item in sources],
+            "research_depth": report.research_depth,
+            "sub_questions": report.research_sub_questions,
+            "evidence_gap_focus": report.evidence_gap_focus,
             "freshness_policy": "latest_public_web" if report.search_attempted else "not_used",
+            "source_quality_summary": report.source_quality_summary,
+            "contradiction_summary": report.contradiction_summary,
+            "citation_handoff_summary": report.citation_handoff_summary,
             "confidence_boundary": "research results must first enter source / evidence chain before affecting deliverable shaping",
         }
         content["external_data_strategy"] = report.strategy.value
@@ -2353,6 +2592,7 @@ class HostOrchestrator:
                 readiness,
             )
             payload, capability_frame, readiness, workflow_mode = self._prepare_host_context(task, workflow_mode)
+            payload = self._apply_research_plan_to_payload(payload, external_data_report)
             readiness = self._preserve_sparse_case_intent(readiness, external_data_report)
             fixed_core_agents = capability_frame.selected_core_agents or DEFAULT_MULTI_AGENT_FALLBACK
             logger.info(
@@ -2516,6 +2756,41 @@ class HostOrchestrator:
                     "action_items": [item.description for item in action_items],
                     "missing_information": missing_information,
                     "participating_agents": fixed_core_agents,
+                    "research_sub_questions": self._unique_preserve_order(
+                        [
+                            item
+                            for _, fragment in fragments
+                            for item in fragment.research_sub_questions
+                        ]
+                    ),
+                    "source_quality_notes": self._unique_preserve_order(
+                        [
+                            item
+                            for _, fragment in fragments
+                            for item in fragment.source_quality_notes
+                        ]
+                    ),
+                    "contradiction_notes": self._unique_preserve_order(
+                        [
+                            item
+                            for _, fragment in fragments
+                            for item in fragment.contradiction_notes
+                        ]
+                    ),
+                    "research_gaps": self._unique_preserve_order(
+                        [
+                            item
+                            for _, fragment in fragments
+                            for item in fragment.evidence_gap_notes
+                        ]
+                    ),
+                    "citation_handoff": self._unique_preserve_order(
+                        [
+                            item
+                            for _, fragment in fragments
+                            for item in fragment.citation_handoff
+                        ]
+                    ),
                 },
             ),
         )
@@ -2557,6 +2832,7 @@ class HostOrchestrator:
                 readiness,
             )
             payload, capability_frame, readiness, workflow_mode = self._prepare_host_context(task, workflow_mode)
+            payload = self._apply_research_plan_to_payload(payload, external_data_report)
             readiness = self._preserve_sparse_case_intent(readiness, external_data_report)
             agent = self.registry.get_specialist_agent(agent_id)
             result = self._normalize_result(payload, agent_id, agent.run(payload))

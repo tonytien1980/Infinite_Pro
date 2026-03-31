@@ -66,6 +66,9 @@ class AgentInputPayload(BaseModel):
     writeback_depth: WritebackDepth = WritebackDepth.MINIMAL
     deliverable_class_hint: DeliverableClass = DeliverableClass.EXPLORATORY_BRIEF
     external_research_heavy_candidate: bool = False
+    research_depth: str = ""
+    research_sub_questions: list[str] = Field(default_factory=list)
+    research_evidence_gap_focus: list[str] = Field(default_factory=list)
     sparse_input_summary: str = ""
     case_world_draft: CaseWorldDraftRead | None = None
     case_world_state: CaseWorldStateRead | None = None
@@ -142,6 +145,11 @@ class CoreAgentResult(BaseModel):
     recommendations: list[RecommendationDraft] = Field(default_factory=list)
     action_items: list[ActionItemDraft] = Field(default_factory=list)
     missing_information: list[str] = Field(default_factory=list)
+    research_sub_questions: list[str] = Field(default_factory=list)
+    source_quality_notes: list[str] = Field(default_factory=list)
+    contradiction_notes: list[str] = Field(default_factory=list)
+    evidence_gap_notes: list[str] = Field(default_factory=list)
+    citation_handoff: list[str] = Field(default_factory=list)
 
 
 class SpecialistAgent(ABC):

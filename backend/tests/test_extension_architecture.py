@@ -11,6 +11,7 @@ def test_extension_registry_contains_completed_pack_baseline_and_agents() -> Non
 
     domain_packs = registry.list_packs(PackType.DOMAIN)
     industry_packs = registry.list_packs(PackType.INDUSTRY)
+    agents = registry.list_agents()
     host_agent = registry.get_host_agent()
 
     assert {pack.pack_id for pack in domain_packs} >= {
@@ -64,6 +65,27 @@ def test_extension_registry_contains_completed_pack_baseline_and_agents() -> Non
         assert pack.pack_rationale
         assert pack.key_kpis_or_operating_signals, f"{pack.pack_id} should expose KPI / signal guidance"
         assert pack.key_kpis, f"{pack.pack_id} should expose KPI guidance"
+
+    assert len(agents) == 12
+    research_agent = next(agent for agent in agents if agent.agent_id == "research_intelligence_agent")
+    assert research_agent.agent_name == "Research / Investigation Agent"
+
+    for agent in agents:
+        assert agent.primary_responsibilities, f"{agent.agent_id} should expose formal responsibilities"
+        assert agent.out_of_scope, f"{agent.agent_id} should expose out-of-scope boundaries"
+        assert agent.defer_rules, f"{agent.agent_id} should expose defer rules"
+        assert agent.preferred_execution_modes, f"{agent.agent_id} should expose preferred execution modes"
+        assert agent.input_requirements, f"{agent.agent_id} should expose input requirements"
+        assert agent.minimum_evidence_readiness, f"{agent.agent_id} should expose evidence readiness"
+        assert agent.required_context_fields, f"{agent.agent_id} should expose required context fields"
+        assert agent.output_contract, f"{agent.agent_id} should expose output contract"
+        assert agent.produced_objects, f"{agent.agent_id} should expose produced objects"
+        assert agent.deliverable_impact, f"{agent.agent_id} should expose deliverable impact"
+        assert agent.writeback_expectations, f"{agent.agent_id} should expose writeback expectations"
+        assert agent.handoff_targets, f"{agent.agent_id} should expose handoff targets"
+        assert agent.evaluation_focus, f"{agent.agent_id} should expose evaluation focus"
+        assert agent.failure_modes_to_watch, f"{agent.agent_id} should expose failure modes"
+        assert agent.trace_requirements, f"{agent.agent_id} should expose trace requirements"
 
 
 def test_pack_resolver_selects_domain_and_industry_packs() -> None:

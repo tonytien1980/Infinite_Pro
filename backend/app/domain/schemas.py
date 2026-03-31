@@ -297,6 +297,23 @@ class SelectedAgentRead(BaseModel):
     supported_capabilities: list[str] = Field(default_factory=list)
     relevant_domain_packs: list[str] = Field(default_factory=list)
     relevant_industry_packs: list[str] = Field(default_factory=list)
+    primary_responsibilities: list[str] = Field(default_factory=list)
+    out_of_scope: list[str] = Field(default_factory=list)
+    defer_rules: list[str] = Field(default_factory=list)
+    preferred_execution_modes: list[str] = Field(default_factory=list)
+    input_requirements: list[str] = Field(default_factory=list)
+    minimum_evidence_readiness: list[str] = Field(default_factory=list)
+    required_context_fields: list[str] = Field(default_factory=list)
+    output_contract: list[str] = Field(default_factory=list)
+    produced_objects: list[str] = Field(default_factory=list)
+    deliverable_impact: list[str] = Field(default_factory=list)
+    writeback_expectations: list[str] = Field(default_factory=list)
+    invocation_rules: list[str] = Field(default_factory=list)
+    escalation_rules: list[str] = Field(default_factory=list)
+    handoff_targets: list[str] = Field(default_factory=list)
+    evaluation_focus: list[str] = Field(default_factory=list)
+    failure_modes_to_watch: list[str] = Field(default_factory=list)
+    trace_requirements: list[str] = Field(default_factory=list)
     reason: str = ""
     runtime_binding: str | None = None
     status: str = "active"
@@ -750,11 +767,17 @@ class ResearchRunRead(ORMModel):
     query: str
     trigger_reason: str
     research_scope: str
+    research_depth: str = "light_completion"
     freshness_policy: str
     confidence_note: str
     source_trace_summary: str
     selected_domain_pack_ids: list[str] = Field(default_factory=list)
     selected_industry_pack_ids: list[str] = Field(default_factory=list)
+    sub_questions: list[str] = Field(default_factory=list)
+    evidence_gap_focus: list[str] = Field(default_factory=list)
+    source_quality_summary: str = ""
+    contradiction_summary: str = ""
+    citation_handoff_summary: str = ""
     result_summary: str
     source_count: int
     error_message: str | None = None

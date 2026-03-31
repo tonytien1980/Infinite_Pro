@@ -117,6 +117,14 @@ def _ensure_incremental_schema_updates() -> None:
             "derived_storage_key": "VARCHAR(1024)",
             "updated_at": f"{datetime_column_type} NOT NULL DEFAULT CURRENT_TIMESTAMP",
         },
+        "research_runs": {
+            "research_depth": "VARCHAR(50) NOT NULL DEFAULT 'light_completion'",
+            "sub_questions": "JSON NOT NULL DEFAULT '[]'",
+            "evidence_gap_focus": "JSON NOT NULL DEFAULT '[]'",
+            "source_quality_summary": "TEXT NOT NULL DEFAULT ''",
+            "contradiction_summary": "TEXT NOT NULL DEFAULT ''",
+            "citation_handoff_summary": "TEXT NOT NULL DEFAULT ''",
+        },
         "source_materials": {
             "matter_workspace_id": "VARCHAR(36)",
             "continuity_scope": "VARCHAR(30) NOT NULL DEFAULT 'slice_participation'",

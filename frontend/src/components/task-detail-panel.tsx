@@ -732,7 +732,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                 <h4>研究來源脈絡</h4>
                 <p className="content-block">
                   {task.research_runs.length > 0
-                    ? `已留存 ${task.research_runs.length} 筆研究執行紀錄。`
+                    ? `已留存 ${task.research_runs.length} 筆研究執行紀錄；最近一筆為 ${task.research_runs[0].research_depth}。`
                     : "目前沒有研究來源脈絡。"}
                 </p>
               </div>

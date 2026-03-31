@@ -61,8 +61,8 @@ const AGENT_LABELS: Record<string, string> = {
   market_research_insight: "市場 / 研究洞察代理",
   marketing_growth: "行銷 / 成長代理",
   sales_business_development: "銷售 / 商務開發代理",
-  research_intelligence: "研究 / 情報代理",
-  research_intelligence_agent: "研究 / 情報代理",
+  research_intelligence: "調研 / 情報代理",
+  research_intelligence_agent: "調研 / 情報代理",
   operations: "營運代理",
   operations_agent: "營運代理",
   document_communication: "文件 / 溝通代理",
@@ -227,7 +227,7 @@ const AGENT_CANONICAL_NAMES: Record<string, string> = {
   legal_risk_agent: "法務 / 風險代理",
   marketing_growth_agent: "行銷 / 成長代理",
   sales_business_development_agent: "銷售 / 商務開發代理",
-  research_intelligence_agent: "研究 / 情報代理",
+  research_intelligence_agent: "調研 / 情報代理",
   document_communication_agent: "文件 / 溝通代理",
   contract_review_specialist: "合約審閱專家代理",
   research_synthesis_specialist: "研究綜整專家代理",
@@ -246,8 +246,8 @@ const AGENT_PRIMARY_DESCRIPTIONS: Record<string, string> = {
   marketing_growth_agent: "負責定位、需求生成、成長敘事與獲客分析。",
   sales_business_development: "負責管線、商務動作、夥伴結構與商機推進。",
   sales_business_development_agent: "負責商機管線、商務動作、夥伴結構與機會開發。",
-  research_intelligence: "負責外部發現、來源品質、證據缺口與不確定性 framing。",
-  research_intelligence_agent: "負責外部訊號、研究資料與多來源證據綜整。",
+  research_intelligence: "負責調研規劃、來源品質、證據缺口、新鮮度與不確定性 framing。",
+  research_intelligence_agent: "負責調研規劃、來源品質、證據缺口 closure 與 citation-ready handoff。",
   document_communication: "負責受眾導向的文件結構、訊息順序與交付採納率。",
   document_communication_agent: "負責文件整理、敘事編排與溝通型交付物。",
   contract_review_specialist: "專注合約審閱、條款風險盤點與修訂建議輸出。",
@@ -327,6 +327,21 @@ const AGENT_NAME_LABELS = Object.fromEntries(
     AGENT_LABELS[agentId] ?? name,
   ]),
 );
+Object.assign(AGENT_NAME_LABELS, {
+  "Host Agent": AGENT_LABELS.host_agent,
+  "Strategy / Decision Agent": AGENT_LABELS.strategy_decision_agent,
+  "Operations Agent": AGENT_LABELS.operations_agent,
+  "Finance Agent": AGENT_LABELS.finance_agent,
+  "Legal / Risk Agent": AGENT_LABELS.legal_risk_agent,
+  "Marketing / Growth Agent": AGENT_LABELS.marketing_growth_agent,
+  "Sales / Business Development Agent": AGENT_LABELS.sales_business_development_agent,
+  "Research / Intelligence Agent": AGENT_LABELS.research_intelligence_agent,
+  "Research / Investigation Agent": AGENT_LABELS.research_intelligence_agent,
+  "Document / Communication Agent": AGENT_LABELS.document_communication_agent,
+  "Contract Review Specialist": AGENT_LABELS.contract_review_specialist,
+  "Research Synthesis Specialist": AGENT_LABELS.research_synthesis_specialist,
+  "Document Restructuring Specialist": AGENT_LABELS.document_restructuring_specialist,
+});
 
 const PACK_NAME_LABELS = Object.fromEntries(
   Object.entries(PACK_CANONICAL_NAMES).map(([packId, name]) => [
@@ -605,7 +620,7 @@ export function getAgentCatalogDisplay(agent: {
 }) {
   const primaryName = AGENT_LABELS[agent.agent_id] ?? labelForAgentName(agent.agent_name);
   const primaryDescription =
-    AGENT_PRIMARY_DESCRIPTIONS[agent.agent_id] ?? agent.description;
+    agent.description || AGENT_PRIMARY_DESCRIPTIONS[agent.agent_id];
   return {
     primaryName,
     secondaryName: null,
@@ -620,7 +635,7 @@ export function getPackCatalogDisplay(pack: {
 }) {
   const primaryName = PACK_PRIMARY_NAMES[pack.pack_id] ?? labelForPackName(pack.pack_name);
   const primaryDescription =
-    PACK_PRIMARY_DESCRIPTIONS[pack.pack_id] ?? pack.description;
+    pack.description || PACK_PRIMARY_DESCRIPTIONS[pack.pack_id];
   return {
     primaryName,
     secondaryName: null,

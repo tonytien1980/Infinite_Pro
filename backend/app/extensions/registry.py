@@ -48,6 +48,653 @@ def _finalize_pack_spec(pack: PackSpec) -> PackSpec:
     return PackSpec(**payload)
 
 
+AGENT_SPEC_BASELINES: dict[str, dict[str, list[str]]] = {
+    "host_agent": {
+        "primary_responsibilities": [
+            "Frame the task and decision context.",
+            "Select packs, agents, and execution path.",
+            "Govern readiness, research trigger, and confidence boundary.",
+            "Converge deliverable shaping and writeback policy.",
+        ],
+        "out_of_scope": [
+            "Cannot be bypassed as an optional wrapper.",
+            "Should not treat weak external research as final truth.",
+            "Should not replace specialist-level document execution when a specialist path is more appropriate.",
+        ],
+        "defer_rules": [
+            "Defer company-specific certainty when evidence remains sparse.",
+            "Defer deep specialist execution when required artifacts or context are missing.",
+        ],
+        "preferred_execution_modes": ["specialist", "multi_agent"],
+        "minimum_evidence_readiness": [
+            "At least enough task framing to decide whether to proceed, research, or defer.",
+            "Enough context to set a confidence boundary before convergence.",
+        ],
+        "required_context_fields": [
+            "DecisionContext or equivalent task framing",
+            "Selected packs and core constraints",
+            "Goals, deliverable class, and continuity policy",
+        ],
+        "produced_objects": [
+            "CapabilityFrame",
+            "ReadinessGovernance",
+            "AgentSelection",
+            "Deliverable",
+        ],
+        "deliverable_impact": [
+            "Sets execution path and confidence boundary.",
+            "Shapes deliverable class, limitations, and missing-information posture.",
+            "Controls continuity-aware writeback depth.",
+        ],
+        "writeback_expectations": [
+            "Write selected agents, omitted notes, deferred notes, and escalation notes.",
+            "Write pack-aware readiness and research provenance into the deliverable chain.",
+        ],
+        "handoff_targets": [
+            "Reasoning agents",
+            "Specialist agents",
+            "Deliverable and evidence workspaces",
+        ],
+        "evaluation_focus": [
+            "Routing quality",
+            "Readiness judgment quality",
+            "Research trigger quality",
+            "Convergence quality",
+        ],
+        "failure_modes_to_watch": [
+            "Collapsing orchestration into generic summarization.",
+            "Skipping pack-aware routing or confidence boundaries.",
+            "Claiming certainty without sufficient evidence.",
+        ],
+        "trace_requirements": [
+            "Selected agents must be explainable.",
+            "Research trigger and provenance must be visible.",
+            "Writeback policy must remain inspectable.",
+        ],
+    },
+    "strategy_decision_agent": {
+        "primary_responsibilities": [
+            "Break problems into decision-relevant frames.",
+            "Compare options and trade-offs.",
+            "Prioritize actions and converge recommendations.",
+        ],
+        "out_of_scope": [
+            "Should not substitute for detailed external investigation.",
+            "Should not own legal, financial, or document-specialist execution depth.",
+        ],
+        "defer_rules": [
+            "Defer when no coherent decision context can be framed.",
+            "Defer detailed factual claims to research-heavy agents when evidence is thin.",
+        ],
+        "preferred_execution_modes": ["multi_agent", "specialist"],
+        "minimum_evidence_readiness": [
+            "At least one explicit or inferable decision to make.",
+            "Enough goals and constraints to compare options meaningfully.",
+        ],
+        "required_context_fields": [
+            "DecisionContext",
+            "Goals",
+            "Constraints",
+        ],
+        "produced_objects": ["Insight", "Option", "Recommendation"],
+        "deliverable_impact": [
+            "Shapes the core judgment and option logic.",
+            "Sets prioritization and sequencing logic for downstream action items.",
+        ],
+        "writeback_expectations": [
+            "Write decision framing, option logic, and prioritization rationale into the deliverable chain.",
+        ],
+        "handoff_targets": [
+            "Host Agent",
+            "Operations Agent",
+            "Finance Agent",
+            "Document / Communication Agent",
+        ],
+        "evaluation_focus": [
+            "Decision framing quality",
+            "Trade-off clarity",
+            "Prioritization quality",
+        ],
+        "failure_modes_to_watch": [
+            "Generic strategy advice detached from evidence.",
+            "Over-converging before uncertainty is made explicit.",
+        ],
+        "trace_requirements": [
+            "Must show what decision was framed and why.",
+            "Must preserve the basis for prioritization.",
+        ],
+    },
+    "operations_agent": {
+        "primary_responsibilities": [
+            "Test feasibility and execution sequencing.",
+            "Identify process dependencies, capacity constraints, and operating risks.",
+            "Translate recommendations into implementable operating actions.",
+        ],
+        "out_of_scope": [
+            "Should not own market positioning or narrative decisions.",
+            "Should not substitute for financial or legal specialist judgment.",
+        ],
+        "defer_rules": [
+            "Defer when basic process or artifact evidence is missing.",
+            "Defer company-specific redesign certainty when operating facts are sparse.",
+        ],
+        "preferred_execution_modes": ["multi_agent", "specialist"],
+        "minimum_evidence_readiness": [
+            "At least some artifact, source, or evidence chain that speaks to execution reality.",
+            "Enough context to identify sequencing, ownership, or dependency risk.",
+        ],
+        "required_context_fields": [
+            "Constraints",
+            "Artifacts or operational evidence",
+            "Decision context",
+        ],
+        "produced_objects": ["Insight", "Risk", "Recommendation", "ActionItem"],
+        "deliverable_impact": [
+            "Shapes feasibility, sequencing, and implementation constraints.",
+            "Adds operating-model risk and execution caveats to the deliverable.",
+        ],
+        "writeback_expectations": [
+            "Write execution dependencies, operating risks, and action sequencing guidance.",
+        ],
+        "handoff_targets": [
+            "Host Agent",
+            "Strategy / Decision Agent",
+            "Document / Communication Agent",
+        ],
+        "evaluation_focus": [
+            "Feasibility quality",
+            "Dependency clarity",
+            "Execution sequencing quality",
+        ],
+        "failure_modes_to_watch": [
+            "Recommending change without acknowledging capacity or handoff constraints.",
+            "Generic operational advice detached from real evidence.",
+        ],
+        "trace_requirements": [
+            "Must preserve which operating constraints were considered.",
+            "Must make execution risk legible in the final chain.",
+        ],
+    },
+    "finance_agent": {
+        "primary_responsibilities": [
+            "Evaluate economics, cash, and capital implications.",
+            "Pressure-test key assumptions, pricing logic, and fundraising readiness.",
+            "Translate financial constraints into decision implications.",
+        ],
+        "out_of_scope": [
+            "Should not replace formal accounting or legal review.",
+            "Should not own narrative packaging of investor-facing documents by itself.",
+        ],
+        "defer_rules": [
+            "Defer when core assumptions or financial artifacts are missing.",
+            "Defer certainty when numbers and narrative materially conflict.",
+        ],
+        "preferred_execution_modes": ["multi_agent", "specialist"],
+        "minimum_evidence_readiness": [
+            "At least some financial assumptions, metrics, or artifact support.",
+            "Enough context to judge economic trade-offs or funding pressure.",
+        ],
+        "required_context_fields": [
+            "DecisionContext",
+            "Financial artifacts or assumptions",
+            "Goals and constraints",
+        ],
+        "produced_objects": ["Insight", "Risk", "Recommendation", "ActionItem"],
+        "deliverable_impact": [
+            "Shapes capital, pricing, runway, and economic caveats.",
+            "Adds assumption risk and funding implications to the deliverable.",
+        ],
+        "writeback_expectations": [
+            "Write key financial assumptions and confidence limits into the evidence chain.",
+        ],
+        "handoff_targets": [
+            "Host Agent",
+            "Strategy / Decision Agent",
+            "Document / Communication Agent",
+        ],
+        "evaluation_focus": [
+            "Assumption quality",
+            "Economic reasoning quality",
+            "Funding-risk clarity",
+        ],
+        "failure_modes_to_watch": [
+            "Overconfident conclusions from thin numbers.",
+            "Ignoring capital structure or runway implications.",
+        ],
+        "trace_requirements": [
+            "Must preserve which assumptions the conclusion depends on.",
+            "Must distinguish facts from modeled implications.",
+        ],
+    },
+    "legal_risk_agent": {
+        "primary_responsibilities": [
+            "Surface legal boundaries, compliance concerns, and exposure.",
+            "Identify contract or governance implications that affect the decision.",
+            "Flag escalation-to-counsel conditions clearly.",
+        ],
+        "out_of_scope": [
+            "Should not impersonate final legal advice.",
+            "Should not replace clause-by-clause specialist review when the task is document-centered.",
+        ],
+        "defer_rules": [
+            "Defer when required legal materials are missing.",
+            "Defer finality when legal exposure exists but the source basis is incomplete.",
+        ],
+        "preferred_execution_modes": ["multi_agent", "specialist"],
+        "minimum_evidence_readiness": [
+            "At least enough artifact or policy context to identify exposure.",
+            "Enough task framing to distinguish governance risk from general business risk.",
+        ],
+        "required_context_fields": [
+            "DecisionContext",
+            "Artifacts or legal constraints",
+            "Relevant packs",
+        ],
+        "produced_objects": ["Risk", "Recommendation", "ActionItem"],
+        "deliverable_impact": [
+            "Adds legal boundary and escalation caveats.",
+            "Shapes risk surfacing and limitation language.",
+        ],
+        "writeback_expectations": [
+            "Write legal exposure notes and escalation markers into the final chain.",
+        ],
+        "handoff_targets": [
+            "Host Agent",
+            "Contract Review Specialist",
+            "Document / Communication Agent",
+        ],
+        "evaluation_focus": [
+            "Boundary clarity",
+            "Escalation quality",
+            "Risk specificity",
+        ],
+        "failure_modes_to_watch": [
+            "Treating incomplete legal context as settled certainty.",
+            "Collapsing governance risk into generic caution.",
+        ],
+        "trace_requirements": [
+            "Must preserve what legal exposure was identified and why.",
+            "Must keep escalation conditions visible.",
+        ],
+    },
+    "marketing_growth_agent": {
+        "primary_responsibilities": [
+            "Analyze positioning, acquisition, demand signals, and growth mechanism fit.",
+            "Identify audience, message, and channel implications.",
+            "Translate market-facing uncertainty into actionable growth hypotheses.",
+        ],
+        "out_of_scope": [
+            "Should not replace external investigation for weak market evidence.",
+            "Should not own full commercial-motion or partnership diagnosis by itself.",
+        ],
+        "defer_rules": [
+            "Defer when audience evidence is too sparse for strong claims.",
+            "Defer channel certainty when signal quality is weak or contradictory.",
+        ],
+        "preferred_execution_modes": ["multi_agent", "specialist"],
+        "minimum_evidence_readiness": [
+            "At least some audience, channel, or market evidence.",
+            "Enough context to distinguish message, demand, and channel problems.",
+        ],
+        "required_context_fields": [
+            "Audience context",
+            "DecisionContext",
+            "Relevant market or growth evidence",
+        ],
+        "produced_objects": ["Insight", "Risk", "Recommendation", "ActionItem"],
+        "deliverable_impact": [
+            "Shapes positioning, audience, and channel sections of the deliverable.",
+            "Adds demand-risk and acquisition caveats.",
+        ],
+        "writeback_expectations": [
+            "Write growth hypotheses, audience risks, and channel assumptions into the chain.",
+        ],
+        "handoff_targets": [
+            "Host Agent",
+            "Sales / Business Development Agent",
+            "Document / Communication Agent",
+        ],
+        "evaluation_focus": [
+            "Audience-fit quality",
+            "Channel reasoning quality",
+            "Growth-hypothesis quality",
+        ],
+        "failure_modes_to_watch": [
+            "Confusing weak demand signals with validated market pull.",
+            "Generic growth advice without audience specificity.",
+        ],
+        "trace_requirements": [
+            "Must preserve which audience and signal assumptions were used.",
+            "Must keep message and channel logic explainable.",
+        ],
+    },
+    "sales_business_development_agent": {
+        "primary_responsibilities": [
+            "Assess pipeline, GTM motion, partnerships, and commercial opportunity path.",
+            "Identify commercial blockers and next best business-development actions.",
+            "Translate market and product context into revenue-path implications.",
+        ],
+        "out_of_scope": [
+            "Should not replace pricing economics or growth narrative work owned elsewhere.",
+            "Should not act as a generic strategy placeholder when pipeline reality is unknown.",
+        ],
+        "defer_rules": [
+            "Defer when pipeline reality is missing or obviously inconsistent with the plan.",
+            "Defer partnership certainty when commercial evidence is thin.",
+        ],
+        "preferred_execution_modes": ["multi_agent", "specialist"],
+        "minimum_evidence_readiness": [
+            "At least enough pipeline, customer-path, or partner context to evaluate motion.",
+            "Enough evidence to distinguish demand from execution blockage.",
+        ],
+        "required_context_fields": [
+            "Commercial artifacts",
+            "DecisionContext",
+            "Goals",
+        ],
+        "produced_objects": ["Insight", "Risk", "Recommendation", "ActionItem"],
+        "deliverable_impact": [
+            "Shapes GTM, pipeline, and partnership recommendations.",
+            "Adds commercial-friction and revenue-path caveats.",
+        ],
+        "writeback_expectations": [
+            "Write commercial blockers and next-step motion into the chain.",
+        ],
+        "handoff_targets": [
+            "Host Agent",
+            "Marketing / Growth Agent",
+            "Document / Communication Agent",
+        ],
+        "evaluation_focus": [
+            "Commercial-path quality",
+            "Pipeline realism",
+            "Actionability of next-step motion",
+        ],
+        "failure_modes_to_watch": [
+            "Treating surface activity as real pipeline progress.",
+            "Generic BD advice detached from evidence.",
+        ],
+        "trace_requirements": [
+            "Must preserve what commercial evidence the recommendation relies on.",
+            "Must keep GTM assumptions inspectable.",
+        ],
+    },
+    "research_intelligence_agent": {
+        "primary_responsibilities": [
+            "Plan investigation-oriented research and break it into sub-questions.",
+            "Surface source quality, freshness, contradiction, and evidence gaps.",
+            "Produce citation-ready handoff for Host and downstream agents.",
+        ],
+        "out_of_scope": [
+            "Should not directly replace Host as the final decision owner.",
+            "Should not substitute for downstream synthesis or narrative shaping.",
+            "Should not turn weak public-web signals into company-specific certainty.",
+        ],
+        "defer_rules": [
+            "Defer finality when source quality is weak or freshness is unclear.",
+            "Defer narrative packaging to Research Synthesis or Document / Communication specialists when investigation is sufficiently complete.",
+        ],
+        "preferred_execution_modes": ["multi_agent", "specialist"],
+        "minimum_evidence_readiness": [
+            "At least a decision question or research target to investigate.",
+            "Enough context to decide what evidence gap or freshness question matters most.",
+        ],
+        "required_context_fields": [
+            "DecisionContext",
+            "Source materials or existing evidence",
+            "Selected packs and research expectations",
+        ],
+        "produced_objects": [
+            "Insight",
+            "Risk",
+            "Recommendation",
+            "ActionItem",
+            "EvidenceGap",
+            "ResearchRun",
+        ],
+        "deliverable_impact": [
+            "Shapes evidence basis, freshness caveats, and uncertainty boundary.",
+            "Feeds citation-ready research provenance into downstream deliverable shaping.",
+        ],
+        "writeback_expectations": [
+            "Write investigation findings, source-quality notes, and evidence-gap notes into the research provenance chain.",
+            "Preserve citation-ready handoff for Host and downstream agents.",
+        ],
+        "handoff_targets": [
+            "Host Agent",
+            "Research Synthesis Specialist",
+            "Strategy / Decision Agent",
+            "Document / Communication Agent",
+        ],
+        "evaluation_focus": [
+            "Sub-question decomposition quality",
+            "Source-quality and freshness handling",
+            "Evidence-gap precision",
+            "Citation handoff usability",
+        ],
+        "failure_modes_to_watch": [
+            "Confusing search results with validated evidence.",
+            "Collapsing contradictory signals into false certainty.",
+            "Handing off findings without provenance or confidence boundary.",
+        ],
+        "trace_requirements": [
+            "Must preserve research depth, sub-questions, and evidence-gap focus.",
+            "Must keep source-quality and contradiction notes visible.",
+            "Must keep citation handoff inspectable by downstream agents.",
+        ],
+    },
+    "document_communication_agent": {
+        "primary_responsibilities": [
+            "Shape audience-aware documents, message order, and adoption-oriented structure.",
+            "Translate findings into readable narrative without breaking provenance.",
+            "Improve document fit for the intended decision audience.",
+        ],
+        "out_of_scope": [
+            "Should not invent evidence or replace upstream analysis.",
+            "Should not act as a clause-review or pure research-discovery specialist.",
+        ],
+        "defer_rules": [
+            "Defer when audience, purpose, or deliverable intent is unclear.",
+            "Defer final wording certainty when upstream evidence is still unstable.",
+        ],
+        "preferred_execution_modes": ["specialist", "multi_agent"],
+        "minimum_evidence_readiness": [
+            "At least enough findings or evidence basis to shape into communication.",
+            "Enough audience context to choose message order and emphasis.",
+        ],
+        "required_context_fields": [
+            "Audience",
+            "Goals",
+            "DecisionContext",
+        ],
+        "produced_objects": ["Insight", "Recommendation", "ActionItem", "Deliverable"],
+        "deliverable_impact": [
+            "Shapes structure, readability, and adoption likelihood.",
+            "Translates analysis into audience-fit sections without losing caveats.",
+        ],
+        "writeback_expectations": [
+            "Write narrative rationale, communication constraints, and audience-aware structure choices.",
+        ],
+        "handoff_targets": [
+            "Host Agent",
+            "Document Restructuring Specialist",
+            "Deliverable Workspace",
+        ],
+        "evaluation_focus": [
+            "Audience-fit quality",
+            "Narrative structure quality",
+            "Adoption-oriented clarity",
+        ],
+        "failure_modes_to_watch": [
+            "Overpolishing weak evidence into persuasive certainty.",
+            "Improving readability while dropping critical caveats.",
+        ],
+        "trace_requirements": [
+            "Must preserve the audience target and narrative intent.",
+            "Must keep caveats and supporting logic visible.",
+        ],
+    },
+    "contract_review_specialist": {
+        "primary_responsibilities": [
+            "Review a contract or legal document at document depth.",
+            "Surface high-risk clauses, missing items, and redline-oriented recommendations.",
+            "Translate legal review into a decision-useful internal memo.",
+        ],
+        "out_of_scope": [
+            "Should not impersonate final external legal counsel.",
+            "Should not replace broader multi-agent business convergence.",
+        ],
+        "defer_rules": [
+            "Defer when key attachments, schedules, or referenced clauses are missing.",
+            "Defer finality when the document version is incomplete or ambiguous.",
+        ],
+        "preferred_execution_modes": ["specialist"],
+        "minimum_evidence_readiness": [
+            "A reviewable contract artifact is required.",
+            "Enough surrounding context to understand purpose, obligations, and risk posture.",
+        ],
+        "required_context_fields": [
+            "Primary contract artifact",
+            "Decision intent",
+            "Supporting evidence if available",
+        ],
+        "produced_objects": ["Risk", "Recommendation", "ActionItem", "Deliverable"],
+        "deliverable_impact": [
+            "Shapes clause-risk, redline, and missing-document sections.",
+        ],
+        "writeback_expectations": [
+            "Write reviewed clauses, gaps, and escalation notes into the legal chain.",
+        ],
+        "handoff_targets": [
+            "Host Agent",
+            "Legal / Risk Agent",
+            "Deliverable Workspace",
+        ],
+        "evaluation_focus": [
+            "Clause-risk specificity",
+            "Missing-item detection",
+            "Redline usefulness",
+        ],
+        "failure_modes_to_watch": [
+            "Generic caution that does not tie to specific clauses.",
+            "Missing attachment dependencies.",
+        ],
+        "trace_requirements": [
+            "Must preserve clause references and missing-item provenance.",
+        ],
+    },
+    "research_synthesis_specialist": {
+        "primary_responsibilities": [
+            "Synthesize research materials into a decision-useful brief.",
+            "Translate findings into implications, gaps, and next actions.",
+            "Package research output for consultant consumption after investigation is sufficiently mature.",
+        ],
+        "out_of_scope": [
+            "Should not replace upstream investigation planning or source discovery.",
+            "Should not overclaim certainty when citation handoff is incomplete.",
+        ],
+        "defer_rules": [
+            "Defer when evidence coverage is too thin for synthesis.",
+            "Defer when investigation is still unstable or contradiction-heavy.",
+        ],
+        "preferred_execution_modes": ["specialist"],
+        "minimum_evidence_readiness": [
+            "A minimally stable evidence set is required.",
+            "Enough research provenance to summarize implications rather than merely search.",
+        ],
+        "required_context_fields": [
+            "DecisionContext",
+            "Source materials",
+            "Evidence chain",
+        ],
+        "produced_objects": ["Insight", "Recommendation", "ActionItem", "Deliverable"],
+        "deliverable_impact": [
+            "Shapes research brief, implications, and gap narrative.",
+        ],
+        "writeback_expectations": [
+            "Write findings, implications, and research gaps into the deliverable chain.",
+        ],
+        "handoff_targets": [
+            "Host Agent",
+            "Document / Communication Agent",
+            "Deliverable Workspace",
+        ],
+        "evaluation_focus": [
+            "Synthesis quality",
+            "Implication quality",
+            "Gap clarity",
+        ],
+        "failure_modes_to_watch": [
+            "Summarizing weak evidence as if it were settled.",
+            "Losing provenance during synthesis.",
+        ],
+        "trace_requirements": [
+            "Must preserve what findings and gaps the brief rests on.",
+        ],
+    },
+    "document_restructuring_specialist": {
+        "primary_responsibilities": [
+            "Restructure a specific document for clarity, order, and target audience.",
+            "Propose outline changes and rewrite guidance.",
+            "Reduce noise and improve adoption without changing the task objective.",
+        ],
+        "out_of_scope": [
+            "Should not invent new evidence or new strategy by itself.",
+            "Should not replace general-purpose document communication for cross-artifact narrative shaping.",
+        ],
+        "defer_rules": [
+            "Defer when source purpose or audience is unclear.",
+            "Defer when the base artifact is missing or too incomplete to restructure meaningfully.",
+        ],
+        "preferred_execution_modes": ["specialist"],
+        "minimum_evidence_readiness": [
+            "A source document is required.",
+            "Enough context to understand purpose, audience, and desired outcome.",
+        ],
+        "required_context_fields": [
+            "Artifact",
+            "Audience",
+            "Goal",
+        ],
+        "produced_objects": ["Recommendation", "ActionItem", "Deliverable"],
+        "deliverable_impact": [
+            "Shapes outline, flow, and rewrite guidance for a specific artifact.",
+        ],
+        "writeback_expectations": [
+            "Write restructuring logic and proposed outline into the deliverable chain.",
+        ],
+        "handoff_targets": [
+            "Host Agent",
+            "Document / Communication Agent",
+            "Deliverable Workspace",
+        ],
+        "evaluation_focus": [
+            "Structure quality",
+            "Audience-fit quality",
+            "Rewrite guidance usefulness",
+        ],
+        "failure_modes_to_watch": [
+            "Changing meaning while trying to improve structure.",
+            "Generic rewrite advice not grounded in the artifact.",
+        ],
+        "trace_requirements": [
+            "Must preserve source-purpose and audience assumptions.",
+        ],
+    },
+}
+
+
+def _finalize_agent_spec(agent: AgentSpec) -> AgentSpec:
+    baseline = AGENT_SPEC_BASELINES.get(agent.agent_id)
+    if not baseline:
+        return agent
+
+    payload = agent.model_dump()
+    for key, value in baseline.items():
+        payload[key] = _unique_preserve_order(value)
+    return AgentSpec(**payload)
+
+
 def build_pack_catalog() -> list[PackSpec]:
     return [
         _finalize_pack_spec(pack)
@@ -2132,6 +2779,8 @@ def build_pack_catalog() -> list[PackSpec]:
 
 def build_agent_catalog() -> list[AgentSpec]:
     return [
+        _finalize_agent_spec(agent)
+        for agent in [
         AgentSpec(
             agent_id="host_agent",
             agent_name="Host Agent",
@@ -2304,7 +2953,7 @@ def build_agent_catalog() -> list[AgentSpec]:
         ),
         AgentSpec(
             agent_id="research_intelligence_agent",
-            agent_name="Research / Intelligence Agent",
+            agent_name="Research / Investigation Agent",
             agent_type=AgentType.REASONING,
             description="Owns investigation-oriented research: external discovery, source quality, evidence-gap closure, contradiction tracking, and uncertainty framing.",
             supported_capabilities=[
@@ -2397,7 +3046,7 @@ def build_agent_catalog() -> list[AgentSpec]:
             invocation_rules=["Prefer for single-document restructuring tasks"],
             escalation_rules=["Escalate if source document purpose is unclear"],
         ),
-    ]
+    ]]
 
 
 class ExtensionRegistry:
