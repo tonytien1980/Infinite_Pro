@@ -2,15 +2,54 @@ from __future__ import annotations
 
 from app.benchmarks.runner import (
     DEFAULT_P0_DELIVERABLE_HARDENING_MANIFEST,
+    DEFAULT_P0_DOMAIN_PACK_CONTRACTS_MANIFEST,
+    DEFAULT_P0_FULL_REGRESSION_SUITE_MANIFEST,
     DEFAULT_P0_INGESTION_HARDENING_MANIFEST,
     DEFAULT_P0_INDUSTRY_BATCH1_MANIFEST,
     DEFAULT_P0_INDUSTRY_BATCH2_MANIFEST,
     DEFAULT_P0_LEGAL_FINANCE_CONTRACT_MANIFEST,
     DEFAULT_P0_OPERATIONS_PROCESS_MANIFEST,
     load_manifest,
+    load_suite,
     run_manifest,
+    run_suite,
 )
-from app.benchmarks.schemas import BenchmarkHintArea, BenchmarkStatus
+from app.benchmarks.schemas import BenchmarkCategoryId, BenchmarkHintArea, BenchmarkStatus, RegressionGateMode
+
+
+def test_p0_a_domain_pack_manifest_covers_expected_seed_cases() -> None:
+    manifest = load_manifest(DEFAULT_P0_DOMAIN_PACK_CONTRACTS_MANIFEST)
+
+    assert manifest.manifest_id == "p0_a_domain_pack_contracts_baseline"
+    assert len(manifest.cases) == 8
+    assert {case.target_domain_pack_ids[0] for case in manifest.cases} == {
+        "operations_pack",
+        "finance_fundraising_pack",
+        "legal_risk_pack",
+        "marketing_sales_pack",
+        "business_development_pack",
+        "research_intelligence_pack",
+        "organization_people_pack",
+        "product_service_pack",
+    }
+    for case in manifest.cases:
+        assert case.expected_contract_interface_ids
+        assert BenchmarkHintArea.READINESS in case.expected_hint_areas
+        assert case.source_mix_summary
+
+
+def test_p0_a_domain_pack_runner_executes_against_current_pack_stack() -> None:
+    manifest = load_manifest(DEFAULT_P0_DOMAIN_PACK_CONTRACTS_MANIFEST)
+    results = run_manifest(manifest, category_id=BenchmarkCategoryId.DOMAIN_PACK_CONTRACTS)
+
+    assert len(results) == 8
+    assert all(result.status == BenchmarkStatus.PASS for result in results)
+    assert all(not result.missing_target_pack_ids for result in results)
+    assert all(result.pack_scores for result in results)
+    assert all(result.pack_signal_counts for result in results)
+    assert all(result.satisfied_interface_ids for result in results)
+    assert all(result.observed_hint_areas for result in results)
+    assert all(result.category_id == BenchmarkCategoryId.DOMAIN_PACK_CONTRACTS for result in results)
 
 
 def test_p0_industry_batch1_manifest_covers_expected_seed_cases() -> None:
@@ -174,3 +213,47 @@ def test_p0_g_ingestion_hardening_runner_executes_against_current_stack() -> Non
     assert all(result.pack_scores for result in results)
     assert all(result.satisfied_interface_ids for result in results)
     assert all(result.observed_ingestion_markers for result in results)
+
+
+def test_p0_h_full_regression_suite_manifest_covers_expected_categories() -> None:
+    suite = load_suite(DEFAULT_P0_FULL_REGRESSION_SUITE_MANIFEST)
+
+    assert suite.suite_id == "p0_full_regression_suite"
+    assert [category.category_id for category in suite.categories] == [
+        BenchmarkCategoryId.DOMAIN_PACK_CONTRACTS,
+        BenchmarkCategoryId.INDUSTRY_BATCH1,
+        BenchmarkCategoryId.INDUSTRY_BATCH2,
+        BenchmarkCategoryId.LEGAL_FINANCE_CONTRACT,
+        BenchmarkCategoryId.OPERATIONS_PROCESS,
+        BenchmarkCategoryId.DELIVERABLE_HARDENING,
+        BenchmarkCategoryId.INGESTION_HARDENING,
+    ]
+    gate_modes = {category.category_id: category.gate_mode for category in suite.categories}
+    assert gate_modes[BenchmarkCategoryId.DOMAIN_PACK_CONTRACTS] == RegressionGateMode.REQUIRED
+    assert gate_modes[BenchmarkCategoryId.DELIVERABLE_HARDENING] == RegressionGateMode.ADVISORY
+    assert gate_modes[BenchmarkCategoryId.INGESTION_HARDENING] == RegressionGateMode.REQUIRED
+
+
+def test_p0_h_full_regression_suite_executes_against_current_stack() -> None:
+    suite = load_suite(DEFAULT_P0_FULL_REGRESSION_SUITE_MANIFEST)
+    result = run_suite(suite)
+
+    assert result.gate_status == BenchmarkStatus.PASS
+    assert result.total_case_count == 27
+    assert len(result.category_results) == 7
+    assert not result.failing_categories
+    category_ids = [category.category_id for category in result.category_results]
+    assert category_ids == [
+        BenchmarkCategoryId.DOMAIN_PACK_CONTRACTS,
+        BenchmarkCategoryId.INDUSTRY_BATCH1,
+        BenchmarkCategoryId.INDUSTRY_BATCH2,
+        BenchmarkCategoryId.LEGAL_FINANCE_CONTRACT,
+        BenchmarkCategoryId.OPERATIONS_PROCESS,
+        BenchmarkCategoryId.DELIVERABLE_HARDENING,
+        BenchmarkCategoryId.INGESTION_HARDENING,
+    ]
+    deliverable_gate = next(
+        item for item in result.category_results if item.category_id == BenchmarkCategoryId.DELIVERABLE_HARDENING
+    )
+    assert deliverable_gate.gate_mode == RegressionGateMode.ADVISORY
+    assert deliverable_gate.gate_status == BenchmarkStatus.PASS

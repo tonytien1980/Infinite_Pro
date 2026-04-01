@@ -599,6 +599,94 @@ Important verification note:
 
 ---
 
+## Entry: 2026-04-02 P0-H full benchmark regression suite
+
+Scope:
+- `P0-H-0` final hardening preflight review
+- full benchmark / evaluation suite organization
+- regression gate category / gate-mode baseline
+- one-shot full suite run path
+
+Environment used:
+- frontend: `http://127.0.0.1:3000`
+- backend: `http://127.0.0.1:8000/api/v1`
+- runtime database: current local runtime
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests -q` | Passed (`124 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && npx next typegen` | Passed |
+| `cd frontend && npm run typecheck` | Passed |
+| `python3 backend/scripts/run_pack_benchmark_scaffold.py --suite full` | Passed (`27 cases / 7 categories / suite gate=pass`) |
+
+Important verification note:
+- on the current Next 15 frontend, `npm run build` still does not fully restore `.next/types` by itself on this machine
+- the valid verification order for this checkpoint remained `build -> next typegen -> typecheck`
+
+### P0-H-0 preflight verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Benchmark | deliverable hardening manifest | Re-run `p0_deliverable_hardening.json` | Verified | deliverable-oriented markers still pass before promoting suite gate |
+| Benchmark | ingestion hardening manifest | Re-run `p0_ingestion_hardening.json` | Verified | ingestion-oriented markers still pass before promoting suite gate |
+| Benchmark | operations / legal manifests | Re-run `p0_operations_process.json` and `p0_legal_finance_contract.json` | Verified | pack routing baseline remained stable |
+| Deliverable UI | `/deliverables/[deliverableId]` | Re-check bundle summary / density / default-visible discipline | Verified | no blocker found; existing density pressure remains a review concern, not a regression blocker |
+| Evidence UI | `/matters/[matterId]/evidence` | Re-check limited extract / reference-only wording | Verified | support boundaries stayed consultant-first and readable |
+
+### P0-H specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | benchmark manifests | Add domain pack contract manifest and full suite manifest | Verified | suite now covers all shipped P0 hardening families |
+| Backend | runner / schemas | Add suite-level schema, category gate result, suite run result, and gate-mode logic | Verified | result schema now separates per-case results from category-level gate outcomes |
+| Backend | CLI run path | Run `--suite full` and `--suite-manifest ...` through the shared script | Verified | no separate benchmark app shell introduced |
+| Benchmark | full suite | `p0_full_regression_suite` groups 7 categories | Verified | required vs advisory gate policy is explicit |
+| Benchmark | gate policy | Required categories can fail suite; deliverable hardening stays advisory | Verified | no hard-fail applied to display-discipline-only concerns |
+| Frontend UI | existing workbench surfaces | Spot-check deliverable and evidence pages after benchmark changes | Verified | no new first-screen metadata or benchmark UI pollution introduced |
+
+### Live / preflight data
+
+- deliverable preflight ids:
+  - `e4cd0c4a-94fb-4273-85fb-dc0077db5e50`
+  - `f8180a79-64c8-4648-9516-97646eeef427`
+  - `cdcd98fb-ff08-4844-891a-d1603a7b2ff0`
+- ingestion / evidence preflight matter:
+  - matter id: `e1f54cf1-c17c-4589-842e-5f993e3d6a37`
+- full suite summary:
+  - `domain_pack_contracts`: `8 cases / required / pass`
+  - `industry_batch1`: `6 cases / required / pass`
+  - `industry_batch2`: `5 cases / required / pass`
+  - `legal_finance_contract`: `2 cases / required / pass`
+  - `operations_process`: `2 cases / required / pass`
+  - `deliverable_hardening`: `2 cases / advisory / pass`
+  - `ingestion_hardening`: `2 cases / required / pass`
+
+### Verified outcomes
+
+- benchmark scaffolding is now promoted into a repeatable full regression suite rather than a loose set of separate manifests
+- suite-level output now clearly distinguishes per-case results from category-level gate outcomes
+- regression gate policy is now explicit:
+  - required categories can fail the suite
+  - advisory categories can warn without hard-failing the suite
+- the shipped P0 hardening families are now all represented in one suite:
+  - domain packs
+  - industry batch 1
+  - industry batch 2
+  - legal / finance contract-aware
+  - operations / process-aware
+  - deliverable hardening
+  - ingestion hardening
+- no benchmark UI surface, dashboard, or new product layer was introduced
+
+Residual note:
+- some older deliverable rows created before the newer publish-summary contract do not always backfill `support_bundle_summary`; this was treated as legacy compatibility observation, not as a current runtime regression blocker
+
+---
+
 ## Entry: 2026-04-02 P0-G ingestion hardening checkpoint
 
 Scope:

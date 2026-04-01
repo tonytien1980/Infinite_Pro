@@ -5,11 +5,16 @@ from pathlib import Path
 
 from app.benchmarks.schemas import (
     BenchmarkCase,
+    BenchmarkCategoryGateResult,
+    BenchmarkCategoryId,
     BenchmarkHintArea,
     BenchmarkManifest,
     BenchmarkObservation,
     BenchmarkResultRecord,
     BenchmarkStatus,
+    BenchmarkSuiteManifest,
+    BenchmarkSuiteRunResult,
+    RegressionGateMode,
 )
 from app.extensions.registry import ExtensionRegistry
 from app.extensions.resolver import PackResolver
@@ -23,6 +28,9 @@ from app.services.object_sets import supported_deliverable_hardening_markers
 
 DEFAULT_P0_INDUSTRY_BATCH1_MANIFEST = (
     Path(__file__).resolve().parent / "manifests" / "p0_industry_batch1.json"
+)
+DEFAULT_P0_DOMAIN_PACK_CONTRACTS_MANIFEST = (
+    Path(__file__).resolve().parent / "manifests" / "p0_domain_pack_contracts.json"
 )
 DEFAULT_P0_INDUSTRY_BATCH2_MANIFEST = (
     Path(__file__).resolve().parent / "manifests" / "p0_industry_batch2.json"
@@ -39,12 +47,24 @@ DEFAULT_P0_DELIVERABLE_HARDENING_MANIFEST = (
 DEFAULT_P0_INGESTION_HARDENING_MANIFEST = (
     Path(__file__).resolve().parent / "manifests" / "p0_ingestion_hardening.json"
 )
+DEFAULT_P0_FULL_REGRESSION_SUITE_MANIFEST = (
+    Path(__file__).resolve().parent / "suites" / "p0_full_regression_suite.json"
+)
+REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 def load_manifest(path: Path | str = DEFAULT_P0_INDUSTRY_BATCH1_MANIFEST) -> BenchmarkManifest:
-    manifest_path = Path(path)
+    manifest_path = _resolve_repo_path(path)
     payload = json.loads(manifest_path.read_text(encoding="utf-8"))
     return BenchmarkManifest.model_validate(payload)
+
+
+def load_suite(
+    path: Path | str = DEFAULT_P0_FULL_REGRESSION_SUITE_MANIFEST,
+) -> BenchmarkSuiteManifest:
+    suite_path = _resolve_repo_path(path)
+    payload = json.loads(suite_path.read_text(encoding="utf-8"))
+    return BenchmarkSuiteManifest.model_validate(payload)
 
 
 def run_manifest(
@@ -52,10 +72,14 @@ def run_manifest(
     *,
     registry: ExtensionRegistry | None = None,
     resolver: PackResolver | None = None,
+    category_id: BenchmarkCategoryId | None = None,
 ) -> list[BenchmarkResultRecord]:
     registry = registry or ExtensionRegistry()
     resolver = resolver or PackResolver(registry)
-    return [run_benchmark_case(case, registry=registry, resolver=resolver) for case in manifest.cases]
+    return [
+        run_benchmark_case(case, registry=registry, resolver=resolver, category_id=category_id)
+        for case in manifest.cases
+    ]
 
 
 def run_benchmark_case(
@@ -63,6 +87,7 @@ def run_benchmark_case(
     *,
     registry: ExtensionRegistry | None = None,
     resolver: PackResolver | None = None,
+    category_id: BenchmarkCategoryId | None = None,
 ) -> BenchmarkResultRecord:
     registry = registry or ExtensionRegistry()
     resolver = resolver or PackResolver(registry)
@@ -213,6 +238,7 @@ def run_benchmark_case(
         overall_status = BenchmarkStatus.WARN
 
     return BenchmarkResultRecord(
+        category_id=category_id,
         case_id=case.case_id,
         target_domain_pack_ids=case.target_domain_pack_ids,
         target_industry_pack_ids=case.target_industry_pack_ids,
@@ -229,6 +255,111 @@ def run_benchmark_case(
         observations=observations,
         notes=case.notes,
     )
+
+
+def run_suite(
+    suite: BenchmarkSuiteManifest,
+    *,
+    registry: ExtensionRegistry | None = None,
+    resolver: PackResolver | None = None,
+) -> BenchmarkSuiteRunResult:
+    registry = registry or ExtensionRegistry()
+    resolver = resolver or PackResolver(registry)
+
+    category_results: list[BenchmarkCategoryGateResult] = []
+    failing_categories: list[BenchmarkCategoryId] = []
+    warning_categories: list[BenchmarkCategoryId] = []
+
+    for category in suite.categories:
+        manifest = load_manifest(category.manifest_path)
+        results = run_manifest(
+            manifest,
+            registry=registry,
+            resolver=resolver,
+            category_id=category.category_id,
+        )
+        gate_result = build_category_gate_result(
+            category_id=category.category_id,
+            title=category.title,
+            manifest_id=manifest.manifest_id,
+            gate_mode=category.gate_mode,
+            results=results,
+        )
+        category_results.append(gate_result)
+        if gate_result.gate_status == BenchmarkStatus.FAIL:
+            failing_categories.append(category.category_id)
+        elif gate_result.gate_status == BenchmarkStatus.WARN:
+            warning_categories.append(category.category_id)
+
+    overall_gate_status = BenchmarkStatus.PASS
+    if failing_categories:
+        overall_gate_status = BenchmarkStatus.FAIL
+    elif warning_categories:
+        overall_gate_status = BenchmarkStatus.WARN
+
+    return BenchmarkSuiteRunResult(
+        suite_id=suite.suite_id,
+        title=suite.title,
+        category_results=category_results,
+        total_case_count=sum(item.case_count for item in category_results),
+        gate_status=overall_gate_status,
+        failing_categories=failing_categories,
+        warning_categories=warning_categories,
+    )
+
+
+def build_category_gate_result(
+    *,
+    category_id: BenchmarkCategoryId,
+    title: str,
+    manifest_id: str,
+    gate_mode: RegressionGateMode,
+    results: list[BenchmarkResultRecord],
+) -> BenchmarkCategoryGateResult:
+    pass_count = sum(1 for item in results if item.status == BenchmarkStatus.PASS)
+    warn_count = sum(1 for item in results if item.status == BenchmarkStatus.WARN)
+    fail_count = sum(1 for item in results if item.status == BenchmarkStatus.FAIL)
+    failing_case_ids = [item.case_id for item in results if item.status == BenchmarkStatus.FAIL]
+    warning_case_ids = [item.case_id for item in results if item.status == BenchmarkStatus.WARN]
+
+    gate_status = BenchmarkStatus.PASS
+    if gate_mode == RegressionGateMode.REQUIRED:
+        if fail_count:
+            gate_status = BenchmarkStatus.FAIL
+        elif warn_count:
+            gate_status = BenchmarkStatus.WARN
+    elif gate_mode == RegressionGateMode.ADVISORY:
+        if fail_count or warn_count:
+            gate_status = BenchmarkStatus.WARN
+    else:
+        gate_status = BenchmarkStatus.PASS
+
+    return BenchmarkCategoryGateResult(
+        category_id=category_id,
+        title=title,
+        gate_mode=gate_mode,
+        manifest_id=manifest_id,
+        case_count=len(results),
+        pass_count=pass_count,
+        warn_count=warn_count,
+        fail_count=fail_count,
+        gate_status=gate_status,
+        failing_case_ids=failing_case_ids,
+        warning_case_ids=warning_case_ids,
+        results=results,
+    )
+
+
+def _resolve_repo_path(path: Path | str) -> Path:
+    candidate = Path(path)
+    if candidate.is_absolute():
+        return candidate
+    if candidate.exists():
+        return candidate
+    repo_candidate = REPO_ROOT / candidate
+    if repo_candidate.exists():
+        return repo_candidate
+    return candidate
 
 
 def _pack_supports_interface(pack: PackSpec, interface_id: PackContractInterfaceId) -> bool:

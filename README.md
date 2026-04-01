@@ -226,6 +226,12 @@ P0-G then hardens ingestion honesty without opening a new OCR or document platfo
 - runtime source / material responses now distinguish support level, extract availability, current usable scope, and fallback boundary more honestly
 - the benchmark scaffold now also includes `backend/app/benchmarks/manifests/p0_ingestion_hardening.json` for ingestion-oriented regression markers
 
+P0-H then closes the hardening line by promoting benchmark scaffolding into a repeatable full regression suite:
+- the benchmark family now formally includes domain packs, both industry batches, legal / finance contract-aware cases, operations / process-aware cases, deliverable hardening, and ingestion hardening
+- the suite now has explicit category organization, gate modes, and one-shot full-run support instead of only separate manifest-by-manifest execution
+- required categories can fail the regression gate, while deliverable display-discipline checks remain advisory so the suite protects shipped behavior without pretending to be a heavy scoring platform
+- the suite still remains an internal hardening / release-safety path, not a new product surface or admin console
+
 Within the single-consultant scope, Agent Orchestration is now treated as a completed runtime layer:
 - Host selection formally responds to capability archetype, selected packs, decision context, readiness/evidence sufficiency, sparse-input mode, and deliverable class
 - selected agents influence execution path and deliverable shaping, not just metadata

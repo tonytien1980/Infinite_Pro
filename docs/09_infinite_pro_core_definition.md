@@ -215,6 +215,14 @@ P0-G hardening 後，ingestion 主鏈還應再往前一步：
 - table-heavy `.csv / .xlsx` 若目前只形成 row / worksheet snapshot，應明確屬於 `limited_extract`
 - 不可把「材料已被接受」誤寫成「已具完整 chunk-native 支撐」
 
+P0-H hardening 後，這條主鏈的 release-safety 治理還應再往前一步：
+- 已 shipped 的 hardening 類別應進入同一套 regression suite
+- regression gate 應能區分：
+  - required categories
+  - advisory categories
+  - structured observations
+- 但這一層仍屬 internal hardening governance，不是新的使用者工作面或第七層架構
+
 正式規則是：
 - `ObjectSet` 仍屬 Ontology Layer primitive，不是第七層
 - 第一波只先做 matter / work-scope 內的集合，不做跨案件世界 reusable mesh

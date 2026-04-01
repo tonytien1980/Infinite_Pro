@@ -309,6 +309,12 @@ P0-F 之後，system 也應正式承接：
 - `p0_deliverable_hardening.json`
   - deliverable-oriented hardening benchmark baseline
 
+P0-H 之後，system 也應正式承接：
+- full benchmark / regression suite organization
+- category-based regression gate policy
+- 最小正式 suite run path
+- 但這仍屬 internal hardening / release-safety governance，不是新的產品層或 admin console
+
 Wave 5 的最小正式基線則是：
 - `ObjectSet` 仍留在 Ontology Layer，不能形成第七層
 - first shipped set types 只先包含：

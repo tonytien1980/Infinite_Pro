@@ -13,7 +13,7 @@
 - 完整 evaluation platform
 - 新的 product layer
 - 新的 app shell
-- 全量 regression suite
+- P0-H 之後雖然會變成可重複跑的 full regression suite，但仍不是 dashboard-first 評分平台
 
 ---
 
@@ -57,6 +57,8 @@
 
 目前正式 baseline 包含：
 - 本文件：`docs/18_benchmark_scaffolding_baseline.md`
+- suite：`backend/app/benchmarks/suites/p0_full_regression_suite.json`
+- manifest：`backend/app/benchmarks/manifests/p0_domain_pack_contracts.json`
 - manifest：`backend/app/benchmarks/manifests/p0_industry_batch1.json`
 - manifest：`backend/app/benchmarks/manifests/p0_industry_batch2.json`
 - manifest：`backend/app/benchmarks/manifests/p0_legal_finance_contract.json`
@@ -130,10 +132,26 @@ P0-G 之後，這份 baseline 也正式擴充到 ingestion-oriented hardening ca
 - 一次只新增最小必要的 seed cases
 - 不把 scaffold 膨脹成 full scoring platform
 
+P0-H 之後，這份 baseline 再往前一步：
+- 形成正式 full suite organization
+- 正式收進以下 regression categories：
+  - `domain_pack_contracts`
+  - `industry_batch1`
+  - `industry_batch2`
+  - `legal_finance_contract`
+  - `operations_process`
+  - `deliverable_hardening`
+  - `ingestion_hardening`
+- 正式區分 gate mode：
+  - `required`
+  - `advisory`
+  - `observation_only`（保留給未來擴充）
+
 ### 3.3 目前 formalized 的 result schema
 
 每筆 benchmark result 至少表達：
 - `case_id`
+- `category_id`
 - target pack(s)
 - input profile / material summary
 - selected pack ids
@@ -145,9 +163,26 @@ P0-G 之後，這份 baseline 也正式擴充到 ingestion-oriented hardening ca
 - pass / warn / fail status
 - notes / regression markers
 
+P0-H 之後，suite-level schema 還應正式表達：
+- category gate result
+  - `category_id`
+  - `gate_mode`
+  - `manifest_id`
+  - `case_count`
+  - `pass_count / warn_count / fail_count`
+  - `gate_status`
+  - `failing_case_ids / warning_case_ids`
+- suite run result
+  - `suite_id`
+  - `category_results`
+  - `total_case_count`
+  - `gate_status`
+  - `failing_categories / warning_categories`
+
 目前設計重點是：
 - 先保留結構化 observation
 - 不急著做重型總分平台
+- suite summary 應優先回答 regression safety，而不是做漂亮儀表板
 
 ---
 
@@ -172,6 +207,13 @@ python3 backend/scripts/run_pack_benchmark_scaffold.py --manifest backend/app/be
 python3 backend/scripts/run_pack_benchmark_scaffold.py --manifest backend/app/benchmarks/manifests/p0_ingestion_hardening.json
 ```
 
+P0-H 之後，正式 full suite run path 還包括：
+
+```bash
+python3 backend/scripts/run_pack_benchmark_scaffold.py --suite full
+python3 backend/scripts/run_pack_benchmark_scaffold.py --suite-manifest backend/app/benchmarks/suites/p0_full_regression_suite.json
+```
+
 ### 4.2 pytest baseline
 
 目前也有最小 pytest baseline：
@@ -184,6 +226,7 @@ python3 backend/scripts/run_pack_benchmark_scaffold.py --manifest backend/app/be
 - 驗證 manifest 結構
 - 驗證 seed case 覆蓋
 - 驗證 runner 至少可對目前 pack stack 執行
+- 驗證 full suite category coverage 與 gate mode baseline
 
 ### 4.3 何時更新
 
@@ -191,11 +234,39 @@ python3 backend/scripts/run_pack_benchmark_scaffold.py --manifest backend/app/be
 - Industry Batch 1 / Batch 2 的正式 seed case 範圍變動
 - 需要新增新的 hardening baseline 類別
 - result schema 需要正式擴充
+- suite category 與 gate mode 需要正式調整
 
 不應更新時機：
 - 單純 UI wording 調整
 - 尚未 shipped / 尚未驗證的臨時想法
 - 只因為想把 benchmark 做得更大，卻沒有明確 hardening 需求
+
+### 4.4 regression gate policy
+
+P0-H 之後，正式 gate policy 至少區分：
+
+- `required`
+  - category 內若出現 `fail`，suite 應正式 fail
+  - category 內若只出現 `warn`，suite 應正式 warn
+- `advisory`
+  - category 內即使出現 `fail / warn`，目前也只把 suite 拉到 warn，不直接 hard fail
+- `observation_only`
+  - 預留給未來類別；目前 shipped suite 不主打這一層
+
+目前正式建議是：
+- `domain_pack_contracts`
+- `industry_batch1`
+- `industry_batch2`
+- `legal_finance_contract`
+- `operations_process`
+- `ingestion_hardening`
+  先作為 `required`
+- `deliverable_hardening`
+  先作為 `advisory`
+
+原因是：
+- deliverable display discipline 仍帶有一定 consultant-facing density judgment
+- 而 pack selection、contract readiness 與 ingestion boundary honesty 已足夠穩定，可升為 required gate
 
 ---
 

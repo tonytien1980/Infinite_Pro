@@ -218,6 +218,13 @@ Wave 0-5 全部完成後，repo 已正式採納下一階段的 hardening / exten
 - table-heavy `.csv / .xlsx` 的 limited extract 語義收斂
 - `p0_ingestion_hardening.json` benchmark manifest
 
+截至 2026-04-02，`P0-H` 的第一批正式 baseline 也已形成：
+- `p0_domain_pack_contracts.json`
+- `p0_full_regression_suite.json`
+- full suite category / gate-mode baseline
+- one-shot full run path
+- 但仍不把 benchmark 做成 dashboard-first 平台或新的產品層
+
 ### 3.6 adopted planning file 的正式處理規則
 
 若某份下一階段 proposal 的內容已被正式採納：

@@ -1,0 +1,61 @@
+{
+  "suite_id": "p0_full_regression_suite",
+  "title": "P0 full benchmark regression suite",
+  "purpose": "Collect all shipped P0 hardening benchmark families into one repeatable regression gate without turning benchmarking into a new product layer or dashboard platform.",
+  "update_policy": [
+    "Only update this suite when a shipped hardening category is added, removed, or materially re-scoped.",
+    "Keep gate modes explicit: required categories can fail the suite, advisory categories can warn without blocking.",
+    "Prefer revising category manifests over creating parallel suite definitions unless the product baseline genuinely forks."
+  ],
+  "categories": [
+    {
+      "category_id": "domain_pack_contracts",
+      "title": "Domain / Functional pack contracts",
+      "manifest_path": "backend/app/benchmarks/manifests/p0_domain_pack_contracts.json",
+      "gate_mode": "required",
+      "purpose": "Protect the 8 domain pack contracts and their runtime selection baseline."
+    },
+    {
+      "category_id": "industry_batch1",
+      "title": "Industry Batch 1",
+      "manifest_path": "backend/app/benchmarks/manifests/p0_industry_batch1.json",
+      "gate_mode": "required",
+      "purpose": "Protect the first 6 industry pack contracts and their runtime selection baseline."
+    },
+    {
+      "category_id": "industry_batch2",
+      "title": "Industry Batch 2",
+      "manifest_path": "backend/app/benchmarks/manifests/p0_industry_batch2.json",
+      "gate_mode": "required",
+      "purpose": "Protect the second 5 industry pack contracts and their runtime selection baseline."
+    },
+    {
+      "category_id": "legal_finance_contract",
+      "title": "Legal / finance contract-aware cases",
+      "manifest_path": "backend/app/benchmarks/manifests/p0_legal_finance_contract.json",
+      "gate_mode": "required",
+      "purpose": "Protect contract-aware pack framing and clause / obligation support-bundle baselines."
+    },
+    {
+      "category_id": "operations_process",
+      "title": "Operations / process-aware cases",
+      "manifest_path": "backend/app/benchmarks/manifests/p0_operations_process.json",
+      "gate_mode": "required",
+      "purpose": "Protect process-aware pack framing and process issue support-bundle baselines."
+    },
+    {
+      "category_id": "deliverable_hardening",
+      "title": "Deliverable hardening",
+      "manifest_path": "backend/app/benchmarks/manifests/p0_deliverable_hardening.json",
+      "gate_mode": "advisory",
+      "purpose": "Track bundle density, ranking, and artifact-readiness regressions while keeping display-discipline checks advisory."
+    },
+    {
+      "category_id": "ingestion_hardening",
+      "title": "Ingestion hardening",
+      "manifest_path": "backend/app/benchmarks/manifests/p0_ingestion_hardening.json",
+      "gate_mode": "required",
+      "purpose": "Protect support-boundary honesty, limited extract handling, and reference-only fallback semantics."
+    }
+  ]
+}

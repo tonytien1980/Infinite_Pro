@@ -244,6 +244,7 @@ P0-F 之後還應再維持：
 - publish event payload 應可正式帶出 support-bundle summary
 - export artifact 也應正式承接 support-bundle summary，而不是只剩正文 / 版本事件
 - 這組 summary 應和 deliverable workspace 的 bundle display discipline 一致，而不是 artifact path 另寫一套表述
+- P0-H 的 regression gate 也應正式覆蓋這條 publish / export integrity；但 pre-P0-F 的舊 rows 若尚未 backfill 完整 summary，應視為 compatibility observation，而不是把 legacy data 直接誤判成現行 runtime regression
 
 目前正式 table：
 - `deliverable_publish_records`

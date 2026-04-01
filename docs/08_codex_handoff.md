@@ -64,6 +64,7 @@
 若施工觸及 canonical intake pipeline、entry presets、multi-source ingestion、storage / retention / purge 邊界，需補讀 `docs/11_intake_storage_architecture.md`。
 若施工觸及正文 persistence、revision、rollback、publish / artifact records、fallback、degraded mode 或 sync recovery，需補讀 `docs/12_runtime_persistence_and_release_integrity.md`。
 若施工觸及 ingestion hardening，還需把 `support_level / ingest_status / extract_availability / current_usable_scope / fallback boundary` 當成正式 shared semantics，而不是只在前端文案上各自解釋。
+若施工觸及 benchmark / regression gate，還需把 manifest family、suite 組織、gate mode 與 runbook 當成正式 docs-code lockstep 範圍，而不是只在測試腳本裡暗藏規則。
 
 ---
 
