@@ -62,6 +62,8 @@
 - `action_plans`
 - `action_executions`
 - `outcome_records`
+- `chunk_objects`
+- `media_references`
 
 正式規則：
 - metadata 不能和正文內容混成單一模糊欄位
@@ -69,6 +71,7 @@
 - export event 不等於 publish record
 - UI preference / visibility state 不應寫進正式 audit / publish record
 - continuity / writeback record 不等於 deliverable revision history
+- chunk / media provenance 也不等於 research provenance 摘要；前者是 evidence support chain，後者是研究流程與來源品質摘要
 
 在 deeper identity bridge 下還要再補一條：
 - `CaseWorldState` 應逐步成為 matter/world identity authority
@@ -269,6 +272,29 @@ publish / artifact records 用來描述正式發布與正式輸出物。
 - approval state 不得與 revision history 混成同一層
 - model run success 不得被誤算成 approval success
 - `AuditEvent` 應能回鏈到對應的 decision / action / outcome record，但預設仍屬按需展開層
+
+### 5.6 Chunk / media retrieval provenance
+
+這一層用來保留 evidence 在 source-level 之下的正式支撐點。
+
+正式責任：
+- `ChunkObject`
+  - text-first / parseable material 的可引用片段
+- `MediaReference`
+  - limited-support / reference-level material 的最小片段參照
+- retrieval provenance contract
+  - 回答 evidence 來自哪個 chunk / media reference
+  - 回答 deliverable / recommendation / risk / action item 用了哪筆 evidence
+
+正式規則：
+- parseable material 可形成 chunk-level provenance
+- limited-support / unsupported material 可維持 reference-level provenance
+- 不可把 reference-level provenance 假裝成 chunk-native evidence
+- provenance 可回看，但預設應屬按需展開層
+
+目前正式 table：
+- `chunk_objects`
+- `media_references`
 
 ### 5.5 Matter-scoped canonicalization review
 

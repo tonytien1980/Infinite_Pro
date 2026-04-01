@@ -1615,6 +1615,10 @@ def test_deliverable_workspace_route_returns_formal_deliverable_context(
     }
     assert workspace["workspace_status"] == "current"
     assert workspace["linked_evidence"]
+    assert any(
+        item["retrieval_provenance"] and item["retrieval_provenance"]["support_kind"] == "chunk_object"
+        for item in workspace["linked_evidence"]
+    )
     assert workspace["linked_recommendations"]
     assert workspace["linked_risks"] is not None
     assert workspace["linked_action_items"] is not None
@@ -1947,6 +1951,7 @@ def test_file_upload_creates_usable_txt_evidence(client: TestClient) -> None:
     assert uploaded["evidence"]["participation"]["current_task_participation"] is True
     assert uploaded["evidence"]["participation"]["canonical_owner_scope"] == "world_canonical"
     assert uploaded["evidence"]["participation"]["compatibility_task_id"] == task["id"]
+    assert uploaded["evidence"]["retrieval_provenance"]["support_kind"] == "source_reference"
 
     aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
     assert aggregate["source_materials"]
@@ -1955,6 +1960,11 @@ def test_file_upload_creates_usable_txt_evidence(client: TestClient) -> None:
     assert aggregate["presence_state_summary"]["artifact"]["state"] == "explicit"
     assert aggregate["source_materials"][0]["source_document_id"] == uploaded["source_document"]["id"]
     assert aggregate["artifacts"][0]["source_document_id"] == uploaded["source_document"]["id"]
+    chunk_evidence = next(item for item in aggregate["evidence"] if item["evidence_type"] == "source_chunk")
+    assert chunk_evidence["chunk_object_id"] is not None
+    assert chunk_evidence["retrieval_provenance"]["support_kind"] == "chunk_object"
+    assert "片段" in chunk_evidence["retrieval_provenance"]["locator_label"]
+    assert "Alpha insight" in chunk_evidence["retrieval_provenance"]["chunk_object"]["excerpt_text"]
 
 
 def test_single_document_intake_updates_entry_mode_and_deliverable_hint(
@@ -2069,6 +2079,9 @@ def test_limited_support_image_upload_returns_reference_level_status(client: Tes
     assert uploaded["source_document"]["ingestion_error"]
     assert uploaded["evidence"]["evidence_type"] == "uploaded_file_unparsed"
     assert "只建立 reference / metadata" in uploaded["evidence"]["excerpt_or_summary"]
+    assert uploaded["evidence"]["media_reference_id"] is not None
+    assert uploaded["evidence"]["retrieval_provenance"]["support_kind"] == "media_reference"
+    assert uploaded["evidence"]["retrieval_provenance"]["media_reference"]["usable_scope"] == "reference_only"
 
     matter_workspace = client.get(f"/api/v1/matters/{matter_id}").json()
     evidence_workspace = client.get(f"/api/v1/matters/{matter_id}/artifact-evidence").json()
@@ -2088,6 +2101,10 @@ def test_limited_support_image_upload_returns_reference_level_status(client: Tes
     assert source_card["support_level"] == "limited"
     assert source_card["ingest_strategy"] == "reference_image"
     assert source_card["ingestion_error"]
+    linked_issue = next(
+        item for item in evidence_workspace["evidence_chains"] if item["evidence"]["title"] == "photo.png"
+    )
+    assert linked_issue["evidence"]["retrieval_provenance"]["support_kind"] == "media_reference"
 
 
 def test_unsupported_file_upload_returns_explicit_unsupported_status(client: TestClient) -> None:
@@ -2191,6 +2208,11 @@ def test_source_ingestion_from_pasted_text_creates_normalized_evidence_and_chunk
 
     aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
     assert any(item["evidence_type"] == "source_chunk" for item in aggregate["evidence"])
+    assert any(
+        item["retrieval_provenance"]["support_kind"] == "chunk_object"
+        for item in aggregate["evidence"]
+        if item["evidence_type"] == "source_chunk"
+    )
 
 
 def test_source_ingestion_from_url_extracts_text_and_metadata(

@@ -178,6 +178,20 @@ Host 必須在這一階段判斷：
 - metadata-only 或 limited-support 的材料，也可先留下 reference-level evidence，而不是假裝已完整抽文
 - research 補完結果也必須先回到 `SourceMaterial / Artifact / Evidence` 鏈，而不是直接偷塞進答案
 
+### 4.4 Chunk / media provenance
+- 對 parseable、text-like 材料，system 應可從 derived extract 形成 `ChunkObject`
+- `ChunkObject` 應能表達：
+  - 它來自哪個 `SourceDocument / SourceMaterial / Artifact`
+  - chunk sequence / offset / locator
+  - excerpt text 或等價 handle
+  - support / availability boundary
+- 對 limited-support / unsupported 材料，system 可先停留在 `MediaReference`
+- `MediaReference` 的第一波最小責任是誠實表達：
+  - 這個來源目前只能 reference-level 回鏈
+  - 若有 page / file-level / frame-level locator，可保存最小 locator
+  - usable scope 與 support level 是什麼
+- 不可為了統一而假裝所有來源都具備同等 chunk 粒度
+
 ### 4.4 Matter-scoped canonicalization
 - intake / supplement 完成後，若同一 matter 內出現近似重複的 source-chain family，系統應形成 candidate review，而不是直接做跨案件世界 merge
 - Wave 2 的正式落點是：
@@ -255,6 +269,11 @@ Object storage 負責保存：
 - `raw_intake`
 - `derived_extract`
 - `released_artifact`
+
+Wave 3 deepen 下的正式理解：
+- `raw_intake` 保存原始來源
+- `derived_extract` 可作為 text-first `ChunkObject` 的上游 extract 來源
+- 若某材料只有 metadata / reference-level，可不必硬產出 chunk rows，但仍應保留誠實的 `MediaReference`
 
 ### 6.4 availability state
 storage metadata 至少要能表示：

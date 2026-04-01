@@ -119,12 +119,12 @@
 - `ApprovalPolicy`
 - `AuditEvent`
 - matter-scoped canonicalization / merge-split / human-confirmed canonical row contract
-
-仍待後續 wave 深化的主題是：
-- `ObjectSet`
 - `ChunkObject`
 - `MediaReference`
 - retrieval provenance contract
+
+仍待後續 wave 深化的主題是：
+- `ObjectSet`
 - interface / required properties / stable API naming / pack-to-contract binding
 
 因此本 program 的責任是把這些能力依序深化進既有六層，而不是創造新的頂層模型。
@@ -355,6 +355,7 @@ Wave 0 若仍是 docs-first，則通常不應更新：
 - `MediaReference`
 - retrieval provenance
 - source -> chunk/media -> evidence -> deliverable 的回鏈
+- 先用最小但真實的 text-first contract 落地，再誠實保留 reference-level 邊界
 
 本波限制：
 - 先聚焦 parseable、text-like 或可合理切塊的材料

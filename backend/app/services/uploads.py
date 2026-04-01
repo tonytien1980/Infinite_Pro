@@ -13,6 +13,7 @@ from app.ingestion.preprocess import normalize_text
 from app.ingestion.sources import ManualUploadConnector
 from app.services.material_storage import preview_extracted_text
 from app.services.source_materials import (
+    build_media_reference_for_document,
     build_failed_evidence_item,
     build_source_objects_for_document,
     build_processed_evidence_items,
@@ -225,7 +226,7 @@ def save_uploads_for_task(
 
         source_ref = connector.build_source_ref(task.id, source_document.id)
         if ingest_status == "processed" and extracted_text:
-            evidence, chunk_items = build_processed_evidence_items(
+            evidence, chunk_objects, chunk_items = build_processed_evidence_items(
                 task=task,
                 matter_workspace_id=matter_workspace_id,
                 source_document=source_document,
@@ -238,9 +239,21 @@ def save_uploads_for_task(
                 continuity_scope=continuity_scope,
             )
             db.add(evidence)
+            for chunk_object in chunk_objects:
+                db.add(chunk_object)
             for chunk_item in chunk_items:
                 db.add(chunk_item)
         elif ingest_status == "failed":
+            media_reference = build_media_reference_for_document(
+                task_id=task.id,
+                matter_workspace_id=matter_workspace_id,
+                source_document=source_document,
+                source_material_id=source_material.id,
+                artifact_id=artifact.id,
+                continuity_scope=continuity_scope,
+            )
+            db.add(media_reference)
+            db.flush()
             evidence = build_failed_evidence_item(
                 task_id=task.id,
                 matter_workspace_id=matter_workspace_id,
@@ -254,12 +267,23 @@ def save_uploads_for_task(
                 continuity_scope=continuity_scope,
             )
             evidence.evidence_type = "uploaded_file_ingestion_issue"
+            evidence.media_reference_id = media_reference.id
             evidence.excerpt_or_summary = (
                 f"上傳檔案「{file.filename or stored_name}」未能完整擷取。"
                 f"不確定性說明：{ingestion_error or '未知的擷取錯誤'}。"
             )
             db.add(evidence)
         elif ingest_status == "unsupported":
+            media_reference = build_media_reference_for_document(
+                task_id=task.id,
+                matter_workspace_id=matter_workspace_id,
+                source_document=source_document,
+                source_material_id=source_material.id,
+                artifact_id=artifact.id,
+                continuity_scope=continuity_scope,
+            )
+            db.add(media_reference)
+            db.flush()
             evidence = build_failed_evidence_item(
                 task_id=task.id,
                 matter_workspace_id=matter_workspace_id,
@@ -273,12 +297,23 @@ def save_uploads_for_task(
                 continuity_scope=continuity_scope,
             )
             evidence.evidence_type = "uploaded_file_ingestion_issue"
+            evidence.media_reference_id = media_reference.id
             evidence.excerpt_or_summary = (
                 f"上傳檔案「{file.filename or stored_name}」目前只建立 metadata。"
                 f"支援狀態：{ingestion_error or '尚未正式支援這種格式。'}"
             )
             db.add(evidence)
         else:
+            media_reference = build_media_reference_for_document(
+                task_id=task.id,
+                matter_workspace_id=matter_workspace_id,
+                source_document=source_document,
+                source_material_id=source_material.id,
+                artifact_id=artifact.id,
+                continuity_scope=continuity_scope,
+            )
+            db.add(media_reference)
+            db.flush()
             evidence = build_unparsed_evidence_item(
                 task_id=task.id,
                 matter_workspace_id=matter_workspace_id,
@@ -291,6 +326,7 @@ def save_uploads_for_task(
                 continuity_scope=continuity_scope,
             )
             evidence.evidence_type = "uploaded_file_unparsed"
+            evidence.media_reference_id = media_reference.id
             evidence.excerpt_or_summary = (
                 f"上傳檔案「{file.filename or stored_name}」已附加，但目前只建立 reference / metadata。"
                 f"{ingestion_error or '這份來源尚未抽出可直接分析的文字內容。'}"

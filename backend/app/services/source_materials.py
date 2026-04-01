@@ -4,8 +4,13 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.domain import models
-from app.ingestion.preprocess import build_text_chunks, infer_relevance_label, summarize_evidence_text
+from app.ingestion.preprocess import (
+    build_text_chunk_specs,
+    infer_relevance_label,
+    summarize_evidence_text,
+)
 from app.services.material_storage import build_source_reference, sync_source_material_from_document
+from app.services.storage_manager import compute_digest
 
 WORLD_SHARED_CONTINUITY_SCOPE = "world_shared"
 SLICE_PARTICIPATION_CONTINUITY_SCOPE = "slice_participation"
@@ -330,7 +335,7 @@ def build_processed_evidence_items(
     primary_evidence_type: str,
     reliability_level: str = "user_provided",
     continuity_scope: str = SLICE_PARTICIPATION_CONTINUITY_SCOPE,
-) -> tuple[models.Evidence, list[models.Evidence]]:
+) -> tuple[models.Evidence, list[models.ChunkObject], list[models.Evidence]]:
     relevance = infer_relevance_label(text, _task_query_parts(task))
     summary = summarize_evidence_text(text)
     primary = models.Evidence(
@@ -351,6 +356,27 @@ def build_processed_evidence_items(
         reliability_level=reliability_level,
     )
 
+    chunk_specs = build_text_chunk_specs(text)
+    chunk_objects = [
+        models.ChunkObject(
+            task_id=task.id,
+            matter_workspace_id=matter_workspace_id,
+            source_document_id=source_document.id,
+            source_material_id=source_material_id,
+            artifact_id=artifact_id,
+            continuity_scope=continuity_scope,
+            chunk_type="text_excerpt",
+            sequence_index=chunk.sequence_index,
+            start_offset=chunk.start_offset,
+            end_offset=chunk.end_offset,
+            locator_label=f"片段 {chunk.sequence_index + 1}｜字元 {chunk.start_offset + 1}-{chunk.end_offset}",
+            excerpt_text=chunk.text,
+            excerpt_digest=compute_digest(chunk.text.encode("utf-8")),
+            support_level=source_document.support_level,
+            availability_state=source_document.availability_state,
+        )
+        for chunk in chunk_specs
+    ]
     chunk_items = [
         models.Evidence(
             task_id=task.id,
@@ -358,20 +384,61 @@ def build_processed_evidence_items(
             source_document_id=source_document.id,
             source_material_id=source_material_id,
             artifact_id=artifact_id,
+            chunk_object=chunk_object,
             continuity_scope=continuity_scope,
             evidence_type="source_chunk",
             source_type=source_document.source_type,
             source_ref=source_ref,
-            title=f"{title} - 片段 {index + 1}",
+            title=f"{title} - 片段 {chunk_object.sequence_index + 1}",
             excerpt_or_summary=(
                 f"關聯度：{relevance}\n"
-                f"內容片段：{chunk}"
+                f"內容片段：{chunk_object.excerpt_text}"
             ),
             reliability_level=reliability_level,
         )
-        for index, chunk in enumerate(build_text_chunks(text))
+        for chunk_object in chunk_objects
     ]
-    return primary, chunk_items
+    return primary, chunk_objects, chunk_items
+
+
+def build_media_reference_for_document(
+    *,
+    task_id: str,
+    matter_workspace_id: str | None,
+    source_document: models.SourceDocument,
+    source_material_id: str | None,
+    artifact_id: str | None,
+    continuity_scope: str = SLICE_PARTICIPATION_CONTINUITY_SCOPE,
+) -> models.MediaReference:
+    if source_document.source_type in {"manual_upload", "manual_input", "manual_url", "google_docs"}:
+        media_type = "document_reference"
+    else:
+        media_type = source_document.source_type or "reference_attachment"
+
+    usable_scope = (
+        "reference_only"
+        if source_document.metadata_only or source_document.support_level != "full"
+        else "chunk_ready"
+    )
+    return models.MediaReference(
+        task_id=task_id,
+        matter_workspace_id=matter_workspace_id,
+        source_document_id=source_document.id,
+        source_material_id=source_material_id,
+        artifact_id=artifact_id,
+        continuity_scope=continuity_scope,
+        media_type=media_type,
+        locator_kind="file_level",
+        locator_label=source_document.canonical_display_name or source_document.file_name,
+        preview_text=(
+            source_document.ingestion_error
+            or source_document.extracted_text
+            or "目前這份來源只保留 reference-level metadata。"
+        )[:600],
+        support_level=source_document.support_level,
+        usable_scope=usable_scope,
+        availability_state=source_document.availability_state,
+    )
 
 
 def build_failed_evidence_item(

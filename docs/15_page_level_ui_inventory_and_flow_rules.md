@@ -268,6 +268,7 @@
 - 段落導覽
 - approval / audit 若存在，應以次層提示或 disclosure 呈現，不可壓過補件導引與 sufficiency 主線
 - 若同一 matter 有待人工確認的 duplicate candidate，可在第一屏以低噪音摘要提示存在，但真正的 review surface 仍應放在次層 detail / disclosure
+- 若 evidence 已具備更細的 chunk / media 支撐點，首屏可用低噪音摘要說明「可回看更精準引用來源」，但真正的 provenance 細節仍應留在證據支撐鏈或 citation disclosure
 
 **延後揭露**
 - 全量來源清單
@@ -278,6 +279,7 @@
 - research provenance 明細
   需至少包含 research depth、sub-questions、evidence-gap focus、source-quality summary、delegation status / reason 與 citation handoff 摘要
 - canonicalization review 詳細列表與 keep separate / split / human-confirmed canonical row 操作
+- chunk / media locator、引用片段與 provenance 細節
 
 **正式跳轉**
 - `/tasks/[taskId]`
@@ -327,6 +329,7 @@
 - selected packs / agents 的 selection score 與 matched signals 明細
 - decision / outcome writeback 記錄
 - 若這筆工作涉及待確認的 duplicate candidate，應只在 continuity / evidence 類 disclosure 顯示摘要與回跳入口，不可把 duplicate review 拉到 task 首屏主線
+- 引用來源片段與 chunk/media provenance 細節
 
 **正式跳轉**
 - `/deliverables/[deliverableId]`

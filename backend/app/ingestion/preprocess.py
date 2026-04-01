@@ -2,6 +2,15 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterable
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class TextChunkSpec:
+    sequence_index: int
+    text: str
+    start_offset: int
+    end_offset: int
 
 
 def normalize_text(text: str) -> str:
@@ -13,6 +22,42 @@ def summarize_evidence_text(text: str, limit: int = 800) -> str:
     return normalized[:limit]
 
 
+def build_text_chunk_specs(
+    text: str,
+    *,
+    chunk_size: int = 900,
+    overlap: int = 120,
+    max_chunks: int = 4,
+) -> list[TextChunkSpec]:
+    normalized = normalize_text(text)
+    if not normalized:
+        return []
+
+    chunks: list[TextChunkSpec] = []
+    start = 0
+    text_length = len(normalized)
+    sequence_index = 0
+
+    while start < text_length and len(chunks) < max_chunks:
+        end = min(text_length, start + chunk_size)
+        chunk_text = normalized[start:end].strip()
+        if chunk_text:
+            chunks.append(
+                TextChunkSpec(
+                    sequence_index=sequence_index,
+                    text=chunk_text,
+                    start_offset=start,
+                    end_offset=end,
+                )
+            )
+            sequence_index += 1
+        if end >= text_length:
+            break
+        start = max(0, end - overlap)
+
+    return chunks
+
+
 def build_text_chunks(
     text: str,
     *,
@@ -20,22 +65,15 @@ def build_text_chunks(
     overlap: int = 120,
     max_chunks: int = 4,
 ) -> list[str]:
-    normalized = normalize_text(text)
-    if not normalized:
-        return []
-
-    chunks: list[str] = []
-    start = 0
-    text_length = len(normalized)
-
-    while start < text_length and len(chunks) < max_chunks:
-        end = min(text_length, start + chunk_size)
-        chunks.append(normalized[start:end].strip())
-        if end >= text_length:
-            break
-        start = max(0, end - overlap)
-
-    return [chunk for chunk in chunks if chunk]
+    return [
+        chunk.text
+        for chunk in build_text_chunk_specs(
+            text,
+            chunk_size=chunk_size,
+            overlap=overlap,
+            max_chunks=max_chunks,
+        )
+    ]
 
 
 def infer_relevance_label(text: str, query_parts: Iterable[str]) -> str:

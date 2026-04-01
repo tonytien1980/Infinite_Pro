@@ -17,6 +17,7 @@ from app.ingestion.sources import (
 )
 from app.services.material_storage import preview_extracted_text
 from app.services.source_materials import (
+    build_media_reference_for_document,
     build_failed_evidence_item,
     build_processed_evidence_items,
     build_source_objects_for_document,
@@ -155,7 +156,7 @@ def _persist_processed_source(
     db.flush()
     source_ref = connector.build_source_ref(task.id, source_document.id)
 
-    primary_evidence, chunk_items = build_processed_evidence_items(
+    primary_evidence, chunk_objects, chunk_items = build_processed_evidence_items(
         task=task,
         matter_workspace_id=matter_workspace_id,
         source_document=source_document,
@@ -180,12 +181,26 @@ def _persist_processed_source(
             continuity_scope=continuity_scope,
         ),
         [],
+        [],
     )
     if extracted_text:
         db.add(primary_evidence)
+        for chunk_object in chunk_objects:
+            db.add(chunk_object)
         for chunk_item in chunk_items:
             db.add(chunk_item)
     else:
+        media_reference = build_media_reference_for_document(
+            task_id=task.id,
+            matter_workspace_id=matter_workspace_id,
+            source_document=source_document,
+            source_material_id=source_material.id,
+            artifact_id=artifact.id,
+            continuity_scope=continuity_scope,
+        )
+        db.add(media_reference)
+        db.flush()
+        primary_evidence.media_reference_id = media_reference.id
         primary_evidence.evidence_type = "source_unparsed"
         primary_evidence.excerpt_or_summary = (
             f"來源「{title}」目前只建立 reference / metadata。"
@@ -282,6 +297,16 @@ def _persist_failed_source(
     db.flush()
     source_ref = connector.build_source_ref(task.id, source_document.id)
 
+    media_reference = build_media_reference_for_document(
+        task_id=task.id,
+        matter_workspace_id=matter_workspace_id,
+        source_document=source_document,
+        source_material_id=source_material.id,
+        artifact_id=artifact.id,
+        continuity_scope=continuity_scope,
+    )
+    db.add(media_reference)
+    db.flush()
     primary_evidence = build_failed_evidence_item(
         task_id=task.id,
         matter_workspace_id=matter_workspace_id,
@@ -294,6 +319,7 @@ def _persist_failed_source(
         error_message=error_message,
         continuity_scope=continuity_scope,
     )
+    primary_evidence.media_reference_id = media_reference.id
     db.add(primary_evidence)
     db.flush()
     ensure_source_chain_participation_links(

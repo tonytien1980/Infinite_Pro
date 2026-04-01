@@ -222,6 +222,12 @@ const CANONICALIZATION_MATCH_BASIS_LABELS: Record<string, string> = {
   display_name_match: "名稱高度相近",
 };
 
+const RETRIEVAL_SUPPORT_KIND_LABELS: Record<string, string> = {
+  chunk_object: "引用來源片段",
+  media_reference: "引用媒體參照",
+  source_reference: "引用來源",
+};
+
 const PRESENCE_STATE_LABELS: Record<string, string> = {
   explicit: "明確存在",
   inferred: "推定存在",
@@ -699,6 +705,13 @@ export function labelForCanonicalizationMatchBasis(value: string | null | undefi
     return "未標示";
   }
   return CANONICALIZATION_MATCH_BASIS_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForRetrievalSupportKind(value: string | null | undefined) {
+  if (!value) {
+    return "未標示";
+  }
+  return RETRIEVAL_SUPPORT_KIND_LABELS[value] ?? fallbackLabel(value);
 }
 
 export function labelForPresenceState(value: string) {

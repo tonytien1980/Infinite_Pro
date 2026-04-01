@@ -185,6 +185,59 @@ Ontology 不只定義物件名稱，也要定義：
 ### Evidence
 代表可用於支撐或挑戰判斷的結構化證據。
 
+### ChunkObject
+代表可直接被引用的文字片段或邏輯切塊。
+
+Wave 3 的最小正式責任是：
+- 只先承接 parseable、text-like、可合理切塊的材料
+- 明確保留：
+  - canonical id
+  - parent `SourceDocument / SourceMaterial / Artifact`
+  - `chunk_type`
+  - `sequence / offset / locator`
+  - excerpt text 或等價 handle
+  - digest 與最小 provenance metadata
+  - availability / support boundary
+
+`ChunkObject` 不是：
+- 新的工作面
+- 新的主導航入口
+- 把所有來源型別強行做成 chunk-native 的藉口
+
+它的正式角色應是：
+- evidence chain 在 source-level 之下的第一個可引用支撐點
+- deliverable / recommendation / risk / action item 可回鏈的引用單位
+
+### MediaReference
+代表非純文字或混合材料的最小片段參照。
+
+Wave 3 的最小正式責任是：
+- 對 limited-support / reference-level 材料保留誠實的引用 contract
+- 至少能表達：
+  - canonical id
+  - parent `SourceDocument / SourceMaterial / Artifact`
+  - `media_type`
+  - 最小 locator（例如 page / region / timestamp / frame / file-level pointer）
+  - `support_level / usable_scope`
+
+`MediaReference` 的第一波重點不是完整 OCR 或 rich media understanding，
+而是讓系統能誠實區分：
+- 哪些來源已經能提供 chunk-level 支撐
+- 哪些來源目前只能提供 reference-level provenance
+
+### RetrievalProvenance
+代表 evidence 與上游支撐點之間的正式回鏈 contract。
+
+Wave 3 的最小正式責任是：
+- 能回答哪筆 `Evidence` 來自哪個 `ChunkObject` 或 `MediaReference`
+- 能回答哪個 `Deliverable / Recommendation / Risk / ActionItem` 用到了哪筆 evidence
+- 讓 `source -> chunk/media -> evidence -> deliverable` 可回看
+
+它不應被誤解成：
+- 大型 graph explorer
+- debug wall
+- 任何人都要先學的新工作流
+
 ---
 
 ### 5.4 Analysis objects

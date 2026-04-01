@@ -369,6 +369,12 @@ Wave 1 deepen also formalizes a minimal operational contract on top of the exist
 - `AuditEvent` now records writeback generation, approval changes, and continuation actions as an append-only audit trail
 - approval and audit are intentionally disclosure-level surfaces, not new hero-level workflow primitives
 
+Wave 3 deepen formalizes the first source-level-below evidence contract:
+- parseable text-first materials now produce formal `ChunkObject` rows on top of the existing derived extract path
+- limited-support / reference-level materials now produce formal `MediaReference` rows instead of pretending to be chunk-native
+- `Evidence` can now point to `chunk_object_id / media_reference_id`
+- retrieval provenance can now expose `source -> chunk/media -> evidence -> deliverable` support chains without turning the workbench into a debug wall
+
 This means writeback is no longer treated as "all or nothing".
 All matters must keep minimum history and deliverable lineage, but only follow-up and continuous cases should deepen the feedback loop.
 Primary actions in matter, task, deliverable, and evidence workspaces should now change with this policy: one-off cases should bias toward closure, follow-up cases toward checkpoint updates, and continuous cases toward progression / outcome observation.
@@ -446,6 +452,10 @@ The repository currently contains a working early implementation slice within th
 - duplicate candidate handling that can distinguish `merge_candidate / keep_separate / split / human_confirmed_canonical_row`
 - matter-scoped review records that re-point participation mapping without deleting raw source rows or merging across matters
 - low-noise duplicate review visibility in matter / evidence / task disclosure surfaces, with deliverable continuity disclosure staying intact
+- minimal Wave 3 `ChunkObject / MediaReference / retrieval provenance` contract on top of the existing derived extract and evidence chain
+- chunk-backed provenance for parseable text-first materials, including locator / excerpt / digest metadata
+- reference-level `MediaReference` provenance for limited-support / unsupported materials without pretending they are chunk-aware
+- low-noise provenance disclosure in evidence, task, and deliverable support surfaces
 - structured deliverable rendering
 - Markdown and DOCX artifact export with backend artifact records
 - system-level provider settings UI with single active runtime config, backend credential storage, validation, and `DB -> env` precedence

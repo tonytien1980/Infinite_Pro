@@ -508,6 +508,62 @@ class ArtifactRead(ORMModel):
     created_at: datetime
 
 
+class ChunkObjectRead(ORMModel):
+    id: str
+    task_id: str
+    matter_workspace_id: str | None = None
+    source_document_id: str
+    source_material_id: str | None = None
+    artifact_id: str | None = None
+    continuity_scope: str = "slice_participation"
+    chunk_type: str
+    sequence_index: int
+    start_offset: int
+    end_offset: int
+    locator_label: str
+    excerpt_text: str
+    excerpt_digest: str
+    support_level: str
+    availability_state: str
+    created_at: datetime
+
+
+class MediaReferenceRead(ORMModel):
+    id: str
+    task_id: str
+    matter_workspace_id: str | None = None
+    source_document_id: str
+    source_material_id: str | None = None
+    artifact_id: str | None = None
+    continuity_scope: str = "slice_participation"
+    media_type: str
+    locator_kind: str
+    locator_label: str
+    preview_text: str
+    support_level: str
+    usable_scope: str
+    availability_state: str
+    created_at: datetime
+
+
+class RetrievalProvenanceRead(BaseModel):
+    support_kind: str
+    source_document_id: str | None = None
+    source_document_title: str | None = None
+    source_material_id: str | None = None
+    source_material_title: str | None = None
+    artifact_id: str | None = None
+    artifact_title: str | None = None
+    support_level: str | None = None
+    availability_state: str | None = None
+    locator_label: str | None = None
+    usable_scope: str | None = None
+    excerpt_text: str | None = None
+    preview_text: str | None = None
+    chunk_object: ChunkObjectRead | None = None
+    media_reference: MediaReferenceRead | None = None
+
+
 class EvidenceRead(ORMModel):
     id: str
     task_id: str
@@ -515,6 +571,8 @@ class EvidenceRead(ORMModel):
     source_document_id: str | None
     source_material_id: str | None = None
     artifact_id: str | None = None
+    chunk_object_id: str | None = None
+    media_reference_id: str | None = None
     continuity_scope: str = "slice_participation"
     evidence_type: str
     source_type: str
@@ -522,6 +580,7 @@ class EvidenceRead(ORMModel):
     title: str
     excerpt_or_summary: str
     reliability_level: str
+    retrieval_provenance: RetrievalProvenanceRead | None = None
     participation: ObjectParticipationRead | None = None
     created_at: datetime
 

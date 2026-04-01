@@ -647,7 +647,9 @@ def task_load_options():
         selectinload(models.Task.uploads),
         selectinload(models.Task.source_materials),
         selectinload(models.Task.artifacts),
-        selectinload(models.Task.evidence),
+        selectinload(models.Task.evidence).selectinload(models.Evidence.source_document),
+        selectinload(models.Task.evidence).selectinload(models.Evidence.chunk_object),
+        selectinload(models.Task.evidence).selectinload(models.Evidence.media_reference),
         selectinload(models.Task.insights),
         selectinload(models.Task.risks),
         selectinload(models.Task.options),
@@ -5961,6 +5963,71 @@ def _build_evidence_object_mappings(
     return source_material_by_document, artifact_by_document
 
 
+def _build_retrieval_provenance_read(
+    *,
+    evidence: models.Evidence,
+    source_material_lookup: dict[str, schemas.SourceMaterialRead],
+    artifact_lookup: dict[str, schemas.ArtifactRead],
+) -> schemas.RetrievalProvenanceRead | None:
+    source_document_title = (
+        evidence.source_document.canonical_display_name
+        if evidence.source_document is not None and evidence.source_document.canonical_display_name
+        else evidence.source_document.file_name
+        if evidence.source_document is not None
+        else evidence.source_ref
+    )
+    source_material = source_material_lookup.get(evidence.source_material_id) if evidence.source_material_id else None
+    artifact = artifact_lookup.get(evidence.artifact_id) if evidence.artifact_id else None
+
+    if evidence.chunk_object is not None:
+        return schemas.RetrievalProvenanceRead(
+            support_kind="chunk_object",
+            source_document_id=evidence.source_document_id,
+            source_document_title=source_document_title,
+            source_material_id=evidence.source_material_id,
+            source_material_title=source_material.title if source_material is not None else None,
+            artifact_id=evidence.artifact_id,
+            artifact_title=artifact.title if artifact is not None else None,
+            support_level=evidence.chunk_object.support_level,
+            availability_state=evidence.chunk_object.availability_state,
+            locator_label=evidence.chunk_object.locator_label,
+            excerpt_text=evidence.chunk_object.excerpt_text,
+            chunk_object=schemas.ChunkObjectRead.model_validate(evidence.chunk_object),
+        )
+
+    if evidence.media_reference is not None:
+        return schemas.RetrievalProvenanceRead(
+            support_kind="media_reference",
+            source_document_id=evidence.source_document_id,
+            source_document_title=source_document_title,
+            source_material_id=evidence.source_material_id,
+            source_material_title=source_material.title if source_material is not None else None,
+            artifact_id=evidence.artifact_id,
+            artifact_title=artifact.title if artifact is not None else None,
+            support_level=evidence.media_reference.support_level,
+            availability_state=evidence.media_reference.availability_state,
+            locator_label=evidence.media_reference.locator_label,
+            usable_scope=evidence.media_reference.usable_scope,
+            preview_text=evidence.media_reference.preview_text,
+            media_reference=schemas.MediaReferenceRead.model_validate(evidence.media_reference),
+        )
+
+    if evidence.source_document_id or evidence.source_material_id or evidence.artifact_id:
+        return schemas.RetrievalProvenanceRead(
+            support_kind="source_reference",
+            source_document_id=evidence.source_document_id,
+            source_document_title=source_document_title,
+            source_material_id=evidence.source_material_id,
+            source_material_title=source_material.title if source_material is not None else None,
+            artifact_id=evidence.artifact_id,
+            artifact_title=artifact.title if artifact is not None else None,
+            locator_label=evidence.source_ref or source_document_title,
+            excerpt_text=evidence.excerpt_or_summary[:600],
+        )
+
+    return None
+
+
 def _serialize_evidence_items(
     task: models.Task,
     source_materials: list[schemas.SourceMaterialRead],
@@ -5970,6 +6037,8 @@ def _serialize_evidence_items(
         source_materials,
         artifacts,
     )
+    source_material_lookup = {item.id: item for item in source_materials}
+    artifact_lookup = {item.id: item for item in artifacts}
     evidence_rows = list(task.evidence)
     db, matter_workspace, matter_workspace_id = _ensure_source_chain_participation_snapshot_ready(task)
     participation_snapshot = _load_task_object_participation_snapshot(
@@ -5982,6 +6051,11 @@ def _serialize_evidence_items(
             select(models.Evidence)
             .where(models.Evidence.matter_workspace_id == matter_workspace.id)
             .where(models.Evidence.continuity_scope == WORLD_SHARED_CONTINUITY_SCOPE)
+            .options(
+                selectinload(models.Evidence.source_document),
+                selectinload(models.Evidence.chunk_object),
+                selectinload(models.Evidence.media_reference),
+            )
             .order_by(models.Evidence.created_at)
         ).all()
         covered_ids = {item.id for item in evidence_rows}
@@ -6000,6 +6074,8 @@ def _serialize_evidence_items(
             or (source_material_by_document.get(item.source_document_id) if item.source_document_id else None),
             artifact_id=item.artifact_id
             or (artifact_by_document.get(item.source_document_id) if item.source_document_id else None),
+            chunk_object_id=item.chunk_object_id,
+            media_reference_id=item.media_reference_id,
             continuity_scope=item.continuity_scope,
             evidence_type=item.evidence_type,
             source_type=item.source_type,
@@ -6007,6 +6083,11 @@ def _serialize_evidence_items(
             title=item.title,
             excerpt_or_summary=item.excerpt_or_summary,
             reliability_level=item.reliability_level,
+            retrieval_provenance=_build_retrieval_provenance_read(
+                evidence=item,
+                source_material_lookup=source_material_lookup,
+                artifact_lookup=artifact_lookup,
+            ),
             participation=_build_object_participation_read(
                 object_type=OBJECT_TYPE_EVIDENCE,
                 object_id=item.id,

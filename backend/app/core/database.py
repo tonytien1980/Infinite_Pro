@@ -151,6 +151,8 @@ def _ensure_incremental_schema_updates() -> None:
             "matter_workspace_id": "VARCHAR(36)",
             "source_material_id": "VARCHAR(36)",
             "artifact_id": "VARCHAR(36)",
+            "chunk_object_id": "VARCHAR(36)",
+            "media_reference_id": "VARCHAR(36)",
             "continuity_scope": "VARCHAR(30) NOT NULL DEFAULT 'slice_participation'",
         },
         "task_object_participation_links": {
@@ -321,6 +323,10 @@ def _ensure_incremental_indexes() -> None:
         "ON task_object_participation_links (matter_workspace_id, object_type, canonical_object_id)",
         "CREATE INDEX IF NOT EXISTS ix_task_object_participation_source_document "
         "ON task_object_participation_links (matter_workspace_id, source_document_id)",
+        "CREATE INDEX IF NOT EXISTS ix_chunk_objects_source_document "
+        "ON chunk_objects (source_document_id, sequence_index)",
+        "CREATE INDEX IF NOT EXISTS ix_media_references_source_document "
+        "ON media_references (source_document_id)",
     ]
 
     with engine.begin() as connection:

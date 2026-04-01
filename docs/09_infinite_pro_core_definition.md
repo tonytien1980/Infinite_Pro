@@ -142,7 +142,7 @@ Ontology 是這套系統的：
 
 Infinite Pro 的工作世界至少應圍繞以下主鏈理解：
 
-> **CaseWorldState → Client → Engagement → Workstream → DecisionContext → Task(work slice) → Artifact / SourceMaterial → Evidence → Insight / Risk / Option → Recommendation → ActionItem → Deliverable**
+> **CaseWorldState → Client → Engagement → Workstream → DecisionContext → Task(work slice) → Artifact / SourceMaterial → ChunkObject / MediaReference → Evidence → Insight / Risk / Option → Recommendation → ActionItem → Deliverable**
 
 這條主鏈代表：
 - Deliverable 不是自由文字的終點
@@ -169,6 +169,12 @@ Wave 1 deepen 後，這些 records 之間還應明確區分：
 - 哪個 `function_type` 產生了這次 decision / outcome
 - 哪個 `action_type` 承接了後續 plan / execution
 - 這份內容目前是模型建議、正式核可，還是僅完成 writeback 記錄
+
+Wave 3 deepen 後，這條主鏈還應再往前一步：
+- parseable material 應能在 source-level 之下產生正式 `ChunkObject`
+- limited-support / unsupported material 至少應能留下誠實的 `MediaReference`
+- retrieval provenance 應能讓 evidence 與 deliverable 回看自己是被哪個 chunk / media support 撐起來的
+- provenance 預設屬按需展開層，不可污染首屏主線
 
 正式核心物件至少包括：
 - Client

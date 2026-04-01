@@ -35,7 +35,12 @@ import {
   getVisibleConstraints,
   getStructuredStringList,
 } from "@/lib/advisory-workflow";
-import type { ExtensionManagerSnapshot, TaskAggregate, TaskExtensionOverridePayload } from "@/lib/types";
+import type {
+  ExtensionManagerSnapshot,
+  RetrievalProvenance,
+  TaskAggregate,
+  TaskExtensionOverridePayload,
+} from "@/lib/types";
 import { ExtensionManagerSurface } from "@/components/extension-manager-surface";
 import {
   extractModeSpecificAppendix,
@@ -62,6 +67,7 @@ import {
   labelForResearchDepth,
   labelForLikelihoodLevel,
   labelForPriority,
+  labelForRetrievalSupportKind,
   labelForRunStatus,
   labelForSourceType,
   labelForStructuredField,
@@ -272,6 +278,30 @@ function DisclosurePanel({
       </summary>
       <div className="disclosure-body">{children}</div>
     </details>
+  );
+}
+
+function TaskRetrievalProvenance({
+  provenance,
+}: {
+  provenance: RetrievalProvenance | null;
+}) {
+  if (!provenance) {
+    return null;
+  }
+
+  return (
+    <div style={{ marginTop: "10px" }}>
+      <p className="muted-text">
+        <strong>{labelForRetrievalSupportKind(provenance.support_kind)}：</strong>
+        {[provenance.source_document_title, provenance.locator_label].filter(Boolean).join("｜") || "未標示"}
+      </p>
+      {provenance.excerpt_text ? (
+        <p className="content-block">{provenance.excerpt_text}</p>
+      ) : provenance.preview_text ? (
+        <p className="muted-text">{provenance.preview_text}</p>
+      ) : null}
+    </div>
   );
 }
 
@@ -2147,6 +2177,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                           emptyText="這筆證據目前沒有可顯示的內容摘要。"
                           previewChars={240}
                         />
+                        <TaskRetrievalProvenance provenance={evidence.retrieval_provenance} />
                       </div>
                     ))}
                   </div>

@@ -26,7 +26,11 @@ import {
   buildRiskCards,
 } from "@/lib/advisory-workflow";
 import { truncateText } from "@/lib/text-format";
-import type { DeliverableContentRevision, DeliverableWorkspace } from "@/lib/types";
+import type {
+  DeliverableContentRevision,
+  DeliverableWorkspace,
+  RetrievalProvenance,
+} from "@/lib/types";
 import {
   labelForApprovalStatus,
   labelForAuditEventType,
@@ -36,6 +40,7 @@ import {
   labelForDeliverableStatus,
   labelForEngagementContinuityMode,
   labelForEvidenceType,
+  labelForRetrievalSupportKind,
   labelForSourceType,
   labelForWritebackDepth,
 } from "@/lib/ui-labels";
@@ -89,6 +94,30 @@ function DisclosurePanel({
       </summary>
       <div className="disclosure-body">{children}</div>
     </details>
+  );
+}
+
+function DeliverableRetrievalProvenance({
+  provenance,
+}: {
+  provenance: RetrievalProvenance | null;
+}) {
+  if (!provenance) {
+    return null;
+  }
+
+  return (
+    <div style={{ marginTop: "10px" }}>
+      <p className="muted-text">
+        <strong>{labelForRetrievalSupportKind(provenance.support_kind)}：</strong>
+        {[provenance.source_document_title, provenance.locator_label].filter(Boolean).join("｜") || "未標示"}
+      </p>
+      {provenance.excerpt_text ? (
+        <p className="content-block">{provenance.excerpt_text}</p>
+      ) : provenance.preview_text ? (
+        <p className="muted-text">{provenance.preview_text}</p>
+      ) : null}
+    </div>
   );
 }
 
@@ -1897,6 +1926,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                                   {labelForEvidenceType(item.evidence_type)}｜{item.reliability_level}
                                 </p>
                                 <p className="content-block">{item.excerpt_or_summary}</p>
+                                <DeliverableRetrievalProvenance provenance={item.retrieval_provenance} />
                               </div>
                             ))}
                           </div>

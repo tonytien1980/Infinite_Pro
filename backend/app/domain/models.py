@@ -61,6 +61,12 @@ class Task(Base):
     artifacts: Mapped[list["Artifact"]] = relationship(
         back_populates="task", cascade="all, delete-orphan", order_by="Artifact.created_at"
     )
+    chunk_objects: Mapped[list["ChunkObject"]] = relationship(
+        back_populates="task", cascade="all, delete-orphan", order_by="ChunkObject.created_at"
+    )
+    media_references: Mapped[list["MediaReference"]] = relationship(
+        back_populates="task", cascade="all, delete-orphan", order_by="MediaReference.created_at"
+    )
     evidence: Mapped[list["Evidence"]] = relationship(back_populates="task", cascade="all, delete-orphan")
     insights: Mapped[list["Insight"]] = relationship(back_populates="task", cascade="all, delete-orphan")
     risks: Mapped[list["Risk"]] = relationship(back_populates="task", cascade="all, delete-orphan")
@@ -755,6 +761,8 @@ class SourceDocument(Base):
     research_run: Mapped["ResearchRun | None"] = relationship(back_populates="source_documents")
     source_materials: Mapped[list["SourceMaterial"]] = relationship(back_populates="source_document")
     artifacts: Mapped[list["Artifact"]] = relationship(back_populates="source_document")
+    chunk_objects: Mapped[list["ChunkObject"]] = relationship(back_populates="source_document")
+    media_references: Mapped[list["MediaReference"]] = relationship(back_populates="source_document")
     evidence_items: Mapped[list["Evidence"]] = relationship(back_populates="source_document")
 
 
@@ -794,6 +802,8 @@ class SourceMaterial(Base):
     task: Mapped["Task"] = relationship(back_populates="source_materials")
     source_document: Mapped["SourceDocument | None"] = relationship(back_populates="source_materials")
     artifacts: Mapped[list["Artifact"]] = relationship(back_populates="source_material")
+    chunk_objects: Mapped[list["ChunkObject"]] = relationship(back_populates="source_material")
+    media_references: Mapped[list["MediaReference"]] = relationship(back_populates="source_material")
 
 
 class Artifact(Base):
@@ -816,6 +826,68 @@ class Artifact(Base):
     task: Mapped["Task"] = relationship(back_populates="artifacts")
     source_document: Mapped["SourceDocument | None"] = relationship(back_populates="artifacts")
     source_material: Mapped["SourceMaterial | None"] = relationship(back_populates="artifacts")
+    chunk_objects: Mapped[list["ChunkObject"]] = relationship(back_populates="artifact")
+    media_references: Mapped[list["MediaReference"]] = relationship(back_populates="artifact")
+
+
+class ChunkObject(Base):
+    __tablename__ = "chunk_objects"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    matter_workspace_id: Mapped[str | None] = mapped_column(
+        ForeignKey("matter_workspaces.id"),
+        nullable=True,
+    )
+    source_document_id: Mapped[str] = mapped_column(ForeignKey("source_documents.id"), nullable=False)
+    source_material_id: Mapped[str | None] = mapped_column(ForeignKey("source_materials.id"), nullable=True)
+    artifact_id: Mapped[str | None] = mapped_column(ForeignKey("artifacts.id"), nullable=True)
+    continuity_scope: Mapped[str] = mapped_column(String(30), default="slice_participation")
+    chunk_type: Mapped[str] = mapped_column(String(50), default="text_excerpt")
+    sequence_index: Mapped[int] = mapped_column(Integer, default=0)
+    start_offset: Mapped[int] = mapped_column(Integer, default=0)
+    end_offset: Mapped[int] = mapped_column(Integer, default=0)
+    locator_label: Mapped[str] = mapped_column(String(255), default="")
+    excerpt_text: Mapped[str] = mapped_column(Text, default="")
+    excerpt_digest: Mapped[str] = mapped_column(String(128), default="")
+    support_level: Mapped[str] = mapped_column(String(30), default="full")
+    availability_state: Mapped[str] = mapped_column(String(30), default="available")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    task: Mapped["Task"] = relationship(back_populates="chunk_objects")
+    source_document: Mapped["SourceDocument"] = relationship(back_populates="chunk_objects")
+    source_material: Mapped["SourceMaterial | None"] = relationship(back_populates="chunk_objects")
+    artifact: Mapped["Artifact | None"] = relationship(back_populates="chunk_objects")
+    evidence_items: Mapped[list["Evidence"]] = relationship(back_populates="chunk_object")
+
+
+class MediaReference(Base):
+    __tablename__ = "media_references"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    matter_workspace_id: Mapped[str | None] = mapped_column(
+        ForeignKey("matter_workspaces.id"),
+        nullable=True,
+    )
+    source_document_id: Mapped[str] = mapped_column(ForeignKey("source_documents.id"), nullable=False)
+    source_material_id: Mapped[str | None] = mapped_column(ForeignKey("source_materials.id"), nullable=True)
+    artifact_id: Mapped[str | None] = mapped_column(ForeignKey("artifacts.id"), nullable=True)
+    continuity_scope: Mapped[str] = mapped_column(String(30), default="slice_participation")
+    media_type: Mapped[str] = mapped_column(String(50), default="reference_attachment")
+    locator_kind: Mapped[str] = mapped_column(String(50), default="file_level")
+    locator_label: Mapped[str] = mapped_column(String(255), default="")
+    preview_text: Mapped[str] = mapped_column(Text, default="")
+    support_level: Mapped[str] = mapped_column(String(30), default="limited")
+    usable_scope: Mapped[str] = mapped_column(String(50), default="reference_only")
+    availability_state: Mapped[str] = mapped_column(String(30), default="reference_only")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    task: Mapped["Task"] = relationship(back_populates="media_references")
+    source_document: Mapped["SourceDocument"] = relationship(back_populates="media_references")
+    source_material: Mapped["SourceMaterial | None"] = relationship(back_populates="media_references")
+    artifact: Mapped["Artifact | None"] = relationship(back_populates="media_references")
+    evidence_items: Mapped[list["Evidence"]] = relationship(back_populates="media_reference")
 
 
 class Evidence(Base):
@@ -830,6 +902,8 @@ class Evidence(Base):
     source_document_id: Mapped[str | None] = mapped_column(ForeignKey("source_documents.id"), nullable=True)
     source_material_id: Mapped[str | None] = mapped_column(ForeignKey("source_materials.id"), nullable=True)
     artifact_id: Mapped[str | None] = mapped_column(ForeignKey("artifacts.id"), nullable=True)
+    chunk_object_id: Mapped[str | None] = mapped_column(ForeignKey("chunk_objects.id"), nullable=True)
+    media_reference_id: Mapped[str | None] = mapped_column(ForeignKey("media_references.id"), nullable=True)
     continuity_scope: Mapped[str] = mapped_column(String(30), default="slice_participation")
     evidence_type: Mapped[str] = mapped_column(String(100), default="source_excerpt")
     source_type: Mapped[str] = mapped_column(String(100), default="manual_input")
@@ -841,6 +915,8 @@ class Evidence(Base):
 
     task: Mapped["Task"] = relationship(back_populates="evidence")
     source_document: Mapped["SourceDocument | None"] = relationship(back_populates="evidence_items")
+    chunk_object: Mapped["ChunkObject | None"] = relationship(back_populates="evidence_items")
+    media_reference: Mapped["MediaReference | None"] = relationship(back_populates="evidence_items")
     recommendation_links: Mapped[list["RecommendationEvidenceLink"]] = relationship(
         back_populates="evidence", cascade="all, delete-orphan"
     )

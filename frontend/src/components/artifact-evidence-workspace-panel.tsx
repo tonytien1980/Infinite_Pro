@@ -27,7 +27,7 @@ import {
   progressInfoFromRuntimeHandling,
   summarizeBatchProgress,
 } from "@/lib/intake";
-import type { ArtifactEvidenceWorkspace } from "@/lib/types";
+import type { ArtifactEvidenceWorkspace, RetrievalProvenance } from "@/lib/types";
 import {
   labelForCanonicalizationMatchBasis,
   labelForCanonicalizationReviewStatus,
@@ -40,6 +40,7 @@ import {
   labelForPresenceState,
   labelForRetentionPolicy,
   labelForRetentionState,
+  labelForRetrievalSupportKind,
   labelForSourceIngestStrategy,
   labelForSourceType,
   labelForStorageAvailability,
@@ -135,6 +136,33 @@ function buildEvidenceIssueDiagnostic({
     usableScopeDetail: "現在不能先假設已成功抽出正文；若後續仍只停在 pending / metadata-only，仍需補替代材料。",
     guidance: `若後續仍只停在 pending / metadata-only，建議補文字版、可讀 URL 或摘要。${laneImpact}`,
   };
+}
+
+function RetrievalProvenanceBlock({
+  provenance,
+}: {
+  provenance: RetrievalProvenance | null;
+}) {
+  if (!provenance) {
+    return null;
+  }
+
+  return (
+    <div style={{ marginTop: "12px" }}>
+      <h3>{labelForRetrievalSupportKind(provenance.support_kind)}</h3>
+      <div className="meta-row">
+        {provenance.source_document_title ? <span>{provenance.source_document_title}</span> : null}
+        {provenance.locator_label ? <span>{provenance.locator_label}</span> : null}
+        {provenance.support_level ? <span>支援層級：{provenance.support_level}</span> : null}
+        {provenance.usable_scope ? <span>可用範圍：{provenance.usable_scope}</span> : null}
+      </div>
+      {provenance.excerpt_text ? (
+        <p className="content-block">{provenance.excerpt_text}</p>
+      ) : provenance.preview_text ? (
+        <p className="muted-text">{provenance.preview_text}</p>
+      ) : null}
+    </div>
+  );
 }
 
 export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string }) {
@@ -1661,6 +1689,7 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                           {item.artifact_title ? `工作物件：${item.artifact_title}` : "尚未連到工作物件"}
                         </p>
                         <p className="content-block">{item.evidence.excerpt_or_summary}</p>
+                        <RetrievalProvenanceBlock provenance={item.evidence.retrieval_provenance} />
                         <p className="muted-text">{item.sufficiency_note}</p>
                         {evidenceIssueDiagnostic ? (
                           <>

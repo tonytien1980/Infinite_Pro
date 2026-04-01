@@ -732,6 +732,62 @@ export interface Artifact {
   created_at: string;
 }
 
+export interface ChunkObject {
+  id: string;
+  task_id: string;
+  matter_workspace_id: string | null;
+  source_document_id: string;
+  source_material_id: string | null;
+  artifact_id: string | null;
+  continuity_scope: string;
+  chunk_type: string;
+  sequence_index: number;
+  start_offset: number;
+  end_offset: number;
+  locator_label: string;
+  excerpt_text: string;
+  excerpt_digest: string;
+  support_level: string;
+  availability_state: string;
+  created_at: string;
+}
+
+export interface MediaReference {
+  id: string;
+  task_id: string;
+  matter_workspace_id: string | null;
+  source_document_id: string;
+  source_material_id: string | null;
+  artifact_id: string | null;
+  continuity_scope: string;
+  media_type: string;
+  locator_kind: string;
+  locator_label: string;
+  preview_text: string;
+  support_level: string;
+  usable_scope: string;
+  availability_state: string;
+  created_at: string;
+}
+
+export interface RetrievalProvenance {
+  support_kind: string;
+  source_document_id: string | null;
+  source_document_title: string | null;
+  source_material_id: string | null;
+  source_material_title: string | null;
+  artifact_id: string | null;
+  artifact_title: string | null;
+  support_level: string | null;
+  availability_state: string | null;
+  locator_label: string | null;
+  usable_scope: string | null;
+  excerpt_text: string | null;
+  preview_text: string | null;
+  chunk_object: ChunkObject | null;
+  media_reference: MediaReference | null;
+}
+
 export interface Evidence {
   id: string;
   task_id: string;
@@ -739,6 +795,8 @@ export interface Evidence {
   source_document_id: string | null;
   source_material_id: string | null;
   artifact_id: string | null;
+  chunk_object_id: string | null;
+  media_reference_id: string | null;
   continuity_scope: string;
   evidence_type: string;
   source_type: string;
@@ -746,6 +804,7 @@ export interface Evidence {
   title: string;
   excerpt_or_summary: string;
   reliability_level: string;
+  retrieval_provenance: RetrievalProvenance | null;
   participation: ObjectParticipation | null;
   created_at: string;
 }
