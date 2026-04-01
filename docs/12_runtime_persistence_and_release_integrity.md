@@ -72,6 +72,7 @@
 - UI preference / visibility state 不應寫進正式 audit / publish record
 - continuity / writeback record 不等於 deliverable revision history
 - chunk / media provenance 也不等於 research provenance 摘要；前者是 evidence support chain，後者是研究流程與來源品質摘要
+- Wave 4 的 pack contract metadata 也不等於 revision history；它屬於 runtime governance / selection / readiness / deliverable shaping contract
 
 在 deeper identity bridge 下還要再補一條：
 - `CaseWorldState` 應逐步成為 matter/world identity authority

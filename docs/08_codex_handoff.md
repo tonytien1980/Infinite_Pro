@@ -262,6 +262,11 @@ Domain / Functional Packs 應被理解為：
 - 會影響 evidence expectations、readiness、routing 與 deliverable hints
 - 不是 agents，也不是 capability archetypes
 
+Wave 4 之後，Codex 還必須維持：
+- `pack_id`、interface ids、required property ids、rule binding ids 都屬 stable API naming baseline
+- active pack 若缺少 required properties，不可假裝仍是正式可依賴的 contract
+- pack-to-contract binding 只能提供正式 hints / gates，不能取代 Host judgment
+
 另外，若新增 / 深化 Agent 或 Pack creation flow，Codex 應同步檢查：
 - backend 是否仍經過正式 provider boundary
 - 是否仍保留 bounded external search

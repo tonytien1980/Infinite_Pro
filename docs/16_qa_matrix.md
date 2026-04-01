@@ -130,3 +130,60 @@ Environment used:
 - deliverable can now expose at least one `source -> chunk -> evidence -> deliverable` chain
 - limited-support / unsupported materials remain honest and reference-level
 - first-screen primary flows stayed intact on evidence / task / deliverable surfaces
+
+---
+
+## Entry: 2026-04-01 Wave 4 pack contract baseline pass
+
+Scope:
+- `interface / required properties / stable API naming / pack-to-contract binding`
+- minimal rule binding for readiness / decision framing / deliverable shaping
+- consultant-first disclosure on `/packs` and `/tasks/[taskId]`
+
+Environment used:
+- frontend: `http://127.0.0.1:3000`
+- backend: `http://127.0.0.1:8000/api/v1`
+- runtime database: current local runtime
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `.venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`91 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && npm run typecheck` | Passed |
+
+Important verification note:
+- this frontend repo still expects `.next/types` to exist before `tsc --noEmit`
+- therefore the valid verification order remains `build -> typecheck`, not the reverse
+
+### Wave 4 specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | extension manager / pack update | Active pack missing required properties is rejected | Verified | `active` pack now fails closed if the Wave 4 contract baseline is incomplete |
+| Backend | task aggregate / pack resolution | Pack resolution now returns ready interfaces, rule bindings, contract status, and decision-context patterns | Verified | runtime contract depends on stable ids instead of loose copy only |
+| Backend | Host framing / readiness | Host now consumes contract-bound evidence expectations, decision framing hints, and deliverable hints | Verified | Host remains the only orchestration center |
+| Packs UI | `/packs` | Pack cards surface low-noise contract readiness summary | Verified | card summary shows contract readiness without adding a new app shell |
+| Packs UI | `/packs` | Disclosure shows interface ids, required-property gaps, and rule bindings | Verified | details stay behind disclosure, not on first-screen hero |
+| Task UI | `/tasks/[taskId]` | Capability disclosure shows `模組合約摘要` | Verified | includes interface labels, rule binding labels, and framing hints |
+| Matter UI | `/matters/[matterId]` | First-screen matter hero remains consultant-first | Verified | no contract metadata pollution on the main task/matter first screen |
+
+### Live smoke data
+
+- matter id: `fed61512-5021-4068-8664-13dddcf3bb9f`
+- task id: `a801fce8-809c-4f7d-8ef8-b60fa3d1aeb2`
+- pack smoke snapshot: `.playwright-cli/page-2026-04-01T01-44-43-458Z.yml`
+- task disclosure snapshot: `.playwright-cli/page-2026-04-01T01-45-24-051Z.yml`
+
+### Verified outcomes
+
+- active packs now have a real required-property gate instead of docs-only completeness claims
+- `pack_id`, interface ids, required property ids, and rule binding ids now act as a stable API naming baseline
+- selected packs can now formally affect:
+  - readiness gate
+  - decision framing hints
+  - deliverable shaping hints
+- `/packs` and `/tasks/[taskId]` expose these semantics only in low-noise management / disclosure surfaces
+- matter first-screen primary guidance stayed intact

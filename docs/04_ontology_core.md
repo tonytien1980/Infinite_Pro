@@ -407,8 +407,16 @@ Ontology runtime state 可以攜帶：
 - selected domain packs
 - selected industry packs
 - pack resolver outputs
+- pack contract baseline 輸出
+  - ready interface ids
+  - required-property gate 結果
+  - rule binding outputs
 
 但 pack 本身不是 ontology object family 的替代品。
+Wave 4 的正式理解是：
+- ontology 可以承接 pack contract outputs
+- 但 `ClientStage / ClientType / DomainLens / Goal / Constraint / Assumption` 仍屬 Context Layer
+- interface / required properties 是為了讓 Pack Layer 與 ontology / Host 之間的 contract 更穩，不是把 Context Layer 全吞進 ontology
 
 ---
 

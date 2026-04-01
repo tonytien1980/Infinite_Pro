@@ -74,6 +74,24 @@ export type ProviderValidationStatus =
   | "timeout"
   | "unknown_error"
   | "not_validated";
+export type PackContractInterfaceId =
+  | "evidence_readiness_v1"
+  | "decision_framing_v1"
+  | "deliverable_shaping_v1";
+export type PackRequiredPropertyId =
+  | "definition"
+  | "common_problem_patterns"
+  | "evidence_expectations"
+  | "default_decision_context_patterns"
+  | "decision_patterns"
+  | "deliverable_presets"
+  | "routing_hints"
+  | "pack_rationale";
+export type PackRuleBindingId =
+  | "readiness_gate_v1"
+  | "decision_context_hint_v1"
+  | "deliverable_hint_v1";
+export type PackContractStatus = "ready" | "missing_required_properties";
 
 export interface WorkbenchSettings {
   interfaceLanguage: "zh-Hant" | "en";
@@ -181,6 +199,7 @@ export interface SelectedPack {
   stage_specific_heuristics: Record<string, string[]>;
   key_kpis_or_operating_signals: string[];
   key_kpis: string[];
+  default_decision_context_patterns: string[];
   reason: string;
   selection_score: number;
   selection_signals: string[];
@@ -194,6 +213,7 @@ export interface SelectedPack {
   pack_notes: string[];
   scope_boundaries: string[];
   pack_rationale: string[];
+  contract_baseline: PackContractBaseline | null;
 }
 
 export interface PackResolution {
@@ -208,7 +228,30 @@ export interface PackResolution {
   key_kpis: string[];
   common_risks: string[];
   decision_patterns: string[];
+  decision_context_patterns: string[];
   deliverable_presets: string[];
+  ready_interface_ids: PackContractInterfaceId[];
+  ready_rule_binding_ids: PackRuleBindingId[];
+  missing_required_property_ids: PackRequiredPropertyId[];
+  contract_status: PackContractStatus;
+}
+
+export interface PackContractRequirement {
+  interface_id: PackContractInterfaceId;
+  required_property_ids: PackRequiredPropertyId[];
+  missing_required_property_ids: PackRequiredPropertyId[];
+  rule_binding_ids: PackRuleBindingId[];
+  status: PackContractStatus;
+  summary: string;
+}
+
+export interface PackContractBaseline {
+  pack_api_name: string;
+  requirements: PackContractRequirement[];
+  ready_interface_ids: PackContractInterfaceId[];
+  ready_rule_binding_ids: PackRuleBindingId[];
+  missing_required_property_ids: PackRequiredPropertyId[];
+  status: PackContractStatus;
 }
 
 export interface SelectedAgent {
@@ -287,6 +330,7 @@ export interface PackCatalogEntry {
   version: string;
   status: string;
   override_rules: string[];
+  contract_baseline?: PackContractBaseline | null;
 }
 
 export interface AgentCatalogEntry {

@@ -67,6 +67,15 @@ pack 不能只是標籤，應能正式影響：
 - research strategy
 - writeback interpretation
 
+Wave 4 之後，這種影響應優先透過正式 pack contract baseline 進入 Agent Layer：
+- `evidence_readiness_v1`
+- `decision_framing_v1`
+- `deliverable_shaping_v1`
+
+但正式規則仍是：
+- pack contract 可以提供 hints / gates / presets
+- Host 仍是唯一判斷是否採用、如何採用、以及何時覆蓋這些 contract 的 orchestration center
+
 ---
 
 ## 4. Agent Layer 正式分層
@@ -115,6 +124,7 @@ Host Agent 一開始就必須負責：
 
 7. **domain / pack / stage awareness**
    - 結合 DomainLens、ClientStage、ClientType、selected domain packs、selected industry packs 調整分析重心
+   - 若 selected packs 已具備正式 interface / rule binding，Host 應把它們視為正式 runtime contract，而不是純文字備註
 
 8. **research trigger governance**
    - 根據 evidence gaps、pack expectations 與外部補完需求決定是否啟動 research

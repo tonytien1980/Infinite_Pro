@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.domain import models
 from app.domain.enums import CapabilityArchetype
+from app.extensions.contracts import apply_pack_contract_baseline, validate_active_pack_contract
 from app.extensions.registry import ExtensionRegistry
 from app.extensions.schemas import (
     AgentRegistrySnapshot,
@@ -279,7 +280,7 @@ def _pack_spec_from_payload(data: dict, base: PackSpec | None = None) -> PackSpe
             "override_rules": data["override_rules"],
         }
     )
-    return PackSpec.model_validate(base_data)
+    return apply_pack_contract_baseline(PackSpec.model_validate(base_data))
 
 
 def _load_extension_rows(db: Session) -> list[models.WorkbenchExtensionState]:
@@ -398,6 +399,19 @@ def upsert_pack_catalog_entry(
     base_pack = BASE_EXTENSION_REGISTRY.get_pack(pack_id)
     if not payload.is_custom and base_pack is None:
         raise HTTPException(status_code=404, detail="找不到指定系統模組包。")
+
+    candidate_spec = _pack_spec_from_payload(
+        _build_pack_payload(payload),
+        base_pack,
+    )
+    if payload.status == "active":
+        contract_errors = validate_active_pack_contract(candidate_spec)
+        if contract_errors:
+            raise HTTPException(
+                status_code=400,
+                detail="啟用中的模組包必須先補齊正式 contract baseline："
+                + " ".join(contract_errors),
+            )
 
     row = db.scalars(
         select(models.WorkbenchExtensionState)

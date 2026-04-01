@@ -253,6 +253,19 @@ Wave 3 deepen 後，這條主鏈還應再往前一步：
 - 擴充 ontology-aware context、heuristics、evidence expectations、decision templates、deliverable patterns
 - 影響 case world compilation、research focus 與 writeback interpretation
 - 透過 registry / resolver / management surface 被治理
+- 透過正式 interface / required properties / rule binding 形成 pack contract baseline
+
+Wave 4 的最小正式 contract slice 是：
+- `evidence_readiness_v1`
+- `decision_framing_v1`
+- `deliverable_shaping_v1`
+
+正式規則：
+- `pack_id` 是 stable API name baseline
+- interface ids / required property ids / rule binding ids 也屬 stable API naming baseline
+- active pack 若未補齊 required properties，不可被描述成正式可依賴的 active contract
+- pack contract 會正式影響 evidence expectation gate、decision framing hints 與 deliverable shaping hints
+- 但 pack contract 仍不可取代 Host orchestration
 
 單人版 Pack 基本盤中的 Domain / Functional Packs 應至少包括：
 - `operations_pack`

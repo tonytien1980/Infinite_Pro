@@ -66,6 +66,9 @@ import {
   labelForResearchDelegationStatus,
   labelForResearchDepth,
   labelForLikelihoodLevel,
+  labelForPackContractInterface,
+  labelForPackContractStatus,
+  labelForPackRuleBinding,
   labelForPriority,
   labelForRetrievalSupportKind,
   labelForRunStatus,
@@ -1388,6 +1391,49 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                           items={packSelection.resolverNotes}
                           emptyText="目前沒有可顯示的模組包解析註記。"
                         />
+                      </div>
+                    ) : null}
+
+                    {packSelection &&
+                    (packSelection.readyInterfaceIds.length > 0 ||
+                      packSelection.readyRuleBindingIds.length > 0 ||
+                      packSelection.decisionContextPatterns.length > 0) ? (
+                      <div className="detail-item" style={{ marginTop: "14px" }}>
+                        <h3>模組合約摘要</h3>
+                        <p className="muted-text">
+                          目前狀態：{labelForPackContractStatus(packSelection.contractStatus)}
+                        </p>
+                        {packSelection.readyInterfaceIds.length > 0 ? (
+                          <div style={{ marginTop: "10px" }}>
+                            <h4>已啟用的正式 interface</h4>
+                            <ExpandableList
+                              items={packSelection.readyInterfaceIds.map((item) =>
+                                labelForPackContractInterface(item),
+                              )}
+                              emptyText="目前沒有正式 interface。"
+                            />
+                          </div>
+                        ) : null}
+                        {packSelection.readyRuleBindingIds.length > 0 ? (
+                          <div style={{ marginTop: "10px" }}>
+                            <h4>已啟用的 rule binding</h4>
+                            <ExpandableList
+                              items={packSelection.readyRuleBindingIds.map((item) =>
+                                labelForPackRuleBinding(item),
+                              )}
+                              emptyText="目前沒有可顯示的 rule binding。"
+                            />
+                          </div>
+                        ) : null}
+                        {packSelection.decisionContextPatterns.length > 0 ? (
+                          <div style={{ marginTop: "10px" }}>
+                            <h4>這輪判斷 framing hints</h4>
+                            <ExpandableList
+                              items={packSelection.decisionContextPatterns}
+                              emptyText="目前沒有可顯示的判斷 hints。"
+                            />
+                          </div>
+                        ) : null}
                       </div>
                     ) : null}
 

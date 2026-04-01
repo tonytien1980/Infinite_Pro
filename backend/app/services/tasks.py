@@ -33,7 +33,15 @@ from app.extensions.resolver import (
     PackResolver,
     resolve_runtime_agent_binding,
 )
-from app.extensions.schemas import AgentResolverInput, AgentSpec, PackResolverInput, PackSpec, PackType
+from app.extensions.schemas import (
+    AgentResolverInput,
+    AgentSpec,
+    PackContractInterfaceId,
+    PackContractStatus,
+    PackResolverInput,
+    PackSpec,
+    PackType,
+)
 from app.services.artifact_storage import load_artifact_content
 from app.services.canonicalization import build_matter_canonicalization_contract
 from app.services.content_revisions import (
@@ -1811,6 +1819,7 @@ def _serialize_selected_pack(
         stage_specific_heuristics=pack.stage_specific_heuristics,
         key_kpis_or_operating_signals=pack.key_kpis_or_operating_signals,
         key_kpis=pack.key_kpis,
+        default_decision_context_patterns=pack.default_decision_context_patterns,
         reason=_build_selected_pack_reason(
             pack=pack,
             explicit_pack_ids=explicit_pack_ids,
@@ -1831,7 +1840,17 @@ def _serialize_selected_pack(
         pack_notes=pack.pack_notes,
         scope_boundaries=pack.scope_boundaries,
         pack_rationale=pack.pack_rationale,
+        contract_baseline=pack.contract_baseline,
     )
+
+
+def _selected_pack_supports_interface(
+    pack: schemas.SelectedPackRead,
+    interface_id: PackContractInterfaceId,
+) -> bool:
+    if not pack.contract_baseline:
+        return False
+    return interface_id in pack.contract_baseline.ready_interface_ids
 
 
 def join_natural_list(items: list[str]) -> str:
@@ -2252,6 +2271,47 @@ def resolve_pack_selection_for_task(
         for pack_id in resolution.selected_industry_pack_ids
         if (pack := EXTENSION_REGISTRY.get_pack(pack_id))
     ]
+    selected_packs = [*selected_domain_packs, *selected_industry_packs]
+    ready_interface_ids = _unique_preserve_order(
+        [
+            interface_id.value
+            for pack in selected_packs
+            for interface_id in (
+                pack.contract_baseline.ready_interface_ids if pack.contract_baseline else []
+            )
+        ]
+    )
+    ready_rule_binding_ids = _unique_preserve_order(
+        [
+            binding_id.value
+            for pack in selected_packs
+            for binding_id in (
+                pack.contract_baseline.ready_rule_binding_ids if pack.contract_baseline else []
+            )
+        ]
+    )
+    missing_required_property_ids = _unique_preserve_order(
+        [
+            property_id.value
+            for pack in selected_packs
+            for property_id in (
+                pack.contract_baseline.missing_required_property_ids if pack.contract_baseline else []
+            )
+        ]
+    )
+    resolver_notes = list(resolution.resolver_notes)
+    if ready_interface_ids:
+        resolver_notes.append(
+            "本輪 selected packs 已啟用正式 contract interface："
+            + "、".join(ready_interface_ids)
+            + "。"
+        )
+    if ready_rule_binding_ids:
+        resolver_notes.append(
+            "本輪 selected packs 也已啟用正式 rule binding："
+            + "、".join(ready_rule_binding_ids)
+            + "。"
+        )
 
     return schemas.PackResolutionRead(
         selected_domain_packs=selected_domain_packs,
@@ -2259,18 +2319,26 @@ def resolve_pack_selection_for_task(
         override_pack_ids=resolution.override_pack_ids,
         conflicts=resolution.conflicts,
         stack_order=resolution.stack_order,
-        resolver_notes=resolution.resolver_notes,
+        resolver_notes=resolver_notes,
         evidence_expectations=_unique_preserve_order(
             [
                 *[
                     item
                     for pack in selected_domain_packs
                     for item in pack.evidence_expectations
+                    if _selected_pack_supports_interface(
+                        pack,
+                        PackContractInterfaceId.EVIDENCE_READINESS_V1,
+                    )
                 ],
                 *[
                     item
                     for pack in selected_industry_packs
                     for item in pack.evidence_expectations
+                    if _selected_pack_supports_interface(
+                        pack,
+                        PackContractInterfaceId.EVIDENCE_READINESS_V1,
+                    )
                 ],
             ]
         ),
@@ -2330,11 +2398,41 @@ def resolve_pack_selection_for_task(
                     item
                     for pack in selected_domain_packs
                     for item in pack.decision_patterns
+                    if _selected_pack_supports_interface(
+                        pack,
+                        PackContractInterfaceId.DECISION_FRAMING_V1,
+                    )
                 ],
                 *[
                     item
                     for pack in selected_industry_packs
                     for item in pack.decision_patterns
+                    if _selected_pack_supports_interface(
+                        pack,
+                        PackContractInterfaceId.DECISION_FRAMING_V1,
+                    )
+                ],
+            ]
+        ),
+        decision_context_patterns=_unique_preserve_order(
+            [
+                *[
+                    item
+                    for pack in selected_domain_packs
+                    for item in pack.default_decision_context_patterns
+                    if _selected_pack_supports_interface(
+                        pack,
+                        PackContractInterfaceId.DECISION_FRAMING_V1,
+                    )
+                ],
+                *[
+                    item
+                    for pack in selected_industry_packs
+                    for item in pack.default_decision_context_patterns
+                    if _selected_pack_supports_interface(
+                        pack,
+                        PackContractInterfaceId.DECISION_FRAMING_V1,
+                    )
                 ],
             ]
         ),
@@ -2344,13 +2442,29 @@ def resolve_pack_selection_for_task(
                     item
                     for pack in selected_domain_packs
                     for item in pack.deliverable_presets
+                    if _selected_pack_supports_interface(
+                        pack,
+                        PackContractInterfaceId.DELIVERABLE_SHAPING_V1,
+                    )
                 ],
                 *[
                     item
                     for pack in selected_industry_packs
                     for item in pack.deliverable_presets
+                    if _selected_pack_supports_interface(
+                        pack,
+                        PackContractInterfaceId.DELIVERABLE_SHAPING_V1,
+                    )
                 ],
             ]
+        ),
+        ready_interface_ids=ready_interface_ids,
+        ready_rule_binding_ids=ready_rule_binding_ids,
+        missing_required_property_ids=missing_required_property_ids,
+        contract_status=(
+            PackContractStatus.READY.value
+            if not missing_required_property_ids
+            else PackContractStatus.MISSING_REQUIRED_PROPERTIES.value
         ),
     )
 

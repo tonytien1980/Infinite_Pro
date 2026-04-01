@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from app.domain.enums import CapabilityArchetype
+from app.extensions.contracts import apply_pack_contract_baseline
 from app.extensions.schemas import (
     AgentRegistrySnapshot,
     AgentSpec,
@@ -28,24 +29,16 @@ def _unique_preserve_order(values: list[str]) -> list[str]:
 
 
 def _finalize_pack_spec(pack: PackSpec) -> PackSpec:
-    key_kpis = _unique_preserve_order(
+    payload = pack.model_dump()
+    payload["key_kpis"] = _unique_preserve_order(
         pack.key_kpis if pack.key_kpis else pack.key_kpis_or_operating_signals
     )
-    key_kpis_or_operating_signals = _unique_preserve_order(
+    payload["key_kpis_or_operating_signals"] = _unique_preserve_order(
         pack.key_kpis_or_operating_signals
         if pack.key_kpis_or_operating_signals
         else pack.key_kpis
     )
-    if (
-        key_kpis == pack.key_kpis
-        and key_kpis_or_operating_signals == pack.key_kpis_or_operating_signals
-    ):
-        return pack
-
-    payload = pack.model_dump()
-    payload["key_kpis"] = key_kpis
-    payload["key_kpis_or_operating_signals"] = key_kpis_or_operating_signals
-    return PackSpec(**payload)
+    return apply_pack_contract_baseline(PackSpec(**payload))
 
 
 AGENT_SPEC_BASELINES: dict[str, dict[str, list[str]]] = {

@@ -301,7 +301,11 @@ export interface PackSelectionView {
   keyKpis: string[];
   commonRisks: string[];
   decisionPatterns: string[];
+  decisionContextPatterns: string[];
   deliverablePresets: string[];
+  readyInterfaceIds: string[];
+  readyRuleBindingIds: string[];
+  contractStatus: string;
   domainPackCards: Array<{
     packName: string;
     definition: string;
@@ -1001,7 +1005,14 @@ function getPackResolutionRecord(task: TaskAggregate, deliverable: Deliverable |
         key_kpis: asStringArray(selectedPacks.key_kpis),
         common_risks: asStringArray(selectedPacks.common_risks),
         decision_patterns: asStringArray(selectedPacks.decision_patterns),
+        decision_context_patterns: asStringArray(selectedPacks.decision_context_patterns),
         deliverable_presets: asStringArray(selectedPacks.deliverable_presets),
+        ready_interface_ids: asStringArray(selectedPacks.ready_interface_ids),
+        ready_rule_binding_ids: asStringArray(selectedPacks.ready_rule_binding_ids),
+        contract_status:
+          typeof selectedPacks.contract_status === "string"
+            ? selectedPacks.contract_status
+            : "ready",
       }
     : null;
 
@@ -1015,7 +1026,11 @@ function getPackResolutionRecord(task: TaskAggregate, deliverable: Deliverable |
       key_kpis: task.pack_resolution.key_kpis,
       common_risks: task.pack_resolution.common_risks,
       decision_patterns: task.pack_resolution.decision_patterns,
+      decision_context_patterns: task.pack_resolution.decision_context_patterns,
       deliverable_presets: task.pack_resolution.deliverable_presets,
+      ready_interface_ids: task.pack_resolution.ready_interface_ids,
+      ready_rule_binding_ids: task.pack_resolution.ready_rule_binding_ids,
+      contract_status: task.pack_resolution.contract_status,
     }
   );
 }
@@ -1073,7 +1088,14 @@ export function buildPackSelectionView(
         : packResolution.key_kpis,
     commonRisks: packResolution.common_risks,
     decisionPatterns: packResolution.decision_patterns,
+    decisionContextPatterns: asStringArray(packResolution.decision_context_patterns),
     deliverablePresets: packResolution.deliverable_presets,
+    readyInterfaceIds: asStringArray(packResolution.ready_interface_ids),
+    readyRuleBindingIds: asStringArray(packResolution.ready_rule_binding_ids),
+    contractStatus:
+      typeof packResolution.contract_status === "string"
+        ? packResolution.contract_status
+        : "ready",
     domainPackCards,
     industryPackCards,
   };

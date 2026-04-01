@@ -122,10 +122,12 @@
 - `ChunkObject`
 - `MediaReference`
 - retrieval provenance contract
+- pack interface / required-property / stable API naming baseline
+- pack-to-contract binding
+- minimal rule binding for readiness / decision framing / deliverable hints
 
 仍待後續 wave 深化的主題是：
 - `ObjectSet`
-- interface / required properties / stable API naming / pack-to-contract binding
 
 因此本 program 的責任是把這些能力依序深化進既有六層，而不是創造新的頂層模型。
 
@@ -381,6 +383,15 @@ Wave 0 若仍是 docs-first，則通常不應更新：
 - 不可把 Context Layer 整個吞進 Ontology Layer
 - 不可破壞 capability / pack / agent 邊界
 - 不一次做滿所有 domain 引擎
+
+截至 2026-04-01，Wave 4 的最小 shipped baseline 應理解為：
+- active pack 必須通過最小 required-property gate
+- `pack_id`、interface ids、required property ids、rule binding ids 形成 stable API naming baseline
+- selected packs 可透過正式 contract 影響：
+  - readiness gate
+  - decision framing hints
+  - deliverable shaping hints
+- UI 只在 Extension Manager 與 task detail disclosure 低噪音顯示這些 contract metadata
 
 ### Wave 5 — ObjectSet capability + object-set views
 

@@ -24,6 +24,7 @@ from app.domain.enums import (
     TaskStatus,
     WritebackDepth,
 )
+from app.extensions.schemas import PackContractBaseline
 
 
 class ORMModel(BaseModel):
@@ -281,6 +282,7 @@ class SelectedPackRead(BaseModel):
     stage_specific_heuristics: dict[str, list[str]] = Field(default_factory=dict)
     key_kpis_or_operating_signals: list[str] = Field(default_factory=list)
     key_kpis: list[str] = Field(default_factory=list)
+    default_decision_context_patterns: list[str] = Field(default_factory=list)
     reason: str = ""
     selection_score: int = 0
     selection_signals: list[str] = Field(default_factory=list)
@@ -294,6 +296,7 @@ class SelectedPackRead(BaseModel):
     pack_notes: list[str] = Field(default_factory=list)
     scope_boundaries: list[str] = Field(default_factory=list)
     pack_rationale: list[str] = Field(default_factory=list)
+    contract_baseline: PackContractBaseline | None = None
 
 
 class PackResolutionRead(BaseModel):
@@ -308,7 +311,12 @@ class PackResolutionRead(BaseModel):
     key_kpis: list[str] = Field(default_factory=list)
     common_risks: list[str] = Field(default_factory=list)
     decision_patterns: list[str] = Field(default_factory=list)
+    decision_context_patterns: list[str] = Field(default_factory=list)
     deliverable_presets: list[str] = Field(default_factory=list)
+    ready_interface_ids: list[str] = Field(default_factory=list)
+    ready_rule_binding_ids: list[str] = Field(default_factory=list)
+    missing_required_property_ids: list[str] = Field(default_factory=list)
+    contract_status: str = "ready"
 
 
 class SelectedAgentRead(BaseModel):

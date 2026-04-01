@@ -21,6 +21,10 @@ import type {
 } from "@/lib/types";
 import {
   getPackCatalogDisplay,
+  labelForPackContractInterface,
+  labelForPackContractStatus,
+  labelForPackRequiredProperty,
+  labelForPackRuleBinding,
   labelForExtensionStatus,
   labelForPackType,
 } from "@/lib/ui-labels";
@@ -109,6 +113,20 @@ function getPackQualityChecks(pack: PackCatalogEntry): PackQualityCheck[] {
 
 function hasCoreContract(pack: PackCatalogEntry) {
   return getPackQualityChecks(pack).every((check) => check.ready);
+}
+
+function getPackContractRequirementSummary(pack: PackCatalogEntry) {
+  if (!pack.contract_baseline) {
+    return null;
+  }
+  const readyCount = pack.contract_baseline.requirements.filter(
+    (requirement) => requirement.status === "ready",
+  ).length;
+  return {
+    total: pack.contract_baseline.requirements.length,
+    ready: readyCount,
+    missing: pack.contract_baseline.missing_required_property_ids,
+  };
 }
 
 function summarizeMissingChecks(checks: PackQualityCheck[]) {
@@ -594,6 +612,7 @@ export function PackManagementPanel() {
                     const qualityChecks = getPackQualityChecks(pack);
                     const readyCount = qualityChecks.filter((check) => check.ready).length;
                     const missingChecks = summarizeMissingChecks(qualityChecks);
+                    const contractSummary = getPackContractRequirementSummary(pack);
                     const signalItems = getSignalItems(pack);
 
                     return (
@@ -621,9 +640,66 @@ export function PackManagementPanel() {
                           核心定義：{readyCount}/{qualityChecks.length} 已補齊
                           {missingChecks ? `；尚待補強：${missingChecks}` : "；目前已可作為完整 pack contract 使用"}
                         </p>
+                        {pack.contract_baseline ? (
+                          <p className="muted-text">
+                            正式合約：{labelForPackContractStatus(pack.contract_baseline.status)}
+                            {contractSummary
+                              ? `（${contractSummary.ready}/${contractSummary.total} 個 interface 已就緒）`
+                              : null}
+                            {contractSummary && contractSummary.missing.length > 0
+                              ? `；仍缺：${contractSummary.missing
+                                  .map((item) => labelForPackRequiredProperty(item))
+                                  .join("、")}`
+                              : ""}
+                          </p>
+                        ) : null}
                         <details className="inline-disclosure">
                           <summary className="inline-disclosure-summary">查看 pack contract</summary>
                           <div className="detail-list" style={{ marginTop: "12px" }}>
+                            {pack.contract_baseline ? (
+                              <div className="detail-item">
+                                <h4>正式合約基線</h4>
+                                <p className="content-block">
+                                  API 名稱：{pack.contract_baseline.pack_api_name}
+                                  {"\n"}
+                                  狀態：{labelForPackContractStatus(pack.contract_baseline.status)}
+                                </p>
+                                {pack.contract_baseline.requirements.length > 0 ? (
+                                  <div style={{ marginTop: "10px" }}>
+                                    {pack.contract_baseline.requirements.map((requirement) => (
+                                      <div className="detail-item" key={requirement.interface_id}>
+                                        <h4>{labelForPackContractInterface(requirement.interface_id)}</h4>
+                                        <p className="muted-text">{requirement.summary}</p>
+                                        <p className="muted-text">
+                                          Rule binding：
+                                          {requirement.rule_binding_ids.length > 0
+                                            ? requirement.rule_binding_ids
+                                                .map((item) => labelForPackRuleBinding(item))
+                                                .join("、")
+                                            : "目前沒有"}
+                                        </p>
+                                        <p className="muted-text">
+                                          必要欄位：
+                                          {requirement.required_property_ids
+                                            .map((item) => labelForPackRequiredProperty(item))
+                                            .join("、")}
+                                        </p>
+                                        {requirement.missing_required_property_ids.length > 0 ? (
+                                          <p className="muted-text">
+                                            尚缺：
+                                            {requirement.missing_required_property_ids
+                                              .map((item) => labelForPackRequiredProperty(item))
+                                              .join("、")}
+                                          </p>
+                                        ) : (
+                                          <p className="muted-text">這組 interface 已可正式被 runtime 依賴。</p>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : null}
+                              </div>
+                            ) : null}
                             <div className="detail-item">
                               <h4>{pack.pack_type === "domain" ? "問題面向定義" : "產業定義"}</h4>
                               <p className="content-block">

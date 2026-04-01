@@ -965,14 +965,30 @@ class HostOrchestrator:
         return self._unique_preserve_order([item.pack_id for item in self._selected_packs(payload)])
 
     def _pack_evidence_expectations(self, payload: AgentInputPayload) -> list[str]:
+        if payload.pack_resolution and payload.pack_resolution.evidence_expectations:
+            return self._unique_preserve_order(payload.pack_resolution.evidence_expectations)
         return self._unique_preserve_order(
             [item for pack in self._selected_packs(payload) for item in pack.evidence_expectations]
         )
 
     def _pack_deliverable_presets(self, payload: AgentInputPayload) -> list[str]:
+        if payload.pack_resolution and payload.pack_resolution.deliverable_presets:
+            return self._unique_preserve_order(payload.pack_resolution.deliverable_presets)
         return self._unique_preserve_order(
             [item for pack in self._selected_packs(payload) for item in pack.deliverable_presets]
         )
+
+    def _pack_decision_context_patterns(self, payload: AgentInputPayload) -> list[str]:
+        if payload.pack_resolution and payload.pack_resolution.decision_context_patterns:
+            return self._unique_preserve_order(payload.pack_resolution.decision_context_patterns)
+        return self._unique_preserve_order(
+            [item for pack in self._selected_packs(payload) for item in pack.decision_patterns]
+        )
+
+    def _pack_rule_bindings(self, payload: AgentInputPayload) -> list[str]:
+        if payload.pack_resolution and payload.pack_resolution.ready_rule_binding_ids:
+            return self._unique_preserve_order(payload.pack_resolution.ready_rule_binding_ids)
+        return []
 
     def _pack_key_kpis(self, payload: AgentInputPayload) -> list[str]:
         return self._unique_preserve_order(
@@ -1569,13 +1585,18 @@ class HostOrchestrator:
             routing_rationale.append(
                 f"依目前客戶階段，selected packs 提醒本輪應優先檢查：{ '、'.join(pack_stage_heuristics[:3]) }。"
             )
-        pack_decision_patterns = self._unique_preserve_order(
-            [item for pack in self._selected_packs(payload) for item in pack.decision_patterns]
-        )
+        pack_decision_patterns = self._pack_decision_context_patterns(payload)
         if pack_decision_patterns:
             routing_rationale.append(
-                "selected packs 目前最相關的產業判斷模式包括："
+                "selected packs 目前提供的正式 decision framing hints 包括："
                 + "、".join(pack_decision_patterns[:3])
+                + "。"
+            )
+        pack_rule_bindings = self._pack_rule_bindings(payload)
+        if pack_rule_bindings:
+            routing_rationale.append(
+                "selected packs 目前已啟用的正式 rule binding 包括："
+                + "、".join(pack_rule_bindings[:3])
                 + "。"
             )
         pack_problem_patterns = self._pack_problem_patterns(payload)
@@ -1636,6 +1657,8 @@ class HostOrchestrator:
             framing_summary += f" 這輪同時套用 { '、'.join(selected_pack_names) } 作為 context modules。"
         if pack_problem_patterns:
             framing_summary += f" Domain packs 目前提醒最值得先看的問題型態包括：{ '、'.join(pack_problem_patterns[:2]) }。"
+        if pack_decision_patterns:
+            framing_summary += f" 這輪 pack contract 也提供了 { '、'.join(pack_decision_patterns[:2]) } 等 framing hints。"
         if preferred_execution_mode == FlowMode.MULTI_AGENT and selected_runtime_agents:
             framing_summary += (
                 f" Host 會以 {selected_runtime_agents[0]} 作為主要收斂 runtime agent。"
@@ -1917,9 +1940,11 @@ class HostOrchestrator:
         critical_gaps = 0
         external_research_heavy_case = self._is_external_research_heavy_sparse_case(payload)
         pack_evidence_expectations = self._pack_evidence_expectations(payload)
+        pack_decision_context_patterns = self._pack_decision_context_patterns(payload)
         pack_key_kpis = self._pack_key_kpis(payload)
         pack_common_risks = self._pack_common_risks(payload)
         pack_problem_patterns = self._pack_problem_patterns(payload)
+        pack_rule_bindings = self._pack_rule_bindings(payload)
         pack_high_impact_gaps = self._build_pack_high_impact_gaps(
             payload,
             usable_evidence,
@@ -1982,6 +2007,12 @@ class HostOrchestrator:
                 + "、".join(pack_evidence_expectations[:4])
                 + "。"
             )
+        if pack_decision_context_patterns:
+            conclusion_impact.append(
+                "本輪 selected packs 也提供正式 decision framing hints："
+                + "、".join(pack_decision_context_patterns[:3])
+                + "。"
+            )
         if pack_key_kpis:
             conclusion_impact.append(
                 "本輪 pack-aware 判斷也會特別參考："
@@ -2004,6 +2035,12 @@ class HostOrchestrator:
             conclusion_impact.append(
                 "selected packs 也提示較合理的交付傾向："
                 + "、".join(payload.pack_resolution.deliverable_presets[:3])
+                + "。"
+            )
+        if pack_rule_bindings:
+            conclusion_impact.append(
+                "selected packs 目前已啟用正式 contract rule binding："
+                + "、".join(pack_rule_bindings[:3])
                 + "。"
             )
         if pack_high_impact_gaps:

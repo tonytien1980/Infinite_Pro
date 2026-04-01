@@ -496,11 +496,13 @@
 - 兩類 pack family 數量
 - 啟用中數
 - 核心定義完整數
+- 正式合約基線就緒數
 - 當前 tab 列表
 
 **延後揭露**
 - 長篇定義與商業模式說明
 - 全量 problem patterns、evidence expectations、decision patterns、deliverable presets 與 pack rationale 展示
+- interface ids、required-property 缺口與 rule binding 明細
 - 這次 AI 補完的搜尋查詢、來源摘要與 synthesis summary
 - Pack 是否實際在案件中被套用，應留給 Host 在 task flow 中決定，而不是在建立頁面預先綁死
 

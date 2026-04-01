@@ -199,6 +199,14 @@ Host 必須在這一階段判斷：
   - task 只保留 local participation / compatibility boundary
   - human-confirmed canonical row 只會重寫 matter 內的 participation mapping，不會把 raw rows 靜默刪除
 
+### 4.5 Pack evidence contract baseline
+Wave 4 之後，selected packs 的 evidence expectations 不應再只是鬆散列表。
+
+正式規則：
+- 只有具備 `evidence_readiness_v1` 的 pack contract，才能把 evidence expectations 升格成正式 readiness gate
+- 若 active pack 尚未補齊 required properties，就不應假裝它已具備可依賴的 evidence contract
+- 這仍屬 Pack Layer 對 intake / world compilation / readiness 的正式影響，不代表 intake surface 需要新增新的主流程
+
 ---
 
 ## 5. 格式支援層級

@@ -235,6 +235,60 @@ def test_pack_management_round_trip_core_contract_fields(client: TestClient) -> 
     assert operations_pack["override_rules"] == [
         "task-level overrides can force operations_pack even without explicit domain lens"
     ]
+    assert operations_pack["contract_baseline"]["pack_api_name"] == "operations_pack"
+    assert operations_pack["contract_baseline"]["status"] == "ready"
+    assert operations_pack["contract_baseline"]["ready_interface_ids"] == [
+        "evidence_readiness_v1",
+        "decision_framing_v1",
+        "deliverable_shaping_v1",
+    ]
+    assert operations_pack["contract_baseline"]["ready_rule_binding_ids"] == [
+        "readiness_gate_v1",
+        "decision_context_hint_v1",
+        "deliverable_hint_v1",
+    ]
+
+
+def test_active_pack_requires_wave4_contract_baseline(client: TestClient) -> None:
+    response = client.put(
+        "/api/v1/extensions/packs/operations_pack",
+        json={
+            "pack_id": "operations_pack",
+            "pack_type": "domain",
+            "pack_name": "Operations Pack",
+            "description": "Too thin to qualify as an active contract-bound pack.",
+            "domain_definition": "Only a thin definition is provided.",
+            "industry_definition": "",
+            "common_business_models": [],
+            "common_problem_patterns": [],
+            "stage_specific_heuristics": {},
+            "key_kpis_or_operating_signals": [],
+            "key_kpis": [],
+            "domain_lenses": ["operations"],
+            "relevant_client_types": ["中小企業"],
+            "relevant_client_stages": ["制度化階段"],
+            "default_decision_context_patterns": [],
+            "evidence_expectations": [],
+            "risk_libraries": [],
+            "common_risks": [],
+            "decision_patterns": [],
+            "deliverable_presets": [],
+            "recommendation_patterns": [],
+            "routing_hints": [],
+            "pack_notes": [],
+            "scope_boundaries": [],
+            "pack_rationale": [],
+            "version": "1.3.0",
+            "status": "active",
+            "override_rules": [],
+            "is_custom": False,
+        },
+    )
+
+    assert response.status_code == 400
+    assert "正式 contract baseline" in response.json()["detail"]
+    assert "evidence_readiness_v1" in response.json()["detail"]
+    assert "deliverable_shaping_v1" in response.json()["detail"]
 
 
 def test_agent_management_round_trip_core_contract_fields(client: TestClient) -> None:
@@ -1809,6 +1863,19 @@ def test_task_aggregate_includes_pack_resolution_from_context_spine(client: Test
     assert ecommerce_pack["decision_patterns"]
     assert body["pack_resolution"]["resolver_notes"]
     assert body["pack_resolution"]["evidence_expectations"]
+    assert body["pack_resolution"]["decision_context_patterns"]
+    assert body["pack_resolution"]["ready_interface_ids"] == [
+        "evidence_readiness_v1",
+        "decision_framing_v1",
+        "deliverable_shaping_v1",
+    ]
+    assert body["pack_resolution"]["ready_rule_binding_ids"] == [
+        "readiness_gate_v1",
+        "decision_context_hint_v1",
+        "deliverable_hint_v1",
+    ]
+    assert body["pack_resolution"]["contract_status"] == "ready"
+    assert operations_pack["contract_baseline"]["status"] == "ready"
     assert "operations_pack" in body["case_world_state"]["selected_domain_packs"]
     assert "ecommerce_pack" in body["case_world_state"]["selected_industry_packs"]
     assert body["agent_selection"]["host_agent"]["agent_id"] == "host_agent"
@@ -1868,6 +1935,8 @@ def test_task_aggregate_supports_second_wave_industry_and_new_domain_packs(clien
     )
     assert body["pack_resolution"]["deliverable_presets"]
     assert body["pack_resolution"]["evidence_expectations"]
+    assert body["pack_resolution"]["decision_context_patterns"]
+    assert "decision_context_hint_v1" in body["pack_resolution"]["ready_rule_binding_ids"]
     assert "strategy_decision_agent" in body["agent_selection"]["selected_agent_ids"]
     assert all(
         item["selection_score"] > 0 and item["selection_signals"]
@@ -1887,6 +1956,10 @@ def test_extension_manager_endpoint_returns_catalogs(client: TestClient) -> None
     assert body["pack_registry"]["packs"]
     assert body["agent_registry"]["agents"]
     assert body["agent_registry"]["host_agent_id"] == "host_agent"
+    operations_pack = next(
+        item for item in body["pack_registry"]["packs"] if item["pack_id"] == "operations_pack"
+    )
+    assert operations_pack["contract_baseline"]["status"] == "ready"
 
 
 def test_task_extension_overrides_write_back_to_aggregate(client: TestClient) -> None:

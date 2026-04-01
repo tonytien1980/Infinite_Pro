@@ -12,6 +12,34 @@ class PackType(str, Enum):
     INDUSTRY = "industry"
 
 
+class PackContractInterfaceId(str, Enum):
+    EVIDENCE_READINESS_V1 = "evidence_readiness_v1"
+    DECISION_FRAMING_V1 = "decision_framing_v1"
+    DELIVERABLE_SHAPING_V1 = "deliverable_shaping_v1"
+
+
+class PackRequiredPropertyId(str, Enum):
+    DEFINITION = "definition"
+    COMMON_PROBLEM_PATTERNS = "common_problem_patterns"
+    EVIDENCE_EXPECTATIONS = "evidence_expectations"
+    DEFAULT_DECISION_CONTEXT_PATTERNS = "default_decision_context_patterns"
+    DECISION_PATTERNS = "decision_patterns"
+    DELIVERABLE_PRESETS = "deliverable_presets"
+    ROUTING_HINTS = "routing_hints"
+    PACK_RATIONALE = "pack_rationale"
+
+
+class PackRuleBindingId(str, Enum):
+    READINESS_GATE_V1 = "readiness_gate_v1"
+    DECISION_CONTEXT_HINT_V1 = "decision_context_hint_v1"
+    DELIVERABLE_HINT_V1 = "deliverable_hint_v1"
+
+
+class PackContractStatus(str, Enum):
+    READY = "ready"
+    MISSING_REQUIRED_PROPERTIES = "missing_required_properties"
+
+
 class ExtensionStatus(str, Enum):
     DRAFT = "draft"
     ACTIVE = "active"
@@ -27,6 +55,24 @@ class AgentType(str, Enum):
 
 class FrozenModel(BaseModel):
     model_config = ConfigDict(frozen=True)
+
+
+class PackContractRequirement(FrozenModel):
+    interface_id: PackContractInterfaceId
+    required_property_ids: list[PackRequiredPropertyId] = Field(default_factory=list)
+    missing_required_property_ids: list[PackRequiredPropertyId] = Field(default_factory=list)
+    rule_binding_ids: list[PackRuleBindingId] = Field(default_factory=list)
+    status: PackContractStatus = PackContractStatus.READY
+    summary: str = ""
+
+
+class PackContractBaseline(FrozenModel):
+    pack_api_name: str
+    requirements: list[PackContractRequirement] = Field(default_factory=list)
+    ready_interface_ids: list[PackContractInterfaceId] = Field(default_factory=list)
+    ready_rule_binding_ids: list[PackRuleBindingId] = Field(default_factory=list)
+    missing_required_property_ids: list[PackRequiredPropertyId] = Field(default_factory=list)
+    status: PackContractStatus = PackContractStatus.READY
 
 
 class PackSpec(FrozenModel):
@@ -58,6 +104,7 @@ class PackSpec(FrozenModel):
     version: str = "1.0.0"
     status: ExtensionStatus = ExtensionStatus.ACTIVE
     override_rules: list[str] = Field(default_factory=list)
+    contract_baseline: PackContractBaseline | None = None
 
 
 class AgentSpec(FrozenModel):

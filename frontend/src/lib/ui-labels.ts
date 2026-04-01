@@ -209,6 +209,34 @@ const AUDIT_EVENT_TYPE_LABELS: Record<string, string> = {
   continuation_action_applied: "已套用後續動作",
 };
 
+const PACK_CONTRACT_INTERFACE_LABELS: Record<string, string> = {
+  evidence_readiness_v1: "證據期待 gate",
+  decision_framing_v1: "決策 framing hints",
+  deliverable_shaping_v1: "交付 shaping hints",
+};
+
+const PACK_REQUIRED_PROPERTY_LABELS: Record<string, string> = {
+  definition: "正式定義",
+  common_problem_patterns: "常見問題型態",
+  evidence_expectations: "證據期待",
+  default_decision_context_patterns: "預設判斷情境",
+  decision_patterns: "決策模式",
+  deliverable_presets: "交付預設",
+  routing_hints: "路由提示",
+  pack_rationale: "存在理由",
+};
+
+const PACK_RULE_BINDING_LABELS: Record<string, string> = {
+  readiness_gate_v1: "readiness gate",
+  decision_context_hint_v1: "decision context hint",
+  deliverable_hint_v1: "deliverable hint",
+};
+
+const PACK_CONTRACT_STATUS_LABELS: Record<string, string> = {
+  ready: "合約基線就緒",
+  missing_required_properties: "仍缺必要欄位",
+};
+
 const CANONICALIZATION_REVIEW_STATUS_LABELS: Record<string, string> = {
   pending_review: "待確認是否同一份材料",
   human_confirmed_canonical_row: "已確認掛回同一份材料",
@@ -691,6 +719,34 @@ export function labelForAuditEventType(value: string | null | undefined) {
     return "未標示";
   }
   return AUDIT_EVENT_TYPE_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForPackContractInterface(value: string | null | undefined) {
+  if (!value) {
+    return "未標示";
+  }
+  return PACK_CONTRACT_INTERFACE_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForPackRequiredProperty(value: string | null | undefined) {
+  if (!value) {
+    return "未標示";
+  }
+  return PACK_REQUIRED_PROPERTY_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForPackRuleBinding(value: string | null | undefined) {
+  if (!value) {
+    return "未標示";
+  }
+  return PACK_RULE_BINDING_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForPackContractStatus(value: string | null | undefined) {
+  if (!value) {
+    return "未標示";
+  }
+  return PACK_CONTRACT_STATUS_LABELS[value] ?? fallbackLabel(value);
 }
 
 export function labelForCanonicalizationReviewStatus(value: string | null | undefined) {

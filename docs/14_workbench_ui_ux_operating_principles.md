@@ -103,6 +103,7 @@ Infinite Pro 是顧問工作台，不是系統內部模型瀏覽器。
 同理，Wave 1 引入的 approval / audit 語義只能作為低噪音 secondary / disclosure surface，不可升成新的首屏主線。
 同理，Wave 2 的 canonicalization review 只能在真的出現 duplicate candidate、且需要人工確認時，以低噪音 disclosure surface 出現；UI 應優先使用「需確認是否同一份材料」之類的顧問語言，而不是把 `canonicalization` / `merge-split` 直接當作首屏主語言。
 同理，Wave 3 的 chunk / media provenance 只能在 evidence / citation / continuity 類 disclosure 中按需展開；UI 應優先使用「引用來源片段」「依據來源」「支撐片段」之類的顧問語言，而不是把 `ChunkObject / MediaReference / retrieval provenance` 直接推上首屏。
+同理，Wave 4 的 interface / required properties / pack-to-contract binding 也只能在 task detail 的治理 disclosure、Extension Manager、pack detail 或 deliverable 背景摘要中低噪音呈現；UI 應優先使用「模組合約摘要」「必要欄位是否補齊」「交付傾向」之類的顧問語言，而不是把 schema / contract metadata 直接灌進主工作面首屏。
 
 ---
 

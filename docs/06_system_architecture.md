@@ -254,6 +254,12 @@ Pack Layer 應至少具備：
 - `Pack Resolver` 定義 Host 如何選 pack、疊加 pack、處理衝突與 override
 - `Pack Management Surface` 則讓顧問能查看 pack 列表、版本、狀態、本次任務用到了哪些 pack，以及它們的核心 pack contract 是否完整
 
+Wave 4 的最小正式基線還包括：
+- `pack_id` 作為 pack 的 stable API name baseline
+- interface ids / required property ids / rule binding ids 作為 contract naming baseline
+- active pack 的 required-property gate
+- pack-to-contract binding 對 readiness / decision framing / deliverable hints 的正式影響
+
 若 Pack Management Surface 採精簡建立模式，正式規則也應是：
 - 一般使用者只填最少必要資訊
 - backend 使用目前 active provider 與外部搜尋生成正式 pack contract draft
@@ -390,6 +396,10 @@ UI 不是只做表單與結果頁，而是正式工作面。
 - 可以同時管理 pack catalog 與 agent catalog
 - 可以承接 task-level override 與 selection visibility
 - 若 task 已選定 packs，應能看出 pack 對 evidence expectations、decision patterns 與 deliverable presets 的影響，而不只是看到 pack 名稱
+- Wave 4 後也應能低噪音看出：
+  - 哪些 interface 已正式啟用
+  - 哪些 required properties 缺失
+  - 哪些 rule binding 正在影響 runtime
 - 但不代表 Pack Layer 與 Agent Layer 合併
 - 也不代表系統新增第七層
 

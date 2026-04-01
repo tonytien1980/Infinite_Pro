@@ -145,6 +145,11 @@ Current minimal formal integration now exists for both extension families:
 
 That means selected packs and selected agents are no longer only conceptual governance definitions; they now enter task aggregates, workspace payloads, Host framing, readiness governance, and deliverable metadata.
 
+Wave 4 adds a minimal formal contract baseline for packs:
+- active packs must satisfy required-property gates before they count as formal active contracts
+- `pack_id`, interface ids, required property ids, and rule binding ids now act as the stable API naming baseline
+- pack-to-contract binding can now formally affect readiness gates, decision framing hints, and deliverable shaping hints without replacing Host orchestration
+
 Within the single-consultant scope, Agent Orchestration is now treated as a completed runtime layer:
 - Host selection formally responds to capability archetype, selected packs, decision context, readiness/evidence sufficiency, sparse-input mode, and deliverable class
 - selected agents influence execution path and deliverable shaping, not just metadata
