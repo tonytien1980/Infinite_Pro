@@ -18,6 +18,7 @@ from app.extensions.schemas import (
     PackResolverInput,
     PackSpec,
 )
+from app.services.ingestion_contracts import supported_ingestion_hardening_markers
 from app.services.object_sets import supported_deliverable_hardening_markers
 
 DEFAULT_P0_INDUSTRY_BATCH1_MANIFEST = (
@@ -34,6 +35,9 @@ DEFAULT_P0_OPERATIONS_PROCESS_MANIFEST = (
 )
 DEFAULT_P0_DELIVERABLE_HARDENING_MANIFEST = (
     Path(__file__).resolve().parent / "manifests" / "p0_deliverable_hardening.json"
+)
+DEFAULT_P0_INGESTION_HARDENING_MANIFEST = (
+    Path(__file__).resolve().parent / "manifests" / "p0_ingestion_hardening.json"
 )
 
 
@@ -77,6 +81,7 @@ def run_benchmark_case(
     target_ids = [*case.target_domain_pack_ids, *case.target_industry_pack_ids]
     observations: list[BenchmarkObservation] = []
     observed_deliverable_markers: list[str] = []
+    observed_ingestion_markers: list[str] = []
 
     missing_target_pack_ids = [pack_id for pack_id in target_ids if pack_id not in selected_ids]
     if missing_target_pack_ids:
@@ -164,6 +169,32 @@ def run_benchmark_case(
                 )
             )
 
+    if case.expected_ingestion_markers:
+        supported_markers = set(supported_ingestion_hardening_markers())
+        observed_ingestion_markers = [
+            marker for marker in case.expected_ingestion_markers if marker in supported_markers
+        ]
+        missing_ingestion_markers = [
+            marker for marker in case.expected_ingestion_markers if marker not in supported_markers
+        ]
+        if missing_ingestion_markers:
+            observations.append(
+                BenchmarkObservation(
+                    dimension="ingestion_hardening_markers",
+                    status=BenchmarkStatus.WARN,
+                    detail="仍缺 ingestion-oriented marker：" + "、".join(missing_ingestion_markers),
+                    regression_marker="missing_ingestion_marker",
+                )
+            )
+        else:
+            observations.append(
+                BenchmarkObservation(
+                    dimension="ingestion_hardening_markers",
+                    status=BenchmarkStatus.PASS,
+                    detail="已具備預期的 ingestion-oriented hardening markers。",
+                )
+            )
+
     if not [item for item in observations if item.status == BenchmarkStatus.FAIL]:
         observations.append(
             BenchmarkObservation(
@@ -191,6 +222,7 @@ def run_benchmark_case(
         satisfied_interface_ids=_unique_interfaces(satisfied_interface_ids),
         missing_target_pack_ids=missing_target_pack_ids,
         observed_deliverable_markers=observed_deliverable_markers,
+        observed_ingestion_markers=observed_ingestion_markers,
         pack_scores=resolution.pack_scores,
         pack_signal_counts={key: len(value) for key, value in resolution.pack_signals.items()},
         status=overall_status,

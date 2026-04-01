@@ -599,6 +599,80 @@ Important verification note:
 
 ---
 
+## Entry: 2026-04-02 P0-G ingestion hardening checkpoint
+
+Scope:
+- `P0-G-0` deliverable hardening preflight check on real deliverable cases
+- ingestion support semantics hardening
+- scanned / image-like reference-only boundary
+- table-heavy limited extract boundary
+- `p0_ingestion_hardening.json` benchmark manifest
+
+Environment used:
+- frontend: `http://127.0.0.1:3000`
+- backend: `http://127.0.0.1:8000/api/v1`
+- runtime database: current local runtime
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests -q` | Passed (`120 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && npx next typegen` | Passed |
+| `cd frontend && npm run typecheck` | Passed |
+| `python3 backend/scripts/run_pack_benchmark_scaffold.py --manifest backend/app/benchmarks/manifests/p0_ingestion_hardening.json` | Passed |
+
+Important verification note:
+- on the current Next 15 frontend, `npm run build` still does not fully restore `.next/types` by itself on this machine
+- the valid verification order for this checkpoint remained `build -> next typegen -> typecheck`
+
+### P0-G-0 preflight verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Benchmark | deliverable hardening manifest | Re-run `p0_deliverable_hardening.json` before P0-G | Verified | both seed cases still returned deliverable hardening markers |
+| Deliverable UI | `/deliverables/[deliverableId]` | Re-check bundle summary / density / default-visible behavior on real cases | Verified | no blocker found; `process_issue_set_v1` still has density pressure in some cases but stayed inside disclosure |
+| Publish / Export | deliverable release path | Verify P0-F summary discipline still exists before touching ingestion | Verified | no preflight blocker found for P0-G |
+
+### P0-G specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | upload / source ingest | CSV upload now lands as limited extract instead of pretending to be full-text parity | Verified | `support_level=limited`, `ingest_strategy=table_snapshot`, `extract_availability=partial_extract_ready`, `current_usable_scope=limited_extract` |
+| Backend | upload / source ingest | scanned PDF and image upload now land as explicit reference-only material | Verified | `availability_state=reference_only`, `extract_availability=reference_only`, `current_usable_scope=reference_only` |
+| Backend | runtime contracts | source / material read models now carry diagnostic category, extract availability, current usable scope, and fallback mode | Verified | shared semantics are no longer only frontend copy |
+| Benchmark | ingestion hardening manifest | Run `p0_ingestion_hardening.json` | Verified | both seed cases resolved expected packs and expected ingestion-oriented markers |
+| New UI | `/new` | CSV preview now explains limited table extraction and suggested fallback discipline | Verified | first screen stayed consultant-first and did not turn into parser metadata wall |
+| Matter UI | `/matters/[matterId]` | Matter hero remains mainline / next-step oriented after ingestion hardening | Verified | no technical metadata polluted the first screen |
+| Evidence UI | `/matters/[matterId]/evidence` | Source material cards now explain limited extract vs reference-only more honestly | Verified | `metrics.csv`, `scan.pdf`, and `photo.png` each show different support boundaries and fallback guidance |
+
+### Live smoke data
+
+- preflight operations case:
+  - matter id: `1003daee-dc92-4f98-8d33-d1762e288708`
+  - task id: `79306266-fe45-4b59-8743-de4382ef0d3f`
+  - deliverable id: `e4cd0c4a-94fb-4273-85fb-dc0077db5e50`
+- ingestion live case:
+  - matter id: `e1f54cf1-c17c-4589-842e-5f993e3d6a37`
+  - task id: `9a7d2099-d780-4d7a-81fe-b194f3a00ff9`
+  - uploaded materials:
+    - `metrics.csv`
+    - `photo.png`
+    - `scan.pdf`
+- live smoke verified through local Playwright CLI on `/new`, `/matters/[matterId]`, and `/matters/[matterId]/evidence`
+
+### Verified outcomes
+
+- `P0-G-0` preflight confirmed P0-F display discipline remained usable enough to support ingestion hardening without reopening a new deliverable sprint
+- table-heavy `.csv / .xlsx` materials now stay formally supported while honestly advertising limited table snapshot extraction
+- scanned / image-like materials now stay explicitly reference-only instead of looking like normal extracted text sources
+- runtime source / material contracts now distinguish support level, extract availability, current usable scope, and fallback mode more explicitly
+- evidence / chunk / media / reference paths remained intact while consultant-first first screens stayed clean
+
+---
+
 ## Entry: 2026-04-02 P0-F deliverable hardening checkpoint
 
 Scope:

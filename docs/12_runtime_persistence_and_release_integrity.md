@@ -172,6 +172,7 @@ matter local fallback 至少應有以下狀態：
 - research run 應標示為失敗
 - 不可把失敗的外部補完結果偷塞成正式 evidence
 - 若只建立了 metadata / reference-level record，必須誠實標示 provenance 與 support level
+- 若材料目前只達到 `partial_extract_ready` 或 `reference_only`，也必須誠實標示 extract availability、current usable scope 與 fallback boundary，不可把「已被接收」誤寫成「已具完整正文支撐能力」
 
 ### 4.2 正式發布與正式匯出
 deliverable 正式發布至少要留下：
@@ -295,6 +296,7 @@ P0-F 之後還應再維持：
 正式規則：
 - parseable material 可形成 chunk-level provenance
 - limited-support / unsupported material 可維持 reference-level provenance
+- table-heavy material 若目前只形成 row / worksheet snapshot，仍可回到既有 evidence chain，但應明確屬於 `limited_extract`，不可假裝成全文 chunk parity
 - 不可把 reference-level provenance 假裝成 chunk-native evidence
 - provenance 可回看，但預設應屬按需展開層
 
@@ -470,6 +472,7 @@ P0-F 的正式補充規則：
 - 若補進來的材料屬 limited-support、pending-parse、unsupported 或 failed ingest，補件區與材料卡也應明確說明：
   - 這個狀態代表什麼
   - 問題比較像哪一類 diagnostic category
+  - extract availability 現在落在哪一層
   - 會影響哪個 checkpoint 缺口
   - 目前還能不能保留成 reference-level / usable source
   - retry 是否值得，以及為什麼
@@ -492,6 +495,7 @@ P0-F 的正式補充規則：
 - 若補進來的材料屬 limited-support、pending-parse、unsupported 或 failed ingest，補件區與材料卡也應明確說明：
   - 這個狀態代表什麼
   - 問題比較像哪一類 diagnostic category
+  - extract availability 現在落在哪一層
   - 會影響哪個 action / outcome / recommendation 驗證
   - 目前還能不能保留成 reference-level / usable source
   - retry 是否值得，以及為什麼

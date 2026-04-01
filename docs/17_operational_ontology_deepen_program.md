@@ -207,6 +207,17 @@ Wave 0-5 全部完成後，repo 已正式採納下一階段的 hardening / exten
 - publish / export / artifact path 對 support-bundle summary 的正式承接
 - `p0_deliverable_hardening.json` benchmark manifest
 
+截至 2026-04-02，`P0-G` 的第一批正式 baseline 應理解為：
+- ingestion support semantics 的正式收斂：
+  - `support_level`
+  - `ingest_status`
+  - `extract_availability`
+  - `current_usable_scope`
+  - `fallback boundary`
+- scanned / image-like materials 的 reference-only 語義收斂
+- table-heavy `.csv / .xlsx` 的 limited extract 語義收斂
+- `p0_ingestion_hardening.json` benchmark manifest
+
 ### 3.6 adopted planning file 的正式處理規則
 
 若某份下一階段 proposal 的內容已被正式採納：

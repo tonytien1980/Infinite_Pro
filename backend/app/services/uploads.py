@@ -11,6 +11,7 @@ from app.domain.enums import TaskStatus
 from app.ingestion.files import analyze_upload_content
 from app.ingestion.preprocess import normalize_text
 from app.ingestion.sources import ManualUploadConnector
+from app.services.ingestion_contracts import resolve_source_availability_state
 from app.services.material_storage import preview_extracted_text
 from app.services.source_materials import (
     build_media_reference_for_document,
@@ -195,7 +196,15 @@ def save_uploads_for_task(
                 created_at=models.utc_now(),
                 retention_policy=retention_policy,
             ),
-            availability_state=AVAILABILITY_AVAILABLE if stored is not None else AVAILABILITY_METADATA_ONLY,
+            availability_state=(
+                resolve_source_availability_state(
+                    support_level=support_level,
+                    metadata_only=metadata_only,
+                    extracted_text=extracted_text,
+                )
+                if stored is not None
+                else AVAILABILITY_METADATA_ONLY
+            ),
             metadata_only=metadata_only,
             extracted_text=preview_extracted_text(extracted_text) or None,
             ingestion_error=ingestion_error,

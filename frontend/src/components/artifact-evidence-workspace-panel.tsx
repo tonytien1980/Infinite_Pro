@@ -445,6 +445,9 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
       ingest_strategy: string;
       metadata_only: boolean;
       ingestion_error: string | null;
+      diagnostic_category?: string | null;
+      extract_availability?: string | null;
+      current_usable_scope?: string | null;
     };
     source_material?: {
       support_level: string;
@@ -452,6 +455,9 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
       ingest_strategy: string;
       metadata_only: boolean;
       ingestion_error?: string | null;
+      diagnostic_category?: string | null;
+      extract_availability?: string | null;
+      current_usable_scope?: string | null;
     } | null;
   }) {
     return describeRuntimeMaterialHandling({
@@ -466,6 +472,15 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
       ingestionError:
         runtimeItem.source_material?.ingestion_error ??
         runtimeItem.source_document.ingestion_error,
+      diagnosticCategory:
+        runtimeItem.source_material?.diagnostic_category ??
+        runtimeItem.source_document.diagnostic_category,
+      extractAvailability:
+        runtimeItem.source_material?.extract_availability ??
+        runtimeItem.source_document.extract_availability,
+      currentUsableScope:
+        runtimeItem.source_material?.current_usable_scope ??
+        runtimeItem.source_document.current_usable_scope,
       context: remediationContext,
     });
   }
@@ -1331,7 +1346,7 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                   <div className="section-card">
                     <h4>正式支援</h4>
                     <p className="content-block">
-                      MD、TXT、DOCX、XLSX、CSV、text-based PDF、URL、補充文字
+                      MD、TXT、DOCX、XLSX、CSV、text-based PDF、URL、補充文字。XLSX / CSV 目前先做表格快照式抽取；若要判斷公式、欄位關係與脈絡，仍建議補欄位說明或文字摘要。
                     </p>
                   </div>
                   <div className="section-card">
@@ -1519,6 +1534,9 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                         ingestStrategy: item.ingest_strategy,
                         metadataOnly: item.metadata_only,
                         ingestionError: item.ingestion_error,
+                        diagnosticCategory: item.diagnostic_category,
+                        extractAvailability: item.extract_availability,
+                        currentUsableScope: item.current_usable_scope,
                         context: remediationContext,
                       });
                       return (

@@ -209,6 +209,12 @@ P0-F hardening 後，deliverable 主鏈還應再往前一步：
   - publish / artifact event payload
 - 這代表 bundle summary、default-visible discipline 與高訊號 member 優先順序，都屬正式 deliverable-working semantics，而不是純前端排版細節
 
+P0-G hardening 後，ingestion 主鏈還應再往前一步：
+- `support_level / ingest_status / extract_availability / current_usable_scope / fallback boundary` 應成為正式共享語義
+- scanned / image-like materials 若只保留 locator / preview / file-level 回鏈，應明確屬於 `reference_only`
+- table-heavy `.csv / .xlsx` 若目前只形成 row / worksheet snapshot，應明確屬於 `limited_extract`
+- 不可把「材料已被接受」誤寫成「已具完整 chunk-native 支撐」
+
 正式規則是：
 - `ObjectSet` 仍屬 Ontology Layer primitive，不是第七層
 - 第一波只先做 matter / work-scope 內的集合，不做跨案件世界 reusable mesh

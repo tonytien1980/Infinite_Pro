@@ -111,6 +111,7 @@ Infinite Pro 是顧問工作台，不是系統內部模型瀏覽器。
 同理，P0-D 的 clause / obligation set 與 legal / finance contract-aware hardening 也只能在 deliverable / evidence / task 的低噪音 disclosure 中呈現；UI 應優先使用「條款集」「義務清單」「合約風險支撐集」「引用條款片段」之類的顧問語言，而不是把 `clause_obligation_set_v1` 或 member lifecycle metadata 直接推上首屏。
 同理，P0-E 的 process issue set 與 operations hardening 也只能在 deliverable / evidence / task 的低噪音 disclosure 中呈現；UI 應優先使用「流程問題集」「流程風險支撐集」「流程瓶頸」「控制缺口」「責任不清」「依賴阻塞」之類的顧問語言，而不是把 `process_issue_set_v1` 或 member metadata 直接推上首屏。
 同理，P0-F 的 deliverable hardening 也只能在既有 deliverable workspace 內，把 bundle summary、member ranking、default-visible discipline 與其餘成員按需展開做得更穩；不應把這輪做成新 deliverable studio，也不應讓 advanced section 反過來污染首屏主線。
+同理，P0-G 的 ingestion hardening 也只能在 `/new`、matter / evidence workspace 與必要的低噪音背景摘要中呈現；UI 應優先使用「可直接擷取」「表格資訊抽取有限」「僅能引用來源層級」「需人工補充判讀」之類的顧問語言，而不是把 OCR level、parser state machine 或 extraction backend 直接推上首屏。
 
 ---
 

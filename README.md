@@ -220,6 +220,12 @@ P0-F then hardens deliverable reading and release discipline without opening a n
 - Markdown / DOCX export and publish event payloads now carry support-bundle summaries so artifact-readiness stays aligned with what the consultant actually sees in the workbench
 - the benchmark scaffold now also includes `backend/app/benchmarks/manifests/p0_deliverable_hardening.json` for deliverable-oriented regression markers
 
+P0-G then hardens ingestion honesty without opening a new OCR or document platform:
+- scanned / image-like materials now stay explicitly reference-level instead of looking like normal extracted text sources
+- table-heavy `.csv / .xlsx` materials remain formally supported, but their first shipped path is treated as limited table snapshot extraction rather than free-text parity
+- runtime source / material responses now distinguish support level, extract availability, current usable scope, and fallback boundary more honestly
+- the benchmark scaffold now also includes `backend/app/benchmarks/manifests/p0_ingestion_hardening.json` for ingestion-oriented regression markers
+
 Within the single-consultant scope, Agent Orchestration is now treated as a completed runtime layer:
 - Host selection formally responds to capability archetype, selected packs, decision context, readiness/evidence sufficiency, sparse-input mode, and deliverable class
 - selected agents influence execution path and deliverable shaping, not just metadata
@@ -515,8 +521,10 @@ The repository currently contains a working early implementation slice within th
 - item-level ingestion result messaging for accepted, limited-support, pending-parse, and unsupported materials
 - matter-level supplement flow for additional files, URLs, and pasted text
 - source material metadata with support level, ingest strategy, retention, purge state, and availability state
+- source / material runtime summaries with diagnostic category, extract availability, current usable scope, and fallback boundary semantics
 - formal support for `.md / .txt / .docx / .xlsx / .csv / text-first PDF / URL / 純文字補充`
 - limited support for `.jpg / .jpeg / .png / .webp / 掃描型 PDF` as metadata / reference-level intake only, without default OCR
+- limited extraction discipline for table-heavy `.csv / .xlsx` materials, which may only expose row / worksheet snapshots in the first shipped extract path
 - storage separation for raw intake files, derived extracts, and released artifacts
 - matter正文 remote-first persistence with degraded-mode local fallback and manual re-sync
 - deliverable正文 remote-only persistence with revision history, rollback, version events, publish records, and artifact registry

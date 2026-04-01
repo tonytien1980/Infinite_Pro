@@ -225,6 +225,12 @@ Wave 3 的最小正式責任是：
 - 哪些來源已經能提供 chunk-level 支撐
 - 哪些來源目前只能提供 reference-level provenance
 
+P0-G ingestion hardening 後還要再補一條正式語義：
+- parseable material 不一定都具同等抽取深度
+- table-heavy `.csv / .xlsx` 若目前只形成 row / worksheet snapshot，應明確屬於 `limited_extract`
+- scanned / image-like material 若目前只保留 locator / preview / file-level 回鏈，應明確屬於 `reference_only`
+- ontology / provenance 不可把這兩種情況都誤寫成完整 `chunk_ready`
+
 ### RetrievalProvenance
 代表 evidence 與上游支撐點之間的正式回鏈 contract。
 

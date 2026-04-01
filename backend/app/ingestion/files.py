@@ -124,16 +124,22 @@ def analyze_upload_content(file_name: str, content: bytes) -> FileExtractResult:
         strategy = "table_snapshot" if suffix == ".csv" else "text_extract"
         return FileExtractResult(
             text=content.decode("utf-8", errors="ignore").strip(),
-            support_level="full",
+            support_level="limited" if suffix == ".csv" else "full",
             ingest_strategy=strategy,
             metadata_only=False,
+            message=(
+                "這份表格目前先以列快照方式擷取，欄位關係、公式與跨表脈絡仍需人工補充判讀。"
+                if suffix == ".csv"
+                else None
+            ),
         )
     if suffix == ".xlsx":
         return FileExtractResult(
             text=_parse_xlsx_text(content),
-            support_level="full",
+            support_level="limited",
             ingest_strategy="worksheet_snapshot",
             metadata_only=False,
+            message="這份工作表目前先以 worksheet snapshot 方式擷取，公式、關聯與深層表格結構仍需人工補充判讀。",
         )
     if suffix == ".pdf":
         reader = PdfReader(BytesIO(content))
@@ -148,7 +154,7 @@ def analyze_upload_content(file_name: str, content: bytes) -> FileExtractResult:
         return FileExtractResult(
             text="",
             support_level="limited",
-            ingest_strategy="pdf_metadata_only",
+            ingest_strategy="scanned_pdf_reference",
             metadata_only=True,
             message="這份 PDF 目前只建立 metadata 與 reference；若是掃描檔或圖片型 PDF，仍未啟用預設 OCR。",
         )
@@ -164,7 +170,7 @@ def analyze_upload_content(file_name: str, content: bytes) -> FileExtractResult:
         return FileExtractResult(
             text="",
             support_level="limited",
-            ingest_strategy="reference_image",
+            ingest_strategy="image_reference",
             metadata_only=True,
             message="這份影像目前會先以 reference image 形式保存，只建立 metadata 與工作面引用，不預設啟動 OCR。",
         )

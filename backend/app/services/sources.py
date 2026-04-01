@@ -15,6 +15,7 @@ from app.ingestion.sources import (
     ManualTextConnector,
     ManualUrlConnector,
 )
+from app.services.ingestion_contracts import resolve_source_availability_state
 from app.services.material_storage import preview_extracted_text
 from app.services.source_materials import (
     build_media_reference_for_document,
@@ -124,8 +125,10 @@ def _persist_processed_source(
             created_at=models.utc_now(),
             retention_policy=retention_policy,
         ),
-        availability_state=(
-            AVAILABILITY_REFERENCE_ONLY if metadata_only and not extracted_text else AVAILABILITY_AVAILABLE
+        availability_state=resolve_source_availability_state(
+            support_level=support_level,
+            metadata_only=metadata_only,
+            extracted_text=extracted_text,
         ),
         metadata_only=metadata_only,
         extracted_text=preview_extracted_text(extracted_text) or None,

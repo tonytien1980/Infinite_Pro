@@ -113,6 +113,7 @@
 - item-level diagnostics：
   - diagnostic category（這是哪一類問題）
   - current usable scope（現在還能做什麼 / 不能做什麼）
+  - extract availability（現在是可直接擷取、抽取有限、僅能引用來源層級，還是暫時不可用）
   - retryability explanation（retry 是否值得，為什麼）
 - item-level action semantics：
   - 是否 blocking
@@ -258,6 +259,7 @@
 - 證據支撐鏈數
 - 高影響缺口數
 - research provenance 摘要
+- 材料支援邊界摘要（例如：可直接擷取 / 表格資訊抽取有限 / 僅能引用來源層級 / 需人工補充判讀）
 - 補件導引
 - 若為 `follow_up`，需顯示這次補件主要想更新什麼，以及上一個 / 最新 checkpoint 的輕量脈絡
 - 若為 `follow_up`，補件區本身也需顯示 latest update、previous checkpoint、what changed、next follow-up action

@@ -1886,6 +1886,9 @@ export function MatterWorkspacePanel({
                           ingestStrategy: item.ingest_strategy,
                           metadataOnly: item.metadata_only,
                           ingestionError: item.ingestion_error,
+                          diagnosticCategory: item.diagnostic_category,
+                          extractAvailability: item.extract_availability,
+                          currentUsableScope: item.current_usable_scope,
                           context: remediationContext,
                         });
                         return (

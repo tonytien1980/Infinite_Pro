@@ -6,6 +6,7 @@ import json
 from fastapi.testclient import TestClient
 import pytest
 from docx import Document
+from pypdf import PdfWriter
 from sqlalchemy import select
 
 from app.agents.host import HostOrchestrator
@@ -2351,15 +2352,102 @@ def test_limited_support_image_upload_returns_reference_level_status(client: Tes
         if item["title"] == "photo.png"
     )
     assert recent_material["ingest_status"] == "metadata_only"
-    assert recent_material["ingest_strategy"] == "reference_image"
+    assert recent_material["ingest_strategy"] == "image_reference"
     assert recent_material["ingestion_error"]
+    assert recent_material["extract_availability"] == "reference_only"
+    assert recent_material["current_usable_scope"] == "reference_only"
     assert source_card["support_level"] == "limited"
-    assert source_card["ingest_strategy"] == "reference_image"
+    assert source_card["ingest_strategy"] == "image_reference"
     assert source_card["ingestion_error"]
+    assert source_card["availability_state"] == "reference_only"
+    assert source_card["extract_availability"] == "reference_only"
+    assert source_card["current_usable_scope"] == "reference_only"
     linked_issue = next(
         item for item in evidence_workspace["evidence_chains"] if item["evidence"]["title"] == "photo.png"
     )
     assert linked_issue["evidence"]["retrieval_provenance"]["support_kind"] == "media_reference"
+
+
+def test_table_heavy_csv_upload_returns_limited_extract_contract(client: TestClient) -> None:
+    task = client.post("/api/v1/tasks", json=create_task_payload("CSV upload")).json()
+    matter_id = task["matter_workspace"]["id"]
+
+    response = client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("metrics.csv", b"week,revenue,margin\n1,100,0.3\n2,90,0.28\n", "text/csv"))],
+    )
+
+    assert response.status_code == 200
+    uploaded = response.json()["uploaded"][0]
+    assert uploaded["source_document"]["ingest_status"] == "processed"
+    assert uploaded["source_document"]["support_level"] == "limited"
+    assert uploaded["source_document"]["ingest_strategy"] == "table_snapshot"
+    assert uploaded["source_document"]["extract_availability"] == "partial_extract_ready"
+    assert uploaded["source_document"]["current_usable_scope"] == "limited_extract"
+    assert uploaded["evidence"]["evidence_type"] == "uploaded_file_excerpt"
+
+    matter_workspace = client.get(f"/api/v1/matters/{matter_id}").json()
+    evidence_workspace = client.get(f"/api/v1/matters/{matter_id}/artifact-evidence").json()
+    recent_material = next(
+        item
+        for item in matter_workspace["related_source_materials"]
+        if item["title"] == "metrics.csv"
+    )
+    source_card = next(
+        item
+        for item in evidence_workspace["source_material_cards"]
+        if item["title"] == "metrics.csv"
+    )
+    assert recent_material["support_level"] == "limited"
+    assert recent_material["extract_availability"] == "partial_extract_ready"
+    assert recent_material["current_usable_scope"] == "limited_extract"
+    assert source_card["support_level"] == "limited"
+    assert source_card["diagnostic_category"] == "accepted_limited_table_extract"
+    assert source_card["extract_availability"] == "partial_extract_ready"
+    assert source_card["current_usable_scope"] == "limited_extract"
+
+
+def test_scanned_pdf_upload_returns_reference_only_contract(client: TestClient) -> None:
+    task = client.post("/api/v1/tasks", json=create_task_payload("Scanned PDF upload")).json()
+    matter_id = task["matter_workspace"]["id"]
+
+    buffer = BytesIO()
+    writer = PdfWriter()
+    writer.add_blank_page(width=300, height=300)
+    writer.write(buffer)
+
+    response = client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("scan.pdf", buffer.getvalue(), "application/pdf"))],
+    )
+
+    assert response.status_code == 200
+    uploaded = response.json()["uploaded"][0]
+    assert uploaded["source_document"]["ingest_status"] == "metadata_only"
+    assert uploaded["source_document"]["support_level"] == "limited"
+    assert uploaded["source_document"]["ingest_strategy"] == "scanned_pdf_reference"
+    assert uploaded["source_document"]["availability_state"] == "reference_only"
+    assert uploaded["source_document"]["extract_availability"] == "reference_only"
+    assert uploaded["source_document"]["current_usable_scope"] == "reference_only"
+    assert uploaded["evidence"]["evidence_type"] == "uploaded_file_unparsed"
+
+    matter_workspace = client.get(f"/api/v1/matters/{matter_id}").json()
+    evidence_workspace = client.get(f"/api/v1/matters/{matter_id}/artifact-evidence").json()
+    recent_material = next(
+        item
+        for item in matter_workspace["related_source_materials"]
+        if item["title"] == "scan.pdf"
+    )
+    source_card = next(
+        item
+        for item in evidence_workspace["source_material_cards"]
+        if item["title"] == "scan.pdf"
+    )
+    assert recent_material["ingest_strategy"] == "scanned_pdf_reference"
+    assert recent_material["availability_state"] == "reference_only"
+    assert source_card["diagnostic_category"] == "reference_only_scan"
+    assert source_card["extract_availability"] == "reference_only"
+    assert source_card["current_usable_scope"] == "reference_only"
 
 
 def test_unsupported_file_upload_returns_explicit_unsupported_status(client: TestClient) -> None:

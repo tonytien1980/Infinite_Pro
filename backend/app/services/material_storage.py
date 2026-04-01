@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.domain import models
 from app.domain.enums import TaskStatus
+from app.services.ingestion_contracts import resolve_source_availability_state
 from app.services.storage_manager import (
     AVAILABILITY_AVAILABLE,
     AVAILABILITY_METADATA_ONLY,
@@ -153,10 +154,17 @@ def normalize_source_storage_metadata(db: Session) -> None:
                 retention_policy=source_document.retention_policy,
             )
             changed = True
-        if not source_document.availability_state:
-            source_document.availability_state = (
-                AVAILABILITY_METADATA_ONLY if source_document.metadata_only else AVAILABILITY_AVAILABLE
+        resolved_availability_state = (
+            resolve_source_availability_state(
+                support_level=source_document.support_level,
+                metadata_only=source_document.metadata_only,
+                extracted_text=source_document.extracted_text,
             )
+            if source_document.storage_key or source_document.storage_path
+            else AVAILABILITY_METADATA_ONLY
+        )
+        if source_document.availability_state != resolved_availability_state:
+            source_document.availability_state = resolved_availability_state
             changed = True
         _ensure_derived_extract(source_document)
 

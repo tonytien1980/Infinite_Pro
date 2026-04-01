@@ -76,6 +76,7 @@ from app.services.deliverable_records import (
     label_for_deliverable_status,
     record_deliverable_version_event,
 )
+from app.services.ingestion_contracts import build_ingestion_contract_summary
 from app.services.object_sets import (
     build_deliverable_support_bundle_publish_summary,
     build_deliverable_support_bundle_summary_lines,
@@ -817,6 +818,13 @@ def _extract_assumptions(task: models.Task) -> list[str]:
 
 
 def _build_legacy_source_material_read(source_document: models.SourceDocument) -> schemas.SourceMaterialRead:
+    ingestion_contract = build_ingestion_contract_summary(
+        ingest_status=source_document.ingest_status,
+        support_level=source_document.support_level,
+        ingest_strategy=source_document.ingest_strategy,
+        metadata_only=source_document.metadata_only,
+        ingestion_error=source_document.ingestion_error,
+    )
     return schemas.SourceMaterialRead(
         id=source_document.id,
         task_id=source_document.task_id,
@@ -841,6 +849,10 @@ def _build_legacy_source_material_read(source_document: models.SourceDocument) -
         purge_at=source_document.purge_at,
         availability_state=source_document.availability_state,
         metadata_only=source_document.metadata_only,
+        diagnostic_category=ingestion_contract.diagnostic_category,
+        extract_availability=ingestion_contract.extract_availability,
+        current_usable_scope=ingestion_contract.current_usable_scope,
+        fallback_mode=ingestion_contract.fallback_mode,
         summary=_normalize_whitespace(build_source_material_summary(source_document)),
         ingestion_error=source_document.ingestion_error,
         participation=schemas.ObjectParticipationRead(
@@ -934,8 +946,23 @@ def _build_source_document_read(
     task: models.Task,
     snapshot: _TaskObjectParticipationSnapshot,
 ) -> schemas.SourceDocumentRead:
+    ingestion_contract = build_ingestion_contract_summary(
+        ingest_status=source_document.ingest_status,
+        support_level=source_document.support_level,
+        ingest_strategy=source_document.ingest_strategy,
+        metadata_only=source_document.metadata_only,
+        ingestion_error=source_document.ingestion_error,
+    )
     return schemas.SourceDocumentRead(
-        **schemas.SourceDocumentRead.model_validate(source_document).model_dump(exclude={"participation"}),
+        **(
+            schemas.SourceDocumentRead.model_validate(source_document).model_dump(exclude={"participation"})
+            | {
+                "diagnostic_category": ingestion_contract.diagnostic_category,
+                "extract_availability": ingestion_contract.extract_availability,
+                "current_usable_scope": ingestion_contract.current_usable_scope,
+                "fallback_mode": ingestion_contract.fallback_mode,
+            }
+        ),
         participation=_build_object_participation_read(
             object_type=OBJECT_TYPE_SOURCE_DOCUMENT,
             object_id=source_document.id,
@@ -946,6 +973,29 @@ def _build_source_document_read(
             snapshot=snapshot,
         ),
     )
+
+
+def _build_ingestion_contract_field_dump(
+    *,
+    ingest_status: str | None,
+    support_level: str | None,
+    ingest_strategy: str | None,
+    metadata_only: bool,
+    ingestion_error: str | None = None,
+) -> dict[str, str | None]:
+    contract = build_ingestion_contract_summary(
+        ingest_status=ingest_status,
+        support_level=support_level,
+        ingest_strategy=ingest_strategy,
+        metadata_only=metadata_only,
+        ingestion_error=ingestion_error,
+    )
+    return {
+        "diagnostic_category": contract.diagnostic_category,
+        "extract_availability": contract.extract_availability,
+        "current_usable_scope": contract.current_usable_scope,
+        "fallback_mode": contract.fallback_mode,
+    }
 
 
 def _build_legacy_artifact_read(
@@ -1240,6 +1290,15 @@ def _build_source_materials(task: models.Task) -> list[schemas.SourceMaterialRea
                         item.source_document.ingestion_error if item.source_document is not None else None
                     )
                 }
+                | _build_ingestion_contract_field_dump(
+                    ingest_status=item.ingest_status,
+                    support_level=item.support_level,
+                    ingest_strategy=item.ingest_strategy,
+                    metadata_only=item.metadata_only,
+                    ingestion_error=(
+                        item.source_document.ingestion_error if item.source_document is not None else None
+                    ),
+                )
             ),
             participation=_build_object_participation_read(
                 object_type=OBJECT_TYPE_SOURCE_MATERIAL,
@@ -1277,6 +1336,17 @@ def _build_source_materials(task: models.Task) -> list[schemas.SourceMaterialRea
                                 else None
                             )
                         }
+                        | _build_ingestion_contract_field_dump(
+                            ingest_status=item.ingest_status,
+                            support_level=item.support_level,
+                            ingest_strategy=item.ingest_strategy,
+                            metadata_only=item.metadata_only,
+                            ingestion_error=(
+                                item.source_document.ingestion_error
+                                if item.source_document is not None
+                                else None
+                            ),
+                        )
                     ),
                     participation=_build_object_participation_read(
                         object_type=OBJECT_TYPE_SOURCE_MATERIAL,
@@ -7159,6 +7229,13 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
                     purge_at=source_material.purge_at,
                     availability_state=source_material.availability_state,
                     metadata_only=source_material.metadata_only,
+                    **_build_ingestion_contract_field_dump(
+                        ingest_status=source_material.ingest_status,
+                        support_level=source_material.support_level,
+                        ingest_strategy=source_material.ingest_strategy,
+                        metadata_only=source_material.metadata_only,
+                        ingestion_error=source_material.ingestion_error,
+                    ),
                     created_at=source_material.created_at,
                 )
             )
@@ -7768,6 +7845,13 @@ def get_artifact_evidence_workspace(
                     purge_at=source_material.purge_at,
                     availability_state=source_material.availability_state,
                     metadata_only=source_material.metadata_only,
+                    **_build_ingestion_contract_field_dump(
+                        ingest_status=source_material.ingest_status,
+                        support_level=source_material.support_level,
+                        ingest_strategy=source_material.ingest_strategy,
+                        metadata_only=source_material.metadata_only,
+                        ingestion_error=source_material.ingestion_error,
+                    ),
                     linked_evidence_count=len(linked_evidence),
                     linked_output_count=linked_output_count,
                     created_at=source_material.created_at,

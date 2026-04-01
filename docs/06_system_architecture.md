@@ -530,6 +530,20 @@ UI 不是只做表單與結果頁，而是正式工作面。
 - traceability support
 - continuity policy persistence
 - decision / action / outcome writeback
+- ingestion semantics persistence, including:
+  - `support_level`
+  - `ingest_status`
+  - `extract_availability`
+  - `current_usable_scope`
+  - `fallback boundary`
+
+正式規則：
+- 系統不只要知道材料「有沒有收進來」
+- 也要知道它現在是：
+  - 可直接進 evidence chain
+  - 只形成有限抽取
+  - 只保留 reference-level
+  - 或目前不可用
 
 ### 5.5 Failure Governance / Sync Recovery
 - fail-closed boundaries for正式 deliverable content / publish / artifact paths

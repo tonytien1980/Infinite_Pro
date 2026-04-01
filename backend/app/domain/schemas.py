@@ -421,6 +421,10 @@ class SourceDocumentRead(ORMModel):
     purge_at: datetime | None
     availability_state: str
     metadata_only: bool
+    diagnostic_category: str | None = None
+    extract_availability: str | None = None
+    current_usable_scope: str | None = None
+    fallback_mode: str | None = None
     derived_storage_key: str | None
     extracted_text: str | None
     ingestion_error: str | None
@@ -500,6 +504,10 @@ class SourceMaterialRead(ORMModel):
     purge_at: datetime | None
     availability_state: str
     metadata_only: bool
+    diagnostic_category: str | None = None
+    extract_availability: str | None = None
+    current_usable_scope: str | None = None
+    fallback_mode: str | None = None
     summary: str
     ingestion_error: str | None = None
     participation: ObjectParticipationRead | None = None
@@ -1243,6 +1251,10 @@ class MatterMaterialSummaryRead(BaseModel):
     purge_at: datetime | None = None
     availability_state: str | None = None
     metadata_only: bool = False
+    diagnostic_category: str | None = None
+    extract_availability: str | None = None
+    current_usable_scope: str | None = None
+    fallback_mode: str | None = None
     created_at: datetime
 
 
@@ -1309,6 +1321,10 @@ class ArtifactEvidenceMaterialRead(BaseModel):
     purge_at: datetime | None = None
     availability_state: str | None = None
     metadata_only: bool = False
+    diagnostic_category: str | None = None
+    extract_availability: str | None = None
+    current_usable_scope: str | None = None
+    fallback_mode: str | None = None
     linked_evidence_count: int = 0
     linked_output_count: int = 0
     created_at: datetime

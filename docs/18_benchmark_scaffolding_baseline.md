@@ -62,6 +62,7 @@
 - manifest：`backend/app/benchmarks/manifests/p0_legal_finance_contract.json`
 - manifest：`backend/app/benchmarks/manifests/p0_operations_process.json`
 - manifest：`backend/app/benchmarks/manifests/p0_deliverable_hardening.json`
+- manifest：`backend/app/benchmarks/manifests/p0_ingestion_hardening.json`
 - result schema：`backend/app/benchmarks/schemas.py`
 - runner：`backend/app/benchmarks/runner.py`
 - CLI run path：`backend/scripts/run_pack_benchmark_scaffold.py`
@@ -116,6 +117,15 @@ P0-F 之後，這份 baseline 也正式擴充到 deliverable-oriented hardening 
     - `support_bundle_summary_ready`
     - `artifact_readiness_summary_ready`
 
+P0-G 之後，這份 baseline 也正式擴充到 ingestion-oriented hardening cases：
+- scanned / image-like reference-only boundary
+- table-heavy limited extract boundary
+- 額外可觀察：
+  - ingestion-oriented hardening markers
+    - `reference_only_boundary_ready`
+    - `limited_extract_boundary_ready`
+    - `fallback_semantics_ready`
+
 仍要維持的原則是：
 - 一次只新增最小必要的 seed cases
 - 不把 scaffold 膨脹成 full scoring platform
@@ -130,6 +140,7 @@ P0-F 之後，這份 baseline 也正式擴充到 deliverable-oriented hardening 
 - observed hint areas
 - satisfied interface ids
 - pack scores / signal counts
+- observed ingestion markers
 - structured observations
 - pass / warn / fail status
 - notes / regression markers
@@ -158,6 +169,7 @@ python3 backend/scripts/run_pack_benchmark_scaffold.py --manifest backend/app/be
 python3 backend/scripts/run_pack_benchmark_scaffold.py --manifest backend/app/benchmarks/manifests/p0_legal_finance_contract.json
 python3 backend/scripts/run_pack_benchmark_scaffold.py --manifest backend/app/benchmarks/manifests/p0_operations_process.json
 python3 backend/scripts/run_pack_benchmark_scaffold.py --manifest backend/app/benchmarks/manifests/p0_deliverable_hardening.json
+python3 backend/scripts/run_pack_benchmark_scaffold.py --manifest backend/app/benchmarks/manifests/p0_ingestion_hardening.json
 ```
 
 ### 4.2 pytest baseline

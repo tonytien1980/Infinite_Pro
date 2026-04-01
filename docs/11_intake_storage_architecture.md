@@ -86,6 +86,21 @@ Infinite Pro 不再把 `/new` 的三種 intake patterns 理解成三個不同 on
   - 是否可直接進文字 evidence chain
   - 是否只能保留為 metadata / reference-level
   - 是否目前完全不可用、只能等待替代材料
+- item-level runtime contract 還應至少能正式區分：
+  - `extract availability`
+    - `full_text_ready`
+    - `partial_extract_ready`
+    - `reference_only`
+    - `not_available`
+  - `current usable scope`
+    - `chunk_ready`
+    - `limited_extract`
+    - `reference_only`
+    - `unusable`
+  - `fallback boundary`
+    - 現在是否應補文字版 / OCR 後文字 / 摘要
+    - 是否只適合先保留成 reference-level
+    - 是否應直接 replace / remove，而不是再期待自動解析成功
 
 ### 2.3 Case World Compiler 是正式第一站
 任何 intake 都必須先進入：
@@ -190,6 +205,10 @@ Host 必須在這一階段判斷：
   - 這個來源目前只能 reference-level 回鏈
   - 若有 page / file-level / frame-level locator，可保存最小 locator
   - usable scope 與 support level 是什麼
+- 對 table-heavy `.csv / .xlsx` 材料，第一波正式責任應是：
+  - 承認它們仍屬正式支援格式
+  - 但若目前只建立 row / worksheet snapshot，就應明確標示 `partial_extract_ready / limited_extract`
+  - 不可把快照式抽取假裝成與 free-text 文件等價的全文理解
 - 不可為了統一而假裝所有來源都具備同等 chunk 粒度
 
 ### 4.4 Matter-scoped canonicalization
@@ -242,6 +261,11 @@ Wave 5 之後，intake / supplement / parse 主鏈仍不應被誤解成 object-s
 - 可建立基本解析結果
 - 可掛回 `SourceMaterial / Artifact / Evidence`
 
+補充規則：
+- 正式支援不等於所有格式都具備同等抽取深度
+- table-heavy `.csv / .xlsx` 即使正式支援，第一波也可只提供有限快照式抽取
+- 只要系統已誠實標示 `extract availability / current usable scope / fallback boundary`，就不算違反正式支援承諾
+
 ### 5.2 有限支援
 以下格式目前屬於有限支援：
 - `.jpg`
@@ -254,6 +278,13 @@ Wave 5 之後，intake / supplement / parse 主鏈仍不應被誤解成 object-s
 - 建立 metadata / reference-level record
 - 不預設進行高成本 OCR
 - 不假裝與 text-first 文件有同等全文理解能力
+
+補充規則：
+- 掃描型 PDF 與 image-like materials 的第一波正式語義應更接近：
+  - `reference_only`
+  - `extract availability = reference_only`
+  - `current usable scope = reference_only`
+- 不可把 raw file 仍可回看，誤寫成「已可直接進正文 evidence chain」
 
 ### 5.3 尚未正式支援
 以下格式目前尚未正式支援：

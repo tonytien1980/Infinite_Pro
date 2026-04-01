@@ -1,0 +1,81 @@
+{
+  "manifest_id": "p0_g_ingestion_hardening_baseline",
+  "title": "P0-G ingestion hardening baseline",
+  "purpose": "Provide a minimal but executable before-and-after baseline for ingestion support-boundary honesty, limited extract handling, and fallback semantics without turning benchmark scaffolding into a new ingestion platform.",
+  "update_policy": [
+    "Only update this manifest when the shipped scope for P0-G changes.",
+    "Do not overwrite living QA evidence; benchmark scaffold records complement docs/16_qa_matrix.md.",
+    "Prefer revising seed cases over expanding into a full OCR or evaluation platform during P0-G."
+  ],
+  "cases": [
+    {
+      "case_id": "scanned_reference_boundary_control",
+      "title": "Scanned / image-like reference boundary",
+      "description": "OCR-heavy or scanned material should stay honest about reference-only support instead of looking chunk-ready.",
+      "client_stage": "制度化階段",
+      "client_type": "中小企業",
+      "domain_lenses": ["法務"],
+      "industry_hints": [],
+      "decision_context_summary": "Need to keep a scanned agreement and image attachment visible in the case, but only as source-level references until readable text or a reliable summary is supplied.",
+      "source_mix_summary": [
+        "scanned contract PDF",
+        "image attachment",
+        "manual review note"
+      ],
+      "target_domain_pack_ids": [
+        "legal_risk_pack"
+      ],
+      "target_industry_pack_ids": [],
+      "expected_contract_interface_ids": [
+        "evidence_readiness_v1",
+        "decision_framing_v1",
+        "deliverable_shaping_v1"
+      ],
+      "expected_hint_areas": [
+        "evidence_expectations",
+        "decision_patterns",
+        "deliverable_presets",
+        "readiness"
+      ],
+      "expected_ingestion_markers": [
+        "reference_only_boundary_ready",
+        "fallback_semantics_ready"
+      ]
+    },
+    {
+      "case_id": "table_snapshot_boundary_control",
+      "title": "Table-heavy limited extract boundary",
+      "description": "CSV / XLSX material should remain formally supported while staying honest that the first shipped path is limited table snapshot extraction.",
+      "client_stage": "制度化階段",
+      "client_type": "中小企業",
+      "domain_lenses": ["營運", "財務"],
+      "industry_hints": [],
+      "decision_context_summary": "Need to use spreadsheet evidence for throughput, backlog, and unit economics, but only treat the first shipped extract path as limited snapshot extraction unless the consultant adds table interpretation or text support.",
+      "source_mix_summary": [
+        "backlog CSV snapshot",
+        "unit economics workbook",
+        "manual metric interpretation note"
+      ],
+      "target_domain_pack_ids": [
+        "operations_pack",
+        "finance_fundraising_pack"
+      ],
+      "target_industry_pack_ids": [],
+      "expected_contract_interface_ids": [
+        "evidence_readiness_v1",
+        "decision_framing_v1",
+        "deliverable_shaping_v1"
+      ],
+      "expected_hint_areas": [
+        "evidence_expectations",
+        "decision_patterns",
+        "deliverable_presets",
+        "readiness"
+      ],
+      "expected_ingestion_markers": [
+        "limited_extract_boundary_ready",
+        "fallback_semantics_ready"
+      ]
+    }
+  ]
+}

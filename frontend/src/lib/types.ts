@@ -539,6 +539,10 @@ export interface MatterMaterialSummary {
   purge_at: string | null;
   availability_state: string | null;
   metadata_only: boolean;
+  diagnostic_category: string | null;
+  extract_availability: string | null;
+  current_usable_scope: string | null;
+  fallback_mode: string | null;
   created_at: string;
 }
 
@@ -678,6 +682,10 @@ export interface SourceDocument {
   purge_at: string | null;
   availability_state: string;
   metadata_only: boolean;
+  diagnostic_category: string | null;
+  extract_availability: string | null;
+  current_usable_scope: string | null;
+  fallback_mode: string | null;
   derived_storage_key: string | null;
   extracted_text: string | null;
   ingestion_error: string | null;
@@ -768,6 +776,10 @@ export interface SourceMaterial {
   purge_at: string | null;
   availability_state: string;
   metadata_only: boolean;
+  diagnostic_category: string | null;
+  extract_availability: string | null;
+  current_usable_scope: string | null;
+  fallback_mode: string | null;
   summary: string;
   ingestion_error: string | null;
   participation: ObjectParticipation | null;
@@ -1406,6 +1418,10 @@ export interface ArtifactEvidenceMaterial {
   purge_at: string | null;
   availability_state: string | null;
   metadata_only: boolean;
+  diagnostic_category: string | null;
+  extract_availability: string | null;
+  current_usable_scope: string | null;
+  fallback_mode: string | null;
   linked_evidence_count: number;
   linked_output_count: number;
   created_at: string;

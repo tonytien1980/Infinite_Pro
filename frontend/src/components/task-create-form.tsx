@@ -588,6 +588,9 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
       ingest_strategy: string;
       metadata_only: boolean;
       ingestion_error: string | null;
+      diagnostic_category?: string | null;
+      extract_availability?: string | null;
+      current_usable_scope?: string | null;
     };
     source_material?: {
       support_level: string;
@@ -595,6 +598,9 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
       ingest_strategy: string;
       metadata_only: boolean;
       ingestion_error?: string | null;
+      diagnostic_category?: string | null;
+      extract_availability?: string | null;
+      current_usable_scope?: string | null;
     } | null;
   }) {
     return describeRuntimeMaterialHandling({
@@ -609,6 +615,15 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
       ingestionError:
         runtimeItem.source_material?.ingestion_error ??
         runtimeItem.source_document.ingestion_error,
+      diagnosticCategory:
+        runtimeItem.source_material?.diagnostic_category ??
+        runtimeItem.source_document.diagnostic_category,
+      extractAvailability:
+        runtimeItem.source_material?.extract_availability ??
+        runtimeItem.source_document.extract_availability,
+      currentUsableScope:
+        runtimeItem.source_material?.current_usable_scope ??
+        runtimeItem.source_document.current_usable_scope,
       context: { lane: "intake" },
     });
   }
@@ -1025,7 +1040,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
           <div className="section-heading">
             <h3 style={{ fontSize: "1rem", marginBottom: "6px" }}>統一材料區</h3>
             <p style={{ marginTop: 0 }}>
-              同一個區域可同時接收檔案、URL 與補充文字。正式支援：MD、TXT、DOCX、XLSX、CSV、text-based PDF、URL、補充文字。有限支援：JPG / JPEG、PNG、WEBP、掃描型 PDF 目前只建立 metadata / reference，不預設 OCR。
+              同一個區域可同時接收檔案、URL 與補充文字。正式支援：MD、TXT、DOCX、XLSX、CSV、text-based PDF、URL、補充文字。XLSX / CSV 目前先做表格快照式抽取；若要判斷公式、欄位關係與脈絡，仍建議補欄位說明或文字摘要。有限支援：JPG / JPEG、PNG、WEBP、掃描型 PDF 目前只建立 metadata / reference，不預設 OCR。
             </p>
           </div>
 

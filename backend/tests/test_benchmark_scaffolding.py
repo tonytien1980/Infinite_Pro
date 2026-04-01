@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from app.benchmarks.runner import (
     DEFAULT_P0_DELIVERABLE_HARDENING_MANIFEST,
+    DEFAULT_P0_INGESTION_HARDENING_MANIFEST,
     DEFAULT_P0_INDUSTRY_BATCH1_MANIFEST,
     DEFAULT_P0_INDUSTRY_BATCH2_MANIFEST,
     DEFAULT_P0_LEGAL_FINANCE_CONTRACT_MANIFEST,
@@ -152,3 +153,24 @@ def test_p0_f_deliverable_hardening_runner_executes_against_current_stack() -> N
     assert all(result.pack_scores for result in results)
     assert all(result.satisfied_interface_ids for result in results)
     assert all(result.observed_deliverable_markers for result in results)
+
+
+def test_p0_g_ingestion_hardening_manifest_covers_expected_seed_cases() -> None:
+    manifest = load_manifest(DEFAULT_P0_INGESTION_HARDENING_MANIFEST)
+
+    assert manifest.manifest_id == "p0_g_ingestion_hardening_baseline"
+    assert len(manifest.cases) == 2
+    assert all(case.expected_ingestion_markers for case in manifest.cases)
+    assert all(BenchmarkHintArea.READINESS in case.expected_hint_areas for case in manifest.cases)
+
+
+def test_p0_g_ingestion_hardening_runner_executes_against_current_stack() -> None:
+    manifest = load_manifest(DEFAULT_P0_INGESTION_HARDENING_MANIFEST)
+    results = run_manifest(manifest)
+
+    assert len(results) == 2
+    assert all(result.status == BenchmarkStatus.PASS for result in results)
+    assert all(not result.missing_target_pack_ids for result in results)
+    assert all(result.pack_scores for result in results)
+    assert all(result.satisfied_interface_ids for result in results)
+    assert all(result.observed_ingestion_markers for result in results)

@@ -386,6 +386,7 @@ export function defaultProgressInfoForPreviewItem(
     keepAsReference?: boolean;
   },
 ): IntakeItemProgressInfo {
+  const isLimitedExtract = item.diagnosticCategory === "accepted_limited_extraction";
   if (previewItemBlocksSubmit(item)) {
     return {
       phase: "blocked",
@@ -399,11 +400,13 @@ export function defaultProgressInfoForPreviewItem(
   if (item.status === "limited" && options?.keepAsReference) {
     return {
       phase: "ready",
-      label: "將保留 reference",
-      detail: `這份材料目前屬「${item.usableScopeLabel}」，不擋送出，會以 metadata / reference-level 方式保留。`,
+      label: isLimitedExtract ? "將保留有限抽取" : "將保留 reference",
+      detail: isLimitedExtract
+        ? `這份材料目前屬「${item.usableScopeLabel}」，不擋送出，會先保留有限抽取結果與補充提示。`
+        : `這份材料目前屬「${item.usableScopeLabel}」，不擋送出，會以 metadata / reference-level 方式保留。`,
       blocksSubmit: false,
       retryable: false,
-      referenceOnly: true,
+      referenceOnly: !isLimitedExtract,
     };
   }
   if (item.status === "pending") {
@@ -419,11 +422,13 @@ export function defaultProgressInfoForPreviewItem(
   if (item.status === "limited") {
     return {
       phase: "ready",
-      label: "可保留 reference",
-      detail: `這份材料目前屬「${item.usableScopeLabel}」，不擋送出，但最適合先當 reference-level 來源。`,
+      label: isLimitedExtract ? "可保留有限抽取" : "可保留 reference",
+      detail: isLimitedExtract
+        ? `這份材料目前屬「${item.usableScopeLabel}」，不擋送出，但後續判讀最適合同時補欄位說明或摘要。`
+        : `這份材料目前屬「${item.usableScopeLabel}」，不擋送出，但最適合先當 reference-level 來源。`,
       blocksSubmit: false,
       retryable: false,
-      referenceOnly: true,
+      referenceOnly: !isLimitedExtract,
     };
   }
   return {
@@ -442,6 +447,7 @@ export function progressInfoFromRuntimeHandling(
     keepAsReference?: boolean;
   },
 ): IntakeItemProgressInfo {
+  const isLimitedExtract = handling.diagnosticCategory === "accepted_limited_extraction";
   if (handling.status === "issue") {
     return {
       phase: "failed",
@@ -467,11 +473,16 @@ export function progressInfoFromRuntimeHandling(
   if (handling.status === "limited") {
     return {
       phase: "done",
-      label: options?.keepAsReference ? "已保留 reference" : "有限支援 / 已保留",
+      label:
+        options?.keepAsReference && !isLimitedExtract
+          ? "已保留 reference"
+          : isLimitedExtract
+            ? "有限抽取 / 已保留"
+            : "有限支援 / 已保留",
       detail: `這份材料已被保留，目前屬「${handling.usableScopeLabel}」。`,
       blocksSubmit: false,
       retryable: false,
-      referenceOnly: true,
+      referenceOnly: !isLimitedExtract,
     };
   }
   if (handling.status === "pending") {
@@ -632,6 +643,45 @@ function buildFilePreviewItem(
         workspace: "若你希望它真的進 evidence chain，建議補文字版、OCR 後文字或手動摘要。",
       }),
       fallbackStrategy: "較佳替代方式是 text-first PDF、DOCX、TXT、可讀 URL，或直接補貼文字重點。",
+    };
+  }
+
+  if (extension === ".csv" || extension === ".xlsx") {
+    return {
+      id: `file-${index}`,
+      kind: "file",
+      kindLabel: "檔案",
+      index,
+      title: file.name,
+      metadata,
+      preview: "",
+      diagnosticCategory: "accepted_limited_extraction",
+      diagnosticLabel: "已接受，但表格抽取有限",
+      likelyCauseDetail:
+        extension === ".xlsx"
+          ? "這份工作表會先以 worksheet snapshot 方式擷取，公式、跨表關聯與深層結構仍需人工補充判讀。"
+          : "這份表格會先以 row snapshot 方式擷取，欄位關係、公式與上下文仍需人工補充判讀。",
+      usableScopeLabel: "可先做文字摘錄，但表格抽取有限",
+      usableScopeDetail:
+        "可先沿正式主鏈使用已抽出的列 / 工作表快照，但不能假裝已完整理解表格結構、公式或跨表脈絡。",
+      retryabilityLabel: "不需要先重試",
+      retryabilityDetail: "這不是暫時性失敗；若要提高可信度，較適合補欄位說明、重點摘要或文字版解釋。",
+      status: "limited",
+      statusLabel: "抽取有限",
+      statusDetail:
+        "建立案件後會保留可用的表格快照，但關鍵欄位、公式與表格脈絡仍需人工補充判讀。",
+      impactDetail: appendLaneImpact(
+        "它可先沿正式主鏈使用已抽出的表格快照，但不能假裝已完整理解欄位關係、公式或跨表脈絡。",
+        context,
+      ),
+      recommendedNextStep: laneAwareNextStep(context, {
+        intake: "可以先建立案件；若這份表格很重要，建議同時補欄位說明、重點摘要或更易讀的文字版說明。",
+        oneOff: "若這份表格是交付物主依據，請補欄位解釋、重點摘要或更易讀的文字版說明。",
+        followUp: "若這份表格要支撐這輪 checkpoint，請補欄位解釋、重點摘要或更易讀的文字版說明。",
+        continuous: "若這份表格要支撐這輪 progression，請補欄位解釋、重點摘要或更易讀的文字版說明。",
+        workspace: "可先保留表格快照，但若要做正式判斷，建議補欄位定義、重點摘要或文字版說明。",
+      }),
+      fallbackStrategy: "較佳替代方式是補欄位定義、重點摘要、text-first PDF / DOCX，或直接貼出關鍵表格解讀。",
     };
   }
 
@@ -907,6 +957,9 @@ export function describeRuntimeMaterialHandling({
   ingestStrategy,
   metadataOnly,
   ingestionError,
+  diagnosticCategory,
+  extractAvailability,
+  currentUsableScope,
   context,
 }: {
   supportLevel: string | null;
@@ -914,6 +967,9 @@ export function describeRuntimeMaterialHandling({
   ingestStrategy: string | null;
   metadataOnly: boolean;
   ingestionError?: string | null;
+  diagnosticCategory?: string | null;
+  extractAvailability?: string | null;
+  currentUsableScope?: string | null;
   context?: MaterialRemediationContext;
 }): RuntimeMaterialHandlingSummary {
   if (ingestStatus === "failed") {
@@ -971,41 +1027,100 @@ export function describeRuntimeMaterialHandling({
   }
 
   if (
+    diagnosticCategory === "accepted_limited_table_extract" ||
+    currentUsableScope === "limited_extract" ||
+    extractAvailability === "partial_extract_ready" ||
+    ingestStrategy === "table_snapshot" ||
+    ingestStrategy === "worksheet_snapshot"
+  ) {
+    return {
+      status: "limited",
+      statusLabel: "抽取有限",
+      diagnosticCategory: "accepted_limited_extraction",
+      diagnosticLabel: "已接受，但表格抽取有限",
+      likelyCauseDetail:
+        ingestStrategy === "worksheet_snapshot"
+          ? "這份工作表目前先以 worksheet snapshot 方式擷取，公式、跨表關聯與深層結構仍需人工補充判讀。"
+          : "這份表格目前先以 row snapshot 方式擷取，欄位關係、公式與上下文仍需人工補充判讀。",
+      usableScopeLabel: "可先做文字摘錄，但表格抽取有限",
+      usableScopeDetail:
+        "目前可先沿 evidence chain 使用已抽出的列 / 工作表快照，但不能假裝已完整理解表格結構、公式或跨表脈絡。",
+      retryabilityLabel: "重試通常沒有幫助",
+      retryabilityDetail: "這不是暫時性錯誤；若要提高可信度，較適合補文字說明、重點摘要或更適合閱讀的文字版材料。",
+      statusDetail:
+        "這份材料已被接收並形成有限抽取；現在可先用抽出的重點，但關鍵欄位、公式與表格脈絡仍需人工補充判讀。",
+      impactDetail: appendLaneImpact(
+        "它可先沿 evidence chain 使用已抽出的表格快照，但不能假裝已完整理解欄位關係、公式或跨表脈絡。",
+        context,
+      ),
+      recommendedNextStep: laneAwareNextStep(context, {
+        intake: "若你需要更穩的判讀，建議同時補一段欄位說明、重點摘要，或補能直接解釋表格意義的文字版材料。",
+        oneOff: "若這份表格要支撐本次交付物，建議補欄位說明、重點摘要，或補一份更易讀的文字版說明。",
+        followUp: "若這份表格要支撐這輪 checkpoint，建議補欄位解釋、重點摘要，或補一份更易讀的文字版說明。",
+        continuous: "若這份表格要支撐這輪 progression 判斷，建議補欄位解釋、重點摘要，或補一份更易讀的文字版說明。",
+        workspace: "可先用已抽出的快照，但若要做正式判斷，建議補欄位定義、重點摘要或文字版說明。",
+      }),
+      fallbackStrategy: "較佳替代方式是補欄位定義、重點摘要、text-first PDF / DOCX，或直接貼出關鍵表格解讀。",
+      retryable: false,
+    };
+  }
+
+  if (
     supportLevel === "limited" ||
     metadataOnly ||
     ingestStatus === "metadata_only" ||
     ingestStrategy === "reference_image" ||
-    ingestStrategy === "pdf_metadata_only"
+    ingestStrategy === "image_reference" ||
+    ingestStrategy === "pdf_metadata_only" ||
+    ingestStrategy === "scanned_pdf_reference" ||
+    currentUsableScope === "reference_only" ||
+    extractAvailability === "reference_only"
   ) {
     return {
       status: "limited",
       statusLabel: "有限支援",
       diagnosticCategory:
-        ingestStrategy === "reference_image" || metadataOnly
+        ingestStrategy === "reference_image" ||
+        ingestStrategy === "image_reference" ||
+        ingestStrategy === "pdf_metadata_only" ||
+        ingestStrategy === "scanned_pdf_reference" ||
+        metadataOnly
           ? "reference_only"
           : "accepted_limited_extraction",
       diagnosticLabel:
-        ingestStrategy === "reference_image" || metadataOnly
+        ingestStrategy === "reference_image" ||
+        ingestStrategy === "image_reference" ||
+        ingestStrategy === "pdf_metadata_only" ||
+        ingestStrategy === "scanned_pdf_reference" ||
+        metadataOnly
           ? "有限支援 / reference-only"
           : "已接受，但擷取受限",
       likelyCauseDetail:
-        ingestStrategy === "reference_image"
+        ingestStrategy === "reference_image" || ingestStrategy === "image_reference"
           ? "這類來源目前只做影像 reference / metadata intake，不預設 OCR 或完整全文理解。"
+          : ingestStrategy === "pdf_metadata_only" || ingestStrategy === "scanned_pdf_reference"
+            ? "這份 PDF 目前更接近掃描 / 圖像來源，只保留 reference-level 回鏈，不預設 OCR。"
           : "來源已被接收，但目前擷取層級受限，不能把它當成完整正文來源。",
       usableScopeLabel: "僅可 reference-level 保留",
       usableScopeDetail:
-        ingestStrategy === "reference_image"
+        ingestStrategy === "reference_image" || ingestStrategy === "image_reference"
           ? "這份材料可作 reference，但不能直接當成完整文字證據或完整全文來源。"
+          : ingestStrategy === "pdf_metadata_only" || ingestStrategy === "scanned_pdf_reference"
+            ? "這份掃描 / 圖像型 PDF 目前只能作來源層級引用，不能直接當成完整文字證據。"
           : "這份材料可保留在案件世界內，但不能假裝已完整抽文，也不應直接當成穩定 evidence extraction 來源。",
       retryabilityLabel: "重試通常沒有幫助",
       retryabilityDetail: "這不是暫時性失敗；若要升級成文字可用，較適合補文字版、OCR 後文字或摘要。",
       statusDetail:
-        ingestStrategy === "reference_image"
+        ingestStrategy === "reference_image" || ingestStrategy === "image_reference"
           ? "目前只建立影像 reference / metadata，不預設 OCR 或完整全文理解。"
+          : ingestStrategy === "pdf_metadata_only" || ingestStrategy === "scanned_pdf_reference"
+            ? "目前只建立掃描 / 圖像型 PDF 的 reference-level 記錄，不預設 OCR 或完整全文抽取。"
           : "目前只建立 metadata / reference-level 記錄；若是掃描型 PDF 或低文字密度來源，不會假裝成完整全文支援。",
       impactDetail: appendLaneImpact(
-        ingestStrategy === "reference_image"
+        ingestStrategy === "reference_image" || ingestStrategy === "image_reference"
           ? "這份材料可作 reference，但不能直接當成完整文字證據或完整全文來源。"
+          : ingestStrategy === "pdf_metadata_only" || ingestStrategy === "scanned_pdf_reference"
+            ? "這份材料目前只能作來源層級引用，不能直接假裝成已可正文引用的文字證據。"
           : "這份材料可保留在案件世界內，但不能假裝已完整抽文，也不應直接當成穩定 evidence extraction 來源。",
         context,
       ),
