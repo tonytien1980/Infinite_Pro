@@ -244,6 +244,17 @@ Agent / Pack 管理面的「精簡建立 -> 正式 contract draft」同樣屬於
   應限制在正式治理詞彙內
 - 不合法值應被清理、保守降級或拒絕，而不是直接落進 registry
 
+### 10.3 OpenAI request-body 預檢與 parse-body 400 收斂
+
+在單人正式 beta 階段，`openai` 正式 runtime path 也應保留最小但真實的 request guardrail，而不是把 provider-side parse 錯誤直接當作不可解釋的黑盒失敗。
+
+正式規則：
+- backend 應先對即將送出的 JSON request body 做本地預檢
+- 若 request body 在本地序列化 / decode / parse 就失敗，應直接 fail-closed，不可把錯誤延後成模糊的 provider runtime 問題
+- 若本地 request-body 預檢已通過，但 OpenAI 官方 API 回傳明確的 parse-body `HTTP 400`，backend 可在同一 provider path 內以 fresh request 進行單次收斂重試
+- 此類單次重試仍不得繞過 provider abstraction，也不得改走 UI fallback、mock provider 或未治理的替代路徑
+- 若重試後仍失敗，應維持正式 fail-closed 行為，而不是吞錯或偽裝成成功
+
 ---
 
 ## 11. 第一波 provider 支援層級
@@ -254,6 +265,7 @@ Agent / Pack 管理面的「精簡建立 -> 正式 contract draft」同樣屬於
   - backend validator 正式接通
   - runtime path 為正式主路徑
   - 官方 OpenAI API 路徑
+  - request-body 本地預檢與 parse-body `HTTP 400` 單次收斂重試已正式建立
   - 推薦模型：
     - `gpt-5.4`
     - `gpt-5.4-mini`

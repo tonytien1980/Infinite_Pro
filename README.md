@@ -621,6 +621,7 @@ Formal rules:
 - saving or validating provider settings is fail-closed
 - frontend never calls third-party model providers directly
 - `openai` uses the official OpenAI API path
+- the OpenAI runtime path now preflights the exact outgoing JSON request body locally and retries once only for provider-side parse-body `HTTP 400` when the local body is already valid
 - `anthropic` uses the native Claude Messages API path, with the preset default base URL pointed at the Messages API endpoint
 - `gemini` uses the native Gemini API path, with the preset default base URL pointed at the native Gemini API root
 - `xai` and `minimax` currently remain on officially documented compatibility paths

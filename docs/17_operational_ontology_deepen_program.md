@@ -176,6 +176,16 @@ Wave 0-5 全部完成後，repo 已正式採納下一階段的 hardening / exten
 - 仍不應重做 benchmark platform；只應最小擴充現有 scaffold
 - 仍需遵守 Host-only orchestration、low-noise disclosure 與 docs-code lockstep 原則
 
+若進入 `P0-D`，正式方向應是：
+- clause / obligation set + legal / finance hardening
+- 仍不是新的 deepen wave
+- 仍不應把 object-set baseline 拉成新平台或 contract review console
+- 應先以 `P0-D-0` 收斂已知 `finance_capital` provider/runtime preflight 問題，再進入主施工
+- `P0-D-0` 應維持最小可驗證修補：
+  - 不重寫 provider stack
+  - 不繞過 Host / provider boundary
+  - 只把 request-body 預檢與 parse-body 400 收斂做成獨立 checkpoint
+
 ### 3.6 adopted planning file 的正式處理規則
 
 若某份下一階段 proposal 的內容已被正式採納：

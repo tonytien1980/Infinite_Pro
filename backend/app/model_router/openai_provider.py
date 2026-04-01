@@ -71,6 +71,26 @@ def _extract_message_content(response_payload: dict[str, Any]) -> str:
     raise ModelProviderError("OpenAI provider 回傳了不支援的內容格式。")
 
 
+def _build_request_body(payload: dict[str, Any]) -> bytes:
+    try:
+        encoded = json.dumps(payload).encode("utf-8")
+        # Preflight the exact bytes we are about to send so a locally invalid request
+        # fails before the network call instead of surfacing as a vague downstream error.
+        json.loads(encoded.decode("utf-8"))
+    except (TypeError, ValueError, UnicodeError, json.JSONDecodeError) as exc:
+        raise ModelProviderError(f"OpenAI provider request body 預檢失敗：{exc}") from exc
+    return encoded
+
+
+def _is_retryable_parse_body_http_error(error_body: str) -> bool:
+    lowered = error_body.lower()
+    return (
+        "could not parse the json body" in lowered
+        or "expects a json payload" in lowered
+        or "what was sent was not valid json" in lowered
+    )
+
+
 class OpenAIModelProvider(ModelProvider):
     def __init__(
         self,
@@ -107,15 +127,7 @@ class OpenAIModelProvider(ModelProvider):
             },
         }
 
-        http_request = request.Request(
-            f"{self.base_url}/chat/completions",
-            data=json.dumps(payload).encode("utf-8"),
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {self.api_key}",
-            },
-            method="POST",
-        )
+        request_body = _build_request_body(payload)
 
         timeout_attempts = [self.timeout_seconds]
         retry_timeout_seconds = max(self.timeout_seconds * 2, self.timeout_seconds + 60, 120)
@@ -124,6 +136,15 @@ class OpenAIModelProvider(ModelProvider):
 
         raw_payload: dict[str, Any] | None = None
         for attempt_index, timeout_seconds in enumerate(timeout_attempts, start=1):
+            http_request = request.Request(
+                f"{self.base_url}/chat/completions",
+                data=request_body,
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {self.api_key}",
+                },
+                method="POST",
+            )
             try:
                 with request.urlopen(http_request, timeout=timeout_seconds) as response:
                     raw_payload = json.loads(response.read().decode("utf-8"))
@@ -133,6 +154,17 @@ class OpenAIModelProvider(ModelProvider):
                     error_body = exc.read().decode("utf-8")
                 except Exception:  # noqa: BLE001
                     error_body = ""
+                if (
+                    exc.code == 400
+                    and _is_retryable_parse_body_http_error(error_body)
+                    and attempt_index < len(timeout_attempts)
+                ):
+                    logger.warning(
+                        "OpenAI provider returned parse-body 400 for schema=%s on attempt=%s; request body passed local preflight, retrying once.",
+                        spec.schema_name,
+                        attempt_index,
+                    )
+                    continue
                 raise ModelProviderError(
                     f"OpenAI provider 回傳 HTTP {exc.code}：{error_body or exc.reason}"
                 ) from exc

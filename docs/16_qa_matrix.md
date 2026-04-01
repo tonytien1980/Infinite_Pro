@@ -483,3 +483,56 @@ Important verification note:
 - Batch 2 now extends the same formal industry-contract baseline established in P0-B instead of inventing a second industry architecture
 - the benchmark scaffold now covers both Industry Batch 1 and Batch 2 while remaining a small executable baseline, not a full evaluation platform
 - Batch 2 live runtime still flows through Host-only orchestration and keeps contract depth inside low-noise disclosure / background surfaces
+
+---
+
+## Entry: 2026-04-01 P0-D-0 finance_capital runtime preflight bugfix
+
+Scope:
+- `finance_capital` OpenAI runtime preflight bugfix
+- local request-body preflight for the official OpenAI path
+- single retry only for provider-side parse-body `HTTP 400` when the local request body is already valid
+
+Environment used:
+- backend runtime config: `openai / gpt-5.4 / https://api.openai.com/v1`
+- live aggregate replay: current local runtime case data
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`96 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && npx next typegen` | Passed |
+| `cd frontend && npm run typecheck` | Passed |
+| `python3 backend/scripts/run_pack_benchmark_scaffold.py` | Passed |
+
+Important verification note:
+- on the current Next 15 frontend, `npm run build` did not fully restore `.next/types` by itself on this machine
+- the valid verification order for this checkpoint was `build -> next typegen -> typecheck`
+
+### P0-D-0 specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | OpenAI provider path | Reproduce the original parse-body `HTTP 400` as a targeted provider test and verify single-retry recovery | Verified | the test now proves the same schema can recover on the second attempt without bypassing provider abstraction |
+| Backend | OpenAI request body | Local JSON serialization / decode / parse preflight before network dispatch | Verified | locally invalid request bodies now fail early with explicit provider-preflight error text |
+| Backend | Live finance replay | Replay the previously failing `finance_capital` aggregate through the real OpenAI provider path | Verified | live replay returned structured output after the preflight hardening path was added |
+| Runtime | Host / provider boundary | Keep the fix inside the OpenAI provider adapter rather than moving logic into Host or UI | Verified | no Host bypass and no UI fallback path was introduced |
+
+### Live verification data
+
+- failing case replay source: `/tmp/p0c_batch2_run.json`
+- aggregate snapshot used for replay: `/tmp/p0d0_task_aggregate.json`
+- payload snapshots:
+  - `/tmp/finance_capital_payload.json`
+  - `/tmp/operations_payload.json`
+  - `/tmp/strategy_business_analysis_payload.json`
+
+### Verified outcomes
+
+- the `finance_capital` runtime issue was narrowed to a provider-side parse-body `HTTP 400` failure mode rather than a pack-layer or deliverable-writeback bug
+- the official OpenAI path now does a local request-body preflight before the network call
+- if the local request body is valid but OpenAI returns the specific parse-body `HTTP 400`, the provider retries once on the same governed path instead of failing immediately
+- the fix stays fail-closed after the retry and does not bypass Host orchestration or the provider abstraction boundary

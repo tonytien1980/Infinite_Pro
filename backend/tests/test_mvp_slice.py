@@ -4116,6 +4116,109 @@ def test_openai_provider_retries_once_after_timeout(
     assert result.findings == ["Recovered finding"]
 
 
+def test_openai_provider_retries_once_after_parse_body_400_when_local_body_is_valid(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from urllib import error
+
+    from app.model_router import openai_provider
+    from app.model_router.base import CoreAnalysisRequest
+    from app.model_router.openai_provider import OpenAIModelProvider
+
+    class FakeResponse:
+        def __init__(self, payload: dict):
+            self.payload = payload
+
+        def read(self) -> bytes:
+            return json.dumps(self.payload).encode("utf-8")
+
+        def __enter__(self):  # noqa: ANN204
+            return self
+
+        def __exit__(self, exc_type, exc, tb):  # noqa: ANN001, ANN204
+            return False
+
+    class FakeHTTPError(error.HTTPError):
+        def __init__(self, body: str):
+            super().__init__(
+                url="https://api.openai.com/v1/chat/completions",
+                code=400,
+                msg="Bad Request",
+                hdrs=None,
+                fp=None,
+            )
+            self._body = body
+
+        def read(self) -> bytes:
+            return self._body.encode("utf-8")
+
+    attempts: list[int] = []
+
+    def fake_urlopen(http_request, timeout):  # noqa: ANN001
+        request_body = json.loads(http_request.data.decode("utf-8"))
+        attempts.append(timeout)
+        if len(attempts) == 1:
+            assert request_body["response_format"]["json_schema"]["name"] == "finance_capital_core_output"
+            raise FakeHTTPError(
+                json.dumps(
+                    {
+                        "error": {
+                            "message": (
+                                "We could not parse the JSON body of your request. "
+                                "(HINT: This likely means you aren't using your HTTP library correctly. "
+                                "The OpenAI API expects a JSON payload, but what was sent was not valid JSON.)"
+                            ),
+                            "type": "invalid_request_error",
+                            "param": None,
+                            "code": None,
+                        }
+                    }
+                )
+            )
+        return FakeResponse(
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "content": json.dumps(
+                                {
+                                    "findings": ["Finance finding"],
+                                    "risks": ["Finance risk"],
+                                    "recommendations": ["Finance recommendation"],
+                                    "action_items": ["Finance action"],
+                                    "missing_information": [],
+                                }
+                            )
+                        }
+                    }
+                ]
+            }
+        )
+
+    monkeypatch.setattr(openai_provider.request, "urlopen", fake_urlopen)
+    provider = OpenAIModelProvider(
+        api_key="test-key",
+        model="gpt-5.4",
+        base_url="https://api.openai.com/v1",
+        timeout_seconds=60,
+    )
+
+    result = provider.generate_core_analysis(
+        CoreAnalysisRequest(
+            agent_id="finance_capital",
+            task_title="Finance retry task",
+            task_description="Finance retry description",
+            background_text="Background",
+            goals=["Goal"],
+            constraints=["Constraint"],
+            evidence=[{"id": "e1", "title": "Evidence", "content": "Useful evidence"}],
+        )
+    )
+
+    assert attempts == [60, 120]
+    assert result.findings == ["Finance finding"]
+
+
 def test_specialist_run_fails_closed_when_model_provider_errors(
     client: TestClient,
     monkeypatch: pytest.MonkeyPatch,
