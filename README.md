@@ -214,6 +214,12 @@ P0-E extends the same baseline into process-aware operations work:
 - `operations_pack` now carries stronger process-aware evidence expectations, decision framing, and remediation-oriented deliverable hints
 - the benchmark scaffold now also includes `backend/app/benchmarks/manifests/p0_operations_process.json` for operations / process-aware before / after checks
 
+P0-F then hardens deliverable reading and release discipline without opening a new deliverable studio:
+- deliverable advanced sections now apply stronger bundle density / ranking / default display rules
+- deliverable-local bundles now default to high-signal member previews first, with the rest kept behind low-noise expansion
+- Markdown / DOCX export and publish event payloads now carry support-bundle summaries so artifact-readiness stays aligned with what the consultant actually sees in the workbench
+- the benchmark scaffold now also includes `backend/app/benchmarks/manifests/p0_deliverable_hardening.json` for deliverable-oriented regression markers
+
 Within the single-consultant scope, Agent Orchestration is now treated as a completed runtime layer:
 - Host selection formally responds to capability archetype, selected packs, decision context, readiness/evidence sufficiency, sparse-input mode, and deliverable class
 - selected agents influence execution path and deliverable shaping, not just metadata

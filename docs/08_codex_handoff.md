@@ -288,6 +288,11 @@ P0-E 之後，Codex 還必須再維持：
 - first shipped scope 只先落在 deliverable-local remediation support bundle
 - process issue members 應能回鏈到正式 evidence，而不是只剩 UI 文字分組
 
+P0-F 之後，Codex 還必須再維持：
+- deliverable hardening 只能是既有 deliverable workspace 的閱讀 / 匯出 / 發布紀律強化
+- 不可把這輪做成新的 deliverable studio / CMS / report builder
+- bundle summary、member ranking、default-visible discipline 與 export/publish summary 應保持一致，而不是畫面和 artifact 各走各的
+
 當後續進入 P0-A `Domain / Functional Packs Full Hardening Sprint` 時，Codex 也應維持：
 - 這是 pack-layer hardening / extension，不是新的 deepen wave
 - 8 個 domain packs 應被視為正式可依賴 contract 的深化目標，不只是 catalog 文案

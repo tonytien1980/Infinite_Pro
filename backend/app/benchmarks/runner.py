@@ -18,6 +18,7 @@ from app.extensions.schemas import (
     PackResolverInput,
     PackSpec,
 )
+from app.services.object_sets import supported_deliverable_hardening_markers
 
 DEFAULT_P0_INDUSTRY_BATCH1_MANIFEST = (
     Path(__file__).resolve().parent / "manifests" / "p0_industry_batch1.json"
@@ -30,6 +31,9 @@ DEFAULT_P0_LEGAL_FINANCE_CONTRACT_MANIFEST = (
 )
 DEFAULT_P0_OPERATIONS_PROCESS_MANIFEST = (
     Path(__file__).resolve().parent / "manifests" / "p0_operations_process.json"
+)
+DEFAULT_P0_DELIVERABLE_HARDENING_MANIFEST = (
+    Path(__file__).resolve().parent / "manifests" / "p0_deliverable_hardening.json"
 )
 
 
@@ -72,6 +76,7 @@ def run_benchmark_case(
     selected_ids = [*resolution.selected_domain_pack_ids, *resolution.selected_industry_pack_ids]
     target_ids = [*case.target_domain_pack_ids, *case.target_industry_pack_ids]
     observations: list[BenchmarkObservation] = []
+    observed_deliverable_markers: list[str] = []
 
     missing_target_pack_ids = [pack_id for pack_id in target_ids if pack_id not in selected_ids]
     if missing_target_pack_ids:
@@ -133,6 +138,32 @@ def run_benchmark_case(
                     )
                 )
 
+    if case.expected_deliverable_markers:
+        supported_markers = set(supported_deliverable_hardening_markers())
+        observed_deliverable_markers = [
+            marker for marker in case.expected_deliverable_markers if marker in supported_markers
+        ]
+        missing_deliverable_markers = [
+            marker for marker in case.expected_deliverable_markers if marker not in supported_markers
+        ]
+        if missing_deliverable_markers:
+            observations.append(
+                BenchmarkObservation(
+                    dimension="deliverable_hardening_markers",
+                    status=BenchmarkStatus.WARN,
+                    detail="仍缺 deliverable-oriented marker：" + "、".join(missing_deliverable_markers),
+                    regression_marker="missing_deliverable_marker",
+                )
+            )
+        else:
+            observations.append(
+                BenchmarkObservation(
+                    dimension="deliverable_hardening_markers",
+                    status=BenchmarkStatus.PASS,
+                    detail="已具備預期的 deliverable-oriented hardening markers。",
+                )
+            )
+
     if not [item for item in observations if item.status == BenchmarkStatus.FAIL]:
         observations.append(
             BenchmarkObservation(
@@ -159,6 +190,7 @@ def run_benchmark_case(
         observed_hint_areas=_unique_hint_areas(observed_hint_areas),
         satisfied_interface_ids=_unique_interfaces(satisfied_interface_ids),
         missing_target_pack_ids=missing_target_pack_ids,
+        observed_deliverable_markers=observed_deliverable_markers,
         pack_scores=resolution.pack_scores,
         pack_signal_counts={key: len(value) for key, value in resolution.pack_signals.items()},
         status=overall_status,

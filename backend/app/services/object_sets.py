@@ -73,6 +73,30 @@ _PROCESS_ISSUE_KEYWORDS = {
         "無人承接",
     ],
 }
+_OBJECT_SET_DISPLAY_PRIORITY = {
+    ObjectSetType.CLAUSE_OBLIGATION_SET_V1: 0,
+    ObjectSetType.PROCESS_ISSUE_SET_V1: 1,
+    ObjectSetType.EVIDENCE_SET_V1: 2,
+    ObjectSetType.RISK_SET_V1: 3,
+}
+_OBJECT_SET_DEFAULT_VISIBLE_LIMITS = {
+    ObjectSetType.CLAUSE_OBLIGATION_SET_V1: 6,
+    ObjectSetType.PROCESS_ISSUE_SET_V1: 6,
+    ObjectSetType.EVIDENCE_SET_V1: 4,
+    ObjectSetType.RISK_SET_V1: 5,
+}
+_PROCESS_ISSUE_TYPE_PRIORITY = {
+    "capacity_bottleneck": 0,
+    "dependency_block": 1,
+    "control_gap": 2,
+    "owner_gap": 3,
+    "process_risk": 4,
+}
+_DELIVERABLE_HARDENING_MARKERS = (
+    "bundle_density_policy_ready",
+    "support_bundle_summary_ready",
+    "artifact_readiness_summary_ready",
+)
 
 
 def _unique_preserve_order(values: Iterable[str]) -> list[str]:
@@ -314,6 +338,146 @@ def _best_supporting_evidence(
             best_match = evidence
 
     return best_match or evidence_items[0]
+
+
+def supported_deliverable_hardening_markers() -> list[str]:
+    return list(_DELIVERABLE_HARDENING_MARKERS)
+
+
+def _object_set_priority(set_type: ObjectSetType) -> int:
+    return _OBJECT_SET_DISPLAY_PRIORITY.get(set_type, 99)
+
+
+def default_visible_member_limit(set_type: ObjectSetType) -> int:
+    return _OBJECT_SET_DEFAULT_VISIBLE_LIMITS.get(set_type, 4)
+
+
+def _process_severity_rank(value: str | None) -> int:
+    normalized = (value or "").strip().lower()
+    if normalized in {"critical", "very_high"}:
+        return 4
+    if normalized == "high":
+        return 3
+    if normalized == "medium":
+        return 2
+    if normalized == "low":
+        return 1
+    return 0
+
+
+def _sort_object_set_members_for_display(
+    set_type: ObjectSetType,
+    members: list[schemas.ObjectSetMemberRead],
+) -> list[schemas.ObjectSetMemberRead]:
+    if set_type == ObjectSetType.CLAUSE_OBLIGATION_SET_V1:
+        member_type_priority = {"clause": 0, "obligation": 1}
+        return sorted(
+            members,
+            key=lambda member: (
+                member_type_priority.get(member.member_object_type, 9),
+                0 if member.support_evidence_id else 1,
+                member.ordering_index,
+                member.member_label,
+            ),
+        )
+    if set_type == ObjectSetType.PROCESS_ISSUE_SET_V1:
+        def _process_key(member: schemas.ObjectSetMemberRead) -> tuple[int, int, int, int, str]:
+            metadata = member.member_metadata or {}
+            issue_type = str(metadata.get("issue_type", "") or "")
+            severity = str(metadata.get("severity", "") or "")
+            return (
+                -_process_severity_rank(severity),
+                _PROCESS_ISSUE_TYPE_PRIORITY.get(issue_type, 9),
+                0 if member.support_evidence_id else 1,
+                member.ordering_index,
+                member.member_label,
+            )
+
+        return sorted(members, key=_process_key)
+    return sorted(
+        members,
+        key=lambda member: (member.ordering_index, member.member_label),
+    )
+
+
+def _build_object_set_summary(object_set: schemas.ObjectSetRead) -> str:
+    members = object_set.members
+    visible_limit = default_visible_member_limit(object_set.set_type)
+    hidden_count = max(0, len(members) - visible_limit)
+
+    if object_set.set_type == ObjectSetType.CLAUSE_OBLIGATION_SET_V1:
+        clause_count = sum(1 for item in members if item.member_object_type == "clause")
+        obligation_count = sum(1 for item in members if item.member_object_type == "obligation")
+        summary = f"條款 {clause_count} 項 / 義務 {obligation_count} 項"
+    elif object_set.set_type == ObjectSetType.PROCESS_ISSUE_SET_V1:
+        process_types = [
+            str((item.member_metadata or {}).get("issue_type", "") or "")
+            for item in members
+        ]
+        bottleneck_count = sum(1 for item in process_types if item == "capacity_bottleneck")
+        control_gap_count = sum(1 for item in process_types if item == "control_gap")
+        dependency_count = sum(1 for item in process_types if item == "dependency_block")
+        owner_gap_count = sum(1 for item in process_types if item == "owner_gap")
+        summary = (
+            f"瓶頸 {bottleneck_count} 項 / 控制缺口 {control_gap_count} 項"
+            f" / 依賴阻塞 {dependency_count} 項 / 責任不清 {owner_gap_count} 項"
+        )
+    elif object_set.set_type == ObjectSetType.EVIDENCE_SET_V1:
+        summary = f"正式支撐證據 {len(members)} 則"
+    elif object_set.set_type == ObjectSetType.RISK_SET_V1:
+        summary = f"本輪納入風險 {len(members)} 項"
+    else:
+        summary = f"共 {len(members)} 項"
+
+    if hidden_count > 0:
+        summary += f"｜預設先看 {visible_limit} 項，其餘 {hidden_count} 項按需展開"
+    else:
+        summary += f"｜目前共 {len(members)} 項"
+    return summary
+
+
+def build_deliverable_support_bundle_summary_lines(
+    object_sets: list[schemas.ObjectSetRead],
+) -> list[str]:
+    lines: list[str] = []
+    ordered_sets = sorted(
+        object_sets,
+        key=lambda item: (_object_set_priority(item.set_type), item.updated_at),
+    )
+    for object_set in ordered_sets:
+        visible_limit = default_visible_member_limit(object_set.set_type)
+        visible_members = object_set.members[:visible_limit]
+        labels = "、".join(item.member_label for item in visible_members[:3])
+        detail = _build_object_set_summary(object_set)
+        if labels:
+            lines.append(f"{object_set.display_title}：{detail}。優先成員：{labels}")
+        else:
+            lines.append(f"{object_set.display_title}：{detail}。")
+    return lines
+
+
+def build_deliverable_support_bundle_publish_summary(
+    object_sets: list[schemas.ObjectSetRead],
+) -> list[dict[str, object]]:
+    summary_payload: list[dict[str, object]] = []
+    ordered_sets = sorted(
+        object_sets,
+        key=lambda item: (_object_set_priority(item.set_type), item.updated_at),
+    )
+    for object_set in ordered_sets:
+        visible_limit = default_visible_member_limit(object_set.set_type)
+        summary_payload.append(
+            {
+                "set_type": object_set.set_type.value,
+                "display_title": object_set.display_title,
+                "member_count": object_set.member_count,
+                "default_visible_limit": visible_limit,
+                "hidden_member_count": max(0, object_set.member_count - visible_limit),
+                "summary": _build_object_set_summary(object_set),
+                "preview_members": [item.member_label for item in object_set.members[:visible_limit]],
+            }
+        )
+    return summary_payload
 
 
 def _ensure_task_risk_set(
@@ -866,11 +1030,22 @@ def ensure_object_sets_for_task(db: Session, task: models.Task) -> bool:
 def serialize_object_sets(object_sets: list[models.ObjectSet]) -> list[schemas.ObjectSetRead]:
     active_sets = [
         item
-        for item in sorted(object_sets, key=lambda value: value.updated_at, reverse=True)
+        for item in sorted(
+            object_sets,
+            key=lambda value: (
+                _object_set_priority(ObjectSetType(value.set_type)),
+                -value.updated_at.timestamp(),
+            ),
+        )
         if item.lifecycle_status == ObjectSetLifecycleStatus.ACTIVE.value
     ]
     return [
-        schemas.ObjectSetRead(
+        (lambda serialized: serialized.model_copy(
+            update={
+                "members": _sort_object_set_members_for_display(serialized.set_type, serialized.members),
+            }
+        ))(
+            schemas.ObjectSetRead(
             id=item.id,
             task_id=item.task_id,
             matter_workspace_id=item.matter_workspace_id,
@@ -907,6 +1082,7 @@ def serialize_object_sets(object_sets: list[models.ObjectSet]) -> list[schemas.O
             ],
             created_at=item.created_at,
             updated_at=item.updated_at,
+        )
         )
         for item in active_sets
     ]

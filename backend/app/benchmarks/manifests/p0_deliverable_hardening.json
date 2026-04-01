@@ -1,0 +1,83 @@
+{
+  "manifest_id": "p0_f_deliverable_hardening_baseline",
+  "title": "P0-F deliverable hardening baseline",
+  "purpose": "Provide a minimal but executable before-and-after baseline for deliverable bundle readability, ranking discipline, and artifact-readiness hardening without turning benchmark scaffolding into a new platform.",
+  "update_policy": [
+    "Only update this manifest when the shipped scope for P0-F changes.",
+    "Do not overwrite historical QA evidence; benchmark scaffold records complement docs/16_qa_matrix.md.",
+    "Prefer revising seed cases over expanding into a full scoring platform during P0-F."
+  ],
+  "cases": [
+    {
+      "case_id": "contract_bundle_density_control",
+      "title": "Clause bundle density control",
+      "description": "Deliverable-oriented contract review where clause and obligation bundles can become too dense without ranking and summary discipline.",
+      "client_stage": "制度化階段",
+      "client_type": "中小企業",
+      "domain_lenses": ["法務", "財務"],
+      "industry_hints": [],
+      "decision_context_summary": "Need a contract-risk deliverable that keeps high-signal clauses and obligations readable, ranks the most important members first, and keeps publish/export artifacts clean before circulation.",
+      "source_mix_summary": [
+        "draft agreement with highlighted clauses",
+        "approval history and exception note",
+        "obligation tracker excerpt"
+      ],
+      "target_domain_pack_ids": [
+        "legal_risk_pack",
+        "finance_fundraising_pack"
+      ],
+      "target_industry_pack_ids": [],
+      "expected_contract_interface_ids": [
+        "evidence_readiness_v1",
+        "decision_framing_v1",
+        "deliverable_shaping_v1"
+      ],
+      "expected_hint_areas": [
+        "evidence_expectations",
+        "decision_patterns",
+        "deliverable_presets",
+        "readiness"
+      ],
+      "expected_deliverable_markers": [
+        "bundle_density_policy_ready",
+        "support_bundle_summary_ready",
+        "artifact_readiness_summary_ready"
+      ]
+    },
+    {
+      "case_id": "operations_bundle_density_control",
+      "title": "Process issue bundle density control",
+      "description": "Deliverable-oriented operations review where process issue bundles need ranking, preview discipline, and artifact-safe summary output.",
+      "client_stage": "制度化階段",
+      "client_type": "中小企業",
+      "domain_lenses": ["營運", "財務"],
+      "industry_hints": [],
+      "decision_context_summary": "Need an operations remediation deliverable that keeps process bottlenecks, dependency blocks, and control gaps readable, ranks the highest-signal issues first, and exports a stable support-bundle summary.",
+      "source_mix_summary": [
+        "handoff and approval workflow note",
+        "throughput and backlog snapshot",
+        "owner mapping and escalation log excerpt"
+      ],
+      "target_domain_pack_ids": [
+        "operations_pack"
+      ],
+      "target_industry_pack_ids": [],
+      "expected_contract_interface_ids": [
+        "evidence_readiness_v1",
+        "decision_framing_v1",
+        "deliverable_shaping_v1"
+      ],
+      "expected_hint_areas": [
+        "evidence_expectations",
+        "decision_patterns",
+        "deliverable_presets",
+        "readiness"
+      ],
+      "expected_deliverable_markers": [
+        "bundle_density_policy_ready",
+        "support_bundle_summary_ready",
+        "artifact_readiness_summary_ready"
+      ]
+    }
+  ]
+}

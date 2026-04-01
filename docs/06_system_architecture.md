@@ -303,6 +303,12 @@ P0-E 之後，system 也應正式承接：
   - operations / process-aware benchmark baseline
 - 這仍屬既有 Ontology / Pack / Workbench 的延伸，不是新的 BPM / SOP 平台
 
+P0-F 之後，system 也應正式承接：
+- deliverable bundle density / ranking / default display baseline
+- publish / export / artifact path 對 support-bundle summary 的正式承接
+- `p0_deliverable_hardening.json`
+  - deliverable-oriented hardening benchmark baseline
+
 Wave 5 的最小正式基線則是：
 - `ObjectSet` 仍留在 Ontology Layer，不能形成第七層
 - first shipped set types 只先包含：
@@ -324,6 +330,13 @@ P0-E 的最小正式延伸則是：
   - `process_issue_set_v1`
   - deliverable-local remediation support bundle
 - process issue member 應能回鏈到既有 evidence / chunk / media provenance 主鏈
+
+P0-F 的最小正式延伸則是：
+- deliverable advanced section 的 bundle display discipline 應更穩：
+  - high-signal members first
+  - default-visible limits
+  - hidden-member expansion
+  - support-bundle summary for export / publish
 
 若 Pack Management Surface 採精簡建立模式，正式規則也應是：
 - 一般使用者只填最少必要資訊

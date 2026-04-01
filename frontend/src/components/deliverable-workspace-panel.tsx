@@ -135,10 +135,50 @@ function getObjectSetMemberAnchor(member: {
   return `deliverable-object-set-member-${member.member_object_type}-${member.member_object_id}`;
 }
 
+const OBJECT_SET_DEFAULT_VISIBLE_LIMITS: Record<string, number> = {
+  clause_obligation_set_v1: 6,
+  process_issue_set_v1: 6,
+  evidence_set_v1: 4,
+  risk_set_v1: 5,
+};
+
+function getObjectSetVisibleLimit(setType: string) {
+  return OBJECT_SET_DEFAULT_VISIBLE_LIMITS[setType] ?? 4;
+}
+
+function buildObjectSetSummaryLine(objectSet: ObjectSet) {
+  const members = objectSet.members;
+  const visibleLimit = getObjectSetVisibleLimit(objectSet.set_type);
+  const hiddenCount = Math.max(0, members.length - visibleLimit);
+
+  let summary = `${objectSet.member_count} 個成員`;
+  if (objectSet.set_type === "clause_obligation_set_v1") {
+    const clauseCount = members.filter((item) => item.member_object_type === "clause").length;
+    const obligationCount = members.filter((item) => item.member_object_type === "obligation").length;
+    summary = `條款 ${clauseCount} 項 / 義務 ${obligationCount} 項`;
+  }
+  if (objectSet.set_type === "process_issue_set_v1") {
+    const metadata = members.map((item) =>
+      item.member_metadata && typeof item.member_metadata === "object" && !Array.isArray(item.member_metadata)
+        ? item.member_metadata
+        : {},
+    );
+    const issueTypeCount = (value: string) =>
+      metadata.filter((item) => item.issue_type === value).length;
+    summary =
+      `瓶頸 ${issueTypeCount("capacity_bottleneck")} 項 / 控制缺口 ${issueTypeCount("control_gap")} 項` +
+      ` / 依賴阻塞 ${issueTypeCount("dependency_block")} 項`;
+  }
+  if (hiddenCount > 0) {
+    summary += `｜預設先看 ${visibleLimit} 項，其餘 ${hiddenCount} 項按需展開`;
+  }
+  return summary;
+}
+
 function buildObjectSetViewList(objectSets: ObjectSet[]) {
   return objectSets.map((item) => ({
     title: item.display_title,
-    meta: `${labelForObjectSetType(item.set_type)}｜${labelForObjectSetScope(item.scope_type)}｜${item.member_count} 個成員`,
+    meta: `${labelForObjectSetType(item.set_type)}｜${labelForObjectSetScope(item.scope_type)}｜${buildObjectSetSummaryLine(item)}`,
   }));
 }
 
@@ -230,6 +270,14 @@ function readProcessIssueMetadata(member: ObjectSetMember) {
         ? payload.control_gap_hint
         : null,
   };
+}
+
+function getVisibleObjectSetMembers(objectSet: ObjectSet) {
+  return objectSet.members.slice(0, getObjectSetVisibleLimit(objectSet.set_type));
+}
+
+function getHiddenObjectSetMembers(objectSet: ObjectSet) {
+  return objectSet.members.slice(getObjectSetVisibleLimit(objectSet.set_type));
 }
 
 function buildDeliverableStatusHint(status: DeliverableLifecycleStatus) {
@@ -2098,11 +2146,14 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                           {getObjectSetPrimarySourceLabel(item)}
                           {item.continuity_scope ? `｜工作範圍：${item.continuity_scope}` : ""}
                         </p>
+                        <p className="muted-text" style={{ marginTop: "6px" }}>
+                          {buildObjectSetSummaryLine(item)}
+                        </p>
 
                         {item.members.length > 0 ? (
                           <>
                             <ul className="list-content" style={{ marginTop: "16px" }}>
-                              {item.members.map((member) => (
+                              {getVisibleObjectSetMembers(item).map((member) => (
                                 <li key={member.id}>
                                   <a
                                     className="back-link"
@@ -2116,7 +2167,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                             </ul>
 
                             <div className="detail-list" style={{ marginTop: "16px" }}>
-                              {item.members.map((member) => (
+                              {getVisibleObjectSetMembers(item).map((member) => (
                                 <div
                                   className="detail-item section-anchor"
                                   id={getObjectSetMemberAnchor(member)}
@@ -2185,6 +2236,92 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                                 </div>
                               ))}
                             </div>
+
+                            {getHiddenObjectSetMembers(item).length > 0 ? (
+                              <details className="detail-item" style={{ marginTop: "16px" }}>
+                                <summary className="disclosure-summary">
+                                  <div>
+                                    <h4 style={{ margin: 0 }}>
+                                      顯示其餘 {getHiddenObjectSetMembers(item).length} 項
+                                    </h4>
+                                    <p className="muted-text">
+                                      其餘成員保留在同一組集合裡，需要時再展開回看。
+                                    </p>
+                                  </div>
+                                  <span className="pill">展開</span>
+                                </summary>
+                                <div className="detail-list" style={{ marginTop: "16px" }}>
+                                  {getHiddenObjectSetMembers(item).map((member) => (
+                                    <div
+                                      className="detail-item section-anchor"
+                                      id={getObjectSetMemberAnchor(member)}
+                                      key={member.id}
+                                    >
+                                      {(() => {
+                                        const processIssueMeta =
+                                          member.member_object_type === "process_issue"
+                                            ? readProcessIssueMetadata(member)
+                                            : null;
+                                        return (
+                                          <>
+                                      <div className="meta-row">
+                                        <span className="pill">
+                                          {labelForObjectSetMemberType(member.member_object_type)}
+                                        </span>
+                                        <span>
+                                          {labelForObjectSetMembershipSource(member.membership_source)}
+                                        </span>
+                                        {member.support_label ? <span>{member.support_label}</span> : null}
+                                      </div>
+                                      <h4>{member.member_label}</h4>
+                                      <p className="content-block">{member.included_reason}</p>
+                                      {processIssueMeta ? (
+                                        <p className="muted-text">
+                                          {[
+                                            processIssueMeta.affectedProcessStep,
+                                            processIssueMeta.ownerState,
+                                            processIssueMeta.dependencyHint,
+                                            processIssueMeta.controlGapHint,
+                                          ]
+                                            .filter(Boolean)
+                                            .join("｜") || "目前尚未補齊流程問題細節。"}
+                                        </p>
+                                      ) : null}
+                                      {member.derivation_hint ? (
+                                        <p className="muted-text">來源線索：{member.derivation_hint}</p>
+                                      ) : null}
+                                      <div className="button-row" style={{ marginTop: "12px" }}>
+                                        {member.member_object_type === "evidence" ? (
+                                          <a
+                                            className="back-link"
+                                            href={`#deliverable-evidence-entry-${member.member_object_id}`}
+                                          >
+                                            回到這則證據
+                                          </a>
+                                        ) : member.support_evidence_id ? (
+                                          <a
+                                            className="back-link"
+                                            href={`#deliverable-evidence-entry-${member.support_evidence_id}`}
+                                          >
+                                            回到支撐這條的證據
+                                          </a>
+                                        ) : (
+                                          <a className="back-link" href="#deliverable-reading">
+                                            回交付摘要看這項脈絡
+                                          </a>
+                                        )}
+                                        <a className="back-link" href="#deliverable-object-sets">
+                                          回到這組集合
+                                        </a>
+                                      </div>
+                                          </>
+                                        );
+                                      })()}
+                                    </div>
+                                  ))}
+                                </div>
+                              </details>
+                            ) : null}
                           </>
                         ) : (
                           <p className="empty-text" style={{ marginTop: "16px" }}>

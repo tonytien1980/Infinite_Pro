@@ -239,6 +239,11 @@ publish / artifact records 用來描述正式發布與正式輸出物。
 - 產出了哪些 artifact
 - artifact 現在是否可用、是否 metadata-only、何時 purge
 
+P0-F 之後還應再維持：
+- publish event payload 應可正式帶出 support-bundle summary
+- export artifact 也應正式承接 support-bundle summary，而不是只剩正文 / 版本事件
+- 這組 summary 應和 deliverable workspace 的 bundle display discipline 一致，而不是 artifact path 另寫一套表述
+
 目前正式 table：
 - `deliverable_publish_records`
 - `deliverable_artifact_records`
@@ -372,6 +377,13 @@ P0-E 的第一批 process-aware set baseline：
 - object-set view 預設屬按需展開層，不可污染首屏
 - 若 clause / obligation member 已對到正式 evidence，應能沿既有 evidence -> chunk/media provenance 主鏈回看，而不是只停在 set member 文字摘要
 - 若 process issue member 已對到正式 evidence，應能沿既有 evidence -> chunk/media provenance 主鏈回看，而不是只停在 set member 文字摘要
+
+P0-F 的正式補充規則：
+- deliverable-local object sets 應有最小 display discipline：
+  - default-visible member limit
+  - hidden-member expansion
+  - high-signal members first
+- 這組 display discipline 不只屬 UI 細節，也應被 export / publish path 承接
 
 目前正式 table：
 - `object_sets`

@@ -599,6 +599,64 @@ Important verification note:
 
 ---
 
+## Entry: 2026-04-02 P0-F deliverable hardening checkpoint
+
+Scope:
+- deliverable advanced section density / ranking / default display hardening
+- `clause_obligation_set_v1` and `process_issue_set_v1` display discipline
+- publish / export / artifact-readiness summary hardening
+- `p0_deliverable_hardening.json` benchmark manifest
+
+Environment used:
+- frontend: `http://127.0.0.1:3000`
+- backend: `http://127.0.0.1:8000/api/v1`
+- runtime database: current local runtime
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests -q` | Passed (`116 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && npx next typegen` | Passed |
+| `cd frontend && npm run typecheck` | Passed |
+| `python3 backend/scripts/run_pack_benchmark_scaffold.py --manifest backend/app/benchmarks/manifests/p0_deliverable_hardening.json` | Passed |
+
+Important verification note:
+- on the current Next 15 frontend, `npm run build` still does not fully restore `.next/types` by itself on this machine
+- the valid verification order for this checkpoint remained `build -> next typegen -> typecheck`
+
+### P0-F specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | object-set display policy | Deliverable object sets now serialize with stronger display ordering | Verified | legal / process bundles surface ahead of evidence / risk bundles for deliverable reading |
+| Backend | export path | Markdown / DOCX export now include `支撐集合摘要` | Verified | export path now carries the same support-bundle summary discipline as the workspace |
+| Backend | publish path | publish event payload now includes `support_bundle_summary` | Verified | artifact-readiness path now keeps bundle summary with the version event payload |
+| Benchmark | deliverable hardening manifest | Run `p0_deliverable_hardening.json` | Verified | both seed cases resolved expected packs and expected deliverable-oriented markers |
+| Deliverable UI | `/deliverables/[deliverableId]` | Advanced section now shows bundle summaries plus default-visible limits | Verified | high-signal members show first and the rest stay behind `顯示其餘 N 項` |
+| Deliverable UI | `/deliverables/[deliverableId]` | `process_issue_set_v1` and `clause_obligation_set_v1` both keep clear why-included and evidence jump-back behavior | Verified | `回到支撐這條的證據` remains visible for supported members |
+| Task UI | `/tasks/[taskId]` | Task page keeps consultant-first reading order | Verified | no first-screen deliverable metadata wall introduced |
+| Matter UI | `/matters/[matterId]` | Matter hero remains mainline / next-step oriented | Verified | no object-set center or CMS-like surface introduced |
+| Evidence UI | `/matters/[matterId]/evidence` | Evidence workspace remains evidence-first | Verified | deliverable hardening did not turn evidence page into a bundle console |
+
+### Live smoke data
+
+- matter id: `1003daee-dc92-4f98-8d33-d1762e288708`
+- task id: `79306266-fe45-4b59-8743-de4382ef0d3f`
+- deliverable id: `e4cd0c4a-94fb-4273-85fb-dc0077db5e50`
+- live smoke verified through local Playwright CLI on deliverable / task / matter / evidence surfaces
+
+### Verified outcomes
+
+- deliverable advanced sections now have a formal density / ranking / default-visible discipline instead of dumping every member flat by default
+- `clause_obligation_set_v1` and `process_issue_set_v1` now read more like consultant support bundles than raw long lists
+- export / publish / artifact paths now carry support-bundle summaries, so artifact-readiness is closer to what the consultant actually saw before publishing
+- the benchmark scaffold now covers deliverable-oriented hardening markers without turning into a full evaluation suite
+
+---
+
 ## Entry: 2026-04-01 P0-D clause / obligation set + legal / finance hardening
 
 Scope:

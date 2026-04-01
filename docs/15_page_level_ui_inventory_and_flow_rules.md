@@ -421,6 +421,7 @@
 - 若該交付物已形成 `evidence_set_v1` 或 `risk_set_v1`，object-set view 應作為既有 deliverable workspace 的低噪音進階段落呈現，不可新增新 app shell，也不可搶走首屏 primary action
 - 若該交付物已形成 `clause_obligation_set_v1`，也應沿用同一個既有 deliverable workspace 進階段落呈現；條款 / 義務 member 應能回答「為何被納入」與「要回哪則證據看支撐片段」
 - 若該交付物已形成 `process_issue_set_v1`，也應沿用同一個既有 deliverable workspace 進階段落呈現；流程問題 member 應能回答「為何被納入」與「要回哪則證據看支撐片段」
+- P0-F 之後，deliverable workspace 的 object-set 進階段落還應有正式顯示紀律：先顯示高訊號 member、預設只顯示前幾項、其餘按需展開；同一組摘要也應能延伸到 export / publish path
 
 **交付物管理段落規則**
 - 交付物管理不應把唯讀 metadata、版本控制與正文編修塞成同一排密集表單

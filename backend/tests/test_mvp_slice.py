@@ -2979,6 +2979,73 @@ def test_operations_process_issue_set_persists_to_deliverable_workspace(
     assert any(item["set_type"] == "process_issue_set_v1" for item in aggregate["object_sets"])
 
 
+def test_deliverable_export_and_publish_include_support_bundle_summary(
+    client: TestClient,
+) -> None:
+    payload = create_operations_process_payload("Operations export hardening")
+    payload.update(
+        {
+            "client_name": "Northwind Studio",
+            "client_type": "中小企業",
+            "client_stage": "制度化階段",
+            "engagement_name": "Northwind Operations Sprint",
+            "workstream_name": "Delivery workflow hardening",
+            "decision_title": "Workflow remediation priority",
+            "judgment_to_make": "先判斷是否應優先修 handoff、approval bottleneck 與 owner gap，再決定是否擴大交付量。",
+            "domain_lenses": ["營運", "財務"],
+        }
+    )
+
+    task = client.post("/api/v1/tasks", json=payload).json()
+    client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[
+            (
+                "files",
+                (
+                    "workflow.txt",
+                    b"Approval workflow is delayed because handoff between sales and operations is unclear. Backlog is growing, one founder still approves exceptions, and remediation owner mapping is inconsistent.",
+                    "text/plain",
+                ),
+            )
+        ],
+    )
+
+    run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
+    assert run_response.status_code == 200
+    deliverable_id = run_response.json()["deliverable"]["id"]
+
+    export_response = client.get(f"/api/v1/deliverables/{deliverable_id}/export")
+    assert export_response.status_code == 200
+    export_text = export_response.text
+    assert "## 支撐集合摘要" in export_text
+    assert "流程問題集" in export_text
+
+    workspace = client.get(f"/api/v1/deliverables/{deliverable_id}").json()
+    publish_response = client.post(
+        f"/api/v1/deliverables/{deliverable_id}/publish",
+        json={
+            "title": workspace["deliverable"]["title"],
+            "summary": workspace["deliverable"]["summary"],
+            "version_tag": workspace["deliverable"]["version_tag"] or f"v{workspace['deliverable']['version']}",
+            "publish_note": "Publish after deliverable hardening verification.",
+            "artifact_formats": ["markdown"],
+            "content_sections": workspace["content_sections"],
+        },
+    )
+    assert publish_response.status_code == 200
+    published = publish_response.json()
+    assert published["publish_records"]
+    latest_event = next(
+        item for item in published["version_events"] if item["event_type"] == "published"
+    )
+    assert latest_event["event_payload"]["support_bundle_summary"]
+    assert any(
+        item["display_title"] == "這次交付的流程問題集"
+        for item in latest_event["event_payload"]["support_bundle_summary"]
+    )
+
+
 def test_specialist_run_returns_explicit_uncertainty_when_no_usable_evidence(
     client: TestClient,
 ) -> None:

@@ -40,6 +40,7 @@ class BenchmarkCase(FrozenModel):
     expected_contract_interface_ids: list[PackContractInterfaceId] = Field(default_factory=list)
     expected_hint_areas: list[BenchmarkHintArea] = Field(default_factory=list)
     expected_failure_markers: list[str] = Field(default_factory=list)
+    expected_deliverable_markers: list[str] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
 
 
@@ -67,6 +68,7 @@ class BenchmarkResultRecord(FrozenModel):
     observed_hint_areas: list[BenchmarkHintArea] = Field(default_factory=list)
     satisfied_interface_ids: list[PackContractInterfaceId] = Field(default_factory=list)
     missing_target_pack_ids: list[str] = Field(default_factory=list)
+    observed_deliverable_markers: list[str] = Field(default_factory=list)
     pack_scores: dict[str, int] = Field(default_factory=dict)
     pack_signal_counts: dict[str, int] = Field(default_factory=dict)
     status: BenchmarkStatus

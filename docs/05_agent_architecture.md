@@ -280,6 +280,10 @@ Specialist agents 不應只被定義為目前已存在的 3 個 flow。
 - process-aware remediation / sequencing deliverable
 - 能回鏈到 evidence / chunk / media provenance 的流程問題支撐集
 
+P0-F 之後，Agent Layer 雖不新增能力類型，但仍應維持：
+- Host 收斂出的 deliverable-local bundles 應能以高訊號 member 優先的方式被閱讀與匯出
+- publish / export path 應保留對 support-bundle summary 的正式承接，而不是只剩 workspace 畫面看得到
+
 ### 7.2 Synthesis specialists
 - research synthesis
 - meeting synthesis

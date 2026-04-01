@@ -61,6 +61,7 @@
 - manifest：`backend/app/benchmarks/manifests/p0_industry_batch2.json`
 - manifest：`backend/app/benchmarks/manifests/p0_legal_finance_contract.json`
 - manifest：`backend/app/benchmarks/manifests/p0_operations_process.json`
+- manifest：`backend/app/benchmarks/manifests/p0_deliverable_hardening.json`
 - result schema：`backend/app/benchmarks/schemas.py`
 - runner：`backend/app/benchmarks/runner.py`
 - CLI run path：`backend/scripts/run_pack_benchmark_scaffold.py`
@@ -106,6 +107,15 @@ P0-E 之後，這份 baseline 也正式擴充到 operations / process-aware case
   - deliverable presets
   - readiness baseline
 
+P0-F 之後，這份 baseline 也正式擴充到 deliverable-oriented hardening cases：
+- `legal_risk_pack` / `finance_fundraising_pack` 的 clause bundle deliverable
+- `operations_pack` 的 process issue deliverable
+- 額外可觀察：
+  - deliverable-oriented hardening markers
+    - `bundle_density_policy_ready`
+    - `support_bundle_summary_ready`
+    - `artifact_readiness_summary_ready`
+
 仍要維持的原則是：
 - 一次只新增最小必要的 seed cases
 - 不把 scaffold 膨脹成 full scoring platform
@@ -147,6 +157,7 @@ python3 backend/scripts/run_pack_benchmark_scaffold.py --manifest backend/app/be
 python3 backend/scripts/run_pack_benchmark_scaffold.py --manifest backend/app/benchmarks/manifests/p0_industry_batch2.json
 python3 backend/scripts/run_pack_benchmark_scaffold.py --manifest backend/app/benchmarks/manifests/p0_legal_finance_contract.json
 python3 backend/scripts/run_pack_benchmark_scaffold.py --manifest backend/app/benchmarks/manifests/p0_operations_process.json
+python3 backend/scripts/run_pack_benchmark_scaffold.py --manifest backend/app/benchmarks/manifests/p0_deliverable_hardening.json
 ```
 
 ### 4.2 pytest baseline

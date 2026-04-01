@@ -201,6 +201,14 @@ P0-E hardening 後，這條主鏈還應再往前一步：
   - control-gap hint
 - process issue member 對既有 evidence / chunk / media provenance 的正式回鏈
 
+P0-F hardening 後，deliverable 主鏈還應再往前一步：
+- deliverable-local support bundles 應有正式 display discipline
+- 同一條 support bundle 語義應同時出現在：
+  - workspace advanced section
+  - export artifact
+  - publish / artifact event payload
+- 這代表 bundle summary、default-visible discipline 與高訊號 member 優先順序，都屬正式 deliverable-working semantics，而不是純前端排版細節
+
 正式規則是：
 - `ObjectSet` 仍屬 Ontology Layer primitive，不是第七層
 - 第一波只先做 matter / work-scope 內的集合，不做跨案件世界 reusable mesh

@@ -202,6 +202,11 @@ Wave 0-5 全部完成後，repo 已正式採納下一階段的 hardening / exten
 - `operations_pack` 的 process-aware hardening
 - `p0_operations_process.json` benchmark manifest
 
+截至 2026-04-02，`P0-F` 的第一批正式 baseline 也已形成：
+- deliverable advanced section 的 bundle density / ranking / default display baseline
+- publish / export / artifact path 對 support-bundle summary 的正式承接
+- `p0_deliverable_hardening.json` benchmark manifest
+
 ### 3.6 adopted planning file 的正式處理規則
 
 若某份下一階段 proposal 的內容已被正式採納：

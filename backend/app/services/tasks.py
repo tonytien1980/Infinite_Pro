@@ -77,6 +77,8 @@ from app.services.deliverable_records import (
     record_deliverable_version_event,
 )
 from app.services.object_sets import (
+    build_deliverable_support_bundle_publish_summary,
+    build_deliverable_support_bundle_summary_lines,
     ensure_object_sets_for_task,
     relevant_object_sets_for_deliverable,
     serialize_object_sets,
@@ -8736,7 +8738,7 @@ def _build_resolved_deliverable_content_sections(
 
 def _build_deliverable_export_lists(
     workspace: schemas.DeliverableWorkspaceResponse,
-) -> tuple[str, str, str, str, str, list[str], list[str], list[str], list[str], list[str]]:
+) -> tuple[str, str, str, str, str, list[str], list[str], list[str], list[str], list[str], list[str]]:
     deliverable = workspace.deliverable
     task = workspace.task
     version_tag = deliverable.version_tag or f"v{deliverable.version}"
@@ -8773,6 +8775,10 @@ def _build_deliverable_export_lists(
         ],
         "目前沒有額外的版本事件。",
     )
+    support_bundle_lines = _bullet_lines(
+        build_deliverable_support_bundle_summary_lines(workspace.object_sets),
+        "目前沒有額外的支撐集合摘要。",
+    )
     return (
         version_tag,
         matter_title,
@@ -8784,6 +8790,7 @@ def _build_deliverable_export_lists(
         action_item_lines,
         evidence_lines,
         version_event_lines,
+        support_bundle_lines,
     )
 
 
@@ -8845,6 +8852,7 @@ def publish_deliverable_release(
             "source": DELIVERABLE_EVENT_SOURCE_PUBLISH,
             "artifact_formats": artifact_formats,
             "publish_note": publish_note,
+            "support_bundle_summary": build_deliverable_support_bundle_publish_summary(workspace.object_sets),
         },
     )
     publish_record = create_deliverable_publish_record(
@@ -8879,6 +8887,7 @@ def publish_deliverable_release(
         "artifact_record_ids": artifact_record_ids,
         "publish_record_id": publish_record.id,
         "publish_note": publish_note,
+        "support_bundle_summary": build_deliverable_support_bundle_publish_summary(workspace.object_sets),
         "status_changed": bool(update_result["status_changed"]),
         "version_tag_changed": bool(update_result["version_tag_changed"]),
     }
@@ -8903,6 +8912,7 @@ def _render_deliverable_markdown_artifact(
         action_item_lines,
         evidence_lines,
         version_event_lines,
+        support_bundle_lines,
     ) = _build_deliverable_export_lists(workspace)
 
     publish_record = workspace.publish_records[0] if workspace.publish_records else None
@@ -8938,6 +8948,9 @@ def _render_deliverable_markdown_artifact(
             "",
             "## 依據來源",
             *[f"- {item}" for item in evidence_lines],
+            "",
+            "## 支撐集合摘要",
+            *[f"- {item}" for item in support_bundle_lines],
             "",
             "## 版本事件",
             *[f"- {item}" for item in version_event_lines],
@@ -8990,6 +9003,7 @@ def build_deliverable_markdown_export(
         "mime_type": "text/markdown; charset=utf-8",
         "artifact_record_id": artifact_record.id,
         "artifact_key": artifact_record.artifact_key,
+        "support_bundle_summary": build_deliverable_support_bundle_publish_summary(workspace.object_sets),
     }
     db.add(export_event)
     db.commit()
@@ -9011,6 +9025,7 @@ def _render_deliverable_docx_artifact(
         action_item_lines,
         evidence_lines,
         version_event_lines,
+        support_bundle_lines,
     ) = _build_deliverable_export_lists(workspace)
 
     try:
@@ -9046,6 +9061,7 @@ def _render_deliverable_docx_artifact(
     _add_section("建議與風險", lines=[*recommendation_lines, *risk_lines])
     _add_section("行動項目", lines=action_item_lines)
     _add_section("依據來源", lines=evidence_lines)
+    _add_section("支撐集合摘要", lines=support_bundle_lines)
     _add_section("版本事件", lines=version_event_lines)
 
     buffer = BytesIO()
@@ -9096,6 +9112,7 @@ def build_deliverable_docx_export(
         "mime_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "artifact_record_id": artifact_record.id,
         "artifact_key": artifact_record.artifact_key,
+        "support_bundle_summary": build_deliverable_support_bundle_publish_summary(workspace.object_sets),
     }
     db.add(export_event)
     db.commit()
