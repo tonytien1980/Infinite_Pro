@@ -169,6 +169,12 @@ P0-A hardens the 8 `Domain / Functional Packs` further:
 - the Pack Resolver can now infer domain packs not only from `domain_lenses`, but also from decision-context / routing-hint / problem-pattern matches plus relevant client stage / type
 - this means domain-pack depth now affects runtime selection and Host framing more directly, rather than only making `/packs` look more complete
 
+P0-0 adds a minimal benchmark scaffolding baseline before the next industry sprint:
+- formal docs now distinguish living QA evidence from reusable benchmark scaffolding
+- a tracked manifest now covers the first 6 Industry Batch 1 packs
+- the benchmark baseline now has a minimal runner / schema path instead of only planning prose
+- this baseline is intentionally small and should not be treated as a new platform or a full evaluation suite
+
 Within the single-consultant scope, Agent Orchestration is now treated as a completed runtime layer:
 - Host selection formally responds to capability archetype, selected packs, decision context, readiness/evidence sufficiency, sparse-input mode, and deliverable class
 - selected agents influence execution path and deliverable shaping, not just metadata

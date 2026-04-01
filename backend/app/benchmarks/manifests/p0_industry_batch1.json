@@ -1,0 +1,223 @@
+{
+  "manifest_id": "p0_industry_batch1_baseline",
+  "title": "P0-B Industry Batch 1 benchmark baseline",
+  "purpose": "Provide a minimal but executable before-and-after baseline for the first 6 industry packs without turning evaluation into a new platform.",
+  "update_policy": [
+    "Only update this manifest when the shipped hardening scope for Industry Batch 1 changes.",
+    "Do not overwrite historical QA evidence; benchmark scaffold records complement docs/16_qa_matrix.md.",
+    "Prefer adding or revising seed cases over expanding into a full scoring platform during P0-0."
+  ],
+  "cases": [
+    {
+      "case_id": "saas_retention_pricing_reset",
+      "title": "SaaS retention and pricing reset",
+      "description": "Recurring software business with churn pressure, onboarding drag, and packaging mismatch.",
+      "client_stage": "制度化階段",
+      "client_type": "中小企業",
+      "domain_lenses": ["產品服務", "財務", "銷售"],
+      "industry_hints": ["saas", "subscription software", "ARR", "churn", "onboarding"],
+      "decision_context_summary": "Need a SaaS recommendation on ARR stability, churn, onboarding bottlenecks, and pricing/package redesign before scaling sales further.",
+      "source_mix_summary": [
+        "ARR / churn cohort snapshot",
+        "activation and onboarding notes",
+        "pricing sheet and plan architecture"
+      ],
+      "target_domain_pack_ids": [
+        "product_service_pack",
+        "finance_fundraising_pack"
+      ],
+      "target_industry_pack_ids": [
+        "saas_pack"
+      ],
+      "expected_contract_interface_ids": [
+        "evidence_readiness_v1",
+        "decision_framing_v1",
+        "deliverable_shaping_v1"
+      ],
+      "expected_hint_areas": [
+        "evidence_expectations",
+        "decision_patterns",
+        "deliverable_presets",
+        "routing_hints",
+        "readiness"
+      ],
+      "notes": [
+        "Should stay useful as the baseline case for SaaS pricing / retention hardening."
+      ]
+    },
+    {
+      "case_id": "ecommerce_channel_margin_repair",
+      "title": "Ecommerce channel and margin repair",
+      "description": "Commerce business with channel mix, SKU margin, inventory, and fulfillment pressure.",
+      "client_stage": "制度化階段",
+      "client_type": "中小企業",
+      "domain_lenses": ["營運", "財務", "行銷"],
+      "industry_hints": ["ecommerce", "shopify", "sku", "履約", "回購"],
+      "decision_context_summary": "Need an ecommerce operating review on SKU margins, repeat purchase, inventory turns, and whether to shift channel mix away from promotion-heavy marketplace dependence.",
+      "source_mix_summary": [
+        "Channel performance report",
+        "SKU margin and return summary",
+        "Inventory and fulfillment note"
+      ],
+      "target_domain_pack_ids": [
+        "operations_pack",
+        "finance_fundraising_pack",
+        "marketing_sales_pack"
+      ],
+      "target_industry_pack_ids": [
+        "ecommerce_pack"
+      ],
+      "expected_contract_interface_ids": [
+        "evidence_readiness_v1",
+        "decision_framing_v1",
+        "deliverable_shaping_v1"
+      ],
+      "expected_hint_areas": [
+        "evidence_expectations",
+        "decision_patterns",
+        "deliverable_presets",
+        "routing_hints",
+        "readiness"
+      ]
+    },
+    {
+      "case_id": "media_creator_revenue_mix",
+      "title": "Creator revenue mix and platform dependency",
+      "description": "Audience-led business balancing sponsorship, memberships, owned audience, and creator capacity.",
+      "client_stage": "制度化階段",
+      "client_type": "自媒體",
+      "domain_lenses": ["行銷", "研究", "產品服務"],
+      "industry_hints": ["creator", "newsletter", "業配", "membership", "audience"],
+      "decision_context_summary": "Need a creator business review on sponsorship concentration, audience monetization mix, owned audience conversion, and creator workload sustainability.",
+      "source_mix_summary": [
+        "Audience analytics snapshot",
+        "Revenue mix breakdown",
+        "Creator workload note"
+      ],
+      "target_domain_pack_ids": [
+        "marketing_sales_pack",
+        "research_intelligence_pack",
+        "product_service_pack"
+      ],
+      "target_industry_pack_ids": [
+        "media_creator_pack"
+      ],
+      "expected_contract_interface_ids": [
+        "evidence_readiness_v1",
+        "decision_framing_v1",
+        "deliverable_shaping_v1"
+      ],
+      "expected_hint_areas": [
+        "evidence_expectations",
+        "decision_patterns",
+        "deliverable_presets",
+        "routing_hints",
+        "readiness"
+      ]
+    },
+    {
+      "case_id": "professional_services_utilization_scope",
+      "title": "Professional services utilization and scope control",
+      "description": "Service business with utilization, scope creep, founder dependency, and pricing pressure.",
+      "client_stage": "制度化階段",
+      "client_type": "個人品牌與服務",
+      "domain_lenses": ["營運", "財務", "商務開發"],
+      "industry_hints": ["consulting", "retainer", "agency", "scope creep", "utilization"],
+      "decision_context_summary": "Need a professional services recommendation on utilization, scope creep, founder dependency, and which service lines should be retained or repackaged.",
+      "source_mix_summary": [
+        "Utilization and delivery report",
+        "Proposal / SOW excerpts",
+        "Pipeline and client mix summary"
+      ],
+      "target_domain_pack_ids": [
+        "operations_pack",
+        "finance_fundraising_pack",
+        "business_development_pack"
+      ],
+      "target_industry_pack_ids": [
+        "professional_services_pack"
+      ],
+      "expected_contract_interface_ids": [
+        "evidence_readiness_v1",
+        "decision_framing_v1",
+        "deliverable_shaping_v1"
+      ],
+      "expected_hint_areas": [
+        "evidence_expectations",
+        "decision_patterns",
+        "deliverable_presets",
+        "routing_hints",
+        "readiness"
+      ]
+    },
+    {
+      "case_id": "online_education_completion_growth",
+      "title": "Online education completion and growth balance",
+      "description": "Education business balancing enrollment, completion, refund, and delivery quality.",
+      "client_stage": "制度化階段",
+      "client_type": "個人品牌與服務",
+      "domain_lenses": ["行銷", "營運"],
+      "industry_hints": ["online course", "cohort", "completion", "refund", "學員"],
+      "decision_context_summary": "Need an online education diagnosis on learner completion, refund risk, enrollment conversion, and whether to simplify the course portfolio before scaling acquisition.",
+      "source_mix_summary": [
+        "Enrollment funnel summary",
+        "Completion and refund report",
+        "Course catalog and teaching capacity notes"
+      ],
+      "target_domain_pack_ids": [
+        "marketing_sales_pack",
+        "operations_pack"
+      ],
+      "target_industry_pack_ids": [
+        "online_education_pack"
+      ],
+      "expected_contract_interface_ids": [
+        "evidence_readiness_v1",
+        "decision_framing_v1",
+        "deliverable_shaping_v1"
+      ],
+      "expected_hint_areas": [
+        "evidence_expectations",
+        "decision_patterns",
+        "deliverable_presets",
+        "routing_hints",
+        "readiness"
+      ]
+    },
+    {
+      "case_id": "gaming_live_ops_economics",
+      "title": "Gaming live-ops and payer economics",
+      "description": "Game business balancing retention, payer conversion, live-ops cadence, and UA economics.",
+      "client_stage": "規模化階段",
+      "client_type": "中小企業",
+      "domain_lenses": ["行銷", "營運", "研究"],
+      "industry_hints": ["gaming", "retention", "live ops", "payer", "wishlist"],
+      "decision_context_summary": "Need a gaming portfolio review on retention, payer conversion, live-ops cadence, and whether to delay bigger user acquisition until economics stabilize.",
+      "source_mix_summary": [
+        "Retention and payer cohort report",
+        "Live-ops cadence calendar",
+        "UA and platform mix note"
+      ],
+      "target_domain_pack_ids": [
+        "marketing_sales_pack",
+        "operations_pack",
+        "research_intelligence_pack"
+      ],
+      "target_industry_pack_ids": [
+        "gaming_pack"
+      ],
+      "expected_contract_interface_ids": [
+        "evidence_readiness_v1",
+        "decision_framing_v1",
+        "deliverable_shaping_v1"
+      ],
+      "expected_hint_areas": [
+        "evidence_expectations",
+        "decision_patterns",
+        "deliverable_presets",
+        "routing_hints",
+        "readiness"
+      ]
+    }
+  ]
+}

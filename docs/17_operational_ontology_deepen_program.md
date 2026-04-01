@@ -133,12 +133,40 @@
 因此本 deepen program 的五個 wave 已全部形成正式 baseline。
 後續若再深化，應視為既有能力的 hardening / extension，而不是隱性 Wave 6。
 
-下一階段若進入 P0-A `Domain / Functional Packs Full Hardening Sprint`，正式理解應是：
-- pack-layer hardening / extension
+下一階段正式理解應是：
+- hardening / extension
 - 不是新的 deepen wave
-- 不是 industry-pack sprint
+- 不是隱性 Wave 6
 - 不是 system-layer sprint
 - 施工時仍要遵守 docs-code lockstep、Host-only orchestration 與 low-noise disclosure 原則
+
+### 3.5 下一階段正式排序
+
+Wave 0-5 全部完成後，repo 已正式採納下一階段的 hardening / extension 排序如下：
+
+1. `P0-0` benchmark scaffolding baseline
+2. `P0-A` Domain / Functional Packs full hardening
+3. `P0-B` Industry Packs Batch 1
+4. `P0-C` Industry Packs Batch 2
+5. `P0-D` clause / obligation set + legal / finance hardening
+6. `P0-E` process issue set + operations hardening
+7. `P0-F` deliverable hardening checkpoint
+8. `P0-G` ingestion hardening checkpoint
+9. `P0-H` full benchmark / evaluation suite + regression gate
+
+其中：
+- `P0-0` 必須先於後續 pack sprint 存在
+- `P0-F` 與 `P0-G` 是兩個可獨立收斂的 checkpoint
+- `P0-H` 是把 benchmark baseline 擴成完整 suite，而不是第一次建立 benchmark
+
+### 3.6 adopted planning file 的正式處理規則
+
+若某份下一階段 proposal 的內容已被正式採納：
+- 不得長期留在 repo 工作樹裡作為漂浮未追蹤 planning file
+- 應把穩定內容吸收到正式 docs
+- 再移除該未追蹤 planning file
+
+從 P0-0 起，下一階段 hardening / extension 的穩定內容已由本文件與 benchmark baseline 文件正式承接。
 
 ---
 

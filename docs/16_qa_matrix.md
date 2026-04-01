@@ -309,3 +309,48 @@ Important verification note:
 - the resolver can now infer a domain pack from decision-context / routing-hint / problem-pattern matches instead of relying only on `domain_lenses`
 - `/packs` exposes the richer contract depth only in low-noise disclosure
 - `/tasks`, `/matters`, and `/deliverables` kept their first-screen primary guidance intact
+
+---
+
+## Entry: 2026-04-01 P0-0 benchmark scaffolding baseline pass
+
+Scope:
+- benchmark / evaluation scaffolding baseline
+- tracked manifest for `P0-B Industry Batch 1`
+- minimal result schema + runner + runbook
+- adopted planning content absorbed into formal docs
+
+Environment used:
+- backend runner: local repo script path
+- frontend: `http://127.0.0.1:3000`
+- backend: `http://127.0.0.1:8000/api/v1`
+- runtime database: current local runtime
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `.venv312/bin/python -m pytest backend/tests/test_extension_architecture.py backend/tests/test_benchmark_scaffolding.py -q` | Passed (`10 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && npm run typecheck` | Passed |
+
+Important verification note:
+- this frontend repo still expects `.next/types` to exist before `tsc --noEmit`
+- therefore the valid verification order remains `build -> typecheck`, not the reverse
+
+### P0-0 specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | benchmark manifest | Load `p0_industry_batch1.json` and verify 6 Batch 1 cases | Verified | manifest now covers `saas / ecommerce / media_creator / professional_services / online_education / gaming` |
+| Backend | benchmark runner | Execute `python3 backend/scripts/run_pack_benchmark_scaffold.py` | Verified | script falls back to `.venv312` when system `python3` lacks repo deps |
+| Backend | benchmark result schema | Structured output returns case ids, target packs, selected packs, hint areas, interface ids, scores, signal counts, and observations | Verified | enough for before / after hardening comparison without introducing a new platform |
+| Docs | planning housekeeping | absorb adopted proposal content into formal docs and remove floating planning file | Verified | next-phase ordering now lives in formal docs instead of an untracked proposal |
+
+### Verified outcomes
+
+- benchmark baseline now exists as a formal doc + manifest + schema + runner path
+- the current baseline is intentionally small and scoped to support `P0-B Industry Packs Batch 1`
+- living QA matrix remains the verification history, while benchmark scaffolding now carries reusable before / after seed cases
+- the adopted next-phase planning content no longer depends on an untracked floating file
