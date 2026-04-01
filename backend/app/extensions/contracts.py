@@ -60,6 +60,21 @@ DOMAIN_INTERFACE_EXTRA_REQUIREMENTS: dict[
     ],
 }
 
+INDUSTRY_INTERFACE_EXTRA_REQUIREMENTS: dict[
+    PackContractInterfaceId,
+    list[PackRequiredPropertyId],
+] = {
+    PackContractInterfaceId.EVIDENCE_READINESS_V1: [
+        PackRequiredPropertyId.KEY_SIGNALS,
+    ],
+    PackContractInterfaceId.DECISION_FRAMING_V1: [
+        PackRequiredPropertyId.COMMON_BUSINESS_MODELS,
+    ],
+    PackContractInterfaceId.DELIVERABLE_SHAPING_V1: [
+        PackRequiredPropertyId.KEY_SIGNALS,
+    ],
+}
+
 
 def _unique_preserve_order(values: list[str]) -> list[str]:
     ordered: list[str] = []
@@ -80,6 +95,8 @@ def _definition_for_pack(pack: PackSpec) -> str:
 def _property_is_ready(pack: PackSpec, property_id: PackRequiredPropertyId) -> bool:
     if property_id == PackRequiredPropertyId.DEFINITION:
         return bool(_definition_for_pack(pack))
+    if property_id == PackRequiredPropertyId.COMMON_BUSINESS_MODELS:
+        return len(pack.common_business_models) > 0
     if property_id == PackRequiredPropertyId.COMMON_PROBLEM_PATTERNS:
         return len(pack.common_problem_patterns) > 0
     if property_id == PackRequiredPropertyId.EVIDENCE_EXPECTATIONS:
@@ -110,6 +127,8 @@ def _required_property_ids_for_interface(
     required_property_ids = list(INTERFACE_BLUEPRINTS[interface_id]["required_property_ids"])
     if pack.pack_type.value == "domain":
         required_property_ids.extend(DOMAIN_INTERFACE_EXTRA_REQUIREMENTS.get(interface_id, []))
+    if pack.pack_type.value == "industry":
+        required_property_ids.extend(INDUSTRY_INTERFACE_EXTRA_REQUIREMENTS.get(interface_id, []))
     deduped: list[PackRequiredPropertyId] = []
     seen: set[PackRequiredPropertyId] = set()
     for property_id in required_property_ids:

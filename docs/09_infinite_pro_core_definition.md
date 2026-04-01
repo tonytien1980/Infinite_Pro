@@ -358,6 +358,21 @@ P0-A 的正式方向應是：
 - Domain / Functional Packs 不能退化成 tags 或 catalog copy
 - 也不能只在 `/packs` 管理面看起來完整，卻對 runtime 幾乎沒有影響
 
+### Industry Packs 的下一階段正式期待
+Wave 4 已建立 Industry Pack 的最低 contract baseline，但這不等於 Industry Packs 已達最終 hardening 水準。
+
+P0-B 的正式方向應是：
+- 把第一批 6 個 Industry Packs 從「已 ready baseline」提升成「正式可依賴的 active industry contracts」
+- `ready` 不應只代表最低欄位存在，而應更接近：
+  - `common_business_models` 已足夠支撐產業判斷
+  - industry KPI / operating-signal guidance 已足夠形成 readiness 與 framing cues
+  - common problem patterns / decision patterns 已足夠進入 Host framing
+  - deliverable presets 已足夠影響 deliverable shaping
+
+正式規則：
+- Industry Packs 不能退化成 tags、catalog copy 或單純產業名稱
+- 也不能只在 `/packs` 管理面看起來完整，卻對 runtime selection 幾乎沒有影響
+
 ### Intake / Storage 邊界的正式地位
 在目前單人正式 beta 階段，以下能力也應被視為正式 architecture responsibility：
 - 一個 unified intake surface

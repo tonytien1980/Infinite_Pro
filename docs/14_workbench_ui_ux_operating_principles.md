@@ -106,6 +106,7 @@ Infinite Pro 是顧問工作台，不是系統內部模型瀏覽器。
 同理，Wave 4 的 interface / required properties / pack-to-contract binding 也只能在 task detail 的治理 disclosure、Extension Manager、pack detail 或 deliverable 背景摘要中低噪音呈現；UI 應優先使用「模組合約摘要」「必要欄位是否補齊」「交付傾向」之類的顧問語言，而不是把 schema / contract metadata 直接灌進主工作面首屏。
 同理，Wave 5 的 object-set views 也只能在既有工作面的進階 section / disclosure 中按需展開；UI 應優先使用「證據集」「風險群組」「已選入這次交付支撐集」「已納入這次分析範圍」之類的顧問語言，而不是把 `ObjectSet / membership / creation mode` 直接推上首屏。
 同理，P0-A 的 domain-pack hardening 細節也只能在 `/packs`、task detail 的模組合約摘要，或 matter / deliverable 的低噪音背景摘要中呈現；UI 應優先使用「關鍵訊號」「階段啟發」「常見風險」「判斷情境」之類的顧問語言，而不是把 required-property ids 與 resolver internals 直接灌進首屏。
+同理，P0-B 的 industry-pack hardening 細節也只能在 `/packs`、task detail 的模組合約摘要，或 matter / deliverable 的低噪音背景摘要中呈現；UI 應優先使用「常見商業模式」「產業訊號」「判斷情境」「產業脈絡」之類的顧問語言，而不是把 required-property ids、selection score 或 resolver internals 直接灌進首屏。
 
 ---
 

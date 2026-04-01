@@ -159,6 +159,17 @@ Wave 0-5 全部完成後，repo 已正式採納下一階段的 hardening / exten
 - `P0-F` 與 `P0-G` 是兩個可獨立收斂的 checkpoint
 - `P0-H` 是把 benchmark baseline 擴成完整 suite，而不是第一次建立 benchmark
 
+截至 2026-04-01，`P0-0` 已形成正式 benchmark scaffolding baseline，後續 pack sprint 應優先重用：
+- `docs/18_benchmark_scaffolding_baseline.md`
+- `backend/app/benchmarks/manifests/p0_industry_batch1.json`
+- 最小 runner / result schema path
+
+若進入 `P0-B`，正式方向應是：
+- Industry Batch 1 hardening / extension
+- 不是新的 deepen wave
+- 不是新的管理面或 industry console
+- 仍需遵守 Host-only orchestration、low-noise disclosure 與 docs-code lockstep 原則
+
 ### 3.6 adopted planning file 的正式處理規則
 
 若某份下一階段 proposal 的內容已被正式採納：

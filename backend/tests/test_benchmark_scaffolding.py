@@ -32,9 +32,10 @@ def test_p0_industry_batch1_runner_executes_against_current_pack_stack() -> None
     results = run_manifest(manifest)
 
     assert len(results) == 6
-    assert all(result.status in {BenchmarkStatus.PASS, BenchmarkStatus.WARN} for result in results)
+    assert all(result.status == BenchmarkStatus.PASS for result in results)
     assert all(not result.missing_target_pack_ids for result in results)
     assert all(result.pack_scores for result in results)
     assert all(result.pack_signal_counts for result in results)
     assert all(result.satisfied_interface_ids for result in results)
     assert all(result.observed_hint_areas for result in results)
+    assert all(result.selected_industry_pack_ids == result.target_industry_pack_ids for result in results)

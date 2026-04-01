@@ -511,6 +511,7 @@
 
 **正式規則補充**
 - P0-A 後，Domain / Functional Packs 的更強 contract completeness 仍應優先停留在 `/packs` disclosure 與 task detail 的模組合約摘要，不可污染首頁、matter hero 或 deliverable hero
+- P0-B 後，Industry Packs 的更強 contract completeness 與 scored selection 理由也仍應優先停留在 `/packs` disclosure 與 task detail 的模組合約摘要，不可污染首頁、matter hero 或 deliverable hero
 
 **正式跳轉**
 - 無跨頁主線跳轉要求，但應保留與 task-level pack selection 的概念連結

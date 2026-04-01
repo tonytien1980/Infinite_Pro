@@ -272,6 +272,18 @@ P0-A 之後，Domain / Functional Packs 還應進一步滿足：
   - `default_decision_context_patterns`
   - relevant client stage / type
 
+P0-B 之後，Industry Packs 也應進一步滿足：
+- `ready` 不只代表最低 interface completeness，而應代表 industry contract 已達正式可依賴水準
+- industry-only required-property gate 應至少正式檢查：
+  - `common_business_models`
+  - KPI / operating-signal guidance
+- Pack Resolver 不應只靠鬆散產業 token 命中選 industry pack，也應正式參考：
+  - `common_business_models`
+  - `common_problem_patterns`
+  - `default_decision_context_patterns`
+  - relevant client stage / type
+- 若同一輪有多個可能的 Industry Packs，應優先維持 scored selection 與 top-score trimming，而不是把所有 soft match 一起掛上
+
 Wave 5 的最小正式基線則是：
 - `ObjectSet` 仍留在 Ontology Layer，不能形成第七層
 - first shipped set types 只先包含：

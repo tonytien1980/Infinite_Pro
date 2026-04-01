@@ -85,6 +85,7 @@ export type PackContractInterfaceId =
   | "deliverable_shaping_v1";
 export type PackRequiredPropertyId =
   | "definition"
+  | "common_business_models"
   | "common_problem_patterns"
   | "evidence_expectations"
   | "stage_specific_heuristics"

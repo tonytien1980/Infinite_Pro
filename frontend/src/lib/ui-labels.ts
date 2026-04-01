@@ -217,6 +217,7 @@ const PACK_CONTRACT_INTERFACE_LABELS: Record<string, string> = {
 
 const PACK_REQUIRED_PROPERTY_LABELS: Record<string, string> = {
   definition: "正式定義",
+  common_business_models: "常見商業模式",
   common_problem_patterns: "常見問題型態",
   evidence_expectations: "證據期待",
   stage_specific_heuristics: "階段啟發",

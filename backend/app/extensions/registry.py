@@ -1688,6 +1688,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "課程 / cohort 組合擴張後，教學品質、助教 support 與講師產能開始互相拉扯",
                 "表面營收成長，但 learner retention、repeat purchase 與完成率沒有一起改善",
                 "B2C 與 B2B 教育產品線混在一起，導致 pricing、銷售與交付節奏失真",
+                "內容更新、作業回饋與 mentor support 沒被一起治理，讓課程口碑與完成率持續下滑",
             ],
             stage_specific_heuristics={
                 "創業階段": [
@@ -1725,6 +1726,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "產品組合與定價材料",
                 "學員回饋 / NPS / 客訴訊號",
                 "內容交付與講師產能資料",
+                "作業提交 / mentor support / cohort 互動資料",
             ],
             risk_libraries=["completion risk", "refund risk", "instructor dependency risk"],
             common_risks=[
@@ -1739,6 +1741,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "是否應重設定價與升級路徑",
                 "是否應優先優化招生漏斗或教學完成率",
                 "是否應從 B2C 擴到 B2B / 授權模式",
+                "是否應把 evergreen 課程、cohort 與企業授權拆成不同成長線",
             ],
             recommendation_patterns=[
                 "learner funnel adjustment",
@@ -1749,6 +1752,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "online education growth brief",
                 "learner funnel review memo",
                 "course portfolio decision memo",
+                "completion and teaching-capacity risk memo",
             ],
             routing_hints=[
                 "線上教育",
@@ -1772,6 +1776,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "它與 Media / Creator Pack 的邊界在於：Online Education 更聚焦 completion 與教學交付，Creator 更聚焦 audience asset 與內容變現。",
                 "它最常出現在課程組合、cohort model、B2B 教育授權、招生漏斗與教學產能相關任務。",
                 "若定義太窄，會只剩招生漏斗；若定義太廣，則會把 creator business、內容媒體與一般顧問服務都混進來。",
+                "P0-B 後它也應更直接拉高 Host 對 completion、mentor load 與 cohort economics 的正式敏感度。",
             ],
         ),
         PackSpec(
@@ -1792,6 +1797,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "通路變多後，platform dependency、促銷依賴與品牌定位互相拉扯",
                 "SKU 組合擴張太快，導致庫存週轉、退貨與毛利結構惡化",
                 "履約與供應鏈壓力被表面營收掩蓋，造成交期、客訴與工作資本風險",
+                "大促與補貨節奏沒有被一起管理，導致需求預測失真與現金壓力放大",
             ],
             stage_specific_heuristics={
                 "創業階段": [
@@ -1830,6 +1836,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "客單與回購 cohort",
                 "存貨周轉與履約資料",
                 "平台 / 廣告依賴資料",
+                "促銷日曆、discount waterfall 與 demand forecast 資料",
             ],
             risk_libraries=["channel dependency risk", "inventory risk", "margin compression risk"],
             common_risks=[
@@ -1844,6 +1851,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "是否該集中 SKU 與價格帶",
                 "是否優先提升回購而非買量",
                 "是否該重做促銷與會員策略",
+                "是否該降低平台促銷依賴，改由會員 / 補貨路徑撐住回購",
             ],
             recommendation_patterns=[
                 "channel prioritization",
@@ -1854,6 +1862,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "ecommerce operating review",
                 "commerce channel decision memo",
                 "SKU and margin brief",
+                "retention and promotion dependency memo",
             ],
             routing_hints=[
                 "電商",
@@ -1877,6 +1886,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "它與 Marketing / Sales Pack 的邊界在於：後者更聚焦 demand 與 acquisition，Ecommerce 更強調 channel economics、inventory 與 fulfillment reality。",
                 "它最常出現在 channel mix、SKU rationalization、retention versus acquisition、庫存與退貨治理等任務。",
                 "若定義太窄，會只剩廣告成效；若定義太廣，則會把零售、品牌、供應鏈與一般成長問題全部混在一起。",
+                "P0-B 後它也應更直接影響 Host 對促銷依賴、inventory risk 與 channel economics 的正式 framing。",
             ],
         ),
         PackSpec(
@@ -1897,6 +1907,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "live ops、內容 cadence 與 monetization loop 彼此脫節，導致玩家體驗與收入不穩",
                 "擴大買量前沒有先驗證 retention、LTV 與 CPI 是否能撐住 economics",
                 "作品 / 平台組合複雜化後，portfolio risk、商店政策與資源配置開始失控",
+                "玩家 economy、活動設計與內容更新不同步，導致 ARPDAU 與社群情緒劇烈波動",
             ],
             stage_specific_heuristics={
                 "創業階段": [
@@ -1936,6 +1947,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "live ops 節奏與活動資料",
                 "玩家評價與社群訊號",
                 "平台檔期與商店頁資料",
+                "內容更新 backlog、活動 economy 與版本節奏資料",
             ],
             risk_libraries=["retention risk", "platform risk", "portfolio volatility risk"],
             common_risks=[
@@ -1950,6 +1962,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "是否該調整 monetization loop",
                 "是否適合做 live ops / content cadence investment",
                 "是否該採 premium / F2P / hybrid 路線",
+                "是否該先穩定 player economy 再推大型活動或跨區發行",
             ],
             recommendation_patterns=[
                 "retention-first launch sequence",
@@ -1960,6 +1973,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "gaming live-ops brief",
                 "game launch readiness memo",
                 "player economy risk review",
+                "retention versus UA decision memo",
             ],
             routing_hints=[
                 "遊戲",
@@ -1983,6 +1997,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "它與 SaaS Pack 的邊界在於：Gaming 更重玩家行為、留存與 live ops；SaaS 更重 recurring revenue、activation 與 implementation。",
                 "它最常出現在 launch readiness、UA versus retention、monetization design、portfolio allocation 與平台風險任務。",
                 "若定義太窄，會只剩下載或營收指標；若定義太廣，則會把 creator、media、SaaS 與一般產品問題混在一起。",
+                "P0-B 後它也應更直接約束 Host 對 player economy、content cadence 與 portfolio risk 的正式判斷。",
             ],
         ),
         PackSpec(
@@ -2315,6 +2330,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "PLG、sales-led 與 services revenue 混在一起，導致 commercial model 與 segment economics 失真",
                 "pricing / packaging 與 implementation load 不匹配，讓 expansion 與毛利承壓",
                 "看似成長中的 ARR 掩蓋了 retention、support load 與 onboarding bottleneck",
+                "seat expansion、usage 成長與 support / implementation 成本沒有一起被治理，導致 NRR 表面健康卻難以複製",
             ],
             stage_specific_heuristics={
                 "創業階段": [
@@ -2353,6 +2369,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "pipeline、win-loss、sales cycle 與 segment 資料",
                 "pricing、plan design、discount 與 implementation 資料",
                 "support load、CSM 容量與 roadmap 訊號",
+                "seat expansion、feature adoption 與 renewal driver 分析",
             ],
             risk_libraries=["churn risk", "implementation drag risk", "pricing mismatch risk", "segment dilution risk"],
             common_risks=[
@@ -2366,6 +2383,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "是否該重做 plan / pricing / packaging",
                 "是否該聚焦特定 segment、use case 或 GTM motion",
                 "是否該把 services 與 product 收斂成更清楚的 commercial model",
+                "是否該把 onboarding / implementation 先視為 growth gate，而不是單純 CS 問題",
             ],
             recommendation_patterns=[
                 "retention-before-scale sequence",
@@ -2376,6 +2394,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "SaaS growth memo",
                 "retention and pricing review",
                 "segment and GTM decision brief",
+                "time-to-value and onboarding constraint memo",
             ],
             routing_hints=[
                 "saas",
@@ -2400,6 +2419,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "它與 Professional Services Pack 的邊界在於：SaaS 以產品化 recurring model 為中心，而不是 billable delivery 為中心。",
                 "它最常出現在 pricing / packaging、PLG versus sales-led、retention diagnosis 與 SaaS economics 任務。",
                 "若定義太窄，會只剩 KPI dashboard；若定義太廣，則會把所有軟體、顧問與服務生意都混成 SaaS。",
+                "P0-B 後它也應更直接影響 Host 對 recurring economics、implementation drag 與 segment fit 的正式 framing。",
             ],
         ),
         PackSpec(
@@ -2420,6 +2440,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "收入過度集中在 sponsorship 或單一平台，導致 algorithm risk 與商務波動放大",
                 "內容節奏、creator capacity 與 monetization 承諾互相衝突，讓品質與可持續性下降",
                 "想 productize audience-facing offer，但 audience intent 與 content-to-offer 路徑還不清楚",
+                "社群、newsletter、會員與內容產品各自成長，卻沒有形成清楚的 audience ladder 與轉化節奏",
             ],
             stage_specific_heuristics={
                 "創業階段": [
@@ -2458,6 +2479,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "owned audience 名單 / 社群轉化資料",
                 "受眾回饋、內容表現與 creator workload 資訊",
                 "品牌合作 pipeline 與客戶類型資料",
+                "內容主題表現、newsletter / community activation 與 paid conversion path",
             ],
             risk_libraries=["platform dependency risk", "creator bottleneck risk", "monetization volatility risk"],
             common_risks=[
@@ -2471,6 +2493,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "是否該把流量導回 owned audience 與產品",
                 "是否該重整收入組合與 creator workload",
                 "是否該 productize 某些 audience-facing offers",
+                "是否該把會員、課程與 sponsorship 分成不同 monetization ladder",
             ],
             recommendation_patterns=[
                 "audience monetization mix reset",
@@ -2481,6 +2504,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "creator business brief",
                 "audience monetization review",
                 "platform dependency risk memo",
+                "owned audience conversion memo",
             ],
             routing_hints=[
                 "creator",
@@ -2506,6 +2530,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "它與 Online Education Pack 的邊界在於：後者聚焦學習結果與教學交付，前者聚焦 audience asset 與 content business。",
                 "它最常出現在 creator monetization、平台依賴治理、內容產品化與 audience strategy 任務。",
                 "若定義太窄，會只剩社群數據；若定義太廣，則會把教育、廣告、品牌與服務型業務全部混在一起。",
+                "P0-B 後它也應更直接影響 Host 對 platform dependency、owned audience 與 creator capacity 的正式判斷。",
             ],
         ),
         PackSpec(
@@ -2526,6 +2551,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "創辦人或少數資深顧問成為成交與交付單點，讓組織無法複製",
                 "服務線變多後，報價、交付與 client mix 變得失焦",
                 "project 與 retainer 混在一起管理，導致 capacity 與 revenue predictability 失真",
+                "服務包裝看似清楚，但實際 delivery governance、handoff 與 account ownership 仍高度依賴少數人",
             ],
             stage_specific_heuristics={
                 "創業階段": [
@@ -2564,6 +2590,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "pipeline、win-loss、client concentration 與 renewal 資料",
                 "毛利、交付成本與團隊配置資料",
                 "客戶回饋、quality issues 與 founder dependency 訊號",
+                "account ownership、handoff、renewal 節奏與 manager leverage 資料",
             ],
             risk_libraries=["scope creep risk", "utilization risk", "client concentration risk", "founder dependency risk"],
             common_risks=[
@@ -2577,6 +2604,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "是否該改 project versus retainer mix",
                 "是否該先修報價 / 包裝還是先修 delivery model",
                 "是否該重整 client mix 與資源配置",
+                "是否該先建立 manager leverage 與 delivery governance，再擴大 pipeline",
             ],
             recommendation_patterns=[
                 "service line focus",
@@ -2587,6 +2615,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "professional services operating memo",
                 "service line decision brief",
                 "delivery and pricing review",
+                "utilization and scope-control risk memo",
             ],
             routing_hints=[
                 "consulting",
@@ -2611,6 +2640,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "它與 SaaS Pack 的邊界在於：Professional Services 以人時與交付為核心，SaaS 則以 recurring software motion 為核心。",
                 "它最常出現在 agency / 顧問公司、代操服務、managed service、service line 調整與 pricing review 任務。",
                 "若定義太窄，會只剩工時管理；若定義太廣，則會把 SaaS、BD、營運與人力問題全部混成一個服務包。",
+                "P0-B 後它也應更直接影響 Host 對 utilization、scope control、manager leverage 與 client concentration 的正式 framing。",
             ],
         ),
         PackSpec(

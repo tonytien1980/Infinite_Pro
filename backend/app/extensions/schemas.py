@@ -20,6 +20,7 @@ class PackContractInterfaceId(str, Enum):
 
 class PackRequiredPropertyId(str, Enum):
     DEFINITION = "definition"
+    COMMON_BUSINESS_MODELS = "common_business_models"
     COMMON_PROBLEM_PATTERNS = "common_problem_patterns"
     EVIDENCE_EXPECTATIONS = "evidence_expectations"
     STAGE_SPECIFIC_HEURISTICS = "stage_specific_heuristics"

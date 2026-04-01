@@ -85,6 +85,14 @@ P0-A 之後，對 Domain / Functional Packs 的正式期待還包括：
 - 這些 pack contract 仍只能作為 Host framing / routing / deliverable shaping 的正式輸入
 - 它們不能直接取代 Host judgment，也不能把 Agent Layer 和 Pack Layer 混成同一類 taxonomy
 
+P0-B 之後，對 Industry Packs 的正式期待還包括：
+- Host 不只讀 industry pack 是否 ready，也要更強地讀：
+  - `common_business_models`
+  - industry KPI / operating-signal guidance
+  - industry-specific problem-pattern / decision-pattern / routing match
+- Industry pack selection 不應只靠鬆散 token 命中，而應優先採用 scored selection 與 top-score trimming
+- 這些 industry contract 仍只能作為 Host framing / routing / deliverable shaping 的正式輸入，不能取代 Host judgment
+
 Wave 5 之後，Agent Layer 也應理解：
 - `ObjectSet` 屬於 Ontology Layer 的正式 primitive，不屬於 Agent Layer
 - 但 Host 可正式消費 object-set summary 來理解：

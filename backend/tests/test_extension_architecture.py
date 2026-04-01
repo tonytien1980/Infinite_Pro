@@ -2,7 +2,12 @@ from __future__ import annotations
 
 from app.domain.enums import CapabilityArchetype, DeliverableClass, InputEntryMode
 from app.extensions.registry import ExtensionRegistry
-from app.extensions.resolver import AgentResolver, PackResolver, resolve_runtime_agent_binding
+from app.extensions.resolver import (
+    INDUSTRY_CONTEXT_SELECTION_THRESHOLD,
+    AgentResolver,
+    PackResolver,
+    resolve_runtime_agent_binding,
+)
 from app.extensions.schemas import AgentResolverInput, AgentType, PackResolverInput, PackType
 
 
@@ -56,6 +61,13 @@ def test_extension_registry_contains_completed_pack_baseline_and_agents() -> Non
     assert saas_pack.pack_rationale
     clinic_pack = next(pack for pack in industry_packs if pack.pack_id == "healthcare_clinic_pack")
     assert clinic_pack.evidence_expectations
+    saas_pack = next(pack for pack in industry_packs if pack.pack_id == "saas_pack")
+    assert saas_pack.common_business_models
+    assert saas_pack.contract_baseline is not None
+    assert saas_pack.contract_baseline.status.value == "ready"
+    assert "common_business_models" not in {
+        item.value for item in saas_pack.contract_baseline.missing_required_property_ids
+    }
 
     for pack in [*domain_packs, *industry_packs]:
         assert pack.common_problem_patterns
@@ -130,6 +142,28 @@ def test_pack_resolver_selects_second_wave_domain_and_industry_packs() -> None:
     assert "product_service_pack" in resolution.selected_domain_pack_ids
     assert resolution.selected_industry_pack_ids == ["saas_pack"]
     assert resolution.resolver_notes
+
+
+def test_pack_resolver_keeps_gaming_case_from_pulling_in_soft_saas_false_positive() -> None:
+    registry = ExtensionRegistry()
+    resolver = PackResolver(registry)
+
+    resolution = resolver.resolve(
+        PackResolverInput(
+            domain_lenses=["行銷", "營運", "研究"],
+            client_type="中小企業",
+            client_stage="規模化階段",
+            industry_hints=["gaming", "live ops", "payer", "wishlist"],
+            decision_context_summary=(
+                "Need a gaming portfolio review on retention, payer conversion, live-ops cadence, "
+                "and whether to delay bigger user acquisition until economics stabilize."
+            ),
+        )
+    )
+
+    assert resolution.selected_industry_pack_ids == ["gaming_pack"]
+    assert resolution.pack_scores["gaming_pack"] >= INDUSTRY_CONTEXT_SELECTION_THRESHOLD
+    assert resolution.pack_signals["gaming_pack"]
 
 
 def test_agent_resolver_maps_capability_and_packs() -> None:

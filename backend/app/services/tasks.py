@@ -1762,6 +1762,40 @@ def _build_industry_hints(
     return _unique_preserve_order([item for item in raw_hints if item is not None])
 
 
+def _match_phrase_hints(values: list[str], text: str) -> list[str]:
+    normalized_text = text.lower()
+    text_tokens = {
+        token
+        for token in normalized_text.replace("/", " ").replace("-", " ").split()
+        if token
+    }
+    matches: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        candidate = value.strip()
+        lowered = candidate.lower()
+        if not candidate or lowered in seen:
+            continue
+        candidate_tokens = {
+            token
+            for token in lowered.replace("/", " ").replace("-", " ").split()
+            if token
+        }
+        matched = False
+        if any("\u4e00" <= char <= "\u9fff" for char in lowered) and len(lowered) >= 2 and lowered in normalized_text:
+            matched = True
+        elif candidate_tokens:
+            overlap = candidate_tokens.intersection(text_tokens)
+            if len(candidate_tokens) == 1 and overlap:
+                matched = True
+            elif len(overlap) >= min(2, len(candidate_tokens)):
+                matched = True
+        if matched:
+            seen.add(lowered)
+            matches.append(candidate)
+    return matches
+
+
 def _build_selected_pack_reason(
     *,
     pack: PackSpec,
@@ -1813,6 +1847,24 @@ def _build_selected_pack_reason(
         ]
         if matched_hints:
             reasons.append(f"對齊產業線索：{join_natural_list(matched_hints[:2])}。")
+        business_model_matches = _match_phrase_hints(
+            pack.common_business_models,
+            decision_context_summary,
+        )
+        if business_model_matches:
+            reasons.append(f"DecisionContext 也對齊商業模式：{join_natural_list(business_model_matches[:2])}。")
+        decision_pattern_matches = _match_phrase_hints(
+            pack.default_decision_context_patterns,
+            decision_context_summary,
+        )
+        if decision_pattern_matches:
+            reasons.append(f"DecisionContext 也對齊產業判斷情境：{join_natural_list(decision_pattern_matches[:2])}。")
+        problem_pattern_matches = _match_phrase_hints(
+            pack.common_problem_patterns,
+            decision_context_summary,
+        )
+        if problem_pattern_matches:
+            reasons.append(f"DecisionContext 也命中產業問題型態：{join_natural_list(problem_pattern_matches[:2])}。")
 
     if not reasons:
         reasons.append("由 Host 依目前 DecisionContext 與 context spine 推定。")

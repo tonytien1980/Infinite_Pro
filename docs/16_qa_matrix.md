@@ -354,3 +354,67 @@ Important verification note:
 - the current baseline is intentionally small and scoped to support `P0-B Industry Packs Batch 1`
 - living QA matrix remains the verification history, while benchmark scaffolding now carries reusable before / after seed cases
 - the adopted next-phase planning content no longer depends on an untracked floating file
+
+---
+
+## Entry: 2026-04-01 P0-B industry packs batch 1 pass
+
+Scope:
+- `saas_pack`
+- `ecommerce_pack`
+- `media_creator_pack`
+- `professional_services_pack`
+- `online_education_pack`
+- `gaming_pack`
+- stronger industry-only required-property gate
+- stronger industry-pack resolver scoring and false-positive trimming
+
+Environment used:
+- frontend: `http://127.0.0.1:3000`
+- backend: `http://127.0.0.1:8000/api/v1`
+- runtime database: current local runtime
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `.venv312/bin/python -m pytest backend/tests -q` | Passed (`104 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && npm run typecheck` | Passed |
+
+Important verification note:
+- this frontend repo still expects `.next/types` to exist before `tsc --noEmit`
+- therefore the valid verification order remains `build -> typecheck`, not the reverse
+
+### P0-B specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | pack contract baseline | Industry packs now require `common_business_models` and KPI / operating-signal guidance as part of the stronger industry-only gate | Verified | Batch 1 packs remain formally `ready` after the stronger gate |
+| Backend | pack resolver | Industry selection now uses scored selection plus business-model / problem-pattern / decision-pattern signals | Verified | weaker soft matches are trimmed behind the top-scoring industry pack |
+| Backend | benchmark scaffold | Re-run `python3 backend/scripts/run_pack_benchmark_scaffold.py` against Batch 1 manifest | Verified | all 6 seed cases now return exact target industry-pack selection |
+| Packs UI | `/packs` | Industry disclosure now surfaces stronger contract requirements without changing hero flow | Verified | `SaaS Pack` disclosure shows `常見商業模式` as a formal required field for decision framing |
+| Task UI | `/tasks/[taskId]` | Task page keeps industry-pack depth in disclosure / readiness areas | Verified | task hero stayed decision-first; industry evidence expectations remain below the first screen |
+| Matter UI | `/matters/[matterId]` | Matter hero remains consultant-first | Verified | no contract metadata wall on the matter hero |
+| Evidence UI | `/matters/[matterId]/evidence` | Evidence workspace still stays supplement / evidence-first | Verified | industry-aware gaps appear as background guidance, not hero noise |
+| Deliverable UI | `/deliverables/[deliverableId]` | Deliverable page keeps pack-aware cues in background continuity / confidence areas | Verified | deliverable hero stayed deliverable-first |
+
+### Live smoke data
+
+- matter id: `12390e97-92c7-4b3a-825e-0711652cea68`
+- task id: `bfd2f42b-807d-41f1-a978-48a4a29ed8c5`
+- deliverable id: `990f83ce-0d99-4327-a724-2fcb0bd533fd`
+- `/packs` industry tab snapshot: `.playwright-cli/page-2026-04-01T11-35-13-077Z.yml`
+- `/packs` SaaS disclosure snapshot: `.playwright-cli/page-2026-04-01T11-35-32-121Z.yml`
+- `/tasks/[taskId]` snapshot: `.playwright-cli/page-2026-04-01T11-35-49-351Z.yml`
+- `/matters/[matterId]` snapshot: `.playwright-cli/page-2026-04-01T11-36-46-318Z.yml`
+- `/matters/[matterId]/evidence` snapshot: `.playwright-cli/page-2026-04-01T11-37-15-230Z.yml`
+- `/deliverables/[deliverableId]` snapshot: `.playwright-cli/page-2026-04-01T11-37-28-381Z.yml`
+
+### Verified outcomes
+
+- the first 6 Industry Packs now act more like real active contracts, not just catalog copy
+- industry pack readiness now fails closed on missing `common_business_models` or missing KPI / operating-signal guidance
+- industry selection no longer promotes weak soft matches as easily; the current Batch 1 benchmark now resolves to the expected target industry packs exactly
+- `/packs` and task/matter/deliverable/evidence surfaces kept pack depth inside low-noise disclosure / background areas rather than polluting first-screen primary guidance

@@ -291,6 +291,18 @@ Wave 5 之後，Codex 還必須維持：
   - `default_decision_context_patterns`
   - relevant client stage / type
 
+當後續進入 P0-B `Industry Packs Batch 1` 時，Codex 也應維持：
+- 這仍是 pack-layer hardening / extension，不是新的 deepen wave
+- Industry pack 不可只停留在 catalog copy；它們應正式成為 active industry contracts
+- industry-only required-property gate 應至少正式檢查：
+  - `common_business_models`
+  - KPI / operating-signal guidance
+- Pack Resolver 不應只靠鬆散產業 token 命中，也應正式吃進：
+  - `common_business_models`
+  - `common_problem_patterns`
+  - `default_decision_context_patterns`
+  - relevant client stage / type
+
 另外，若新增 / 深化 Agent 或 Pack creation flow，Codex 應同步檢查：
 - backend 是否仍經過正式 provider boundary
 - 是否仍保留 bounded external search

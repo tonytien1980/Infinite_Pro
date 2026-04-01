@@ -191,6 +191,8 @@ RUNTIME_AGENT_BINDINGS = {
 
 EXPLICIT_SELECTION_BONUS = 100
 DOMAIN_CONTEXT_SELECTION_THRESHOLD = 24
+INDUSTRY_CONTEXT_SELECTION_THRESHOLD = 50
+INDUSTRY_TOP_SCORE_MARGIN = 16
 
 
 def _scored_sort(ids: list[str], score_map: dict[str, int]) -> list[str]:
@@ -268,20 +270,9 @@ class PackResolver:
                 notes.append("Selected additional domain packs from decision-context and routing hints.")
 
         if not selected_industry:
-            hint_tokens = _normalize_tokens(payload.industry_hints)
-            hint_tokens.update(_normalize_tokens([payload.decision_context_summary or ""]))
-            hint_text = " ".join(
-                item.lower()
-                for item in [*payload.industry_hints, payload.decision_context_summary or ""]
-                if item
-            )
+            scored_industry_candidates: list[tuple[str, int]] = []
             for pack in self.registry.list_packs(PackType.INDUSTRY):
                 if pack.status != ExtensionStatus.ACTIVE:
-                    continue
-                matched_hints = bool(hint_tokens.intersection(_pack_industry_tokens(pack))) or (
-                    _matches_industry_hint_text(pack, hint_text)
-                )
-                if not matched_hints:
                     continue
                 if (
                     pack.relevant_client_types
@@ -295,9 +286,23 @@ class PackResolver:
                     and payload.client_stage not in pack.relevant_client_stages
                 ):
                     continue
-                selected_industry.append(pack.pack_id)
-            if selected_industry:
-                notes.append("Selected industry packs from industry hints.")
+                score, _signals = score_pack_relevance(pack, payload)
+                if score < INDUSTRY_CONTEXT_SELECTION_THRESHOLD:
+                    continue
+                scored_industry_candidates.append((pack.pack_id, score))
+            if scored_industry_candidates:
+                scored_industry_candidates.sort(key=lambda item: (-item[1], item[0]))
+                top_score = scored_industry_candidates[0][1]
+                selected_industry.extend(
+                    [
+                        pack_id
+                        for pack_id, score in scored_industry_candidates
+                        if score >= max(INDUSTRY_CONTEXT_SELECTION_THRESHOLD, top_score - INDUSTRY_TOP_SCORE_MARGIN)
+                    ]
+                )
+                notes.append(
+                    "Selected industry packs from scored industry hints, business-model cues, and decision-context patterns."
+                )
 
         selected_domain = list(dict.fromkeys(selected_domain))
         selected_industry = list(dict.fromkeys(selected_industry))
@@ -709,6 +714,7 @@ def score_pack_relevance(
             )
     else:
         hint_tokens = _normalize_tokens(payload.industry_hints)
+        hint_tokens.update(_normalize_tokens([payload.decision_context_summary or ""]))
         hint_text = " ".join(
             item.lower()
             for item in [*payload.industry_hints, payload.decision_context_summary or ""]
@@ -722,6 +728,33 @@ def score_pack_relevance(
                 signals.append(f"對齊產業線索：{', '.join(matched_hint_tokens[:3])}。")
             else:
                 signals.append("對齊產業線索文字脈絡。")
+        business_model_matches = _match_phrase_hints(
+            pack.common_business_models,
+            payload.decision_context_summary or "",
+        )
+        if business_model_matches:
+            score += 10 + min(len(business_model_matches), 2) * 4
+            signals.append(
+                f"DecisionContext 也對齊商業模式：{', '.join(business_model_matches[:2])}。"
+            )
+        decision_pattern_matches = _match_phrase_hints(
+            pack.default_decision_context_patterns,
+            payload.decision_context_summary or "",
+        )
+        if decision_pattern_matches:
+            score += 10 + min(len(decision_pattern_matches), 2) * 4
+            signals.append(
+                f"DecisionContext 也對齊產業判斷情境：{', '.join(decision_pattern_matches[:2])}。"
+            )
+        problem_pattern_matches = _match_phrase_hints(
+            pack.common_problem_patterns,
+            payload.decision_context_summary or "",
+        )
+        if problem_pattern_matches:
+            score += 10 + min(len(problem_pattern_matches), 2) * 5
+            signals.append(
+                f"DecisionContext 也命中產業問題型態：{', '.join(problem_pattern_matches[:2])}。"
+            )
         if payload.client_type and payload.client_type in pack.relevant_client_types:
             score += 12
             signals.append(f"對齊客戶型態：{payload.client_type}。")

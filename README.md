@@ -175,6 +175,20 @@ P0-0 adds a minimal benchmark scaffolding baseline before the next industry spri
 - the benchmark baseline now has a minimal runner / schema path instead of only planning prose
 - this baseline is intentionally small and should not be treated as a new platform or a full evaluation suite
 
+P0-B hardens the first 6 `Industry Packs` into stronger active industry contracts:
+- Batch 1 now focuses on:
+  - `saas_pack`
+  - `ecommerce_pack`
+  - `media_creator_pack`
+  - `professional_services_pack`
+  - `online_education_pack`
+  - `gaming_pack`
+- industry packs now use a stronger industry-only required-property gate for:
+  - `common_business_models`
+  - KPI / operating-signal guidance
+- the Pack Resolver no longer treats industry selection as a loose token match only; it now prefers scored selection, business-model / problem-pattern / decision-pattern signals, and trims weaker soft matches behind the top-scoring pack
+- this means Industry Batch 1 affects runtime selection and Host framing more directly without creating a new industry console or bypassing Host judgment
+
 Within the single-consultant scope, Agent Orchestration is now treated as a completed runtime layer:
 - Host selection formally responds to capability archetype, selected packs, decision context, readiness/evidence sufficiency, sparse-input mode, and deliverable class
 - selected agents influence execution path and deliverable shaping, not just metadata
