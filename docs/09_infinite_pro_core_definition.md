@@ -176,6 +176,17 @@ Wave 3 deepen 後，這條主鏈還應再往前一步：
 - retrieval provenance 應能讓 evidence 與 deliverable 回看自己是被哪個 chunk / media support 撐起來的
 - provenance 預設屬按需展開層，不可污染首屏主線
 
+Wave 5 deepen 後，這條主鏈還應能正式承接：
+- `ObjectSet`
+- `ObjectSetMember`
+- deliverable-local evidence support bundle
+- task-scope risk focus grouping
+
+正式規則是：
+- `ObjectSet` 仍屬 Ontology Layer primitive，不是第七層
+- 第一波只先做 matter / work-scope 內的集合，不做跨案件世界 reusable mesh
+- object-set views 預設屬既有工作面的按需展開層，不可污染首屏主線
+
 正式核心物件至少包括：
 - Client
 - Engagement
@@ -326,6 +337,10 @@ Wave 4 的最小正式 contract slice 是：
 - deliverable class、confidence / applicability、limitations、high-impact gaps 的可見治理
 - deliverable 對 matter、decision context、artifact、source material、evidence、recommendation、risk、action item 的正式回鏈
 - matter workspace、artifact / evidence workspace、task detail 與 deliverable workspace 的正式銜接與連續性
+- Wave 5 後，deliverable workspace 也可正式承接：
+  - `evidence_set_v1`
+  - `risk_set_v1`
+  的低噪音集合視角
 
 ### Intake / Storage 邊界的正式地位
 在目前單人正式 beta 階段，以下能力也應被視為正式 architecture responsibility：

@@ -187,3 +187,66 @@ Important verification note:
   - deliverable shaping hints
 - `/packs` and `/tasks/[taskId]` expose these semantics only in low-noise management / disclosure surfaces
 - matter first-screen primary guidance stayed intact
+
+---
+
+## Entry: 2026-04-01 Wave 5 object-set baseline pass
+
+Scope:
+- `ObjectSet`
+- `ObjectSetMember`
+- `evidence_set_v1`
+- `risk_set_v1`
+- deliverable workspace object-set view
+
+Environment used:
+- frontend: `http://127.0.0.1:3000`
+- backend: `http://127.0.0.1:8000/api/v1`
+- runtime database: current local runtime
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `.venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`91 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && npm run typecheck` | Passed |
+
+Important verification note:
+- this frontend repo still expects `.next/types` to exist before `tsc --noEmit`
+- therefore the valid verification order remains `build -> typecheck`, not the reverse
+
+### Wave 5 specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | task aggregate | Task aggregate now returns formal `object_sets` payload | Verified | includes `evidence_set_v1` and `risk_set_v1` |
+| Backend | deliverable workspace | Deliverable workspace returns formal object-set contract | Verified | carries scope, creation mode, lifecycle, membership source, members |
+| Backend | runtime lifecycle | Empty evidence / risk sets archive instead of lingering as stale active rows | Verified | lifecycle baseline now supports `active` and `archived` |
+| Deliverable | `/deliverables/[deliverableId]` | Section guide exposes `證據集與風險群組` as a low-noise advanced view | Verified | no new app shell and no first-screen metadata wall |
+| Deliverable | `/deliverables/[deliverableId]` | Evidence set member list shows included reason, source hint, and support label | Verified | deliverable-local support bundle is readable |
+| Deliverable | `/deliverables/[deliverableId]` | Risk set member list shows included reason and focus grouping context | Verified | task-scope risk grouping remains inside the existing workspace |
+| Deliverable | `/deliverables/[deliverableId]` | Click evidence-set member then use `回到這則證據` backlink | Verified | page URL changed from object-set member anchor back to the evidence card anchor |
+| Deliverable | `/deliverables/[deliverableId]` | First-screen hero remains conclusion/version/action focused | Verified | object-set metadata stayed below the first-screen main flow |
+
+### Live smoke data
+
+- matter id: `9b02949b-b8a9-42f7-b6da-18566eb8c17c`
+- task id: `daa73ebf-b2da-4f0a-979c-91ce9147aa97`
+- deliverable id: `cdcd98fb-ff08-4844-891a-d1603a7b2ff0`
+- initial deliverable snapshot: `.playwright-cli/page-2026-04-01T03-12-38-069Z.yml`
+- object-set member snapshot: `.playwright-cli/page-2026-04-01T03-12-49-828Z.yml`
+- evidence backlink snapshot: `.playwright-cli/page-2026-04-01T03-13-02-645Z.yml`
+
+### Verified outcomes
+
+- `ObjectSet` now has a formal persistence / runtime baseline rather than docs-only status
+- first shipped set types are:
+  - `evidence_set_v1`
+  - `risk_set_v1`
+- first shipped owning scopes are:
+  - deliverable-local support bundle
+  - task-scope focus grouping
+- the first shipped object-set view lives inside the existing deliverable workspace
+- object-set semantics increased system depth without polluting first-screen primary guidance

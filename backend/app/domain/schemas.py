@@ -19,6 +19,11 @@ from app.domain.enums import (
     FlowMode,
     FunctionType,
     InputEntryMode,
+    ObjectSetCreationMode,
+    ObjectSetLifecycleStatus,
+    ObjectSetMembershipSource,
+    ObjectSetScopeType,
+    ObjectSetType,
     PresenceState,
     RunStatus,
     TaskStatus,
@@ -678,6 +683,42 @@ class DeliverableRead(ORMModel):
     generated_at: datetime
 
 
+class ObjectSetMemberRead(ORMModel):
+    id: str
+    object_set_id: str
+    task_id: str
+    member_object_type: str
+    member_object_id: str
+    member_label: str
+    membership_source: ObjectSetMembershipSource
+    ordering_index: int
+    included_reason: str = ""
+    derivation_hint: str = ""
+    support_label: str | None = None
+    created_at: datetime
+
+
+class ObjectSetRead(ORMModel):
+    id: str
+    task_id: str
+    matter_workspace_id: str | None = None
+    deliverable_id: str | None = None
+    set_type: ObjectSetType
+    scope_type: ObjectSetScopeType
+    scope_id: str
+    display_title: str
+    description: str = ""
+    intent: str = ""
+    creation_mode: ObjectSetCreationMode
+    lifecycle_status: ObjectSetLifecycleStatus
+    continuity_scope: str = "task_scope"
+    membership_source_summary: dict[str, Any] = Field(default_factory=dict)
+    member_count: int = 0
+    members: list[ObjectSetMemberRead] = Field(default_factory=list)
+    created_at: datetime
+    updated_at: datetime
+
+
 class DeliverableVersionEventRead(ORMModel):
     id: str
     deliverable_id: str
@@ -1315,6 +1356,7 @@ class ArtifactEvidenceWorkspaceResponse(BaseModel):
     sufficiency_summary: str = ""
     deliverable_limitations: list[str] = Field(default_factory=list)
     continuity_notes: list[str] = Field(default_factory=list)
+    object_sets: list[ObjectSetRead] = Field(default_factory=list)
 
 
 class TaskAggregateResponse(BaseModel):
@@ -1372,6 +1414,7 @@ class TaskAggregateResponse(BaseModel):
     action_executions: list[ActionExecutionRead] = Field(default_factory=list)
     outcome_records: list[OutcomeRecordRead] = Field(default_factory=list)
     audit_events: list[AuditEventRead] = Field(default_factory=list)
+    object_sets: list[ObjectSetRead] = Field(default_factory=list)
     canonicalization_summary: CanonicalizationSummaryRead = Field(
         default_factory=CanonicalizationSummaryRead
     )
@@ -1413,6 +1456,7 @@ class DeliverableWorkspaceResponse(BaseModel):
     version_events: list[DeliverableVersionEventRead] = Field(default_factory=list)
     artifact_records: list[DeliverableArtifactRecordRead] = Field(default_factory=list)
     publish_records: list[DeliverablePublishRecordRead] = Field(default_factory=list)
+    object_sets: list[ObjectSetRead] = Field(default_factory=list)
 
 
 class UploadResultItem(BaseModel):

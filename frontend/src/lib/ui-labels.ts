@@ -270,6 +270,32 @@ const DELIVERABLE_CLASS_LABELS: Record<string, string> = {
   decision_action_deliverable: "決策 / 行動交付物",
 };
 
+const OBJECT_SET_TYPE_LABELS: Record<string, string> = {
+  evidence_set_v1: "證據集",
+  risk_set_v1: "風險群組",
+};
+
+const OBJECT_SET_SCOPE_LABELS: Record<string, string> = {
+  task: "工作切片範圍",
+  deliverable: "交付支撐範圍",
+  matter: "案件範圍",
+};
+
+const OBJECT_SET_CREATION_MODE_LABELS: Record<string, string> = {
+  host_curated: "主控代理整理",
+  deliverable_support_bundle: "交付支撐集",
+};
+
+const OBJECT_SET_LIFECYCLE_STATUS_LABELS: Record<string, string> = {
+  active: "啟用中",
+  archived: "已封存",
+};
+
+const OBJECT_SET_MEMBERSHIP_SOURCE_LABELS: Record<string, string> = {
+  host_curated: "主控代理整理",
+  deliverable_support_bundle: "交付支撐集",
+};
+
 const DELIVERABLE_TYPE_LABELS: Record<string, string> = {
   research_synthesis: "研究綜整交付物",
   contract_review: "合約審閱交付物",
@@ -747,6 +773,41 @@ export function labelForPackContractStatus(value: string | null | undefined) {
     return "未標示";
   }
   return PACK_CONTRACT_STATUS_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForObjectSetType(value: string | null | undefined) {
+  if (!value) {
+    return "未標示";
+  }
+  return OBJECT_SET_TYPE_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForObjectSetScope(value: string | null | undefined) {
+  if (!value) {
+    return "未標示";
+  }
+  return OBJECT_SET_SCOPE_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForObjectSetCreationMode(value: string | null | undefined) {
+  if (!value) {
+    return "未標示";
+  }
+  return OBJECT_SET_CREATION_MODE_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForObjectSetLifecycleStatus(value: string | null | undefined) {
+  if (!value) {
+    return "未標示";
+  }
+  return OBJECT_SET_LIFECYCLE_STATUS_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForObjectSetMembershipSource(value: string | null | undefined) {
+  if (!value) {
+    return "未標示";
+  }
+  return OBJECT_SET_MEMBERSHIP_SOURCE_LABELS[value] ?? fallbackLabel(value);
 }
 
 export function labelForCanonicalizationReviewStatus(value: string | null | undefined) {

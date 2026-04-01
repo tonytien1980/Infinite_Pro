@@ -76,6 +76,13 @@ Wave 4 之後，這種影響應優先透過正式 pack contract baseline 進入 
 - pack contract 可以提供 hints / gates / presets
 - Host 仍是唯一判斷是否採用、如何採用、以及何時覆蓋這些 contract 的 orchestration center
 
+Wave 5 之後，Agent Layer 也應理解：
+- `ObjectSet` 屬於 Ontology Layer 的正式 primitive，不屬於 Agent Layer
+- 但 Host 可正式消費 object-set summary 來理解：
+  - 哪組 evidence 已被納入某份 deliverable 的 support bundle
+  - 哪組 risks 已被整理成這輪工作的 focus grouping
+- 這種 set-aware framing 仍屬 Host orchestration / deliverable shaping 的一部分，不可讓 UI-only grouping 直接取代 Host judgment
+
 ---
 
 ## 4. Agent Layer 正式分層

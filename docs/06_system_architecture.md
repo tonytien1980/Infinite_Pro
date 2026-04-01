@@ -260,6 +260,16 @@ Wave 4 的最小正式基線還包括：
 - active pack 的 required-property gate
 - pack-to-contract binding 對 readiness / decision framing / deliverable hints 的正式影響
 
+Wave 5 的最小正式基線則是：
+- `ObjectSet` 仍留在 Ontology Layer，不能形成第七層
+- first shipped set types 只先包含：
+  - `evidence_set_v1`
+  - `risk_set_v1`
+- first shipped owning scopes 只先包含：
+  - deliverable-local support bundle
+  - task-scope focus grouping
+- `object-set views` 只作為既有工作面的進階視圖，不形成新 app shell
+
 若 Pack Management Surface 採精簡建立模式，正式規則也應是：
 - 一般使用者只填最少必要資訊
 - backend 使用目前 active provider 與外部搜尋生成正式 pack contract draft
@@ -385,6 +395,9 @@ UI 不是只做表單與結果頁，而是正式工作面。
 - deliverable class、confidence / applicability、limitations、high-impact gaps 已成為正式工作面責任
 - deliverable 對 matter / decision context / source / evidence / recommendation / risk / action 的回鏈已可被正式回看
 - deliverable 正文、revision、rollback、version events、publish / artifact records 與正式匯出都已屬於正式 runtime responsibility
+- Wave 5 後，deliverable workspace 也可低噪音進入：
+  - `evidence_set_v1` support bundle 視角
+  - `risk_set_v1` focus grouping 視角
 - 它不是 generic result page，也不是 task detail 的附帶閱讀區
 
 ### Extension Manager 的正式位置

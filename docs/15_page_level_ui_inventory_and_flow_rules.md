@@ -410,6 +410,7 @@
 - publish records
 - 相關交付物
 - 完整 evidence / ontology 回鏈明細
+- object-set views、member lists、included reason 與 item 回跳細節
 - decision / outcome writeback 記錄
 - approval / audit 細節
 - research provenance 細節
@@ -417,6 +418,7 @@
 
 **正式規則補充**
 - approval / audit 若存在，應放在 continuity / writeback 類的 disclosure 內，而不是搶走正式發布與交付閱讀的首屏主線
+- 若該交付物已形成 `evidence_set_v1` 或 `risk_set_v1`，object-set view 應作為既有 deliverable workspace 的低噪音進階段落呈現，不可新增新 app shell，也不可搶走首屏 primary action
 
 **交付物管理段落規則**
 - 交付物管理不應把唯讀 metadata、版本控制與正文編修塞成同一排密集表單

@@ -267,6 +267,17 @@ Wave 4 之後，Codex 還必須維持：
 - active pack 若缺少 required properties，不可假裝仍是正式可依賴的 contract
 - pack-to-contract binding 只能提供正式 hints / gates，不能取代 Host judgment
 
+Wave 5 之後，Codex 還必須維持：
+- `ObjectSet` 不是第七層
+- `ObjectSet` 只能以 ontology primitive + workbench advanced view 的組合落地
+- first shipped set types 只先是：
+  - `evidence_set_v1`
+  - `risk_set_v1`
+- first shipped owning scopes 只先是：
+  - deliverable-local support bundle
+  - task-scope focus grouping
+- 不可把 object-set views 擴成 graph explorer / object explorer / 新 app shell
+
 另外，若新增 / 深化 Agent 或 Pack creation flow，Codex 應同步檢查：
 - backend 是否仍經過正式 provider boundary
 - 是否仍保留 bounded external search
@@ -302,6 +313,7 @@ Codex 應把它理解為已完成的正式交付物工作面，至少承接：
 - deliverable 對 decision context、matter、artifacts、source materials、evidence、recommendations、risks、action items 的正式回鏈
 - confidence / applicability、high-impact gaps、deliverable limitations 的可見治理結果
 - matter workspace、artifact / evidence workspace、task detail 與 deliverable workspace 之間的正式回跳與連續性
+- Wave 5 後的第一批 object-set views 也應優先附著在這個工作面，而不是另開新導航
 
 ### 7.7 正式進件模式與 storage 邊界
 在目前單人正式 beta 範圍內，Codex 應把以下能力視為已成立的正式主鏈，而不是暫時 hack：

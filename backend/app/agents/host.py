@@ -45,6 +45,7 @@ from app.services.deliverable_records import (
     DELIVERABLE_EVENT_STATUS_CHANGED,
     record_deliverable_version_event,
 )
+from app.services.object_sets import ensure_object_sets_for_task
 from app.services.external_search import search_external_sources
 from app.services.sources import ingest_remote_urls_for_task
 from app.services.tasks import (
@@ -3639,6 +3640,7 @@ class HostOrchestrator:
             persisted_risks=persisted_risks,
             persisted_action_items=persisted_action_items,
         )
+        ensure_object_sets_for_task(self.db, task)
 
         run.status = RunStatus.COMPLETED.value
         run.summary = (

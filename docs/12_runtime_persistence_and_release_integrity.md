@@ -318,6 +318,38 @@ publish / artifact records 用來描述正式發布與正式輸出物。
 目前正式 table：
 - `matter_canonicalization_reviews`
 
+### 5.7 ObjectSet lifecycle / membership baseline
+
+這一層用來保留顧問工作中「一組物件」的正式語義，不等於新 app shell，也不等於 graph explorer。
+
+正式責任：
+- `ObjectSet`
+  - 保留 set id、set type、owning scope、display title、description / intent
+  - 區分 creation mode、lifecycle status、continuity scope
+  - 保留 membership source summary
+- `ObjectSetMember`
+  - 保留 member object type / id
+  - 區分 membership source
+  - 保留 ordering、included reason、derivation hint、support label
+
+Wave 5 的第一批正式 shipped set types：
+- `evidence_set_v1`
+  - deliverable-local support bundle
+- `risk_set_v1`
+  - task-scope focus grouping
+
+正式規則：
+- set scope 必須明確，不可默默變成跨案件全域集合
+- first-wave lifecycle 至少要支援：
+  - `active`
+  - `archived`
+- membership 必須是真 persistence / runtime contract，不可只停在 UI grouping
+- object-set view 預設屬按需展開層，不可污染首屏
+
+目前正式 table：
+- `object_sets`
+- `object_set_members`
+
 ---
 
 ## 6. Revision 與 Rollback 的正式規則

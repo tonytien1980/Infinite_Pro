@@ -109,6 +109,32 @@ class DeliverableClass(str, Enum):
     DECISION_ACTION_DELIVERABLE = "decision_action_deliverable"
 
 
+class ObjectSetType(str, Enum):
+    EVIDENCE_SET_V1 = "evidence_set_v1"
+    RISK_SET_V1 = "risk_set_v1"
+
+
+class ObjectSetScopeType(str, Enum):
+    TASK = "task"
+    DELIVERABLE = "deliverable"
+    MATTER = "matter"
+
+
+class ObjectSetCreationMode(str, Enum):
+    HOST_CURATED = "host_curated"
+    DELIVERABLE_SUPPORT_BUNDLE = "deliverable_support_bundle"
+
+
+class ObjectSetLifecycleStatus(str, Enum):
+    ACTIVE = "active"
+    ARCHIVED = "archived"
+
+
+class ObjectSetMembershipSource(str, Enum):
+    HOST_CURATED = "host_curated"
+    DELIVERABLE_SUPPORT_BUNDLE = "deliverable_support_bundle"
+
+
 class ExternalDataStrategy(str, Enum):
     STRICT = "strict"
     SUPPLEMENTAL = "supplemental"

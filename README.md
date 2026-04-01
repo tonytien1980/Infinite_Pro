@@ -150,6 +150,16 @@ Wave 4 adds a minimal formal contract baseline for packs:
 - `pack_id`, interface ids, required property ids, and rule binding ids now act as the stable API naming baseline
 - pack-to-contract binding can now formally affect readiness gates, decision framing hints, and deliverable shaping hints without replacing Host orchestration
 
+Wave 5 adds a minimal formal `ObjectSet` baseline:
+- `ObjectSet` remains an Ontology Layer primitive, not a seventh layer
+- first shipped set types are:
+  - `evidence_set_v1`
+  - `risk_set_v1`
+- first shipped owning scopes are:
+  - deliverable-local support bundle
+  - task-scope focus grouping
+- the first shipped object-set view lives inside the existing deliverable workspace rather than a new app shell
+
 Within the single-consultant scope, Agent Orchestration is now treated as a completed runtime layer:
 - Host selection formally responds to capability archetype, selected packs, decision context, readiness/evidence sufficiency, sparse-input mode, and deliverable class
 - selected agents influence execution path and deliverable shaping, not just metadata
@@ -175,6 +185,7 @@ Within the single-consultant scope, the `Deliverable Workspace` should now also 
 - `Deliverable` has a canonical workspace identity and a dedicated workspace route
 - consultants can move from matter workspace, task detail, and artifact/evidence workspace into a formal deliverable work surface
 - deliverable class, evidence basis, ontology linkage, limitations, and applicability are visible as first-class workbench responsibilities rather than being buried in task-result blobs
+- Wave 5 also lets the deliverable workspace expose low-noise `證據集` / `風險群組` views for the current deliverable support bundle and active risk focus
 
 Two additional runtime governance files now matter for day-to-day development:
 - [`docs/11_intake_storage_architecture.md`](/Users/tonytien/Desktop/Infinite%20Pro/docs/11_intake_storage_architecture.md) for intake modes, source materials, storage, retention, purge, and storage cost boundaries

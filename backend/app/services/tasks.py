@@ -76,6 +76,11 @@ from app.services.deliverable_records import (
     label_for_deliverable_status,
     record_deliverable_version_event,
 )
+from app.services.object_sets import (
+    ensure_object_sets_for_task,
+    relevant_object_sets_for_deliverable,
+    serialize_object_sets,
+)
 from app.services.source_materials import (
     build_source_material_summary,
     ensure_source_chain_participation_links,
@@ -676,6 +681,7 @@ def task_load_options():
         selectinload(models.Task.action_executions),
         selectinload(models.Task.outcome_records),
         selectinload(models.Task.audit_events),
+        selectinload(models.Task.object_sets).selectinload(models.ObjectSet.members),
     )
 
 
@@ -8266,6 +8272,9 @@ def get_deliverable_workspace(
         follow_up_lane=follow_up_lane,
         progression_lane=progression_lane,
     )
+    relevant_object_sets = serialize_object_sets(
+        relevant_object_sets_for_deliverable(task, deliverable_id)
+    )
 
     return schemas.DeliverableWorkspaceResponse(
         deliverable=deliverable,
@@ -8306,6 +8315,7 @@ def get_deliverable_workspace(
             schemas.DeliverablePublishRecordRead.model_validate(item)
             for item in publish_records[:8]
         ],
+        object_sets=relevant_object_sets,
     )
 
 
@@ -9754,7 +9764,8 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         task=task,
         case_world_draft=case_world_draft_row,
     )
-    if world_spine_changed or case_world_changed or case_world_state_changed:
+    object_sets_changed = ensure_object_sets_for_task(db, task)
+    if world_spine_changed or case_world_changed or case_world_state_changed or object_sets_changed:
         db.commit()
         task = get_loaded_task(db, task.id)
         client, engagement, workstream, decision_context, domain_lenses, source_materials, artifacts = (
@@ -9807,6 +9818,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         key=lambda item: (item.generated_at, item.version),
         default=None,
     )
+    serialized_object_sets = serialize_object_sets(task.object_sets)
     related_tasks_for_lane: list[models.Task] = [task]
     if matter_workspace is not None:
         related_tasks_for_lane = _load_tasks_for_matter_workspaces(db, [matter_workspace.id]).get(
@@ -9942,6 +9954,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         ],
         outcome_records=[schemas.OutcomeRecordRead.model_validate(item) for item in task.outcome_records],
         audit_events=[schemas.AuditEventRead.model_validate(item) for item in task.audit_events],
+        object_sets=serialized_object_sets,
         canonicalization_summary=canonicalization_summary,
         canonicalization_candidates=[
             item for item in canonicalization_candidates if item.current_task_involved

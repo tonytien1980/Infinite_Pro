@@ -238,6 +238,44 @@ Wave 3 的最小正式責任是：
 - debug wall
 - 任何人都要先學的新工作流
 
+### ObjectSet
+代表顧問可正式操作的一組工作物件，而不是新的架構層或新的主導航心智。
+
+Wave 5 的最小正式責任是：
+- `ObjectSet` 作為 Ontology Layer 內的 capability / primitive
+- 至少保留：
+  - stable id
+  - `set_type`
+  - owning scope type / id
+  - display title
+  - description / intent
+  - creation mode
+  - lifecycle status
+  - membership source summary
+  - continuity / compatibility boundary
+- membership 至少能表達：
+  - member object type / id
+  - membership source
+  - ordering / ranking
+  - included reason
+  - derivation hint / support label
+
+Wave 5 第一批正式 shipped set types 是：
+- `evidence_set_v1`
+- `risk_set_v1`
+
+其正式落點是：
+- `evidence_set_v1`
+  - deliverable-local support bundle
+- `risk_set_v1`
+  - task-scope focus grouping
+
+`ObjectSet` 不是：
+- 第七層
+- graph explorer
+- object explorer
+- 所有案件都要先學的新流程
+
 ---
 
 ### 5.4 Analysis objects
@@ -458,6 +496,7 @@ Wave 4 的正式理解是：
 - ActionPlan
 - ActionExecution
 - OutcomeRecord
+- ObjectSet
 
 ---
 

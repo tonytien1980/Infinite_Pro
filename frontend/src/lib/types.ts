@@ -52,6 +52,11 @@ export type DeliverableClass =
   | "exploratory_brief"
   | "assessment_review_memo"
   | "decision_action_deliverable";
+export type ObjectSetType = "evidence_set_v1" | "risk_set_v1";
+export type ObjectSetScopeType = "task" | "deliverable" | "matter";
+export type ObjectSetCreationMode = "host_curated" | "deliverable_support_bundle";
+export type ObjectSetLifecycleStatus = "active" | "archived";
+export type ObjectSetMembershipSource = "host_curated" | "deliverable_support_bundle";
 export type TaskType =
   | "research_synthesis"
   | "contract_review"
@@ -1288,6 +1293,7 @@ export interface TaskAggregate {
   action_executions: ActionExecution[];
   outcome_records: OutcomeRecord[];
   audit_events: AuditEvent[];
+  object_sets: ObjectSet[];
   canonicalization_summary: CanonicalizationSummary;
   canonicalization_candidates: CanonicalizationCandidate[];
   matter_workspace: MatterWorkspaceSummary | null;
@@ -1439,6 +1445,7 @@ export interface ArtifactEvidenceWorkspace {
   sufficiency_summary: string;
   deliverable_limitations: string[];
   continuity_notes: string[];
+  object_sets: ObjectSet[];
 }
 
 export interface DeliverableWorkspace {
@@ -1472,6 +1479,7 @@ export interface DeliverableWorkspace {
   version_events: DeliverableVersionEvent[];
   artifact_records: DeliverableArtifactRecord[];
   publish_records: DeliverablePublishRecord[];
+  object_sets: ObjectSet[];
 }
 
 export interface DeliverableVersionEvent {
@@ -1499,6 +1507,42 @@ export interface DeliverableContentSections {
   risks: string[];
   action_items: string[];
   evidence_basis: string[];
+}
+
+export interface ObjectSetMember {
+  id: string;
+  object_set_id: string;
+  task_id: string;
+  member_object_type: string;
+  member_object_id: string;
+  member_label: string;
+  membership_source: ObjectSetMembershipSource;
+  ordering_index: number;
+  included_reason: string;
+  derivation_hint: string;
+  support_label: string | null;
+  created_at: string;
+}
+
+export interface ObjectSet {
+  id: string;
+  task_id: string;
+  matter_workspace_id: string | null;
+  deliverable_id: string | null;
+  set_type: ObjectSetType;
+  scope_type: ObjectSetScopeType;
+  scope_id: string;
+  display_title: string;
+  description: string;
+  intent: string;
+  creation_mode: ObjectSetCreationMode;
+  lifecycle_status: ObjectSetLifecycleStatus;
+  continuity_scope: string;
+  membership_source_summary: Record<string, unknown>;
+  member_count: number;
+  members: ObjectSetMember[];
+  created_at: string;
+  updated_at: string;
 }
 
 export interface ContentRevisionDiffItem {

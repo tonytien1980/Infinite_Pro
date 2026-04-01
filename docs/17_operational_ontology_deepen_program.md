@@ -125,11 +125,13 @@
 - pack interface / required-property / stable API naming baseline
 - pack-to-contract binding
 - minimal rule binding for readiness / decision framing / deliverable hints
-
-仍待後續 wave 深化的主題是：
 - `ObjectSet`
+- `ObjectSetMember`
+- `evidence_set_v1`
+- `risk_set_v1`
 
-因此本 program 的責任是把這些能力依序深化進既有六層，而不是創造新的頂層模型。
+因此本 deepen program 的五個 wave 已全部形成正式 baseline。
+後續若再深化，應視為既有能力的 hardening / extension，而不是隱性 Wave 6。
 
 ---
 
@@ -416,6 +418,16 @@ Wave 0 若仍是 docs-first，則通常不應更新：
 本波 UI exposure policy：
 - 使用顧問語言，而不是平台語言
 - 保持 one primary action 與 progressive disclosure
+
+截至 2026-04-01，Wave 5 的最小 shipped baseline 應理解為：
+- first shipped set types：
+  - `evidence_set_v1`
+  - `risk_set_v1`
+- first shipped owning scopes：
+  - deliverable-local support bundle
+  - task-scope focus grouping
+- first shipped object-set view：
+  - deliverable workspace 的低噪音進階段落
 
 ---
 

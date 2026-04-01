@@ -1654,6 +1654,7 @@ def test_deliverable_workspace_route_returns_formal_deliverable_context(
     run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
     assert run_response.status_code == 200
     deliverable_id = run_response.json()["deliverable"]["id"]
+    aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
 
     workspace_response = client.get(f"/api/v1/deliverables/{deliverable_id}")
 
@@ -1679,6 +1680,28 @@ def test_deliverable_workspace_route_returns_formal_deliverable_context(
     assert workspace["confidence_summary"]
     assert workspace["limitation_notes"] is not None
     assert workspace["continuity_notes"] is not None
+    assert aggregate["object_sets"]
+    assert {item["set_type"] for item in aggregate["object_sets"]} >= {
+        "risk_set_v1",
+        "evidence_set_v1",
+    }
+    assert any(item["scope_type"] == "task" for item in aggregate["object_sets"])
+    assert any(item["scope_type"] == "deliverable" for item in aggregate["object_sets"])
+    assert workspace["object_sets"]
+    evidence_set = next(
+        item for item in workspace["object_sets"] if item["set_type"] == "evidence_set_v1"
+    )
+    risk_set = next(item for item in workspace["object_sets"] if item["set_type"] == "risk_set_v1")
+    assert evidence_set["scope_type"] == "deliverable"
+    assert evidence_set["creation_mode"] == "deliverable_support_bundle"
+    assert evidence_set["membership_source_summary"]["primary_source"] == "deliverable_support_bundle"
+    assert evidence_set["member_count"] >= 1
+    assert any(member["member_object_type"] == "evidence" for member in evidence_set["members"])
+    assert risk_set["scope_type"] == "task"
+    assert risk_set["creation_mode"] == "host_curated"
+    assert risk_set["membership_source_summary"]["primary_source"] == "host_curated"
+    assert risk_set["member_count"] >= 1
+    assert any(member["member_object_type"] == "risk" for member in risk_set["members"])
 
 
 def test_matter_workspace_metadata_update_persists_and_survives_workspace_sync(

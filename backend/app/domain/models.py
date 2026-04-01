@@ -116,6 +116,11 @@ class Task(Base):
     deliverable_object_links: Mapped[list["DeliverableObjectLink"]] = relationship(
         back_populates="task", cascade="all, delete-orphan"
     )
+    object_sets: Mapped[list["ObjectSet"]] = relationship(
+        back_populates="task",
+        cascade="all, delete-orphan",
+        order_by="ObjectSet.updated_at.desc()",
+    )
     matter_workspace_links: Mapped[list["MatterWorkspaceTaskLink"]] = relationship(
         back_populates="task", cascade="all, delete-orphan"
     )
@@ -297,6 +302,10 @@ class MatterWorkspace(Base):
         back_populates="matter_workspace",
         cascade="all, delete-orphan",
         order_by="MatterCanonicalizationReview.updated_at.desc()",
+    )
+    object_sets: Mapped[list["ObjectSet"]] = relationship(
+        back_populates="matter_workspace",
+        order_by="ObjectSet.updated_at.desc()",
     )
 
 
@@ -1044,6 +1053,10 @@ class Deliverable(Base):
         cascade="all, delete-orphan",
         order_by="DeliverableArtifactRecord.created_at.desc()",
     )
+    object_sets: Mapped[list["ObjectSet"]] = relationship(
+        back_populates="deliverable",
+        order_by="ObjectSet.updated_at.desc()",
+    )
     publish_records: Mapped[list["DeliverablePublishRecord"]] = relationship(
         back_populates="deliverable",
         cascade="all, delete-orphan",
@@ -1402,6 +1415,84 @@ class DeliverableObjectLink(Base):
 
     task: Mapped["Task"] = relationship(back_populates="deliverable_object_links")
     deliverable: Mapped["Deliverable"] = relationship(back_populates="object_links")
+
+
+class ObjectSet(Base):
+    __tablename__ = "object_sets"
+    __table_args__ = (
+        UniqueConstraint(
+            "task_id",
+            "scope_type",
+            "scope_id",
+            "set_type",
+            "creation_mode",
+            name="uq_object_set_scope",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    matter_workspace_id: Mapped[str | None] = mapped_column(
+        ForeignKey("matter_workspaces.id"),
+        nullable=True,
+    )
+    deliverable_id: Mapped[str | None] = mapped_column(
+        ForeignKey("deliverables.id"),
+        nullable=True,
+    )
+    set_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    scope_type: Mapped[str] = mapped_column(String(30), nullable=False)
+    scope_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    display_title: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[str] = mapped_column(Text, default="")
+    intent: Mapped[str] = mapped_column(Text, default="")
+    creation_mode: Mapped[str] = mapped_column(String(50), nullable=False)
+    lifecycle_status: Mapped[str] = mapped_column(String(30), default="active")
+    continuity_scope: Mapped[str] = mapped_column(String(30), default="task_scope")
+    membership_source_summary: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utc_now,
+        onupdate=utc_now,
+    )
+
+    task: Mapped["Task"] = relationship(back_populates="object_sets")
+    matter_workspace: Mapped["MatterWorkspace | None"] = relationship(back_populates="object_sets")
+    deliverable: Mapped["Deliverable | None"] = relationship(back_populates="object_sets")
+    members: Mapped[list["ObjectSetMember"]] = relationship(
+        back_populates="object_set",
+        cascade="all, delete-orphan",
+        order_by="ObjectSetMember.ordering_index",
+    )
+
+
+class ObjectSetMember(Base):
+    __tablename__ = "object_set_members"
+    __table_args__ = (
+        UniqueConstraint(
+            "object_set_id",
+            "member_object_type",
+            "member_object_id",
+            name="uq_object_set_member",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    object_set_id: Mapped[str] = mapped_column(ForeignKey("object_sets.id"), nullable=False)
+    task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    member_object_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    member_object_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    member_label: Mapped[str] = mapped_column(String(255), default="")
+    membership_source: Mapped[str] = mapped_column(String(50), nullable=False)
+    ordering_index: Mapped[int] = mapped_column(Integer, default=0)
+    included_reason: Mapped[str] = mapped_column(Text, default="")
+    derivation_hint: Mapped[str] = mapped_column(Text, default="")
+    support_label: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    object_set: Mapped["ObjectSet"] = relationship(back_populates="members")
+    task: Mapped["Task"] = relationship()
 
 
 class TaskRun(Base):

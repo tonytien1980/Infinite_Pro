@@ -29,6 +29,7 @@ import { truncateText } from "@/lib/text-format";
 import type {
   DeliverableContentRevision,
   DeliverableWorkspace,
+  ObjectSet,
   RetrievalProvenance,
 } from "@/lib/types";
 import {
@@ -40,6 +41,11 @@ import {
   labelForDeliverableStatus,
   labelForEngagementContinuityMode,
   labelForEvidenceType,
+  labelForObjectSetCreationMode,
+  labelForObjectSetLifecycleStatus,
+  labelForObjectSetMembershipSource,
+  labelForObjectSetScope,
+  labelForObjectSetType,
   labelForRetrievalSupportKind,
   labelForSourceType,
   labelForWritebackDepth,
@@ -119,6 +125,43 @@ function DeliverableRetrievalProvenance({
       ) : null}
     </div>
   );
+}
+
+function getObjectSetMemberAnchor(member: {
+  member_object_type: string;
+  member_object_id: string;
+}) {
+  return `deliverable-object-set-member-${member.member_object_type}-${member.member_object_id}`;
+}
+
+function buildObjectSetViewList(objectSets: ObjectSet[]) {
+  return objectSets.map((item) => ({
+    title: item.display_title,
+    meta: `${labelForObjectSetType(item.set_type)}｜${labelForObjectSetScope(item.scope_type)}｜${item.member_count} 個成員`,
+  }));
+}
+
+function getObjectSetPrimarySourceLabel(objectSet: ObjectSet) {
+  const primarySource = objectSet.membership_source_summary?.primary_source;
+  return labelForObjectSetMembershipSource(
+    typeof primarySource === "string" ? primarySource : null,
+  );
+}
+
+function labelForObjectSetMemberType(value: string) {
+  if (value === "evidence") {
+    return "證據";
+  }
+  if (value === "risk") {
+    return "風險";
+  }
+  if (value === "clause") {
+    return "條款";
+  }
+  if (value === "process_issue") {
+    return "流程問題";
+  }
+  return "工作項目";
 }
 
 function buildDeliverableStatusHint(status: DeliverableLifecycleStatus) {
@@ -383,6 +426,8 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const capabilityFrame = task && deliverable ? buildCapabilityFrame(task, deliverable) : null;
   const packSelection = task && deliverable ? buildPackSelectionView(task, deliverable) : null;
   const deliverableBacklink = task && deliverable ? buildDeliverableBacklinkView(task, deliverable) : null;
+  const objectSets = workspace?.object_sets ?? [];
+  const objectSetHighlights = buildObjectSetViewList(objectSets);
   const deliverableStatus =
     ((deliverable?.status as DeliverableLifecycleStatus | undefined) ??
       (task?.status === "completed" ? "final" : "pending_confirmation"));
@@ -529,6 +574,18 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
           meta: `${workspace.linked_source_materials.length} 份來源材料 / ${workspace.linked_evidence.length} 則證據`,
           tone: "default" as const,
         },
+        ...(objectSetHighlights.length > 0
+          ? [
+              {
+                href: "#deliverable-object-sets",
+                eyebrow: "整理範圍",
+                title: "證據集與風險群組",
+                copy: "需要集中查看這次交付真正採用的證據或已納入範圍的風險時，從這裡進入集合視角。",
+                meta: objectSetHighlights.map((item) => item.meta).join("｜"),
+                tone: "default" as const,
+              },
+            ]
+          : []),
         {
           href: "#deliverable-confidence",
           eyebrow: "核對適用範圍",
@@ -1920,7 +1977,11 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                         {workspace.linked_evidence.length > 0 ? (
                           <div className="section-list">
                             {workspace.linked_evidence.map((item) => (
-                              <div className="section-card" key={item.id}>
+                              <div
+                                className="section-card section-anchor"
+                                id={`deliverable-evidence-entry-${item.id}`}
+                                key={item.id}
+                              >
                                 <h4>{item.title}</h4>
                                 <p className="muted-text">
                                   {labelForEvidenceType(item.evidence_type)}｜{item.reliability_level}
@@ -1938,6 +1999,104 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                   </div>
                 </DisclosurePanel>
               </section>
+
+              {objectSets.length > 0 ? (
+                <section className="panel section-anchor" id="deliverable-object-sets">
+                  <div className="panel-header">
+                    <div>
+                      <h2 className="panel-title">證據集與風險群組</h2>
+                      <p className="panel-copy">
+                        當你要集中查看這次交付真正採用的證據，或這輪工作已納入範圍的風險時，再切進這個集合視角；平常首屏不用先看這層。
+                      </p>
+                    </div>
+                  </div>
+                  <div className="section-list">
+                    {objectSets.map((item) => (
+                      <div className="section-card" key={item.id}>
+                        <div className="meta-row">
+                          <span className="pill">{labelForObjectSetType(item.set_type)}</span>
+                          <span>{labelForObjectSetScope(item.scope_type)}</span>
+                          <span>{labelForObjectSetCreationMode(item.creation_mode)}</span>
+                          <span>{labelForObjectSetLifecycleStatus(item.lifecycle_status)}</span>
+                        </div>
+                        <h3>{item.display_title}</h3>
+                        <p className="content-block">
+                          {item.description || item.intent || "這組集合目前沒有額外的說明。"}
+                        </p>
+                        <p className="muted-text" style={{ marginTop: "8px" }}>
+                          {item.member_count} 個成員｜主要來源：
+                          {getObjectSetPrimarySourceLabel(item)}
+                          {item.continuity_scope ? `｜工作範圍：${item.continuity_scope}` : ""}
+                        </p>
+
+                        {item.members.length > 0 ? (
+                          <>
+                            <ul className="list-content" style={{ marginTop: "16px" }}>
+                              {item.members.map((member) => (
+                                <li key={member.id}>
+                                  <a
+                                    className="back-link"
+                                    href={`#${getObjectSetMemberAnchor(member)}`}
+                                  >
+                                    {member.member_label}
+                                  </a>
+                                  {`｜${member.included_reason}`}
+                                </li>
+                              ))}
+                            </ul>
+
+                            <div className="detail-list" style={{ marginTop: "16px" }}>
+                              {item.members.map((member) => (
+                                <div
+                                  className="detail-item section-anchor"
+                                  id={getObjectSetMemberAnchor(member)}
+                                  key={member.id}
+                                >
+                                  <div className="meta-row">
+                                    <span className="pill">
+                                      {labelForObjectSetMemberType(member.member_object_type)}
+                                    </span>
+                                    <span>
+                                      {labelForObjectSetMembershipSource(member.membership_source)}
+                                    </span>
+                                    {member.support_label ? <span>{member.support_label}</span> : null}
+                                  </div>
+                                  <h4>{member.member_label}</h4>
+                                  <p className="content-block">{member.included_reason}</p>
+                                  {member.derivation_hint ? (
+                                    <p className="muted-text">來源線索：{member.derivation_hint}</p>
+                                  ) : null}
+                                  <div className="button-row" style={{ marginTop: "12px" }}>
+                                    {member.member_object_type === "evidence" ? (
+                                      <a
+                                        className="back-link"
+                                        href={`#deliverable-evidence-entry-${member.member_object_id}`}
+                                      >
+                                        回到這則證據
+                                      </a>
+                                    ) : (
+                                      <a className="back-link" href="#deliverable-reading">
+                                        回交付摘要看這項風險的整體脈絡
+                                      </a>
+                                    )}
+                                    <a className="back-link" href="#deliverable-object-sets">
+                                      回到這組集合
+                                    </a>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        ) : (
+                          <p className="empty-text" style={{ marginTop: "16px" }}>
+                            這組集合目前還沒有可顯示的成員。
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
             </div>
 
             <div className="detail-stack">
