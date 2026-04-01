@@ -64,7 +64,7 @@
 
 因此：
 - `README.md` 只在 code / behavior / runbook 真正改變且已驗證後更新
-- `docs/16_qa_matrix_2026-03-30.md` 只在實際 smoke / test / build 證據存在時更新
+- `docs/16_qa_matrix.md` 只在實際 smoke / test / build 證據存在時更新
 - 本文件不可提前宣稱某能力已正式 shipped
 
 ---
@@ -252,7 +252,7 @@ entity resolution / canonicalization 的第一波只處理：
 
 Wave 0 若仍是 docs-first，則通常不應更新：
 - `README.md`
-- `docs/16_qa_matrix_2026-03-30.md`
+- `docs/16_qa_matrix.md`
 
 ### 5.4 每一波的驗證順序
 
