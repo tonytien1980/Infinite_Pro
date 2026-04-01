@@ -704,6 +704,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "擴張後 handoff 增加，但 SOP、責任邊界與容量規劃未同步建立",
                 "需求成長快於服務 / 履約 / support capacity，導致客訴或 churn",
                 "部門各自優化局部效率，但整體 throughput 與決策速度反而下降",
+                "服務承諾、例外處理與實際交付能力失衡，讓 SLA 與客戶預期持續被侵蝕",
             ],
             stage_specific_heuristics={
                 "創業階段": [
@@ -751,6 +752,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "產能、人力、排程、履約或服務交付資料",
                 "backlog、交付延遲、客訴、返工與品質訊號",
                 "例外處理方式、跨部門協作節點與瓶頸說明",
+                "service-level promise、escalation logs 與例外處理紀錄",
             ],
             risk_libraries=[
                 "delivery risk",
@@ -769,6 +771,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "是否該標準化流程或保留高彈性例外處理",
                 "是否該先補人、補系統還是重做 handoff 與 ownership",
                 "是否該調整服務 / 履約承諾以匹配實際容量",
+                "是否應先收斂 SLA / 交付承諾，再決定要不要擴大接單或服務範圍",
             ],
             recommendation_patterns=[
                 "execution sequence",
@@ -781,6 +784,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "process bottleneck review",
                 "execution roadmap",
                 "operating model hardening brief",
+                "capacity and handoff map",
             ],
             routing_hints=[
                 "operations",
@@ -807,6 +811,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "若把它併進 Strategy 或 Marketing，系統容易只給方向建議，卻忽略真正的交付與流程瓶頸。",
                 "它最常出現在 SOP 重整、交付品質波動、跨部門協作失靈、擴張前的容量診斷等顧問任務。",
                 "若定義太窄，系統會錯過營運治理的核心缺口；若定義太廣，又會吞掉財務、法務與商業成長問題。",
+                "P0-A 後它也應成為 Host 判斷 execution readiness、handoff risk 與 deliverable shape 的正式高權重 context module。",
             ],
         ),
         PackSpec(
@@ -821,6 +826,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "募資或對外溝通看起來完整，但 underlying assumptions 與 data room 基礎不足",
                 "單位經濟與產品 / 客群 / 通路策略不一致，導致資源配置失真",
                 "財務資訊存在，但還不能支撐真正的決策與資金優先順序",
+                "為了追求營收或估值敘事而延後修正 pricing、回款與 working capital 問題",
             ],
             stage_specific_heuristics={
                 "創業階段": [
@@ -868,6 +874,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "收入 / 毛利 / 成本拆解與單位經濟假設",
                 "pipeline、forecast、營運資金與收付款節奏資料",
                 "募資 deck、data room、cap table 與 investor Q&A 材料",
+                "cohort / segment profitability、pricing tier economics 與 collections aging 資料",
             ],
             risk_libraries=[
                 "cash risk",
@@ -886,6 +893,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "是否該調整價格、產品組合或客群結構來改善單位經濟",
                 "是否該採用 equity、debt 或 bridge 形式補資金",
                 "是否該收斂投資節奏，把資源集中到回收最快的部分",
+                "是否該先修 working capital / 回款治理，再決定要不要繼續加速成長投資",
             ],
             recommendation_patterns=[
                 "capital allocation",
@@ -898,6 +906,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "fundraising decision brief",
                 "cash discipline review",
                 "unit economics diagnostic",
+                "capital allocation memo",
             ],
             routing_hints=[
                 "finance",
@@ -924,6 +933,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "若把它併進一般策略或營運 pack，系統容易忽略現金流、工作資本與募資 readiness 的硬邊界。",
                 "它最常出現在資金規劃、財務診斷、成長投資評估、募資準備與單位經濟收斂等顧問任務。",
                 "若定義太窄，會只剩募資工具；若定義太廣，又會把營運、法務與商業成長問題一起吞掉。",
+                "P0-A 後它也應更強地影響 Host 對 cash risk、capital sequencing 與 deliverable confidence 的正式判斷。",
             ],
         ),
         PackSpec(
@@ -937,6 +947,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "團隊以為只是營運或商務問題，實際上高風險點來自法遵、條款或資料處理義務",
                 "對外合作、代理、通路或募資安排在 legal boundary 上仍有大量灰區",
                 "文件存在，但風險條款、附件缺漏與義務落點尚未被整理成可採取行動的風險視圖",
+                "商務承諾已開始對外使用，但 obligation tracking、approval 記錄與例外授權仍不完整",
             ],
             stage_specific_heuristics={
                 "創業階段": [
@@ -981,6 +992,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "合約、條款、附件、redline 與版本比對資料",
                 "法遵政策、授權流程、資料處理與內部治理材料",
                 "交易對手要求、責任分工與既有例外處理紀錄",
+                "obligation tracker、approval record、exception approval 與 sign-off 證據",
             ],
             risk_libraries=[
                 "contractual risk",
@@ -999,6 +1011,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "是否需要重寫責任分配、交付定義或驗收條件",
                 "是否要建立額外合規流程、授權層級或風險揭露",
                 "是否能以風險接受換取商業利益，還是應直接排除",
+                "是否要把高風險條款拆成 obligation bundle 追蹤，而不是只留在紅線備註中",
             ],
             recommendation_patterns=[
                 "redline recommendation",
@@ -1011,6 +1024,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "risk brief",
                 "redline summary",
                 "compliance gap review",
+                "obligation exposure memo",
             ],
             routing_hints=[
                 "legal",
@@ -1037,6 +1051,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "若把它併進一般風險或營運 pack，系統容易把高法律風險誤降成一般執行提醒。",
                 "它最常出現在合約審閱、合作條款、資料合規、權利義務盤點與風險挑戰類顧問任務。",
                 "若定義太窄，只剩 redline；若定義太廣，又會把所有商業不確定性都塞成 legal issue。",
+                "P0-A 後它也應為後續 clause / obligation set hardening 提供更穩的 contract baseline，而不是只當合約審閱標籤。",
             ],
         ),
         PackSpec(
@@ -1051,6 +1066,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "行銷與銷售分工斷裂，導致 pipeline 看起來有量但無法轉為現金",
                 "成長依賴單一渠道、單一 campaign 或創辦人個人銷售能力",
                 "團隊同時想修品牌、內容、廣告、銷售流程，但不知道先修哪一段",
+                "founder-led sales 暫時撐住成交，但 repeatable funnel 與 enablement 還沒有站穩",
             ],
             stage_specific_heuristics={
                 "創業階段": [
@@ -1098,6 +1114,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "campaign 資料、流量來源、landing page 與轉換漏斗",
                 "CRM / pipeline / 通話紀錄 / 銷售提案與 objection patterns",
                 "客戶訪談、贏單 / 失單原因與留存 / 擴張訊號",
+                "call notes、win-loss、objection log 與 sales enablement 材料",
             ],
             risk_libraries=[
                 "channel risk",
@@ -1116,6 +1133,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "是否該集中渠道、收斂 offer 或調整 ICP",
                 "是否該優先提高 conversion / win rate，而不是直接擴大投放",
                 "是否需要重新設計 GTM sequencing 與 sales enablement",
+                "是否該先修 hero offer 與 conversion friction，再決定要不要持續加碼 acquisition",
             ],
             recommendation_patterns=[
                 "positioning refinement",
@@ -1128,6 +1146,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "GTM decision memo",
                 "funnel diagnosis review",
                 "commercial traction memo",
+                "funnel repair brief",
             ],
             routing_hints=[
                 "marketing",
@@ -1155,6 +1174,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "若把它併進一般策略或商務開發，系統容易忽略 funnel、conversion 與 commercial process 的細節。",
                 "它最常出現在 GTM、漏斗診斷、定位重整、商業敘事修正與 sales enablement 類任務。",
                 "若定義太窄，會只剩 marketing campaign；若定義太廣，會把 partnership、營運與財務問題一起吞掉。",
+                "P0-A 後它也應更直接影響 Host 對 message-market fit、pipeline quality 與 deliverable framing 的判斷順序。",
             ],
         ),
         PackSpec(
@@ -1169,6 +1189,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "渠道 / 經銷 / 聯盟與直營銷售互相打架，導致責任與誘因扭曲",
                 "大型 deal、合作提案或通路拓展缺少明確的商務判斷框架",
                 "公司把所有對外拓展都當成 sales，卻忽略生態位、合作可持續性與治理成本",
+                "合作案持續增加，但 partner enablement、governance 與 channel conflict 還沒有可執行設計",
             ],
             stage_specific_heuristics={
                 "創業階段": [
@@ -1216,6 +1237,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "partner-sourced pipeline、成交資料與 enablement materials",
                 "直營 / 渠道衝突、account mapping 與 territory 資訊",
                 "商務合作的 unit economics、治理機制與資源投入估算",
+                "partner enablement 套件、joint pipeline review 與合作成效回顧材料",
             ],
             risk_libraries=[
                 "partner dependency risk",
@@ -1234,6 +1256,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "是否該優先做 referral、reseller、alliance 或 strategic account",
                 "是否該調整 deal structure、分潤與 ownership",
                 "是否該縮減低品質合作，把資源集中到高價值 partner",
+                "是否應先暫停低品質 channel / alliance，再重建 partner qualification 與 governance",
             ],
             recommendation_patterns=[
                 "partner strategy",
@@ -1246,6 +1269,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "partnership review memo",
                 "channel strategy memo",
                 "ecosystem decision brief",
+                "partner governance memo",
             ],
             routing_hints=[
                 "partnership",
@@ -1272,6 +1296,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "若把它併進 Marketing / Sales Pack，系統容易忽略合作結構、partner incentives 與 ecosystem dynamics。",
                 "它最常出現在策略合作、渠道設計、經銷拓展、enterprise partnership 與大型商務案 shaping。",
                 "若定義太窄，會只剩 partner list；若定義太廣，會把行銷、銷售、法務與財務問題混成同一包。",
+                "P0-A 後它也應更明確影響 Host 對 channel conflict、partner quality 與 deal-shape deliverable 的優先順序。",
             ],
         ),
         PackSpec(
@@ -1285,6 +1310,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "資訊很多但來源分散、時效不一、觀點互相衝突，還沒有被整理成 decision-grade synthesis",
                 "團隊需要競品、產業、政策或市場變化的整理，但不應假裝已經有 company-specific certainty",
                 "已有研究資料，但缺少真正能拿去做決策的 pattern、gap 與 next questions",
+                "來源數量不少，但 source quality、recency 與 conflicting signals 還沒有被正式治理",
             ],
             stage_specific_heuristics={
                 "創業階段": [
@@ -1332,6 +1358,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "客戶訪談、用戶回饋、社群討論或需求訊號",
                 "時序性資料、情境比較與 conflicting signals",
                 "研究假設、來源品質說明與仍待驗證的 gap",
+                "source-quality note、recency 判斷與 scenario delta 摘要",
             ],
             risk_libraries=[
                 "signal ambiguity",
@@ -1350,6 +1377,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "是否需要補更多研究，或已可收斂成決策問題",
                 "是否該把外部態勢拆成共通已知與公司待驗證兩層",
                 "是否該先辨識 research gaps 再下行動建議",
+                "是否應停止擴大 research scope，改先把 uncertainty 與 next questions 正式寫回 deliverable",
             ],
             recommendation_patterns=[
                 "research brief",
@@ -1362,6 +1390,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "research memo",
                 "situation assessment",
                 "signal convergence review",
+                "research gap brief",
             ],
             routing_hints=[
                 "research",
@@ -1388,6 +1417,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "若把它併進一般策略或市場 pack，系統容易把 research quality、source recency 與 uncertainty governance 忽略掉。",
                 "它最常出現在市場盤點、競品研究、政策 / 產業變化判讀、external-research-heavy sparse cases 與高層 intelligence brief。",
                 "若定義太窄，會只剩資料摘錄；若定義太廣，會把最終決策與執行方案也混進研究工作裡。",
+                "P0-A 後它也應更強地影響 Host 對 research depth、gap governance 與 exploratory deliverable framing 的正式判斷。",
             ],
         ),
         PackSpec(
@@ -1402,6 +1432,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "公司持續招人，但產出、人效與管理品質沒有同步提升",
                 "團隊想擴張，但沒有清楚的 headcount logic、manager leverage 或能力盤點",
                 "組織問題表面像溝通或執行問題，底層其實是權責、容量或管理機制設計失衡",
+                "manager layer 過薄、會議負荷過高，導致決策速度與 ownership 都持續下滑",
             ],
             stage_specific_heuristics={
                 "創業階段": [
@@ -1426,6 +1457,15 @@ def build_pack_catalog() -> list[PackSpec]:
                 "cross-team handoff friction",
                 "meeting load / coordination overhead",
             ],
+            key_kpis=[
+                "span of control / manager leverage",
+                "headcount plan versus actual capacity",
+                "time-to-fill / hiring pipeline health",
+                "attrition / regretted attrition",
+                "role clarity / ownership ambiguity",
+                "cross-team handoff friction",
+                "meeting load / coordination overhead",
+            ],
             domain_lenses=["organization", "people"],
             relevant_client_types=["中小企業", "大型企業", "個人品牌與服務", "自媒體"],
             relevant_client_stages=["創業階段", "制度化階段", "規模化階段"],
@@ -1441,6 +1481,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "團隊容量、負荷、handoff friction 與 meeting cadence 訊號",
                 "離職、留才、管理回饋或關鍵人才風險訊號",
                 "管理制度、績效節奏與跨部門協作機制資料",
+                "span-of-control、decision-rights map 與 manager leverage 相關資料",
             ],
             risk_libraries=[
                 "founder bottleneck risk",
@@ -1460,6 +1501,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "是否需要新增管理層、重新切分角色或建立 shared service function",
                 "是否該優先補關鍵能力缺口，而不是平均補人",
                 "是否該重做管理節奏、會議機制與跨部門 handoff",
+                "是否應先拆開角色衝突與 manager span，再決定要不要繼續擴編",
             ],
             recommendation_patterns=[
                 "org design adjustment",
@@ -1472,6 +1514,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "people capacity review",
                 "role and ownership decision brief",
                 "hiring sequence roadmap",
+                "org operating model memo",
             ],
             routing_hints=[
                 "組織",
@@ -1499,6 +1542,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "若把它併進 Operations Pack，系統容易只看流程，不看權責、管理機制與人才配置的結構性問題。",
                 "它最常出現在 org redesign、headcount planning、關鍵職位補強、管理節奏重整與跨團隊協作失靈的任務。",
                 "若定義太窄，會只剩 HR 行政；若定義太廣，則會把營運、法務與策略問題全部混進組織診斷。",
+                "P0-A 後它也應更直接影響 Host 對 capacity risk、ownership ambiguity 與 hiring-sequence deliverable 的判斷。",
             ],
         ),
         PackSpec(
@@ -1513,6 +1557,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "客製化需求不斷侵蝕原本應該被標準化的 offer architecture",
                 "團隊同時想修產品、服務包裝、方案命名與 pricing，但沒有清楚優先順序",
                 "市場訊號、客戶需求與內部交付能力對不上，導致 offer promise 與 delivery reality 失衡",
+                "方案升級路徑、tier migration 與 attach-rate 設計薄弱，造成成長與毛利一起失真",
             ],
             stage_specific_heuristics={
                 "創業階段": [
@@ -1537,6 +1582,15 @@ def build_pack_catalog() -> list[PackSpec]:
                 "win-loss patterns by offer",
                 "bundle or attach-rate health",
             ],
+            key_kpis=[
+                "offer conversion by plan / SKU",
+                "gross margin by product or service line",
+                "time-to-value / onboarding completion",
+                "retention or expansion by tier",
+                "customization ratio / exception rate",
+                "win-loss patterns by offer",
+                "bundle or attach-rate health",
+            ],
             domain_lenses=["product", "service"],
             relevant_client_types=["中小企業", "大型企業", "個人品牌與服務", "自媒體"],
             relevant_client_stages=["創業階段", "制度化階段", "規模化階段"],
@@ -1552,6 +1606,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "各產品 / 服務線毛利、交付成本與 exception / customization 資料",
                 "客戶訪談、win-loss、使用行為或服務回饋資料",
                 "roadmap、需求來源與標準化 / 客製化比例資料",
+                "tier usage、attach-rate、service exception 與 promise-versus-delivery 差異資料",
             ],
             risk_libraries=[
                 "offer sprawl risk",
@@ -1571,6 +1626,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "是否該重做 tiering、bundling、pricing 與升級路徑",
                 "是否要區分標準方案與客製方案，或重新定義 service architecture",
                 "是否該優先修正 value proposition，而不是先擴大 acquisition",
+                "是否應先拆開標準方案與高成本客製方案，再決定 pricing 與成長節奏",
             ],
             recommendation_patterns=[
                 "offer simplification",
@@ -1583,6 +1639,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "pricing and packaging brief",
                 "SKU / service portfolio decision memo",
                 "value proposition review",
+                "offer simplification brief",
             ],
             routing_hints=[
                 "產品",
@@ -1610,6 +1667,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "若把它併進 Marketing / Sales Pack，系統容易只修訊息與漏斗，卻沒有處理產品 / 服務本身的結構問題。",
                 "它最常出現在產品 / 服務重組、pricing review、SKU rationalization、package design 與 value proposition 重寫等任務。",
                 "若定義太窄，會只剩價格表優化；若定義太廣，則會把營運、財務與 BD 問題全部混進 offer 設計。",
+                "P0-A 後它也應更直接影響 Host 對 offer complexity、pricing fit 與 deliverable shape 的正式判斷。",
             ],
         ),
         PackSpec(

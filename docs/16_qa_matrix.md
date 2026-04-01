@@ -250,3 +250,62 @@ Important verification note:
   - task-scope focus grouping
 - the first shipped object-set view lives inside the existing deliverable workspace
 - object-set semantics increased system depth without polluting first-screen primary guidance
+
+---
+
+## Entry: 2026-04-01 P0-A domain pack hardening pass
+
+Scope:
+- 8 `Domain / Functional Packs` full hardening sprint
+- stronger domain-only required-property gate
+- stronger domain-pack resolver inference and runtime consumption
+- low-noise pack management disclosure updates
+
+Environment used:
+- frontend: `http://127.0.0.1:3000`
+- backend: `http://127.0.0.1:8000/api/v1`
+- runtime database: current local runtime
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `.venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`93 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && npm run typecheck` | Passed |
+
+Important verification note:
+- this frontend repo still expects `.next/types` to exist before `tsc --noEmit`
+- therefore the valid verification order remains `build -> typecheck`, not the reverse
+
+### P0-A specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | pack contract baseline | Domain packs now require stage heuristics, key signals, and common risks to remain formally `ready` | Verified | new domain-only gate fails closed without weakening industry-pack scope |
+| Backend | pack resolver | Domain pack can now be inferred from decision-context / routing hints even when `domain_lenses` is sparse | Verified | `business_development_pack` can now be selected from partnership / channel language |
+| Backend | task aggregate | Pack resolution returns richer domain-pack selection signals and stronger runtime-ready fields | Verified | stronger signals now flow into task aggregate and Host framing |
+| Packs UI | `/packs` | Pack contract disclosure now shows `階段啟發` and `判斷情境` alongside contract detail | Verified | still stays in disclosure, not on page hero |
+| Task UI | `/tasks/[taskId]` | Pack-aware readiness and contract summary remain disclosure-level | Verified | hero stayed task/decision focused |
+| Matter UI | `/matters/[matterId]` | Matter hero remains consultant-first | Verified | no pack contract metadata leaked into matter first-screen |
+| Deliverable UI | `/deliverables/[deliverableId]` | Deliverable hero remains deliverable-first | Verified | pack depth affects background guidance / gaps, not hero metadata |
+
+### Live smoke data
+
+- task id: `bfd2f42b-807d-41f1-a978-48a4a29ed8c5`
+- matter id: `12390e97-92c7-4b3a-825e-0711652cea68`
+- deliverable id: `990f83ce-0d99-4327-a724-2fcb0bd533fd`
+- `/packs` snapshot: `.playwright-cli/page-2026-04-01T08-53-09-186Z.yml`
+- `/packs` business-development disclosure snapshot: `.playwright-cli/page-2026-04-01T08-53-22-165Z.yml`
+- `/tasks/[taskId]` snapshot: `.playwright-cli/page-2026-04-01T08-53-36-059Z.yml`
+- `/matters/[matterId]` snapshot: `.playwright-cli/page-2026-04-01T08-53-47-001Z.yml`
+- `/deliverables/[deliverableId]` snapshot: `.playwright-cli/page-2026-04-01T08-53-48-253Z.yml`
+
+### Verified outcomes
+
+- all 8 domain packs remain formally `ready` after the stronger domain-only gate
+- domain packs now carry deeper problem-pattern / evidence / decision / deliverable / rationale content than the Wave 4 baseline
+- the resolver can now infer a domain pack from decision-context / routing-hint / problem-pattern matches instead of relying only on `domain_lenses`
+- `/packs` exposes the richer contract depth only in low-noise disclosure
+- `/tasks`, `/matters`, and `/deliverables` kept their first-screen primary guidance intact

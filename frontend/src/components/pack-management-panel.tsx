@@ -83,15 +83,27 @@ function getPackDefinition(pack: Pick<PackCatalogEntry, "pack_type" | "domain_de
   return pack.industry_definition || pack.description;
 }
 
+function getStageHeuristicItems(pack: Pick<PackCatalogEntry, "stage_specific_heuristics">) {
+  return Object.entries(pack.stage_specific_heuristics).flatMap(([stage, items]) =>
+    items.map((item) => `${stage}｜${item}`),
+  );
+}
+
 function getPackQualityChecks(pack: PackCatalogEntry): PackQualityCheck[] {
   const signalItems = getSignalItems(pack);
+  const stageHeuristicItems = getStageHeuristicItems(pack);
 
   if (pack.pack_type === "domain") {
     return [
       { label: "定義", ready: Boolean(getPackDefinition(pack)) },
       { label: "問題型態", ready: pack.common_problem_patterns.length > 0 },
+      {
+        label: "階段啟發",
+        ready: stageHeuristicItems.length > 0,
+      },
       { label: "關鍵訊號", ready: signalItems.length > 0 },
       { label: "證據期待", ready: pack.evidence_expectations.length > 0 },
+      { label: "常見風險", ready: pack.common_risks.length > 0 },
       { label: "決策模式", ready: pack.decision_patterns.length > 0 },
       { label: "交付預設", ready: pack.deliverable_presets.length > 0 },
       { label: "範圍邊界", ready: pack.scope_boundaries.length > 0 },
@@ -614,6 +626,7 @@ export function PackManagementPanel() {
                     const missingChecks = summarizeMissingChecks(qualityChecks);
                     const contractSummary = getPackContractRequirementSummary(pack);
                     const signalItems = getSignalItems(pack);
+                    const stageHeuristicItems = getStageHeuristicItems(pack);
 
                     return (
                       <article className="history-item management-card" key={pack.pack_id}>
@@ -724,6 +737,13 @@ export function PackManagementPanel() {
                               items={pack.common_problem_patterns}
                               emptyText="目前沒有整理常見問題型態。"
                             />
+                            {pack.pack_type === "domain" ? (
+                              <PackListSection
+                                title="階段啟發"
+                                items={stageHeuristicItems}
+                                emptyText="目前沒有整理階段啟發。"
+                              />
+                            ) : null}
                             <PackListSection
                               title={pack.pack_type === "domain" ? "關鍵指標／經營訊號" : "關鍵指標"}
                               items={signalItems}
@@ -743,6 +763,11 @@ export function PackManagementPanel() {
                               title="決策模式"
                               items={pack.decision_patterns}
                               emptyText="目前沒有整理決策模式。"
+                            />
+                            <PackListSection
+                              title="判斷情境"
+                              items={pack.default_decision_context_patterns}
+                              emptyText="目前沒有整理判斷情境。"
                             />
                             <PackListSection
                               title="交付預設"

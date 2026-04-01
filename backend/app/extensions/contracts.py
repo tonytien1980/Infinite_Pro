@@ -44,6 +44,22 @@ INTERFACE_BLUEPRINTS: dict[
     },
 }
 
+DOMAIN_INTERFACE_EXTRA_REQUIREMENTS: dict[
+    PackContractInterfaceId,
+    list[PackRequiredPropertyId],
+] = {
+    PackContractInterfaceId.EVIDENCE_READINESS_V1: [
+        PackRequiredPropertyId.KEY_SIGNALS,
+    ],
+    PackContractInterfaceId.DECISION_FRAMING_V1: [
+        PackRequiredPropertyId.STAGE_SPECIFIC_HEURISTICS,
+        PackRequiredPropertyId.COMMON_RISKS,
+    ],
+    PackContractInterfaceId.DELIVERABLE_SHAPING_V1: [
+        PackRequiredPropertyId.KEY_SIGNALS,
+    ],
+}
+
 
 def _unique_preserve_order(values: list[str]) -> list[str]:
     ordered: list[str] = []
@@ -68,6 +84,12 @@ def _property_is_ready(pack: PackSpec, property_id: PackRequiredPropertyId) -> b
         return len(pack.common_problem_patterns) > 0
     if property_id == PackRequiredPropertyId.EVIDENCE_EXPECTATIONS:
         return len(pack.evidence_expectations) > 0
+    if property_id == PackRequiredPropertyId.STAGE_SPECIFIC_HEURISTICS:
+        return any(values for values in pack.stage_specific_heuristics.values())
+    if property_id == PackRequiredPropertyId.KEY_SIGNALS:
+        return len(pack.key_kpis_or_operating_signals or pack.key_kpis) > 0
+    if property_id == PackRequiredPropertyId.COMMON_RISKS:
+        return len(pack.common_risks) > 0
     if property_id == PackRequiredPropertyId.DEFAULT_DECISION_CONTEXT_PATTERNS:
         return len(pack.default_decision_context_patterns) > 0
     if property_id == PackRequiredPropertyId.DECISION_PATTERNS:
@@ -81,6 +103,23 @@ def _property_is_ready(pack: PackSpec, property_id: PackRequiredPropertyId) -> b
     return False
 
 
+def _required_property_ids_for_interface(
+    pack: PackSpec,
+    interface_id: PackContractInterfaceId,
+) -> list[PackRequiredPropertyId]:
+    required_property_ids = list(INTERFACE_BLUEPRINTS[interface_id]["required_property_ids"])
+    if pack.pack_type.value == "domain":
+        required_property_ids.extend(DOMAIN_INTERFACE_EXTRA_REQUIREMENTS.get(interface_id, []))
+    deduped: list[PackRequiredPropertyId] = []
+    seen: set[PackRequiredPropertyId] = set()
+    for property_id in required_property_ids:
+        if property_id in seen:
+            continue
+        seen.add(property_id)
+        deduped.append(property_id)
+    return deduped
+
+
 def build_pack_contract_baseline(pack: PackSpec) -> PackContractBaseline:
     requirements: list[PackContractRequirement] = []
     ready_interface_ids: list[PackContractInterfaceId] = []
@@ -88,7 +127,7 @@ def build_pack_contract_baseline(pack: PackSpec) -> PackContractBaseline:
     missing_required_property_ids: list[PackRequiredPropertyId] = []
 
     for interface_id, blueprint in INTERFACE_BLUEPRINTS.items():
-        required_property_ids = list(blueprint["required_property_ids"])
+        required_property_ids = _required_property_ids_for_interface(pack, interface_id)
         rule_binding_ids = list(blueprint["rule_binding_ids"])
         summary = str(blueprint["summary"])
         missing = [
@@ -157,4 +196,3 @@ def validate_active_pack_contract(pack: PackSpec) -> list[str]:
             f"{requirement.interface_id.value} 缺少必要欄位：{missing}。"
         )
     return errors
-

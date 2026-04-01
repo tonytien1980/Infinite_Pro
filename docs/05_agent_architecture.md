@@ -76,6 +76,15 @@ Wave 4 之後，這種影響應優先透過正式 pack contract baseline 進入 
 - pack contract 可以提供 hints / gates / presets
 - Host 仍是唯一判斷是否採用、如何採用、以及何時覆蓋這些 contract 的 orchestration center
 
+P0-A 之後，對 Domain / Functional Packs 的正式期待還包括：
+- Host 不只讀 pack 是否 ready，也要更強地讀：
+  - stage heuristics
+  - KPI / operating-signal guidance
+  - common risks
+  - richer problem-pattern / routing-hint match
+- 這些 pack contract 仍只能作為 Host framing / routing / deliverable shaping 的正式輸入
+- 它們不能直接取代 Host judgment，也不能把 Agent Layer 和 Pack Layer 混成同一類 taxonomy
+
 Wave 5 之後，Agent Layer 也應理解：
 - `ObjectSet` 屬於 Ontology Layer 的正式 primitive，不屬於 Agent Layer
 - 但 Host 可正式消費 object-set summary 來理解：

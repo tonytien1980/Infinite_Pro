@@ -291,6 +291,65 @@ def test_active_pack_requires_wave4_contract_baseline(client: TestClient) -> Non
     assert "deliverable_shaping_v1" in response.json()["detail"]
 
 
+def test_active_domain_pack_requires_p0a_hardening_properties(client: TestClient) -> None:
+    response = client.put(
+        "/api/v1/extensions/packs/operations_pack",
+        json={
+            "pack_id": "operations_pack",
+            "pack_type": "domain",
+            "pack_name": "Operations Pack",
+            "description": "Enough to satisfy Wave 4, but missing new domain hardening fields.",
+            "domain_definition": "Operations-heavy work where throughput and delivery discipline matter.",
+            "industry_definition": "",
+            "common_business_models": [],
+            "common_problem_patterns": [
+                "handoff friction blocks delivery",
+            ],
+            "stage_specific_heuristics": {},
+            "key_kpis_or_operating_signals": [],
+            "key_kpis": [],
+            "domain_lenses": ["operations"],
+            "relevant_client_types": ["中小企業"],
+            "relevant_client_stages": ["制度化階段"],
+            "default_decision_context_patterns": [
+                "operating model diagnosis",
+            ],
+            "evidence_expectations": [
+                "recent throughput snapshots",
+            ],
+            "risk_libraries": ["execution risk"],
+            "common_risks": [],
+            "decision_patterns": [
+                "whether to redesign workflow ownership before adding headcount",
+            ],
+            "deliverable_presets": [
+                "operations assessment memo",
+            ],
+            "recommendation_patterns": [
+                "stabilize intake before scaling",
+            ],
+            "routing_hints": ["operations", "workflow"],
+            "pack_notes": [],
+            "scope_boundaries": [
+                "does not replace detailed ERP implementation design",
+            ],
+            "pack_rationale": [
+                "operations work needs a dedicated context module",
+            ],
+            "version": "1.4.0",
+            "status": "active",
+            "override_rules": [],
+            "is_custom": False,
+        },
+    )
+
+    assert response.status_code == 400
+    detail = response.json()["detail"]
+    assert "stage_specific_heuristics" in detail
+    assert "key_signals" in detail
+    assert "common_risks" in detail
+
+
 def test_agent_management_round_trip_core_contract_fields(client: TestClient) -> None:
     update = client.put(
         "/api/v1/extensions/agents/research_intelligence_agent",
@@ -1966,8 +2025,47 @@ def test_task_aggregate_supports_second_wave_industry_and_new_domain_packs(clien
         for item in body["agent_selection"]["selected_reasoning_agents"]
     )
     assert body["agent_selection"]["rationale"]
+
+
+def test_domain_pack_resolution_can_infer_business_development_from_decision_context(
+    client: TestClient,
+) -> None:
+    payload = create_task_payload("Domain pack inferred from decision context")
+    payload.update(
+        {
+            "description": "請判斷這家公司是否該先重整 partnership 結構、channel governance 與 reseller enablement，再擴大 partner-sourced pipeline。",
+            "client_name": "Northwind Partners",
+            "client_type": "中小企業",
+            "client_stage": "制度化階段",
+            "engagement_name": "Northwind Channel Review",
+            "workstream_name": "Partnership and channel expansion",
+            "domain_lenses": [],
+            "judgment_to_make": "先判斷 partnership、channel expansion 與 partner governance 應該怎麼排序。",
+        }
+    )
+
+    response = client.post("/api/v1/tasks", json=payload)
+
+    assert response.status_code == 201
+    body = response.json()
+    assert any(
+        item["pack_id"] == "business_development_pack"
+        for item in body["pack_resolution"]["selected_domain_packs"]
+    )
+    business_development_pack = next(
+        item
+        for item in body["pack_resolution"]["selected_domain_packs"]
+        if item["pack_id"] == "business_development_pack"
+    )
+    assert business_development_pack["selection_score"] >= 24
+    assert any(
+        "routing hints" in signal
+        or "問題型態" in signal
+        or "客戶階段" in signal
+        for signal in business_development_pack["selection_signals"]
+    )
+    assert body["pack_resolution"]["decision_context_patterns"]
     assert any("Domain / Functional Packs" in item for item in body["agent_selection"]["rationale"])
-    assert any("Industry Packs" in item for item in body["agent_selection"]["rationale"])
     assert body["agent_selection"]["deferred_agent_notes"]
 
 

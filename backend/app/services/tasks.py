@@ -1770,6 +1770,7 @@ def _build_selected_pack_reason(
     client_type: str | None,
     client_stage: str | None,
     industry_hints: list[str],
+    decision_context_summary: str,
 ) -> str:
     reasons: list[str] = []
     if pack.pack_id in explicit_pack_ids:
@@ -1783,6 +1784,22 @@ def _build_selected_pack_reason(
         ]
         if matched_lenses:
             reasons.append(f"對齊 DomainLens：{join_natural_list(matched_lenses)}。")
+        if client_type and client_type in pack.relevant_client_types:
+            reasons.append(f"對齊客戶型態：{client_type}。")
+        if client_stage and client_stage in pack.relevant_client_stages:
+            reasons.append(f"對齊客戶階段：{client_stage}。")
+        decision_tokens = {
+            token
+            for token in decision_context_summary.lower().replace("/", " ").replace("-", " ").split()
+            if token
+        }
+        matched_routing_hints = [
+            item
+            for item in pack.routing_hints
+            if item.lower() in decision_tokens
+        ]
+        if matched_routing_hints:
+            reasons.append(f"DecisionContext 也命中路由線索：{join_natural_list(matched_routing_hints[:2])}。")
     else:
         if client_type and client_type in pack.relevant_client_types:
             reasons.append(f"對齊客戶型態：{client_type}。")
@@ -1810,6 +1827,7 @@ def _serialize_selected_pack(
     client_type: str | None,
     client_stage: str | None,
     industry_hints: list[str],
+    decision_context_summary: str,
     selection_score: int = 0,
     selection_signals: list[str] | None = None,
 ) -> schemas.SelectedPackRead:
@@ -1833,6 +1851,7 @@ def _serialize_selected_pack(
             client_type=client_type,
             client_stage=client_stage,
             industry_hints=industry_hints,
+            decision_context_summary=decision_context_summary,
         ),
         selection_score=selection_score,
         selection_signals=selection_signals or [],
@@ -2237,14 +2256,13 @@ def resolve_pack_selection_for_task(
     client_type = decision_context.client_type if decision_context else client.client_type if client else None
     client_stage = decision_context.client_stage if decision_context else client.client_stage if client else None
     industry_hints = _build_industry_hints(task, client, engagement, workstream, decision_context)
+    decision_context_summary = decision_context.summary if decision_context else task.description or task.title
     resolution = PACK_RESOLVER.resolve(
         PackResolverInput(
             domain_lenses=domain_lenses,
             client_type=client_type,
             client_stage=client_stage,
-            decision_context_summary=(
-                decision_context.summary if decision_context else task.description or task.title
-            ),
+            decision_context_summary=decision_context_summary,
             explicit_pack_ids=explicit_pack_ids,
             industry_hints=industry_hints,
         )
@@ -2257,6 +2275,7 @@ def resolve_pack_selection_for_task(
             client_type=client_type,
             client_stage=client_stage,
             industry_hints=industry_hints,
+            decision_context_summary=decision_context_summary,
             selection_score=resolution.pack_scores.get(pack.pack_id, 0),
             selection_signals=resolution.pack_signals.get(pack.pack_id, []),
         )
@@ -2271,6 +2290,7 @@ def resolve_pack_selection_for_task(
             client_type=client_type,
             client_stage=client_stage,
             industry_hints=industry_hints,
+            decision_context_summary=decision_context_summary,
             selection_score=resolution.pack_scores.get(pack.pack_id, 0),
             selection_signals=resolution.pack_signals.get(pack.pack_id, []),
         )

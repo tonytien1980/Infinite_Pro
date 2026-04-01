@@ -342,6 +342,22 @@ Wave 4 的最小正式 contract slice 是：
   - `risk_set_v1`
   的低噪音集合視角
 
+### Domain / Functional Packs 的下一階段正式期待
+Wave 4 已建立 pack contract baseline，但這不等於 Domain / Functional Packs 已達最終 hardening 水準。
+
+P0-A 的正式方向應是：
+- 把 8 個 Domain / Functional Packs 從「已 ready baseline」提升成「正式可依賴的 active domain contracts」
+- `ready` 不應只代表最低欄位存在，而應更接近：
+  - problem patterns 已足夠支撐真實顧問判斷
+  - evidence expectations 已足夠形成 readiness 與 gap governance
+  - decision patterns 已足夠進入 Host framing
+  - deliverable presets 已足夠影響 deliverable shaping
+  - KPI / operating-signal guidance、common risks、stage heuristics 已成為正式 contract 的一部分
+
+正式規則：
+- Domain / Functional Packs 不能退化成 tags 或 catalog copy
+- 也不能只在 `/packs` 管理面看起來完整，卻對 runtime 幾乎沒有影響
+
 ### Intake / Storage 邊界的正式地位
 在目前單人正式 beta 階段，以下能力也應被視為正式 architecture responsibility：
 - 一個 unified intake surface

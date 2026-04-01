@@ -260,6 +260,18 @@ Wave 4 的最小正式基線還包括：
 - active pack 的 required-property gate
 - pack-to-contract binding 對 readiness / decision framing / deliverable hints 的正式影響
 
+P0-A 之後，Domain / Functional Packs 還應進一步滿足：
+- `ready` 不只代表最低 interface completeness，而應代表 domain contract 已達正式可依賴水準
+- domain-only required-property gate 應至少正式檢查：
+  - stage heuristics
+  - KPI / operating-signal guidance
+  - common risks
+- Pack Resolver 不應只靠 `domain_lenses` 選 domain pack，也應正式參考：
+  - `routing_hints`
+  - `common_problem_patterns`
+  - `default_decision_context_patterns`
+  - relevant client stage / type
+
 Wave 5 的最小正式基線則是：
 - `ObjectSet` 仍留在 Ontology Layer，不能形成第七層
 - first shipped set types 只先包含：

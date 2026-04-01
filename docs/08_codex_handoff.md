@@ -278,6 +278,19 @@ Wave 5 之後，Codex 還必須維持：
   - task-scope focus grouping
 - 不可把 object-set views 擴成 graph explorer / object explorer / 新 app shell
 
+當後續進入 P0-A `Domain / Functional Packs Full Hardening Sprint` 時，Codex 也應維持：
+- 這是 pack-layer hardening / extension，不是新的 deepen wave
+- 8 個 domain packs 應被視為正式可依賴 contract 的深化目標，不只是 catalog 文案
+- domain-only required-property gate 應能更強地檢查：
+  - stage heuristics
+  - KPI / operating-signal guidance
+  - common risks
+- Pack Resolver 不應只靠 `domain_lenses`，也應正式吃進：
+  - `routing_hints`
+  - `common_problem_patterns`
+  - `default_decision_context_patterns`
+  - relevant client stage / type
+
 另外，若新增 / 深化 Agent 或 Pack creation flow，Codex 應同步檢查：
 - backend 是否仍經過正式 provider boundary
 - 是否仍保留 bounded external search

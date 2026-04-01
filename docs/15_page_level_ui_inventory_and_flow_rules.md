@@ -504,9 +504,13 @@
 **延後揭露**
 - 長篇定義與商業模式說明
 - 全量 problem patterns、evidence expectations、decision patterns、deliverable presets 與 pack rationale 展示
+- domain pack 的 stage heuristics、key signals、common risks 與 decision-context patterns 明細
 - interface ids、required-property 缺口與 rule binding 明細
 - 這次 AI 補完的搜尋查詢、來源摘要與 synthesis summary
 - Pack 是否實際在案件中被套用，應留給 Host 在 task flow 中決定，而不是在建立頁面預先綁死
+
+**正式規則補充**
+- P0-A 後，Domain / Functional Packs 的更強 contract completeness 仍應優先停留在 `/packs` disclosure 與 task detail 的模組合約摘要，不可污染首頁、matter hero 或 deliverable hero
 
 **正式跳轉**
 - 無跨頁主線跳轉要求，但應保留與 task-level pack selection 的概念連結

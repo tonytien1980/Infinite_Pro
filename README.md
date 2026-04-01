@@ -160,6 +160,15 @@ Wave 5 adds a minimal formal `ObjectSet` baseline:
   - task-scope focus grouping
 - the first shipped object-set view lives inside the existing deliverable workspace rather than a new app shell
 
+P0-A hardens the 8 `Domain / Functional Packs` further:
+- domain packs now use a stronger domain-only required-property gate
+- the domain gate now also requires:
+  - `stage_specific_heuristics`
+  - KPI / operating-signal guidance
+  - `common_risks`
+- the Pack Resolver can now infer domain packs not only from `domain_lenses`, but also from decision-context / routing-hint / problem-pattern matches plus relevant client stage / type
+- this means domain-pack depth now affects runtime selection and Host framing more directly, rather than only making `/packs` look more complete
+
 Within the single-consultant scope, Agent Orchestration is now treated as a completed runtime layer:
 - Host selection formally responds to capability archetype, selected packs, decision context, readiness/evidence sufficiency, sparse-input mode, and deliverable class
 - selected agents influence execution path and deliverable shaping, not just metadata

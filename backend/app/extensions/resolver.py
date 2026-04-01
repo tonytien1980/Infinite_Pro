@@ -190,6 +190,7 @@ RUNTIME_AGENT_BINDINGS = {
 }
 
 EXPLICIT_SELECTION_BONUS = 100
+DOMAIN_CONTEXT_SELECTION_THRESHOLD = 24
 
 
 def _scored_sort(ids: list[str], score_map: dict[str, int]) -> list[str]:
@@ -222,12 +223,12 @@ class PackResolver:
             else:
                 selected_industry.append(pack.pack_id)
 
+        active_domain_packs = [
+            pack
+            for pack in self.registry.list_packs(PackType.DOMAIN)
+            if pack.status == ExtensionStatus.ACTIVE
+        ]
         if not selected_domain:
-            active_domain_packs = [
-                pack
-                for pack in self.registry.list_packs(PackType.DOMAIN)
-                if pack.status == ExtensionStatus.ACTIVE
-            ]
             requested_lenses = _normalize_domain_lenses(payload.domain_lenses)
             for requested_lens in requested_lenses:
                 for pack in active_domain_packs:
@@ -235,6 +236,36 @@ class PackResolver:
                         selected_domain.append(pack.pack_id)
             if selected_domain:
                 notes.append("Selected domain packs from domain lenses.")
+
+        if payload.decision_context_summary and not explicit_packs and len(selected_domain) < 3:
+            inferred_domain_candidates: list[tuple[str, int]] = []
+            for pack in active_domain_packs:
+                if pack.pack_id in selected_domain:
+                    continue
+                if (
+                    pack.relevant_client_types
+                    and payload.client_type
+                    and payload.client_type not in pack.relevant_client_types
+                ):
+                    continue
+                if (
+                    pack.relevant_client_stages
+                    and payload.client_stage
+                    and payload.client_stage not in pack.relevant_client_stages
+                ):
+                    continue
+                score, _ = score_pack_relevance(pack, payload)
+                if score < DOMAIN_CONTEXT_SELECTION_THRESHOLD:
+                    continue
+                inferred_domain_candidates.append((pack.pack_id, score))
+
+            if inferred_domain_candidates:
+                inferred_domain_candidates.sort(key=lambda item: (-item[1], item[0]))
+                remaining_slots = max(0, 3 - len(selected_domain))
+                selected_domain.extend(
+                    [pack_id for pack_id, _score in inferred_domain_candidates[:remaining_slots]]
+                )
+                notes.append("Selected additional domain packs from decision-context and routing hints.")
 
         if not selected_industry:
             hint_tokens = _normalize_tokens(payload.industry_hints)
@@ -604,6 +635,32 @@ def _matches_industry_hint_text(pack, hint_text: str) -> bool:
     )
 
 
+def _match_phrase_hints(values: Iterable[str], text: str) -> list[str]:
+    normalized_text = text.lower()
+    text_tokens = _normalize_tokens([text])
+    matches: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        candidate = value.strip()
+        lowered = candidate.lower()
+        if not candidate or lowered in seen:
+            continue
+        candidate_tokens = _normalize_tokens([candidate])
+        matched = False
+        if _contains_cjk(lowered) and len(lowered) >= 2 and lowered in normalized_text:
+            matched = True
+        elif candidate_tokens:
+            overlap = candidate_tokens.intersection(text_tokens)
+            if len(candidate_tokens) == 1 and overlap:
+                matched = True
+            elif len(overlap) >= min(2, len(candidate_tokens)):
+                matched = True
+        if matched:
+            seen.add(lowered)
+            matches.append(candidate)
+    return matches
+
+
 def score_pack_relevance(
     pack: PackSpec,
     payload: PackResolverInput,
@@ -622,10 +679,34 @@ def score_pack_relevance(
         if matched_lenses:
             score += 35 + min(len(matched_lenses), 3) * 8
             signals.append(f"對齊 DomainLens：{', '.join(matched_lenses[:3])}。")
+        if payload.client_type and payload.client_type in pack.relevant_client_types:
+            score += 8
+            signals.append(f"對齊客戶型態：{payload.client_type}。")
+        if payload.client_stage and payload.client_stage in pack.relevant_client_stages:
+            score += 10
+            signals.append(f"對齊客戶階段：{payload.client_stage}。")
         routing_matches = sorted(decision_tokens.intersection(_normalize_tokens(pack.routing_hints)))
         if routing_matches:
             score += 12 + min(len(routing_matches), 2) * 4
             signals.append(f"DecisionContext 也命中了 pack routing hints：{', '.join(routing_matches[:2])}。")
+        decision_pattern_matches = _match_phrase_hints(
+            pack.default_decision_context_patterns,
+            payload.decision_context_summary or "",
+        )
+        if decision_pattern_matches:
+            score += 10 + min(len(decision_pattern_matches), 2) * 4
+            signals.append(
+                f"DecisionContext 也對齊判斷情境：{', '.join(decision_pattern_matches[:2])}。"
+            )
+        problem_pattern_matches = _match_phrase_hints(
+            pack.common_problem_patterns,
+            payload.decision_context_summary or "",
+        )
+        if problem_pattern_matches:
+            score += 10 + min(len(problem_pattern_matches), 2) * 5
+            signals.append(
+                f"DecisionContext 也命中常見問題型態：{', '.join(problem_pattern_matches[:2])}。"
+            )
     else:
         hint_tokens = _normalize_tokens(payload.industry_hints)
         hint_text = " ".join(

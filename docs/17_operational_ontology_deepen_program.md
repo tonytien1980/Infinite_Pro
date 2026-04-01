@@ -133,6 +133,13 @@
 因此本 deepen program 的五個 wave 已全部形成正式 baseline。
 後續若再深化，應視為既有能力的 hardening / extension，而不是隱性 Wave 6。
 
+下一階段若進入 P0-A `Domain / Functional Packs Full Hardening Sprint`，正式理解應是：
+- pack-layer hardening / extension
+- 不是新的 deepen wave
+- 不是 industry-pack sprint
+- 不是 system-layer sprint
+- 施工時仍要遵守 docs-code lockstep、Host-only orchestration 與 low-noise disclosure 原則
+
 ---
 
 ## 4. 不可違反的硬規則
