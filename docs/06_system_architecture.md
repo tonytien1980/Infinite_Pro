@@ -284,6 +284,11 @@ P0-B 之後，Industry Packs 也應進一步滿足：
   - relevant client stage / type
 - 若同一輪有多個可能的 Industry Packs，應優先維持 scored selection 與 top-score trimming，而不是把所有 soft match 一起掛上
 
+P0-C 之後，benchmark baseline 也應能正式覆蓋 Batch 2：
+- `p0_industry_batch1.json`
+- `p0_industry_batch2.json`
+- 這仍屬最小可執行 scaffold，而不是 full evaluation suite
+
 Wave 5 的最小正式基線則是：
 - `ObjectSet` 仍留在 Ontology Layer，不能形成第七層
 - first shipped set types 只先包含：

@@ -61,6 +61,15 @@ def test_extension_registry_contains_completed_pack_baseline_and_agents() -> Non
     assert saas_pack.pack_rationale
     clinic_pack = next(pack for pack in industry_packs if pack.pack_id == "healthcare_clinic_pack")
     assert clinic_pack.evidence_expectations
+    manufacturing_pack = next(pack for pack in industry_packs if pack.pack_id == "manufacturing_pack")
+    assert manufacturing_pack.contract_baseline is not None
+    assert manufacturing_pack.contract_baseline.status.value == "ready"
+    energy_pack = next(pack for pack in industry_packs if pack.pack_id == "energy_pack")
+    assert energy_pack.pack_rationale
+    supplements_pack = next(pack for pack in industry_packs if pack.pack_id == "health_supplements_pack")
+    assert supplements_pack.common_business_models
+    funeral_pack = next(pack for pack in industry_packs if pack.pack_id == "funeral_services_pack")
+    assert funeral_pack.decision_patterns
     saas_pack = next(pack for pack in industry_packs if pack.pack_id == "saas_pack")
     assert saas_pack.common_business_models
     assert saas_pack.contract_baseline is not None

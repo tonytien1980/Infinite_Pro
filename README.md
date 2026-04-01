@@ -189,6 +189,16 @@ P0-B hardens the first 6 `Industry Packs` into stronger active industry contract
 - the Pack Resolver no longer treats industry selection as a loose token match only; it now prefers scored selection, business-model / problem-pattern / decision-pattern signals, and trims weaker soft matches behind the top-scoring pack
 - this means Industry Batch 1 affects runtime selection and Host framing more directly without creating a new industry console or bypassing Host judgment
 
+P0-C hardens the second 5 `Industry Packs` without opening a new wave:
+- Batch 2 now focuses on:
+  - `manufacturing_pack`
+  - `healthcare_clinic_pack`
+  - `energy_pack`
+  - `health_supplements_pack`
+  - `funeral_services_pack`
+- Batch 2 reuses the stronger industry-only gate introduced in P0-B and extends the benchmark scaffold with a second manifest instead of creating a new benchmark platform
+- this means heavier regulated / physical-world industry packs now also enter runtime framing as real active contracts rather than remaining as catalog-only context
+
 Within the single-consultant scope, Agent Orchestration is now treated as a completed runtime layer:
 - Host selection formally responds to capability archetype, selected packs, decision context, readiness/evidence sufficiency, sparse-input mode, and deliverable class
 - selected agents influence execution path and deliverable shaping, not just metadata

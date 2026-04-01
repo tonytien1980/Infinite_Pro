@@ -22,6 +22,9 @@ from app.extensions.schemas import (
 DEFAULT_P0_INDUSTRY_BATCH1_MANIFEST = (
     Path(__file__).resolve().parent / "manifests" / "p0_industry_batch1.json"
 )
+DEFAULT_P0_INDUSTRY_BATCH2_MANIFEST = (
+    Path(__file__).resolve().parent / "manifests" / "p0_industry_batch2.json"
+)
 
 
 def load_manifest(path: Path | str = DEFAULT_P0_INDUSTRY_BATCH1_MANIFEST) -> BenchmarkManifest:

@@ -373,6 +373,11 @@ P0-B 的正式方向應是：
 - Industry Packs 不能退化成 tags、catalog copy 或單純產業名稱
 - 也不能只在 `/packs` 管理面看起來完整，卻對 runtime selection 幾乎沒有影響
 
+P0-C 的正式方向則是：
+- 把第二批更偏實體營運、法規敏感、高信任服務場景的 Industry Packs 提升成同樣正式可依賴的 active industry contracts
+- 不新增新的 Industry taxonomy，也不把 Batch 2 變成另一套平台
+- 只是讓既有 Industry contract family 在更多真實顧問場景下成立
+
 ### Intake / Storage 邊界的正式地位
 在目前單人正式 beta 階段，以下能力也應被視為正式 architecture responsibility：
 - 一個 unified intake surface

@@ -1,5 +1,6 @@
 from app.benchmarks.runner import (
     DEFAULT_P0_INDUSTRY_BATCH1_MANIFEST,
+    DEFAULT_P0_INDUSTRY_BATCH2_MANIFEST,
     load_manifest,
     run_benchmark_case,
     run_manifest,
@@ -21,6 +22,7 @@ __all__ = [
     "BenchmarkResultRecord",
     "BenchmarkStatus",
     "DEFAULT_P0_INDUSTRY_BATCH1_MANIFEST",
+    "DEFAULT_P0_INDUSTRY_BATCH2_MANIFEST",
     "load_manifest",
     "run_benchmark_case",
     "run_manifest",

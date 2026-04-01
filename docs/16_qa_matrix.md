@@ -418,3 +418,68 @@ Important verification note:
 - industry pack readiness now fails closed on missing `common_business_models` or missing KPI / operating-signal guidance
 - industry selection no longer promotes weak soft matches as easily; the current Batch 1 benchmark now resolves to the expected target industry packs exactly
 - `/packs` and task/matter/deliverable/evidence surfaces kept pack depth inside low-noise disclosure / background areas rather than polluting first-screen primary guidance
+
+---
+
+## Entry: 2026-04-01 P0-C industry packs batch 2 pass
+
+Scope:
+- `manufacturing_pack`
+- `healthcare_clinic_pack`
+- `energy_pack`
+- `health_supplements_pack`
+- `funeral_services_pack`
+- Batch 2 benchmark scaffold extension
+
+Environment used:
+- frontend: `http://127.0.0.1:3000`
+- backend: `http://127.0.0.1:8000/api/v1`
+- runtime database: current local runtime
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_extension_architecture.py backend/tests/test_benchmark_scaffolding.py backend/tests/test_mvp_slice.py -q` | Passed (`107 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && npm run typecheck` | Passed |
+
+Important verification note:
+- this frontend repo still expects `.next/types` to exist before `tsc --noEmit`
+- therefore the valid verification order remains `build -> typecheck`, not the reverse
+
+### Benchmark / Batch 2 specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | benchmark manifest | Add and load `p0_industry_batch2.json` | Verified | covers `manufacturing / healthcare_clinic / energy / health_supplements / funeral_services` |
+| Backend | benchmark runner | Run `python3 backend/scripts/run_pack_benchmark_scaffold.py --manifest backend/app/benchmarks/manifests/p0_industry_batch2.json` | Verified | all 5 seed cases resolve to exact target industry pack selection |
+| Backend | runtime aggregate | Create Batch 2 manufacturing task aggregate via `/api/v1/tasks` | Verified | task aggregate selects `manufacturing_pack` and returns ready contract fields |
+
+### P0-C specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | pack contract baseline | Batch 2 packs remain formally `ready` under the stronger industry-only gate introduced in P0-B | Verified | no extra gate layer was needed for Batch 2 |
+| Backend | pack resolver | Batch 2 packs resolve through the same scored selection / business-model / problem-pattern / decision-pattern path | Verified | sample probes selected the correct pack for all 5 Batch 2 cases |
+| Packs UI | `/packs` | Existing industry disclosure remains sufficient for Batch 2 | Verified | no new app shell or hero pollution |
+| Task UI | `/tasks/[taskId]` | Batch 2 live task keeps pack depth below first-screen primary guidance | Verified | task hero stayed decision-first |
+| Matter UI | `/matters/[matterId]` | Batch 2 live matter page keeps consultant-first hero intact | Verified | main focus stays on case mainline and next step |
+| Evidence UI | `/matters/[matterId]/evidence` | Batch 2 evidence workspace stays supplement / evidence-first | Verified | pack-aware gaps appear in background guidance rather than hero metadata |
+| Deliverable UI | `/deliverables/[deliverableId]` | Batch 2 deliverable page keeps pack context in background continuity / confidence areas | Verified | deliverable hero stayed deliverable-first |
+
+### Live smoke data
+
+- matter id: `d11feecd-192f-4848-8e5a-23c08fd3c69d`
+- task id: `92685c65-a7d2-4375-a9cc-947863220ee9`
+- deliverable id: `82830dc5-398a-440d-9850-d0de573fd395`
+- `/matters/[matterId]` snapshot: `.playwright-cli/page-2026-04-01T12-53-02-631Z.yml`
+- `/matters/[matterId]/evidence` snapshot: `.playwright-cli/page-2026-04-01T12-53-15-390Z.yml`
+- task / deliverable live verification: verified through live Playwright snapshots after the routes finished loading
+
+### Verified outcomes
+
+- Batch 2 now extends the same formal industry-contract baseline established in P0-B instead of inventing a second industry architecture
+- the benchmark scaffold now covers both Industry Batch 1 and Batch 2 while remaining a small executable baseline, not a full evaluation platform
+- Batch 2 live runtime still flows through Host-only orchestration and keeps contract depth inside low-noise disclosure / background surfaces

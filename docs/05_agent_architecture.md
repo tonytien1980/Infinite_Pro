@@ -93,6 +93,14 @@ P0-B 之後，對 Industry Packs 的正式期待還包括：
 - Industry pack selection 不應只靠鬆散 token 命中，而應優先採用 scored selection 與 top-score trimming
 - 這些 industry contract 仍只能作為 Host framing / routing / deliverable shaping 的正式輸入，不能取代 Host judgment
 
+P0-C 之後，Batch 2 這類更重法規 / 實體營運 / 高信任服務的 Industry Packs 也應被視為同一套正式 contract family：
+- `manufacturing_pack`
+- `healthcare_clinic_pack`
+- `energy_pack`
+- `health_supplements_pack`
+- `funeral_services_pack`
+- 它們的差異應主要體現在 business model、evidence expectation、decision framing 與 deliverable shaping 上，而不是另開新的 orchestration path
+
 Wave 5 之後，Agent Layer 也應理解：
 - `ObjectSet` 屬於 Ontology Layer 的正式 primitive，不屬於 Agent Layer
 - 但 Host 可正式消費 object-set summary 來理解：

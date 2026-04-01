@@ -170,6 +170,12 @@ Wave 0-5 全部完成後，repo 已正式採納下一階段的 hardening / exten
 - 不是新的管理面或 industry console
 - 仍需遵守 Host-only orchestration、low-noise disclosure 與 docs-code lockstep 原則
 
+若進入 `P0-C`，正式方向應是：
+- Industry Batch 2 hardening / extension
+- 仍不是新的 deepen wave
+- 仍不應重做 benchmark platform；只應最小擴充現有 scaffold
+- 仍需遵守 Host-only orchestration、low-noise disclosure 與 docs-code lockstep 原則
+
 ### 3.6 adopted planning file 的正式處理規則
 
 若某份下一階段 proposal 的內容已被正式採納：

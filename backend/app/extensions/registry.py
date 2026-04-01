@@ -2018,6 +2018,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "高度依賴單一轉介來源或特定合作夥伴，讓 pipeline 非常脆弱",
                 "個案高峰與淡季的人力 / 容量錯配，使服務品質與獲利波動很大",
                 "pre-need、at-need 與紀念服務沒有分開治理，導致報價、毛利與交付節奏失真",
+                "分館 / 合作據點擴張後，服務品質、家屬體驗與信任敘事無法維持一致",
             ],
             stage_specific_heuristics={
                 "創業階段": [
@@ -2056,6 +2057,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "個案量與人力排程",
                 "法遵 / 契約 / 資訊揭露材料",
                 "客訴與口碑訊號",
+                "pre-need 轉化、解約與跨點服務品質資料",
             ],
             risk_libraries=["reputation risk", "compliance risk", "capacity risk"],
             common_risks=[
@@ -2070,6 +2072,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "是否該降低轉介依賴",
                 "是否該優先強化 pre-need 模式",
                 "是否該補強接案到交付的服務 SOP",
+                "是否應先穩定家屬體驗與顧問人力治理，再擴大據點或通路合作",
             ],
             recommendation_patterns=[
                 "service package redesign",
@@ -2080,6 +2083,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "funeral services operating memo",
                 "service trust risk brief",
                 "referral channel review",
+                "pre-need and trust governance memo",
             ],
             routing_hints=[
                 "殯葬",
@@ -2091,6 +2095,8 @@ def build_pack_catalog() -> list[PackSpec]:
                 "生前契約",
                 "塔位",
                 "殯儀",
+                "家屬",
+                "告別式",
             ],
             pack_notes=[
                 "喪葬服務案件需要把信任、法遵、轉介結構與人力容量一起視為核心決策條件。",
@@ -2100,6 +2106,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "它與 Professional Services Pack 的邊界在於：Funeral Services 更強調 bereavement context、reputation sensitivity 與 pre-need / at-need dynamics。",
                 "它最常出現在服務組合、轉介依賴、pre-need strategy、法遵治理與人力容量任務。",
                 "若定義太窄，會只剩禮儀流程；若定義太廣，則會把一般服務、醫療與高信任產業問題都混進來。",
+                "P0-C 後它也應更直接影響 Host 對 trust-sensitive growth、referral dependency 與 capacity governance 的正式 framing。",
             ],
         ),
         PackSpec(
@@ -2120,6 +2127,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "claim、成分、平台政策與廣告素材之間存在合規張力，讓成長變得脆弱",
                 "SKU 與通路擴張過快，導致庫存效期、品質信任與毛利結構惡化",
                 "看起來有需求，但低回購、高退貨或高客訴讓 CAC 無法回收",
+                "功效敘事與實際使用體驗不一致，導致 review quality、復購與品牌信任一起受損",
             ],
             stage_specific_heuristics={
                 "創業階段": [
@@ -2158,6 +2166,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "通路與廣告表現",
                 "評價與退貨 / 客訴資料",
                 "庫存週轉與效期資料",
+                "subscription churn、review quality 與客服回應資料",
             ],
             risk_libraries=["claim compliance risk", "channel dependency risk", "inventory expiry risk"],
             common_risks=[
@@ -2173,6 +2182,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "是否優先做訂閱 / 回購而非買量",
                 "是否該重整通路與投放配置",
                 "是否需先補強 compliance 與品質信任",
+                "是否該先修 customer trust 與 subscription retention，再擴更多通路或新品",
             ],
             recommendation_patterns=[
                 "hero SKU focus",
@@ -2183,6 +2193,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "supplements growth memo",
                 "claim and channel risk review",
                 "SKU portfolio decision brief",
+                "trust and retention stabilization memo",
             ],
             routing_hints=[
                 "保健食品",
@@ -2195,6 +2206,8 @@ def build_pack_catalog() -> list[PackSpec]:
                 "益生菌",
                 "魚油",
                 "膠原",
+                "claim",
+                "subscription",
             ],
             pack_notes=[
                 "保健品案件不應只看流量與營收，必須把回購、claim 合規、品質信任與 SKU 結構一起看。",
@@ -2204,6 +2217,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "它與 Ecommerce Pack 的邊界在於：Health Supplements 更強調成分 / claim / 品質信任與法規邊界，不只是通路與轉換。",
                 "它最常出現在 hero SKU、claim strategy、channel mix、subscription retention 與品質治理任務。",
                 "若定義太窄，會只剩廣告成效；若定義太廣，則會把一般 DTC、醫療服務與健康內容生意全部混在一起。",
+                "P0-C 後它也應更直接影響 Host 對 claim risk、subscription retention 與 trust-sensitive SKU strategy 的正式判斷。",
             ],
         ),
         PackSpec(
@@ -2224,6 +2238,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "法規、tariff、permit 與專案 economics 彼此拉扯，導致成長敘事和現金流現實脫節",
                 "capex、交付時程與 uptime 治理不足，讓專案回收期與可用率承壓",
                 "portfolio 擴張過快，供應鏈、維運與資本配置開始互相卡住",
+                "interconnection、commissioning 與維運 handoff 不順，讓 revenue start date 與可用率預期失真",
             ],
             stage_specific_heuristics={
                 "創業階段": [
@@ -2262,6 +2277,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "可用率、維運、故障與履約資料",
                 "法規、牌照、 tariff 或政策材料",
                 "供應鏈、交期與設備風險訊號",
+                "commissioning、interconnection、維運 handoff 與 curtailment 資料",
             ],
             risk_libraries=["regulatory risk", "capex overrun risk", "counterparty risk", "uptime risk"],
             common_risks=[
@@ -2275,6 +2291,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "是否該自建、合作或外包 EPC / O&M 能力",
                 "是否該以法規 / 資本可得性重新排序 portfolio",
                 "是否該先治理 uptime 與維運，再擴大銷售",
+                "是否該先收斂案場與 counterparty quality，再擴大 project pipeline 敘事",
             ],
             recommendation_patterns=[
                 "project portfolio prioritization",
@@ -2285,6 +2302,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "energy project decision memo",
                 "energy portfolio risk brief",
                 "regulation and economics review",
+                "uptime and counterparty governance memo",
             ],
             routing_hints=[
                 "energy",
@@ -2297,6 +2315,8 @@ def build_pack_catalog() -> list[PackSpec]:
                 "PPA",
                 "EPC",
                 "O&M",
+                "tariff",
+                "interconnection",
             ],
             pack_notes=[
                 "Energy Pack 的重點是把法規、專案 economics、資本密度與 uptime 一起看，不可只看需求敘事。",
@@ -2310,6 +2330,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "它與 Manufacturing Pack 的邊界在於：能源更重 regulatory, project finance, asset uptime 與 counterparty structure。",
                 "它最常出現在專案 go / no-go、portfolio prioritization、能源服務策略與 regulatory scenario 任務。",
                 "若定義太窄，會只剩發電或專案財務；若定義太廣，則會把一般工業與基建場景全部混成一包。",
+                "P0-C 後它也應更直接影響 Host 對 regulatory sequencing、counterparty quality 與 uptime governance 的正式判斷。",
             ],
         ),
         PackSpec(
@@ -2661,6 +2682,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "產品 / 客戶組合複雜化後，排程、品質與 working capital 壓力同步升高",
                 "供應鏈、交期與 backlog 可見度不足，讓擴產或接單決策失真",
                 "表面出貨掩蓋了 scrap、返工、客戶集中與毛利下滑問題",
+                "設備 bottleneck、排程規則與需求預測沒有一起治理，讓產能擴張投資容易做錯方向",
             ],
             stage_specific_heuristics={
                 "創業階段": [
@@ -2699,6 +2721,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "BOM、成本、毛利與產品組合資料",
                 "庫存、WIP、交期與供應商可靠度資料",
                 "客戶集中與需求預測資料",
+                "瓶頸站位、換線損失與 S&OP / demand planning 資料",
             ],
             risk_libraries=["quality risk", "supply chain risk", "working capital risk", "customer concentration risk"],
             common_risks=[
@@ -2712,6 +2735,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "是否該縮減低毛利產品線或客製案",
                 "是否該先補品質與供應鏈治理，再追更多訂單",
                 "是否該重做客戶 / 產品組合與資本配置",
+                "是否該先修 bottleneck 與排程 discipline，再投資新設備或新廠線",
             ],
             recommendation_patterns=[
                 "capacity prioritization",
@@ -2722,6 +2746,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "manufacturing operating review",
                 "capacity and margin decision memo",
                 "supply chain risk brief",
+                "quality and throughput stabilization memo",
             ],
             routing_hints=[
                 "manufacturing",
@@ -2734,6 +2759,8 @@ def build_pack_catalog() -> list[PackSpec]:
                 "供應鏈",
                 "BOM",
                 "排程",
+                "OEE",
+                "yield",
             ],
             pack_notes=[
                 "Manufacturing Pack 的重點是把產能、品質、供應鏈與工作資本一起看，不可只看出貨或營收。",
@@ -2747,6 +2774,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "它與 Energy Pack 的邊界在於：Manufacturing 聚焦生產與供應鏈，Energy 更聚焦專案 economics、法規與 asset uptime。",
                 "它最常出現在 capacity expansion、product mix、supply chain risk、工廠營運診斷與品質治理任務。",
                 "若定義太窄，會只剩工廠指標；若定義太廣，則會把能源、醫療與一般營運問題都吞進來。",
+                "P0-C 後它也應更直接影響 Host 對 throughput bottleneck、quality discipline 與 working-capital-aware growth 的正式 framing。",
             ],
         ),
         PackSpec(
@@ -2767,6 +2795,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "服務組合與 pricing 在成長，但 revisit、patient trust 與 compliance 邊界沒有同步治理",
                 "院點 / 醫師 / 轉介結構擴張後，服務品質與品牌體驗開始不一致",
                 "營收看起來成長，但 service mix margin、人力負荷與病患體驗彼此衝突",
+                "前台排程、臨床流程與 follow-up 管理沒有一起治理，導致 no-show、revisit 與 patient trust 互相拖累",
             ],
             stage_specific_heuristics={
                 "創業階段": [
@@ -2805,6 +2834,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "轉介來源、病患 acquisition 與 patient experience 資料",
                 "法遵、執照、SOP 與品質文件",
                 "營收結構、毛利與人力成本資料",
+                "no-show 原因、follow-up completion 與跨院點品質一致性資料",
             ],
             risk_libraries=["provider dependency risk", "compliance risk", "service quality risk", "capacity mismatch risk"],
             common_risks=[
@@ -2818,6 +2848,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "是否該新增院點、招募醫師或重整轉介結構",
                 "是否該先補強 compliance / SOP，再擴大 marketing 與合作",
                 "是否該重新設計療程 / package 與 pricing",
+                "是否該先修 patient flow 與 revisit discipline，再擴大 acquisition 或新服務線",
             ],
             recommendation_patterns=[
                 "capacity and scheduling redesign",
@@ -2828,6 +2859,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "clinic operating memo",
                 "service mix and capacity review",
                 "healthcare growth and compliance brief",
+                "patient flow and scheduling stabilization memo",
             ],
             routing_hints=[
                 "clinic",
@@ -2840,6 +2872,8 @@ def build_pack_catalog() -> list[PackSpec]:
                 "醫師",
                 "revisit",
                 "appointment",
+                "no-show",
+                "provider",
             ],
             pack_notes=[
                 "Healthcare / Clinic Pack 的重點是把 provider capacity、patient trust、法遵與服務組合一起看，不是只把診所當一般零售服務業。",
@@ -2853,6 +2887,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "它與 Health Supplements Pack 的邊界在於：Clinic 更重服務排程、臨床能力與病患路徑；保健品更重 SKU、claim 與通路。",
                 "它最常出現在診所擴張、服務組合調整、排程優化、病患來源治理與 compliance-sensitive growth 任務。",
                 "若定義太窄，會只剩排班；若定義太廣，則會把保健、醫材與一般服務型業務全都混成醫療 pack。",
+                "P0-C 後它也應更直接影響 Host 對 provider capacity、patient trust 與 compliance-aware growth 的正式判斷。",
             ],
         ),
     ]]

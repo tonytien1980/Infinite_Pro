@@ -58,6 +58,7 @@
 目前正式 baseline 包含：
 - 本文件：`docs/18_benchmark_scaffolding_baseline.md`
 - manifest：`backend/app/benchmarks/manifests/p0_industry_batch1.json`
+- manifest：`backend/app/benchmarks/manifests/p0_industry_batch2.json`
 - result schema：`backend/app/benchmarks/schemas.py`
 - runner：`backend/app/benchmarks/runner.py`
 - CLI run path：`backend/scripts/run_pack_benchmark_scaffold.py`
@@ -75,6 +76,17 @@ P0-0 先只建立支撐 P0-B 的最小 baseline：
 這六個 seed cases 的目的不是涵蓋所有問題型態，而是：
 - 先為 Industry Batch 1 建立正式對照骨架
 - 讓後續 hardening 能比較 pack selection、hint depth、contract readiness 是否變強
+
+P0-C 之後，這份 baseline 也正式擴充到支撐 Batch 2：
+- `manufacturing_pack`
+- `healthcare_clinic_pack`
+- `energy_pack`
+- `health_supplements_pack`
+- `funeral_services_pack`
+
+仍要維持的原則是：
+- 一次只新增最小必要的 seed cases
+- 不把 scaffold 膨脹成 full scoring platform
 
 ### 3.3 目前 formalized 的 result schema
 
@@ -110,6 +122,7 @@ python3 backend/scripts/run_pack_benchmark_scaffold.py
 
 ```bash
 python3 backend/scripts/run_pack_benchmark_scaffold.py --manifest backend/app/benchmarks/manifests/p0_industry_batch1.json
+python3 backend/scripts/run_pack_benchmark_scaffold.py --manifest backend/app/benchmarks/manifests/p0_industry_batch2.json
 ```
 
 ### 4.2 pytest baseline

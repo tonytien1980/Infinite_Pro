@@ -303,6 +303,11 @@ Wave 5 之後，Codex 還必須維持：
   - `default_decision_context_patterns`
   - relevant client stage / type
 
+當後續進入 P0-C `Industry Packs Batch 2` 時，Codex 也應維持：
+- 這仍是 pack-layer hardening / extension，不是新的 deepen wave
+- Batch 2 應沿用 Batch 1 的 stronger industry-only gate 與 scored selection 原則，而不是另開第二套 industry architecture
+- benchmark baseline 應只做最小必要擴充，讓 Batch 2 也能形成 before / after 對照
+
 另外，若新增 / 深化 Agent 或 Pack creation flow，Codex 應同步檢查：
 - backend 是否仍經過正式 provider boundary
 - 是否仍保留 bounded external search

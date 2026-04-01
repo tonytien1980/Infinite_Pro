@@ -1,0 +1,182 @@
+{
+  "manifest_id": "p0_industry_batch2_baseline",
+  "title": "P0-C Industry Batch 2 benchmark baseline",
+  "purpose": "Provide a minimal but executable before-and-after baseline for the second 5 industry packs without turning evaluation into a new platform.",
+  "update_policy": [
+    "Only update this manifest when the shipped hardening scope for Industry Batch 2 changes.",
+    "Do not overwrite historical QA evidence; benchmark scaffold records complement docs/16_qa_matrix.md.",
+    "Prefer adding or revising seed cases over expanding into a full scoring platform during P0-C."
+  ],
+  "cases": [
+    {
+      "case_id": "manufacturing_quality_capacity_tradeoff",
+      "title": "Manufacturing quality and capacity trade-off",
+      "description": "Factory business balancing OEE, yield, supplier reliability, working capital, and backlog visibility.",
+      "client_stage": "制度化階段",
+      "client_type": "中小企業",
+      "domain_lenses": ["營運", "財務"],
+      "industry_hints": ["manufacturing", "工廠", "良率", "供應鏈"],
+      "decision_context_summary": "Need a manufacturing review on OEE, yield, supplier reliability, inventory turns, and whether to expand capacity before fixing quality and backlog visibility.",
+      "source_mix_summary": [
+        "OEE and yield dashboard",
+        "Supplier reliability and backlog note",
+        "Inventory and margin summary"
+      ],
+      "target_domain_pack_ids": [
+        "operations_pack",
+        "finance_fundraising_pack"
+      ],
+      "target_industry_pack_ids": [
+        "manufacturing_pack"
+      ],
+      "expected_contract_interface_ids": [
+        "evidence_readiness_v1",
+        "decision_framing_v1",
+        "deliverable_shaping_v1"
+      ],
+      "expected_hint_areas": [
+        "evidence_expectations",
+        "decision_patterns",
+        "deliverable_presets",
+        "routing_hints",
+        "readiness"
+      ]
+    },
+    {
+      "case_id": "clinic_capacity_compliance_mix",
+      "title": "Clinic capacity and compliance mix review",
+      "description": "Clinic business balancing provider capacity, appointment fill, no-show, revisit, service mix, and compliance.",
+      "client_stage": "制度化階段",
+      "client_type": "中小企業",
+      "domain_lenses": ["營運", "法務"],
+      "industry_hints": ["clinic", "診所", "病患", "appointment"],
+      "decision_context_summary": "Need a clinic operating review on provider utilization, no-show, revisit, service mix margin, and whether to expand appointments before fixing scheduling and compliance.",
+      "source_mix_summary": [
+        "Appointment and provider schedule report",
+        "Service mix margin note",
+        "Compliance and SOP summary"
+      ],
+      "target_domain_pack_ids": [
+        "operations_pack",
+        "legal_risk_pack"
+      ],
+      "target_industry_pack_ids": [
+        "healthcare_clinic_pack"
+      ],
+      "expected_contract_interface_ids": [
+        "evidence_readiness_v1",
+        "decision_framing_v1",
+        "deliverable_shaping_v1"
+      ],
+      "expected_hint_areas": [
+        "evidence_expectations",
+        "decision_patterns",
+        "deliverable_presets",
+        "routing_hints",
+        "readiness"
+      ]
+    },
+    {
+      "case_id": "energy_project_portfolio_governance",
+      "title": "Energy project portfolio governance",
+      "description": "Energy business balancing project finance, regulation, uptime, and counterparty risk.",
+      "client_stage": "規模化階段",
+      "client_type": "大型企業",
+      "domain_lenses": ["財務", "營運"],
+      "industry_hints": ["energy", "儲能", "PPA", "EPC"],
+      "decision_context_summary": "Need an energy project decision on regulatory sequencing, project finance, uptime risk, counterparty exposure, and whether to prioritize portfolio discipline before scaling pipeline.",
+      "source_mix_summary": [
+        "Project portfolio and PPA summary",
+        "Capex and IRR note",
+        "Regulatory and uptime risk memo"
+      ],
+      "target_domain_pack_ids": [
+        "finance_fundraising_pack",
+        "operations_pack"
+      ],
+      "target_industry_pack_ids": [
+        "energy_pack"
+      ],
+      "expected_contract_interface_ids": [
+        "evidence_readiness_v1",
+        "decision_framing_v1",
+        "deliverable_shaping_v1"
+      ],
+      "expected_hint_areas": [
+        "evidence_expectations",
+        "decision_patterns",
+        "deliverable_presets",
+        "routing_hints",
+        "readiness"
+      ]
+    },
+    {
+      "case_id": "supplements_claim_retention_mix",
+      "title": "Supplements claim and retention mix",
+      "description": "Health supplements business balancing repeat purchase, SKU economics, claims compliance, and channel dependence.",
+      "client_stage": "制度化階段",
+      "client_type": "中小企業",
+      "domain_lenses": ["行銷", "財務"],
+      "industry_hints": ["supplement", "保健食品", "益生菌", "回購"],
+      "decision_context_summary": "Need a health supplements review on claim compliance, repeat purchase, SKU economics, and whether to simplify the catalog before buying more traffic.",
+      "source_mix_summary": [
+        "Repeat purchase and cohort report",
+        "Claims and ingredient review",
+        "SKU economics and return note"
+      ],
+      "target_domain_pack_ids": [
+        "marketing_sales_pack",
+        "finance_fundraising_pack"
+      ],
+      "target_industry_pack_ids": [
+        "health_supplements_pack"
+      ],
+      "expected_contract_interface_ids": [
+        "evidence_readiness_v1",
+        "decision_framing_v1",
+        "deliverable_shaping_v1"
+      ],
+      "expected_hint_areas": [
+        "evidence_expectations",
+        "decision_patterns",
+        "deliverable_presets",
+        "routing_hints",
+        "readiness"
+      ]
+    },
+    {
+      "case_id": "funeral_referral_trust_capacity",
+      "title": "Funeral referral trust and capacity",
+      "description": "Funeral services business balancing trust, referral dependence, compliance, and service capacity.",
+      "client_stage": "制度化階段",
+      "client_type": "中小企業",
+      "domain_lenses": ["營運", "法務"],
+      "industry_hints": ["funeral", "殯葬", "禮儀", "生前契約"],
+      "decision_context_summary": "Need a funeral services review on referral dependence, service consistency, counselor capacity, contract trust, and whether to expand locations before fixing governance and compliance.",
+      "source_mix_summary": [
+        "Referral and case conversion note",
+        "Service SOP and staffing summary",
+        "Pricing transparency and contract note"
+      ],
+      "target_domain_pack_ids": [
+        "operations_pack",
+        "legal_risk_pack"
+      ],
+      "target_industry_pack_ids": [
+        "funeral_services_pack"
+      ],
+      "expected_contract_interface_ids": [
+        "evidence_readiness_v1",
+        "decision_framing_v1",
+        "deliverable_shaping_v1"
+      ],
+      "expected_hint_areas": [
+        "evidence_expectations",
+        "decision_patterns",
+        "deliverable_presets",
+        "routing_hints",
+        "readiness"
+      ]
+    }
+  ]
+}

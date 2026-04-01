@@ -2024,6 +2024,47 @@ def test_task_aggregate_supports_second_wave_industry_and_new_domain_packs(clien
         item["selection_score"] > 0 and item["selection_signals"]
         for item in body["agent_selection"]["selected_reasoning_agents"]
     )
+
+
+def test_task_aggregate_supports_batch2_industry_pack_contracts(client: TestClient) -> None:
+    payload = create_multi_agent_payload("Batch2 pack aggregate")
+    payload.update(
+        {
+            "description": "請判斷這家製造公司是否該先修正良率、排程與瓶頸站位，再決定是否擴產與接更多急單。",
+            "client_name": "Atlas Manufacturing",
+            "client_type": "中小企業",
+            "client_stage": "制度化階段",
+            "engagement_name": "Atlas Capacity and Quality Review",
+            "workstream_name": "製造營運與供應鏈收斂",
+            "domain_lenses": ["營運", "財務"],
+            "judgment_to_make": "先判斷這家製造公司是否應優先修正良率、排程與 throughput bottleneck，再決定是否擴產。",
+        }
+    )
+
+    response = client.post("/api/v1/tasks", json=payload)
+
+    assert response.status_code == 201
+    body = response.json()
+    assert {
+        item["pack_id"] for item in body["pack_resolution"]["selected_industry_packs"]
+    } == {"manufacturing_pack"}
+    manufacturing_pack = next(
+        item
+        for item in body["pack_resolution"]["selected_industry_packs"]
+        if item["pack_id"] == "manufacturing_pack"
+    )
+    assert manufacturing_pack["selection_score"] > 0
+    assert manufacturing_pack["selection_signals"]
+    assert manufacturing_pack["industry_definition"]
+    assert manufacturing_pack["common_business_models"]
+    assert manufacturing_pack["decision_patterns"]
+    assert manufacturing_pack["deliverable_presets"]
+    assert manufacturing_pack["contract_baseline"]["status"] == "ready"
+    assert body["pack_resolution"]["resolver_notes"]
+    assert body["pack_resolution"]["evidence_expectations"]
+    assert body["pack_resolution"]["decision_context_patterns"]
+    assert body["pack_resolution"]["contract_status"] == "ready"
+    assert "manufacturing_pack" in body["case_world_state"]["selected_industry_packs"]
     assert body["agent_selection"]["rationale"]
 
 
