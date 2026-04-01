@@ -277,6 +277,7 @@ const DELIVERABLE_CLASS_LABELS: Record<string, string> = {
 const OBJECT_SET_TYPE_LABELS: Record<string, string> = {
   evidence_set_v1: "證據集",
   risk_set_v1: "風險群組",
+  clause_obligation_set_v1: "條款集 / 義務清單",
 };
 
 const OBJECT_SET_SCOPE_LABELS: Record<string, string> = {
@@ -518,6 +519,7 @@ const STRUCTURED_FIELD_LABELS: Record<string, string> = {
   workflow_mode: "工作流程",
   sources_used: "使用來源",
   clauses_reviewed: "審閱條款",
+  obligations_identified: "義務清單",
   high_risk_clauses: "高風險條款",
   redline_recommendations: "修改建議",
   missing_attachments_or_clauses: "缺漏附件 / 缺漏條款",

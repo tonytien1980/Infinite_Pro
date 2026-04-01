@@ -52,7 +52,10 @@ export type DeliverableClass =
   | "exploratory_brief"
   | "assessment_review_memo"
   | "decision_action_deliverable";
-export type ObjectSetType = "evidence_set_v1" | "risk_set_v1";
+export type ObjectSetType =
+  | "evidence_set_v1"
+  | "risk_set_v1"
+  | "clause_obligation_set_v1";
 export type ObjectSetScopeType = "task" | "deliverable" | "matter";
 export type ObjectSetCreationMode = "host_curated" | "deliverable_support_bundle";
 export type ObjectSetLifecycleStatus = "active" | "archived";
@@ -1524,6 +1527,7 @@ export interface ObjectSetMember {
   ordering_index: number;
   included_reason: string;
   derivation_hint: string;
+  support_evidence_id: string | null;
   support_label: string | null;
   created_at: string;
 }

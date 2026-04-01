@@ -141,6 +141,10 @@ function buildObjectSetViewList(objectSets: ObjectSet[]) {
   }));
 }
 
+function hasClauseObligationSet(objectSets: ObjectSet[]) {
+  return objectSets.some((item) => item.set_type === "clause_obligation_set_v1");
+}
+
 function getObjectSetPrimarySourceLabel(objectSet: ObjectSet) {
   const primarySource = objectSet.membership_source_summary?.primary_source;
   return labelForObjectSetMembershipSource(
@@ -157,6 +161,9 @@ function labelForObjectSetMemberType(value: string) {
   }
   if (value === "clause") {
     return "條款";
+  }
+  if (value === "obligation") {
+    return "義務";
   }
   if (value === "process_issue") {
     return "流程問題";
@@ -427,6 +434,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const packSelection = task && deliverable ? buildPackSelectionView(task, deliverable) : null;
   const deliverableBacklink = task && deliverable ? buildDeliverableBacklinkView(task, deliverable) : null;
   const objectSets = workspace?.object_sets ?? [];
+  const includesClauseObligationSet = hasClauseObligationSet(objectSets);
   const objectSetHighlights = buildObjectSetViewList(objectSets);
   const deliverableStatus =
     ((deliverable?.status as DeliverableLifecycleStatus | undefined) ??
@@ -2004,9 +2012,13 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                 <section className="panel section-anchor" id="deliverable-object-sets">
                   <div className="panel-header">
                     <div>
-                      <h2 className="panel-title">證據集與風險群組</h2>
+                      <h2 className="panel-title">
+                        {includesClauseObligationSet ? "證據集、風險群組與條款集" : "證據集與風險群組"}
+                      </h2>
                       <p className="panel-copy">
-                        當你要集中查看這次交付真正採用的證據，或這輪工作已納入範圍的風險時，再切進這個集合視角；平常首屏不用先看這層。
+                        {includesClauseObligationSet
+                          ? "當你要集中查看這次交付真正採用的證據、已納入範圍的風險，或這輪正式引用的條款與義務時，再切進這個集合視角；平常首屏不用先看這層。"
+                          : "當你要集中查看這次交付真正採用的證據，或這輪工作已納入範圍的風險時，再切進這個集合視角；平常首屏不用先看這層。"}
                       </p>
                     </div>
                   </div>
@@ -2073,6 +2085,13 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                                         href={`#deliverable-evidence-entry-${member.member_object_id}`}
                                       >
                                         回到這則證據
+                                      </a>
+                                    ) : member.support_evidence_id ? (
+                                      <a
+                                        className="back-link"
+                                        href={`#deliverable-evidence-entry-${member.support_evidence_id}`}
+                                      >
+                                        回到支撐這條的證據
                                       </a>
                                     ) : (
                                       <a className="back-link" href="#deliverable-reading">

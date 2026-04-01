@@ -182,6 +182,13 @@ Wave 5 deepen 後，這條主鏈還應能正式承接：
 - deliverable-local evidence support bundle
 - task-scope risk focus grouping
 
+P0-D hardening 後，這條主鏈還應再往前一步：
+- `clause_obligation_set_v1`
+- deliverable-local clause / obligation support bundle
+- `clauses_reviewed`
+- `obligations_identified`
+- clause / obligation member 對既有 evidence / chunk / media provenance 的正式回鏈
+
 正式規則是：
 - `ObjectSet` 仍屬 Ontology Layer primitive，不是第七層
 - 第一波只先做 matter / work-scope 內的集合，不做跨案件世界 reusable mesh

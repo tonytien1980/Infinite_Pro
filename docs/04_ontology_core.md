@@ -259,16 +259,27 @@ Wave 5 的最小正式責任是：
   - ordering / ranking
   - included reason
   - derivation hint / support label
+  - support evidence backlink（若該 member 目前已掛回正式 evidence）
 
 Wave 5 第一批正式 shipped set types 是：
 - `evidence_set_v1`
 - `risk_set_v1`
+
+P0-D 之後，第一批 contract-aware object set baseline 再往前一步：
+- `clause_obligation_set_v1`
+  - deliverable-local contract-risk support bundle
+  - member 可分成：
+    - `clause`
+    - `obligation`
+  - member 應能保留 included reason、來源線索，以及回到支撐 evidence 的最小 backlink
 
 其正式落點是：
 - `evidence_set_v1`
   - deliverable-local support bundle
 - `risk_set_v1`
   - task-scope focus grouping
+- `clause_obligation_set_v1`
+  - deliverable-local clause / obligation support bundle
 
 `ObjectSet` 不是：
 - 第七層

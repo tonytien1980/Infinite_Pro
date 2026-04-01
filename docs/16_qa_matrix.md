@@ -502,7 +502,7 @@ Environment used:
 | Check | Result |
 | --- | --- |
 | `python3 -m compileall backend/app` | Passed |
-| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`96 passed`) |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`95 passed`) |
 | `cd frontend && npm run build` | Passed |
 | `cd frontend && npx next typegen` | Passed |
 | `cd frontend && npm run typecheck` | Passed |
@@ -536,3 +536,62 @@ Important verification note:
 - the official OpenAI path now does a local request-body preflight before the network call
 - if the local request body is valid but OpenAI returns the specific parse-body `HTTP 400`, the provider retries once on the same governed path instead of failing immediately
 - the fix stays fail-closed after the retry and does not bypass Host orchestration or the provider abstraction boundary
+
+---
+
+## Entry: 2026-04-01 P0-D clause / obligation set + legal / finance hardening
+
+Scope:
+- `clause_obligation_set_v1`
+- deliverable-local clause / obligation support bundle baseline
+- `legal_risk_pack` / `finance_fundraising_pack` contract-aware hardening
+- `p0_legal_finance_contract.json` benchmark manifest
+
+Environment used:
+- frontend: `http://127.0.0.1:3000`
+- backend: `http://127.0.0.1:8000/api/v1`
+- runtime database: current local runtime
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests -q` | Passed (`110 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && npx next typegen` | Passed |
+| `cd frontend && npm run typecheck` | Passed |
+| `python3 backend/scripts/run_pack_benchmark_scaffold.py --manifest backend/app/benchmarks/manifests/p0_legal_finance_contract.json` | Passed |
+
+Important verification note:
+- on the current Next 15 frontend, `npm run build` did not fully restore `.next/types` by itself on this machine
+- the valid verification order for this checkpoint remained `build -> next typegen -> typecheck`
+
+### P0-D specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | contract review output | `ContractReviewOutput` now requires `obligations_identified` in addition to `clauses_reviewed` | Verified | contract-review deliverables now carry a formal obligation list baseline |
+| Backend | object-set baseline | `clause_obligation_set_v1` now persists deliverable-local clause / obligation bundles | Verified | members keep included reason, derivation hint, support label, and `support_evidence_id` |
+| Backend | runtime provenance | clause / obligation members now backlink to formal evidence instead of staying as UI-only grouping | Verified | set members reuse the existing evidence -> chunk/media provenance chain |
+| Backend | pack hardening | `legal_risk_pack` / `finance_fundraising_pack` now carry stronger contract-aware evidence expectations, decision patterns, and deliverable presets | Verified | Host readiness / framing now consumes those stronger hints on the formal pack path |
+| Benchmark | legal / finance manifest | Run `p0_legal_finance_contract.json` | Verified | both seed cases selected `legal_risk_pack` and `finance_fundraising_pack` with expected hint areas |
+| Deliverable UI | `/deliverables/[deliverableId]` | Deliverable workspace shows `證據集、風險群組與條款集` as a low-noise advanced section | Verified | first-screen hero stayed conclusion / version / action focused |
+| Deliverable UI | `/deliverables/[deliverableId]` | Clause / obligation members show why they were included and can jump back to supporting evidence | Verified | consultant-first wording stays on `條款集 / 義務清單` rather than raw ontology jargon |
+| Task UI | `/tasks/[taskId]` | Task page keeps contract-review guidance below the first screen while surfacing stronger pack evidence expectations | Verified | no hero pollution and no new app shell |
+| Evidence UI | `/matters/[matterId]/evidence` | Evidence workspace remains evidence-first and keeps supplement / gap guidance as the mainline | Verified | clause / obligation hardening did not turn the page into a contract console |
+
+### Live smoke data
+
+- matter id: `0f4fb961-254d-4d7d-ae67-2a6137602d2f`
+- task id: `a031c601-e5ce-4604-8943-e14bbe5eb8ae`
+- deliverable id: `f8180a79-64c8-4648-9516-97646eeef427`
+- live smoke verified through local Playwright CLI snapshots on task / matter / evidence / deliverable surfaces
+
+### Verified outcomes
+
+- `clause_obligation_set_v1` is now a formal shipped extension of the Wave 5 object-set baseline rather than a docs-only promise
+- the first shipped scope is deliverable-local and stays inside the existing deliverable workspace instead of creating a new contract review center
+- clause / obligation members can now point back to the formal evidence chain, so contract-risk support no longer stops at a plain text list
+- `legal_risk_pack` and `finance_fundraising_pack` now influence readiness / framing / deliverable shaping more directly for contract-aware cases
+- the benchmark scaffold now covers legal / finance contract-aware cases without turning into a full evaluation platform

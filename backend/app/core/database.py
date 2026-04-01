@@ -186,6 +186,9 @@ def _ensure_incremental_schema_updates() -> None:
         "outcome_records": {
             "function_type": "VARCHAR(50) NOT NULL DEFAULT 'outcome_observation'",
         },
+        "object_set_members": {
+            "support_evidence_id": "VARCHAR(36)",
+        },
     }
 
     inspector = inspect(engine)

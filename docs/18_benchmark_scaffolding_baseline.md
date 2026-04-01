@@ -59,6 +59,7 @@
 - 本文件：`docs/18_benchmark_scaffolding_baseline.md`
 - manifest：`backend/app/benchmarks/manifests/p0_industry_batch1.json`
 - manifest：`backend/app/benchmarks/manifests/p0_industry_batch2.json`
+- manifest：`backend/app/benchmarks/manifests/p0_legal_finance_contract.json`
 - result schema：`backend/app/benchmarks/schemas.py`
 - runner：`backend/app/benchmarks/runner.py`
 - CLI run path：`backend/scripts/run_pack_benchmark_scaffold.py`
@@ -83,6 +84,16 @@ P0-C 之後，這份 baseline 也正式擴充到支撐 Batch 2：
 - `energy_pack`
 - `health_supplements_pack`
 - `funeral_services_pack`
+
+P0-D 之後，這份 baseline 也正式擴充到 legal / finance contract-aware cases：
+- `legal_risk_pack`
+- `finance_fundraising_pack`
+- 重點觀察：
+  - target / selected domain packs
+  - contract-aware evidence expectations
+  - decision patterns
+  - deliverable presets
+  - readiness baseline
 
 仍要維持的原則是：
 - 一次只新增最小必要的 seed cases
@@ -123,6 +134,7 @@ python3 backend/scripts/run_pack_benchmark_scaffold.py
 ```bash
 python3 backend/scripts/run_pack_benchmark_scaffold.py --manifest backend/app/benchmarks/manifests/p0_industry_batch1.json
 python3 backend/scripts/run_pack_benchmark_scaffold.py --manifest backend/app/benchmarks/manifests/p0_industry_batch2.json
+python3 backend/scripts/run_pack_benchmark_scaffold.py --manifest backend/app/benchmarks/manifests/p0_legal_finance_contract.json
 ```
 
 ### 4.2 pytest baseline

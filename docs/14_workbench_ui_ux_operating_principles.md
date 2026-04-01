@@ -108,6 +108,7 @@ Infinite Pro 是顧問工作台，不是系統內部模型瀏覽器。
 同理，P0-A 的 domain-pack hardening 細節也只能在 `/packs`、task detail 的模組合約摘要，或 matter / deliverable 的低噪音背景摘要中呈現；UI 應優先使用「關鍵訊號」「階段啟發」「常見風險」「判斷情境」之類的顧問語言，而不是把 required-property ids 與 resolver internals 直接灌進首屏。
 同理，P0-B 的 industry-pack hardening 細節也只能在 `/packs`、task detail 的模組合約摘要，或 matter / deliverable 的低噪音背景摘要中呈現；UI 應優先使用「常見商業模式」「產業訊號」「判斷情境」「產業脈絡」之類的顧問語言，而不是把 required-property ids、selection score 或 resolver internals 直接灌進首屏。
 同理，P0-C 的 Batch 2 industry hardening 也只能沿用同樣的低噪音 disclosure 原則；即使 pack 本身更重法規、品質或高信任服務，也不應把這些 contract metadata 直接推上 matter / task / deliverable 首屏。
+同理，P0-D 的 clause / obligation set 與 legal / finance contract-aware hardening 也只能在 deliverable / evidence / task 的低噪音 disclosure 中呈現；UI 應優先使用「條款集」「義務清單」「合約風險支撐集」「引用條款片段」之類的顧問語言，而不是把 `clause_obligation_set_v1` 或 member lifecycle metadata 直接推上首屏。
 
 ---
 

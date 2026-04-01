@@ -827,6 +827,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "單位經濟與產品 / 客群 / 通路策略不一致，導致資源配置失真",
                 "財務資訊存在，但還不能支撐真正的決策與資金優先順序",
                 "為了追求營收或估值敘事而延後修正 pricing、回款與 working capital 問題",
+                "付款條件、融資 covenant、milestone 承諾或 investor obligations 沒有正式掛回現金流與 capital planning 判斷",
             ],
             stage_specific_heuristics={
                 "創業階段": [
@@ -875,6 +876,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "pipeline、forecast、營運資金與收付款節奏資料",
                 "募資 deck、data room、cap table 與 investor Q&A 材料",
                 "cohort / segment profitability、pricing tier economics 與 collections aging 資料",
+                "借貸 / 投資條款、付款條件、里程碑承諾與 covenant evidence",
             ],
             risk_libraries=[
                 "cash risk",
@@ -887,6 +889,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "單位經濟看似成立，但未反映真實回本週期與服務成本",
                 "募資材料可講故事，但數據與假設無法支撐盡調",
                 "working capital 與付款條件壓力被忽略，導致成長越快越缺錢",
+                "payment terms、debt covenants 或 investor obligations 被忽略，導致 capital readiness 判斷失真",
             ],
             decision_patterns=[
                 "是否該先控 burn、先補現金流治理還是直接啟動募資",
@@ -894,6 +897,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "是否該採用 equity、debt 或 bridge 形式補資金",
                 "是否該收斂投資節奏，把資源集中到回收最快的部分",
                 "是否該先修 working capital / 回款治理，再決定要不要繼續加速成長投資",
+                "是否需要把付款條件、covenant 或 milestone obligations 併入 capital readiness 與風險容忍度判斷",
             ],
             recommendation_patterns=[
                 "capital allocation",
@@ -907,6 +911,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "cash discipline review",
                 "unit economics diagnostic",
                 "capital allocation memo",
+                "capital covenant pressure memo",
             ],
             routing_hints=[
                 "finance",
@@ -934,6 +939,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "它最常出現在資金規劃、財務診斷、成長投資評估、募資準備與單位經濟收斂等顧問任務。",
                 "若定義太窄，會只剩募資工具；若定義太廣，又會把營運、法務與商業成長問題一起吞掉。",
                 "P0-A 後它也應更強地影響 Host 對 cash risk、capital sequencing 與 deliverable confidence 的正式判斷。",
+                "P0-D 後它也應把 covenant、付款條件與資金義務正式帶進 capital-risk framing，而不是只把財務問題視為報表分析。",
             ],
         ),
         PackSpec(
@@ -993,6 +999,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "法遵政策、授權流程、資料處理與內部治理材料",
                 "交易對手要求、責任分工與既有例外處理紀錄",
                 "obligation tracker、approval record、exception approval 與 sign-off 證據",
+                "可回鏈的 clause / obligation support bundle 與引用條款片段",
             ],
             risk_libraries=[
                 "contractual risk",
@@ -1005,6 +1012,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "附件、定義、驗收條件或 termination 邏輯缺漏",
                 "資料處理、隱私、宣稱或授權流程不完整",
                 "商務承諾已超過法律或合規可承受邊界",
+                "關鍵 obligation 沒有對應 owner、驗證節點或例外核可，導致後續履約與治理落空",
             ],
             decision_patterns=[
                 "是否接受、要求 redline、升級法務或暫停推進",
@@ -1025,6 +1033,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "redline summary",
                 "compliance gap review",
                 "obligation exposure memo",
+                "clause / obligation support bundle",
             ],
             routing_hints=[
                 "legal",
@@ -1052,6 +1061,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "它最常出現在合約審閱、合作條款、資料合規、權利義務盤點與風險挑戰類顧問任務。",
                 "若定義太窄，只剩 redline；若定義太廣，又會把所有商業不確定性都塞成 legal issue。",
                 "P0-A 後它也應為後續 clause / obligation set hardening 提供更穩的 contract baseline，而不是只當合約審閱標籤。",
+                "P0-D 後它也應更直接影響 Host 對高風險條款、義務追蹤與 contract-risk support bundle 的正式收斂。",
             ],
         ),
         PackSpec(

@@ -331,12 +331,22 @@ publish / artifact records 用來描述正式發布與正式輸出物。
   - 保留 member object type / id
   - 區分 membership source
   - 保留 ordering、included reason、derivation hint、support label
+  - 若已掛回正式 evidence，還應保留最小 `support_evidence_id`
 
 Wave 5 的第一批正式 shipped set types：
 - `evidence_set_v1`
   - deliverable-local support bundle
 - `risk_set_v1`
   - task-scope focus grouping
+
+P0-D 的第一批 contract-aware set baseline：
+- `clause_obligation_set_v1`
+  - deliverable-local contract-risk support bundle
+  - member type 至少可分成：
+    - `clause`
+    - `obligation`
+  - 第一波 membership source 可先落在：
+    - `deliverable_support_bundle`
 
 正式規則：
 - set scope 必須明確，不可默默變成跨案件全域集合
@@ -345,6 +355,7 @@ Wave 5 的第一批正式 shipped set types：
   - `archived`
 - membership 必須是真 persistence / runtime contract，不可只停在 UI grouping
 - object-set view 預設屬按需展開層，不可污染首屏
+- 若 clause / obligation member 已對到正式 evidence，應能沿既有 evidence -> chunk/media provenance 主鏈回看，而不是只停在 set member 文字摘要
 
 目前正式 table：
 - `object_sets`

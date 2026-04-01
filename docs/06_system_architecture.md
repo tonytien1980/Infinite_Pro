@@ -289,6 +289,13 @@ P0-C 之後，benchmark baseline 也應能正式覆蓋 Batch 2：
 - `p0_industry_batch2.json`
 - 這仍屬最小可執行 scaffold，而不是 full evaluation suite
 
+P0-D 之後，system 也應正式承接：
+- `clause_obligation_set_v1`
+  - deliverable-local clause / obligation support bundle
+- `p0_legal_finance_contract.json`
+  - legal / finance contract-aware benchmark baseline
+- 這仍屬既有 Ontology / Pack / Workbench 的延伸，不是新的 contract review platform
+
 Wave 5 的最小正式基線則是：
 - `ObjectSet` 仍留在 Ontology Layer，不能形成第七層
 - first shipped set types 只先包含：
@@ -298,6 +305,12 @@ Wave 5 的最小正式基線則是：
   - deliverable-local support bundle
   - task-scope focus grouping
 - `object-set views` 只作為既有工作面的進階視圖，不形成新 app shell
+
+P0-D 的最小正式延伸則是：
+- object-set baseline 再往前一步，但仍不脫離既有六層：
+  - `clause_obligation_set_v1`
+  - deliverable-local contract-risk support bundle
+- clause / obligation member 應能回鏈到既有 evidence / chunk / media provenance 主鏈
 
 若 Pack Management Surface 採精簡建立模式，正式規則也應是：
 - 一般使用者只填最少必要資訊

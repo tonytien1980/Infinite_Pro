@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+import re
+from uuid import NAMESPACE_URL, uuid5
 
 from sqlalchemy.orm import Session
 
@@ -35,6 +37,11 @@ def _linked_matter_workspace(task: models.Task) -> models.MatterWorkspace | None
         if link.matter_workspace is not None:
             return link.matter_workspace
     return None
+
+
+def _stable_member_id(*parts: str) -> str:
+    seed = "||".join(part.strip().lower() for part in parts if part and part.strip())
+    return str(uuid5(NAMESPACE_URL, seed))
 
 
 def _upsert_object_set(
@@ -146,6 +153,7 @@ def _replace_members(
             int(payload["ordering_index"]),
             str(payload["included_reason"]),
             str(payload["derivation_hint"]),
+            payload["support_evidence_id"],
             payload["support_label"],
         )
         previous_state = (
@@ -154,6 +162,7 @@ def _replace_members(
             row.ordering_index,
             row.included_reason,
             row.derivation_hint,
+            row.support_evidence_id,
             row.support_label,
         )
         row.member_label = str(payload["member_label"])
@@ -161,6 +170,11 @@ def _replace_members(
         row.ordering_index = int(payload["ordering_index"])
         row.included_reason = str(payload["included_reason"])
         row.derivation_hint = str(payload["derivation_hint"])
+        row.support_evidence_id = (
+            str(payload["support_evidence_id"])
+            if payload["support_evidence_id"] is not None
+            else None
+        )
         row.support_label = (
             str(payload["support_label"]) if payload["support_label"] is not None else None
         )
@@ -191,6 +205,53 @@ def _evidence_derivation_hint(evidence: models.Evidence) -> str:
     if evidence.source_ref:
         return evidence.source_ref
     return evidence.title
+
+
+def _normalize_support_tokens(value: str) -> list[str]:
+    normalized = re.sub(r"[^0-9a-zA-Z\u4e00-\u9fff]+", " ", value.lower()).strip()
+    if not normalized:
+        return []
+    tokens = []
+    for item in normalized.split():
+        if len(item) >= 2 or any("\u4e00" <= char <= "\u9fff" for char in item):
+            tokens.append(item)
+    return tokens
+
+
+def _best_supporting_evidence(
+    phrase: str,
+    evidence_items: list[models.Evidence],
+) -> models.Evidence | None:
+    if not evidence_items:
+        return None
+    normalized_phrase = phrase.strip().lower()
+    if not normalized_phrase:
+        return evidence_items[0]
+    tokens = _normalize_support_tokens(phrase)
+    best_match: models.Evidence | None = None
+    best_score = -1
+
+    for evidence in evidence_items:
+        haystack = " ".join(
+            [
+                evidence.title or "",
+                evidence.excerpt_or_summary or "",
+                evidence.source_ref or "",
+            ]
+        ).lower()
+        score = 0
+        if normalized_phrase and normalized_phrase in haystack:
+            score += 8
+        for token in tokens:
+            if token in haystack:
+                score += 1
+        if evidence.chunk_object_id or evidence.media_reference_id:
+            score += 1
+        if score > best_score:
+            best_score = score
+            best_match = evidence
+
+    return best_match or evidence_items[0]
 
 
 def _ensure_task_risk_set(
@@ -250,6 +311,7 @@ def _ensure_task_risk_set(
                 "ordering_index": index,
                 "included_reason": included_reason,
                 "derivation_hint": risk.risk_type,
+                "support_evidence_id": None,
                 "support_label": f"影響 {risk.impact_level} / 可能性 {risk.likelihood_level}",
             }
         )
@@ -325,9 +387,125 @@ def _ensure_deliverable_evidence_set(
                 "ordering_index": index,
                 "included_reason": included_reason,
                 "derivation_hint": _evidence_derivation_hint(evidence),
+                "support_evidence_id": evidence.id,
                 "support_label": evidence.reliability_level,
             }
         )
+    return _replace_members(object_set=object_set, member_payloads=member_payloads) or created
+
+
+def _string_items(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return _unique_preserve_order([str(item) for item in value if isinstance(item, str)])
+
+
+def _ensure_deliverable_clause_obligation_set(
+    db: Session,
+    *,
+    task: models.Task,
+    deliverable: models.Deliverable,
+    matter_workspace: models.MatterWorkspace | None,
+) -> bool:
+    content = deliverable.content_structure or {}
+    high_risk_clauses = _string_items(content.get("high_risk_clauses"))
+    reviewed_clauses = _string_items(content.get("clauses_reviewed"))
+    obligations = _string_items(content.get("obligations_identified"))
+
+    clause_items = _unique_preserve_order([*high_risk_clauses, *reviewed_clauses])
+    if not clause_items and not obligations:
+        return _archive_object_set_if_present(
+            task=task,
+            set_type=ObjectSetType.CLAUSE_OBLIGATION_SET_V1,
+            scope_type=ObjectSetScopeType.DELIVERABLE,
+            scope_id=deliverable.id,
+        )
+
+    evidence_lookup = {item.id: item for item in task.evidence}
+    deliverable_evidence = [
+        evidence_lookup[evidence_id]
+        for evidence_id in _deliverable_evidence_ids(deliverable)
+        if evidence_id in evidence_lookup
+    ]
+    if not deliverable_evidence:
+        deliverable_evidence = list(task.evidence)
+
+    object_set, created = _upsert_object_set(
+        db,
+        task=task,
+        deliverable=deliverable,
+        matter_workspace=matter_workspace,
+        set_type=ObjectSetType.CLAUSE_OBLIGATION_SET_V1,
+        scope_type=ObjectSetScopeType.DELIVERABLE,
+        scope_id=deliverable.id,
+        display_title="這次交付的條款集與義務清單",
+        description="集中查看這次交付已正式引用的條款片段、合約風險焦點與需追蹤義務。",
+        intent="contract risk support bundle",
+        creation_mode=ObjectSetCreationMode.DELIVERABLE_SUPPORT_BUNDLE,
+        continuity_scope="deliverable_local",
+        membership_source_summary={
+            "primary_source": ObjectSetMembershipSource.DELIVERABLE_SUPPORT_BUNDLE.value,
+            "derived_from": "deliverable.contract_review_support_bundle",
+            "owning_scope": ObjectSetScopeType.DELIVERABLE.value,
+            "deliverable_id": deliverable.id,
+        },
+    )
+
+    member_payloads: list[dict[str, object]] = []
+    ordering_index = 0
+
+    for clause in clause_items:
+        support_evidence = _best_supporting_evidence(clause, deliverable_evidence)
+        clause_reason = (
+            "已列入這次合約風險支撐集；目前被視為這輪交付需要回看的條款焦點。"
+            if clause in high_risk_clauses
+            else "已列入這次條款集；目前屬於這輪審閱正式涵蓋的條款範圍。"
+        )
+        if support_evidence is not None:
+            clause_reason += f" 目前回鏈到《{support_evidence.title}》。"
+        member_payloads.append(
+            {
+                "member_object_type": "clause",
+                "member_object_id": _stable_member_id(deliverable.id, "clause", clause),
+                "member_label": clause,
+                "membership_source": ObjectSetMembershipSource.DELIVERABLE_SUPPORT_BUNDLE.value,
+                "ordering_index": ordering_index,
+                "included_reason": clause_reason,
+                "derivation_hint": (
+                    _evidence_derivation_hint(support_evidence)
+                    if support_evidence is not None
+                    else "目前尚未對到更精準的條款片段。"
+                ),
+                "support_evidence_id": support_evidence.id if support_evidence is not None else None,
+                "support_label": "引用條款片段" if support_evidence is not None else "待補條款片段",
+            }
+        )
+        ordering_index += 1
+
+    for obligation in obligations:
+        support_evidence = _best_supporting_evidence(obligation, deliverable_evidence)
+        obligation_reason = "已列入這次義務清單；目前需要被追蹤是否定義清楚、有人承接且可回看。"
+        if support_evidence is not None:
+            obligation_reason += f" 目前回鏈到《{support_evidence.title}》。"
+        member_payloads.append(
+            {
+                "member_object_type": "obligation",
+                "member_object_id": _stable_member_id(deliverable.id, "obligation", obligation),
+                "member_label": obligation,
+                "membership_source": ObjectSetMembershipSource.DELIVERABLE_SUPPORT_BUNDLE.value,
+                "ordering_index": ordering_index,
+                "included_reason": obligation_reason,
+                "derivation_hint": (
+                    _evidence_derivation_hint(support_evidence)
+                    if support_evidence is not None
+                    else "目前尚未對到更精準的義務片段。"
+                ),
+                "support_evidence_id": support_evidence.id if support_evidence is not None else None,
+                "support_label": "義務支撐片段" if support_evidence is not None else "待補義務片段",
+            }
+        )
+        ordering_index += 1
+
     return _replace_members(object_set=object_set, member_payloads=member_payloads) or created
 
 
@@ -337,6 +515,15 @@ def ensure_object_sets_for_task(db: Session, task: models.Task) -> bool:
     for deliverable in task.deliverables:
         changed = (
             _ensure_deliverable_evidence_set(
+                db,
+                task=task,
+                deliverable=deliverable,
+                matter_workspace=matter_workspace,
+            )
+            or changed
+        )
+        changed = (
+            _ensure_deliverable_clause_obligation_set(
                 db,
                 task=task,
                 deliverable=deliverable,
@@ -384,6 +571,7 @@ def serialize_object_sets(object_sets: list[models.ObjectSet]) -> list[schemas.O
                     ordering_index=member.ordering_index,
                     included_reason=member.included_reason,
                     derivation_hint=member.derivation_hint,
+                    support_evidence_id=member.support_evidence_id,
                     support_label=member.support_label,
                     created_at=member.created_at,
                 )

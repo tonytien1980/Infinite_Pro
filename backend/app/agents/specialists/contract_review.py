@@ -86,6 +86,7 @@ class ContractReviewAgent(SpecialistAgent):
                 "action_items": [item.description for item in action_items],
                 "missing_information": missing_information,
                 "clauses_reviewed": [],
+                "obligations_identified": [],
             },
         )
         return AgentResult(
@@ -171,6 +172,7 @@ class ContractReviewAgent(SpecialistAgent):
                 "action_items": review.action_items,
                 "missing_information": review.missing_information,
                 "clauses_reviewed": review.clauses_reviewed,
+                "obligations_identified": review.obligations_identified,
                 "sources_used": [
                     {"evidence_id": evidence.id, "title": evidence.title}
                     for evidence in usable_evidence

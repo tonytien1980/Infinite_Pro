@@ -106,6 +106,7 @@ Wave 5 之後，Agent Layer 也應理解：
 - 但 Host 可正式消費 object-set summary 來理解：
   - 哪組 evidence 已被納入某份 deliverable 的 support bundle
   - 哪組 risks 已被整理成這輪工作的 focus grouping
+  - 哪組 clauses / obligations 已被納入 contract-risk deliverable 的支撐集
 - 這種 set-aware framing 仍屬 Host orchestration / deliverable shaping 的一部分，不可讓 UI-only grouping 直接取代 Host judgment
 
 ---
@@ -267,6 +268,11 @@ Specialist agents 不應只被定義為目前已存在的 3 個 flow。
 - proposal review
 - financial model review
 - governance / SOP review
+
+其中 `contract review` 在 P0-D 之後應至少能正式回寫：
+- `clauses_reviewed`
+- `obligations_identified`
+- 可被 deliverable-local `clause_obligation_set_v1` 收斂的 contract-risk support bundle
 
 ### 7.2 Synthesis specialists
 - research synthesis

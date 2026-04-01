@@ -388,6 +388,7 @@ def build_contract_review_spec(
                 "action_items": _string_list_schema("Immediate next actions."),
                 "missing_information": _string_list_schema("Unclear clauses or evidence gaps."),
                 "clauses_reviewed": _string_list_schema("Clauses or issue areas reviewed."),
+                "obligations_identified": _string_list_schema("Obligations or commitments that should be tracked."),
             },
             "required": [
                 "problem_definition",
@@ -398,6 +399,7 @@ def build_contract_review_spec(
                 "action_items",
                 "missing_information",
                 "clauses_reviewed",
+                "obligations_identified",
             ],
         },
         system_prompt=(

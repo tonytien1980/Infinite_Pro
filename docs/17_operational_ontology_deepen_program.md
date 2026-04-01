@@ -186,6 +186,16 @@ Wave 0-5 全部完成後，repo 已正式採納下一階段的 hardening / exten
   - 不繞過 Host / provider boundary
   - 只把 request-body 預檢與 parse-body 400 收斂做成獨立 checkpoint
 
+截至 2026-04-01，`P0-D-0` 與 `P0-D` 的第一批正式 baseline 也已形成：
+- `P0-D-0`
+  - `finance_capital` OpenAI request-body 本地預檢
+  - provider-side parse-body `HTTP 400` 單次收斂重試
+- `P0-D`
+  - `clause_obligation_set_v1`
+  - deliverable-local clause / obligation support bundle
+  - `legal_risk_pack` / `finance_fundraising_pack` 的 contract-aware hardening
+  - `p0_legal_finance_contract.json` benchmark manifest
+
 ### 3.6 adopted planning file 的正式處理規則
 
 若某份下一階段 proposal 的內容已被正式採納：

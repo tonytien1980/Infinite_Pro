@@ -278,6 +278,11 @@ Wave 5 之後，Codex 還必須維持：
   - task-scope focus grouping
 - 不可把 object-set views 擴成 graph explorer / object explorer / 新 app shell
 
+P0-D 之後，Codex 還必須再維持：
+- `clause_obligation_set_v1` 仍只是既有 object-set baseline 的延伸，不是新平台
+- first shipped scope 只先落在 deliverable-local contract-risk support bundle
+- clause / obligation members 應能回鏈到正式 evidence，而不是只剩 UI 文字分組
+
 當後續進入 P0-A `Domain / Functional Packs Full Hardening Sprint` 時，Codex 也應維持：
 - 這是 pack-layer hardening / extension，不是新的 deepen wave
 - 8 個 domain packs 應被視為正式可依賴 contract 的深化目標，不只是 catalog 文案

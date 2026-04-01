@@ -694,6 +694,7 @@ class ObjectSetMemberRead(ORMModel):
     ordering_index: int
     included_reason: str = ""
     derivation_hint: str = ""
+    support_evidence_id: str | None = None
     support_label: str | None = None
     created_at: datetime
 

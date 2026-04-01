@@ -441,6 +441,10 @@ class MockModelProvider(ModelProvider):
             "商務條件",
             "終止與責任",
         ]
+        obligations_identified = [
+            "應把驗收標準與交付義務寫清楚，避免履約範圍被單方擴張。",
+            "應明確誰負責保密與資料處理義務，並補上違反時的 escalation 路徑。",
+        ]
         risks = [
             "合約風險：若義務不清或保護條款不足，後續可能造成履約或商務曝險。",
         ]
@@ -465,6 +469,7 @@ class MockModelProvider(ModelProvider):
             action_items=action_items,
             missing_information=missing_information,
             clauses_reviewed=clauses_reviewed,
+            obligations_identified=obligations_identified,
         )
 
     def generate_agent_contract_synthesis(

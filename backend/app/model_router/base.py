@@ -134,6 +134,7 @@ class ContractReviewOutput(BaseModel):
     action_items: list[str]
     missing_information: list[str]
     clauses_reviewed: list[str]
+    obligations_identified: list[str]
 
 
 class AgentContractSynthesisOutput(BaseModel):

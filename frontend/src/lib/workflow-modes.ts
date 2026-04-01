@@ -412,6 +412,9 @@ export function getModeSpecificResultSections(
     const highRiskClauses =
       asStringList(deliverable?.content_structure?.high_risk_clauses) ||
       asStringList(deliverable?.content_structure?.clauses_reviewed);
+    const obligationsIdentified = asStringList(
+      deliverable?.content_structure?.obligations_identified,
+    );
     const redlineRecommendations =
       asStringList(deliverable?.content_structure?.redline_recommendations) || recommendations;
     const missingAttachments =
@@ -429,6 +432,12 @@ export function getModeSpecificResultSections(
         description: "這些建議可作為下一輪 redline 或談判條件調整的起點。",
         items: redlineRecommendations,
         emptyText: "目前尚未產生可供 redline 的修改建議。",
+      },
+      {
+        title: "義務清單",
+        description: "這些義務應被正式追蹤，避免只留在口頭理解或零散備註裡。",
+        items: obligationsIdentified,
+        emptyText: "目前尚未整理出需追蹤的義務清單。",
       },
       {
         title: "缺漏附件 / 缺漏條款",

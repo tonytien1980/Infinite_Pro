@@ -199,6 +199,14 @@ P0-C hardens the second 5 `Industry Packs` without opening a new wave:
 - Batch 2 reuses the stronger industry-only gate introduced in P0-B and extends the benchmark scaffold with a second manifest instead of creating a new benchmark platform
 - this means heavier regulated / physical-world industry packs now also enter runtime framing as real active contracts rather than remaining as catalog-only context
 
+P0-D then extends the object-set and pack baseline into legal / finance contract-aware work:
+- `P0-D-0` first hardens the `finance_capital` OpenAI runtime path with local request-body preflight plus a single retry only for provider-side parse-body `HTTP 400`
+- `clause_obligation_set_v1` is now the first contract-aware object-set extension:
+  - deliverable-local clause / obligation support bundle
+  - clause / obligation members can carry why-included context plus a backlink to the supporting evidence chain
+- `legal_risk_pack` and `finance_fundraising_pack` now carry stronger contract-aware evidence expectations, decision framing, and deliverable hints
+- the benchmark scaffold now also includes `backend/app/benchmarks/manifests/p0_legal_finance_contract.json` for legal / finance contract-aware before / after checks
+
 Within the single-consultant scope, Agent Orchestration is now treated as a completed runtime layer:
 - Host selection formally responds to capability archetype, selected packs, decision context, readiness/evidence sufficiency, sparse-input mode, and deliverable class
 - selected agents influence execution path and deliverable shaping, not just metadata

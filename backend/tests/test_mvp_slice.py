@@ -2858,6 +2858,7 @@ def test_contract_review_specialist_run_and_history_persistence(
     assert content["deliverable_class"] == "assessment_review_memo"
     assert content["readiness_governance"]["artifact_coverage"]
     assert content["high_risk_clauses"]
+    assert content["obligations_identified"]
     assert content["redline_recommendations"]
     assert "missing_attachments_or_clauses" in content
     assert run_body["risks"]
@@ -2880,9 +2881,22 @@ def test_contract_review_specialist_run_and_history_persistence(
     assert history["deliverables"][0]["content_structure"]["risks"]
     assert len(history["recommendations"]) >= 1
     assert len(history["action_items"]) >= 1
+    workspace_response = client.get(f"/api/v1/deliverables/{run_body['deliverable']['id']}")
+    assert workspace_response.status_code == 200
+    workspace = workspace_response.json()
+    clause_set = next(
+        item for item in workspace["object_sets"] if item["set_type"] == "clause_obligation_set_v1"
+    )
+    assert clause_set["scope_type"] == "deliverable"
+    assert clause_set["creation_mode"] == "deliverable_support_bundle"
+    assert clause_set["membership_source_summary"]["primary_source"] == "deliverable_support_bundle"
+    assert any(member["member_object_type"] == "clause" for member in clause_set["members"])
+    assert any(member["member_object_type"] == "obligation" for member in clause_set["members"])
+    assert any(member["support_evidence_id"] for member in clause_set["members"])
 
     aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
     assert len(aggregate["risks"]) >= 1
+    assert any(item["set_type"] == "clause_obligation_set_v1" for item in aggregate["object_sets"])
 
 
 def test_specialist_run_returns_explicit_uncertainty_when_no_usable_evidence(

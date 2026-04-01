@@ -1886,6 +1886,32 @@ class HostOrchestrator:
                         f"{pack.pack_name} 目前仍缺少與 { '、'.join(key_signals[:3]) } 相關的關鍵指標或佐證資料。"
                     )
 
+        selected_pack_ids = {item.pack_id for item in selected_packs}
+        if "legal_risk_pack" in selected_pack_ids and not any(
+            evidence.chunk_object_id or evidence.media_reference_id for evidence in usable_evidence
+        ):
+            gaps.append(
+                "Legal / Risk Pack 目前仍缺少可引用的條款片段或義務支撐 evidence，因此 contract-risk 判斷仍偏保守。"
+            )
+
+        finance_contract_keywords = (
+            "付款",
+            "payment",
+            "covenant",
+            "借貸",
+            "投資條款",
+            "milestone",
+            "runway",
+        )
+        if "finance_fundraising_pack" in selected_pack_ids and not any(
+            any(keyword in (evidence.excerpt_or_summary or "").lower() for keyword in finance_contract_keywords)
+            or any(keyword in (evidence.title or "").lower() for keyword in finance_contract_keywords)
+            for evidence in usable_evidence
+        ):
+            gaps.append(
+                "Finance / Fundraising Pack 目前仍缺少付款條件、covenant 或資金義務材料，因此 capital readiness 與資金壓力判斷仍偏薄。"
+            )
+
         return self._unique_preserve_order(gaps)
 
     def _recommended_research_depth_for_readiness(
@@ -2510,12 +2536,14 @@ class HostOrchestrator:
                 or self._string_list(content.get("clauses_reviewed"))
                 or risks[:3]
             )
+            obligations_identified = self._string_list(content.get("obligations_identified"))
             contract_gaps = [
                 item
                 for item in missing_information
                 if any(keyword in item for keyword in ("附件", "條款", "草稿", "版本", "合約"))
             ]
             content["high_risk_clauses"] = high_risk_clauses
+            content["obligations_identified"] = obligations_identified
             content["redline_recommendations"] = (
                 self._string_list(content.get("redline_recommendations")) or recommendations
             )
