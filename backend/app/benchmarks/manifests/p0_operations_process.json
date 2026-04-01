@@ -1,0 +1,76 @@
+{
+  "manifest_id": "p0_e_operations_process_baseline",
+  "title": "P0-E operations / process-aware baseline",
+  "purpose": "Provide a minimal but executable before-and-after baseline for process issue support and operations-pack hardening without turning benchmark scaffolding into a new platform.",
+  "update_policy": [
+    "Only update this manifest when the shipped scope for P0-E changes.",
+    "Do not overwrite historical QA evidence; benchmark scaffold records complement docs/16_qa_matrix.md.",
+    "Prefer revising seed cases over expanding into a full scoring platform during P0-E."
+  ],
+  "cases": [
+    {
+      "case_id": "handoff_owner_gap_remediation",
+      "title": "Handoff and owner-gap remediation",
+      "description": "Operations-heavy review where cross-team handoff, unclear owner, and approval routing create delivery delay.",
+      "client_stage": "制度化階段",
+      "client_type": "中小企業",
+      "domain_lenses": ["營運", "組織人力"],
+      "industry_hints": [],
+      "decision_context_summary": "Need an operations review on cross-team handoff friction, unclear ownership, approval bottlenecks, and whether the team should standardize the remediation flow before expanding delivery volume.",
+      "source_mix_summary": [
+        "handoff and approval workflow note",
+        "SLA delay and rework summary",
+        "owner mapping and escalation log excerpt"
+      ],
+      "target_domain_pack_ids": [
+        "operations_pack"
+      ],
+      "target_industry_pack_ids": [],
+      "expected_contract_interface_ids": [
+        "evidence_readiness_v1",
+        "decision_framing_v1",
+        "deliverable_shaping_v1"
+      ],
+      "expected_hint_areas": [
+        "evidence_expectations",
+        "decision_patterns",
+        "deliverable_presets",
+        "readiness"
+      ],
+      "notes": [
+        "Should stay useful as the baseline case for deliverable-local process issue support bundles."
+      ]
+    },
+    {
+      "case_id": "capacity_control_gap_sequence",
+      "title": "Capacity and control-gap sequence",
+      "description": "Operations case where backlog, throughput, and exception handling gaps distort sequencing and growth timing.",
+      "client_stage": "規模化階段",
+      "client_type": "大型企業",
+      "domain_lenses": ["營運", "財務"],
+      "industry_hints": [],
+      "decision_context_summary": "Need an operations recommendation on backlog pressure, throughput bottlenecks, exception handling, and whether the team should fix control gaps before investing in additional capacity.",
+      "source_mix_summary": [
+        "throughput and backlog dashboard",
+        "capacity planning note",
+        "exception approval and escalation summary"
+      ],
+      "target_domain_pack_ids": [
+        "operations_pack",
+        "finance_fundraising_pack"
+      ],
+      "target_industry_pack_ids": [],
+      "expected_contract_interface_ids": [
+        "evidence_readiness_v1",
+        "decision_framing_v1",
+        "deliverable_shaping_v1"
+      ],
+      "expected_hint_areas": [
+        "evidence_expectations",
+        "decision_patterns",
+        "deliverable_presets",
+        "readiness"
+      ]
+    }
+  ]
+}

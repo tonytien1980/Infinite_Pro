@@ -278,6 +278,7 @@ const OBJECT_SET_TYPE_LABELS: Record<string, string> = {
   evidence_set_v1: "證據集",
   risk_set_v1: "風險群組",
   clause_obligation_set_v1: "條款集 / 義務清單",
+  process_issue_set_v1: "流程問題集",
 };
 
 const OBJECT_SET_SCOPE_LABELS: Record<string, string> = {

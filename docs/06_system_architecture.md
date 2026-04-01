@@ -296,6 +296,13 @@ P0-D 之後，system 也應正式承接：
   - legal / finance contract-aware benchmark baseline
 - 這仍屬既有 Ontology / Pack / Workbench 的延伸，不是新的 contract review platform
 
+P0-E 之後，system 也應正式承接：
+- `process_issue_set_v1`
+  - deliverable-local remediation support bundle
+- `p0_operations_process.json`
+  - operations / process-aware benchmark baseline
+- 這仍屬既有 Ontology / Pack / Workbench 的延伸，不是新的 BPM / SOP 平台
+
 Wave 5 的最小正式基線則是：
 - `ObjectSet` 仍留在 Ontology Layer，不能形成第七層
 - first shipped set types 只先包含：
@@ -311,6 +318,12 @@ P0-D 的最小正式延伸則是：
   - `clause_obligation_set_v1`
   - deliverable-local contract-risk support bundle
 - clause / obligation member 應能回鏈到既有 evidence / chunk / media provenance 主鏈
+
+P0-E 的最小正式延伸則是：
+- object-set baseline 再往前一步，但仍不脫離既有六層：
+  - `process_issue_set_v1`
+  - deliverable-local remediation support bundle
+- process issue member 應能回鏈到既有 evidence / chunk / media provenance 主鏈
 
 若 Pack Management Surface 採精簡建立模式，正式規則也應是：
 - 一般使用者只填最少必要資訊

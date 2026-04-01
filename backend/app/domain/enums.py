@@ -113,6 +113,7 @@ class ObjectSetType(str, Enum):
     EVIDENCE_SET_V1 = "evidence_set_v1"
     RISK_SET_V1 = "risk_set_v1"
     CLAUSE_OBLIGATION_SET_V1 = "clause_obligation_set_v1"
+    PROCESS_ISSUE_SET_V1 = "process_issue_set_v1"
 
 
 class ObjectSetScopeType(str, Enum):

@@ -705,6 +705,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "需求成長快於服務 / 履約 / support capacity，導致客訴或 churn",
                 "部門各自優化局部效率，但整體 throughput 與決策速度反而下降",
                 "服務承諾、例外處理與實際交付能力失衡，讓 SLA 與客戶預期持續被侵蝕",
+                "流程步驟、owner、dependency 與 control-gap 沒有被整理成可追蹤的 remediation 問題清單",
             ],
             stage_specific_heuristics={
                 "創業階段": [
@@ -753,6 +754,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "backlog、交付延遲、客訴、返工與品質訊號",
                 "例外處理方式、跨部門協作節點與瓶頸說明",
                 "service-level promise、escalation logs 與例外處理紀錄",
+                "owner mapping、dependency notes、control-gap / approval evidence 與 remediation tracker",
             ],
             risk_libraries=[
                 "delivery risk",
@@ -765,6 +767,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "流程文件存在但不被使用，造成治理表面化",
                 "容量規劃落後需求成長，導致交付品質與客戶體驗惡化",
                 "過度客製或例外處理侵蝕整體效率與利潤",
+                "owner 不清、dependency 未顯性化或 control-gap 長期未補，讓流程風險無法被正式收斂",
             ],
             decision_patterns=[
                 "是否先修 bottleneck 再擴量",
@@ -772,6 +775,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "是否該先補人、補系統還是重做 handoff 與 ownership",
                 "是否該調整服務 / 履約承諾以匹配實際容量",
                 "是否應先收斂 SLA / 交付承諾，再決定要不要擴大接單或服務範圍",
+                "是否應把流程 bottleneck、dependency、owner-gap 與 control-gap 收斂成正式 remediation bundle 再推進擴量",
             ],
             recommendation_patterns=[
                 "execution sequence",
@@ -785,6 +789,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "execution roadmap",
                 "operating model hardening brief",
                 "capacity and handoff map",
+                "process remediation support bundle",
             ],
             routing_hints=[
                 "operations",
@@ -812,6 +817,7 @@ def build_pack_catalog() -> list[PackSpec]:
                 "它最常出現在 SOP 重整、交付品質波動、跨部門協作失靈、擴張前的容量診斷等顧問任務。",
                 "若定義太窄，系統會錯過營運治理的核心缺口；若定義太廣，又會吞掉財務、法務與商業成長問題。",
                 "P0-A 後它也應成為 Host 判斷 execution readiness、handoff risk 與 deliverable shape 的正式高權重 context module。",
+                "P0-E 後它也應更直接把 process issue support bundle、owner-gap 與 control-gap framing 帶進 remediation 導向的交付物。",
             ],
         ),
         PackSpec(

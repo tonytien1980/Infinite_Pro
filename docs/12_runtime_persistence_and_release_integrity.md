@@ -348,6 +348,21 @@ P0-D 的第一批 contract-aware set baseline：
   - 第一波 membership source 可先落在：
     - `deliverable_support_bundle`
 
+P0-E 的第一批 process-aware set baseline：
+- `process_issue_set_v1`
+  - deliverable-local remediation support bundle
+  - member type 第一波可先是：
+    - `process_issue`
+  - member metadata 第一波至少可保留：
+    - `issue_type`
+    - `severity`
+    - `affected_process_step`
+    - `owner_state`
+    - `dependency_hint`
+    - `control_gap_hint`
+  - 第一波 membership source 可先落在：
+    - `deliverable_support_bundle`
+
 正式規則：
 - set scope 必須明確，不可默默變成跨案件全域集合
 - first-wave lifecycle 至少要支援：
@@ -356,6 +371,7 @@ P0-D 的第一批 contract-aware set baseline：
 - membership 必須是真 persistence / runtime contract，不可只停在 UI grouping
 - object-set view 預設屬按需展開層，不可污染首屏
 - 若 clause / obligation member 已對到正式 evidence，應能沿既有 evidence -> chunk/media provenance 主鏈回看，而不是只停在 set member 文字摘要
+- 若 process issue member 已對到正式 evidence，應能沿既有 evidence -> chunk/media provenance 主鏈回看，而不是只停在 set member 文字摘要
 
 目前正式 table：
 - `object_sets`

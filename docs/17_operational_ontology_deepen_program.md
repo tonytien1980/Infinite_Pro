@@ -196,6 +196,12 @@ Wave 0-5 全部完成後，repo 已正式採納下一階段的 hardening / exten
   - `legal_risk_pack` / `finance_fundraising_pack` 的 contract-aware hardening
   - `p0_legal_finance_contract.json` benchmark manifest
 
+截至 2026-04-01，`P0-E` 的第一批正式 baseline 也已形成：
+- `process_issue_set_v1`
+- deliverable-local remediation support bundle
+- `operations_pack` 的 process-aware hardening
+- `p0_operations_process.json` benchmark manifest
+
 ### 3.6 adopted planning file 的正式處理規則
 
 若某份下一階段 proposal 的內容已被正式採納：

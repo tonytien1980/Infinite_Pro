@@ -273,6 +273,20 @@ P0-D 之後，第一批 contract-aware object set baseline 再往前一步：
     - `obligation`
   - member 應能保留 included reason、來源線索，以及回到支撐 evidence 的最小 backlink
 
+P0-E 之後，operations-aware object set baseline 再往前一步：
+- `process_issue_set_v1`
+  - deliverable-local remediation support bundle
+  - member 可分成：
+    - `process_issue`
+  - member metadata 至少可表達：
+    - issue type
+    - severity
+    - affected process step
+    - owner state
+    - dependency hint
+    - control-gap hint
+  - member 也應能保留 included reason、來源線索，以及回到支撐 evidence 的最小 backlink
+
 其正式落點是：
 - `evidence_set_v1`
   - deliverable-local support bundle
@@ -280,6 +294,8 @@ P0-D 之後，第一批 contract-aware object set baseline 再往前一步：
   - task-scope focus grouping
 - `clause_obligation_set_v1`
   - deliverable-local clause / obligation support bundle
+- `process_issue_set_v1`
+  - deliverable-local remediation support bundle
 
 `ObjectSet` 不是：
 - 第七層

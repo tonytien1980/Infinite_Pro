@@ -539,6 +539,66 @@ Important verification note:
 
 ---
 
+## Entry: 2026-04-01 P0-E process issue set + operations hardening
+
+Scope:
+- `process_issue_set_v1`
+- deliverable-local remediation support bundle baseline
+- `operations_pack` process-aware hardening
+- `p0_operations_process.json` benchmark manifest
+
+Environment used:
+- frontend: `http://127.0.0.1:3000`
+- backend: `http://127.0.0.1:8000/api/v1`
+- runtime database: current local runtime
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests -q` | Passed (`113 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && npx next typegen` | Passed |
+| `cd frontend && npm run typecheck` | Passed |
+| `python3 backend/scripts/run_pack_benchmark_scaffold.py --manifest backend/app/benchmarks/manifests/p0_operations_process.json` | Passed |
+
+Important verification note:
+- on the current Next 15 frontend, `npm run build` still does not fully restore `.next/types` by itself on this machine
+- the valid verification order for this checkpoint remained `build -> next typegen -> typecheck`
+
+### P0-E specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | object-set baseline | `process_issue_set_v1` now persists deliverable-local remediation bundles | Verified | members keep included reason, derivation hint, `support_evidence_id`, and structured process metadata |
+| Backend | process metadata | process issue members now carry issue type, severity, affected process step, owner state, dependency hint, and control-gap hint | Verified | this is a formal contract field set, not only UI copy |
+| Backend | runtime provenance | process issue members now backlink to formal evidence rather than staying as UI-only grouping | Verified | the set reuses the existing evidence -> chunk/media provenance chain |
+| Backend | pack hardening | `operations_pack` now carries stronger process-aware evidence expectations, decision patterns, and deliverable presets | Verified | Host readiness / framing now consumes those stronger hints on the formal pack path |
+| Benchmark | operations manifest | Run `p0_operations_process.json` | Verified | both seed cases selected `operations_pack` with expected hint areas |
+| Deliverable UI | `/deliverables/[deliverableId]` | Deliverable workspace shows `證據集、風險群組與流程問題集` as a low-noise advanced section | Verified | first-screen hero stayed conclusion / version / action focused |
+| Deliverable UI | `/deliverables/[deliverableId]` | Process issue members show why they were included and can jump back to supporting evidence | Verified | consultant-first wording stays on `流程問題集` rather than raw ontology jargon |
+| Task UI | `/tasks/[taskId]` | Task page keeps consultant-first reading order and pack evidence expectations below the first screen | Verified | task hero stayed decision-first; no new process console was introduced |
+| Evidence UI | `/matters/[matterId]/evidence` | Evidence workspace remains evidence-first and keeps supplement / gap guidance as the mainline | Verified | process-aware hardening did not turn the page into a workflow console |
+| Matter UI | `/matters/[matterId]` | Matter hero remains案件主線導向 | Verified | no first-screen metadata wall was introduced |
+
+### Live smoke data
+
+- matter id: `1003daee-dc92-4f98-8d33-d1762e288708`
+- task id: `79306266-fe45-4b59-8743-de4382ef0d3f`
+- deliverable id: `e4cd0c4a-94fb-4273-85fb-dc0077db5e50`
+- live smoke verified through local Playwright CLI on task / matter / evidence / deliverable surfaces
+
+### Verified outcomes
+
+- `process_issue_set_v1` is now a formal shipped extension of the Wave 5 object-set baseline rather than a docs-only placeholder
+- the first shipped scope is deliverable-local and stays inside the existing deliverable workspace instead of creating a BPM / SOP platform
+- process issue members can now point back to the formal evidence chain, so operations remediation support no longer stops at a plain text list
+- `operations_pack` now influences readiness / framing / deliverable shaping more directly for process-aware cases
+- the benchmark scaffold now covers operations / process-aware cases without turning into a full evaluation platform
+
+---
+
 ## Entry: 2026-04-01 P0-D clause / obligation set + legal / finance hardening
 
 Scope:

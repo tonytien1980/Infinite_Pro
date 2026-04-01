@@ -113,6 +113,26 @@ def create_contract_review_payload(title: str = "Contract review") -> dict:
     }
 
 
+def create_operations_process_payload(title: str = "Operations process review") -> dict:
+    return {
+        "title": title,
+        "description": "Review the workflow for bottlenecks, owner gaps, dependency blocks, and control gaps before scaling delivery.",
+        "task_type": "complex_convergence",
+        "mode": "multi_agent",
+        "external_data_strategy": "supplemental",
+        "background_text": "The team suspects the approval workflow, handoff, and owner mapping are slowing delivery.",
+        "subject_name": "Delivery workflow review",
+        "goal_description": "Identify the process issues and remediation steps that should be prioritized first.",
+        "constraints": [
+            {
+                "description": "Keep the output internal and remediation-oriented.",
+                "constraint_type": "delivery",
+                "severity": "medium",
+            }
+        ],
+    }
+
+
 def test_health_endpoint(client: TestClient) -> None:
     response = client.get("/api/v1/health")
 
@@ -2897,6 +2917,66 @@ def test_contract_review_specialist_run_and_history_persistence(
     aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
     assert len(aggregate["risks"]) >= 1
     assert any(item["set_type"] == "clause_obligation_set_v1" for item in aggregate["object_sets"])
+
+
+def test_operations_process_issue_set_persists_to_deliverable_workspace(
+    client: TestClient,
+) -> None:
+    payload = create_operations_process_payload("Operations remediation bundle")
+    payload.update(
+        {
+            "client_name": "Northwind Studio",
+            "client_type": "中小企業",
+            "client_stage": "制度化階段",
+            "engagement_name": "Northwind Operations Sprint",
+            "workstream_name": "Delivery workflow hardening",
+            "decision_title": "Workflow remediation priority",
+            "judgment_to_make": "先判斷是否應優先修 handoff、approval bottleneck 與 owner gap，再決定是否擴大交付量。",
+            "domain_lenses": ["營運", "財務"],
+        }
+    )
+
+    task = client.post("/api/v1/tasks", json=payload).json()
+    client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[
+            (
+                "files",
+                (
+                    "workflow.txt",
+                    b"Approval workflow is delayed because handoff between sales and operations is unclear. Backlog is growing, owner mapping is inconsistent, and exception approvals rely on one founder. Team needs a tighter SLA, dependency map, and control check before scaling delivery.",
+                    "text/plain",
+                ),
+            )
+        ],
+    )
+
+    run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
+
+    assert run_response.status_code == 200
+    run_body = run_response.json()
+    deliverable_id = run_body["deliverable"]["id"]
+    workspace_response = client.get(f"/api/v1/deliverables/{deliverable_id}")
+    assert workspace_response.status_code == 200
+    workspace = workspace_response.json()
+
+    process_set = next(
+        item for item in workspace["object_sets"] if item["set_type"] == "process_issue_set_v1"
+    )
+    assert process_set["scope_type"] == "deliverable"
+    assert process_set["creation_mode"] == "deliverable_support_bundle"
+    assert process_set["membership_source_summary"]["primary_source"] == "deliverable_support_bundle"
+    assert process_set["member_count"] >= 1
+    member = next(
+        item for item in process_set["members"] if item["member_object_type"] == "process_issue"
+    )
+    assert member["support_evidence_id"] is not None
+    assert member["member_metadata"]["issue_type"]
+    assert member["member_metadata"]["severity"]
+    assert member["member_metadata"]["affected_process_step"]
+
+    aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
+    assert any(item["set_type"] == "process_issue_set_v1" for item in aggregate["object_sets"])
 
 
 def test_specialist_run_returns_explicit_uncertainty_when_no_usable_evidence(

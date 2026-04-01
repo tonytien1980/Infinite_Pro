@@ -107,6 +107,7 @@ Wave 5 之後，Agent Layer 也應理解：
   - 哪組 evidence 已被納入某份 deliverable 的 support bundle
   - 哪組 risks 已被整理成這輪工作的 focus grouping
   - 哪組 clauses / obligations 已被納入 contract-risk deliverable 的支撐集
+  - 哪組 process issues 已被納入 operations remediation deliverable 的支撐集
 - 這種 set-aware framing 仍屬 Host orchestration / deliverable shaping 的一部分，不可讓 UI-only grouping 直接取代 Host judgment
 
 ---
@@ -273,6 +274,11 @@ Specialist agents 不應只被定義為目前已存在的 3 個 flow。
 - `clauses_reviewed`
 - `obligations_identified`
 - 可被 deliverable-local `clause_obligation_set_v1` 收斂的 contract-risk support bundle
+
+在 P0-E 之後，operations-heavy specialist / multi-agent outputs 也應至少能正式支撐：
+- deliverable-local `process_issue_set_v1`
+- process-aware remediation / sequencing deliverable
+- 能回鏈到 evidence / chunk / media provenance 的流程問題支撐集
 
 ### 7.2 Synthesis specialists
 - research synthesis

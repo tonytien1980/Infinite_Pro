@@ -1489,6 +1489,7 @@ class ObjectSetMember(Base):
     included_reason: Mapped[str] = mapped_column(Text, default="")
     derivation_hint: Mapped[str] = mapped_column(Text, default="")
     support_evidence_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    member_metadata: Mapped[dict] = mapped_column(JSON, default=dict)
     support_label: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 

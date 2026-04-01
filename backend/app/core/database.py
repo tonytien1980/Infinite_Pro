@@ -188,6 +188,7 @@ def _ensure_incremental_schema_updates() -> None:
         },
         "object_set_members": {
             "support_evidence_id": "VARCHAR(36)",
+            "member_metadata": "JSON NOT NULL DEFAULT '{}'",
         },
     }
 

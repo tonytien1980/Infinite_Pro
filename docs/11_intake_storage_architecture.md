@@ -216,9 +216,11 @@ Wave 5 之後，intake / supplement / parse 主鏈仍不應被誤解成 object-s
   - deliverable-local `evidence_set_v1`
   - task-scope `risk_set_v1`
   - deliverable-local `clause_obligation_set_v1`
+  - deliverable-local `process_issue_set_v1`
 - owning scope 必須明確，不能把 intake 輸入直接提升成全域共享集合
 - 若某材料目前只能 reference-level，後續 evidence set 也應誠實保留這個 support boundary
 - 對 `clause_obligation_set_v1` 而言，第一波仍應優先建立在 parseable、text-like、可合理切塊的材料上；limited-support / unsupported material 仍可只保留 reference-level 支撐
+- 對 `process_issue_set_v1` 而言，第一波也應優先建立在 parseable、text-like、可合理切塊的材料上；limited-support / unsupported material 仍可只保留 reference-level 支撐
 
 ---
 

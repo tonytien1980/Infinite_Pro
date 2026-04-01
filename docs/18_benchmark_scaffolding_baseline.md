@@ -60,6 +60,7 @@
 - manifest：`backend/app/benchmarks/manifests/p0_industry_batch1.json`
 - manifest：`backend/app/benchmarks/manifests/p0_industry_batch2.json`
 - manifest：`backend/app/benchmarks/manifests/p0_legal_finance_contract.json`
+- manifest：`backend/app/benchmarks/manifests/p0_operations_process.json`
 - result schema：`backend/app/benchmarks/schemas.py`
 - runner：`backend/app/benchmarks/runner.py`
 - CLI run path：`backend/scripts/run_pack_benchmark_scaffold.py`
@@ -91,6 +92,16 @@ P0-D 之後，這份 baseline 也正式擴充到 legal / finance contract-aware 
 - 重點觀察：
   - target / selected domain packs
   - contract-aware evidence expectations
+  - decision patterns
+  - deliverable presets
+  - readiness baseline
+
+P0-E 之後，這份 baseline 也正式擴充到 operations / process-aware cases：
+- `operations_pack`
+- 必要時可與 `finance_fundraising_pack` 一起形成 sequencing / capacity 對照
+- 重點觀察：
+  - target / selected domain packs
+  - process-aware evidence expectations
   - decision patterns
   - deliverable presets
   - readiness baseline
@@ -135,6 +146,7 @@ python3 backend/scripts/run_pack_benchmark_scaffold.py
 python3 backend/scripts/run_pack_benchmark_scaffold.py --manifest backend/app/benchmarks/manifests/p0_industry_batch1.json
 python3 backend/scripts/run_pack_benchmark_scaffold.py --manifest backend/app/benchmarks/manifests/p0_industry_batch2.json
 python3 backend/scripts/run_pack_benchmark_scaffold.py --manifest backend/app/benchmarks/manifests/p0_legal_finance_contract.json
+python3 backend/scripts/run_pack_benchmark_scaffold.py --manifest backend/app/benchmarks/manifests/p0_operations_process.json
 ```
 
 ### 4.2 pytest baseline

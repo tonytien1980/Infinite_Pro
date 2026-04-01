@@ -189,6 +189,18 @@ P0-D hardening 後，這條主鏈還應再往前一步：
 - `obligations_identified`
 - clause / obligation member 對既有 evidence / chunk / media provenance 的正式回鏈
 
+P0-E hardening 後，這條主鏈還應再往前一步：
+- `process_issue_set_v1`
+- deliverable-local remediation support bundle
+- process issue member 的正式 metadata：
+  - issue type
+  - severity
+  - affected process step
+  - owner state
+  - dependency hint
+  - control-gap hint
+- process issue member 對既有 evidence / chunk / media provenance 的正式回鏈
+
 正式規則是：
 - `ObjectSet` 仍屬 Ontology Layer primitive，不是第七層
 - 第一波只先做 matter / work-scope 內的集合，不做跨案件世界 reusable mesh

@@ -28,6 +28,9 @@ DEFAULT_P0_INDUSTRY_BATCH2_MANIFEST = (
 DEFAULT_P0_LEGAL_FINANCE_CONTRACT_MANIFEST = (
     Path(__file__).resolve().parent / "manifests" / "p0_legal_finance_contract.json"
 )
+DEFAULT_P0_OPERATIONS_PROCESS_MANIFEST = (
+    Path(__file__).resolve().parent / "manifests" / "p0_operations_process.json"
+)
 
 
 def load_manifest(path: Path | str = DEFAULT_P0_INDUSTRY_BATCH1_MANIFEST) -> BenchmarkManifest:

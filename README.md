@@ -207,6 +207,13 @@ P0-D then extends the object-set and pack baseline into legal / finance contract
 - `legal_risk_pack` and `finance_fundraising_pack` now carry stronger contract-aware evidence expectations, decision framing, and deliverable hints
 - the benchmark scaffold now also includes `backend/app/benchmarks/manifests/p0_legal_finance_contract.json` for legal / finance contract-aware before / after checks
 
+P0-E extends the same baseline into process-aware operations work:
+- `process_issue_set_v1` is now the first operations-focused object-set extension:
+  - deliverable-local remediation support bundle
+  - process issue members can carry issue type, severity, affected step, owner state, dependency hint, control-gap hint, and a backlink to supporting evidence
+- `operations_pack` now carries stronger process-aware evidence expectations, decision framing, and remediation-oriented deliverable hints
+- the benchmark scaffold now also includes `backend/app/benchmarks/manifests/p0_operations_process.json` for operations / process-aware before / after checks
+
 Within the single-consultant scope, Agent Orchestration is now treated as a completed runtime layer:
 - Host selection formally responds to capability archetype, selected packs, decision context, readiness/evidence sufficiency, sparse-input mode, and deliverable class
 - selected agents influence execution path and deliverable shaping, not just metadata

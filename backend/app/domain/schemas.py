@@ -695,6 +695,7 @@ class ObjectSetMemberRead(ORMModel):
     included_reason: str = ""
     derivation_hint: str = ""
     support_evidence_id: str | None = None
+    member_metadata: dict[str, Any] = Field(default_factory=dict)
     support_label: str | None = None
     created_at: datetime
 

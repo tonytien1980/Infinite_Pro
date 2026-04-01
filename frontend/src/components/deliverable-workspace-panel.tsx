@@ -30,6 +30,7 @@ import type {
   DeliverableContentRevision,
   DeliverableWorkspace,
   ObjectSet,
+  ObjectSetMember,
   RetrievalProvenance,
 } from "@/lib/types";
 import {
@@ -145,6 +146,40 @@ function hasClauseObligationSet(objectSets: ObjectSet[]) {
   return objectSets.some((item) => item.set_type === "clause_obligation_set_v1");
 }
 
+function hasProcessIssueSet(objectSets: ObjectSet[]) {
+  return objectSets.some((item) => item.set_type === "process_issue_set_v1");
+}
+
+function buildObjectSetSectionTitle(objectSets: ObjectSet[]) {
+  const hasClause = hasClauseObligationSet(objectSets);
+  const hasProcess = hasProcessIssueSet(objectSets);
+  if (hasClause && hasProcess) {
+    return "證據集、風險群組、條款集與流程問題集";
+  }
+  if (hasClause) {
+    return "證據集、風險群組與條款集";
+  }
+  if (hasProcess) {
+    return "證據集、風險群組與流程問題集";
+  }
+  return "證據集與風險群組";
+}
+
+function buildObjectSetSectionCopy(objectSets: ObjectSet[]) {
+  const hasClause = hasClauseObligationSet(objectSets);
+  const hasProcess = hasProcessIssueSet(objectSets);
+  if (hasClause && hasProcess) {
+    return "當你要集中查看這次交付真正採用的證據、已納入範圍的風險、正式引用的條款與義務，或這輪要優先修的流程問題時，再切進這個集合視角；平常首屏不用先看這層。";
+  }
+  if (hasClause) {
+    return "當你要集中查看這次交付真正採用的證據、已納入範圍的風險，或這輪正式引用的條款與義務時，再切進這個集合視角；平常首屏不用先看這層。";
+  }
+  if (hasProcess) {
+    return "當你要集中查看這次交付真正採用的證據、已納入範圍的風險，或這輪要優先修的流程瓶頸、依賴阻塞與控制缺口時，再切進這個集合視角；平常首屏不用先看這層。";
+  }
+  return "當你要集中查看這次交付真正採用的證據，或這輪工作已納入範圍的風險時，再切進這個集合視角；平常首屏不用先看這層。";
+}
+
 function getObjectSetPrimarySourceLabel(objectSet: ObjectSet) {
   const primarySource = objectSet.membership_source_summary?.primary_source;
   return labelForObjectSetMembershipSource(
@@ -169,6 +204,32 @@ function labelForObjectSetMemberType(value: string) {
     return "流程問題";
   }
   return "工作項目";
+}
+
+function readProcessIssueMetadata(member: ObjectSetMember) {
+  const payload = member.member_metadata;
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return null;
+  }
+  return {
+    issueType:
+      typeof payload.issue_type === "string" && payload.issue_type ? payload.issue_type : null,
+    severity: typeof payload.severity === "string" && payload.severity ? payload.severity : null,
+    affectedProcessStep:
+      typeof payload.affected_process_step === "string" && payload.affected_process_step
+        ? payload.affected_process_step
+        : null,
+    ownerState:
+      typeof payload.owner_state === "string" && payload.owner_state ? payload.owner_state : null,
+    dependencyHint:
+      typeof payload.dependency_hint === "string" && payload.dependency_hint
+        ? payload.dependency_hint
+        : null,
+    controlGapHint:
+      typeof payload.control_gap_hint === "string" && payload.control_gap_hint
+        ? payload.control_gap_hint
+        : null,
+  };
 }
 
 function buildDeliverableStatusHint(status: DeliverableLifecycleStatus) {
@@ -434,7 +495,6 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const packSelection = task && deliverable ? buildPackSelectionView(task, deliverable) : null;
   const deliverableBacklink = task && deliverable ? buildDeliverableBacklinkView(task, deliverable) : null;
   const objectSets = workspace?.object_sets ?? [];
-  const includesClauseObligationSet = hasClauseObligationSet(objectSets);
   const objectSetHighlights = buildObjectSetViewList(objectSets);
   const deliverableStatus =
     ((deliverable?.status as DeliverableLifecycleStatus | undefined) ??
@@ -2013,12 +2073,10 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                   <div className="panel-header">
                     <div>
                       <h2 className="panel-title">
-                        {includesClauseObligationSet ? "證據集、風險群組與條款集" : "證據集與風險群組"}
+                        {buildObjectSetSectionTitle(objectSets)}
                       </h2>
                       <p className="panel-copy">
-                        {includesClauseObligationSet
-                          ? "當你要集中查看這次交付真正採用的證據、已納入範圍的風險，或這輪正式引用的條款與義務時，再切進這個集合視角；平常首屏不用先看這層。"
-                          : "當你要集中查看這次交付真正採用的證據，或這輪工作已納入範圍的風險時，再切進這個集合視角；平常首屏不用先看這層。"}
+                        {buildObjectSetSectionCopy(objectSets)}
                       </p>
                     </div>
                   </div>
@@ -2064,6 +2122,13 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                                   id={getObjectSetMemberAnchor(member)}
                                   key={member.id}
                                 >
+                                  {(() => {
+                                    const processIssueMeta =
+                                      member.member_object_type === "process_issue"
+                                        ? readProcessIssueMetadata(member)
+                                        : null;
+                                    return (
+                                      <>
                                   <div className="meta-row">
                                     <span className="pill">
                                       {labelForObjectSetMemberType(member.member_object_type)}
@@ -2075,6 +2140,18 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                                   </div>
                                   <h4>{member.member_label}</h4>
                                   <p className="content-block">{member.included_reason}</p>
+                                  {processIssueMeta ? (
+                                    <p className="muted-text">
+                                      {[
+                                        processIssueMeta.affectedProcessStep,
+                                        processIssueMeta.ownerState,
+                                        processIssueMeta.dependencyHint,
+                                        processIssueMeta.controlGapHint,
+                                      ]
+                                        .filter(Boolean)
+                                        .join("｜") || "目前尚未補齊流程問題細節。"}
+                                    </p>
+                                  ) : null}
                                   {member.derivation_hint ? (
                                     <p className="muted-text">來源線索：{member.derivation_hint}</p>
                                   ) : null}
@@ -2102,6 +2179,9 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                                       回到這組集合
                                     </a>
                                   </div>
+                                      </>
+                                    );
+                                  })()}
                                 </div>
                               ))}
                             </div>

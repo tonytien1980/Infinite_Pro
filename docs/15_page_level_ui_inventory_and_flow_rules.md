@@ -420,6 +420,7 @@
 - approval / audit 若存在，應放在 continuity / writeback 類的 disclosure 內，而不是搶走正式發布與交付閱讀的首屏主線
 - 若該交付物已形成 `evidence_set_v1` 或 `risk_set_v1`，object-set view 應作為既有 deliverable workspace 的低噪音進階段落呈現，不可新增新 app shell，也不可搶走首屏 primary action
 - 若該交付物已形成 `clause_obligation_set_v1`，也應沿用同一個既有 deliverable workspace 進階段落呈現；條款 / 義務 member 應能回答「為何被納入」與「要回哪則證據看支撐片段」
+- 若該交付物已形成 `process_issue_set_v1`，也應沿用同一個既有 deliverable workspace 進階段落呈現；流程問題 member 應能回答「為何被納入」與「要回哪則證據看支撐片段」
 
 **交付物管理段落規則**
 - 交付物管理不應把唯讀 metadata、版本控制與正文編修塞成同一排密集表單

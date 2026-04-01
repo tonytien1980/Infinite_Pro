@@ -55,7 +55,8 @@ export type DeliverableClass =
 export type ObjectSetType =
   | "evidence_set_v1"
   | "risk_set_v1"
-  | "clause_obligation_set_v1";
+  | "clause_obligation_set_v1"
+  | "process_issue_set_v1";
 export type ObjectSetScopeType = "task" | "deliverable" | "matter";
 export type ObjectSetCreationMode = "host_curated" | "deliverable_support_bundle";
 export type ObjectSetLifecycleStatus = "active" | "archived";
@@ -1528,6 +1529,7 @@ export interface ObjectSetMember {
   included_reason: string;
   derivation_hint: string;
   support_evidence_id: string | null;
+  member_metadata: Record<string, unknown>;
   support_label: string | null;
   created_at: string;
 }

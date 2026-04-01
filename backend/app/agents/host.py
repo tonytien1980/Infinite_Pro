@@ -1894,6 +1894,30 @@ class HostOrchestrator:
                 "Legal / Risk Pack 目前仍缺少可引用的條款片段或義務支撐 evidence，因此 contract-risk 判斷仍偏保守。"
             )
 
+        operations_keywords = (
+            "流程",
+            "handoff",
+            "交接",
+            "依賴",
+            "瓶頸",
+            "backlog",
+            "throughput",
+            "capacity",
+            "sop",
+            "approval",
+            "escalation",
+            "排程",
+            "sla",
+        )
+        if "operations_pack" in selected_pack_ids and not any(
+            any(keyword in (evidence.excerpt_or_summary or "").lower() for keyword in operations_keywords)
+            or any(keyword in (evidence.title or "").lower() for keyword in operations_keywords)
+            for evidence in usable_evidence
+        ):
+            gaps.append(
+                "Operations Pack 目前仍缺少流程瓶頸、handoff、control gap 或 owner-gap 類 evidence，因此 remediation 與 sequencing 判斷仍偏薄。"
+            )
+
         finance_contract_keywords = (
             "付款",
             "payment",
