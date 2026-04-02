@@ -74,6 +74,7 @@ export type DeliverableSortPreference =
   | "title_asc"
   | "version_desc";
 export type ProviderId = "openai" | "anthropic" | "gemini" | "xai" | "minimax";
+export type CurrentProviderId = ProviderId | "mock";
 export type ProviderModelLevel = "high_quality" | "balanced" | "low_cost";
 export type ProviderValidationStatus =
   | "success"
@@ -142,7 +143,7 @@ export interface ProviderValidationResult {
 
 export interface CurrentProviderConfig {
   source: "runtime_config" | "env_baseline";
-  providerId: string;
+  providerId: CurrentProviderId;
   providerDisplayName: string;
   modelLevel: ProviderModelLevel;
   actualModelId: string;

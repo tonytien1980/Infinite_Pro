@@ -2788,6 +2788,52 @@ def test_google_docs_public_link_creates_processed_source(
     assert ingested["evidence"]["evidence_type"] == "source_excerpt"
 
 
+def test_source_url_retry_can_recover_after_previous_failed_ingestion(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.services import sources as source_service
+
+    task = client.post("/api/v1/tasks", json=create_task_payload("URL retry recovery")).json()
+    attempts = {"count": 0}
+
+    def fake_fetch_remote_source(url: str) -> RemoteSourceContent:
+        attempts["count"] += 1
+        if attempts["count"] == 1:
+            raise RuntimeError("Temporary upstream failure")
+        return RemoteSourceContent(
+            source_type="manual_url",
+            source_url=url,
+            title="Recovered market brief",
+            content_type="text/html",
+            normalized_text="Recovered evidence now includes usable implementation details.",
+        )
+
+    monkeypatch.setattr(source_service, "fetch_remote_source", fake_fetch_remote_source)
+
+    first_response = client.post(
+        f"/api/v1/tasks/{task['id']}/sources",
+        json={"urls": ["https://example.com/retry-source"]},
+    )
+
+    assert first_response.status_code == 200
+    first_item = first_response.json()["ingested"][0]
+    assert first_item["source_document"]["ingest_status"] == "failed"
+    assert first_item["evidence"]["evidence_type"] == "source_ingestion_issue"
+
+    second_response = client.post(
+        f"/api/v1/tasks/{task['id']}/sources",
+        json={"urls": ["https://example.com/retry-source"]},
+    )
+
+    assert second_response.status_code == 200
+    second_item = second_response.json()["ingested"][0]
+    assert second_item["source_document"]["ingest_status"] == "processed"
+    assert second_item["source_document"]["file_name"] == "Recovered market brief"
+    assert second_item["evidence"]["evidence_type"] == "source_excerpt"
+    assert attempts["count"] == 2
+
+
 def test_research_synthesis_specialist_run_and_history_persistence(client: TestClient) -> None:
     payload = create_task_payload("Specialist run")
     payload.update(

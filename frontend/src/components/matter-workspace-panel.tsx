@@ -741,12 +741,12 @@ export function MatterWorkspacePanel({
     }
   }
 
-  async function handleResyncMatterFallback(forceOverwrite: boolean) {
+  async function handleResyncMatterFallback() {
     if (!matter || !fallbackRecord) {
       return;
     }
 
-    if (matterSyncState === "needs_review" && !forceOverwrite) {
+    if (matterSyncState === "needs_review") {
       const confirmed = window.confirm(
         "遠端資料在 fallback 期間也有變更。要以本機暫存覆蓋正式資料並重新同步嗎？",
       );
@@ -1496,7 +1496,7 @@ export function MatterWorkspacePanel({
                       <button
                         className="button-secondary"
                         type="button"
-                        onClick={() => void handleResyncMatterFallback(matterSyncState === "needs_review")}
+                        onClick={() => void handleResyncMatterFallback()}
                         disabled={isResyncing}
                       >
                         {isResyncing ? "同步中..." : matterSyncState === "needs_review" ? "以本機內容重新同步" : "重新同步正式資料"}
@@ -1674,7 +1674,7 @@ export function MatterWorkspacePanel({
                         <button
                           className="button-secondary"
                           type="button"
-                          onClick={() => void handleResyncMatterFallback(matterSyncState === "needs_review")}
+                          onClick={() => void handleResyncMatterFallback()}
                           disabled={isResyncing}
                         >
                           {isResyncing ? "同步中..." : matterSyncState === "needs_review" ? "以本機內容重新同步" : "重新同步正式資料"}

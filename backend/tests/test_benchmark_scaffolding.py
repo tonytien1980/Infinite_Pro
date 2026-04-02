@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import importlib.util
+from pathlib import Path
+
 from app.benchmarks.runner import (
     DEFAULT_P0_DELIVERABLE_HARDENING_MANIFEST,
     DEFAULT_P0_DOMAIN_PACK_CONTRACTS_MANIFEST,
@@ -15,6 +18,17 @@ from app.benchmarks.runner import (
     run_suite,
 )
 from app.benchmarks.schemas import BenchmarkCategoryId, BenchmarkHintArea, BenchmarkStatus, RegressionGateMode
+
+BENCHMARK_SCRIPT_PATH = (
+    Path(__file__).resolve().parents[1] / "scripts" / "run_pack_benchmark_scaffold.py"
+)
+BENCHMARK_SCRIPT_SPEC = importlib.util.spec_from_file_location(
+    "run_pack_benchmark_scaffold_module",
+    BENCHMARK_SCRIPT_PATH,
+)
+assert BENCHMARK_SCRIPT_SPEC is not None and BENCHMARK_SCRIPT_SPEC.loader is not None
+benchmark_script = importlib.util.module_from_spec(BENCHMARK_SCRIPT_SPEC)
+BENCHMARK_SCRIPT_SPEC.loader.exec_module(benchmark_script)
 
 
 def test_p0_a_domain_pack_manifest_covers_expected_seed_cases() -> None:
@@ -257,3 +271,26 @@ def test_p0_h_full_regression_suite_executes_against_current_stack() -> None:
     )
     assert deliverable_gate.gate_mode == RegressionGateMode.ADVISORY
     assert deliverable_gate.gate_status == BenchmarkStatus.PASS
+
+
+def test_benchmark_script_prefers_standard_dot_venv_before_workstation_specific_name(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    backend_root = tmp_path / "backend"
+    backend_root.mkdir()
+    standard_python = tmp_path / ".venv" / "bin" / "python"
+    standard_python.parent.mkdir(parents=True)
+    standard_python.touch()
+    legacy_python = tmp_path / ".venv312" / "bin" / "python"
+    legacy_python.parent.mkdir(parents=True)
+    legacy_python.touch()
+
+    monkeypatch.setattr(benchmark_script, "BACKEND_ROOT", backend_root)
+    monkeypatch.delenv("VIRTUAL_ENV", raising=False)
+
+    fallback_python = benchmark_script._find_fallback_python(
+        tmp_path / "system-python",
+    )
+
+    assert fallback_python == standard_python

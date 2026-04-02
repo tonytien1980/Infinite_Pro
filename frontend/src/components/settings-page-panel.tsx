@@ -12,6 +12,7 @@ import {
 import { formatDisplayDate } from "@/lib/ui-labels";
 import { buildWorkbenchPreferenceFeedback, persistWorkbenchPreferences } from "@/lib/workbench-persistence";
 import type {
+  CurrentProviderId,
   CurrentProviderConfig,
   ProviderId,
   ProviderModelLevel,
@@ -140,6 +141,18 @@ function buildProviderDraft(
   };
 }
 
+function currentProviderIsEditable(snapshot: SystemProviderSettingsSnapshot | null) {
+  const providerId = snapshot?.current.providerId;
+  if (!providerId) {
+    return false;
+  }
+  return snapshot?.presets.some((item) => item.providerId === providerId) ?? false;
+}
+
+function isEditableProviderId(value: CurrentProviderId): value is ProviderId {
+  return value !== "mock";
+}
+
 export function SettingsPagePanel() {
   const [settings, setSettings] = useWorkbenchSettings();
   const [draft, setDraft] = useState<WorkbenchSettings>(settings);
@@ -176,6 +189,11 @@ export function SettingsPagePanel() {
         }
         setProviderSnapshot(snapshot);
         setProviderDraft(buildProviderDraft(snapshot));
+        if (!currentProviderIsEditable(snapshot)) {
+          setProviderFeedback(
+            "目前生效的是 env baseline 開發 provider；若要建立正式設定，編輯模式會從新的正式 provider 草稿開始。",
+          );
+        }
       } catch (loadError) {
         if (cancelled) {
           return;
@@ -224,12 +242,23 @@ export function SettingsPagePanel() {
   function resetProviderDraftToCurrent() {
     setProviderDraft(buildProviderDraft(providerSnapshot));
     setProviderValidation(null);
-    setProviderFeedback("已還原成目前生效設定。");
+    setProviderFeedback(
+      currentProviderIsEditable(providerSnapshot)
+        ? "已還原成目前生效設定。"
+        : "目前仍是 env baseline；已回到建立正式設定的建議草稿。",
+    );
     setProviderError(null);
   }
 
   function getProviderPreset(providerId: ProviderId) {
     return providerSnapshot?.presets.find((item) => item.providerId === providerId) ?? null;
+  }
+
+  function getPresetForCurrentProvider(providerId: CurrentProviderId | null | undefined) {
+    if (!providerId || !isEditableProviderId(providerId)) {
+      return null;
+    }
+    return getProviderPreset(providerId);
   }
 
   function getEffectiveDraftModelId() {
@@ -271,6 +300,20 @@ export function SettingsPagePanel() {
     setProviderValidation(null);
     setProviderFeedback(`已帶入 ${preset.displayName} 的預設基礎網址、模型與逾時設定。`);
     setProviderError(null);
+  }
+
+  function handleProviderEditingToggle() {
+    setProviderEditing((current) => {
+      const next = !current;
+      if (next && !currentProviderIsEditable(providerSnapshot)) {
+        setProviderFeedback(
+          "目前生效的是 env baseline 開發 provider；編輯模式是在建立新的正式設定，而不是直接編輯目前基線。",
+        );
+        setProviderError(null);
+        setProviderValidation(null);
+      }
+      return next;
+    });
   }
 
   function handleProviderModelLevelChange(nextLevel: ProviderModelLevel) {
@@ -424,6 +467,8 @@ export function SettingsPagePanel() {
 
   const currentProvider = providerSnapshot?.current ?? null;
   const envBaseline = providerSnapshot?.envBaseline ?? null;
+  const currentProviderPreset = getPresetForCurrentProvider(currentProvider?.providerId);
+  const currentProviderEditable = currentProviderIsEditable(providerSnapshot);
   const effectiveModelId = getEffectiveDraftModelId();
   const latestValidationStatus =
     providerValidation?.validationStatus || currentProvider?.lastValidationStatus || "not_validated";
@@ -545,7 +590,7 @@ export function SettingsPagePanel() {
               <button
                 className="button-primary"
                 type="button"
-                onClick={() => setProviderEditing((current) => !current)}
+                onClick={handleProviderEditingToggle}
               >
                 {providerEditing ? "收合編輯" : "編輯設定"}
               </button>
@@ -573,6 +618,9 @@ export function SettingsPagePanel() {
                 {envBaseline?.providerDisplayName
                   ? ` 基線供應商是 ${envBaseline.providerDisplayName}。`
                   : ""}
+                {!currentProviderPreset
+                  ? " 由於目前是開發基線，進入編輯模式後會先帶入可正式儲存的 provider 草稿。"
+                  : ""}
                 若你要建立正式系統級設定，請先進入編輯表單並完成驗證後再套用。
               </p>
             ) : null}
@@ -589,6 +637,17 @@ export function SettingsPagePanel() {
                         </p>
                       </div>
                     </div>
+
+                    {!currentProviderEditable && currentProvider ? (
+                      <div className="setting-note-card" style={{ marginBottom: "16px" }}>
+                        <h3>目前仍是環境基線</h3>
+                        <p className="content-block">
+                          目前真正生效的是 {currentProvider.providerDisplayName}，
+                          來源是 {labelForProviderSource(currentProvider)}。
+                          下面的表單是在建立新的正式 runtime config，不是直接修改目前的基線 provider。
+                        </p>
+                      </div>
+                    ) : null}
 
                     <div className="field-grid">
                       <div className="field">
@@ -671,7 +730,7 @@ export function SettingsPagePanel() {
                         type="button"
                         onClick={resetProviderDraftToCurrent}
                       >
-                        還原目前設定
+                        {currentProviderEditable ? "還原目前設定" : "回到建議草稿"}
                       </button>
                     </div>
 

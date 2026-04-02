@@ -11,6 +11,30 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_ROOT))
 
 
+def _find_fallback_python(current_executable: str | Path) -> Path | None:
+    current_path = Path(current_executable)
+    current_resolved = current_path.resolve(strict=False)
+    candidate_paths: list[Path] = []
+
+    def add_candidate(path: Path) -> None:
+        if not path.exists():
+            return
+        resolved = path.resolve(strict=False)
+        if resolved == current_resolved or path in candidate_paths:
+            return
+        candidate_paths.append(path)
+
+    virtual_env = os.environ.get("VIRTUAL_ENV")
+    if virtual_env:
+        add_candidate(Path(virtual_env) / "bin" / "python")
+
+    repo_root = BACKEND_ROOT.parent
+    add_candidate(repo_root / ".venv" / "bin" / "python")
+    add_candidate(repo_root / ".venv312" / "bin" / "python")
+
+    return candidate_paths[0] if candidate_paths else None
+
+
 def _load_runner():
     try:
         from app.benchmarks.runner import (
@@ -24,8 +48,8 @@ def _load_runner():
     except ModuleNotFoundError as exc:
         if exc.name != "pydantic":
             raise
-        venv_python = BACKEND_ROOT.parent / ".venv312" / "bin" / "python"
-        if venv_python.exists() and Path(sys.executable) != venv_python:
+        venv_python = _find_fallback_python(sys.executable)
+        if venv_python is not None:
             completed = subprocess.run(
                 [str(venv_python), __file__, *sys.argv[1:]],
                 check=False,

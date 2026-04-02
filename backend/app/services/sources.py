@@ -61,6 +61,42 @@ def _linked_matter_workspace_id(task: models.Task) -> str | None:
     return None
 
 
+def _should_skip_duplicate_remote_source(
+    task: models.Task,
+    *,
+    normalized_url: str,
+) -> bool:
+    matching_documents = [
+        item for item in task.uploads if item.storage_path == normalized_url
+    ]
+    if not matching_documents:
+        return False
+
+    return any(
+        item.ingest_status == "processed"
+        and (
+            bool(item.content_digest)
+            or bool(item.derived_storage_key)
+            or bool(item.extracted_text)
+        )
+        for item in matching_documents
+    )
+
+
+def _should_reuse_existing_processed_source(
+    source_document: models.SourceDocument,
+    *,
+    current_content_digest: str | None,
+) -> bool:
+    if source_document.ingest_status in {"failed", "unsupported"}:
+        return False
+
+    if current_content_digest is None:
+        return True
+
+    return source_document.content_digest == current_content_digest
+
+
 def _persist_processed_source(
     *,
     db: Session,
@@ -80,6 +116,9 @@ def _persist_processed_source(
 ) -> tuple[models.SourceDocument, models.SourceMaterial, models.Artifact, models.Evidence]:
     retention_policy = RETENTION_POLICY_DERIVED
     extension = normalize_extension(title, "")
+    current_content_digest = (
+        compute_digest(extracted_text.encode("utf-8")) if extracted_text else None
+    )
     matter_workspace_id = _linked_matter_workspace_id(task)
     continuity_scope = "world_shared" if matter_workspace_id else SLICE_PARTICIPATION_CONTINUITY_SCOPE
     existing_bundle = load_existing_world_shared_bundle(
@@ -87,9 +126,12 @@ def _persist_processed_source(
         matter_workspace_id=matter_workspace_id,
         source_type=connector_source_type,
         storage_path=None if storage_path.startswith("inline://task/") else storage_path,
-        content_digest=compute_digest(extracted_text.encode("utf-8")) if extracted_text else None,
+        content_digest=current_content_digest,
     )
-    if existing_bundle is not None:
+    if existing_bundle is not None and _should_reuse_existing_processed_source(
+        existing_bundle[0],
+        current_content_digest=current_content_digest,
+    ):
         ensure_source_chain_participation_links(
             db,
             task_id=task.id,
@@ -116,7 +158,7 @@ def _persist_processed_source(
         storage_kind=DERIVED_STORAGE_KIND,
         storage_provider=STORAGE_PROVIDER_LOCAL,
         file_size=len(extracted_text.encode("utf-8")) if extracted_text else 0,
-        content_digest=compute_digest(extracted_text.encode("utf-8")) if extracted_text else None,
+        content_digest=current_content_digest,
         ingest_status="metadata_only" if metadata_only and not extracted_text else "processed",
         ingest_strategy=ingest_strategy,
         support_level=support_level,
@@ -364,7 +406,12 @@ def ingest_remote_urls_for_task(
 
     for url in urls:
         normalized_url = url.strip()
-        if not normalized_url or normalized_url in existing_storage_paths:
+        if not normalized_url:
+            continue
+        if normalized_url in existing_storage_paths and _should_skip_duplicate_remote_source(
+            task,
+            normalized_url=normalized_url,
+        ):
             continue
 
         connector = ManualUrlConnector() if origin == "manual" else ExternalSearchConnector()
