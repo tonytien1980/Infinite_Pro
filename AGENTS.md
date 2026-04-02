@@ -2,114 +2,58 @@
 
 This file is the repository-level operating guide for Codex and other coding agents working on Infinite Pro.
 
-The goal is to keep implementation work aligned with the current governance reset:
-
-> **Infinite Pro is now planned as a Single-Consultant Full-Scope Edition.**
-
-That means the product's **capability boundary is full-scope from day one** for a single consultant, even if implementation order is phased.
+The current product and repo baseline must be understood through the flat docs set introduced in the 2026-04 documentation reset.
 
 ---
 
-## 1. Read this first
+## 1. Product Identity
 
-Before making any structural, product, ontology, agent, or UI decisions, read these documents in this order:
-
-1. `docs/00_project_vision.md`
-2. `docs/01_problem_statement.md`
-3. `docs/02_product_scope.md`
-4. `docs/03_system_overview.md`
-5. `docs/09_infinite_pro_core_definition.md`
-6. `docs/10_frontend_information_architecture_and_ux_principles.md`
-7. `docs/14_workbench_ui_ux_operating_principles.md` when touching UI 操作邏輯、資訊密度、primary action、progressive disclosure、detail workspace hierarchy
-8. `docs/15_page_level_ui_inventory_and_flow_rules.md` when touching page-level first-screen content, page roles, page transitions, or cross-page action flow
-9. `docs/04_ontology_core.md`
-10. `docs/05_agent_architecture.md`
-11. `docs/06_system_architecture.md`
-12. `docs/07_implementation_order.md`
-13. `docs/08_codex_handoff.md`
-14. `docs/11_intake_storage_architecture.md` when touching intake, canonical intake pipeline, entry presets, source materials, storage, retention, purge, or artifact file lifecycle
-15. `docs/12_runtime_persistence_and_release_integrity.md` when touching continuity mode, writeback depth, revision, rollback, publish, artifact registry, fallback, degraded mode, or sync recovery
-16. `docs/13_system_provider_settings_and_credentials.md` when touching system provider settings, model runtime config, credential storage, provider validation, or env precedence
-17. `.impeccable.md` when touching visual direction, theme behavior, typography, motion, accessibility posture, or interaction polish
-18. `docs/17_operational_ontology_deepen_program.md` when touching the operational-ontology deepen waves, wave-level exposure policy, `ObjectSet` planning, approval / audit semantics, canonicalization roadmap, chunk / provenance deepen, or stage-by-stage stop conditions
-
-If implementation ideas conflict with the documents, prefer the documents over assumptions.
-
-If naming, product positioning, ontology modeling, or product drift questions appear, treat `docs/09_infinite_pro_core_definition.md` as a high-priority guide.
-If homepage, navigation, workspace surface, management surface, history page, or Traditional Chinese UI copy decisions appear, treat `docs/10_frontend_information_architecture_and_ux_principles.md` as the primary governance guide.
-If page-level 操作邏輯、資訊密度、使用者下一步導引、primary action hierarchy、progressive disclosure 或 detail workspace readability questions appear, treat `docs/14_workbench_ui_ux_operating_principles.md` as the primary governance guide.
-If要判斷某一頁面第一屏應顯示什麼、主按鈕是什麼、哪些資訊要延後揭露、或哪個工作面要接回哪個頁面, treat `docs/15_page_level_ui_inventory_and_flow_rules.md` as the primary governance guide.
-If intake modes, canonical intake pipeline, case world compilation entry semantics, source material ingestion, storage boundaries, retention, or purge lifecycle questions appear, treat `docs/11_intake_storage_architecture.md` as the primary governance guide.
-If正文 persistence、continuity mode、writeback depth、decision writeback、revision、rollback、publish / artifact record、fail-closed、degraded mode、re-sync 邊界 questions appear, treat `docs/12_runtime_persistence_and_release_integrity.md` as the primary governance guide.
-If系統級 provider 設定、credential storage、active runtime config、provider validation、env precedence questions appear, treat `docs/13_system_provider_settings_and_credentials.md` as the primary governance guide.
-If visual tone, brand feeling, light/dark theme parity, typography, motion restraint, or accessibility tradeoffs appear, treat `.impeccable.md` as the design context source of truth and keep shipped code aligned with that file.
-If the request falls inside the current operational-ontology deepen program, treat `docs/17_operational_ontology_deepen_program.md` as the wave-planning and exposure-policy guide, but do not let it override the formal six-layer boundary defined by the core governance docs.
-
----
-
-## 2. Formal product definition
-
-Formal product name: `Infinite Pro`
-
-Formal planning posture:
+Infinite Pro remains:
 
 > **Single-Consultant Full-Scope Edition**
 
-Meaning:
-- the product must be planned to cover the **full working scope of one consultant**
-- implementation order may be phased
-- capability boundaries must **not** be artificially shrunk into a reduced product concept
-- multi-user, multi-company, and multi-tenant system concerns are later layers, not the definition of the product itself
+Formal planning posture:
 
-## 3. Product scope principle
+- full-scope by capability
+- phased by implementation order
+- single-user first
+- multi-user later
 
-Do **not** treat Infinite Pro as:
-- a small prototype chatbot
-- a prompt-wrapper utility
-- a narrow collection of specialist tools
+Infinite Pro is not:
+
+- a consultant training platform
+- a generic chatbot wrapper
 - a generic enterprise admin console
+- a narrow collection of specialist tools
 
-Treat Infinite Pro as:
+Infinite Pro is:
+
 - an ontology-first consulting workbench
 - a Host-orchestrated decision system
-- a multi-agent and multi-specialist advisory platform
-- a system that must eventually cover the consultant's full working reality
-
-The correct planning model is:
-
-> **Full-scope by capability, phased by implementation order, single-user first, multi-user later.**
+- a deliverable-centric advisory work platform
+- a system that must cover the full working scope of one consultant
 
 ---
 
-## 4. Full-scope capability boundary
+## 2. Active Reading Order
 
-Codex should assume the product boundary already includes:
+Before making product, architecture, ontology, runtime, agent, pack, or UI decisions, read these docs in order:
 
-### 4.1 Client stages
-- `創業階段`
-- `制度化階段`
-- `規模化階段`
+1. `docs/00_product_definition_and_current_state.md`
+2. `docs/01_runtime_architecture_and_data_contracts.md`
+3. `docs/02_host_agents_packs_and_extension_system.md`
+4. `docs/03_workbench_ux_and_page_spec.md`
+5. `docs/04_qa_matrix.md` when you need shipped verification evidence
+6. `docs/05_benchmark_and_regression.md` when you need benchmark / regression gate context
 
-Do not reintroduce:
-- earlier numeric stage shorthand
+Everything else lives outside `docs/` under `archive/` or `research/` and is not active source of truth.
 
-### 4.2 Client types
-- 中小企業
-- 個人品牌與服務
-- 自媒體
-- 大型企業
+---
 
-### 4.3 Consulting domains
-- 營運
-- 財務
-- 法務
-- 行銷
-- 銷售
-- 募資
-- other extensible consulting domains
+## 3. Non-Negotiable Architecture Rules
 
-### 4.4 Formal architecture layers
-The following layers are part of the official architecture from day one:
+Infinite Pro still has exactly six formal layers:
+
 1. Ontology Layer
 2. Context Layer
 3. Capability Layer
@@ -117,462 +61,173 @@ The following layers are part of the official architecture from day one:
 5. Pack Layer
 6. Workbench / UI Layer
 
-### 4.5 Cross-cutting system responsibilities
-These are also first-class, not later add-ons:
-- provider abstraction
+Cross-cutting responsibilities remain first-class:
+
+- canonical intake
 - source ingestion
-- evidence creation
-- history persistence
+- evidence / provenance
+- persistence / history
 - traceability
+- provider abstraction
 - deliverable-centric outputs
 
----
+Do not:
 
-## 5. Architecture shape to preserve
-
-At a minimum, implementation should preserve the following conceptual shape:
-
-### 5.1 Ontology Layer
-This is the shared world model, structured reasoning skeleton, and operational layer for objects, properties, links, actions, functions, and decision context.
-
-Preferred runtime shape:
-- `Intake -> Case World Compiler -> CaseWorldDraft / CaseWorldState`
-- `Task` as a work slice inside the case world
-- follow-up supplements updating the world first, then driving task / evidence / deliverable changes
-- deeper identity bridge:
-  - `CaseWorldState` as the matter/world authority center
-  - legacy `task_id` references allowed temporarily
-  - but new identity decisions should favor matter/world-native continuity
-
-### 5.2 Context Layer
-This carries:
-- client stage
-- client type
-- domain lenses
-- decision context
-- goals
-- constraints
-- assumptions
-- stakeholders
-
-### 5.3 Capability Layer
-This defines the consulting work archetypes the system can perform, such as:
-- diagnose
-- review
-- synthesize
-- restructure
-- converge
-- plan
-- challenge
-
-### 5.4 Agent Layer
-This includes:
-- Host Agent as the only orchestration center
-- multiple specialist and reasoning agents
-- clear responsibilities, not roleplay personas
-- a formal Agent Registry and Agent Resolver
-- Host-selected agent context written back into aggregates, workspace payloads, and deliverable metadata
-- formal omitted / deferred / escalation notes for relevant but non-activated agents
-- execution-path impact, not just catalog visibility
-
-### 5.5 Pack Layer
-Pack Layer contains two formal pack families:
-- Domain / Functional Packs
-- Industry Packs
-
-Packs are structured context modules, not agents.
-They may extend:
-- ontology-aware context presets
-- domain heuristics
-- industry heuristics
-- expected evidence
-- decision templates
-- deliverable patterns
-- routing hints
-
-### 5.6 Workbench / UI Layer
-The UI must evolve toward:
-- object-aware views
-- workflow-aware views
-- deliverable-aware views
-
-Do not collapse everything into one giant controller, one giant prompt, or one generic task page if avoidable.
+- add a seventh architecture layer
+- shrink the product boundary into a smaller product definition
+- collapse capability / pack / agent into one taxonomy
+- bypass Host with UI-only workflow logic
+- bypass the internal provider boundary
 
 ---
 
-## 6. Ontology-first planning rules
+## 4. Core Runtime Rules
 
-Do not plan the product around only:
-- pages
-- feature lists
-- mode dropdowns
+Always preserve the current world-first runtime shape:
 
-Plan around:
-- objects
-- properties
-- links
-- actions
-- functions
-- workflows
-- decision context
+`canonical intake pipeline -> CaseWorldDraft -> CaseWorldState -> Task(work slice) -> Artifact / SourceMaterial -> Evidence -> Deliverable -> continuity / writeback records`
 
-Implementation should assume the ontology must formally represent at least:
-- Client
-- Engagement
-- Workstream
-- Task
-- DecisionContext
-- Artifact
-- SourceMaterial
-- Evidence
-- Insight
-- Risk
-- Option
-- Recommendation
-- ActionItem
-- Deliverable
-- Goal
-- Constraint
-- Assumption
-- Stakeholder
-- Audience
+Key rules:
 
-Implementation should also preserve:
-- `CaseWorldDraft` as the first compilation output
-- `CaseWorldState` as the matter-level world state
-- `Task` as a world work slice rather than the sole primary container
-- bridge architecture honesty:
-  - mark what is already world-native
-  - mark what is still transitional task-centric persistence
-  - do not claim fully world-native identity if legacy task ownership still exists
-  - identity deepen phase 11 should explicitly distinguish:
-    - canonical world rows
-    - task-slice local overlays / derivative rows
-    - world-authoritative context rows for `Client / Engagement / Workstream / DecisionContext`
-    - shared continuity rows and more formal participation mappings for source / document / material / evidence chains
-    - compatibility-only `task_id` references versus real ownership authority
-    - participation-aware batch / upload / source response contracts versus aggregate-only semantics
-    - thinner `slice_decision_context` deltas versus canonical world decision authority
-    - host payload canonical context spine versus task-local fallback behavior
-    - canonical-first read / serialize helpers shared across aggregate, workspace, and host paths
-    - source-chain compatibility closeout and the stop condition for the identity line
-
-The exact persistence schema may evolve, but these objects are part of the architecture boundary.
+- `Task` is a work slice inside a matter/world, not the sole business container
+- follow-up supplements update the existing world first, then drive task / evidence / deliverable changes
+- `CaseWorldState` is the authority center even if legacy `task_id` references still coexist
+- bridge / compatibility notes must be labeled honestly; do not claim fully world-native closeout where it has not happened
 
 ---
 
-## 7. Host Agent rules
+## 5. Host, Agent, and Pack Rules
 
-Host Agent is mandatory and remains the only orchestration center.
+Host remains the only orchestration center.
 
-Host Agent must be planned to eventually handle:
-- task interpretation
-- ontology mapping
-- decision-context framing
+Host must continue to own:
+
+- task / decision framing
+- case world compilation
 - workflow selection
-- specialist selection
-- agent coordination
-- agent-aware selection through the formal registry / resolver path
 - readiness governance
-- evidence sufficiency checks
-- convergence and deliverable shaping
+- research trigger governance
+- agent routing
+- convergence
+- deliverable shaping
+- continuity / writeback control
 
-For the single-consultant scope, this orchestration layer should now be treated as complete:
-- selected agents must be explainable
-- omitted / deferred / escalation reasoning must be visible
-- selected agents must affect runtime path and deliverable shaping
+Agents are capability modules, not theatrical personas.
 
-Future work in this area should normally mean:
-- bug fixes
-- new packs
-- new agent families
-- multi-user / marketplace / organizational governance layers
+Packs are structured context modules, not agents and not capability archetypes.
 
-Current runtime alignment note:
-- the management / catalog surface currently preserves `Host + 11 non-Host agents`
-- runtime execution no longer needs to be treated as the early `4 core + 3 specialist` validation slice
-- current reasoning families should preserve dedicated runtime paths even if runtime ids and catalog ids are not always textually identical
-- Host must keep both catalog selection and runtime path visible in payloads and deliverable metadata
+Current runtime governance must preserve:
 
-Do not bypass Host Agent by letting UI-only logic or direct model calls decide the core workflow.
+- Agent Registry / Resolver
+- Pack Registry / Resolver
+- task-level selected pack / agent visibility
+- omitted / deferred / escalation notes
+- pack contracts affecting readiness / framing / deliverable shaping without replacing Host judgment
+- standard agent / pack creation staying minimal-input at the UI layer
+- backend-only contract synthesis, validation, normalization, and registry-safe write paths
 
----
+Formal extension-creation rule:
 
-## 8. Agent rules
-
-Agents are not theatrical personas.
-
-Agents should be designed as:
-- capability modules
-- reasoning modules
-- specialist modules
-- domain-aware contributors
-
-Do not lock the system to:
-- only 4 core agents
-- only 3 specialist flows
-- only one narrow task family
-
-Those may be current implementation slices, but they are **not** the formal product boundary anymore.
+- standard users should provide only the minimum information needed to describe a new agent or pack
+- frontend must not drift back into manual capability binding, pack binding, KPI entry, or full contract authoring
+- creating an agent or pack does not mean Host must later invoke it
+- actual invocation remains Host-owned and task-context dependent
 
 ---
 
-## 9. Pack rules
+## 6. Workbench Rules
 
-Packs are part of the formal architecture.
+Infinite Pro should feel like a consulting workbench, not a chat shell, admin console, or debug dashboard.
 
-### 9.1 Domain / Functional Packs
-Domain / Functional Packs provide context modules for consulting functions or enterprise problem areas, such as:
-- `operations_pack`
-- `finance_fundraising_pack`
-- `legal_risk_pack`
-- `marketing_sales_pack`
-- `business_development_pack`
-- `research_intelligence_pack`
-- `organization_people_pack`
-- `product_service_pack`
+Global UX rules:
 
-Treat these packs as:
-- reusable domain context modules for real enterprise problem families
-- not agents
-- not capability archetypes
-- not thin labels wrapped around existing task types
+- one page, one primary action
+- first screen answers: where am I, what matters most, what should I do next
+- progressive disclosure over summary duplication
+- consultant-first, debug-on-demand
+- Traditional Chinese is the default visible language unless explicitly changed
 
-### 9.2 Industry Packs
-Industry Packs provide context modules for industry-specific patterns, such as:
-- `online_education_pack`
-- `ecommerce_pack`
-- `gaming_pack`
-- `funeral_services_pack`
-- `health_supplements_pack`
-- `energy_pack`
-- `saas_pack`
-- `media_creator_pack`
-- `professional_services_pack`
-- `manufacturing_pack`
-- `healthcare_clinic_pack`
+Current formal workbench surfaces include:
 
-Industry Packs should also be treated as full pack specs rather than light labels.
-At minimum, each should preserve:
-- industry definition
-- common business models
-- common problem patterns
-- evidence expectations
-- key indicators / KPIs
-- decision patterns
-- deliverable presets
-- pack rationale
+- overview
+- new matter intake
+- matter workspace
+- evidence workspace
+- task / decision workspace
+- deliverable workspace
+- agents management
+- packs management
+- history
+- settings
 
-### 9.3 What packs are not
-Do not treat packs as:
-- labels
-- marketing categories
-- optional flavor text
-- agents
-- capability archetypes
-
-### 9.4 What packs influence
-Treat packs as structured extensions that can influence:
-- ontology-aware context presets
-- evidence expectations
-- decision framing
-- evaluation criteria
-- deliverable shape
-- routing hints
-
-Formal pack quality bar:
-- do not leave `common_problem_patterns`, `evidence_expectations`, `decision_patterns`, `deliverable_presets`, or `pack_rationale` effectively empty
-- preserve both KPI-oriented and operating-signal-oriented guidance, even if one side is derived from the other for consistency
-
-Even if only a subset is implemented first, the architecture must preserve this layer clearly.
-
-## 10. Capability / Pack / Agent boundary rules
-
-Keep these boundaries explicit:
-- Capability Archetypes define **what kind of consulting work** is being done.
-- Packs define **what contextual modules** should shape that work.
-- Agents define **who executes or orchestrates** the work.
-
-Do not collapse these into one taxonomy.
-
-The workbench now exposes a minimal shared `Extension Manager`, and that management surface must remain a UI/governance surface, not a seventh architecture layer.
-
-The single-consultant minimal management surface should at least support:
-- pack catalog visibility
-- agent catalog visibility
-- task-level selected extension visibility
-- task-level pack / agent overrides
-- version / status visibility
+Visual and interaction posture must remain aligned with `docs/03_workbench_ux_and_page_spec.md`.
 
 ---
 
-## 11. Workbench / UI rules
+## 7. Current Phase Rule
 
-The UI should feel like a consulting workbench, not:
-- a generic CRUD admin panel
-- a debug dashboard
-- a chat-first interface
+Wave 0 to Wave 5 deepen baseline is complete.
 
-The workbench should increasingly reflect:
-- the primary objects being worked on
-- the current decision context
-- the evidence base
-- the deliverable being shaped
-- the supporting context versus system trace distinction
+`P0-0` through `P0-H` hardening / extension baseline is complete.
 
-Within the single-consultant scope, the following workbench surfaces should now be treated as formally established rather than provisional:
-- `Decision Workspace`
-- `Extension Manager` minimal surface
-- `Matter / Engagement Workspace`
-- `Artifact / Evidence Workspace`
-- `Deliverable Workspace`
+Therefore:
 
-That means `Client / Engagement / Workstream / DecisionContext` should be treated as formal workspace subjects, not just task-detail summaries.
-It also means `Artifact / SourceMaterial / Evidence` should be treated as formal workspace subjects with visible support chains, sufficiency, and gap governance, not only as supporting context cards.
-It also means `Deliverable` should be treated as a formal workspace subject with visible class, linkage, limitations, and continuity, not just as a result section inside task detail.
+- `P0 hardening line is formally closed`
+- do not open `P0-I`
+- do not reopen a hidden Wave 6
+- new work should start from a new decision phase, not further baseline extension by default
 
-Do not hard-code product logic into UI-only wording when the same rule belongs in shared application logic.
+The current recommended next-phase directions live in:
+
+- `docs/00_product_definition_and_current_state.md`
 
 ---
 
-## 12. What is in scope now versus later
+## 8. Documentation Update Rules
 
-### 11.1 In scope for the formal product boundary now
-- full single-consultant capability scope
-- ontology-first object model
-- Host orchestration
-- multiple agents
-- pack layer
-- consulting workbench UI
-- matter / engagement workspace as a formal case-working surface
-- artifact / evidence workspace as a formal source-and-evidence work surface
-- deliverable workspace as a formal deliverable-working surface
-- provider abstraction
-- source / evidence / history / traceability
+When changing behavior:
 
-### 11.2 Later system layers
-These are later layers, not the current product boundary:
-- multi-user login
-- role / permission systems
-- multi-consultant collaboration
-- multi-company workspace sync
-- multi-tenant governance
-- per-user API key management
-- large enterprise admin features
+- update the relevant active doc that owns the changed topic
+- update `docs/04_qa_matrix.md` only when real verification evidence exists
+- update `docs/05_benchmark_and_regression.md` only when benchmark / suite behavior truly changes
 
-Do not confuse "not doing multi-user yet" with shrinking the product into a reduced-scope implementation.
+Do not:
+
+- revive archive docs as active governance docs
+- edit legacy stubs except to fix a bad redirect
+- write product truth into research docs
 
 ---
 
-## 13. Implementation order rules
+## 9. Testing Expectations
 
-Use implementation order to stage delivery, but **not** to shrink product meaning.
+Before considering a runtime change done, verify at least the affected layer and work surface.
 
-Prefer this order:
-1. governance alignment and object model
-2. ontology and context structures
-3. Host orchestration and capability routing
-4. workbench surfaces
-5. specialist / reasoning agent expansion
-6. pack integration
-7. multi-user system layers later
+Minimum expectations:
 
-Do not frame design decisions as "out of scope" if they are part of the full single-consultant capability boundary.
-
-Instead, frame them as:
-- first-wave implementation
-- second-wave implementation
-- later system-layer implementation
-
----
-
-## 14. Engineering rules
-
-### 13.1 Build small, but build toward the full architecture
-Incremental delivery is good.
-Artificially shrinking the architecture boundary is not.
-
-### 13.2 Objects before prompt sprawl
-Prefer structured objects and links over giant prompt blobs.
-
-### 13.3 Preserve provider abstraction
-All model usage must continue to go through an internal router / provider boundary.
-
-### 13.4 Preserve deliverable-centric outputs
-Outputs should remain decision-ready and object-aware, not generic long chat answers.
-
-### 13.5 Preserve traceability
-Source -> Evidence -> Insight / Risk / Recommendation -> Deliverable should remain visible in the architecture.
-
-### 13.6 Avoid fake future-proofing
-Do not add speculative platform features just because they sound scalable.
-Keep the architecture visible and extensible, but implement with discipline.
-
----
-
-## 15. Testing expectations
-
-Before considering a change done, verify at least:
-- the task / workbench flow still functions
-- Host orchestration still runs
+- task / workbench flow still functions
+- Host orchestration still runs through the formal boundary
 - structured outputs still return
 - deliverables still persist
 - history still persists
-- no code bypasses the model abstraction layer
+- no change bypasses the provider abstraction layer
 
-If a change touches orchestration, ontology, or context modeling, test both:
-- a convergence-style path
-- at least one specialist path
+If a change affects shipped behavior, add real evidence to `docs/04_qa_matrix.md`.
 
-If a change touches intake semantics, verify:
-- one-line inquiry still enters the same canonical intake pipeline
-- single-material and multi-source starts remain inferred intake patterns rather than different ontology worlds
-- unified intake keeps one visible entry surface while item-level preview / remove / warning stays usable
-- limited-support and unsupported materials are shown honestly at item level rather than being implied by generic copy
-- limited-support / pending-parse / unsupported / failed ingest states now also explain impact and recommended remediation, rather than stopping at raw status pills
-- per-item retry / replace / remove / keep-as-reference semantics should stay aligned with blocking vs non-blocking intake rules, rather than drifting into a generic upload manager
-- if a change touches intake retry/progress, verify both item-level actions and batch-level visibility so the user can tell what finished, what is still parsing, what failed, and what is blocking
-- if a change touches ingest diagnostics, verify status, diagnostic category, retryability explanation, usable scope, and recommended action all stay aligned
-- if a change touches lane-aware supplement diagnostics, verify `follow_up` still points back to checkpoint gaps, `continuous` still points back to action / outcome validation, and `one_off` still stays closure-first
-
-If a change touches continuity / writeback behavior, test at least:
-- `one_off` minimal traceability
-- `follow_up` milestone checkpoint behavior
-- `continuous` decision -> action -> outcome writeback visibility
-- one_off closure / reopen semantics and continuation-aware primary actions on matter / task / deliverable surfaces
-- follow_up supplement guidance on matter / evidence surfaces still answers what changed, what this supplement is for, and what to do next
-- continuous progression surfaces on matter / task / deliverable / evidence pages still answer where progression stands now, what changed, and what to do next without turning into a records wall
-
-If a change affects workbench structure, validate:
-- main work surface readability
-- responsive layout stability
-- supporting context and system trace separation
+If a change affects benchmark / regression behavior, update `docs/05_benchmark_and_regression.md` and the underlying suite / manifests together.
 
 ---
 
-## 16. Change control rules
+## 10. Legacy Docs
 
-When making changes:
-- keep diffs scoped
-- avoid mixing unrelated refactors with new behavior
-- document new architectural assumptions when they affect later work
-- do not casually rename major concepts
-- do not reintroduce reduced-scope framing as the product boundary
+Top-level legacy docs under `docs/` now exist only as compatibility stubs.
 
-If a requested change conflicts with the full-scope single-consultant architecture, implement the narrowest change that still preserves the architecture boundary, or flag the conflict clearly.
+Historical governance docs live under:
 
----
+- `archive/docs/2026-04-documentation-reset/`
 
-## 17. What success looks like
+Research references live under:
 
-A good Infinite Pro implementation should make it possible for one consultant to:
+- `research/docs/`
 
-1. work on real client matters
-2. frame decisions in context
-3. attach and organize evidence
-4. run host-led specialist or multi-agent workflows
-5. shape decision-ready deliverables
-6. revisit history and refine recommendations over time
-7. feel that the system is a true consulting workbench, not another chat window
-
-That is the standard to build toward.
+Use them only for historical context, not as primary design authority.
