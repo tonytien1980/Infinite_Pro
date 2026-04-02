@@ -50,29 +50,29 @@ Wave 0 through Wave 5 deepen baseline is complete.
 
 Read these first:
 
-1. [docs/00_product_definition_and_current_state.md](/Users/oldtien_base/Desktop/Infinite%20Pro/docs/00_product_definition_and_current_state.md)
+1. [docs/00_product_definition_and_current_state.md](docs/00_product_definition_and_current_state.md)
    Product identity, capability boundary, current product state, fit, non-goals, and next-phase decision.
-2. [docs/01_runtime_architecture_and_data_contracts.md](/Users/oldtien_base/Desktop/Infinite%20Pro/docs/01_runtime_architecture_and_data_contracts.md)
+2. [docs/01_runtime_architecture_and_data_contracts.md](docs/01_runtime_architecture_and_data_contracts.md)
    Runtime shape, object chain, intake, persistence, provenance, writeback, provider boundary, and bridge notes.
-3. [docs/02_host_agents_packs_and_extension_system.md](/Users/oldtien_base/Desktop/Infinite%20Pro/docs/02_host_agents_packs_and_extension_system.md)
+3. [docs/02_host_agents_packs_and_extension_system.md](docs/02_host_agents_packs_and_extension_system.md)
    Host orchestration, agent system, pack contracts, extension manager, and management guardrails.
-4. [docs/03_workbench_ux_and_page_spec.md](/Users/oldtien_base/Desktop/Infinite%20Pro/docs/03_workbench_ux_and_page_spec.md)
+4. [docs/03_workbench_ux_and_page_spec.md](docs/03_workbench_ux_and_page_spec.md)
    Workbench IA, page roles, first-screen rules, disclosure rules, visual posture, and page-to-page flow.
 
 Verification and quality docs:
 
-- [docs/04_qa_matrix.md](/Users/oldtien_base/Desktop/Infinite%20Pro/docs/04_qa_matrix.md)
+- [docs/04_qa_matrix.md](docs/04_qa_matrix.md)
   The single living record of shipped build, smoke, and verification evidence.
-- [docs/05_benchmark_and_regression.md](/Users/oldtien_base/Desktop/Infinite%20Pro/docs/05_benchmark_and_regression.md)
+- [docs/05_benchmark_and_regression.md](docs/05_benchmark_and_regression.md)
   Benchmark manifests, regression suite structure, gate modes, and runner runbook.
 
 Historical governance docs:
 
-- [archive/docs/2026-04-documentation-reset/](/Users/oldtien_base/Desktop/Infinite%20Pro/archive/docs/2026-04-documentation-reset)
+- [archive/docs/2026-04-documentation-reset/](archive/docs/2026-04-documentation-reset/)
 
 Research references:
 
-- [research/docs/](/Users/oldtien_base/Desktop/Infinite%20Pro/research/docs)
+- [research/docs/](research/docs/)
 
 The `docs/` folder is intentionally flat: it now contains only the current should-read files.
 
@@ -156,7 +156,7 @@ npm run typecheck
 
 ## Environment Notes
 
-Use [`.env.example`](/Users/oldtien_base/Desktop/Infinite%20Pro/.env.example) as the bootstrap baseline.
+Use [`.env.example`](.env.example) as the bootstrap baseline.
 
 Important notes:
 
@@ -168,7 +168,7 @@ Important notes:
 
 For full runtime semantics, read:
 
-- [docs/01_runtime_architecture_and_data_contracts.md](/Users/oldtien_base/Desktop/Infinite%20Pro/docs/01_runtime_architecture_and_data_contracts.md)
+- [docs/01_runtime_architecture_and_data_contracts.md](docs/01_runtime_architecture_and_data_contracts.md)
 
 ---
 
@@ -199,8 +199,8 @@ Formal rule:
 
 Use the quality docs rather than scattered notes:
 
-- [docs/04_qa_matrix.md](/Users/oldtien_base/Desktop/Infinite%20Pro/docs/04_qa_matrix.md) for build / typecheck / smoke / shipped evidence
-- [docs/05_benchmark_and_regression.md](/Users/oldtien_base/Desktop/Infinite%20Pro/docs/05_benchmark_and_regression.md) for benchmark manifests, suite structure, and gate modes
+- [docs/04_qa_matrix.md](docs/04_qa_matrix.md) for build / typecheck / smoke / shipped evidence
+- [docs/05_benchmark_and_regression.md](docs/05_benchmark_and_regression.md) for benchmark manifests, suite structure, and gate modes
 
 Current verification posture includes:
 

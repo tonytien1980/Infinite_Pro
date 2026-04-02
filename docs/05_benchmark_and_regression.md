@@ -223,7 +223,7 @@ python3 backend/scripts/run_pack_benchmark_scaffold.py --suite-manifest backend/
 目前也有最小 pytest baseline：
 
 ```bash
-.venv312/bin/python -m pytest backend/tests/test_benchmark_scaffolding.py -q
+PYTHONPATH=backend .venv/bin/python -m pytest backend/tests/test_benchmark_scaffolding.py -q
 ```
 
 這一條的責任是：

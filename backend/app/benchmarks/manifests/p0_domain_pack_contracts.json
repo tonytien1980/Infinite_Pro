@@ -4,7 +4,7 @@
   "purpose": "Provide a repeatable baseline for the 8 Domain / Functional Packs so later hardening can verify selection, hint coverage, and contract readiness without turning benchmark scaffolding into a new platform.",
   "update_policy": [
     "Only update this manifest when the shipped scope for domain pack hardening changes.",
-    "Do not overwrite living QA evidence; benchmark scaffold records complement docs/16_qa_matrix.md.",
+    "Do not overwrite living QA evidence; benchmark scaffold records complement docs/04_qa_matrix.md.",
     "Prefer revising seed cases over expanding into a full scoring platform during P0-H."
   ],
   "cases": [

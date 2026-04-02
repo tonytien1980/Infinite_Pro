@@ -4,7 +4,7 @@
   "purpose": "Provide a minimal but executable before-and-after baseline for the second 5 industry packs without turning evaluation into a new platform.",
   "update_policy": [
     "Only update this manifest when the shipped hardening scope for Industry Batch 2 changes.",
-    "Do not overwrite historical QA evidence; benchmark scaffold records complement docs/16_qa_matrix.md.",
+    "Do not overwrite historical QA evidence; benchmark scaffold records complement docs/04_qa_matrix.md.",
     "Prefer adding or revising seed cases over expanding into a full scoring platform during P0-C."
   ],
   "cases": [

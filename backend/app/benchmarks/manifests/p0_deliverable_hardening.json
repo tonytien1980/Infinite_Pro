@@ -4,7 +4,7 @@
   "purpose": "Provide a minimal but executable before-and-after baseline for deliverable bundle readability, ranking discipline, and artifact-readiness hardening without turning benchmark scaffolding into a new platform.",
   "update_policy": [
     "Only update this manifest when the shipped scope for P0-F changes.",
-    "Do not overwrite historical QA evidence; benchmark scaffold records complement docs/16_qa_matrix.md.",
+    "Do not overwrite historical QA evidence; benchmark scaffold records complement docs/04_qa_matrix.md.",
     "Prefer revising seed cases over expanding into a full scoring platform during P0-F."
   ],
   "cases": [

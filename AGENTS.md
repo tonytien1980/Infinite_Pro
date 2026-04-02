@@ -194,7 +194,7 @@ When changing behavior:
 Do not:
 
 - revive archive docs as active governance docs
-- edit legacy stubs except to fix a bad redirect
+- recreate removed legacy doc paths unless you are intentionally restoring a compatibility stub / redirect
 - write product truth into research docs
 
 ---
@@ -220,7 +220,7 @@ If a change affects benchmark / regression behavior, update `docs/05_benchmark_a
 
 ## 10. Legacy Docs
 
-Top-level legacy docs under `docs/` now exist only as compatibility stubs.
+Legacy top-level docs were removed from `docs/` during the 2026-04 reset.
 
 Historical governance docs live under:
 
@@ -231,3 +231,4 @@ Research references live under:
 - `research/docs/`
 
 Use them only for historical context, not as primary design authority.
+If an old deep link must keep working, restore it only as an explicit compatibility stub / redirect, not as a second active source of truth.
