@@ -587,8 +587,12 @@ def test_pack_contract_synthesis_schema_uses_strict_stage_keys() -> None:
 def test_agent_contract_synthesis_normalizes_invalid_model_output(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    captured_request = None
+
     class FakeProvider:
         def generate_agent_contract_synthesis(self, request):
+            nonlocal captured_request
+            captured_request = request
             from app.model_router.base import AgentContractSynthesisOutput
 
             return AgentContractSynthesisOutput(
@@ -634,13 +638,19 @@ def test_agent_contract_synthesis_normalizes_invalid_model_output(
     assert response.draft.supported_capabilities == ["diagnose_assess", "synthesize_brief"]
     assert response.draft.relevant_domain_packs == ["operations_pack"]
     assert response.draft.relevant_industry_packs == ["saas_pack"]
+    assert captured_request is not None
+    assert captured_request.response_language == "zh-Hant"
 
 
 def test_pack_contract_synthesis_normalizes_invalid_model_output(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    captured_request = None
+
     class FakeProvider:
         def generate_pack_contract_synthesis(self, request):
+            nonlocal captured_request
+            captured_request = request
             from app.model_router.base import PackContractSynthesisOutput
 
             return PackContractSynthesisOutput(
@@ -689,6 +699,8 @@ def test_pack_contract_synthesis_normalizes_invalid_model_output(
     assert response.draft.domain_lenses == ["operations"]
     assert response.draft.relevant_client_types == ["中小企業"]
     assert response.draft.relevant_client_stages == ["創業階段"]
+    assert captured_request is not None
+    assert captured_request.response_language == "zh-Hant"
 
 
 def test_task_creation_attaches_background_text_as_context_and_evidence(client: TestClient) -> None:
@@ -4338,6 +4350,22 @@ def test_research_intelligence_structured_schema_requires_every_property() -> No
     assert set(schema["required"]) == set(schema["properties"].keys())
     assert "research_sub_questions" in schema["required"]
     assert "citation_handoff" in schema["required"]
+
+
+def test_core_analysis_spec_defaults_to_traditional_chinese_output_instruction() -> None:
+    from app.model_router.base import CoreAnalysisRequest
+    from app.model_router.structured_tasks import build_core_analysis_spec
+
+    spec = build_core_analysis_spec(
+        CoreAnalysisRequest(
+            agent_id="legal_risk",
+            task_title="Language guardrail test",
+            task_description="Ensure the default output language stays in Traditional Chinese.",
+        )
+    )
+
+    assert "繁體中文" in spec.system_prompt
+    assert "避免中英夾雜" in spec.system_prompt
 
 
 def test_openai_provider_retries_once_after_timeout(

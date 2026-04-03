@@ -489,16 +489,64 @@ export function SettingsPagePanel() {
   ];
 
   return (
-    <main className="page-shell">
-      <section className="hero-card">
-        <span className="eyebrow">系統設定</span>
-        <h1 className="page-title">系統設定</h1>
-        <p className="page-subtitle">
-          管理目前單人版工作台的顯示偏好、建立新案件預設，以及正式生效的模型與服務設定。
-        </p>
+    <main className="page-shell settings-page-shell">
+      <section className="hero-card settings-hero">
+        <div className="hero-layout">
+          <div className="hero-main">
+            <span className="eyebrow">系統設定</span>
+            <h1 className="page-title">系統設定</h1>
+            <p className="page-subtitle">
+              管理目前單人版工作台的顯示偏好、建立新案件預設，以及正式生效的模型與服務設定。
+            </p>
+            <div className="hero-actions">
+              <a className="button-primary" href="#provider-panel">
+                看模型與服務設定
+              </a>
+              <a className="button-secondary" href="#preference-panel">
+                看工作台偏好
+              </a>
+            </div>
+          </div>
+
+          <div className="hero-aside">
+            <div className="hero-focus-card">
+              <p className="hero-focus-label">{settingsActionTitle}</p>
+              <h3 className="hero-focus-title">先分清是在調正式設定，還是在調個人偏好</h3>
+              <p className="hero-focus-copy">{settingsActionSummary}</p>
+            </div>
+            <div className="hero-focus-card hero-focus-card-warm">
+              <p className="hero-focus-label">這頁先看什麼</p>
+              <ul className="hero-focus-list">
+                {settingsActionChecklist.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div className="hero-metrics-grid">
+          <div className="section-card hero-metric-card">
+            <h3>目前供應商</h3>
+            <p className="workbench-metric">{currentProvider?.providerDisplayName || "未設定"}</p>
+            <p className="muted-text">來源：{labelForProviderSource(currentProvider)}</p>
+          </div>
+          <div className="section-card hero-metric-card">
+            <h3>主題模式</h3>
+            <p className="workbench-metric">
+              {THEME_OPTIONS.find((item) => item.value === draft.themePreference)?.label || "淺色"}
+            </p>
+            <p className="muted-text">目前工作台外觀會依這個偏好套用。</p>
+          </div>
+          <div className="section-card hero-metric-card">
+            <h3>最近驗證</h3>
+            <p className="workbench-metric">{labelForProviderValidationStatus(latestValidationStatus)}</p>
+            <p className="muted-text">{latestValidationMessage}</p>
+          </div>
+        </div>
       </section>
 
-      <section className="panel" style={{ marginBottom: "24px" }}>
+      <section className="panel" style={{ marginBottom: "24px" }} id="settings-guide-panel">
         <div className="panel-header">
           <div>
             <h2 className="panel-title">{settingsActionTitle}</h2>
@@ -525,7 +573,7 @@ export function SettingsPagePanel() {
         </div>
       </section>
 
-      <section className="panel" style={{ marginBottom: "24px" }}>
+      <section className="panel" style={{ marginBottom: "24px" }} id="provider-panel">
         <div className="panel-header">
           <div>
             <h2 className="panel-title">模型與服務設定</h2>
@@ -885,7 +933,7 @@ export function SettingsPagePanel() {
 
       <div className="detail-grid">
         <div className="detail-stack">
-          <section className="panel">
+          <section className="panel" id="preference-panel">
             <div className="panel-header">
               <div>
                 <h2 className="panel-title">介面偏好</h2>

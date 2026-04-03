@@ -352,33 +352,62 @@ export function AgentManagementPanel() {
   }
 
   return (
-    <main className="page-shell">
-      <section className="hero-card">
-        <span className="eyebrow">代理管理</span>
-        <h1 className="page-title">代理管理</h1>
-        <p className="page-subtitle">
-          管理代理狀態、版本、責任邊界、輸入輸出契約與交接方式，避免 agents 只剩 catalog 名稱而沒有正式規格。
-        </p>
-        <div className="workbench-overview-grid" style={{ marginTop: "20px" }}>
-          <div className="section-card">
+    <main className="page-shell management-page-shell agents-page-shell">
+      <section className="hero-card governance-hero agents-hero">
+        <div className="hero-layout">
+          <div className="hero-main">
+            <span className="eyebrow">代理管理</span>
+            <h1 className="page-title">代理管理</h1>
+            <p className="page-subtitle">
+              管理代理的狀態、版本與責任邊界，避免只剩名稱存在，卻沒有可正式使用的定義。
+            </p>
+            <div className="hero-actions">
+              <button className="button-primary" type="button" onClick={startCreate}>
+                新增代理
+              </button>
+              <a className="button-secondary" href="#agent-catalog-panel">
+                看代理列表
+              </a>
+            </div>
+          </div>
+
+          <div className="hero-aside">
+            <div className="hero-focus-card">
+              <p className="hero-focus-label">{agentActionTitle}</p>
+              <h3 className="hero-focus-title">先補齊可用定義，再決定要不要新增</h3>
+              <p className="hero-focus-copy">{agentActionSummary}</p>
+            </div>
+            <div className="hero-focus-card hero-focus-card-warm">
+              <p className="hero-focus-label">這頁先看什麼</p>
+              <ul className="hero-focus-list">
+                {agentActionChecklist.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div className="hero-metrics-grid">
+          <div className="section-card hero-metric-card">
             <h3>全部代理</h3>
             <p className="workbench-metric">{managedAgents.length}</p>
             <p className="muted-text">目前已在工作台管理中的代理。</p>
           </div>
-          <div className="section-card">
+          <div className="section-card hero-metric-card">
             <h3>啟用中</h3>
             <p className="workbench-metric">{activeCount}</p>
             <p className="muted-text">目前可被工作流選入的代理。</p>
           </div>
-          <div className="section-card">
+          <div className="section-card hero-metric-card">
             <h3>主控代理</h3>
             <p className="workbench-metric">{hostCount}</p>
             <p className="muted-text">仍由主控代理維持正式協調中心。</p>
           </div>
-          <div className="section-card">
+          <div className="section-card hero-metric-card">
             <h3>核心定義完整</h3>
             <p className="workbench-metric">{completeSpecCount}</p>
-            <p className="muted-text">已補齊責任、邊界、handoff、評估與 trace 要求的代理。</p>
+            <p className="muted-text">已補齊責任、邊界、交接與 trace 要求的代理。</p>
           </div>
         </div>
       </section>
@@ -397,7 +426,7 @@ export function AgentManagementPanel() {
       {!loading && !error ? (
         <div className="detail-grid">
           <div className="detail-stack">
-            <section className="panel">
+            <section className="panel" id="agent-catalog-panel">
               <div className="panel-header">
                 <div>
                   <h2 className="panel-title">代理列表</h2>
@@ -406,21 +435,6 @@ export function AgentManagementPanel() {
                 <button className="button-primary" type="button" onClick={startCreate}>
                   新增代理
                 </button>
-              </div>
-
-              <div className="summary-grid" style={{ marginBottom: "18px" }}>
-                <div className="section-card">
-                  <h4>{agentActionTitle}</h4>
-                  <p className="content-block">{agentActionSummary}</p>
-                </div>
-                <div className="section-card">
-                  <h4>這頁現在先看什麼</h4>
-                  <ul className="list-content">
-                    {agentActionChecklist.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
-                </div>
               </div>
 
               <div className="toolbar-grid">

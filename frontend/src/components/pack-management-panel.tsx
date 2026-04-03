@@ -480,35 +480,64 @@ export function PackManagementPanel() {
   }
 
   return (
-    <main className="page-shell">
-      <section className="hero-card">
-        <span className="eyebrow">模組包管理</span>
-        <h1 className="page-title">模組包管理</h1>
-        <p className="page-subtitle">
-          管理問題面向模組包與產業模組包的分類、狀態、版本、最近使用情況，以及它們是否已把證據、決策與交付邏輯定義完整。
-        </p>
-        <div className="workbench-overview-grid" style={{ marginTop: "20px" }}>
-          <div className="section-card">
+    <main className="page-shell management-page-shell packs-page-shell">
+      <section className="hero-card governance-hero packs-hero">
+        <div className="hero-layout">
+          <div className="hero-main">
+            <span className="eyebrow">模組包管理</span>
+            <h1 className="page-title">模組包管理</h1>
+            <p className="page-subtitle">
+              管理問題面向與產業模組包，讓證據期待、決策模式與交付邏輯都保持一致。
+            </p>
+            <div className="hero-actions">
+              <button className="button-primary" type="button" onClick={startCreate}>
+                新增模組包
+              </button>
+              <a className="button-secondary" href="#pack-catalog-panel">
+                看模組包列表
+              </a>
+            </div>
+          </div>
+
+          <div className="hero-aside">
+            <div className="hero-focus-card">
+              <p className="hero-focus-label">{packActionTitle}</p>
+              <h3 className="hero-focus-title">先分清是哪一類，再看定義是否完整</h3>
+              <p className="hero-focus-copy">{packActionSummary}</p>
+            </div>
+            <div className="hero-focus-card hero-focus-card-warm">
+              <p className="hero-focus-label">這頁先看什麼</p>
+              <ul className="hero-focus-list">
+                {packActionChecklist.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div className="hero-metrics-grid">
+          <div className="section-card hero-metric-card">
             <h3>問題面向模組包</h3>
             <p className="workbench-metric">{domainPacks.length}</p>
             <p className="muted-text">承接顧問工作類型、問題邊界與處理方式。</p>
           </div>
-          <div className="section-card">
+          <div className="section-card hero-metric-card">
             <h3>產業模組包</h3>
             <p className="workbench-metric">{industryPacks.length}</p>
             <p className="muted-text">承接商業模式、產業限制與常見指標。</p>
           </div>
-          <div className="section-card">
+          <div className="section-card hero-metric-card">
             <h3>啟用中</h3>
             <p className="workbench-metric">
               {managedPacks.filter((pack) => pack.status === "active").length}
             </p>
-            <p className="muted-text">目前可被 Host 與任務 workflow 選入的模組包。</p>
+            <p className="muted-text">目前可被 Host 與工作流程選入的模組包。</p>
           </div>
-          <div className="section-card">
+          <div className="section-card hero-metric-card">
             <h3>核心定義完整</h3>
             <p className="workbench-metric">{completeCoreContractCount}</p>
-            <p className="muted-text">已補齊 evidence、decision、deliverable 與 rationale 的模組包。</p>
+            <p className="muted-text">已補齊證據、決策、交付與存在理由的模組包。</p>
           </div>
         </div>
       </section>
@@ -527,7 +556,7 @@ export function PackManagementPanel() {
       {!loading && !error ? (
         <div className="detail-grid">
           <div className="detail-stack">
-            <section className="panel">
+            <section className="panel" id="pack-catalog-panel">
               <div className="panel-header">
                 <div>
                   <h2 className="panel-title">模組包目錄</h2>
@@ -538,21 +567,6 @@ export function PackManagementPanel() {
                 <button className="button-primary" type="button" onClick={startCreate}>
                   新增模組包
                 </button>
-              </div>
-
-              <div className="summary-grid" style={{ marginBottom: "18px" }}>
-                <div className="section-card">
-                  <h4>{packActionTitle}</h4>
-                  <p className="content-block">{packActionSummary}</p>
-                </div>
-                <div className="section-card">
-                  <h4>這頁現在先看什麼</h4>
-                  <ul className="list-content">
-                    {packActionChecklist.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
-                </div>
               </div>
 
               <div className="page-tabs" role="tablist" aria-label="模組包類型">

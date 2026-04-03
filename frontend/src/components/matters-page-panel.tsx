@@ -189,25 +189,74 @@ export function MattersPagePanel() {
   const recentTasks = [...tasks]
     .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
     .slice(0, 4);
+  const focusMatter = activeMatters[0] ?? allMatterCards[0] ?? null;
+  const focusDeliverable = recentDeliverables[0] ?? null;
 
   return (
-    <main className="page-shell">
-      <section className="hero-card">
-        <span className="eyebrow">案件工作台</span>
-        <h1 className="page-title">案件工作台</h1>
-        <p className="page-subtitle">從這裡找到要繼續處理的案件，直接回到案件頁接著做。</p>
-        <div className="workbench-overview-grid" style={{ marginTop: "20px" }}>
-          <div className="section-card">
+    <main className="page-shell matters-page-shell">
+      <section className="hero-card matters-hero">
+        <div className="hero-layout">
+          <div className="hero-main">
+            <span className="eyebrow">案件工作台</span>
+            <h1 className="page-title">案件工作台</h1>
+            <p className="page-subtitle">
+              從這裡找到要繼續處理的案件，直接回到案件頁接著推進。
+            </p>
+            <div className="hero-actions">
+              <Link className="button-primary" href="/new">
+                建立新案件
+              </Link>
+              {focusMatter ? (
+                <Link className="button-secondary" href={`/matters/${focusMatter.id}`}>
+                  回到最新案件
+                </Link>
+              ) : null}
+              {focusDeliverable?.latest_deliverable_id ? (
+                <Link
+                  className="button-secondary"
+                  href={`/deliverables/${focusDeliverable.latest_deliverable_id}`}
+                >
+                  看最近交付物
+                </Link>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="hero-aside">
+            <div className="hero-focus-card">
+              <p className="hero-focus-label">現在最值得先看</p>
+              <h3 className="hero-focus-title">
+                {focusMatter?.title || "先建立第一個案件"}
+              </h3>
+              <p className="hero-focus-copy">
+                {truncateText(
+                  focusMatter?.summary || "新案件建立後，會自動回到案件頁開始整理問題、資料與下一步。",
+                  108,
+                )}
+              </p>
+            </div>
+            <div className="hero-focus-card hero-focus-card-warm">
+              <p className="hero-focus-label">這頁先做什麼</p>
+              <ul className="hero-focus-list">
+                <li>先用搜尋或狀態篩選，縮小到你要處理的案件。</li>
+                <li>進入案件頁後，再看重點、證據和交付物脈絡。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div className="hero-metrics-grid">
+          <div className="section-card hero-metric-card">
             <h3>全部案件</h3>
             <p className="workbench-metric">{allMatterCards.length}</p>
             <p className="muted-text">目前已建立的案件數量。</p>
           </div>
-          <div className="section-card">
+          <div className="section-card hero-metric-card">
             <h3>進行中</h3>
             <p className="workbench-metric">{activeMatters.length}</p>
             <p className="muted-text">仍在持續推進的案件。</p>
           </div>
-          <div className="section-card">
+          <div className="section-card hero-metric-card">
             <h3>封存</h3>
             <p className="workbench-metric">{archivedMatters.length}</p>
             <p className="muted-text">先收起來，但之後還能回看的案件。</p>

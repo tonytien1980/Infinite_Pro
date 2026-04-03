@@ -672,9 +672,44 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
         },
       ]
     : [];
+  const taskHeroContextPath =
+    matterWorkspaceCard?.objectPath || "目前尚未掛回完整案件路徑。";
+  const taskHeroQuestion =
+    taskFraming?.judgmentToMake ||
+    decisionSnapshot?.conclusion ||
+    task?.title ||
+    "目前尚未形成清楚的判斷主題。";
+  const taskHeroFocusCopy =
+    taskFraming?.analysisFocus ||
+    taskActionSummary;
+  const taskHeroLaneTitle = followUpLane
+    ? "最近檢查點"
+    : progressionLane
+      ? "最近推進狀態"
+      : "目前狀態";
+  const taskHeroLaneSummary = followUpLane
+    ? followUpLane.latest_update?.summary || "尚未形成正式檢查點。"
+    : progressionLane
+      ? progressionLane.latest_progression?.summary || "目前還沒有新的推進更新。"
+      : latestDeliverable
+        ? `已形成交付物「${latestDeliverable.title}」`
+        : hasThinTaskEvidence
+          ? "資料仍偏薄，建議補件或先跑第一版。"
+          : "這筆工作已具備基本分析條件。";
+  const taskHeroActionTitle = latestDeliverable
+    ? "結果已形成，可先回看"
+    : hasThinTaskEvidence
+      ? "資料偏薄，但不用卡住"
+      : "這筆工作可以直接推進";
+  const selectedPackCount =
+    task?.pack_resolution
+      ? task.pack_resolution.selected_domain_packs.length +
+        task.pack_resolution.selected_industry_packs.length
+      : 0;
+  const selectedAgentCount = task?.agent_selection.selected_agent_names.length ?? 0;
 
   return (
-    <main className="page-shell">
+    <main className="page-shell decision-page-shell">
       <div className="back-link-group">
         <Link className="back-link" href="/">
           ← 返回工作台
@@ -696,77 +731,112 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
 
       {task ? (
         <>
-          <section className="hero-card">
-            <span className="eyebrow">決策工作面</span>
-            <h1 className="page-title">{task.title}</h1>
-            <p className="page-subtitle">{task.description || "未提供額外說明。"}</p>
-            <div className="meta-row" style={{ marginTop: "16px" }}>
-              <span className="pill">{labelForTaskStatus(task.status)}</span>
-              <span>{labelForTaskType(task.task_type)}</span>
-              <span>{labelForFlowMode(task.mode)}</span>
-              <span>更新於 {formatDisplayDate(task.updated_at)}</span>
-            </div>
-          </section>
-
-          <section className="panel">
-            <div className="panel-header">
-              <div>
-                <h2 className="panel-title">{taskActionTitle}</h2>
-                <p className="panel-copy">{taskActionSummary}</p>
-              </div>
-            </div>
-            <div className="meta-row" style={{ marginTop: "4px" }}>
-              <span>{labelForTaskStatus(task.status)}｜{labelForFlowMode(task.mode)}</span>
-              <span>{task.source_materials.length} 份來源材料／{task.evidence.length} 則證據</span>
-              <span>{latestDeliverable ? "已形成正式交付物" : "尚未形成正式交付物"}</span>
-              {matterWorkspaceCard ? <span>{matterWorkspaceCard.objectPath}</span> : null}
-            </div>
-            {followUpLane ? (
-              <div className="summary-grid" style={{ marginTop: "16px" }}>
-                <div className="section-card">
-                  <h4>上一個檢查點</h4>
-                  <p className="content-block">
-                    {followUpLane.previous_checkpoint?.summary || "目前沒有更早的檢查點可比較。"}
-                  </p>
+          <section className="hero-card decision-hero">
+            <div className="hero-layout">
+              <div className="hero-main">
+                <span className="eyebrow">決策工作面</span>
+                <h1 className="page-title">{task.title}</h1>
+                <p className="page-subtitle">{task.description || "未提供額外說明。"}</p>
+                <p className="workspace-object-path">{taskHeroContextPath}</p>
+                <div className="meta-row" style={{ marginTop: "16px" }}>
+                  <span className="pill">{labelForTaskStatus(task.status)}</span>
+                  <span>{labelForTaskType(task.task_type)}</span>
+                  <span>{labelForFlowMode(task.mode)}</span>
+                  <span>更新於 {formatDisplayDate(task.updated_at)}</span>
                 </div>
-                <div className="section-card">
-                  <h4>這次更新重點</h4>
-                  <ul className="list-content">
-                    {followUpLane.what_changed.map((item) => (
+                <div className="hero-focus-card">
+                  <p className="hero-focus-label">這輪要判斷什麼</p>
+                  <h3 className="hero-focus-title">{taskHeroQuestion}</h3>
+                  <p className="hero-focus-copy">{taskHeroFocusCopy}</p>
+                </div>
+                <div className="button-row" style={{ marginTop: "4px" }}>
+                  {latestDeliverable ? (
+                    <Link className="button-primary" href={`/deliverables/${latestDeliverable.id}`}>
+                      打開正式交付物
+                    </Link>
+                  ) : (
+                    <button
+                      className="button-primary"
+                      type="button"
+                      onClick={handleRun}
+                      disabled={running}
+                    >
+                      {running ? runMeta?.buttonRunning ?? "執行中..." : runMeta?.buttonIdle}
+                    </button>
+                  )}
+                  {task.matter_workspace ? (
+                    <Link
+                      className="button-secondary"
+                      href={`/matters/${task.matter_workspace.id}/evidence`}
+                    >
+                      先補來源與證據
+                    </Link>
+                  ) : null}
+                  {task.matter_workspace ? (
+                    <Link className="button-secondary" href={`/matters/${task.matter_workspace.id}`}>
+                      回案件工作面
+                    </Link>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="hero-aside">
+                <div className="hero-focus-card">
+                  <p className="hero-focus-label">{taskActionTitle}</p>
+                  <h3 className="hero-focus-title">{taskHeroActionTitle}</h3>
+                  <p className="hero-focus-copy">{taskActionSummary}</p>
+                </div>
+                <div className="hero-focus-card hero-focus-card-warm">
+                  <p className="hero-focus-label">這頁先做什麼</p>
+                  <ul className="hero-focus-list">
+                    {taskActionChecklist.slice(0, 3).map((item) => (
                       <li key={item}>{item}</li>
                     ))}
                   </ul>
                 </div>
+                <div className="hero-focus-card">
+                  <p className="hero-focus-label">{taskHeroLaneTitle}</p>
+                  <h3 className="hero-focus-title">{taskHeroLaneSummary}</h3>
+                  {followUpLane ? (
+                    <p className="hero-focus-copy">
+                      上一個檢查點：
+                      {followUpLane.previous_checkpoint?.summary || "目前沒有更早的檢查點可比較。"}
+                    </p>
+                  ) : progressionLane ? (
+                    <p className="hero-focus-copy">
+                      下一步：
+                      {progressionLane.next_progression_actions[0] || "回案件工作面更新推進狀態。"}
+                    </p>
+                  ) : null}
+                </div>
               </div>
-            ) : null}
-            <ul className="list-content" style={{ marginTop: "16px" }}>
-              {taskActionChecklist.slice(0, 2).map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-            <div className="button-row" style={{ marginTop: "16px" }}>
-              {latestDeliverable ? (
-                <Link className="button-primary" href={`/deliverables/${latestDeliverable.id}`}>
-                  打開正式交付物
-                </Link>
-              ) : (
-                <button
-                  className="button-primary"
-                  type="button"
-                  onClick={handleRun}
-                  disabled={running}
-                >
-                  {running ? runMeta?.buttonRunning ?? "執行中..." : runMeta?.buttonIdle}
-                </button>
-              )}
-              {task.matter_workspace ? (
-                <Link
-                  className="button-secondary"
-                  href={`/matters/${task.matter_workspace.id}/evidence`}
-                >
-                  先補來源與證據
-                </Link>
-              ) : null}
+            </div>
+
+            <div className="hero-metrics-grid">
+              <div className="section-card hero-metric-card">
+                <h3>目前狀態</h3>
+                <p className="workbench-metric">{labelForTaskStatus(task.status)}</p>
+                <p className="muted-text">{labelForFlowMode(task.mode)} / {labelForTaskType(task.task_type)}</p>
+              </div>
+              <div className="section-card hero-metric-card">
+                <h3>來源與證據</h3>
+                <p className="workbench-metric">{task.evidence.length}</p>
+                <p className="muted-text">{task.source_materials.length} 份來源材料</p>
+              </div>
+              <div className="section-card hero-metric-card">
+                <h3>交付狀態</h3>
+                <p className="workbench-metric">{latestDeliverable ? "已形成" : "未形成"}</p>
+                <p className="muted-text">
+                  {latestDeliverable ? latestDeliverable.title : "目前尚未形成正式交付物。"}
+                </p>
+              </div>
+              <div className="section-card hero-metric-card">
+                <h3>已選代理</h3>
+                <p className="workbench-metric">{selectedAgentCount}</p>
+                <p className="muted-text">
+                  {selectedPackCount} 個模組包 / {selectedAgentCount > 0 ? "已形成代理路徑" : "目前仍偏向最小路徑"}
+                </p>
+              </div>
             </div>
           </section>
 
@@ -1131,7 +1201,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
             <DisclosurePanel
               id="object-navigation"
               title="完整物件導覽列"
-              description="只有在你要核對完整 object path、entry mode 與掛載關係時，再展開這一層；主線閱讀可先看下方段落導覽。"
+              description="只有在你要核對完整物件路徑、進件模式與掛載關係時，再展開這一層；主線閱讀可先看下方段落導覽。"
             >
               <div className="panel-header">
                 <div>
@@ -1175,7 +1245,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
               <DisclosurePanel
                 id="workspace-lane"
                 title="工作鏈與來源 / 證據"
-                description="當你要 debug 這輪判斷憑什麼成立，或需要補件時，再展開這層；平常先看主問題、可信度與交付結果。"
+                description="當你要追查這輪判斷憑什麼成立，或需要補件時，再展開這層；平常先看主問題、可信度與交付結果。"
               >
                 <div className="panel-header">
                   <div>
@@ -2154,7 +2224,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
 
               <DisclosurePanel
                 title="補充脈絡"
-                description="只有在你要回看物件鏈摘要或再次核對決策問題時，再展開這層 supporting info。"
+                description="只有在你要回看物件鏈摘要或再次核對決策問題時，再展開這層補充脈絡。"
               >
                 {ontologyChainSummary ? (
                   <div className="summary-grid">

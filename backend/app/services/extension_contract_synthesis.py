@@ -3,7 +3,6 @@ from __future__ import annotations
 from urllib import error
 
 from fastapi import HTTPException
-
 from app.domain.enums import CapabilityArchetype
 from app.extensions.registry import ExtensionRegistry
 from app.extensions.schemas import PackType
@@ -177,6 +176,7 @@ def _build_agent_contract_draft(
             agent_id=payload.agent_id,
             agent_name=payload.agent_name,
             agent_type=payload.agent_type,
+            response_language="zh-Hant",
             description=payload.description,
             supported_capabilities=payload.supported_capabilities,
             relevant_domain_packs=payload.relevant_domain_packs,
@@ -249,6 +249,7 @@ def _build_pack_contract_draft(
             pack_id=payload.pack_id,
             pack_type=payload.pack_type,
             pack_name=payload.pack_name,
+            response_language="zh-Hant",
             description=payload.description,
             definition=payload.definition,
             domain_lenses=payload.domain_lenses,

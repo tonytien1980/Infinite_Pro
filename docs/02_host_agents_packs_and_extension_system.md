@@ -36,12 +36,14 @@ Host 正式負責：
 - deliverable shaping
 - continuity / writeback policy control
 - history writeback
+- generated output language guardrail
 
 正式規則：
 
 - UI-only logic 不得取代 Host 決定核心 workflow
 - direct model call 不得繞過 Host orchestration 與 provider boundary
 - pack contract 可以 influence Host judgment，但不能 replace Host judgment
+- Host 與 extension synthesis 都必須沿用正式語言 guardrail；若無明確例外，模型輸出預設為繁體中文
 
 ---
 

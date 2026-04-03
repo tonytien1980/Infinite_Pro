@@ -38,6 +38,7 @@ class OperationsAgent(CoreAnalysisAgent):
                 agent_id=self.descriptor.agent_id,
                 task_title=payload.title,
                 task_description=payload.description,
+                response_language=payload.response_language,
                 background_text=payload.background_text,
                 goals=[goal.description for goal in payload.goals],
                 constraints=[constraint.description for constraint in payload.constraints],

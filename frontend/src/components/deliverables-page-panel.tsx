@@ -139,25 +139,80 @@ export function DeliverablesPagePanel() {
     (item) => item.status === "pending_confirmation",
   ).length;
   const finalCount = allDeliverables.filter((item) => item.status === "final").length;
+  const focusDeliverable = filteredDeliverables[0] ?? allDeliverables[0] ?? null;
 
   return (
-    <main className="page-shell">
-      <section className="hero-card">
-        <span className="eyebrow">交付物</span>
-        <h1 className="page-title">交付物</h1>
-        <p className="page-subtitle">從這裡找到要回看、修改或準備交付的內容。</p>
-        <div className="workbench-overview-grid" style={{ marginTop: "20px" }}>
-          <div className="section-card">
+    <main className="page-shell deliverables-page-shell">
+      <section className="hero-card deliverables-hero">
+        <div className="hero-layout">
+          <div className="hero-main">
+            <span className="eyebrow">交付物</span>
+            <h1 className="page-title">交付物</h1>
+            <p className="page-subtitle">
+              從這裡找到要回看、修改或準備交付的內容。
+            </p>
+            <div className="hero-actions">
+              {focusDeliverable ? (
+                <Link className="button-primary" href={`/deliverables/${focusDeliverable.id}`}>
+                  打開最新交付物
+                </Link>
+              ) : (
+                <Link className="button-primary" href="/matters">
+                  先回案件工作台
+                </Link>
+              )}
+              {focusDeliverable ? (
+                <Link className="button-secondary" href="/matters">
+                  看案件工作台
+                </Link>
+              ) : (
+                <Link className="button-secondary" href="/new">
+                  建立新案件
+                </Link>
+              )}
+              {focusDeliverable?.matterId ? (
+                <Link className="button-secondary" href={`/matters/${focusDeliverable.matterId}`}>
+                  回所屬案件
+                </Link>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="hero-aside">
+            <div className="hero-focus-card">
+              <p className="hero-focus-label">現在最值得先看</p>
+              <h3 className="hero-focus-title">
+                {focusDeliverable?.title || "先完成第一份交付物"}
+              </h3>
+              <p className="hero-focus-copy">
+                {truncateText(
+                  focusDeliverable?.summary || "交付物建立後，這裡會集中整理版本、重點與所屬案件。",
+                  108,
+                )}
+              </p>
+            </div>
+            <div className="hero-focus-card hero-focus-card-warm">
+              <p className="hero-focus-label">這頁先做什麼</p>
+              <ul className="hero-focus-list">
+                <li>先找到最近更新或待確認的交付物。</li>
+                <li>需要補前情脈絡時，再回到它所屬的案件頁。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div className="hero-metrics-grid">
+          <div className="section-card hero-metric-card">
             <h3>全部交付物</h3>
             <p className="workbench-metric">{allDeliverables.length}</p>
             <p className="muted-text">目前可直接回看的交付物。</p>
           </div>
-          <div className="section-card">
+          <div className="section-card hero-metric-card">
             <h3>待確認</h3>
             <p className="workbench-metric">{draftCount + pendingCount}</p>
             <p className="muted-text">還在整理，還沒正式定稿的交付物。</p>
           </div>
-          <div className="section-card">
+          <div className="section-card hero-metric-card">
             <h3>定稿</h3>
             <p className="workbench-metric">{finalCount}</p>
             <p className="muted-text">已定稿、可直接使用的版本。</p>

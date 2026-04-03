@@ -632,7 +632,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const deliverableActionSummary =
     requiresSaveBeforeFormalActions
       ? hasPendingFormalSave
-        ? "系統已先幫你整理出一版可用的正式草稿，但這些內容還沒正式寫回 deliverable workspace。先儲存，之後再匯出或發布會比較安全。"
+        ? "系統已先幫你整理出一版可用的正式草稿，但這些內容還沒正式寫回交付物工作面。先儲存，之後再匯出或發布會比較安全。"
         : "你目前有尚未儲存的修改。先把正式內容落盤，再做匯出、發布或版本比對，整體工作流會更穩。"
       : continuationSurface?.workflow_layer === "closure"
         ? continuationSurface.summary
@@ -685,8 +685,8 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
         {
           href: "#deliverable-evidence",
           eyebrow: "回看依據",
-          title: "依據來源與 ontology 回鏈",
-          copy: "當你要確認這份交付物憑什麼成立，就回到這裡看來源、artifact 與 evidence。",
+          title: "依據來源與工作回鏈",
+          copy: "當你要確認這份交付物憑什麼成立，就回到這裡看來源、工作物件與證據。",
           meta: `${workspace.linked_source_materials.length} 份來源材料 / ${workspace.linked_evidence.length} 則證據`,
           tone: "default" as const,
         },
@@ -707,7 +707,9 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
           eyebrow: "核對適用範圍",
           title: "可信度、限制與缺口",
           copy: "發布前先檢查這份交付物目前能支撐到什麼程度，以及還有哪些高影響缺口。",
-          meta: workspace.confidence_summary,
+          meta:
+            workspaceView?.confidenceSummary ||
+            "先確認這份交付物目前憑什麼成立，以及還有哪些限制與缺口。",
           tone: workspace.high_impact_gaps.length > 0 ? ("warm" as const) : ("default" as const),
         },
         {
@@ -723,10 +725,15 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const deliverableVersionSummary = latestPublishRecord
     ? `最近正式發布：${latestPublishRecord.version_tag}｜${formatDisplayDate(latestPublishRecord.created_at)}`
     : "目前尚未建立正式發布紀錄。";
+  const deliverableConfidenceSurfaceSummary =
+    workspaceView?.confidenceSummary ||
+    "先確認這份交付物目前憑什麼成立，以及還有哪些限制與缺口。";
   const deliverableContinuitySummary = followUpLane?.latest_update?.summary
     ? `最新檢查點：${followUpLane.latest_update.summary}`
     : progressionLane?.latest_progression?.summary
       ? `最新推進狀態：${progressionLane.latest_progression.summary}`
+      : continuationSurface?.workflow_layer === "closure"
+        ? "這個單次案件已具備基本脈絡、證據與交付結果，下一步應偏向正式結案、發布或匯出。"
       : continuationSurface?.summary
         || "這份交付物目前沒有額外的連續性提示。";
 
@@ -1023,7 +1030,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
 
       {workspace && workspaceView && task && deliverable ? (
         <>
-          <section className="hero-card deliverable-hero">
+          <section className="hero-card deliverable-hero deliverable-workspace-hero">
             <div className="deliverable-hero-grid">
               <div className="deliverable-hero-main">
                 <span className="eyebrow">交付物工作面</span>
@@ -1050,38 +1057,111 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                   </div>
                 ) : null}
 
-                <div className="deliverable-focus-grid">
-                  <div className="section-card deliverable-focus-panel">
-                    <h4>簡短摘要</h4>
-                    <p className="content-block">
-                      {truncateText(
-                        displaySummary || effectiveExecutiveSummary || decisionSnapshot?.conclusion,
-                        156,
-                      )}
-                    </p>
-                  </div>
-                  <div className="section-card deliverable-focus-panel">
-                    <h4>決策問題</h4>
-                    <p className="content-block">
-                      {preferredWorldDecisionContext?.judgment_to_make ||
-                        preferredWorldDecisionContext?.title ||
-                        "目前尚未形成清楚的決策問題。"}
-                    </p>
-                  </div>
-                  <div className="section-card deliverable-focus-panel">
-                    <h4>最重要建議</h4>
-                    <p className="content-block">
-                      {effectiveRecommendations[0] ||
-                        decisionSnapshot?.primaryRecommendation ||
-                        executiveSummary?.bullets[1] ||
-                        "目前沒有額外的首要建議。"}
-                    </p>
-                  </div>
+                <div className="hero-focus-card">
+                  <p className="hero-focus-label">這份交付物在回答什麼</p>
+                  <h3 className="hero-focus-title">
+                    {preferredWorldDecisionContext?.judgment_to_make ||
+                      preferredWorldDecisionContext?.title ||
+                      "目前尚未形成清楚的決策問題。"}
+                  </h3>
+                  <p className="hero-focus-copy">
+                    {truncateText(
+                      displaySummary || effectiveExecutiveSummary || decisionSnapshot?.conclusion || "目前沒有額外摘要。",
+                      188,
+                    )}
+                  </p>
                 </div>
               </div>
 
               <aside className="deliverable-hero-rail">
-                <div className="section-card deliverable-rail-card">
+                <div className="hero-focus-card">
+                  <p className="hero-focus-label">{deliverableActionTitle}</p>
+                  <h3 className="hero-focus-title">先決定是整理版本，還是正式發布</h3>
+                  <p className="hero-focus-copy">{deliverableActionSummary}</p>
+                  <div className="button-row" style={{ marginTop: "6px" }}>
+                    {continuationSurface?.primary_action?.action_id === "close_case" &&
+                    workspace?.matter_workspace ? (
+                      <button
+                        className="button-primary"
+                        type="button"
+                        onClick={() => void handleMatterContinuationAction("close")}
+                        disabled={isApplyingContinuation}
+                      >
+                        {isApplyingContinuation ? "結案中..." : continuationSurface.primary_action.label}
+                      </button>
+                    ) : continuationSurface?.primary_action?.action_id === "reopen_case" &&
+                      workspace?.matter_workspace ? (
+                      <button
+                        className="button-primary"
+                        type="button"
+                        onClick={() => void handleMatterContinuationAction("reopen")}
+                        disabled={isApplyingContinuation}
+                      >
+                        {isApplyingContinuation ? "重新開啟中..." : continuationSurface.primary_action.label}
+                      </button>
+                    ) : continuationSurface?.primary_action?.action_id === "record_checkpoint" &&
+                      workspace?.matter_workspace ? (
+                      <Link
+                        className="button-primary"
+                        href={`/matters/${workspace.matter_workspace.id}#continuation-actions`}
+                      >
+                        {continuationSurface.primary_action.label}
+                      </Link>
+                    ) : continuationSurface?.primary_action?.action_id === "record_outcome" &&
+                      workspace?.matter_workspace ? (
+                      <Link
+                        className="button-primary"
+                        href={`/matters/${workspace.matter_workspace.id}#continuation-actions`}
+                      >
+                        {continuationSurface.primary_action.label}
+                      </Link>
+                    ) : requiresSaveBeforeFormalActions ? (
+                      <button
+                        className="button-primary"
+                        type="button"
+                        onClick={() => void handleSaveWorkspace()}
+                        disabled={isSaving || isPublishing}
+                      >
+                        {isSaving
+                          ? "儲存中..."
+                          : hasPendingFormalSave
+                            ? "先儲存正式草稿"
+                            : "儲存正式內容"}
+                      </button>
+                    ) : deliverableStatus === "final" ? (
+                      <button
+                        className="button-primary"
+                        type="button"
+                        onClick={() => void handleExportEntry("docx")}
+                        disabled={activeExportFormat === "docx"}
+                      >
+                        {activeExportFormat === "docx" ? "匯出中..." : "匯出 DOCX"}
+                      </button>
+                    ) : deliverableStatus !== "archived" ? (
+                      <button
+                        className="button-primary"
+                        type="button"
+                        onClick={() => void handlePublishRelease()}
+                        disabled={isPublishing}
+                      >
+                        {isPublishing ? "發布中..." : "正式發布這個版本"}
+                      </button>
+                    ) : null}
+                    <Link className="button-secondary" href="#deliverable-management">
+                      整理版本與摘要
+                    </Link>
+                    {workspace?.matter_workspace ? (
+                      <Link
+                        className="button-secondary"
+                        href={`/matters/${workspace.matter_workspace.id}#continuation-actions`}
+                      >
+                        回案件工作面續推
+                      </Link>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="section-card deliverable-rail-card workspace-rail-callout">
                   <h4>目前檢視版本</h4>
                   <div className="detail-list">
                     <div className="detail-item">
@@ -1108,7 +1188,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
 
                 <div className="section-card deliverable-rail-card">
                   <h4>可信度與適用範圍</h4>
-                  <p className="content-block">{workspaceView.confidenceSummary}</p>
+                  <p className="content-block">{deliverableConfidenceSurfaceSummary}</p>
                   <p className="muted-text" style={{ marginTop: "12px" }}>
                     {workspace.linked_evidence.length} 則證據 / {workspace.linked_source_materials.length} 份來源材料 / {workspace.high_impact_gaps.length} 個高影響缺口
                   </p>
@@ -1128,156 +1208,61 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                 </div>
               </aside>
             </div>
+            <div className="hero-metrics-grid">
+              <div className="section-card hero-metric-card">
+                <h3>目前版本</h3>
+                <p className="workbench-metric">{versionTag}</p>
+                <p className="muted-text">{labelForDeliverableStatus(deliverableStatus)}</p>
+              </div>
+              <div className="section-card hero-metric-card">
+                <h3>證據與缺口</h3>
+                <p className="workbench-metric">{workspace.linked_evidence.length}</p>
+                <p className="muted-text">{workspace.high_impact_gaps.length} 個高影響缺口</p>
+              </div>
+              <div className="section-card hero-metric-card">
+                <h3>儲存狀態</h3>
+                <p className="workbench-metric">
+                  {hasPendingFormalSave ? "待儲存" : hasUnsavedChanges ? "未儲存" : "已同步"}
+                </p>
+                <p className="muted-text">
+                  {hasPendingFormalSave
+                    ? "系統已整理正式草稿，尚未落盤"
+                    : hasUnsavedChanges
+                      ? "目前仍有未儲存修改"
+                      : "目前沒有未儲存修改"}
+                </p>
+              </div>
+              <div className="section-card hero-metric-card">
+                <h3>案件姿態</h3>
+                <p className="workbench-metric">
+                  {workspace.matter_workspace
+                    ? labelForEngagementContinuityMode(workspace.matter_workspace.engagement_continuity_mode)
+                    : "未連結"}
+                </p>
+                <p className="muted-text">
+                  {workspace.matter_workspace
+                    ? labelForWritebackDepth(workspace.matter_workspace.writeback_depth)
+                    : "目前沒有案件連結"}
+                </p>
+              </div>
+            </div>
           </section>
 
           <section className="panel">
             <div className="panel-header">
               <div>
-                <h2 className="panel-title">{deliverableActionTitle}</h2>
-                <p className="panel-copy">{deliverableActionSummary}</p>
+                <h2 className="panel-title">發布前快速檢查</h2>
+                <p className="panel-copy">
+                  第一屏已經告訴你這份交付物現在怎麼處理；這裡只保留發布前最需要再看一眼的提醒。
+                </p>
               </div>
             </div>
-            <div className="summary-grid">
-              <div className="section-card">
-                <h4>目前版本</h4>
-                <p className="content-block">
-                  {versionTag}｜{labelForDeliverableStatus(deliverableStatus)}
-                </p>
-              </div>
-              <div className="section-card">
-                <h4>證據與缺口</h4>
-                <p className="content-block">
-                  {workspace.linked_evidence.length} 則證據／{workspace.high_impact_gaps.length} 個高影響缺口
-                </p>
-              </div>
-              <div className="section-card">
-                <h4>儲存狀態</h4>
-                <p className="content-block">
-                  {hasPendingFormalSave
-                    ? "系統已整理正式草稿，尚未落盤"
-                    : hasUnsavedChanges
-                      ? "有未儲存修改"
-                    : "目前沒有未儲存修改"}
-                </p>
-              </div>
-              {followUpLane ? (
-                <>
-                  <div className="section-card">
-                    <h4>最新檢查點</h4>
-                    <p className="content-block">
-                      {followUpLane.latest_update?.summary || "尚未形成正式檢查點。"}
-                    </p>
-                  </div>
-                  <div className="section-card">
-                    <h4>和上一輪的差異</h4>
-                    <p className="content-block">
-                      {followUpLane.what_changed[0] || "這輪主要是在延續既有檢查點。"}
-                    </p>
-                  </div>
-                </>
-              ) : null}
-              {progressionLane ? (
-                <>
-                  <div className="section-card">
-                    <h4>最新推進狀態</h4>
-                    <p className="content-block">
-                      {progressionLane.latest_progression?.summary || "目前還沒有新的推進更新。"}
-                    </p>
-                  </div>
-                  <div className="section-card">
-                    <h4>下一步最建議做什麼</h4>
-                    <p className="content-block">
-                      {progressionLane.next_progression_actions[0] || "回案件工作面更新推進狀態。"}
-                    </p>
-                  </div>
-                </>
-              ) : null}
-            </div>
-            <ul className="list-content" style={{ marginTop: "16px" }}>
+            <ul className="list-content">
               {deliverableActionChecklist.map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>
             <div className="button-row" style={{ marginTop: "16px" }}>
-              {continuationSurface?.primary_action?.action_id === "close_case" &&
-              workspace?.matter_workspace ? (
-                <button
-                  className="button-primary"
-                  type="button"
-                  onClick={() => void handleMatterContinuationAction("close")}
-                  disabled={isApplyingContinuation}
-                >
-                  {isApplyingContinuation ? "結案中..." : continuationSurface.primary_action.label}
-                </button>
-              ) : continuationSurface?.primary_action?.action_id === "reopen_case" &&
-                workspace?.matter_workspace ? (
-                <button
-                  className="button-primary"
-                  type="button"
-                  onClick={() => void handleMatterContinuationAction("reopen")}
-                  disabled={isApplyingContinuation}
-                >
-                  {isApplyingContinuation ? "重新開啟中..." : continuationSurface.primary_action.label}
-                </button>
-              ) : continuationSurface?.primary_action?.action_id === "record_checkpoint" &&
-                workspace?.matter_workspace ? (
-                <Link
-                  className="button-primary"
-                  href={`/matters/${workspace.matter_workspace.id}#continuation-actions`}
-                >
-                  {continuationSurface.primary_action.label}
-                </Link>
-              ) : continuationSurface?.primary_action?.action_id === "record_outcome" &&
-                workspace?.matter_workspace ? (
-                <Link
-                  className="button-primary"
-                  href={`/matters/${workspace.matter_workspace.id}#continuation-actions`}
-                >
-                  {continuationSurface.primary_action.label}
-                </Link>
-              ) : requiresSaveBeforeFormalActions ? (
-                <button
-                  className="button-primary"
-                  type="button"
-                  onClick={() => void handleSaveWorkspace()}
-                  disabled={isSaving || isPublishing}
-                >
-                  {isSaving
-                    ? "儲存中..."
-                    : hasPendingFormalSave
-                      ? "先儲存正式草稿"
-                      : "儲存正式內容"}
-                </button>
-              ) : deliverableStatus === "final" ? (
-                <button
-                  className="button-primary"
-                  type="button"
-                  onClick={() => void handleExportEntry("docx")}
-                  disabled={activeExportFormat === "docx"}
-                >
-                  {activeExportFormat === "docx" ? "匯出中..." : "匯出 DOCX"}
-                </button>
-              ) : deliverableStatus !== "archived" ? (
-                <button
-                  className="button-primary"
-                  type="button"
-                  onClick={() => void handlePublishRelease()}
-                  disabled={isPublishing}
-                >
-                  {isPublishing ? "發布中..." : "正式發布這個版本"}
-                </button>
-              ) : null}
-              <Link className="button-secondary" href="#deliverable-management">
-                整理版本與摘要
-              </Link>
-              {workspace?.matter_workspace ? (
-                <Link
-                  className="button-secondary"
-                  href={`/matters/${workspace.matter_workspace.id}#continuation-actions`}
-                >
-                  回案件工作面續推
-                </Link>
-              ) : null}
               <Link className="button-secondary" href="#deliverable-reading">
                 查看交付摘要
               </Link>
@@ -1294,7 +1279,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
           />
 
           <DisclosurePanel
-            title="Continuity / research / writeback"
+            title="連續性、研究與寫回紀錄"
             description="只有在你要確認這份交付物會怎麼寫回案件世界、外部研究怎麼進鏈，以及目前有哪些決策／結果紀錄時，再展開這層。"
           >
             <div className="summary-grid">
@@ -1877,7 +1862,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
               </div>
               <div className="section-card">
                 <h4>可信度與適用範圍</h4>
-                <p className="content-block">{workspaceView.confidenceSummary}</p>
+                <p className="content-block">{deliverableConfidenceSurfaceSummary}</p>
               </div>
               <div className="section-card">
                 <h4>依據來源</h4>
@@ -2005,7 +1990,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
               <section className="panel section-anchor" id="deliverable-evidence">
                 <div className="panel-header">
                   <div>
-                    <h2 className="panel-title">依據來源與 ontology 回鏈</h2>
+                    <h2 className="panel-title">依據來源與工作回鏈</h2>
                     <p className="panel-copy">
                       這裡正式回看交付物對決策問題、來源、證據與決策鏈的回鏈，而不是把這些資訊藏在資料結構裡。
                     </p>
@@ -2039,7 +2024,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
 
                 <DisclosurePanel
                   title="完整回鏈與支撐明細"
-                  description="只有在你要 debug 結論、逐條核對來源，或確認 evidence chain 時，再展開這層。"
+                  description="只有在你要逐條核對來源、追查結論依據，或確認完整證據鏈時，再展開這層。"
                 >
                   <div className="detail-grid" style={{ marginTop: "4px" }}>
                     <div className="detail-stack">

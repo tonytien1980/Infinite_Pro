@@ -64,6 +64,64 @@ Palette direction：
 - warm orange only for decisive CTA, escalation, or important next-step emphasis
 - semantic colors must remain explicit and accessible in both themes
 
+### 2.1.1 Reference blend
+
+Infinite Pro 目前正式採用下列參考組合作為 UI / UX 方向，而不是任意混搭：
+
+- `Linear`
+  - 借它的結構節奏、工作台密度、安靜但清楚的互動階層
+- `Coinbase`
+  - 借它的信任感、藍色主軸、穩定而機構級的表面處理
+- `Wise`
+  - 借它的易懂文案、低術語表單、非技術使用者也能快速理解的提示方式
+
+轉譯到 Infinite Pro 的正式規則如下：
+
+- hero 區要像工作台入口，不像行銷頁或 dashboard
+- 主色以冷靜藍系與深色中性色為骨架，不靠裝飾性 glow 建立識別
+- 卡片、列表、管理面要讓人感覺可靠、克制、易掃讀
+- 首屏的數字卡只能當背景脈絡，不能搶走主線
+- 任何管理頁或 detail workspace 都要先講「現在最值得做什麼」，再講系統定義
+
+### 2.1.2 Visible surface differentiation
+
+Infinite Pro 的視覺升級不能只停在文案、資訊架構或微弱 token 調整。
+
+若一次 UI / UX pass 完成後，使用者仍覺得：
+
+- header / nav 幾乎沒變
+- hero 仍像同一張白卡重複貼在所有頁面
+- 列表頁、管理頁、detail workspace 仍像同一套中性模板
+- 主要 CTA、焦點卡、安靜指標列之間沒有足夠表面層級差異
+
+那就不應算完成一次正式 visual pass。
+
+正式規則：
+
+- shell、header、nav、hero、主要 CTA、靜態指標列、section surface 必須在第一眼就能傳達這是同一套成熟顧問工作台
+- page family 之間可以有表面語言差異，但必須仍維持同一個藍 / 深中性 / 暖橘輔助的品牌邊界
+- 視覺差異應來自結構、對比、表面質感、節奏與 accent hierarchy，不是靠炫技特效或脫離產品語氣的裝飾
+
+### 2.1.3 Responsive and mobile posture
+
+Infinite Pro 不只要在桌機可讀，也必須在手機上維持正式可用。
+
+正式規則：
+
+- mobile support 是 workbench quality 的一部分，不是發版後再補的裝飾性工作
+- overview、案件工作台、建立新案件、設定頁，以及主要 detail workspace 必須能在手機尺寸下完成核心閱讀與主操作
+- mobile adaptation 不等於把桌機畫面硬縮小；要改成 touch-first、單手可理解、垂直閱讀優先的版本
+- 不可在手機上隱藏核心工作流，只能重排、收斂、延後揭露
+
+mobile 端正式行為：
+
+- header / nav 應允許 touch-first 橫向導覽，而不是擠成不可按的多排小字
+- hero 應收成單欄主閱讀順序，主要 CTA 優先滿版或接近滿版
+- breadcrumb 與返回入口應保持可達，但不能破壞首屏主閱讀；可改成較輕量的換行或堆疊形式
+- section guide、tabs、次要導覽在手機上可改成橫向滑動，但必須保有足夠點擊面積與可理解性
+- 長標題、長 object path、長 summary 在手機上要優先處理可讀性，而不是原樣硬塞
+- touch target 最小高度應維持接近 `44px`
+
 ### 2.2 Anti-direction
 
 Infinite Pro 不應往下列方向偏移：
@@ -74,6 +132,62 @@ Infinite Pro 不應往下列方向偏移：
 - glass-heavy neon dark interfaces
 - metrics-first dashboards that bury the work
 - admin-console clutter pretending to be a workbench
+
+### 2.3 Copy posture
+
+Infinite Pro 的正式文案應優先服務「正在做判斷、推進案件、整理交付物的顧問」，而不是技術專家。
+
+因此文案必須維持：
+
+- plain-language first
+- action-first, system-jargon second
+- short before complete
+- consultant mental model before implementation detail
+
+正式規則：
+
+- hero 區只先說明這頁在幫什麼忙，不先解釋系統內部結構
+- section intro 先回答「這裡能幫我做什麼」
+- button text 要明確描述下一步，例如：
+  - `前往案件頁`
+  - `前往交付物`
+  - `先補件`
+  - `看全部案件`
+- 若使用者不是在 debug，不應把下列詞放在第一層文案：
+  - runtime config
+  - fallback
+  - checkpoint
+  - progression
+  - work slice
+  - canonical authority
+  - provenance
+- 若某些術語在系統內不可避免，第一層應先翻成顧問可理解的語言，例如：
+  - `checkpoint` -> `檢查點`
+  - `progression` -> `推進狀態`
+  - `runtime config` -> `正式執行設定`
+  - `env baseline` -> `環境基線`
+  - `local fallback` -> `本機備援`
+
+文案風格要求：
+
+- 不要用工程師視角解釋頁面
+- 不要把「這頁怎麼用」寫成很長的操作手冊
+- 不要同時講三層系統概念
+- 優先讓顧問在 3 到 5 秒內知道現在該做什麼
+
+可接受的語氣：
+
+- 穩定
+- 直接
+- 低壓力
+- 非技術導向
+
+不可接受的語氣：
+
+- platform-jargon heavy
+- debug-first
+- over-explained
+- mixed English / Chinese when the English is not needed for user action
 
 ---
 
@@ -90,6 +204,56 @@ Infinite Pro 不應往下列方向偏移：
 1. 我現在在哪裡
 2. 這裡最重要的是什麼
 3. 我現在應該做什麼
+
+### 3.2.1 List and management hero pattern
+
+列表頁與管理頁第一屏正式採下列編排：
+
+- 左側主敘事：
+  - 頁名
+  - 一句話說明這頁幫什麼忙
+  - 一個 primary action
+- 右側焦點卡：
+  - 這頁現在先看什麼
+  - 或目前最值得先處理的項目
+- 下方靜態指標列：
+  - 2 到 4 個輕量摘要即可
+  - 只提供脈絡，不與 primary action 競爭
+
+正式規則：
+
+- 不要把 hero 做成四張同權重卡片的數字牆
+- 不要讓列表頁 hero 同時承擔導覽、教學、系統說明、debug 摘要
+- 管理頁的 hero 應先幫使用者判斷「要新增、要整理、還是先補齊定義」
+
+### 3.2.2 Detail workspace first-screen pattern
+
+detail workspace 第一屏正式採下列分工：
+
+- 左側主線：
+  - 物件標題
+  - 這一頁在處理哪個判斷 / 哪個交付 / 哪組證據
+  - 主要 CTA
+- 右側操作決策卡：
+  - 現在最重要的狀態
+  - 現在先做什麼
+  - 不做什麼
+- 下方安靜脈絡列：
+  - 版本
+  - 證據厚度
+  - 缺口數量
+  - 工作流狀態
+
+正式規則：
+
+- hero 必須先承接主線與下一步，不能只當物件標頭
+- hero 已說過的主線、下一步與版本狀態，不應在第一個正文區塊原樣重講一次
+- 第一個正文區塊應該補「限制、焦點、依據或結果」，不是再重複一次 hero 摘要
+- 若頁面同時有 section guide，guide 應當是導讀，不應再成為第二個 hero
+- detail workspace 的 breadcrumb / back-link 不應只是裸文字鏈結；它們應清楚表達這是一套可返回、可續推的工作台路徑
+- detail workspace 的 right rail 不應像普通資訊欄；它應明確承接版本、可信度、限制、結案姿態或下一步判斷
+- detail workspace 的 metric strip 不只顯示數量，也應幫使用者快速辨識目前姿態，例如案件模式、版本狀態、依據厚度、代理 / 模組包路徑
+- 若 detail workspace 已經完成 structural pass，後續 visual pass 必須讓 hero / rail / section guide 在第一眼就更像正式工作台，不是維持中性白卡模板
 
 ### 3.3 Consultant-first, debug-on-demand
 
@@ -517,6 +681,15 @@ Primary action：
 ### 10.1 Language
 
 預設可見語言為繁體中文。
+
+正式內容語言也預設為繁體中文。
+
+正式規則：
+
+- model-generated 摘要、風險、建議、行動項目與缺漏資訊，預設應為繁體中文
+- 若資料來源本身是英文，可在必要處保留原文片段，但主要說明仍應用繁體中文
+- 不應把英文整句直接暴露成預設交付內容，除非任務明確要求英文
+- UI 可見語言與內容輸出語言不得各自漂移
 
 主要正式用語包括：
 

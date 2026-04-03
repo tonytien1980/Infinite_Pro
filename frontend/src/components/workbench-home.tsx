@@ -178,77 +178,105 @@ export function WorkbenchHome() {
     primaryMatter && isLocalFallbackMatterRecord(matterRecords[primaryMatter.id])
       ? matterRecords[primaryMatter.id]
       : null;
+  const focusTitle =
+    settings.homepageDisplayPreference === "deliverables"
+      ? primaryDeliverable?.latest_deliverable_title || "先建立第一份可回看的交付物"
+      : settings.homepageDisplayPreference === "evidence"
+        ? primaryEvidenceTask?.title || "目前沒有急需補件的案件"
+        : primaryMatterRecord?.title ||
+          primaryMatter?.title ||
+          "先建立第一個案件";
+  const focusCopy =
+    settings.homepageDisplayPreference === "deliverables"
+      ? truncateText(
+          primaryDeliverable?.latest_deliverable_summary ||
+            primaryDeliverable?.decision_context_title ||
+            "交付物頁會整理這次結論、版本與可直接採用的內容。",
+          96,
+        )
+      : settings.homepageDisplayPreference === "evidence"
+        ? primaryEvidenceTask
+          ? buildGapNote(primaryEvidenceTask)
+          : "建立案件後，待補資料入口會自動回到這裡。"
+        : truncateText(
+            primaryMatterRecord?.summary ||
+              primaryMatter?.workspace_summary ||
+              primaryMatter?.current_decision_context_title ||
+              "案件頁會接住這次要處理的問題與下一步。",
+            96,
+          );
+  const focusHref =
+    settings.homepageDisplayPreference === "deliverables" &&
+    primaryDeliverable?.latest_deliverable_id
+      ? `/deliverables/${primaryDeliverable.latest_deliverable_id}`
+      : settings.homepageDisplayPreference === "evidence" && primaryEvidenceTask
+        ? primaryEvidenceTask.matter_workspace
+          ? `/matters/${primaryEvidenceTask.matter_workspace.id}/evidence`
+          : `/tasks/${primaryEvidenceTask.id}`
+        : primaryMatter
+          ? `/matters/${primaryMatter.id}`
+          : "/new";
+  const focusActionLabel =
+    settings.homepageDisplayPreference === "deliverables" &&
+    primaryDeliverable?.latest_deliverable_id
+      ? "回到交付物"
+      : settings.homepageDisplayPreference === "evidence" && primaryEvidenceTask
+        ? "前往補件"
+        : primaryMatter
+          ? "前往案件頁"
+          : "建立新案件";
 
   return (
     <main className="page-shell home-page-shell">
       <section className="hero-card overview-hero">
-        <span className="eyebrow">總覽</span>
-        <h1 className="page-title">總覽</h1>
-        <p className="page-subtitle">先看現在最值得處理的是哪一件事，再回到對應頁面繼續工作。</p>
-
-        <div className="summary-grid overview-summary-grid" style={{ marginTop: "20px" }}>
-          <div className="section-card overview-focus-card">
-            <h3>{pickFocusLabel(settings.homepageDisplayPreference)}</h3>
-            <p className="content-block">
-              {settings.homepageDisplayPreference === "deliverables"
-                ? primaryDeliverable?.latest_deliverable_title || "目前還沒有可直接回看的交付物。"
-                : settings.homepageDisplayPreference === "evidence"
-                  ? primaryEvidenceTask?.title || "目前沒有明顯待補資料。"
-                  : primaryMatterRecord?.title ||
-                    primaryMatter?.title ||
-                    "目前還沒有進行中的案件。"}
+        <div className="hero-layout">
+          <div className="hero-main">
+            <span className="eyebrow">總覽</span>
+            <h1 className="page-title">總覽</h1>
+            <p className="page-subtitle">
+              先找到現在最值得處理的一件事，再回到對應工作面繼續往前推。
             </p>
-            <p className="muted-text">
-              {settings.homepageDisplayPreference === "deliverables"
-                ? truncateText(
-                    primaryDeliverable?.latest_deliverable_summary ||
-                      primaryDeliverable?.decision_context_title ||
-                      "交付物頁會整理這次結論、版本與可直接採用的內容。",
-                    88,
-                  )
-                : settings.homepageDisplayPreference === "evidence"
-                  ? primaryEvidenceTask
-                    ? buildGapNote(primaryEvidenceTask)
-                    : "建立第一個案件後，待補資料入口會出現在這裡。"
-                  : truncateText(
-                      primaryMatterRecord?.summary ||
-                        primaryMatter?.workspace_summary ||
-                        primaryMatter?.current_decision_context_title ||
-                        "案件頁會接住這次要處理的問題與下一步。",
-                      88,
-                    )}
-            </p>
-            <div className="button-row" style={{ marginTop: "12px" }}>
-              {settings.homepageDisplayPreference === "deliverables" &&
-              primaryDeliverable?.latest_deliverable_id ? (
-                <Link
-                  className="button-secondary"
-                  href={`/deliverables/${primaryDeliverable.latest_deliverable_id}`}
-                >
-                  前往交付物
+            <div className="hero-actions">
+              <Link className="button-primary" href={focusHref}>
+                {focusActionLabel}
+              </Link>
+              {focusActionLabel !== "建立新案件" ? (
+                <Link className="button-secondary" href="/new">
+                  建立新案件
                 </Link>
               ) : null}
-              {settings.homepageDisplayPreference === "evidence" && primaryEvidenceTask ? (
-                <Link
-                  className="button-secondary"
-                  href={
-                    primaryEvidenceTask.matter_workspace
-                      ? `/matters/${primaryEvidenceTask.matter_workspace.id}/evidence`
-                      : `/tasks/${primaryEvidenceTask.id}`
-                  }
-                >
-                  前往補件
-                </Link>
-              ) : null}
-              {settings.homepageDisplayPreference === "matters" && primaryMatter ? (
-                <Link className="button-secondary" href={`/matters/${primaryMatter.id}`}>
-                  前往案件頁
-                </Link>
-              ) : null}
+              <Link className="button-secondary" href="/matters">
+                看案件列表
+              </Link>
             </div>
           </div>
 
-          <div className="section-card overview-metric-card">
+          <div className="hero-aside">
+            <div className="hero-focus-card overview-focus-card">
+              <p className="hero-focus-label">{pickFocusLabel(settings.homepageDisplayPreference)}</p>
+              <h3 className="hero-focus-title">{focusTitle}</h3>
+              <p className="hero-focus-copy">{focusCopy}</p>
+            </div>
+            <div className="hero-focus-card hero-focus-card-warm">
+              <p className="hero-focus-label">這頁先看什麼</p>
+              <ul className="hero-focus-list">
+                <li>先回到你現在最需要處理的案件、交付物或補件工作。</li>
+                <li>若有新客戶需求，再從這裡直接建立新案件。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div className="hero-metrics-grid">
+          <div className="section-card hero-metric-card">
+            <h3>進行中案件</h3>
+            <p className="workbench-metric">{activeMatters.length}</p>
+            <p className="muted-text">
+              {primaryMatter?.title || "目前還沒有進行中的案件。"}
+            </p>
+          </div>
+
+          <div className="section-card hero-metric-card">
             <h3>最近交付物</h3>
             <p className="workbench-metric">{recentDeliverables.length}</p>
             <p className="muted-text">
@@ -256,25 +284,12 @@ export function WorkbenchHome() {
             </p>
           </div>
 
-          <div className="section-card overview-metric-card">
+          <div className="section-card hero-metric-card">
             <h3>待補資料</h3>
             <p className="workbench-metric">{pendingEvidenceTasks.length}</p>
             <p className="muted-text">
               {primaryEvidenceTask ? buildGapNote(primaryEvidenceTask) : "目前沒有急需補齊的資料缺口。"}
             </p>
-          </div>
-
-          <div className="section-card quick-start-card">
-            <h3>建立新案件</h3>
-            <p className="content-block">有新案件時，直接從這裡開始。建立後會自動帶你回到案件頁繼續處理。</p>
-            <div className="button-row" style={{ marginTop: "12px" }}>
-              <Link className="button-primary" href="/new">
-                建立新案件
-              </Link>
-              <Link className="button-secondary" href="/matters">
-                看案件列表
-              </Link>
-            </div>
           </div>
         </div>
       </section>

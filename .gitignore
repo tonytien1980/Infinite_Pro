@@ -1,6 +1,8 @@
 .DS_Store
 .env
 .venv/
+.venv312/
+.venv_stale_20260328/
 __pycache__/
 *.pyc
 *.pyo
@@ -9,6 +11,7 @@ __pycache__/
 .mypy_cache/
 local.db
 .playwright-cli/
+output/
 
 frontend/node_modules/
 frontend/.next/

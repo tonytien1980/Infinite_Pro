@@ -195,23 +195,52 @@ export function HistoryPagePanel() {
   }
 
   return (
-    <main className="page-shell">
-      <section className="hero-card">
-        <span className="eyebrow">歷史紀錄</span>
-        <h1 className="page-title">歷史紀錄</h1>
-        <p className="page-subtitle">用來找回過去做過的工作，快速回到你要接續的脈絡。</p>
-          <div className="workbench-overview-grid" style={{ marginTop: "20px" }}>
-          <div className="section-card">
+    <main className="page-shell history-page-shell">
+      <section className="hero-card history-hero">
+        <div className="hero-layout">
+          <div className="hero-main">
+            <span className="eyebrow">歷史紀錄</span>
+            <h1 className="page-title">歷史紀錄</h1>
+            <p className="page-subtitle">用來找回過去做過的工作，快速回到你要接續的脈絡。</p>
+            <div className="hero-actions">
+              <a className="button-primary" href="#history-tools-panel">
+                整理這一頁
+              </a>
+              <Link className="button-secondary" href="/matters">
+                回案件工作台
+              </Link>
+            </div>
+          </div>
+
+          <div className="hero-aside">
+            <div className="hero-focus-card">
+              <p className="hero-focus-label">{historyActionTitle}</p>
+              <h3 className="hero-focus-title">先縮小範圍，再決定是回看還是收起來</h3>
+              <p className="hero-focus-copy">{historyActionSummary}</p>
+            </div>
+            <div className="hero-focus-card hero-focus-card-warm">
+              <p className="hero-focus-label">這頁先看什麼</p>
+              <ul className="hero-focus-list">
+                {historyActionChecklist.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div className="hero-metrics-grid">
+          <div className="section-card hero-metric-card">
             <h3>可回看紀錄</h3>
             <p className="workbench-metric">{visibleTasks.length}</p>
             <p className="muted-text">目前仍會顯示在系統裡的工作紀錄。</p>
           </div>
-          <div className="section-card">
+          <div className="section-card hero-metric-card">
             <h3>已隱藏</h3>
             <p className="workbench-metric">{historyState.hiddenTaskIds.length}</p>
             <p className="muted-text">已先隱藏，但沒有真的刪掉。</p>
           </div>
-          <div className="section-card">
+          <div className="section-card hero-metric-card">
             <h3>案件數</h3>
             <p className="workbench-metric">{matterOptions.length}</p>
             <p className="muted-text">可依案件回看過去做過的內容。</p>
@@ -231,7 +260,7 @@ export function HistoryPagePanel() {
       ) : null}
 
       {!loading && !error ? (
-        <section className="panel">
+        <section className="panel" id="history-tools-panel">
           <div className="panel-header">
             <div>
               <h2 className="panel-title">歷史整理工具</h2>

@@ -283,6 +283,23 @@ Ontology 在 Infinite Pro 中是：
 
 Infinite Pro 的正式輸出不應退回 generic long answer。
 
+正式語言規則：
+
+- model-generated natural-language fields 預設輸出為繁體中文
+- 這條規則適用於：
+  - `problem_definition`
+  - `background_summary`
+  - `findings`
+  - `risks`
+  - `recommendations`
+  - `action_items`
+  - `missing_information`
+  - 以及 agent / pack contract synthesis 的自然語言欄位
+- 若輸入材料是英文，系統可以保留必要專有名詞、條款原文、品牌名稱或直接引用片段
+- 但摘要、結論、風險、建議與行動項目仍應以繁體中文輸出
+- 不得把英文整句直接當成預設交付內容，除非任務明確要求英文
+- UI language preference 不得默默讓正式內容退回英文；若未來要支援英語交付，必須明確作為正式 runtime contract 擴充，而不是隱性漂移
+
 最低治理原則：
 
 - `Recommendation`

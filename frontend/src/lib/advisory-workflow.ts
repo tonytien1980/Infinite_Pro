@@ -1558,7 +1558,7 @@ function buildEvidenceSupportNote(
 ) {
   const bucket = counts.get(evidence.id);
   if (!bucket || (!bucket.recommendations && !bucket.risks && !bucket.actionItems)) {
-    return ["目前主要作為背景或 supporting evidence 使用。"];
+    return ["目前主要作為背景或支撐證據使用。"];
   }
 
   const notes: string[] = [];
@@ -1587,8 +1587,8 @@ export function buildEvidenceWorkspaceLane(
   const decisionPresence = task.presence_state_summary.decision_context;
   const missingSignals = [
     artifactPresence.state !== "explicit" ? `工作物件：${artifactPresence.reason}` : "",
-    sourcePresence.state !== "explicit" ? `SourceMaterial：${sourcePresence.reason}` : "",
-    decisionPresence.state !== "explicit" ? `DecisionContext：${decisionPresence.reason}` : "",
+    sourcePresence.state !== "explicit" ? `來源材料：${sourcePresence.reason}` : "",
+    decisionPresence.state !== "explicit" ? `決策情境：${decisionPresence.reason}` : "",
     ...(readiness?.packHighImpactGaps.slice(0, 2) ?? []),
     ...(readiness?.missingInformation.slice(0, 3) ?? []),
   ].filter(Boolean);
@@ -1619,7 +1619,7 @@ export function buildEvidenceWorkspaceLane(
     sourceMaterialCards:
       task.source_materials.length > 0
         ? task.source_materials.slice(0, 4).map((material) => ({
-            title: material.title || "未命名 SourceMaterial",
+            title: material.title || "未命名來源材料",
             summary:
               material.summary.trim() ||
               "目前沒有可顯示的來源材料摘要，後續可補更完整的來源摘要。",
@@ -1785,8 +1785,17 @@ export function buildMatterWorkspaceContinuity(
 export function buildArtifactEvidenceWorkspaceView(
   workspace: ArtifactEvidenceWorkspace,
 ): ArtifactEvidenceWorkspaceView {
+  const summary =
+    workspace.evidence_chains.length === 0
+      ? "目前還沒有正式證據鏈；若要支撐這輪判斷，建議先補至少一份可引用的來源或補充文字。"
+      : workspace.high_impact_gaps.length > 0
+        ? `目前已有 ${workspace.evidence_chains.length} 則證據鏈，但仍有 ${workspace.high_impact_gaps.length} 個高影響缺口；優先補「${workspace.high_impact_gaps[0]}」會最有效。`
+        : workspace.deliverable_limitations.length > 0
+          ? `目前支撐鏈已有基本厚度，但交付前仍要留意：${workspace.deliverable_limitations[0]}`
+          : `目前已有 ${workspace.evidence_chains.length} 則證據鏈、${workspace.source_material_cards.length} 份來源材料與 ${workspace.artifact_cards.length} 份工作物件，可先支撐這輪判斷。`;
+
   return {
-    summary: workspace.sufficiency_summary,
+    summary,
     evidenceExpectations: workspace.evidence_expectations,
     highImpactGaps: workspace.high_impact_gaps,
     deliverableLimitations: workspace.deliverable_limitations,
@@ -1837,13 +1846,22 @@ export function buildDeliverableWorkspaceView(
       ? `目前已正式回鏈 ${workspace.linked_evidence.length} 則證據、${workspace.linked_source_materials.length} 份來源材料、${workspace.linked_artifacts.length} 份工作物件。`
       : "目前依據來源仍偏薄，建議回到來源 / 證據工作面補齊主要依據。";
 
+  const confidenceSummary =
+    workspace.linked_evidence.length === 0
+      ? "目前這份交付物幾乎沒有正式證據回鏈；若要對外使用，建議先回來源與證據工作面補件。"
+      : workspace.high_impact_gaps.length > 0
+        ? `目前已有 ${workspace.linked_evidence.length} 則證據與 ${workspace.linked_source_materials.length} 份來源回鏈，但仍有 ${workspace.high_impact_gaps.length} 個高影響缺口；較適合作為內部版本或再整理一版。`
+        : deliverable.status === "final"
+          ? `目前已正式回鏈 ${workspace.linked_evidence.length} 則證據、${workspace.linked_source_materials.length} 份來源材料與 ${workspace.linked_artifacts.length} 份工作物件，已接近可直接回看、匯出或交付的狀態。`
+          : `目前已形成正式交付物，並回鏈 ${workspace.linked_evidence.length} 則證據與 ${workspace.linked_source_materials.length} 份來源；若要更穩，下一步是整理版本並檢查限制。`;
+
   return {
     title: deliverable.title,
     deliverableClassLabel: labelForDeliverableClass(workspace.deliverable_class),
     deliverableTypeLabel: labelForDeliverableType(deliverable.deliverable_type),
     workspaceStatusLabel: labelForDeliverableWorkspaceStatus(workspace.workspace_status),
     summary,
-    confidenceSummary: workspace.confidence_summary,
+    confidenceSummary,
     limitations: workspace.limitation_notes,
     highImpactGaps: workspace.high_impact_gaps,
     evidenceBasisSummary,

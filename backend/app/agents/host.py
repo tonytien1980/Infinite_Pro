@@ -251,6 +251,7 @@ class HostOrchestrator:
             task_id=task.id,
             title=task.title,
             description=task.description,
+            response_language="zh-Hant",
             task_type=task.task_type,
             flow_mode=workflow_mode or self._compatibility_flow_mode(task),
             background_text=preferred_decision_context.summary if preferred_decision_context else latest_context,

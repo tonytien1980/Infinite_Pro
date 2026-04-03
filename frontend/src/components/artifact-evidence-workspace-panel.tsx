@@ -125,7 +125,7 @@ function buildEvidenceIssueDiagnostic({
     return {
       diagnosticLabel: "來源匯入異常",
       usableScopeLabel: "目前不可當正式內容證據",
-      usableScopeDetail: "只能視為問題提示，不能直接當成已可正文引用的 evidence。",
+      usableScopeDetail: "只能視為問題提示，不能直接當成可正式引用的證據。",
       guidance: `若你還需要它，建議補文字版、可讀 URL 或人工摘要，再回主線續推。${laneImpact}`,
     };
   }
@@ -248,26 +248,26 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
       : workspace?.matter_summary.engagement_continuity_mode === "follow_up"
         ? followUpLane?.evidence_update_goal
           ? "先補齊這輪更新需要的支撐鏈"
-          : "先補齊支撐鏈，再決定 checkpoint 要怎麼更新"
+          : "先補齊支撐鏈，再決定檢查點要怎麼更新"
         : workspace?.matter_summary.engagement_continuity_mode === "continuous"
           ? progressionLane?.evidence_update_goal
-            ? "先補齊這輪 progression 需要的支撐鏈"
-            : "先補齊支撐鏈，再決定要不要更新 progression / outcome"
+            ? "先補齊這輪推進需要的支撐鏈"
+            : "先補齊支撐鏈，再決定要不要更新推進狀態 / 結果"
           : workspace && workspace.high_impact_gaps.length > 0
             ? "先補件，再回到主線判斷"
           : "先檢查支撐鏈，再決定往哪裡推進";
   const evidenceActionSummary =
     workspace?.matter_summary.engagement_continuity_mode === "one_off" &&
     workspace.matter_summary.status === "closed"
-      ? "這個 one_off 案件目前已正式結案；如果後續又有新資料，請先回案件工作面重新開啟，再把材料掛回同一個案件世界。"
+      ? "這個單次案件目前已正式結案；如果後續又有新資料，請先回案件工作面重新開啟，再把材料掛回同一個案件世界。"
       : workspace?.matter_summary.engagement_continuity_mode === "follow_up"
         ? followUpLane?.evidence_update_goal
-          ? `這個工作面現在更偏向 follow-up 補件與 checkpoint 更新。${followUpLane.evidence_update_goal}`
-          : "這個工作面現在更偏向 follow-up 補件與 checkpoint 更新，不需要把所有後續都做成完整 continuous tracking。"
+          ? `這個工作面現在更偏向後續補件與檢查點更新。${followUpLane.evidence_update_goal}`
+          : "這個工作面現在更偏向後續補件與檢查點更新，不需要把所有後續都做成完整的持續追蹤。"
         : workspace?.matter_summary.engagement_continuity_mode === "continuous"
           ? progressionLane?.evidence_update_goal
-            ? `這個工作面現在更偏向 continuous progression 補件。${progressionLane.evidence_update_goal}`
-            : "這個工作面現在更偏向持續推進案件：先補來源與證據，再回案件工作面記錄 progression / outcome。"
+            ? `這個工作面現在更偏向持續推進補件。${progressionLane.evidence_update_goal}`
+            : "這個工作面現在更偏向持續推進案件：先補來源與證據，再回案件工作面記錄推進狀態 / 結果。"
           : workspace && workspace.high_impact_gaps.length > 0
             ? "這裡最重要的不是把資料看完，而是先補齊高影響缺口，避免案件工作台或交付物在證據不足下失真。"
           : "這個工作面負責釐清來源、工作物件與證據支撐鏈。先確認支撐鏈完整度，再回案件或工作紀錄會更有效率。";
@@ -310,7 +310,10 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
           eyebrow: "先看缺什麼",
           title: "充分性摘要與高影響缺口",
           copy: "先判斷目前案件缺的是什麼，再決定要補件、回工作紀錄，還是去看交付物。",
-          meta: workspace.sufficiency_summary,
+          meta:
+            workspaceView?.summary ||
+            workspace.sufficiency_summary ||
+            "先確認目前證據是否足以支撐這輪判斷。",
           tone: workspace.high_impact_gaps.length > 0 ? ("warm" as const) : ("accent" as const),
         },
         {
@@ -410,6 +413,31 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
     keepAsReferenceByItemId,
     sessionStates: sessionItemStates,
   });
+  const evidencePrimaryActionHref =
+    workspace?.matter_summary.engagement_continuity_mode === "one_off" &&
+    workspace.matter_summary.status === "closed"
+      ? `/matters/${matterId}#continuation-actions`
+      : "#evidence-supplement";
+  const evidencePrimaryActionLabel =
+    workspace?.matter_summary.engagement_continuity_mode === "one_off" &&
+    workspace.matter_summary.status === "closed"
+      ? "先重新開啟案件"
+      : "先補件";
+  const evidenceHeroSummary = workspace
+    ? `${workspace.source_material_cards.length} 份來源材料、${workspace.artifact_cards.length} 份工作物件與 ${workspace.evidence_chains.length} 則證據已掛回同一個案件世界。${
+        workspace.high_impact_gaps.length > 0
+          ? ` 目前還有 ${workspace.high_impact_gaps.length} 個高影響缺口需要先補。`
+          : " 目前已具備基本支撐鏈，可回到工作紀錄或交付物續推。"
+      }`
+    : "";
+  const evidenceSurfaceSummary = workspaceView?.summary || evidenceHeroSummary;
+  const evidenceLaneSummary = followUpLane
+    ? followUpLane.latest_update?.summary || "尚未形成正式檢查點。"
+    : progressionLane
+      ? progressionLane.latest_progression?.summary || "目前還沒有新的推進更新。"
+      : workspace && workspace.high_impact_gaps.length > 0
+        ? `目前仍有 ${workspace.high_impact_gaps.length} 個高影響缺口`
+        : "目前沒有額外的高影響缺口。";
   const recentAttemptItems = [...sessionItemStates]
     .filter((item) => (item.progress.attemptCount ?? 0) > 0 || item.progress.latestAttemptLabel)
     .sort((left, right) => (right.progress.lastUpdatedAt ?? 0) - (left.progress.lastUpdatedAt ?? 0))
@@ -857,7 +885,7 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
   }
 
   return (
-    <main className="page-shell">
+    <main className="page-shell evidence-page-shell">
       <div className="back-link-group">
         <Link className="back-link" href="/">
           ← 返回工作台
@@ -872,133 +900,106 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
 
       {workspace && matterCard && workspaceView ? (
         <>
-          <section className="hero-card">
-            <span className="eyebrow">來源與證據工作面</span>
-            <h1 className="page-title">{matterCard.title}</h1>
-            <p className="page-subtitle">{matterCard.objectPath}</p>
-            <div className="meta-row" style={{ marginTop: "16px" }}>
-              <span>{workspace.source_material_cards.length} 份來源材料</span>
-              <span>{workspace.artifact_cards.length} 份工作物件</span>
-              <span>{workspace.evidence_chains.length} 則證據支撐鏈</span>
-              <span>
-                {labelForEngagementContinuityMode(workspace.matter_summary.engagement_continuity_mode)} /{" "}
-                {labelForWritebackDepth(workspace.matter_summary.writeback_depth)}
-              </span>
-            </div>
-            <div className="matter-hero-strip">
-              <div>
-                <span className="pill">決策問題</span>
-                <p className="workspace-object-path" style={{ marginTop: "10px" }}>
-                  {workspace.current_decision_context?.judgment_to_make ||
-                    workspace.current_decision_context?.title ||
-                    "目前尚未形成清楚的決策問題。"}
-                </p>
-                <p className="muted-text">{workspaceView.summary}</p>
+          <section className="hero-card evidence-hero">
+            <div className="hero-layout">
+              <div className="hero-main">
+                <span className="eyebrow">來源與證據工作面</span>
+                <h1 className="page-title">{matterCard.title}</h1>
+                <p className="page-subtitle">{matterCard.objectPath}</p>
+                <div className="meta-row" style={{ marginTop: "16px" }}>
+                  <span>{workspace.source_material_cards.length} 份來源材料</span>
+                  <span>{workspace.artifact_cards.length} 份工作物件</span>
+                  <span>{workspace.evidence_chains.length} 則證據支撐鏈</span>
+                  <span>
+                    {labelForEngagementContinuityMode(workspace.matter_summary.engagement_continuity_mode)} /{" "}
+                    {labelForWritebackDepth(workspace.matter_summary.writeback_depth)}
+                  </span>
+                </div>
+                <div className="hero-focus-card">
+                  <p className="hero-focus-label">這次要支撐哪個判斷</p>
+                  <h3 className="hero-focus-title">
+                    {workspace.current_decision_context?.judgment_to_make ||
+                      workspace.current_decision_context?.title ||
+                      "目前尚未形成清楚的決策問題。"}
+                  </h3>
+                  <p className="hero-focus-copy">{evidenceSurfaceSummary}</p>
+                </div>
+                <div className="button-row" style={{ marginTop: "4px" }}>
+                  <Link className="button-primary" href={evidencePrimaryActionHref}>
+                    {evidencePrimaryActionLabel}
+                  </Link>
+                  {focusTask ? (
+                    <Link className="button-secondary" href={`/tasks/${focusTask.id}`}>
+                      打開焦點工作紀錄
+                    </Link>
+                  ) : null}
+                  {focusTask?.latest_deliverable_id ? (
+                    <Link
+                      className="button-secondary"
+                      href={`/deliverables/${focusTask.latest_deliverable_id}`}
+                    >
+                      打開最新交付物
+                    </Link>
+                  ) : null}
+                  <Link className="button-secondary" href={`/matters/${matterId}`}>
+                    返回案件工作面
+                  </Link>
+                </div>
               </div>
-            </div>
-          </section>
 
-          <section className="panel">
-            <div className="panel-header">
-              <div>
-                <h2 className="panel-title">{evidenceActionTitle}</h2>
-                <p className="panel-copy">{evidenceActionSummary}</p>
+              <div className="hero-aside">
+                <div className="hero-focus-card">
+                  <p className="hero-focus-label">{evidenceActionTitle}</p>
+                  <h3 className="hero-focus-title">先判斷夠不夠，再決定要不要補</h3>
+                  <p className="hero-focus-copy">{evidenceActionSummary}</p>
+                </div>
+                <div className="hero-focus-card hero-focus-card-warm">
+                  <p className="hero-focus-label">這頁先做什麼</p>
+                  <ul className="hero-focus-list">
+                    {evidenceActionChecklist.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="hero-focus-card">
+                  <p className="hero-focus-label">
+                    {followUpLane ? "最近檢查點" : progressionLane ? "最近推進狀態" : "目前最要緊的限制"}
+                  </p>
+                  <h3 className="hero-focus-title">{evidenceLaneSummary}</h3>
+                  <p className="hero-focus-copy">
+                    {followUpLane
+                      ? `下一步：${followUpLane.next_follow_up_actions[0] || "補完後回案件工作面更新檢查點。"}`
+                      : progressionLane
+                        ? `下一步：${progressionLane.next_progression_actions[0] || "回案件工作面更新推進狀態。"}`
+                        : sharedContinuitySummary}
+                  </p>
+                </div>
               </div>
             </div>
-            <div className="summary-grid">
-              <div className="section-card">
-                <h4>來源材料</h4>
-                <p className="content-block">{workspace.source_material_cards.length} 份</p>
+
+            <div className="hero-metrics-grid">
+              <div className="section-card hero-metric-card">
+                <h3>來源材料</h3>
+                <p className="workbench-metric">{workspace.source_material_cards.length}</p>
+                <p className="muted-text">已掛回案件世界的正式來源材料。</p>
               </div>
-              <div className="section-card">
-                <h4>證據支撐鏈</h4>
-                <p className="content-block">{workspace.evidence_chains.length} 則</p>
+              <div className="section-card hero-metric-card">
+                <h3>證據支撐鏈</h3>
+                <p className="workbench-metric">{workspace.evidence_chains.length}</p>
+                <p className="muted-text">目前可回看、可支撐判斷的證據鏈。</p>
               </div>
-              <div className="section-card">
-                <h4>高影響缺口</h4>
-                <p className="content-block">{workspace.high_impact_gaps.length} 個</p>
+              <div className="section-card hero-metric-card">
+                <h3>高影響缺口</h3>
+                <p className="workbench-metric">{workspace.high_impact_gaps.length}</p>
+                <p className="muted-text">先補這些，最能降低判斷失真風險。</p>
               </div>
-              <div className="section-card">
-                <h4>跨工作切片共享鏈</h4>
-                <p className="content-block">{sharedContinuitySummary}</p>
+              <div className="section-card hero-metric-card">
+                <h3>案件姿態</h3>
+                <p className="workbench-metric">
+                  {labelForEngagementContinuityMode(workspace.matter_summary.engagement_continuity_mode)}
+                </p>
+                <p className="muted-text">{labelForWritebackDepth(workspace.matter_summary.writeback_depth)}</p>
               </div>
-              {followUpLane ? (
-                <>
-                  <div className="section-card">
-                    <h4>最新檢查點</h4>
-                    <p className="content-block">
-                      {followUpLane.latest_update?.summary || "尚未形成正式檢查點。"}
-                    </p>
-                  </div>
-                  <div className="section-card">
-                    <h4>上一個檢查點</h4>
-                    <p className="content-block">
-                      {followUpLane.previous_checkpoint?.summary || "目前還沒有上一輪檢查點可對照。"}
-                    </p>
-                  </div>
-                  <div className="section-card">
-                    <h4>這次補件主要影響</h4>
-                    <p className="content-block">
-                      {followUpLane.evidence_update_goal || "先補齊這輪後續更新要補強的支撐鏈。"}
-                    </p>
-                  </div>
-                  <div className="section-card">
-                    <h4>下一步最建議做什麼</h4>
-                    <p className="content-block">
-                      {followUpLane.next_follow_up_actions[0] || "補完後回案件工作面更新這輪檢查點。"}
-                    </p>
-                  </div>
-                </>
-              ) : null}
-              {progressionLane ? (
-                <>
-                  <div className="section-card">
-                    <h4>最新推進狀態</h4>
-                    <p className="content-block">
-                      {progressionLane.latest_progression?.summary || "目前還沒有新的推進更新。"}
-                    </p>
-                  </div>
-                  <div className="section-card">
-                    <h4>下一步最建議做什麼</h4>
-                    <p className="content-block">
-                      {progressionLane.next_progression_actions[0] || "回案件工作面更新推進狀態。"}
-                    </p>
-                  </div>
-                </>
-              ) : null}
-            </div>
-            <ul className="list-content" style={{ marginTop: "16px" }}>
-              {evidenceActionChecklist.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-            <div className="button-row" style={{ marginTop: "16px" }}>
-              {workspace?.matter_summary.engagement_continuity_mode === "one_off" &&
-              workspace.matter_summary.status === "closed" ? (
-                <Link className="button-primary" href={`/matters/${matterId}#continuation-actions`}>
-                  先重新開啟案件
-                </Link>
-              ) : (
-                <Link className="button-primary" href="#evidence-supplement">
-                  先補件
-                </Link>
-              )}
-              {focusTask ? (
-                <Link className="button-secondary" href={`/tasks/${focusTask.id}`}>
-                  打開焦點工作紀錄
-                </Link>
-              ) : null}
-              {focusTask?.latest_deliverable_id ? (
-                <Link
-                  className="button-secondary"
-                  href={`/deliverables/${focusTask.latest_deliverable_id}`}
-                >
-                  打開最新交付物
-                </Link>
-              ) : null}
-              <Link className="button-secondary" href={`/matters/${matterId}`}>
-                返回案件工作面
-              </Link>
             </div>
           </section>
 
@@ -1013,14 +1014,14 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
               <div>
                 <h2 className="panel-title">補件判斷</h2>
                 <p className="panel-copy">
-                  日常使用先只看目前夠不夠、缺什麼、會影響什麼；證據期待、限制與連續性都改成需要時再展開。
+                  第一屏已經告訴你這頁該先補什麼；這裡只補充更完整的充分性、交付限制與缺口脈絡。
                 </p>
               </div>
             </div>
             <div className="summary-grid">
               <div className="section-card">
                 <h4>充分性摘要</h4>
-                <p className="content-block">{workspace.sufficiency_summary}</p>
+                <p className="content-block">{evidenceSurfaceSummary}</p>
               </div>
               <div className="section-card">
                 <h4>高影響缺口</h4>

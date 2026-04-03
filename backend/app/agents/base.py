@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from pydantic import BaseModel, Field
+from typing import Literal
 
 from app.domain.enums import (
     AgentCategory,
@@ -51,6 +52,7 @@ class AgentInputPayload(BaseModel):
     task_id: str
     title: str
     description: str
+    response_language: Literal["zh-Hant", "en"] = "zh-Hant"
     task_type: str
     flow_mode: FlowMode
     background_text: str = ""

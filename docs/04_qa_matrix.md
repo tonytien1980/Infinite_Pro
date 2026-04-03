@@ -879,3 +879,350 @@ Important verification note:
 - clause / obligation members can now point back to the formal evidence chain, so contract-risk support no longer stops at a plain text list
 - `legal_risk_pack` and `finance_fundraising_pack` now influence readiness / framing / deliverable shaping more directly for contract-aware cases
 - the benchmark scaffold now covers legal / finance contract-aware cases without turning into a full evaluation platform
+
+---
+
+## Entry: 2026-04-02 consultant-facing copy clarity and localization pass
+
+Scope:
+- consultant-first copy tightening
+- Traditional Chinese cleanup on first-screen workbench surfaces
+- agent / pack / matter / task / deliverable copy simplification
+- same-doc sync for active UX language rules
+
+Environment used:
+- frontend code verification: local repo build
+- runtime spot-check target: Docker frontend `http://127.0.0.1:3000`
+
+### Build / Typecheck
+
+| Check | Result |
+| --- | --- |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && npm run typecheck` | Passed |
+
+Important verification note:
+- this frontend repo still expects `.next/types` to exist before `tsc --noEmit`
+- valid verification order for this pass remained `build -> typecheck`
+
+### Copy / UX verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Docs | `docs/03_workbench_ux_and_page_spec.md` | Add consultant-facing copy posture rules | Verified | active UX SSOT now explicitly defines plain-language, action-first workbench copy |
+| Home UI | `/` | Hero and section intros simplified for consultant users | Verified | copy now emphasizes next action over system explanation |
+| Matters UI | `/matters` | Hero, list intro, and CTA copy simplified | Verified | page now reads more like a working list than a technical workspace index |
+| Deliverables UI | `/deliverables` | Hero, list intro, and CTA copy simplified | Verified | reading / revision intent clearer on first screen |
+| History UI | `/history` | Hero and management intro simplified | Verified | copy now explains purpose in plain language before cleanup actions |
+| Agents UI | `/agents` | Agent labels and management copy localized further | Verified | `Host` surface language shifted to `主控代理` and system-heavy English reduced |
+| Packs UI | `/packs` | Pack labels and management copy localized further | Verified | primary descriptions now read more naturally in Traditional Chinese |
+| Matter UI | `/matters/[matterId]` | first-screen mixed English terms reduced | Verified | `checkpoint` / `progression` / shared-chain language translated on mainline surfaces |
+| Task UI | `/tasks/[taskId]` | first-screen and advanced section mixed English terms reduced | Verified | work-slice / progression / authority wording simplified for consultant readers |
+| Deliverable UI | `/deliverables/[deliverableId]` | first-screen and continuity sections simplified | Verified | continuity / progression / records wording now more user-facing |
+| Settings UI | `/settings` | provider/settings vocabulary localized further | Verified | `runtime config`, `env baseline`, `Base URL`, `Timeout` now have clearer Chinese equivalents |
+
+### Verified outcomes
+
+- first-screen workbench copy is now more action-first and less system-explanatory
+- visible English debt on agent / pack / matter / task / deliverable surfaces was reduced substantially
+- the active UX spec now explicitly requires consultant-friendly, low-jargon copy
+- some deeper technical or data-derived strings still remain in lower-level disclosures and form diagnostics; they should be handled in a later copy pass if full zero-English visible polish is required
+
+---
+
+## Entry: 2026-04-02 reference-driven workbench visual pass
+
+Scope:
+- `Linear + Coinbase + Wise` reference blend
+- calmer, more institutional workbench styling
+- list / management first-screen restructuring
+- hero area hierarchy aligned to consultant-first reading order
+
+Environment used:
+- frontend code verification: local repo build
+- runtime spot-check target: Docker frontend `http://127.0.0.1:3000`
+
+### Build / Typecheck
+
+| Check | Result |
+| --- | --- |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && npm run typecheck` | Passed |
+
+### Visual / UX verification target
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Docs | `docs/03_workbench_ux_and_page_spec.md` | Encode reference blend and hero rules | Verified | Active UX SSOT now names `Linear + Coinbase + Wise` and list / management hero pattern |
+| Overview | `/` | Rework first screen around one main action and one focus card | Verified | Empty-state duplicate CTA removed; hero now reads as one primary action plus one focus summary |
+| Matters | `/matters` | Rework hero for intake + case continuation hierarchy | Verified | Metrics now act as quiet context below the main hero narrative |
+| Deliverables | `/deliverables` | Rework hero for reading / revision / handoff flow | Verified | Empty-state duplicate action removed; hero now emphasizes return-to-work flow |
+| Agents | `/agents` | Reframe management hero around safer next step and contract readiness | Verified | First screen now leads with governance decision, not spec density |
+| Packs | `/packs` | Reframe management hero around pack family choice and contract quality | Verified | First screen now emphasizes classification and contract quality before detail |
+
+### Verified outcomes
+
+- first-screen list and management pages now use a clearer split between main action, focus guidance, and quiet metrics
+- the workbench visual tone moved closer to the intended `Linear + Coinbase + Wise` blend: calmer, more institutional, and easier to scan
+- hero areas no longer depend on equal-weight metric walls to explain the page
+- consultant users now get a cleaner next-step cue before encountering deeper management or workflow detail
+
+---
+
+## Entry: 2026-04-02 detail workspace structural pass
+
+Scope:
+- detail workspace first-screen hierarchy
+- matter / task / evidence / deliverable hero restructuring
+- reduce hero-to-first-section duplication
+- keep consultant-first reading order while preserving deep disclosure
+
+Environment used:
+- frontend code verification: local repo build
+- runtime spot-check target: Docker frontend `http://127.0.0.1:3000`
+- smoke ids:
+  - matter: `0f4fb961-254d-4d7d-ae67-2a6137602d2f`
+  - task: `a031c601-e5ce-4604-8943-e14bbe5eb8ae`
+  - deliverable: `f8180a79-64c8-4648-9516-97646eeef427`
+
+### Build / Typecheck
+
+| Check | Result |
+| --- | --- |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && npm run typecheck` | Passed |
+
+Important verification note:
+- this frontend repo still expects `.next/types` to exist before `tsc --noEmit`
+- valid verification order for this pass remained `build -> typecheck`
+
+### Detail workspace verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Docs | `docs/03_workbench_ux_and_page_spec.md` | Add detail workspace first-screen pattern | Verified | Hero now formally owns mainline + CTA + quiet context, not just object header |
+| Matter UI | `/matters/[matterId]` | Keep hero as mainline entry and remove overview duplication | Verified | overview tab now supplements background instead of restating hero |
+| Matter UI | `/matters/[matterId]` | Closure wording localized further | Verified | first-screen and overview closure copy now read as consultant-facing Chinese |
+| Task UI | `/tasks/[taskId]` | Merge title / main question / primary action into one hero system | Verified | page no longer starts as separate header + action panel stack |
+| Evidence UI | `/matters/[matterId]/evidence` | Merge hero and補件決策 into one first-screen structure | Verified | first screen now leads with support target,补件 decision, and quiet metrics |
+| Evidence UI | `/matters/[matterId]/evidence` | Reduce first-screen mixed English generated by UI copy | Verified | top-level action language is cleaner even though some backend-derived summaries still contain English tokens |
+| Deliverable UI | `/deliverables/[deliverableId]` | Merge hero and publishing decision into one first-screen structure | Verified | page now answers version / next step / publish posture before deep content |
+| Deliverable UI | `/deliverables/[deliverableId]` | Rename low-level visible English sections | Verified | `Continuity / research / writeback` and `ontology 回鏈` visible wording replaced on user-facing surfaces |
+
+### Verified outcomes
+
+- detail workspaces now feel more like one coherent consultant workbench system instead of header + panel + guide blocks stacked independently
+- first-screen duplication is lower: hero owns the mainline, while the first body section now deepens context instead of repeating it
+- matter, task, evidence, and deliverable surfaces now share a more consistent left-mainline / right-decision-card / quiet-metrics pattern
+- some data-derived English still remains inside backend-generated summaries, object labels, and domain content; a later pass should handle those if you want a stricter zero-English visible standard
+
+---
+
+## Entry: 2026-04-03 generated output language guardrail pass
+
+Scope:
+- generated-content language guardrail
+- Host / specialist / extension synthesis request-level language control
+- keep UI language and model output language aligned without coupling output quality to a settings toggle
+
+Environment used:
+- backend code verification: local repo test runtime
+- frontend code verification: local repo build
+- runtime posture: Docker app remains the active local environment
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `.venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`101 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && npm run typecheck` | Passed |
+
+Important verification note:
+- this frontend repo still expects `.next/types` to exist before `tsc --noEmit`
+- valid verification order for this pass remained `build -> typecheck`
+
+### Language guardrail verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Docs | `docs/01_runtime_architecture_and_data_contracts.md` | Add formal output-governance baseline | Verified | generated natural-language fields now have an explicit default-language contract |
+| Docs | `docs/02_host_agents_packs_and_extension_system.md` | Record Host / extension synthesis language guardrail | Verified | Host responsibility now explicitly includes generated output language control |
+| Docs | `docs/03_workbench_ux_and_page_spec.md` | Align visible UI language and generated content posture | Verified | consultant-facing workbench copy and generated summaries now share the same default-language expectation |
+| Backend | `backend/app/model_router/base.py` | Add `response_language` to structured task requests | Verified | core analysis, research, restructuring, contract review, and extension synthesis requests now carry explicit language intent |
+| Backend | `backend/app/model_router/structured_tasks.py` | Build stronger Traditional Chinese system instruction | Verified | default prompt now requires Traditional Chinese natural-language output and explicitly says to avoid mixed Chinese-English phrasing |
+| Backend | `backend/app/agents/host.py` | Pin Host payload default to `zh-Hant` | Verified | runtime output language no longer drifts with unrelated UI settings |
+| Backend | `backend/app/services/extension_contract_synthesis.py` | Pin agent / pack synthesis requests to `zh-Hant` without new DB coupling | Verified | public service signature stayed compatible while adding language guardrail |
+| Tests | `backend/tests/test_mvp_slice.py` | Lock prompt + extension request language behavior | Verified | tests now assert core-analysis prompt contains Traditional Chinese guardrail and extension synthesis requests carry `zh-Hant` |
+
+### Verified outcomes
+
+- newly generated consultant-facing summaries, findings, risks, recommendations, action items, and missing-information fields now default to Traditional Chinese
+- Host, core reasoning agents, specialist agents, and extension synthesis now share the same request-level language guardrail
+- UI language preference no longer silently changes formal generated output language
+- remaining English visible in the product may still come from:
+  - pre-existing historical records
+  - raw source-material excerpts
+  - proper nouns, clause titles, or direct quotations kept intentionally
+  - seeded test/demo data
+- if future English output is needed, it should be introduced as an explicit runtime contract change, not as an accidental side effect of UI settings
+
+---
+
+## Entry: 2026-04-03 surface-level visual differentiation pass
+
+Scope:
+- stronger surface-layer visual differentiation
+- header / nav / hero / CTA / metric-strip refresh
+- preserve consultant-workbench direction while making the visual pass clearly noticeable
+
+Environment used:
+- frontend code verification: local repo build
+- runtime visual spot-check target: Docker frontend `http://127.0.0.1:3000`
+
+### Build / Typecheck
+
+| Check | Result |
+| --- | --- |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && npm run typecheck` | Passed |
+
+Important verification note:
+- this frontend repo still expects `.next/types` to exist before `tsc --noEmit`
+- valid verification order for this pass remained `build -> typecheck`
+
+### Visual spot-check verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Docs | `docs/03_workbench_ux_and_page_spec.md` | Add visible surface differentiation rule | Verified | visual pass is now formally required to be noticeable at shell / hero / CTA / section level |
+| Shell | global header / nav | Inspect updated shell surface on live runtime | Verified | header, nav plate, active-state styling, and primary CTA now read more like a workbench frame than a default bar |
+| Overview | `/` | Spot-check hero / focus cards / metric strip | Verified | hero surface, warm primary CTA, and quiet metric row visibly differ from the previous neutral-card look |
+| Matters | `/matters` | Spot-check first-screen hierarchy and page surface | Verified | list hero now keeps the stronger surface language without changing page role |
+| History | `/history` | Spot-check newly structured hero layout | Verified | history page now uses the same two-column hero language instead of a plain heading plus cards |
+| Settings | `/settings` | Spot-check newly structured hero layout | Verified | settings now starts with a proper workbench hero and jumps to provider / preference sections |
+| Intake | `/new` | Spot-check new matter intake hero layout | Verified | intake now has a clearer first-screen entry with visible focus cards and metric strip |
+| Browser QA | `/`, `/matters`, `/history`, `/settings`, `/new` | Check browser console for errors during spot-check | Verified | no browser console errors were emitted during this visual pass |
+
+### Verified outcomes
+
+- this pass is visibly different at first glance, not only in copy or IA
+- header / nav / hero / CTA / metric strip now feel more like the intended `Linear + Coinbase + Wise` blend
+- overview, matters, history, settings, and intake now share one clearer consultant-workbench surface language
+- the stronger visual layer stayed within the existing product direction and did not change workbench roles, Host boundaries, or workflow semantics
+
+---
+
+## Entry: 2026-04-03 detail workspace visual deepening pass
+
+Scope:
+- detail workspace breadcrumb / back-link / hero / rail / section-guide deepening
+- more consultant-facing surface summaries on matter / evidence / deliverable first screens
+- keep the existing structural pass, but make the inner workspaces feel more visibly finished
+
+Environment used:
+- frontend code verification: local repo build
+- runtime route smoke target: Docker frontend `http://127.0.0.1:3000`
+- live data ids:
+  - matter: `0f4fb961-254d-4d7d-ae67-2a6137602d2f`
+  - task: `a031c601-e5ce-4604-8943-e14bbe5eb8ae`
+  - deliverable: `f8180a79-64c8-4648-9516-97646eeef427`
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && npm run typecheck` | Passed |
+
+Important verification note:
+- this frontend repo still expects `.next/types` to exist before `tsc --noEmit`
+- valid verification order for this pass remained `build -> typecheck`
+
+### Detail workspace verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Docs | `docs/03_workbench_ux_and_page_spec.md` | Deepen detail workspace surface rules | Verified | breadcrumb / back-link / rail / metric-strip responsibilities are now documented |
+| Matter UI | `/matters/[matterId]` | Deepen hero with visible posture / evidence / deliverable / extension metrics | Verified | matter first screen now exposes clearer operating posture beyond title + rail only |
+| Task UI | `/tasks/[taskId]` | Deepen hero metrics with agent / pack path visibility | Verified | task first screen now shows more clearly whether a real extension path exists |
+| Evidence UI | `/matters/[matterId]/evidence` | Replace first-screen sufficiency copy with front-end consultant-facing summary | Verified | visible summary no longer depends only on raw backend sufficiency prose |
+| Evidence UI | `/matters/[matterId]/evidence` | Add posture metric for continuity mode / writeback depth | Verified | evidence page now exposes case posture in the same first-screen grammar as other workspaces |
+| Deliverable UI | `/deliverables/[deliverableId]` | Replace visible confidence summary with cleaner front-end summary | Verified | first-screen confidence copy is now more release-oriented and less raw-system phrasing |
+| Deliverable UI | `/deliverables/[deliverableId]` | Deepen hero metrics and version rail emphasis | Verified | version / confidence / save state / case posture now read as one release workbench |
+| Runtime smoke | detail workspace routes | HTTP smoke on real routes | Verified | `/matters/[id]`, `/tasks/[id]`, `/matters/[id]/evidence`, `/deliverables/[id]` all returned `200` |
+
+### Residual note
+
+- browser-MCP screenshot verification for these detail routes was not available in this pass because the tool attempted to create `/.playwright-mcp` on a read-only filesystem; route smoke and fresh build / typecheck were used as the verification fallback instead
+
+### Verified outcomes
+
+- inner workspaces now feel more visually intentional, not only structurally correct
+- breadcrumb / back-link / hero / rail / section-guide now act more like one connected workbench path
+- visible confidence / sufficiency summaries on evidence and deliverable pages are more consultant-facing and less dependent on raw backend wording
+- this pass continued to deepen the existing product direction instead of changing the product definition or workflow model
+
+---
+
+## Entry: 2026-04-03 mobile adaptation pass
+
+Scope:
+- mobile-first responsive refinement for shared workbench surfaces
+- touch-first nav / tabs / CTA / breadcrumb / back-link behavior
+- verify that both entry pages and detail workspaces remain usable on a phone-sized viewport
+
+Environment used:
+- frontend code verification: local repo build
+- runtime target: Docker frontend `http://127.0.0.1:3000`
+- mobile viewport verification: terminal Playwright screenshot with Chromium `390x844`
+- screenshot artifact directory: `output/playwright/mobile`
+
+### Build / Typecheck
+
+| Check | Result |
+| --- | --- |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && npm run typecheck` | Passed |
+
+Important verification note:
+- this frontend repo still expects `.next/types` to exist before `tsc --noEmit`
+- valid verification order for this pass remained `build -> typecheck`
+
+### Mobile verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Docs | `docs/03_workbench_ux_and_page_spec.md` | Add formal mobile / responsive posture rules | Verified | mobile support is now explicitly part of shipped workbench quality |
+| Shell | global header / nav | Check touch-first nav behavior on `390x844` viewport | Verified | header condenses cleanly and nav remains horizontally operable without collapsing into unreadable multi-line text |
+| Overview | `/` | Mobile screenshot review | Verified | primary CTA becomes prominent and hero reads in a clear top-down order |
+| Matters list | `/matters` | Mobile screenshot review | Verified | list hero remains readable and main CTA stays easy to tap |
+| Intake | `/new` | Mobile screenshot review | Verified | unified intake first screen stays legible with clear next-step guidance |
+| Settings | `/settings` | Mobile screenshot review | Verified | settings hero and first actions remain readable on phone-sized viewport |
+| Matter detail | `/matters/[matterId]` | Mobile screenshot review | Verified | breadcrumb remains visible and hero content stacks into a readable single-column flow |
+| Task detail | `/tasks/[taskId]` | Mobile screenshot review | Verified | back-link group now stacks cleanly and hero remains readable at phone width |
+| Evidence detail | `/matters/[matterId]/evidence` | Mobile screenshot review | Verified | evidence workspace keeps main reading order and top actions intact |
+| Deliverable detail | `/deliverables/[deliverableId]` | Mobile screenshot review | Verified | deliverable hero remains readable and tabs stay operable in the narrower layout |
+
+### Screenshot artifacts
+
+- `output/playwright/mobile/home-390x844.png`
+- `output/playwright/mobile/matters-390x844.png`
+- `output/playwright/mobile/new-390x844.png`
+- `output/playwright/mobile/settings-390x844.png`
+- `output/playwright/mobile/matter-detail-390x844.png`
+- `output/playwright/mobile/task-detail-390x844.png`
+- `output/playwright/mobile/evidence-detail-390x844.png`
+- `output/playwright/mobile/deliverable-detail-390x844.png`
+
+### Residual note
+
+- mobile layout is now usable across the checked workbench routes, but some long English source-derived content still consumes extra vertical space on phone screens; that is now a copy/content cleanup issue more than a pure responsive-layout issue
+
+### Verified outcomes
+
+- Infinite Pro now has a stronger shipped RWD baseline rather than desktop-first CSS with incidental collapse behavior
+- entry pages and checked detail workspaces remain readable and actionable on a phone-sized viewport
+- mobile adaptation stayed aligned with the same consultant-workbench visual direction instead of introducing a separate mobile-only product language

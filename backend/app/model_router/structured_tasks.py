@@ -20,11 +20,19 @@ from app.model_router.base import (
     ResearchSynthesisRequest,
 )
 
-DEFAULT_LANGUAGE_INSTRUCTION = (
-    "預設使用繁體中文輸出所有 problem_definition、background_summary、findings、risks、"
-    "recommendations、action_items、missing_information 與其他欄位內容。"
-    "只有在任務內容明確要求英文時，才改用英文。"
-)
+def build_language_instruction(response_language: str) -> str:
+    if response_language == "en":
+        return (
+            "Use English for all natural-language fields."
+            " Keep terminology precise and consultant-facing."
+        )
+    return (
+        "預設使用繁體中文輸出所有自然語言欄位內容，包含 problem_definition、background_summary、"
+        "findings、risks、recommendations、action_items、missing_information 與其他說明文字。"
+        "除非任務內容明確要求英文，否則不要用英文整句作為摘要、建議、風險或行動項目。"
+        "若輸入資料是英文，可保留必要專有名詞、原始條款名稱或引用片段，但說明、結論與建議仍須寫成繁體中文。"
+        "避免中英夾雜。"
+    )
 
 ALLOWED_AGENT_TYPES = ["reasoning", "specialist"]
 ALLOWED_AGENT_CAPABILITIES = [
@@ -188,7 +196,7 @@ def build_research_synthesis_spec(
             "你是 Infinite Pro 的研究綜整代理。"
             "請只使用提供的任務脈絡與證據，不要編造事實。"
             "輸出要像顧問交付草稿：先結論、後依據，建議要可執行，風險與缺漏資訊要明確。"
-            + DEFAULT_LANGUAGE_INSTRUCTION
+            + build_language_instruction(request_payload.response_language)
         ),
         user_prompt=render_request_context(
             task_title=request_payload.task_title,
@@ -315,7 +323,7 @@ def build_core_analysis_spec(
                 "你是 Infinite Pro 的核心分析代理。",
             )
             + " 請只使用提供的任務脈絡。輸出要精簡、結構化，且符合顧問式交付語氣：先判斷、後依據。"
-            + DEFAULT_LANGUAGE_INSTRUCTION
+            + build_language_instruction(request_payload.response_language)
         ),
         user_prompt=user_prompt,
         output_model=CoreAnalysisOutput,
@@ -357,7 +365,7 @@ def build_document_restructuring_spec(
             "你是 Infinite Pro 的文件重構代理。"
             "請把素材重整成更清楚的內部交付物，並明確指出缺漏資料，不要假裝草稿已完整。"
             "建議要可執行，輸出順序要先給重組判斷，再給結構依據。"
-            + DEFAULT_LANGUAGE_INSTRUCTION
+            + build_language_instruction(request_payload.response_language)
         ),
         user_prompt=render_request_context(
             task_title=request_payload.task_title,
@@ -407,7 +415,7 @@ def build_contract_review_spec(
             "請提供審慎的內部議題標記結果，而不是法律意見。"
             "只能使用提供的合約素材，並明確列出不確定性。"
             "請先給高風險判斷，再給 redline / 修改建議與待補資料。"
-            + DEFAULT_LANGUAGE_INSTRUCTION
+            + build_language_instruction(request_payload.response_language)
         ),
         user_prompt=render_request_context(
             task_title=request_payload.task_title,
@@ -511,7 +519,7 @@ def build_agent_contract_synthesis_spec(
             "請把輸出寫成可直接進 registry 的正式規格，而不是行銷文案。"
             "請優先生成高訊號、可採用的短版 contract：description 保持單一精實段落，各 list 欄位盡量控制在 2-6 條，不要為了看起來完整而展開冗長百科式列舉。"
             "搜尋結果只能用來補強對產業、能力與常見風險的理解，不能編造成確定事實。"
-            + DEFAULT_LANGUAGE_INSTRUCTION
+            + build_language_instruction(request_payload.response_language)
         ),
         user_prompt=user_prompt,
         output_model=AgentContractSynthesisOutput,
@@ -610,7 +618,7 @@ def build_pack_contract_synthesis_spec(
             "若是 domain pack，重點是問題邊界與顧問工作模組；若是 industry pack，重點是商業模式、常見指標、產業限制與情境。"
             "請優先生成高訊號、可採用的短版 contract：definition / description 保持單一精實段落，各 list 欄位盡量控制在 2-6 條，不要為了看起來完整而展開冗長百科式列舉。"
             "搜尋結果只能用來補強常見問題、指標與情境，不可把模糊外部訊號包裝成高確定性事實。"
-            + DEFAULT_LANGUAGE_INSTRUCTION
+            + build_language_instruction(request_payload.response_language)
         ),
         user_prompt=user_prompt,
         output_model=PackContractSynthesisOutput,

@@ -218,6 +218,15 @@ function buildMatterAdvanceGuide({
     continuationSurface?.primary_action &&
     continuationSurface.primary_action.action_id !== "run_analysis"
   ) {
+    if (continuationSurface.workflow_layer === "closure") {
+      return {
+        title: "這案已可正式結案",
+        summary:
+          "這個單次案件已具備基本脈絡、證據與交付結果，下一步應偏向正式結案、發布或匯出，而不是進入持續追蹤。",
+        checklist,
+        primaryActionLabel: continuationSurface.primary_action.label,
+      };
+    }
     return {
       title: continuationSurface.title,
       summary: continuationSurface.summary,
@@ -858,7 +867,7 @@ export function MatterWorkspacePanel({
   }, [fallbackRecord, matter, matterId, saveTone, setMatterRecords]);
 
   return (
-    <main className="page-shell">
+    <main className="page-shell matter-workspace-shell">
       <nav className="workspace-breadcrumb" aria-label="工作面層級">
         <Link className="workspace-breadcrumb-link" href="/">
           總覽
@@ -884,7 +893,7 @@ export function MatterWorkspacePanel({
 
       {matter ? (
         <>
-          <section className="hero-card workspace-hero-card">
+          <section className="hero-card workspace-hero-card matter-hero">
             <div className="workspace-hero-grid matter-workspace-hero-grid">
               <div className="workspace-hero-main">
                 <span className="eyebrow">案件工作台</span>
@@ -905,7 +914,7 @@ export function MatterWorkspacePanel({
               </div>
 
               <aside className="workspace-hero-rail">
-                <div className="section-card section-anchor" id="continuation-actions">
+                <div className="section-card section-anchor workspace-rail-callout" id="continuation-actions">
                   <h4>{advanceGuide.title}</h4>
                   <p className="content-block">{advanceGuide.summary}</p>
                   <p className="muted-text" style={{ marginTop: "8px" }}>
@@ -1050,6 +1059,36 @@ export function MatterWorkspacePanel({
                 </div>
               </aside>
             </div>
+
+            <div className="hero-metrics-grid workspace-hero-metrics">
+              <div className="section-card hero-metric-card">
+                <h3>案件姿態</h3>
+                <p className="workbench-metric">{labelForMatterStatus(matterStatus)}</p>
+                <p className="muted-text">
+                  {labelForEngagementContinuityMode(matter.summary.engagement_continuity_mode)} /{" "}
+                  {labelForWritebackDepth(matter.summary.writeback_depth)}
+                </p>
+              </div>
+              <div className="section-card hero-metric-card">
+                <h3>來源與證據</h3>
+                <p className="workbench-metric">{evidenceCount}</p>
+                <p className="muted-text">{matter.summary.source_material_count} 份來源材料</p>
+              </div>
+              <div className="section-card hero-metric-card">
+                <h3>交付物</h3>
+                <p className="workbench-metric">{matter.summary.deliverable_count}</p>
+                <p className="muted-text">{matter.summary.total_task_count} 筆工作紀錄</p>
+              </div>
+              <div className="section-card hero-metric-card">
+                <h3>已選擴充</h3>
+                <p className="workbench-metric">
+                  {matter.summary.selected_agent_names.length + matter.summary.selected_pack_names.length}
+                </p>
+                <p className="muted-text">
+                  {matter.summary.selected_agent_names.length} 個代理 / {matter.summary.selected_pack_names.length} 個模組包
+                </p>
+              </div>
+            </div>
           </section>
 
           <div className="page-tabs" role="tablist" aria-label="案件工作面頁籤">
@@ -1081,39 +1120,41 @@ export function MatterWorkspacePanel({
               <section className="panel">
                 <div className="panel-header">
                   <div>
-                    <h2 className="panel-title">顧問操作焦點</h2>
-                    <p className="panel-copy">日常使用先只看主線、限制與下一步；案件設定、同步狀態與工作背景都改成需要時再展開。</p>
+                    <h2 className="panel-title">主線補充</h2>
+                    <p className="panel-copy">第一屏已經告訴你這個案件現在要做什麼；這裡只補充真正會影響判斷的背景、限制與工作脈絡。</p>
                   </div>
                 </div>
 
                 <div className="detail-list">
-                  <div className="detail-item">
-                    <h3>目前主線</h3>
-                    <p className="content-block">{coreQuestion}</p>
-                  </div>
-                  <div className="detail-item">
-                    <h3>這頁先做什麼</h3>
-                    <ul className="list-content">
-                      {advanceGuide.checklist.map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
                   {continuationSurface ? (
                     <div className="detail-item">
                       <h3>案件後續模式</h3>
                       <p className="content-block">
-                        {continuationSurface.title}。{continuationSurface.summary}
+                        {continuationSurface.workflow_layer === "closure"
+                          ? "這案已可正式結案。這個單次案件已具備基本脈絡、證據與交付結果，下一步應偏向正式結案、發布或匯出，而不是進入持續追蹤。"
+                          : `${continuationSurface.title}。${continuationSurface.summary}`}
                       </p>
                     </div>
                   ) : null}
                   {followUpLane ? (
                     <div className="detail-item">
-                      <h3>上次到哪裡 / 這次更新什麼</h3>
+                      <h3>最近檢查點與變化</h3>
                       <ul className="list-content">
-                        <li>最近 checkpoint：{followUpLane.latest_update?.summary || "尚未形成正式 checkpoint。"}</li>
-                        <li>上一個 checkpoint：{followUpLane.previous_checkpoint?.summary || "目前沒有更早的 checkpoint 可比較。"}</li>
+                        <li>最近檢查點：{followUpLane.latest_update?.summary || "尚未形成正式檢查點。"}</li>
+                        <li>上一個檢查點：{followUpLane.previous_checkpoint?.summary || "目前沒有更早的檢查點可比較。"}</li>
                         {followUpLane.what_changed.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                  {progressionLane ? (
+                    <div className="detail-item">
+                      <h3>最近推進狀態</h3>
+                      <ul className="list-content">
+                        <li>最新推進狀態：{progressionLane.latest_progression?.summary || "目前還沒有新的推進更新。"}</li>
+                        <li>上一個推進快照：{progressionLane.previous_progression?.summary || "目前沒有更早的推進快照可比較。"}</li>
+                        {progressionLane.what_changed.slice(0, 3).map((item) => (
                           <li key={item}>{item}</li>
                         ))}
                       </ul>
@@ -1156,6 +1197,12 @@ export function MatterWorkspacePanel({
                     {followUpLane?.next_follow_up_actions.length ? (
                       <ul className="list-content">
                         {followUpLane.next_follow_up_actions.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    ) : progressionLane?.next_progression_actions.length ? (
+                      <ul className="list-content">
+                        {progressionLane.next_progression_actions.map((item) => (
                           <li key={item}>{item}</li>
                         ))}
                       </ul>

@@ -4,6 +4,10 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from pydantic import BaseModel, Field
+from typing import Literal
+
+
+ResponseLanguage = Literal["zh-Hant", "en"]
 
 
 class ModelProviderError(RuntimeError):
@@ -13,6 +17,7 @@ class ModelProviderError(RuntimeError):
 class ResearchSynthesisRequest(BaseModel):
     task_title: str
     task_description: str
+    response_language: ResponseLanguage = "zh-Hant"
     background_text: str = ""
     goals: list[str] = Field(default_factory=list)
     constraints: list[str] = Field(default_factory=list)
@@ -23,6 +28,7 @@ class CoreAnalysisRequest(BaseModel):
     agent_id: str
     task_title: str
     task_description: str
+    response_language: ResponseLanguage = "zh-Hant"
     background_text: str = ""
     goals: list[str] = Field(default_factory=list)
     constraints: list[str] = Field(default_factory=list)
@@ -35,6 +41,7 @@ class CoreAnalysisRequest(BaseModel):
 class DocumentRestructuringRequest(BaseModel):
     task_title: str
     task_description: str
+    response_language: ResponseLanguage = "zh-Hant"
     background_text: str = ""
     goals: list[str] = Field(default_factory=list)
     constraints: list[str] = Field(default_factory=list)
@@ -44,6 +51,7 @@ class DocumentRestructuringRequest(BaseModel):
 class ContractReviewRequest(BaseModel):
     task_title: str
     task_description: str
+    response_language: ResponseLanguage = "zh-Hant"
     background_text: str = ""
     goals: list[str] = Field(default_factory=list)
     constraints: list[str] = Field(default_factory=list)
@@ -60,6 +68,7 @@ class AgentContractSynthesisRequest(BaseModel):
     agent_id: str
     agent_name: str
     agent_type: str
+    response_language: ResponseLanguage = "zh-Hant"
     description: str = ""
     supported_capabilities: list[str] = Field(default_factory=list)
     relevant_domain_packs: list[str] = Field(default_factory=list)
@@ -77,6 +86,7 @@ class PackContractSynthesisRequest(BaseModel):
     pack_id: str
     pack_type: str
     pack_name: str
+    response_language: ResponseLanguage = "zh-Hant"
     description: str = ""
     definition: str = ""
     domain_lenses: list[str] = Field(default_factory=list)
