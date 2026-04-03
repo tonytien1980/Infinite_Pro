@@ -2703,7 +2703,7 @@ def _build_flagship_lane_summary(
 ) -> str:
     if lane_id == "material_review_start":
         return (
-            "目前這筆案件已有可直接審閱的正式材料。這一輪重點是先圍繞手上的材料形成評估、"
+            "目前這筆案件已有可直接審閱的正式材料。這一輪重點是先圍繞手上的核心材料形成評估、"
             "審閱或重整結果，再決定是否要補更多資料。"
         )
     if lane_id == "decision_convergence_start":
@@ -2731,10 +2731,12 @@ def _build_flagship_next_step_summary(
         (item for item in (_normalize_whitespace(entry) for entry in next_best_actions) if item),
         "",
     )
+    if lane_id == "material_review_start" and first_action:
+        return f"先把手上的核心材料審完，確認高風險點與缺口，再決定是否要{first_action}"
     if first_action:
         return first_action
     if lane_id == "material_review_start":
-        return "先把手上的正式材料審完，確認缺口與高風險點，再決定是否要補更多資料。"
+        return "先把手上的核心材料審完，確認高風險點與缺口，再決定是否要補更多資料。"
     if lane_id == "decision_convergence_start":
         return "先比較主要方案與風險，再把結論、建議與行動整理成可採用的交付物。"
     return "先確認主問題與判斷範圍，再補最少但最有用的來源，或直接先跑第一版探索交付。"
@@ -2771,7 +2773,7 @@ def _build_flagship_current_output_summary(
     if lane_id == "material_review_start":
         return (
             f"目前已進入材料審閱姿態，至少有 {source_material_count} 份正式來源材料可回看；"
-            "這一輪較適合形成評估 / 審閱備忘，而不是直接假裝已完成完整決策收斂。"
+            "這一輪較適合形成評估 / 審閱備忘，先把核心材料審清楚，而不是直接假裝已完成完整決策收斂。"
         )
     if deliverable_class_hint == DeliverableClass.EXPLORATORY_BRIEF:
         return "目前最適合先形成探索級第一版交付，重點是釐清問題、缺口與下一步，而不是直接下完整定論。"
@@ -2845,7 +2847,7 @@ def _build_flagship_boundary_note(
     if external_research_heavy_candidate:
         return "這一輪仍偏外部態勢 / 少資訊起手，不應把目前內容誤讀成已完整對齊公司內部真相的正式決策結論。"
     if lane_id == "material_review_start":
-        return "這一輪主要是圍繞現有材料做評估 / 審閱，不等於已完成完整方案比較與最終決策收斂。"
+        return "這一輪主要是圍繞現有材料做評估 / 審閱，仍屬 review memo / assessment 姿態，不等於已完成完整方案比較與最終決策版本。"
     if deliverable_class_hint == DeliverableClass.DECISION_ACTION_DELIVERABLE:
         return "這一輪已接近正式決策 / 行動交付，但若後續要長期追蹤，仍需要接上 checkpoint 或 progression 續推。"
     return "這一輪先以探索級第一版為主，重點是把問題說清楚、把缺口露出來，不是裝成已經全部搞清楚。"

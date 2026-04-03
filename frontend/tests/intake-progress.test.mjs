@@ -13,6 +13,7 @@ import {
   CONSULTANT_START_OPTIONS,
   resolveWorkflowValueForConsultingStart,
 } from "../src/lib/flagship-lane.ts";
+import { buildMaterialReviewPostureView } from "../src/lib/material-review-ux.ts";
 import { buildContinuationPostureView } from "../src/lib/continuity-ux.ts";
 import { buildResearchGuidanceView } from "../src/lib/research-lane.ts";
 
@@ -295,4 +296,26 @@ test("continuity posture view keeps follow-up distinct from one-off and continuo
 
   assert.equal(continuous.modeLabel, "持續推進 / outcome");
   assert.match(continuous.primarySummary, /進度|outcome|結果/);
+});
+
+test("material review posture view keeps document-heavy review distinct from other lanes", () => {
+  const review = buildMaterialReviewPostureView(
+    buildFlagshipLaneView({
+      lane_id: "material_review_start",
+      label: "先審閱手上已有材料",
+      summary: "目前主要在圍繞核心材料形成 review / assessment 判斷。",
+      next_step_summary: "先把核心材料審完，確認高風險點與缺口。",
+      upgrade_note: "若補進更多背景，再升級成決策收斂。",
+      current_output_label: "評估 / 審閱備忘",
+      current_output_summary: "目前先形成 review memo。",
+      upgrade_target_label: "決策 / 行動交付物",
+      upgrade_requirements: ["至少再補 1 類不同來源背景材料"],
+      upgrade_ready: false,
+      boundary_note: "這份內容目前仍不是最終決策版本。",
+    }),
+  );
+
+  assert.equal(review.modeLabel, "材料審閱 / review memo");
+  assert.match(review.primarySummary, /核心材料|review memo|審完/);
+  assert.match(review.boundaryNote, /最終決策版本/);
 });

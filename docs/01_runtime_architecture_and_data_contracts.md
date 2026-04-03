@@ -242,6 +242,8 @@ Ontology 在 Infinite Pro 中是：
 
 - 這是 consultant-facing workflow read model，不是新的 architecture layer
 - 它不是新的 ontology world，也不是新的 execution mode taxonomy
+- `material_review_start` 正式應被理解為 document-heavy review posture，而不是 sparse-start 的過渡標籤
+- 這層可以顯示 current-output / upgrade-target / boundary，但不應把 review work 誤寫成 final decision convergence
 - 它的責任是把既有 runtime shape 翻譯成顧問可直接理解的起手姿態、下一步與升級方向
 - 第一波產品化重點是 sparse-start matters 的 `diagnostic_start`
 

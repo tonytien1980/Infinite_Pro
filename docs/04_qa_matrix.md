@@ -1554,3 +1554,56 @@ Environment used:
 - `continuous` now reads as the long-running progression / outcome layer instead of generic “more follow-up”
 - the continuity posture split is now clearer across all three modes: `one_off`, `follow_up`, and `continuous`
 - the product keeps the stronger progression language contained inside `continuous` instead of leaking it back into the lighter continuity modes
+
+---
+
+## Entry: 2026-04-03 document-heavy review lane
+
+Scope:
+- deepen `material_review_start` from a derived flagship-lane label into a clearer document-heavy review workflow
+- make matter/task/deliverable first screens read as review-first instead of generic workflow guidance
+- align backend lane wording, frontend review helper, active docs, and QA evidence
+
+Environment used:
+- frontend runtime: `http://127.0.0.1:3000`
+- backend runtime: `http://127.0.0.1:8000/api/v1`
+- code verification: local repo workspace
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`104 passed`) |
+| `node --test frontend/tests/intake-progress.test.mjs` | Passed (`9 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Material-review lane verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | task aggregate API | Re-run focused single-document lane test | Verified | pytest now asserts `material_review_start` emphasizes `核心材料`, `高風險點`, and review-first boundary wording |
+| Frontend | material-review helper | Verify document-heavy review stays distinct from other lanes | Verified | node test now covers `材料審閱 / review memo` posture helper |
+| Frontend | `/tasks/[taskId]` | Route smoke with live local material-review task id | Verified | route returned `200` |
+| Frontend | `/matters/[matterId]` | Route smoke with live local material-review matter id | Verified | route returned `200` |
+
+### Live smoke data
+
+- live material-review verification task id: `e22fe8c5-c217-4b13-a9c2-98cdbf0a440b`
+- live material-review verification matter id: `acd6ce91-f8b6-486d-9f85-6e6ae8371c89`
+- live API verification returned:
+  - `lane_id=material_review_start`
+  - `summary=目前這筆案件已有可直接審閱的正式材料。這一輪重點是先圍繞手上的核心材料形成評估、審閱或重整結果，再決定是否要補更多資料。`
+  - `next_step_summary=先把手上的核心材料審完，確認高風險點與缺口...`
+  - `current_output_label=評估 / 審閱備忘`
+  - `boundary_note=...仍屬 review memo / assessment 姿態...不等於...最終決策版本。`
+- frontend route smoke:
+  - `/tasks/e22fe8c5-c217-4b13-a9c2-98cdbf0a440b` returned `200`
+  - `/matters/acd6ce91-f8b6-486d-9f85-6e6ae8371c89` returned `200`
+
+### Verified outcomes
+
+- `material_review_start` now reads more clearly as a document-heavy review workflow rather than only a derived lane label
+- matter, task, and deliverable first screens now better match the consultant mental model of “reviewing a core document”
+- review memo / assessment posture is now clearer and less likely to be misread as final decision-convergence output

@@ -10,6 +10,7 @@ export type InternalWorkflowValue =
   | "multi_agent";
 
 export interface FlagshipLaneView {
+  laneId: ConsultantStartMode;
   label: string;
   summary: string;
   nextStepSummary: string;
@@ -82,6 +83,7 @@ export function labelForConsultantStartMode(startMode: ConsultantStartMode) {
 export function buildFlagshipLaneView(
   lane:
     | {
+        lane_id?: string;
         label: string;
         summary: string;
         next_step_summary: string;
@@ -97,6 +99,7 @@ export function buildFlagshipLaneView(
     | undefined,
 ): FlagshipLaneView {
   return {
+    laneId: (lane?.lane_id as ConsultantStartMode) || "diagnostic_start",
     label: lane?.label || "先快速看清問題與下一步",
     summary: lane?.summary || "目前先以少資訊起手，形成第一輪可回看的顧問判斷。",
     nextStepSummary:

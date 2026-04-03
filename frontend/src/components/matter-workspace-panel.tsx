@@ -14,6 +14,7 @@ import {
 import { describeRuntimeMaterialHandling } from "@/lib/intake";
 import { buildContinuationPostureView } from "@/lib/continuity-ux";
 import { buildResearchGuidanceView } from "@/lib/research-lane";
+import { buildMaterialReviewPostureView } from "@/lib/material-review-ux";
 import { truncateText } from "@/lib/text-format";
 import type {
   ContinuationSurface,
@@ -553,6 +554,7 @@ export function MatterWorkspacePanel({
   const nextStepNotes = matter ? buildNextStepNotes(matter, evidenceCount) : [];
   const recentTaskSummary = recentTask ? buildTaskListWorkspaceSummary(recentTask) : null;
   const flagshipLane = matter ? buildFlagshipLaneView(matter.summary.flagship_lane) : null;
+  const materialReviewPosture = buildMaterialReviewPostureView(flagshipLane);
   const researchGuidance = matter ? buildResearchGuidanceView(matter.research_guidance) : null;
   const resolvedContentSections = matter
     ? buildResolvedMatterContentSections(matter, fallbackRecord)
@@ -617,7 +619,7 @@ export function MatterWorkspacePanel({
       : canonicalizationSummary.summary
     : "目前沒有待處理的重複材料候選。";
   const heroStrategySummary = flagshipLane
-    ? `案件節奏：${continuityPosture.modeLabel}｜目前交付等級：${flagshipLane.currentOutputLabel}`
+    ? `案件節奏：${continuityPosture.modeLabel}｜目前工作姿態：${materialReviewPosture.shouldShow ? materialReviewPosture.modeLabel : flagshipLane.label}｜目前交付等級：${flagshipLane.currentOutputLabel}`
     : continuityStrategySummary
       ? `案件節奏：${continuityPosture.modeLabel}｜${continuityStrategySummary}`
       : "案件策略尚未完整建立。";
@@ -625,6 +627,8 @@ export function MatterWorkspacePanel({
     ? `最新 checkpoint：${followUpLane.latest_update?.summary || "尚未形成正式檢查點。"}`
     : progressionLane
       ? `最新推進狀態：${progressionLane.latest_progression?.summary || "目前還沒有新的推進更新。"}`
+      : materialReviewPosture.shouldShow
+        ? materialReviewPosture.primarySummary
       : flagshipLane?.summary
         || (latestDeliverable
           ? `最近交付物：${latestDeliverable.title}`
@@ -633,6 +637,7 @@ export function MatterWorkspacePanel({
             : continuityPosture.primarySummary);
   const heroNextActionSummary = followUpLane?.next_follow_up_actions[0]
     || progressionLane?.next_progression_actions[0]
+    || (materialReviewPosture.shouldShow ? materialReviewPosture.nextStepHint : "")
     || flagshipLane?.nextStepSummary
     || advanceGuide.primaryActionLabel
     || "先確認這個案件頁面的主線是否已對準你現在真正要推進的判斷。";

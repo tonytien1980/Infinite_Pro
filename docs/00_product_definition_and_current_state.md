@@ -271,6 +271,7 @@ Infinite Pro 的長期形態不是單一工具頁面，而是一套 object-aware
 - consultant-facing intake 現可先用「先快速看清問題與下一步 / 先審閱手上已有材料 / 先比較方案並收斂決策」等工作語言起手，再映射到既有 runtime path
 - `diagnostic_start / material_review_start / decision_convergence_start` 現已作為 consultant-facing derived lane baseline 出現在 task / matter read model 與核心工作面首屏
 - 這條 lane 是既有 runtime signals 的衍生讀取契約，不是新的架構層，也不是新的 ontology world
+- 其中 `material_review_start` 目前也開始往 document-heavy review workflow 深化，而不再只是 derived label
 
 ### 6.9 First flagship workflow deepening
 
@@ -280,6 +281,10 @@ Infinite Pro 的長期形態不是單一工具頁面，而是一套 object-aware
   - 下一個升級目標
   - 升級還缺什麼
 - 這讓 sparse-start matters 不只停在「知道自己在哪條路」，而是開始具備「知道現在最多能交到哪裡、要往下一階段補什麼」的正式工作引導
+- `material_review_start` 也開始具備更清楚的 review-first posture：
+  - 這輪主要在審哪份核心材料
+  - 目前更像 review memo / assessment，還不是最終決策版本
+  - 若要升級成 decision / action deliverable，下一步應補什麼
 
 ---
 

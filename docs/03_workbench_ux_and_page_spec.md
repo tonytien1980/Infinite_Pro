@@ -275,6 +275,7 @@ detail workspace 第一屏正式採下列分工：
 - 它是 consultant-facing first-screen summary，不是新的 product taxonomy layer
 - 它必須由既有 runtime signals 衍生，而不是前端自創 workflow 真相
 - 第一波正式產品化重點是 sparse-start matters 的 `diagnostic_start`
+- `material_review_start` deepen 後應明示這是 document-heavy review workflow，而不是 generic file flow
 
 deepen 後，首屏還應能回答：
 
@@ -584,6 +585,12 @@ Primary action：
 - 何時會從 first diagnosis 升級成較完整的 material review / decision convergence
 - 目前這輪還不應被誤讀成什麼程度的正式交付
 
+若案件屬於 `material_review_start`，首屏也應先回答：
+
+- 目前主要在審哪份核心材料
+- 這輪是 review / assessment posture，而不是最終決策版本
+- 要升級成 decision convergence，最先還缺哪些背景或來源
+
 若 research guidance 為 `recommended`，也應補充：
 
 - 先查哪幾題
@@ -612,6 +619,8 @@ Primary action：
 - 目前是 exploratory、material review，還是 decision convergence posture
 - 若要升級到下一個交付等級，最先缺的是什麼
 - 執行分析後會往哪個正式交付結果前進
+
+若這筆工作屬於 `material_review_start`，首屏文案應優先像顧問在審文件，而不是 generic analysis runner。
 
 若 research guidance 被判定為 `recommended` 或 `active`，可在同一個右側引導區補充：
 

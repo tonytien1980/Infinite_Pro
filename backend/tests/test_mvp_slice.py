@@ -2262,13 +2262,13 @@ def test_single_document_intake_updates_entry_mode_and_deliverable_hint(
     assert aggregate["deliverable_class_hint"] == "assessment_review_memo"
     assert aggregate["flagship_lane"]["lane_id"] == "material_review_start"
     assert aggregate["flagship_lane"]["label"] == "先審閱手上已有材料"
-    assert aggregate["flagship_lane"]["summary"]
-    assert aggregate["flagship_lane"]["next_step_summary"]
+    assert "核心材料" in aggregate["flagship_lane"]["summary"]
+    assert "高風險點" in aggregate["flagship_lane"]["next_step_summary"]
     assert aggregate["flagship_lane"]["upgrade_note"]
     assert aggregate["flagship_lane"]["current_output_label"] == "評估 / 審閱備忘"
     assert aggregate["flagship_lane"]["upgrade_target_label"] == "決策 / 行動交付物"
     assert aggregate["flagship_lane"]["upgrade_requirements"]
-    assert aggregate["flagship_lane"]["boundary_note"]
+    assert "最終決策版本" in aggregate["flagship_lane"]["boundary_note"]
     assert aggregate["matter_workspace"]["flagship_lane"]["lane_id"] == "material_review_start"
     assert aggregate["presence_state_summary"]["artifact"]["state"] == "explicit"
     assert aggregate["presence_state_summary"]["source_material"]["state"] == "explicit"

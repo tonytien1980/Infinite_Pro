@@ -37,6 +37,7 @@ import {
   getStructuredStringList,
 } from "@/lib/advisory-workflow";
 import { buildContinuationPostureView } from "@/lib/continuity-ux";
+import { buildMaterialReviewPostureView } from "@/lib/material-review-ux";
 import { buildResearchGuidanceView } from "@/lib/research-lane";
 import type {
   ExtensionManagerSnapshot,
@@ -508,6 +509,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
   const sparseInputOperatingView =
     task ? buildSparseInputOperatingView(task, latestDeliverable) : null;
   const flagshipLane = task ? buildFlagshipLaneView(task.flagship_lane) : null;
+  const materialReviewPosture = buildMaterialReviewPostureView(flagshipLane);
   const researchGuidance = task ? buildResearchGuidanceView(task.research_guidance) : null;
   const evidenceWorkspaceLane =
     task ? buildEvidenceWorkspaceLane(task, latestDeliverable, readinessGovernance) : null;
@@ -609,9 +611,13 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
       ? "這筆工作屬於回來更新 / checkpoint 鏈"
       : continuationSurface?.workflow_layer === "progression"
         ? "這筆工作屬於持續推進 / outcome 鏈"
-        : "這筆工作已有可回看的正式交付物"
+        : materialReviewPosture.shouldShow
+          ? "這筆工作已有可回看的材料審閱結果"
+          : "這筆工作已有可回看的正式交付物"
     : hasThinTaskEvidence
       ? "先補資料，或直接先跑第一版"
+      : materialReviewPosture.shouldShow
+        ? "這筆工作屬於材料審閱 / review memo 主線"
       : "這筆工作可以直接執行分析";
   const taskActionSummary = latestDeliverable
     ? continuationSurface?.workflow_layer === "checkpoint"
@@ -620,9 +626,13 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
         ? progressionLane?.what_changed[0]
           ? `${continuityPosture.primarySummary} ${progressionLane.what_changed[0]} 你現在可以回看最新交付物，或回到案件工作面更新進度與 outcome。`
           : `${continuityPosture.primarySummary} 你現在可以回看最新交付物，或回到案件工作面更新進度與 outcome。`
-        : "你現在可以直接打開交付物工作面，也可以先回看來源 / 證據與執行框架，再決定要不要重跑。"
+        : materialReviewPosture.shouldShow
+          ? `${materialReviewPosture.primarySummary} 你現在可以直接打開交付物工作面，或先回看來源 / 證據，再決定是否補更多背景材料。`
+          : "你現在可以直接打開交付物工作面，也可以先回看來源 / 證據與執行框架，再決定要不要重跑。"
     : hasThinTaskEvidence
       ? "目前資料仍偏薄，但不用卡住。你可以先補來源與證據，或直接讓主控代理先產出一版可回看的工作成果。"
+      : materialReviewPosture.shouldShow
+        ? `${materialReviewPosture.primarySummary} 執行分析後，結果會先落到 review memo / assessment 交付。`
       : "這筆工作已具備基本資料厚度，現在最有效率的做法是直接執行分析，再回到交付物工作面整理版本。";
   const taskActionChecklist = [
     "先確認上方的原始問題與決策問題是否對準你現在真正要判斷的事。",
@@ -634,7 +644,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
         ? `最新結果已整理成「${latestDeliverable.title}」，接下來更像是回來更新 / checkpoint，不是完整長期追蹤。`
         : continuationSurface?.workflow_layer === "progression"
           ? `最新結果已整理成「${latestDeliverable.title}」，接下來更像是在延續持續推進節奏；${progressionLane?.next_progression_actions[0] || "可回案件工作面補記進度／結果。"}`
-          : `最新結果已整理成「${latestDeliverable.title}」，可以直接進入正式交付物工作面。`
+          : materialReviewPosture.shouldShow
+            ? `最新結果已整理成「${latestDeliverable.title}」，目前更像 review memo / assessment 結果，不是最終決策版本。`
+            : `最新結果已整理成「${latestDeliverable.title}」，可以直接進入正式交付物工作面。`
       : "真正會產出結果的是這頁的執行分析，不是只停在閱讀摘要。",
   ];
   const taskSectionGuideItems = task
@@ -686,6 +698,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
     task?.title ||
     "目前尚未形成清楚的判斷主題。";
   const taskHeroFocusCopy =
+    (materialReviewPosture.shouldShow ? materialReviewPosture.primarySummary : "") ||
     flagshipLane?.summary ||
     taskFraming?.analysisFocus ||
     taskActionSummary;
@@ -693,6 +706,8 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
     ? "最近 checkpoint"
     : progressionLane
       ? "最近推進狀態"
+      : materialReviewPosture.shouldShow
+        ? "材料審閱姿態"
       : flagshipLane
         ? `目前交付等級｜${flagshipLane.currentOutputLabel}`
         : "目前狀態";
@@ -700,6 +715,8 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
     ? followUpLane.latest_update?.summary || "尚未形成正式 checkpoint。"
     : progressionLane
       ? progressionLane.latest_progression?.summary || "目前還沒有新的推進更新。"
+      : materialReviewPosture.shouldShow
+        ? materialReviewPosture.nextStepHint
       : flagshipLane?.nextStepSummary || (latestDeliverable
         ? `已形成交付物「${latestDeliverable.title}」`
         : hasThinTaskEvidence

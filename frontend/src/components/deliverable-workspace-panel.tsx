@@ -27,6 +27,7 @@ import {
   buildRiskCards,
 } from "@/lib/advisory-workflow";
 import { buildContinuationPostureView } from "@/lib/continuity-ux";
+import { buildMaterialReviewPostureView } from "@/lib/material-review-ux";
 import { truncateText } from "@/lib/text-format";
 import type {
   DeliverableContentRevision,
@@ -514,6 +515,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const continuityPosture = buildContinuationPostureView(continuationSurface);
   const workspaceView = workspace ? buildDeliverableWorkspaceView(workspace) : null;
   const flagshipLane = task ? buildFlagshipLaneView(task.flagship_lane) : null;
+  const materialReviewPosture = buildMaterialReviewPostureView(flagshipLane);
   const readiness = task ? assessTaskReadiness(task) : null;
   const readinessGovernance =
     task && deliverable && readiness ? buildReadinessGovernance(task, deliverable, readiness) : null;
@@ -632,6 +634,8 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
       ? "這份交付物屬於回來更新 / checkpoint 版本"
       : continuationSurface?.workflow_layer === "progression"
         ? "這份交付物承接持續推進 / outcome 節奏"
+      : materialReviewPosture.shouldShow
+        ? "這份交付物屬於材料審閱 / review memo"
       : deliverableStatus === "final"
       ? "這份交付物已可匯出與回看"
       : deliverableStatus === "archived"
@@ -652,6 +656,8 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
             ? progressionLane?.latest_progression?.summary
               ? `${continuityPosture.primarySummary} 這份交付物目前承接持續推進狀態「${progressionLane.latest_progression.summary}」。先確認進度與 outcome 的最新變化，再決定要不要刷新交付物。`
               : `${continuityPosture.primarySummary} 先回看結論與依據，再回案件工作面記錄進度或結果。`
+      : materialReviewPosture.shouldShow
+        ? `${materialReviewPosture.primarySummary} 這份交付物目前更像 review memo / assessment 結果。若要升級成決策 / 行動交付，先補更多背景、來源或決策條件。`
       : deliverableStatus === "final"
         ? "現在最有效率的做法是匯出正式版本，或回到下方檢查依據來源、版本紀錄與連續性。"
       : deliverableStatus === "archived"
@@ -740,6 +746,8 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
     ? `回來更新 / checkpoint｜${followUpLane.latest_update.summary}`
     : progressionLane?.latest_progression?.summary
       ? `持續推進 / outcome｜${progressionLane.latest_progression.summary}`
+      : materialReviewPosture.shouldShow
+        ? `材料審閱 / review memo｜${materialReviewPosture.boundaryNote}`
       : continuationSurface?.workflow_layer === "closure"
         ? "這個單次案件已具備基本脈絡、證據與交付結果，下一步應偏向正式結案、發布或匯出。"
       : continuationSurface?.summary
