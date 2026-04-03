@@ -949,6 +949,7 @@ export function MatterWorkspacePanel({
                         <p className="content-block">
                           {researchGuidance.depthLabel}｜{researchGuidance.firstQuestion}
                         </p>
+                        <p className="muted-text">{researchGuidance.executionOwnerLabel}</p>
                       </div>
                     ) : null}
                   </div>

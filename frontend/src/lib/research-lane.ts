@@ -8,6 +8,8 @@ export interface ResearchGuidanceView {
   focusSummary: string;
   stopCondition: string;
   handoffSummary: string;
+  executionOwnerLabel: string;
+  supplementBoundaryNote: string;
   boundaryNote: string;
   latestRunSummary: string;
 }
@@ -37,6 +39,8 @@ export function buildResearchGuidanceView(
         stop_condition: string;
         handoff_summary: string;
         latest_run_summary: string;
+        execution_owner_label: string;
+        supplement_boundary_note: string;
         boundary_note: string;
       }
     | null
@@ -48,7 +52,7 @@ export function buildResearchGuidanceView(
 
   return {
     shouldShow: status !== "not_needed",
-    label: guidance?.label || "如果要補研究",
+    label: guidance?.label || "系統研究建議",
     summary: guidance?.summary || "目前沒有額外研究建議。",
     depthLabel: labelForResearchDepth(guidance?.recommended_depth || ""),
     firstQuestion: questions[0] || "目前沒有額外建議子題。",
@@ -56,6 +60,8 @@ export function buildResearchGuidanceView(
     focusSummary: focus.join("｜"),
     stopCondition: guidance?.stop_condition || "",
     handoffSummary: guidance?.handoff_summary || "",
+    executionOwnerLabel: guidance?.execution_owner_label || "",
+    supplementBoundaryNote: guidance?.supplement_boundary_note || "",
     boundaryNote: guidance?.boundary_note || "",
     latestRunSummary: guidance?.latest_run_summary || "",
   };

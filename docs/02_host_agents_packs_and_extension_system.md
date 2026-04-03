@@ -242,6 +242,13 @@ catalog / management surface 維持：
 - 查到哪裡就先停
 - 研究結果之後要先交回哪條收斂主線
 
+目前邊界也必須明確：
+
+- Host 決定是否啟動 research lane、研究深度與 handoff 方向
+- `research_intelligence` / research lane 處理公開來源、外部事實、來源品質與矛盾訊號
+- consultant-facing research guidance 只是把上述判斷翻成前端低噪音提示
+- 客戶內部資料、附件、會議紀錄與顧問手上原始材料，不屬於 research lane，正式應走 supplement / evidence 主鏈
+
 ---
 
 ## 6. Agent Contract System

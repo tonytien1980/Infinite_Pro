@@ -522,6 +522,8 @@ export interface ResearchGuidance {
   stop_condition: string;
   handoff_summary: string;
   latest_run_summary: string;
+  execution_owner_label: string;
+  supplement_boundary_note: string;
   boundary_note: string;
 }
 

@@ -242,8 +242,8 @@ test("flagship lane view exposes current output level and upgrade checklist", ()
 test("research guidance view turns backend guidance into low-noise consultant copy", () => {
   const guidance = buildResearchGuidanceView({
     status: "recommended",
-    label: "如果要補研究",
-    summary: "這輪案件已有明顯研究缺口，建議先補研究。",
+    label: "系統研究建議",
+    summary: "這輪案件已有明顯研究缺口，建議先由系統研究主線補公開來源。",
     recommended_depth: "standard_investigation",
     suggested_questions: [
       "目前最需要先查清楚的外部事實是什麼？",
@@ -254,11 +254,16 @@ test("research guidance view turns backend guidance into low-noise consultant co
     handoff_summary: "研究結果先交回主控代理收斂。",
     latest_run_summary: "",
     boundary_note: "研究是為了補齊缺口，不是先把所有公開資訊都抓完。",
+    execution_owner_label: "由系統研究主線處理",
+    supplement_boundary_note: "若缺的是客戶內部資料、附件或會議紀錄，請改走補件主鏈。",
   });
 
   assert.equal(guidance.shouldShow, true);
+  assert.equal(guidance.label, "系統研究建議");
   assert.equal(guidance.depthLabel, "標準研究");
   assert.equal(guidance.firstQuestion, "目前最需要先查清楚的外部事實是什麼？");
   assert.equal(guidance.focusSummary, "外部政策變化｜競品反應");
+  assert.equal(guidance.executionOwnerLabel, "由系統研究主線處理");
+  assert.match(guidance.supplementBoundaryNote, /補件主鏈/);
   assert.match(guidance.boundaryNote, /補齊缺口/);
 });

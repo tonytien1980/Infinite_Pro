@@ -984,7 +984,9 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                   </h3>
                   <p className="hero-focus-copy">
                     {researchGuidance?.shouldShow
-                      ? researchGuidance.stopCondition || researchGuidance.handoffSummary
+                      ? `${researchGuidance.executionOwnerLabel}｜${
+                          researchGuidance.stopCondition || researchGuidance.handoffSummary
+                        }`
                       : followUpLane
                       ? `下一步：${followUpLane.next_follow_up_actions[0] || "補完後回案件工作面更新檢查點。"}`
                       : progressionLane
@@ -1093,6 +1095,7 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                     {researchGuidance.depthLabel}｜{researchGuidance.firstQuestion}
                   </p>
                   <p className="muted-text">
+                    {researchGuidance.executionOwnerLabel}｜
                     {researchGuidance.stopCondition || researchGuidance.boundaryNote}
                   </p>
                 </div>
@@ -1130,6 +1133,20 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
             </div>
 
             <form className="detail-stack" onSubmit={handleSupplementSubmit}>
+              <div className="summary-grid">
+                <div className="section-card">
+                  <h4>這裡適合補什麼</h4>
+                  <p className="content-block">
+                    客戶內部資料、合約附件、會議紀錄、訪談摘要與你手上的原始材料都走這裡；公開來源與外部事實查找則交給系統研究主線。
+                  </p>
+                </div>
+                {researchGuidance?.supplementBoundaryNote ? (
+                  <div className="section-card">
+                    <h4>系統研究與補件分工</h4>
+                    <p className="content-block">{researchGuidance.supplementBoundaryNote}</p>
+                  </div>
+                ) : null}
+              </div>
               {followUpLane ? (
                 <div className="summary-grid">
                   <div className="section-card">

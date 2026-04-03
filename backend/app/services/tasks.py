@@ -2949,14 +2949,14 @@ def _build_research_guidance_status(
 
 def _label_for_research_guidance_status(status: str) -> str:
     if status == "active":
-        return "研究進行中"
+        return "系統研究進行中"
     if status == "completed":
-        return "研究已補完"
+        return "系統研究已補完"
     if status == "recommended":
-        return "如果要補研究"
+        return "系統研究建議"
     if status == "optional":
-        return "研究可後補"
-    return "目前不用先補研究"
+        return "系統研究可後補"
+    return "目前不用先啟動系統研究"
 
 
 def _build_research_guidance_summary(
@@ -2967,16 +2967,28 @@ def _build_research_guidance_summary(
     latest_run_summary: str,
 ) -> str:
     if status == "completed" and latest_run_summary:
-        return f"這輪研究已先補完：{latest_run_summary}"
+        return f"系統研究已先補完：{latest_run_summary}"
     if status == "active":
-        return "這輪研究正在補公開來源、來源品質與證據缺口，等研究脈絡穩定後再回到收斂。"
+        return "系統研究主線正在補公開來源、來源品質與證據缺口，等研究脈絡穩定後再回到收斂。"
     if external_research_heavy_candidate:
-        return f"這輪問題高度依賴外部事實與新鮮度，建議至少先做 {research_depth} 等級的研究補完。"
+        return f"這輪問題高度依賴外部事實與新鮮度，建議至少先由系統研究主線做 {research_depth} 等級的研究補完。"
     if status == "recommended":
-        return f"這輪案件已有明顯研究缺口，建議至少先做 {research_depth} 等級的研究，再進入正式收斂。"
+        return f"這輪案件已有明顯外部研究缺口，建議至少先由系統研究主線做 {research_depth} 等級的研究，再進入正式收斂。"
     if status == "optional":
-        return "這輪不一定要先補研究，但若你想提高判斷可信度，可以先補最小研究。"
-    return "目前這輪以你手上的資料與證據為主，不需要先補外部研究。"
+        return "這輪不一定要先啟動系統研究，但若你想提高判斷可信度，可以讓系統先補最小研究。"
+    return "目前這輪以你手上的資料與證據為主，不需要先啟動系統研究。"
+
+
+def _execution_owner_label_for_research_guidance_status(status: str) -> str:
+    if status == "not_needed":
+        return "目前不需要啟動系統研究主線"
+    return "由系統研究主線處理"
+
+
+def _build_research_guidance_supplement_boundary_note(status: str) -> str:
+    if status == "not_needed":
+        return "若後續缺的是客戶內部資料、附件、會議紀錄或你手上的原始材料，請改走補件主鏈，而不是啟動系統研究。"
+    return "若缺的是客戶內部資料、附件、會議紀錄或你手上的原始材料，請改走補件主鏈，這不屬於系統研究。"
 
 
 def _build_research_guidance_boundary_note(status: str) -> str:
@@ -3053,6 +3065,8 @@ def _build_research_guidance_read(
         stop_condition=_build_research_guidance_stop_condition(research_depth) if status != "not_needed" else "",
         handoff_summary=_build_research_guidance_handoff_summary(task.task_type, research_depth) if status != "not_needed" else "",
         latest_run_summary=latest_run.result_summary if latest_run else "",
+        execution_owner_label=_execution_owner_label_for_research_guidance_status(status),
+        supplement_boundary_note=_build_research_guidance_supplement_boundary_note(status),
         boundary_note=_build_research_guidance_boundary_note(status),
     )
 

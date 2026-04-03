@@ -297,6 +297,8 @@ deepen 後，首屏還應能回答：
 - 不把 research depth 暴露成首屏必選控制
 - research guidance 應嵌在既有 task / matter / evidence 工作面中，以「先查哪幾題」的顧問語言出現
 - 當研究不是必要條件時，這層不應搶走首屏
+- research guidance 的標題與摘要必須明示這是「系統研究主線」的建議，不可寫得像要求顧問自己去查
+- 補件入口也必須明示：客戶內部資料、附件、會議紀錄與顧問手上原始材料，應走 supplement 主鏈，不要和系統研究混稱
 
 ### 3.3 Consultant-first, debug-on-demand
 
@@ -579,6 +581,7 @@ Primary action：
 
 - 先查哪幾題
 - 補研究是為了補缺口，不是把所有公開資訊都抓完
+- 若缺的是客戶內部資料或附件，應明示改走補件主鏈
 
 ### 7.5 `/tasks/[taskId]`
 
@@ -608,6 +611,7 @@ Primary action：
 - 建議研究深度
 - 第一個 research question
 - stop condition
+- 這是系統研究，不是要求顧問自己去查
 
 ### 7.6 `/deliverables/[deliverableId]`
 

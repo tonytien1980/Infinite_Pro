@@ -1398,3 +1398,56 @@ Environment used:
 - the product can now distinguish between cases that should clearly trigger research and cases where research should stay out of the way
 - research depth, first question, and stop condition are now available without forcing the user into a separate research control surface
 - the first pass stayed aligned with the user's simplicity requirement by adding guidance inside existing workspaces rather than creating a new complex UI family
+
+---
+
+## Entry: 2026-04-03 research guidance definition lock
+
+Scope:
+- lock the responsibility boundary between Host, system research, and consultant/client supplement flow
+- clarify shipped copy so research guidance reads as system-run research, not a prompt for the consultant to manually investigate
+- add explicit contract fields for research execution ownership and supplement boundary notes
+
+Environment used:
+- frontend runtime: `http://127.0.0.1:3000`
+- backend runtime: `http://127.0.0.1:8000/api/v1`
+- code verification: local repo workspace
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`104 passed`) |
+| `node --test frontend/tests/intake-progress.test.mjs` | Passed (`7 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Responsibility-lock verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | task create API | Create sparse external-research-heavy case on live local backend | Verified | response returned `label=系統研究建議`, `execution_owner_label=由系統研究主線處理`, and supplement boundary note pointing to the supplement flow |
+| Backend | contract read model | Re-run targeted research guidance tests | Verified | pytest now asserts system-owned wording for `recommended` and `not_needed` states |
+| Frontend | `/tasks/[taskId]` | Route smoke with live task id | Verified | route returned `200` on local runtime |
+| Frontend | `/matters/[matterId]/evidence` | Evidence route smoke with live matter id | Verified | route returned `200` on local runtime |
+| Frontend | helper tests | Verify research guidance view exposes execution owner and supplement boundary note | Verified | node test covers both fields and the new system-owned label |
+
+### Live smoke data
+
+- definition-lock verification task id: `bc51a865-abfe-4272-bf28-bbb75d415f03`
+- definition-lock verification matter id: `d8117952-0f76-457b-9b4d-6525fb58ab50`
+- live API verification returned:
+  - `status=recommended`
+  - `label=系統研究建議`
+  - `execution_owner_label=由系統研究主線處理`
+  - `supplement_boundary_note=若缺的是客戶內部資料、附件、會議紀錄或你手上的原始材料，請改走補件主鏈...`
+- frontend route smoke:
+  - `/tasks/bc51a865-abfe-4272-bf28-bbb75d415f03` returned `200`
+  - `/matters/d8117952-0f76-457b-9b4d-6525fb58ab50/evidence` returned `200`
+
+### Verified outcomes
+
+- shipped research guidance now explicitly reads as a Host-owned, system-run research suggestion rather than a request for the consultant to do manual research
+- the contract now encodes both who owns research execution and where internal/client-origin materials should go instead
+- the evidence supplement surface now explicitly distinguishes consultant/client supplements from system research without adding a new dashboard or extra primary navigation

@@ -812,6 +812,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                   </h3>
                   {researchGuidance?.shouldShow ? (
                     <p className="hero-focus-copy">
+                      {researchGuidance.executionOwnerLabel}｜
                       {researchGuidance.stopCondition || researchGuidance.handoffSummary}
                     </p>
                   ) : followUpLane ? (

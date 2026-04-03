@@ -284,6 +284,8 @@ Ontology 在 Infinite Pro 中是：
 - 這是 consultant-facing research guidance，不是新的 orchestration center
 - research 深度仍由 Host / runtime signals 決定，不由使用者在首屏手動調整
 - 當案件不需要研究時，這層應保持低噪音甚至不顯示
+- 這層只描述「系統研究主線」要不要先處理公開來源與外部事實補完
+- 若缺的是客戶內部資料、附件、會議紀錄或顧問手上原始材料，正式應改走 supplement / evidence 主鏈，而不是混成 research guidance
 
 第一波正式欄位 baseline 至少包括：
 
@@ -296,6 +298,8 @@ Ontology 在 Infinite Pro 中是：
 - `stop_condition`
 - `handoff_summary`
 - `latest_run_summary`
+- `execution_owner_label`
+- `supplement_boundary_note`
 - `boundary_note`
 
 ---

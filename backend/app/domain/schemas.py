@@ -60,6 +60,8 @@ class ResearchGuidanceRead(BaseModel):
     stop_condition: str = ""
     handoff_summary: str = ""
     latest_run_summary: str = ""
+    execution_owner_label: str = ""
+    supplement_boundary_note: str = ""
     boundary_note: str = ""
 
 
