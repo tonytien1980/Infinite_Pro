@@ -104,6 +104,9 @@ class Task(Base):
     audit_events: Mapped[list["AuditEvent"]] = relationship(
         back_populates="task", cascade="all, delete-orphan", order_by="AuditEvent.created_at.desc()"
     )
+    adoption_feedback_records: Mapped[list["AdoptionFeedback"]] = relationship(
+        back_populates="task", cascade="all, delete-orphan", order_by="AdoptionFeedback.updated_at.desc()"
+    )
     recommendation_evidence_links: Mapped[list["RecommendationEvidenceLink"]] = relationship(
         back_populates="task", cascade="all, delete-orphan"
     )
@@ -1001,6 +1004,9 @@ class Recommendation(Base):
     supporting_evidence_links: Mapped[list["RecommendationEvidenceLink"]] = relationship(
         back_populates="recommendation", cascade="all, delete-orphan"
     )
+    adoption_feedback_records: Mapped[list["AdoptionFeedback"]] = relationship(
+        back_populates="recommendation", cascade="all, delete-orphan"
+    )
 
 
 class ActionItem(Base):
@@ -1067,6 +1073,37 @@ class Deliverable(Base):
         cascade="all, delete-orphan",
         order_by="DeliverableContentRevision.created_at.desc()",
     )
+    adoption_feedback_records: Mapped[list["AdoptionFeedback"]] = relationship(
+        back_populates="deliverable", cascade="all, delete-orphan"
+    )
+
+
+class AdoptionFeedback(Base):
+    __tablename__ = "adoption_feedback"
+    __table_args__ = (
+        UniqueConstraint("deliverable_id", name="uq_adoption_feedback_deliverable"),
+        UniqueConstraint("recommendation_id", name="uq_adoption_feedback_recommendation"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    matter_workspace_id: Mapped[str | None] = mapped_column(
+        ForeignKey("matter_workspaces.id"),
+        nullable=True,
+    )
+    deliverable_id: Mapped[str | None] = mapped_column(ForeignKey("deliverables.id"), nullable=True)
+    recommendation_id: Mapped[str | None] = mapped_column(
+        ForeignKey("recommendations.id"),
+        nullable=True,
+    )
+    feedback_status: Mapped[str] = mapped_column(String(50), nullable=False)
+    note: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+    task: Mapped["Task"] = relationship(back_populates="adoption_feedback_records")
+    deliverable: Mapped["Deliverable | None"] = relationship(back_populates="adoption_feedback_records")
+    recommendation: Mapped["Recommendation | None"] = relationship(back_populates="adoption_feedback_records")
 
 
 class DeliverableVersionEvent(Base):

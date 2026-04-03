@@ -781,6 +781,25 @@ Primary action：
 - support-bundle density detail
 - benchmark / QA style metadata
 
+### 3.4 Minimal adoption feedback
+
+若產品需要收集「這次輸出是否真的可用」的訊號，正式做法應是輕量 adoption feedback，而不是把工作面做成聊天讚踩。
+
+正式規則：
+
+- feedback 應掛在正式工作物件上，而不是聊天訊息上
+- 第一波只應出現在：
+  - `deliverable workspace`
+  - `recommendation` 相關工作面
+- 互動必須輕量、可快速完成，不應打斷主線
+- 第一波預設應維持 one-click feedback；備註欄位可留作第二層，不應擋住主線
+- 第一波正式值至少包括：
+  - 可直接採用
+  - 需改寫後採用
+  - 目前不採用
+  - 值得當範本
+- 這層的正式責任是收集 explicit human adoption signal，而不是直接等於 precedent selection
+
 ### 9.3 Specialized hardening views
 
 以下能力雖已 shipped，但仍應保持低噪音：

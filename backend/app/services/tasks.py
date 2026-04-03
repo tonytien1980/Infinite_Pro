@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session, object_session, selectinload
 from app.domain import models, schemas
 from app.domain.enums import (
     ActionType,
+    AdoptionFeedbackStatus,
     ApprovalPolicy,
     ApprovalStatus,
     AuditEventType,
@@ -671,6 +672,7 @@ def task_load_options():
         selectinload(models.Task.options),
         selectinload(models.Task.recommendations),
         selectinload(models.Task.action_items),
+        selectinload(models.Task.adoption_feedback_records),
         selectinload(models.Task.recommendation_evidence_links),
         selectinload(models.Task.risk_evidence_links),
         selectinload(models.Task.action_item_evidence_links),
@@ -6908,6 +6910,7 @@ def _serialize_risks(
 def _serialize_recommendations(
     task: models.Task,
     supporting_map: dict[str, list[str]],
+    feedback_map: dict[str, schemas.AdoptionFeedbackRead],
 ) -> list[schemas.RecommendationRead]:
     return [
         schemas.RecommendationRead(
@@ -6919,6 +6922,7 @@ def _serialize_recommendations(
             supporting_evidence_ids=supporting_map.get(item.id, []),
             priority=item.priority,
             owner_suggestion=item.owner_suggestion,
+            adoption_feedback=feedback_map.get(item.id),
             created_at=item.created_at,
         )
         for item in task.recommendations
@@ -6980,6 +6984,7 @@ def _build_object_label_map(
 def _serialize_deliverables(
     task: models.Task,
     object_label_map: dict[str, dict[str, str]],
+    feedback_map: dict[str, schemas.AdoptionFeedbackRead],
 ) -> list[schemas.DeliverableRead]:
     deliverables: list[schemas.DeliverableRead] = []
     for item in task.deliverables:
@@ -7017,10 +7022,39 @@ def _serialize_deliverables(
                 content_structure=item.content_structure,
                 version=item.version,
                 linked_objects=linked_objects,
+                adoption_feedback=feedback_map.get(item.id),
                 generated_at=item.generated_at,
             )
         )
     return deliverables
+
+
+def _serialize_adoption_feedback(item: models.AdoptionFeedback) -> schemas.AdoptionFeedbackRead:
+    return schemas.AdoptionFeedbackRead(
+        id=item.id,
+        task_id=item.task_id,
+        matter_workspace_id=item.matter_workspace_id,
+        deliverable_id=item.deliverable_id,
+        recommendation_id=item.recommendation_id,
+        feedback_status=AdoptionFeedbackStatus(item.feedback_status),
+        note=item.note or "",
+        created_at=item.created_at,
+        updated_at=item.updated_at,
+    )
+
+
+def _build_adoption_feedback_maps(
+    task: models.Task,
+) -> tuple[dict[str, schemas.AdoptionFeedbackRead], dict[str, schemas.AdoptionFeedbackRead]]:
+    deliverable_map: dict[str, schemas.AdoptionFeedbackRead] = {}
+    recommendation_map: dict[str, schemas.AdoptionFeedbackRead] = {}
+    for item in task.adoption_feedback_records:
+        serialized = _serialize_adoption_feedback(item)
+        if item.deliverable_id:
+            deliverable_map[item.deliverable_id] = serialized
+        if item.recommendation_id:
+            recommendation_map[item.recommendation_id] = serialized
+    return deliverable_map, recommendation_map
 
 
 def get_loaded_task(db: Session, task_id: str) -> models.Task:
@@ -8192,7 +8226,10 @@ def get_artifact_evidence_workspace(
         recommendation_support_map, risk_support_map, action_item_support_map = _build_supporting_evidence_maps(
             task
         )
-        recommendations = _serialize_recommendations(task, recommendation_support_map)
+        deliverable_feedback_map, recommendation_feedback_map = _build_adoption_feedback_maps(task)
+        recommendations = _serialize_recommendations(
+            task, recommendation_support_map, recommendation_feedback_map
+        )
         risks = _serialize_risks(task, risk_support_map)
         action_items = _serialize_action_items(task, action_item_support_map)
         deliverables = _serialize_deliverables(
@@ -8210,6 +8247,7 @@ def get_artifact_evidence_workspace(
                 task_spine[1],
                 task_spine[2],
             ),
+            deliverable_feedback_map,
         )
         input_entry_mode = _infer_input_entry_mode(task, source_materials, artifacts)
         external_research_heavy_candidate = _is_external_research_heavy_candidate(
@@ -10419,7 +10457,8 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
     recommendation_support_map, risk_support_map, action_item_support_map = _build_supporting_evidence_maps(
         task
     )
-    recommendations = _serialize_recommendations(task, recommendation_support_map)
+    deliverable_feedback_map, recommendation_feedback_map = _build_adoption_feedback_maps(task)
+    recommendations = _serialize_recommendations(task, recommendation_support_map, recommendation_feedback_map)
     risks = _serialize_risks(task, risk_support_map)
     action_items = _serialize_action_items(task, action_item_support_map)
     deliverables = _serialize_deliverables(
@@ -10437,6 +10476,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
             world_engagement,
             world_workstream,
         ),
+        deliverable_feedback_map,
     )
     input_entry_mode = _infer_input_entry_mode(task, source_materials, artifacts)
     external_research_heavy_candidate = _is_external_research_heavy_candidate(
@@ -10525,9 +10565,27 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         recommendation_support_map, risk_support_map, action_item_support_map = _build_supporting_evidence_maps(
             task
         )
-        recommendations = _serialize_recommendations(task, recommendation_support_map)
+        deliverable_feedback_map, recommendation_feedback_map = _build_adoption_feedback_maps(task)
+        recommendations = _serialize_recommendations(task, recommendation_support_map, recommendation_feedback_map)
         risks = _serialize_risks(task, risk_support_map)
         action_items = _serialize_action_items(task, action_item_support_map)
+        deliverables = _serialize_deliverables(
+            task,
+            _build_object_label_map(
+                task,
+                source_materials,
+                artifacts,
+                evidence,
+                recommendations,
+                risks,
+                action_items,
+                preferred_decision_context,
+                world_client,
+                world_engagement,
+                world_workstream,
+            ),
+            deliverable_feedback_map,
+        )
         case_world_draft_row = task.case_world_drafts[0] if task.case_world_drafts else case_world_draft_row
         case_world_state_row = matter_workspace.case_world_state
         evidence_gap_rows = list(task.evidence_gaps)
@@ -10749,6 +10807,74 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
     )
 
 
+def apply_deliverable_adoption_feedback(
+    db: Session,
+    deliverable_id: str,
+    payload: schemas.AdoptionFeedbackRequest,
+) -> schemas.DeliverableWorkspaceResponse:
+    deliverable = db.scalars(select(models.Deliverable).where(models.Deliverable.id == deliverable_id)).one_or_none()
+    if deliverable is None:
+        raise HTTPException(status_code=404, detail="找不到指定交付物。")
+
+    task = get_loaded_task(db, deliverable.task_id)
+    matter_workspace = _get_linked_matter_workspace(task)
+    feedback = db.scalars(
+        select(models.AdoptionFeedback).where(models.AdoptionFeedback.deliverable_id == deliverable_id)
+    ).one_or_none()
+    if feedback is None:
+        feedback = models.AdoptionFeedback(
+            task_id=task.id,
+            matter_workspace_id=matter_workspace.id if matter_workspace else None,
+            deliverable_id=deliverable.id,
+            feedback_status=payload.feedback_status.value,
+            note=_normalize_whitespace(payload.note),
+        )
+    else:
+        feedback.feedback_status = payload.feedback_status.value
+        feedback.note = _normalize_whitespace(payload.note)
+        feedback.task_id = task.id
+        feedback.matter_workspace_id = matter_workspace.id if matter_workspace else None
+
+    db.add(feedback)
+    db.commit()
+    return get_deliverable_workspace(db, deliverable_id)
+
+
+def apply_recommendation_adoption_feedback(
+    db: Session,
+    task_id: str,
+    recommendation_id: str,
+    payload: schemas.AdoptionFeedbackRequest,
+) -> schemas.TaskAggregateResponse:
+    task = get_loaded_task(db, task_id)
+    recommendation = next((item for item in task.recommendations if item.id == recommendation_id), None)
+    if recommendation is None:
+        raise HTTPException(status_code=404, detail="找不到指定建議。")
+
+    matter_workspace = _get_linked_matter_workspace(task)
+    feedback = db.scalars(
+        select(models.AdoptionFeedback).where(models.AdoptionFeedback.recommendation_id == recommendation_id)
+    ).one_or_none()
+    if feedback is None:
+        feedback = models.AdoptionFeedback(
+            task_id=task.id,
+            matter_workspace_id=matter_workspace.id if matter_workspace else None,
+            recommendation_id=recommendation.id,
+            feedback_status=payload.feedback_status.value,
+            note=_normalize_whitespace(payload.note),
+        )
+    else:
+        feedback.feedback_status = payload.feedback_status.value
+        feedback.note = _normalize_whitespace(payload.note)
+        feedback.task_id = task.id
+        feedback.matter_workspace_id = matter_workspace.id if matter_workspace else None
+
+    db.add(feedback)
+    db.commit()
+    refreshed_task = get_loaded_task(db, task_id)
+    return serialize_task(refreshed_task)
+
+
 def get_task_history(db: Session, task_id: str) -> schemas.TaskHistoryResponse:
     task = get_loaded_task(db, task_id)
     client, engagement, workstream, decision_context, _, source_materials, artifacts = _build_world_preferred_ontology_spine_for_task(
@@ -10758,7 +10884,8 @@ def get_task_history(db: Session, task_id: str) -> schemas.TaskHistoryResponse:
     recommendation_support_map, risk_support_map, action_item_support_map = _build_supporting_evidence_maps(
         task
     )
-    recommendations = _serialize_recommendations(task, recommendation_support_map)
+    deliverable_feedback_map, recommendation_feedback_map = _build_adoption_feedback_maps(task)
+    recommendations = _serialize_recommendations(task, recommendation_support_map, recommendation_feedback_map)
     action_items = _serialize_action_items(task, action_item_support_map)
     risks = _serialize_risks(task, risk_support_map)
     deliverables = _serialize_deliverables(
@@ -10776,6 +10903,7 @@ def get_task_history(db: Session, task_id: str) -> schemas.TaskHistoryResponse:
             engagement,
             workstream,
         ),
+        deliverable_feedback_map,
     )
     return schemas.TaskHistoryResponse(
         task_id=task.id,

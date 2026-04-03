@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.domain import schemas
 from app.services.tasks import (
+    apply_deliverable_adoption_feedback,
     build_deliverable_docx_export,
     build_deliverable_markdown_export,
     download_deliverable_artifact,
@@ -53,6 +54,15 @@ def publish_deliverable_release_route(
     db: Session = Depends(get_db),
 ) -> schemas.DeliverableWorkspaceResponse:
     return publish_deliverable_release(db, deliverable_id, payload)
+
+
+@router.post("/{deliverable_id}/feedback", response_model=schemas.DeliverableWorkspaceResponse)
+def apply_deliverable_adoption_feedback_route(
+    deliverable_id: str,
+    payload: schemas.AdoptionFeedbackRequest,
+    db: Session = Depends(get_db),
+) -> schemas.DeliverableWorkspaceResponse:
+    return apply_deliverable_adoption_feedback(db, deliverable_id, payload)
 
 
 @router.post(

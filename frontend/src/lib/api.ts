@@ -1,5 +1,6 @@
 import {
   ArtifactEvidenceWorkspace,
+  AdoptionFeedbackPayload,
   AgentContractDraftPayload,
   AgentContractDraftResult,
   AgentCatalogEntryUpdatePayload,
@@ -95,6 +96,24 @@ export async function approveTaskWriteback(
     },
     body: JSON.stringify(payload),
   });
+  return parseResponse<TaskAggregate>(response);
+}
+
+export async function applyRecommendationFeedback(
+  taskId: string,
+  recommendationId: string,
+  payload: AdoptionFeedbackPayload,
+): Promise<TaskAggregate> {
+  const response = await fetch(
+    `${getApiBaseUrl()}/tasks/${taskId}/recommendations/${recommendationId}/feedback`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+  );
   return parseResponse<TaskAggregate>(response);
 }
 
@@ -499,6 +518,20 @@ export async function publishDeliverableRelease(
   payload: DeliverablePublishPayload,
 ): Promise<DeliverableWorkspace> {
   const response = await fetch(`${getApiBaseUrl()}/deliverables/${deliverableId}/publish`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  return parseResponse<DeliverableWorkspace>(response);
+}
+
+export async function applyDeliverableFeedback(
+  deliverableId: string,
+  payload: AdoptionFeedbackPayload,
+): Promise<DeliverableWorkspace> {
+  const response = await fetch(`${getApiBaseUrl()}/deliverables/${deliverableId}/feedback`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

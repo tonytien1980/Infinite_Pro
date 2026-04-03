@@ -205,6 +205,13 @@ const APPROVAL_STATUS_LABELS: Record<string, string> = {
   rejected: "未通過核可",
 };
 
+const ADOPTION_FEEDBACK_STATUS_LABELS: Record<string, string> = {
+  adopted: "可直接採用",
+  needs_revision: "需改寫後採用",
+  not_adopted: "目前不採用",
+  template_candidate: "值得當範本",
+};
+
 const AUDIT_EVENT_TYPE_LABELS: Record<string, string> = {
   writeback_generated: "已建立正式寫回紀錄",
   approval_recorded: "已記錄正式核可",
@@ -747,6 +754,13 @@ export function labelForApprovalStatus(value: string | null | undefined) {
     return "未標示";
   }
   return APPROVAL_STATUS_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForAdoptionFeedbackStatus(value: string | null | undefined) {
+  if (!value) {
+    return "尚未提供回饋";
+  }
+  return ADOPTION_FEEDBACK_STATUS_LABELS[value] ?? fallbackLabel(value);
 }
 
 export function labelForAuditEventType(value: string | null | undefined) {

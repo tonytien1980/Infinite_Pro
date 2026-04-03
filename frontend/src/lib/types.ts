@@ -38,6 +38,11 @@ export type ApprovalStatus =
   | "pending"
   | "approved"
   | "rejected";
+export type AdoptionFeedbackStatus =
+  | "adopted"
+  | "needs_revision"
+  | "not_adopted"
+  | "template_candidate";
 export type AuditEventType =
   | "writeback_generated"
   | "approval_recorded"
@@ -941,6 +946,7 @@ export interface Recommendation {
   supporting_evidence_ids: string[];
   priority: string;
   owner_suggestion: string | null;
+  adoption_feedback: AdoptionFeedback | null;
   created_at: string;
 }
 
@@ -980,7 +986,20 @@ export interface Deliverable {
   content_structure: Record<string, unknown>;
   version: number;
   linked_objects: DeliverableObjectLink[];
+  adoption_feedback: AdoptionFeedback | null;
   generated_at: string;
+}
+
+export interface AdoptionFeedback {
+  id: string;
+  task_id: string;
+  matter_workspace_id: string | null;
+  deliverable_id: string | null;
+  recommendation_id: string | null;
+  feedback_status: AdoptionFeedbackStatus;
+  note: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface TaskRun {
@@ -1817,6 +1836,11 @@ export interface DeliverablePublishPayload {
   publish_note: string;
   artifact_formats: Array<"markdown" | "docx">;
   content_sections: DeliverableContentSections;
+}
+
+export interface AdoptionFeedbackPayload {
+  feedback_status: AdoptionFeedbackStatus;
+  note: string;
 }
 
 export interface MatterContinuationActionPayload {

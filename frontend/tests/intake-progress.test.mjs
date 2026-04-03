@@ -13,6 +13,7 @@ import {
   CONSULTANT_START_OPTIONS,
   resolveWorkflowValueForConsultingStart,
 } from "../src/lib/flagship-lane.ts";
+import { ADOPTION_FEEDBACK_OPTIONS, buildAdoptionFeedbackView } from "../src/lib/adoption-feedback.ts";
 import { buildMaterialReviewPostureView } from "../src/lib/material-review-ux.ts";
 import { buildContinuationPostureView } from "../src/lib/continuity-ux.ts";
 import { buildResearchGuidanceView } from "../src/lib/research-lane.ts";
@@ -318,4 +319,27 @@ test("material review posture view keeps document-heavy review distinct from oth
   assert.equal(review.modeLabel, "材料審閱 / review memo");
   assert.match(review.primarySummary, /核心材料|review memo|審完/);
   assert.match(review.boundaryNote, /最終決策版本/);
+});
+
+test("adoption feedback view exposes lightweight consultant-facing feedback states", () => {
+  assert.deepEqual(
+    ADOPTION_FEEDBACK_OPTIONS.map((item) => item.value),
+    ["adopted", "needs_revision", "not_adopted", "template_candidate"],
+  );
+
+  const feedback = buildAdoptionFeedbackView({
+    id: "feedback-1",
+    task_id: "task-1",
+    matter_workspace_id: "matter-1",
+    deliverable_id: "deliverable-1",
+    recommendation_id: null,
+    feedback_status: "template_candidate",
+    note: "",
+    created_at: "2026-04-03T00:00:00Z",
+    updated_at: "2026-04-03T00:00:00Z",
+  });
+
+  assert.equal(feedback.currentStatus, "template_candidate");
+  assert.equal(feedback.currentLabel, "值得當範本");
+  assert.equal(feedback.hasFeedback, true);
 });

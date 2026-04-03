@@ -72,6 +72,13 @@ class ApprovalStatus(str, Enum):
     REJECTED = "rejected"
 
 
+class AdoptionFeedbackStatus(str, Enum):
+    ADOPTED = "adopted"
+    NEEDS_REVISION = "needs_revision"
+    NOT_ADOPTED = "not_adopted"
+    TEMPLATE_CANDIDATE = "template_candidate"
+
+
 class AuditEventType(str, Enum):
     WRITEBACK_GENERATED = "writeback_generated"
     APPROVAL_RECORDED = "approval_recorded"

@@ -1607,3 +1607,67 @@ Environment used:
 - `material_review_start` now reads more clearly as a document-heavy review workflow rather than only a derived lane label
 - matter, task, and deliverable first screens now better match the consultant mental model of “reviewing a core document”
 - review memo / assessment posture is now clearer and less likely to be misread as final decision-convergence output
+
+---
+
+## Entry: 2026-04-03 minimal adoption-feedback foundation
+
+Scope:
+- add a minimal adoption-feedback foundation for formal work objects
+- keep the first wave lightweight and consultant-facing instead of turning the product into chat-style thumbs feedback
+- align backend contract, existing task/deliverable surfaces, active docs, and live QA evidence
+
+Environment used:
+- frontend runtime: `http://127.0.0.1:3001`
+- backend runtime: `http://127.0.0.1:8010/api/v1`
+- smoke database: `sqlite:////Users/oldtien_base/Desktop/Infinite Pro/adoption-feedback-smoke.db`
+- smoke storage: repo-local `storage/`
+- smoke provider: `MODEL_PROVIDER=mock`
+- code verification: local repo workspace
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`106 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`10 passed`) |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Adoption-feedback verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | task aggregate API | POST recommendation feedback then re-read task aggregate | Verified | aggregate returns `recommendation.adoption_feedback` with explicit status + note |
+| Backend | deliverable workspace API | POST deliverable feedback then re-read deliverable workspace | Verified | workspace returns `deliverable.adoption_feedback` and task deliverable list stays aligned |
+| Frontend | helper / labels | Verify consultant-facing feedback labels stay low-noise and distinct | Verified | node helper test covers the 4 visible statuses |
+| Frontend | `/deliverables/[deliverableId]` | Read first-screen feedback card and re-submit `可直接採用` through the UI | Verified | page keeps feedback in the existing right rail and shows success status without new workflow chrome |
+| Frontend | `/tasks/[taskId]` | Expand recommendation detail and click `值得當範本` on the first recommendation | Verified | recommendation section shows the current status and live success feedback inside the existing disclosure |
+| Frontend | `/tasks/[taskId]` | Route smoke with live local task id | Verified | route returned `200` |
+| Frontend | `/deliverables/[deliverableId]` | Route smoke with live local deliverable id | Verified | route returned `200` |
+
+### Live smoke data
+
+- live adoption-feedback verification task id: `50aa534e-7c71-4e59-9585-354e8ba4e84f`
+- live adoption-feedback verification matter id: `f8a3b22c-c69a-407e-8ac7-261b180d54a2`
+- live adoption-feedback verification deliverable id: `c7857411-4ee2-4d87-9921-5376a5e897b9`
+- live adoption-feedback verification recommendation id: `87e51bf0-7a2c-4318-8298-a8bcc13c3542`
+- live API verification returned:
+  - `recommendation_feedback.feedback_status=template_candidate`
+  - `recommendation_feedback.note=這則建議值得保留為範本候選。`
+  - `deliverable_feedback.feedback_status=adopted`
+  - `deliverable_feedback.note=這份交付可直接採用。`
+- frontend route smoke:
+  - `/tasks/50aa534e-7c71-4e59-9585-354e8ba4e84f` returned `200`
+  - `/deliverables/c7857411-4ee2-4d87-9921-5376a5e897b9` returned `200`
+- browser snapshots:
+  - deliverable feedback success snapshot: `.playwright-cli/page-2026-04-03T14-31-31-836Z.yml`
+  - recommendation feedback success snapshot: `.playwright-cli/page-2026-04-03T14-32-43-481Z.yml`
+
+### Verified outcomes
+
+- Infinite Pro now has an explicit human adoption-signal layer that is separate from publish / approval / revision governance
+- the first wave stays intentionally small: only `Deliverable` and `Recommendation`
+- the first-screen interaction remains one-click and low-noise, while optional note capture stays in the backend contract instead of polluting the primary UI
+- task and deliverable surfaces now collect a real reuse-quality signal without drifting back toward chat-bubble interaction patterns

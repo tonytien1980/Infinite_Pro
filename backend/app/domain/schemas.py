@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.domain.enums import (
     ActionType,
+    AdoptionFeedbackStatus,
     ApprovalPolicy,
     ApprovalStatus,
     AuditEventType,
@@ -198,6 +199,11 @@ class DeliverablePublishRequest(BaseModel):
     content_sections: DeliverableContentSectionsRequest = Field(
         default_factory=DeliverableContentSectionsRequest
     )
+
+
+class AdoptionFeedbackRequest(BaseModel):
+    feedback_status: AdoptionFeedbackStatus
+    note: str = ""
 
 
 class TaskContextRead(ORMModel):
@@ -678,6 +684,7 @@ class RecommendationRead(ORMModel):
     supporting_evidence_ids: list[str] = Field(default_factory=list)
     priority: str
     owner_suggestion: str | None
+    adoption_feedback: "AdoptionFeedbackRead | None" = None
     created_at: datetime
 
 
@@ -717,7 +724,20 @@ class DeliverableRead(ORMModel):
     content_structure: dict[str, Any]
     version: int
     linked_objects: list[DeliverableObjectLinkRead] = Field(default_factory=list)
+    adoption_feedback: "AdoptionFeedbackRead | None" = None
     generated_at: datetime
+
+
+class AdoptionFeedbackRead(ORMModel):
+    id: str
+    task_id: str
+    matter_workspace_id: str | None = None
+    deliverable_id: str | None = None
+    recommendation_id: str | None = None
+    feedback_status: AdoptionFeedbackStatus
+    note: str = ""
+    created_at: datetime
+    updated_at: datetime
 
 
 class ObjectSetMemberRead(ORMModel):

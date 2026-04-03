@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
 import {
+  applyRecommendationFeedback,
   approveTaskWriteback,
   getExtensionManager,
   getTask,
@@ -36,6 +37,7 @@ import {
   getVisibleConstraints,
   getStructuredStringList,
 } from "@/lib/advisory-workflow";
+import { ADOPTION_FEEDBACK_OPTIONS, buildAdoptionFeedbackView } from "@/lib/adoption-feedback";
 import { buildContinuationPostureView } from "@/lib/continuity-ux";
 import { buildMaterialReviewPostureView } from "@/lib/material-review-ux";
 import { buildResearchGuidanceView } from "@/lib/research-lane";
@@ -55,6 +57,7 @@ import {
 } from "@/lib/workflow-modes";
 import {
   labelForActionStatus,
+  labelForAdoptionFeedbackStatus,
   labelForApprovalPolicy,
   labelForApprovalStatus,
   labelForAuditEventType,
@@ -379,6 +382,8 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
   const [savingOverrides, setSavingOverrides] = useState(false);
   const [approvingTargetId, setApprovingTargetId] = useState<string | null>(null);
   const [approvalFeedback, setApprovalFeedback] = useState<string | null>(null);
+  const [recommendationFeedbackMessage, setRecommendationFeedbackMessage] = useState<string | null>(null);
+  const [feedbackRecommendationId, setFeedbackRecommendationId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [extensionError, setExtensionError] = useState<string | null>(null);
 
@@ -461,6 +466,29 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
       setError(approveError instanceof Error ? approveError.message : "標記正式核可失敗。");
     } finally {
       setApprovingTargetId(null);
+    }
+  }
+
+  async function handleRecommendationFeedback(
+    recommendationId: string,
+    feedbackStatus: "adopted" | "needs_revision" | "not_adopted" | "template_candidate",
+  ) {
+    try {
+      setFeedbackRecommendationId(recommendationId);
+      setRecommendationFeedbackMessage(null);
+      setError(null);
+      const response = await applyRecommendationFeedback(taskId, recommendationId, {
+        feedback_status: feedbackStatus,
+        note: "",
+      });
+      setTask(response);
+      setRecommendationFeedbackMessage(
+        `已記錄這則建議的回饋：${labelForAdoptionFeedbackStatus(feedbackStatus)}`,
+      );
+    } catch (feedbackError) {
+      setError(feedbackError instanceof Error ? feedbackError.message : "記錄建議回饋失敗。");
+    } finally {
+      setFeedbackRecommendationId(null);
     }
   }
 
@@ -2125,21 +2153,54 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
               >
               <section className="panel">
                 <h2 className="section-title">主要建議</h2>
+                <p className="muted-text">
+                  用很輕的方式標記這則建議目前是否可直接採用、需改寫、目前不採用，或值得當範本。
+                </p>
+                {recommendationFeedbackMessage ? (
+                  <p className="success-text" role="status" aria-live="polite">
+                    {recommendationFeedbackMessage}
+                  </p>
+                ) : null}
                 <div className="detail-list">
-                  {recommendationCards.length > 0 ? (
-                    recommendationCards.slice(0, 3).map((recommendation, index) => (
-                      <div className="detail-item" key={`${recommendation.content}-${index}`}>
+                  {sortedRecommendations.length > 0 ? (
+                    sortedRecommendations.slice(0, 3).map((recommendation, index) => {
+                      const feedbackView = buildAdoptionFeedbackView(recommendation.adoption_feedback);
+                      const expectedEffect =
+                        recommendationCards[index]?.expectedEffect || "可讓下一輪判斷與執行更具可操作性。";
+                      return (
+                      <div className="detail-item" key={recommendation.id}>
                         <div className="meta-row">
                           <span className="pill">{labelForPriority(recommendation.priority)}</span>
+                          <span>{feedbackView.currentLabel}</span>
                         </div>
-                        <h3>{recommendation.content}</h3>
+                        <h3>{recommendation.summary}</h3>
                         <ExpandableText
                           text={recommendation.rationale}
                           emptyText="目前沒有額外建議說明。"
                         />
-                        <p className="muted-text">預期效果：{recommendation.expectedEffect}</p>
+                        <p className="muted-text">預期效果：{expectedEffect}</p>
+                        <div className="button-row" style={{ marginTop: "12px" }}>
+                          {ADOPTION_FEEDBACK_OPTIONS.map((option) => (
+                            <button
+                              key={`${recommendation.id}-${option.value}`}
+                              className={
+                                feedbackView.currentStatus === option.value
+                                  ? "button-primary"
+                                  : "button-secondary"
+                              }
+                              type="button"
+                              disabled={feedbackRecommendationId === recommendation.id}
+                              onClick={() => void handleRecommendationFeedback(recommendation.id, option.value)}
+                            >
+                              {feedbackRecommendationId === recommendation.id &&
+                              feedbackView.currentStatus !== option.value
+                                ? "儲存中..."
+                                : option.label}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    ))
+                    )})
                   ) : (
                     <p className="empty-text">尚未記錄任何建議。</p>
                   )}

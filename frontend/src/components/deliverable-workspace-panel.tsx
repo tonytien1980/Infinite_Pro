@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ReactNode, useEffect, useState } from "react";
 
 import {
+  applyDeliverableFeedback,
   applyMatterContinuationAction,
   downloadDeliverableArtifact,
   exportDeliverableDocx,
@@ -26,6 +27,7 @@ import {
   buildRecommendationCards,
   buildRiskCards,
 } from "@/lib/advisory-workflow";
+import { ADOPTION_FEEDBACK_OPTIONS, buildAdoptionFeedbackView } from "@/lib/adoption-feedback";
 import { buildContinuationPostureView } from "@/lib/continuity-ux";
 import { buildMaterialReviewPostureView } from "@/lib/material-review-ux";
 import { truncateText } from "@/lib/text-format";
@@ -41,6 +43,7 @@ import {
   labelForAuditEventType,
   formatDisplayDate,
   labelForAgentId,
+  labelForAdoptionFeedbackStatus,
   labelForDeliverableEventType,
   labelForDeliverableStatus,
   labelForEngagementContinuityMode,
@@ -444,6 +447,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isApplyingContinuation, setIsApplyingContinuation] = useState(false);
+  const [isApplyingDeliverableFeedback, setIsApplyingDeliverableFeedback] = useState(false);
   const [activeExportFormat, setActiveExportFormat] = useState<"markdown" | "docx" | null>(null);
   const [activeArtifactDownloadId, setActiveArtifactDownloadId] = useState<string | null>(null);
   const [retryAction, setRetryAction] = useState<
@@ -456,6 +460,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const [rollingBackRevisionId, setRollingBackRevisionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deliverableFeedbackMessage, setDeliverableFeedbackMessage] = useState<string | null>(null);
 
   useEffect(() => {
     void (async () => {
@@ -509,6 +514,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
 
   const task = workspace?.task ?? null;
   const deliverable = workspace?.deliverable ?? null;
+  const deliverableFeedbackView = buildAdoptionFeedbackView(deliverable?.adoption_feedback);
   const continuationSurface = workspace?.continuation_surface ?? null;
   const followUpLane = continuationSurface?.follow_up_lane ?? null;
   const progressionLane = continuationSurface?.progression_lane ?? null;
@@ -796,6 +802,32 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
       setIsSaving(false);
     }
     setExportMessage(null);
+  }
+
+  async function handleDeliverableFeedback(
+    feedbackStatus: "adopted" | "needs_revision" | "not_adopted" | "template_candidate",
+  ) {
+    if (!deliverable) {
+      return;
+    }
+
+    try {
+      setIsApplyingDeliverableFeedback(true);
+      setDeliverableFeedbackMessage(null);
+      setError(null);
+      const response = await applyDeliverableFeedback(deliverable.id, {
+        feedback_status: feedbackStatus,
+        note: "",
+      });
+      setWorkspace(response);
+      setDeliverableFeedbackMessage(
+        `已記錄這份交付物的回饋：${labelForAdoptionFeedbackStatus(feedbackStatus)}`,
+      );
+    } catch (feedbackError) {
+      setError(feedbackError instanceof Error ? feedbackError.message : "記錄交付物回饋失敗。");
+    } finally {
+      setIsApplyingDeliverableFeedback(false);
+    }
   }
 
   async function handleExportEntry(format: "markdown" | "docx") {
@@ -1184,6 +1216,39 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                       </Link>
                     ) : null}
                   </div>
+                </div>
+
+                <div className="section-card deliverable-rail-card">
+                  <h4>採納回饋</h4>
+                  <p className="content-block">{deliverableFeedbackView.currentLabel}</p>
+                  <p className="muted-text">
+                    用很輕的方式標記這份交付物目前是否可直接採用、需改寫、目前不採用，或值得當範本。
+                  </p>
+                  <div className="button-row" style={{ marginTop: "10px" }}>
+                    {ADOPTION_FEEDBACK_OPTIONS.map((option) => (
+                      <button
+                        key={`deliverable-feedback-${option.value}`}
+                        className={
+                          deliverableFeedbackView.currentStatus === option.value
+                            ? "button-primary"
+                            : "button-secondary"
+                        }
+                        type="button"
+                        disabled={isApplyingDeliverableFeedback}
+                        onClick={() => void handleDeliverableFeedback(option.value)}
+                      >
+                        {isApplyingDeliverableFeedback &&
+                        deliverableFeedbackView.currentStatus !== option.value
+                          ? "儲存中..."
+                          : option.label}
+                      </button>
+                    ))}
+                  </div>
+                  {deliverableFeedbackMessage ? (
+                    <p className="success-text" role="status" aria-live="polite">
+                      {deliverableFeedbackMessage}
+                    </p>
+                  ) : null}
                 </div>
 
                 <div className="section-card deliverable-rail-card workspace-rail-callout">

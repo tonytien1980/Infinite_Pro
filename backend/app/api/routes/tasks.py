@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.domain import schemas
 from app.services.tasks import (
+    apply_recommendation_adoption_feedback,
     approve_task_writeback_record,
     create_task,
     get_loaded_task,
@@ -55,6 +56,19 @@ def approve_task_writeback_route(
     db: Session = Depends(get_db),
 ) -> schemas.TaskAggregateResponse:
     return approve_task_writeback_record(db, task_id, payload)
+
+
+@router.post(
+    "/{task_id}/recommendations/{recommendation_id}/feedback",
+    response_model=schemas.TaskAggregateResponse,
+)
+def apply_recommendation_adoption_feedback_route(
+    task_id: str,
+    recommendation_id: str,
+    payload: schemas.AdoptionFeedbackRequest,
+    db: Session = Depends(get_db),
+) -> schemas.TaskAggregateResponse:
+    return apply_recommendation_adoption_feedback(db, task_id, recommendation_id, payload)
 
 
 @router.get("/{task_id}/history", response_model=schemas.TaskHistoryResponse)

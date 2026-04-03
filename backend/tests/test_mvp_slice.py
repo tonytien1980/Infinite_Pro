@@ -3280,6 +3280,60 @@ def test_specialist_run_returns_explicit_uncertainty_when_no_usable_evidence(
     assert body["action_items"]
 
 
+def test_deliverable_feedback_persists_on_deliverable_workspace(
+    client: TestClient,
+) -> None:
+    payload = create_contract_review_payload("Deliverable feedback foundation")
+    task = client.post("/api/v1/tasks", json=payload).json()
+
+    client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("agreement.txt", b"Termination and liability clauses need review.", "text/plain"))],
+    )
+    run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
+    assert run_response.status_code == 200
+    deliverable_id = run_response.json()["deliverable"]["id"]
+
+    feedback_response = client.post(
+        f"/api/v1/deliverables/{deliverable_id}/feedback",
+        json={"feedback_status": "adopted", "note": "這份交付可直接採用。"},
+    )
+
+    assert feedback_response.status_code == 200
+    workspace = feedback_response.json()
+    assert workspace["deliverable"]["adoption_feedback"]["feedback_status"] == "adopted"
+    assert workspace["deliverable"]["adoption_feedback"]["note"] == "這份交付可直接採用。"
+    assert workspace["task"]["deliverables"][0]["adoption_feedback"]["feedback_status"] == "adopted"
+
+
+def test_recommendation_feedback_persists_on_task_aggregate(
+    client: TestClient,
+) -> None:
+    payload = create_task_payload("Recommendation feedback foundation")
+    task = client.post("/api/v1/tasks", json=payload).json()
+
+    client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("notes.txt", b"Pricing and channel suggestions need review.", "text/plain"))],
+    )
+    run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
+    assert run_response.status_code == 200
+
+    aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
+    recommendation_id = aggregate["recommendations"][0]["id"]
+
+    feedback_response = client.post(
+        f"/api/v1/tasks/{task['id']}/recommendations/{recommendation_id}/feedback",
+        json={"feedback_status": "template_candidate", "note": "這類建議可作為範本候選。"},
+    )
+
+    assert feedback_response.status_code == 200
+    updated = feedback_response.json()
+    recommendation = next(item for item in updated["recommendations"] if item["id"] == recommendation_id)
+    assert recommendation["adoption_feedback"]["feedback_status"] == "template_candidate"
+    assert recommendation["adoption_feedback"]["note"] == "這類建議可作為範本候選。"
+
+
 def test_specialist_run_returns_explicit_uncertainty_when_model_router_fails(
     client: TestClient,
     monkeypatch: pytest.MonkeyPatch,

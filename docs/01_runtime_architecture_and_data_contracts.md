@@ -503,7 +503,26 @@ deliverable workspace 採：
 - continuity / writeback record
   - 與 revision history 分層存在
 
-### 6.9 Matter-scoped canonicalization and duplicate governance
+### 6.9 Minimal adoption-feedback foundation
+
+目前正式已補上一層最小 adoption-feedback foundation。
+
+正式規則：
+
+- 這層不是 chat bubble feedback
+- 它附著在正式工作物件上，第一波只涵蓋：
+  - `Deliverable`
+  - `Recommendation`
+- 第一波正式值至少包括：
+  - `adopted`
+  - `needs_revision`
+  - `not_adopted`
+  - `template_candidate`
+- feedback record 可附帶 optional note，但第一波 UI 不應要求使用者先寫備註才能完成回饋
+- publish / approval / revision 仍屬治理或版本訊號，不等於 explicit human adoption feedback
+- 這層的正式目的，是為未來 precedent / reusable intelligence 提供更可靠的人類採納訊號
+
+### 6.10 Matter-scoped canonicalization and duplicate governance
 
 正式規則：
 
