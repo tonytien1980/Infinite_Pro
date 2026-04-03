@@ -5833,18 +5833,20 @@ def _build_continuation_surface(
                 mode=continuity_mode,
                 writeback_depth=writeback_depth,
                 current_state="checkpoint_ready",
-                title="這案目前適合寫入輕量 checkpoint",
+                title="這案目前屬於回來更新 / checkpoint 節奏",
                 summary=(
-                    (
-                        f"這輪主要是在延續「{follow_up_lane.previous_checkpoint.task_title}」之後的更新："
+                    "這輪是回來更新，不是重新開新案；重點是把新版判斷整理成 checkpoint。"
+                    + (
+                        f" 上一輪主線來自「{follow_up_lane.previous_checkpoint.task_title}」。"
                         if follow_up_lane and follow_up_lane.previous_checkpoint and follow_up_lane.previous_checkpoint.task_title
-                        else "follow-up 案件應保留 decision checkpoint、milestone note 與新版建議摘要，"
+                        else ""
                     )
                     + (
-                        follow_up_lane.what_changed[0]
+                        f" {follow_up_lane.what_changed[0]}"
                         if follow_up_lane and follow_up_lane.what_changed
-                        else "但不需要被完整 action / outcome loop 汙染。"
+                        else ""
                     )
+                    + " 這裡保留 checkpoint / milestone 更新，不需要進入完整長期追蹤。"
                 ),
                 primary_action=_build_continuation_action(
                     "record_checkpoint",
@@ -5871,10 +5873,10 @@ def _build_continuation_surface(
             mode=continuity_mode,
             writeback_depth=writeback_depth,
             current_state="follow_up_pending",
-            title="先完成這輪 follow-up 分析",
+            title="這案目前屬於回來更新 / checkpoint 節奏",
             summary=(
-                "這案屬於 follow-up 模式：重點是補件、重跑與 milestone 更新，"
-                "不是把所有後續都做成重型持續追蹤。"
+                "這輪是回來更新，不是完整長期追蹤。先補件或先完成 follow-up 分析，"
+                "再把新版判斷整理成 checkpoint。"
             ),
             primary_action=_build_continuation_action(
                 "run_analysis",

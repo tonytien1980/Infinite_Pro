@@ -13,6 +13,7 @@ import {
   CONSULTANT_START_OPTIONS,
   resolveWorkflowValueForConsultingStart,
 } from "../src/lib/flagship-lane.ts";
+import { buildContinuationPostureView } from "../src/lib/continuity-ux.ts";
 import { buildResearchGuidanceView } from "../src/lib/research-lane.ts";
 
 test("batch progress summary distinguishes done, parsing, failed, blocking, and reference-only items", () => {
@@ -266,4 +267,32 @@ test("research guidance view turns backend guidance into low-noise consultant co
   assert.equal(guidance.executionOwnerLabel, "由系統研究主線處理");
   assert.match(guidance.supplementBoundaryNote, /補件主鏈/);
   assert.match(guidance.boundaryNote, /補齊缺口/);
+});
+
+test("continuity posture view keeps follow-up distinct from one-off and continuous", () => {
+  const oneOff = buildContinuationPostureView({
+    workflow_layer: "closure",
+    current_state: "closure_ready",
+    summary: "one-off summary",
+  });
+  const followUp = buildContinuationPostureView({
+    workflow_layer: "checkpoint",
+    current_state: "checkpoint_ready",
+    summary: "follow-up summary",
+  });
+  const continuous = buildContinuationPostureView({
+    workflow_layer: "progression",
+    current_state: "progression_ready",
+    summary: "continuous summary",
+  });
+
+  assert.equal(oneOff.modeLabel, "一次性交付 / 結案");
+  assert.match(oneOff.primarySummary, /結案|匯出|發布/);
+
+  assert.equal(followUp.modeLabel, "回來更新 / checkpoint");
+  assert.match(followUp.primarySummary, /回來更新/);
+  assert.doesNotMatch(followUp.primarySummary, /outcome|progression/i);
+
+  assert.equal(continuous.modeLabel, "持續推進 / outcome");
+  assert.match(continuous.primarySummary, /進度|outcome|結果/);
 });

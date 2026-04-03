@@ -542,6 +542,12 @@ Primary action 應隨 continuity mode 分流：
 - `continuous`
   - 補件 / 記錄 outcome / 打開最新交付物
 
+正式 guardrail：
+
+- `follow_up` 首屏應明示這是「回來更新 / checkpoint」節奏
+- 不可把 `follow_up` 寫成縮小版 `continuous`
+- 不可讓 progression / outcome 語言在 `follow_up` 首屏與 checkpoint 同層競爭
+
 首屏也應明示：
 
 - 這個案件目前屬於哪種 flagship lane
@@ -632,6 +638,12 @@ Primary action 應隨 continuity mode / status 分流：
   - 新增 checkpoint / 回案件工作台續推
 - `continuous`
   - 記錄 outcome / 更新下一步 / 回案件工作台續推
+
+正式 guardrail：
+
+- `follow_up` 版交付物應明示它屬於回來更新 / checkpoint 版本
+- `one_off` 應仍偏向發布 / 匯出 / 結案
+- `continuous` 才應保留較完整的 progression / outcome 心智
 
 若這份交付物來自 sparse-start / flagship lane，首屏應可回答：
 

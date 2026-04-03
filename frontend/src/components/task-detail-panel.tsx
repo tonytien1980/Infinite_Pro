@@ -36,6 +36,7 @@ import {
   getVisibleConstraints,
   getStructuredStringList,
 } from "@/lib/advisory-workflow";
+import { buildContinuationPostureView } from "@/lib/continuity-ux";
 import { buildResearchGuidanceView } from "@/lib/research-lane";
 import type {
   ExtensionManagerSnapshot,
@@ -476,6 +477,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
   const continuationSurface = task?.continuation_surface ?? null;
   const followUpLane = continuationSurface?.follow_up_lane ?? null;
   const progressionLane = continuationSurface?.progression_lane ?? null;
+  const continuityPosture = buildContinuationPostureView(continuationSurface);
   const successCriteria = task ? getGoalSuccessCriteria(task.goals) : [];
   const latestContext = task?.contexts[0];
   const workflowKey = task ? resolveWorkflowKey(task.task_type, task.mode) : null;
@@ -604,7 +606,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
   );
   const taskActionTitle = latestDeliverable
     ? continuationSurface?.workflow_layer === "checkpoint"
-      ? "這筆工作屬於後續檢查點鏈"
+      ? "這筆工作屬於回來更新 / checkpoint 鏈"
       : continuationSurface?.workflow_layer === "progression"
         ? "這筆工作屬於持續推進鏈"
         : "這筆工作已有可回看的正式交付物"
@@ -613,7 +615,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
       : "這筆工作可以直接執行分析";
   const taskActionSummary = latestDeliverable
     ? continuationSurface?.workflow_layer === "checkpoint"
-      ? "你現在可以回看最新交付物、補件後重跑，或回到案件工作面把這輪結果寫成檢查點。"
+      ? `${continuityPosture.primarySummary} 你現在可以回看最新交付物、補件後重跑，或回到案件工作面把這輪結果寫成 checkpoint。`
       : continuationSurface?.workflow_layer === "progression"
         ? progressionLane?.what_changed[0]
           ? `${progressionLane.what_changed[0]} 你現在可以回看最新交付物、補件後重跑，或回到案件工作面更新推進狀態。`
@@ -629,7 +631,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
       : "目前資料已達基本可運作狀態，執行分析會比繼續空看頁面更有幫助。",
     latestDeliverable
       ? continuationSurface?.workflow_layer === "checkpoint"
-        ? `最新結果已整理成「${latestDeliverable.title}」，接下來更像是檢查點更新，不是完整持續推進閉環。`
+        ? `最新結果已整理成「${latestDeliverable.title}」，接下來更像是回來更新 / checkpoint，不是完整長期追蹤。`
         : continuationSurface?.workflow_layer === "progression"
           ? `最新結果已整理成「${latestDeliverable.title}」，接下來更像是在延續推進狀態；${progressionLane?.next_progression_actions[0] || "可回案件工作面補記推進狀態／結果。"}`
           : `最新結果已整理成「${latestDeliverable.title}」，可以直接進入正式交付物工作面。`
@@ -688,17 +690,17 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
     taskFraming?.analysisFocus ||
     taskActionSummary;
   const taskHeroLaneTitle = followUpLane
-    ? "最近檢查點"
+    ? "最近 checkpoint"
     : progressionLane
       ? "最近推進狀態"
       : flagshipLane
         ? `目前交付等級｜${flagshipLane.currentOutputLabel}`
         : "目前狀態";
-  const taskHeroLaneSummary = flagshipLane?.nextStepSummary || (followUpLane
-    ? followUpLane.latest_update?.summary || "尚未形成正式檢查點。"
+  const taskHeroLaneSummary = followUpLane
+    ? followUpLane.latest_update?.summary || "尚未形成正式 checkpoint。"
     : progressionLane
       ? progressionLane.latest_progression?.summary || "目前還沒有新的推進更新。"
-      : latestDeliverable
+      : flagshipLane?.nextStepSummary || (latestDeliverable
         ? `已形成交付物「${latestDeliverable.title}」`
         : hasThinTaskEvidence
           ? "資料仍偏薄，建議補件或先跑第一版。"

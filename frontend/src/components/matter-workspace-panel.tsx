@@ -12,6 +12,7 @@ import {
   runTask,
 } from "@/lib/api";
 import { describeRuntimeMaterialHandling } from "@/lib/intake";
+import { buildContinuationPostureView } from "@/lib/continuity-ux";
 import { buildResearchGuidanceView } from "@/lib/research-lane";
 import { truncateText } from "@/lib/text-format";
 import type {
@@ -224,6 +225,15 @@ function buildMatterAdvanceGuide({
         title: "這案已可正式結案",
         summary:
           "這個單次案件已具備基本脈絡、證據與交付結果，下一步應偏向正式結案、發布或匯出，而不是進入持續追蹤。",
+        checklist,
+        primaryActionLabel: continuationSurface.primary_action.label,
+      };
+    }
+    if (continuationSurface.workflow_layer === "checkpoint") {
+      return {
+        title: "這案目前屬於回來更新 / checkpoint 節奏",
+        summary:
+          "這輪重點是回來更新、補件與 checkpoint，不是重新開新案，也不是進入完整長期追蹤。",
         checklist,
         primaryActionLabel: continuationSurface.primary_action.label,
       };
@@ -495,6 +505,7 @@ export function MatterWorkspacePanel({
   const continuationSurface = matter?.continuation_surface ?? null;
   const followUpLane = continuationSurface?.follow_up_lane ?? null;
   const progressionLane = continuationSurface?.progression_lane ?? null;
+  const continuityPosture = buildContinuationPostureView(continuationSurface);
   const continuityMode = matter?.summary.engagement_continuity_mode ?? null;
   const remediationContext =
     continuityMode === "follow_up"
@@ -588,22 +599,23 @@ export function MatterWorkspacePanel({
       : canonicalizationSummary.summary
     : "目前沒有待處理的重複材料候選。";
   const heroStrategySummary = flagshipLane
-    ? `起手方式：${flagshipLane.label}｜目前交付等級：${flagshipLane.currentOutputLabel}`
+    ? `案件節奏：${continuityPosture.modeLabel}｜目前交付等級：${flagshipLane.currentOutputLabel}`
     : continuityStrategySummary
-      ? `案件策略：${continuityStrategySummary}`
+      ? `案件節奏：${continuityPosture.modeLabel}｜${continuityStrategySummary}`
       : "案件策略尚未完整建立。";
-  const heroStateSummary = flagshipLane?.summary || (followUpLane
-    ? `最新檢查點：${followUpLane.latest_update?.summary || "尚未形成正式檢查點。"}`
+  const heroStateSummary = followUpLane
+    ? `最新 checkpoint：${followUpLane.latest_update?.summary || "尚未形成正式檢查點。"}`
     : progressionLane
       ? `最新推進狀態：${progressionLane.latest_progression?.summary || "目前還沒有新的推進更新。"}`
-      : latestDeliverable
-        ? `最近交付物：${latestDeliverable.title}`
-        : focusTask
-          ? `焦點工作紀錄：${focusTask.title}`
-          : "目前還沒有焦點工作紀錄。");
-  const heroNextActionSummary = flagshipLane?.nextStepSummary
-    || followUpLane?.next_follow_up_actions[0]
+      : flagshipLane?.summary
+        || (latestDeliverable
+          ? `最近交付物：${latestDeliverable.title}`
+          : focusTask
+            ? `焦點工作紀錄：${focusTask.title}`
+            : continuityPosture.primarySummary);
+  const heroNextActionSummary = followUpLane?.next_follow_up_actions[0]
     || progressionLane?.next_progression_actions[0]
+    || flagshipLane?.nextStepSummary
     || advanceGuide.primaryActionLabel
     || "先確認這個案件頁面的主線是否已對準你現在真正要推進的判斷。";
 

@@ -421,11 +421,18 @@ Infinite Pro 的正式輸出不應退回 generic long answer。
 - 保留 `one_off` baseline
 - 支援 checkpoint / milestone-level writeback
 - supplements 仍掛回同一案件世界
+- 正式定位是 `one_off` 與 `continuous` 之間的 middle layer，不應被誤寫成縮小版 progression shell
 - 應能回答：
   - previous checkpoint
   - latest update
   - what changed
   - next follow-up action
+
+正式 UX / read-model 規則：
+
+- 首屏應優先使用「回來更新 / checkpoint」語言，而不是 progression / outcome 語言
+- `follow_up` 的重點是 checkpoint / milestone update，不要求完整 action / outcome loop
+- 若後續真的要追 action / outcome，才應升級到 `continuous`
 
 ### 6.4 continuous
 

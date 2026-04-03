@@ -1451,3 +1451,55 @@ Environment used:
 - shipped research guidance now explicitly reads as a Host-owned, system-run research suggestion rather than a request for the consultant to do manual research
 - the contract now encodes both who owns research execution and where internal/client-origin materials should go instead
 - the evidence supplement surface now explicitly distinguishes consultant/client supplements from system research without adding a new dashboard or extra primary navigation
+
+---
+
+## Entry: 2026-04-03 follow-up middle-layer clarity
+
+Scope:
+- clarify `follow_up` as the checkpoint / milestone middle layer between `one_off` and `continuous`
+- keep `one_off` and `continuous` from bleeding into the same first-screen wording
+- align backend continuation summaries, frontend first-screen copy, active docs, and QA evidence
+
+Environment used:
+- frontend runtime: `http://127.0.0.1:3000`
+- backend runtime: `http://127.0.0.1:8000/api/v1`
+- code verification: local repo workspace
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`104 passed`) |
+| `node --test frontend/tests/intake-progress.test.mjs` | Passed (`8 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Follow-up middle-layer verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | continuation surface contract | Re-run focused follow-up continuity test | Verified | pytest now asserts `follow_up` surfaces use `回來更新 / checkpoint` wording and keep `outcome_logging_enabled=false` |
+| Frontend | continuity helper | Verify posture helper keeps `one_off / follow_up / continuous` distinct | Verified | node test now locks the mode labels and confirms follow-up copy avoids progression / outcome wording |
+| Frontend | `/tasks/[taskId]` | Route smoke with live local follow-up task id | Verified | route returned `200` |
+| Frontend | `/matters/[matterId]` | Route smoke with live local follow-up matter id | Verified | route returned `200` |
+
+### Live smoke data
+
+- live follow-up verification task id: `cb0d5406-ae1e-465b-a4ee-fe10bf7e45bb`
+- live follow-up verification matter id: `3b90e290-a3de-4375-a7e4-6fe38e3b9801`
+- live API verification returned:
+  - `workflow_layer=checkpoint`
+  - `title=這案目前屬於回來更新 / checkpoint 節奏`
+  - `summary=這輪是回來更新，不是完整長期追蹤。先補件或先完成 follow-up 分析，再把新版判斷整理成 checkpoint。`
+  - `primary_action.label=先完成 follow-up 分析`
+- frontend route smoke:
+  - `/tasks/cb0d5406-ae1e-465b-a4ee-fe10bf7e45bb` returned `200`
+  - `/matters/3b90e290-a3de-4375-a7e4-6fe38e3b9801` returned `200`
+
+### Verified outcomes
+
+- `follow_up` now reads as a distinct checkpoint / milestone middle layer instead of a weaker `continuous` shell
+- matter, task, and deliverable first screens now use clearer consultant-facing continuity posture language
+- the new continuity helper gives the frontend one shared place to keep `one_off / follow_up / continuous` copy separated

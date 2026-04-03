@@ -3999,6 +3999,9 @@ def test_follow_up_surfaces_show_latest_previous_checkpoint_and_change_guidance(
         assert payload["workflow_layer"] == "checkpoint"
         assert payload["checkpoint_enabled"] is True
         assert payload["outcome_logging_enabled"] is False
+        assert "回來更新" in payload["title"]
+        assert "checkpoint" in payload["summary"]
+        assert "完整長期追蹤" in payload["summary"]
         assert payload["follow_up_lane"]["latest_update"]["summary"] == second_checkpoint_summary
         assert payload["follow_up_lane"]["previous_checkpoint"]["summary"] == first_checkpoint_summary
         assert len(payload["follow_up_lane"]["recent_checkpoints"]) >= 2

@@ -26,6 +26,7 @@ import {
   buildRecommendationCards,
   buildRiskCards,
 } from "@/lib/advisory-workflow";
+import { buildContinuationPostureView } from "@/lib/continuity-ux";
 import { truncateText } from "@/lib/text-format";
 import type {
   DeliverableContentRevision,
@@ -510,6 +511,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const continuationSurface = workspace?.continuation_surface ?? null;
   const followUpLane = continuationSurface?.follow_up_lane ?? null;
   const progressionLane = continuationSurface?.progression_lane ?? null;
+  const continuityPosture = buildContinuationPostureView(continuationSurface);
   const workspaceView = workspace ? buildDeliverableWorkspaceView(workspace) : null;
   const flagshipLane = task ? buildFlagshipLaneView(task.flagship_lane) : null;
   const readiness = task ? assessTaskReadiness(task) : null;
@@ -626,6 +628,10 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const deliverableActionTitle =
     requiresSaveBeforeFormalActions
       ? "先把正式內容落盤，再匯出或發布"
+      : continuationSurface?.workflow_layer === "checkpoint"
+      ? "這份交付物屬於回來更新 / checkpoint 版本"
+      : continuationSurface?.workflow_layer === "progression"
+        ? "這份交付物承接持續推進節奏"
       : deliverableStatus === "final"
       ? "這份交付物已可匯出與回看"
       : deliverableStatus === "archived"
@@ -640,8 +646,8 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
         ? continuationSurface.summary
       : continuationSurface?.workflow_layer === "checkpoint"
         ? followUpLane?.latest_update?.summary
-            ? `這份交付物目前對應後續檢查點「${followUpLane.latest_update.summary}」。先確認這輪更新重點，再決定是回案件工作面補檢查點，還是先補件重跑。`
-            : "這份交付物目前更像後續檢查點的基線。先回看結果，再決定要不要回案件工作面補一筆檢查點。"
+            ? `${continuityPosture.primarySummary} 這份交付物目前對應這輪 checkpoint「${followUpLane.latest_update.summary}」。先確認這輪更新重點，再決定是回案件工作面補 checkpoint，還是先補件重跑。`
+            : `${continuityPosture.primarySummary} 先回看結果，再決定要不要回案件工作面補一筆 checkpoint。`
           : continuationSurface?.workflow_layer === "progression"
             ? progressionLane?.latest_progression?.summary
               ? `這份交付物目前承接持續推進狀態「${progressionLane.latest_progression.summary}」。先確認行動／結果的最新變化，再決定要不要刷新交付物。`
@@ -731,7 +737,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
     workspaceView?.confidenceSummary ||
     "先確認這份交付物目前憑什麼成立，以及還有哪些限制與缺口。";
   const deliverableContinuitySummary = followUpLane?.latest_update?.summary
-    ? `最新檢查點：${followUpLane.latest_update.summary}`
+    ? `回來更新 / checkpoint｜${followUpLane.latest_update.summary}`
     : progressionLane?.latest_progression?.summary
       ? `最新推進狀態：${progressionLane.latest_progression.summary}`
       : continuationSurface?.workflow_layer === "closure"
