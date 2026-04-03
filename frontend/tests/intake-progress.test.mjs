@@ -14,6 +14,7 @@ import {
   resolveWorkflowValueForConsultingStart,
 } from "../src/lib/flagship-lane.ts";
 import { ADOPTION_FEEDBACK_OPTIONS, buildAdoptionFeedbackView } from "../src/lib/adoption-feedback.ts";
+import { buildContinuationAdvisoryView } from "../src/lib/continuation-advisory.ts";
 import { buildMaterialReviewPostureView } from "../src/lib/material-review-ux.ts";
 import { buildContinuationPostureView } from "../src/lib/continuity-ux.ts";
 import { buildResearchGuidanceView } from "../src/lib/research-lane.ts";
@@ -342,4 +343,49 @@ test("adoption feedback view exposes lightweight consultant-facing feedback stat
   assert.equal(feedback.currentStatus, "template_candidate");
   assert.equal(feedback.currentLabel, "值得當範本");
   assert.equal(feedback.hasFeedback, true);
+});
+
+test("continuous advisory view exposes health, timeline, and next-step queue in consultant-facing copy", () => {
+  const view = buildContinuationAdvisoryView({
+    workflow_layer: "progression",
+    current_state: "active",
+    health_signal: {
+      status: "steady",
+      label: "推進穩定",
+      summary: "主要阻塞已解除，現在應優先確認是否刷新交付物。",
+    },
+    timeline_items: [
+      {
+        kind: "progression",
+        title: "最新推進",
+        summary: "第二輪 outcome 顯示主要阻塞已解除，可以考慮刷新 deliverable。",
+        created_at: "2026-04-03T14:00:00Z",
+        task_id: "task-2",
+        task_title: "Second progression",
+        deliverable_id: "deliverable-2",
+        deliverable_title: "Second deliverable",
+      },
+      {
+        kind: "progression",
+        title: "上一輪推進",
+        summary: "第一輪 action 已啟動，但目前仍在跨部門協調中。",
+        created_at: "2026-04-03T13:00:00Z",
+        task_id: "task-1",
+        task_title: "First progression",
+        deliverable_id: "deliverable-1",
+        deliverable_title: "First deliverable",
+      },
+    ],
+    next_step_queue: [
+      "確認是否要刷新最新 deliverable，讓已完成 action 的 outcome 被正式寫回。",
+      "回案件工作面補一筆 progression update，確認目前最重要的 action 與 outcome。",
+    ],
+  });
+
+  assert.equal(view.shouldShow, true);
+  assert.equal(view.healthLabel, "推進穩定");
+  assert.equal(view.timelineTitle, "最近推進時間線");
+  assert.equal(view.timelineItems.length, 2);
+  assert.match(view.timelineItems[0].summary, /阻塞已解除/);
+  assert.equal(view.nextStepQueue.length, 2);
 });

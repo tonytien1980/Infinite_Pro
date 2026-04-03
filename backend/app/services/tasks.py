@@ -5727,6 +5727,143 @@ def _build_progression_lane(
     )
 
 
+def _build_continuation_health_signal(
+    *,
+    continuity_mode: EngagementContinuityMode,
+    follow_up_lane: schemas.FollowUpLaneRead | None,
+    progression_lane: schemas.ProgressionLaneRead | None,
+) -> schemas.ContinuationHealthSignalRead | None:
+    if continuity_mode == EngagementContinuityMode.FOLLOW_UP:
+        if follow_up_lane is None or not _normalize_whitespace(follow_up_lane.latest_update.summary if follow_up_lane.latest_update else ""):
+            return schemas.ContinuationHealthSignalRead(
+                status="build_baseline",
+                label="待建立 checkpoint",
+                summary="目前還沒有清楚的 checkpoint 基線；先完成這輪更新，再把新版判斷寫成正式檢查點。",
+            )
+        if follow_up_lane.what_changed:
+            return schemas.ContinuationHealthSignalRead(
+                status="steady",
+                label="更新節奏已站穩",
+                summary=f"最近 checkpoint 已形成，而且這輪變化已可讀：{follow_up_lane.what_changed[0]}",
+            )
+        return schemas.ContinuationHealthSignalRead(
+            status="watch",
+            label="正在回來更新",
+            summary="目前已回到 checkpoint 節奏，但這輪變化還不夠明顯；先補強最新更新與下一步。",
+        )
+
+    if continuity_mode != EngagementContinuityMode.CONTINUOUS:
+        return None
+
+    if progression_lane is None or progression_lane.latest_progression is None:
+        return schemas.ContinuationHealthSignalRead(
+            status="build_baseline",
+            label="待建立推進基線",
+            summary="目前還沒有清楚的 progression / outcome 基線；先完成第一輪分析，再開始持續推進。",
+        )
+
+    blocked_count = sum(1 for item in progression_lane.action_states if item.state == "blocked")
+    review_count = sum(1 for item in progression_lane.action_states if item.state == "review_required")
+    completed_count = sum(1 for item in progression_lane.action_states if item.state == "completed")
+    outcome_count = len(progression_lane.outcome_signals)
+
+    if blocked_count > 0:
+        return schemas.ContinuationHealthSignalRead(
+            status="at_risk",
+            label="目前有阻塞",
+            summary=f"現在至少有 {blocked_count} 項 action 受阻；先解卡，再決定是否刷新交付物與下一步。",
+        )
+    if review_count > 0:
+        return schemas.ContinuationHealthSignalRead(
+            status="watch",
+            label="需要重新檢查",
+            summary=f"目前有 {review_count} 項 action 需要重看；先確認哪些建議或執行狀態應重開。",
+        )
+    if completed_count > 0 or outcome_count > 0:
+        return schemas.ContinuationHealthSignalRead(
+            status="steady",
+            label="推進穩定",
+            summary=(
+                progression_lane.what_changed[0]
+                if progression_lane.what_changed
+                else "主要 action 與 outcome 已開始形成可回看的推進節奏。"
+            ),
+        )
+    return schemas.ContinuationHealthSignalRead(
+        status="watch",
+        label="持續推進中",
+        summary=(
+            progression_lane.latest_progression.summary
+            or "目前已進入持續推進節奏，但還需要更多 action / outcome 訊號讓判斷更穩。"
+        ),
+    )
+
+
+def _build_continuation_timeline_items(
+    *,
+    continuity_mode: EngagementContinuityMode,
+    follow_up_lane: schemas.FollowUpLaneRead | None,
+    progression_lane: schemas.ProgressionLaneRead | None,
+) -> list[schemas.ContinuationTimelineItemRead]:
+    if continuity_mode == EngagementContinuityMode.FOLLOW_UP and follow_up_lane is not None:
+        titles = ["最新 checkpoint", "上一個 checkpoint", "更早 checkpoint"]
+        items: list[schemas.ContinuationTimelineItemRead] = []
+        for index, snapshot in enumerate(follow_up_lane.recent_checkpoints[:3]):
+            if not _normalize_whitespace(snapshot.summary):
+                continue
+            items.append(
+                schemas.ContinuationTimelineItemRead(
+                    kind="checkpoint",
+                    title=titles[index] if index < len(titles) else "Checkpoint",
+                    summary=snapshot.summary,
+                    created_at=snapshot.created_at,
+                    task_id=snapshot.task_id,
+                    task_title=snapshot.task_title,
+                    deliverable_id=snapshot.deliverable_id,
+                    deliverable_title=snapshot.deliverable_title,
+                )
+            )
+        return items
+
+    if continuity_mode == EngagementContinuityMode.CONTINUOUS and progression_lane is not None:
+        titles = ["最新推進", "上一輪推進", "更早一輪"]
+        items: list[schemas.ContinuationTimelineItemRead] = []
+        for index, snapshot in enumerate(progression_lane.recent_progressions[:3]):
+            if not _normalize_whitespace(snapshot.summary):
+                continue
+            items.append(
+                schemas.ContinuationTimelineItemRead(
+                    kind="progression",
+                    title=titles[index] if index < len(titles) else "推進更新",
+                    summary=snapshot.summary,
+                    created_at=snapshot.created_at,
+                    task_id=snapshot.task_id,
+                    task_title=snapshot.task_title,
+                    deliverable_id=snapshot.deliverable_id,
+                    deliverable_title=snapshot.deliverable_title,
+                )
+            )
+        return items
+
+    return []
+
+
+def _build_continuation_next_step_queue(
+    *,
+    continuity_mode: EngagementContinuityMode,
+    follow_up_lane: schemas.FollowUpLaneRead | None,
+    progression_lane: schemas.ProgressionLaneRead | None,
+) -> list[str]:
+    if continuity_mode == EngagementContinuityMode.FOLLOW_UP and follow_up_lane is not None:
+        actions = follow_up_lane.next_follow_up_actions
+    elif continuity_mode == EngagementContinuityMode.CONTINUOUS and progression_lane is not None:
+        actions = progression_lane.next_progression_actions
+    else:
+        actions = []
+
+    return _unique_preserve_order([_normalize_whitespace(item) for item in actions if _normalize_whitespace(item)])[:4]
+
+
 def _build_continuation_surface(
     *,
     continuity_mode: EngagementContinuityMode,
@@ -5745,6 +5882,21 @@ def _build_continuation_surface(
         continuity_mode == EngagementContinuityMode.ONE_OFF and matter_status == "closed"
     )
     has_result_surface = bool(latest_deliverable_title)
+    health_signal = _build_continuation_health_signal(
+        continuity_mode=continuity_mode,
+        follow_up_lane=follow_up_lane,
+        progression_lane=progression_lane,
+    )
+    timeline_items = _build_continuation_timeline_items(
+        continuity_mode=continuity_mode,
+        follow_up_lane=follow_up_lane,
+        progression_lane=progression_lane,
+    )
+    next_step_queue = _build_continuation_next_step_queue(
+        continuity_mode=continuity_mode,
+        follow_up_lane=follow_up_lane,
+        progression_lane=progression_lane,
+    )
 
     if continuity_mode == EngagementContinuityMode.ONE_OFF:
         if is_closed_one_off:
@@ -5775,6 +5927,9 @@ def _build_continuation_surface(
                     else []
                 ),
                 can_reopen=True,
+                health_signal=health_signal,
+                timeline_items=timeline_items,
+                next_step_queue=next_step_queue,
             )
         if has_result_surface:
             return schemas.ContinuationSurfaceRead(
@@ -5805,6 +5960,9 @@ def _build_continuation_surface(
                     ),
                 ],
                 closure_ready=True,
+                health_signal=health_signal,
+                timeline_items=timeline_items,
+                next_step_queue=next_step_queue,
             )
         return schemas.ContinuationSurfaceRead(
             workflow_layer=workflow_layer,
@@ -5828,6 +5986,9 @@ def _build_continuation_surface(
                     "若材料與證據仍偏薄，先補件會比直接空跑更穩。",
                 )
             ],
+            health_signal=health_signal,
+            timeline_items=timeline_items,
+            next_step_queue=next_step_queue,
         )
 
     if continuity_mode == EngagementContinuityMode.FOLLOW_UP:
@@ -5870,6 +6031,9 @@ def _build_continuation_surface(
                     ),
                 ],
                 checkpoint_enabled=True,
+                health_signal=health_signal,
+                timeline_items=timeline_items,
+                next_step_queue=next_step_queue,
                 follow_up_lane=follow_up_lane,
             )
         return schemas.ContinuationSurfaceRead(
@@ -5895,6 +6059,9 @@ def _build_continuation_surface(
                 )
             ],
             checkpoint_enabled=True,
+            health_signal=health_signal,
+            timeline_items=timeline_items,
+            next_step_queue=next_step_queue,
             follow_up_lane=follow_up_lane,
         )
 
@@ -5937,6 +6104,9 @@ def _build_continuation_surface(
             ],
             checkpoint_enabled=True,
             outcome_logging_enabled=True,
+            health_signal=health_signal,
+            timeline_items=timeline_items,
+            next_step_queue=next_step_queue,
             progression_lane=progression_lane,
         )
 
@@ -5964,6 +6134,9 @@ def _build_continuation_surface(
         ],
         checkpoint_enabled=True,
         outcome_logging_enabled=True,
+        health_signal=health_signal,
+        timeline_items=timeline_items,
+        next_step_queue=next_step_queue,
         progression_lane=progression_lane,
     )
 

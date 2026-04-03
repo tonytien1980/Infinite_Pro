@@ -446,12 +446,20 @@ Infinite Pro 的正式輸出不應退回 generic long answer。
   - previous progression snapshot
   - action / outcome state
   - next progression action
+  - health signal
+  - low-noise timeline items
+  - next-step queue
 
 正式 UX / read-model 規則：
 
 - 首屏應優先使用「持續推進 / outcome」語言
 - 這一層才需要較完整的 action state 與 outcome signal 表達
 - 不可反向污染 `follow_up` 的 checkpoint / milestone 心智
+- retained advisory MVP 應優先把複雜度收斂進 `continuation_surface`，而不是讓前端自行從 progression 明細拼接
+- 第一波 formal read-model 應至少包含：
+  - `health_signal`
+  - `timeline_items`
+  - `next_step_queue`
 
 ### 6.5 Writeback records
 

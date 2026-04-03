@@ -11,6 +11,7 @@ import {
   rollbackMatterContentRevision,
   runTask,
 } from "@/lib/api";
+import { buildContinuationAdvisoryView } from "@/lib/continuation-advisory";
 import { describeRuntimeMaterialHandling } from "@/lib/intake";
 import { buildContinuationPostureView } from "@/lib/continuity-ux";
 import { buildResearchGuidanceView } from "@/lib/research-lane";
@@ -524,6 +525,7 @@ export function MatterWorkspacePanel({
   const continuationSurface = matter?.continuation_surface ?? null;
   const followUpLane = continuationSurface?.follow_up_lane ?? null;
   const progressionLane = continuationSurface?.progression_lane ?? null;
+  const continuationAdvisoryView = buildContinuationAdvisoryView(continuationSurface);
   const continuityPosture = buildContinuationPostureView(continuationSurface);
   const continuityMode = matter?.summary.engagement_continuity_mode ?? null;
   const remediationContext =
@@ -636,6 +638,7 @@ export function MatterWorkspacePanel({
             ? `焦點工作紀錄：${focusTask.title}`
             : continuityPosture.primarySummary);
   const heroNextActionSummary = followUpLane?.next_follow_up_actions[0]
+    || continuationAdvisoryView.nextStepQueue[0]
     || progressionLane?.next_progression_actions[0]
     || (materialReviewPosture.shouldShow ? materialReviewPosture.nextStepHint : "")
     || flagshipLane?.nextStepSummary
@@ -970,6 +973,13 @@ export function MatterWorkspacePanel({
                       <h3>下一步最建議做什麼</h3>
                       <p className="content-block">{heroNextActionSummary}</p>
                     </div>
+                    {continuationAdvisoryView.shouldShow ? (
+                      <div className="detail-item">
+                        <h3>案件健康</h3>
+                        <p className="content-block">{continuationAdvisoryView.healthLabel}</p>
+                        <p className="muted-text">{continuationAdvisoryView.healthSummary}</p>
+                      </div>
+                    ) : null}
                     {flagshipLane ? (
                       <div className="detail-item">
                         <h3>要升級到下一階段還缺什麼</h3>
@@ -1208,14 +1218,25 @@ export function MatterWorkspacePanel({
                   ) : null}
                   {progressionLane ? (
                     <div className="detail-item">
-                      <h3>最近推進狀態</h3>
-                      <ul className="list-content">
-                        <li>最新推進狀態：{progressionLane.latest_progression?.summary || "目前還沒有新的推進更新。"}</li>
-                        <li>上一個推進快照：{progressionLane.previous_progression?.summary || "目前沒有更早的推進快照可比較。"}</li>
-                        {progressionLane.what_changed.slice(0, 3).map((item) => (
-                          <li key={item}>{item}</li>
-                        ))}
-                      </ul>
+                      <h3>推進健康與時間線</h3>
+                      <p className="content-block">
+                        {continuationAdvisoryView.healthLabel || "持續推進中"}
+                      </p>
+                      <p className="muted-text">
+                        {continuationAdvisoryView.healthSummary || "目前還沒有額外的 retained advisory 健康摘要。"}
+                      </p>
+                      {continuationAdvisoryView.timelineItems.length > 0 ? (
+                        <ul className="list-content" style={{ marginTop: "12px" }}>
+                          {continuationAdvisoryView.timelineItems.map((item) => (
+                            <li key={`${item.kind}-${item.created_at || item.summary}`}>
+                              {item.title}：{item.summary}
+                              {item.created_at ? `｜${formatDisplayDate(item.created_at)}` : ""}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="empty-text">目前還沒有可回看的推進時間線。</p>
+                      )}
                     </div>
                   ) : null}
                   <div className="detail-item">
@@ -1255,6 +1276,12 @@ export function MatterWorkspacePanel({
                     {followUpLane?.next_follow_up_actions.length ? (
                       <ul className="list-content">
                         {followUpLane.next_follow_up_actions.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    ) : continuationAdvisoryView.nextStepQueue.length ? (
+                      <ul className="list-content">
+                        {continuationAdvisoryView.nextStepQueue.map((item) => (
                           <li key={item}>{item}</li>
                         ))}
                       </ul>

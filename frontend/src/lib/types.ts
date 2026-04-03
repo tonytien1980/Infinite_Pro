@@ -1291,6 +1291,23 @@ export interface ProgressionLane {
   evidence_update_goal: string;
 }
 
+export interface ContinuationHealthSignal {
+  status: "build_baseline" | "watch" | "at_risk" | "steady";
+  label: string;
+  summary: string;
+}
+
+export interface ContinuationTimelineItem {
+  kind: "checkpoint" | "progression";
+  title: string;
+  summary: string;
+  created_at: string | null;
+  task_id: string | null;
+  task_title: string;
+  deliverable_id: string | null;
+  deliverable_title: string | null;
+}
+
 export interface ContinuationSurface {
   workflow_layer: "closure" | "checkpoint" | "progression";
   mode: EngagementContinuityMode;
@@ -1304,6 +1321,9 @@ export interface ContinuationSurface {
   can_reopen: boolean;
   checkpoint_enabled: boolean;
   outcome_logging_enabled: boolean;
+  health_signal: ContinuationHealthSignal | null;
+  timeline_items: ContinuationTimelineItem[];
+  next_step_queue: string[];
   follow_up_lane: FollowUpLane | null;
   progression_lane: ProgressionLane | null;
 }

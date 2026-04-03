@@ -1671,3 +1671,62 @@ Environment used:
 - the first wave stays intentionally small: only `Deliverable` and `Recommendation`
 - the first-screen interaction remains one-click and low-noise, while optional note capture stays in the backend contract instead of polluting the primary UI
 - task and deliverable surfaces now collect a real reuse-quality signal without drifting back toward chat-bubble interaction patterns
+
+---
+
+## Entry: 2026-04-03 continuous advisory MVP
+
+Scope:
+- extend `continuation_surface` so retained-advisory cases answer health, recent progression timeline, and next-step queue through one formal contract
+- surface the first visible MVP on `matter workspace`, not a new dashboard shell
+- keep `follow_up` and `one_off` guardrails intact while making `continuous` materially more usable
+
+Environment used:
+- frontend runtime: `http://127.0.0.1:3001`
+- backend runtime: `http://127.0.0.1:8010/api/v1`
+- smoke database: `sqlite:////Users/oldtien_base/Desktop/Infinite Pro/continuous-advisory-smoke.db`
+- smoke storage: repo-local `storage/`
+- smoke provider: `MODEL_PROVIDER=mock`
+- code verification: local repo workspace
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`106 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`11 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed for local smoke bundle |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Continuous-advisory verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | matter / task / evidence / deliverable continuation surface | Re-run continuous progression contract test | Verified | pytest now asserts `health_signal`, `timeline_items`, and `next_step_queue` exist across all continuous surfaces |
+| Frontend | continuity advisory helper | Verify consultant-facing health / timeline / queue copy stays low-noise | Verified | node test now covers the retained-advisory helper view |
+| Frontend | `/matters/[matterId]` | Open live continuous matter workspace after two outcome logs | Verified | first screen shows `案件健康`, `推進穩定`, `推進健康與時間線`, and `下一步建議` queue |
+| Frontend | `/matters/[matterId]` | Route smoke with live local continuous matter id | Verified | route returned `200` |
+
+### Live smoke data
+
+- live continuous-advisory verification task id: `209d3b13-f26d-4780-a6f3-39e5ba306ac7`
+- live continuous-advisory verification matter id: `9d67cd8a-8a00-4116-93ed-e53933a30742`
+- live continuous-advisory verification deliverable id: `32c9d43b-9192-4df0-ad26-831cbf348368`
+- live API verification returned:
+  - `health_signal.status=steady`
+  - `health_signal.label=推進穩定`
+  - `timeline_items[0].summary=第二輪 outcome 顯示主要阻塞已解除，現在可考慮刷新 deliverable。`
+  - `next_step_queue[0]=確認是否要刷新最新 deliverable，讓已完成 action 的 outcome 被正式寫回。`
+- frontend route smoke:
+  - `/matters/9d67cd8a-8a00-4116-93ed-e53933a30742` returned `200`
+- browser snapshot:
+  - matter workspace retained-advisory MVP snapshot: `.playwright-cli/page-2026-04-03T15-02-01-749Z.yml`
+
+### Verified outcomes
+
+- `continuous` no longer stops at “outcome wording is clearer”; it now returns a formal retained-advisory MVP contract
+- `matter workspace` now behaves more like a long-running advisory control surface, without adding a new dashboard shell
+- first-screen complexity stays restrained: one new health answer on the hero rail, then timeline and queue in the main reading surface
+- `follow_up` / `one_off` guardrails remain intact while `continuous` gets the deeper retained-advisory treatment
