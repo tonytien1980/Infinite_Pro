@@ -2665,6 +2665,119 @@ def _build_sparse_input_summary(
     return "目前屬於多來源案件，但仍建議先以 assessment / review memo 收斂關鍵判斷。"
 
 
+def _resolve_flagship_lane_id(
+    input_entry_mode: InputEntryMode,
+    deliverable_class_hint: DeliverableClass,
+    external_research_heavy_candidate: bool,
+) -> str:
+    if external_research_heavy_candidate or input_entry_mode == InputEntryMode.ONE_LINE_INQUIRY:
+        return "diagnostic_start"
+    if (
+        input_entry_mode == InputEntryMode.SINGLE_DOCUMENT_INTAKE
+        or deliverable_class_hint == DeliverableClass.ASSESSMENT_REVIEW_MEMO
+    ):
+        return "material_review_start"
+    return "decision_convergence_start"
+
+
+def _label_for_flagship_lane(lane_id: str) -> str:
+    if lane_id == "material_review_start":
+        return "先審閱手上已有材料"
+    if lane_id == "decision_convergence_start":
+        return "先比較方案並收斂決策"
+    return "先快速看清問題與下一步"
+
+
+def _build_flagship_lane_summary(
+    lane_id: str,
+    *,
+    external_research_heavy_candidate: bool,
+) -> str:
+    if lane_id == "material_review_start":
+        return (
+            "目前這筆案件已有可直接審閱的正式材料。這一輪重點是先圍繞手上的材料形成評估、"
+            "審閱或重整結果，再決定是否要補更多資料。"
+        )
+    if lane_id == "decision_convergence_start":
+        return (
+            "目前這筆案件已具備多來源材料與較完整的決策脈絡。這一輪重點是比較方案、收斂判斷，"
+            "並整理成較完整的決策 / 行動級交付物。"
+        )
+    if external_research_heavy_candidate:
+        return (
+            "目前這筆案件屬於少資訊 / 外部態勢導向起手。系統會先建立暫定案件世界，形成第一輪"
+            "診斷判斷與待驗證事項，而不會假裝已有完整公司內部確定性。"
+        )
+    return (
+        "目前這筆案件屬於少資訊診斷起手。系統會先把主問題收進同一個案件世界，再形成第一輪"
+        "探索級判斷、缺口與下一步。"
+    )
+
+
+def _build_flagship_next_step_summary(
+    lane_id: str,
+    *,
+    next_best_actions: list[str],
+) -> str:
+    first_action = next(
+        (item for item in (_normalize_whitespace(entry) for entry in next_best_actions) if item),
+        "",
+    )
+    if first_action:
+        return first_action
+    if lane_id == "material_review_start":
+        return "先把手上的正式材料審完，確認缺口與高風險點，再決定是否要補更多資料。"
+    if lane_id == "decision_convergence_start":
+        return "先比較主要方案與風險，再把結論、建議與行動整理成可採用的交付物。"
+    return "先確認主問題與判斷範圍，再補最少但最有用的來源，或直接先跑第一版探索交付。"
+
+
+def _build_flagship_upgrade_note(
+    lane_id: str,
+    *,
+    continuity_mode: EngagementContinuityMode,
+) -> str:
+    if continuity_mode == EngagementContinuityMode.CONTINUOUS:
+        return "這筆案件已設定為持續追蹤；第一輪交付後可直接往 action / outcome progression 續推。"
+    if continuity_mode == EngagementContinuityMode.FOLLOW_UP:
+        return "這筆案件已設定為可追蹤後續；第一輪交付後可直接用 checkpoint 方式續推。"
+    if lane_id == "material_review_start":
+        return "若後續補進更多來源、跨部門觀點或決策條件，這筆案件可以升級成決策收斂主線。"
+    if lane_id == "decision_convergence_start":
+        return "若後續還要持續追蹤執行與結果，下一步可銜接 follow_up 或 continuous 的顧問續推。"
+    return "等補進更多來源、證據或公司情境後，這筆案件可以自然升級成材料審閱或決策收斂主線。"
+
+
+def _build_flagship_lane_read(
+    input_entry_mode: InputEntryMode,
+    deliverable_class_hint: DeliverableClass,
+    external_research_heavy_candidate: bool,
+    continuity_mode: EngagementContinuityMode,
+    next_best_actions: list[str],
+) -> schemas.FlagshipLaneRead:
+    lane_id = _resolve_flagship_lane_id(
+        input_entry_mode,
+        deliverable_class_hint,
+        external_research_heavy_candidate,
+    )
+    return schemas.FlagshipLaneRead(
+        lane_id=lane_id,
+        label=_label_for_flagship_lane(lane_id),
+        summary=_build_flagship_lane_summary(
+            lane_id,
+            external_research_heavy_candidate=external_research_heavy_candidate,
+        ),
+        next_step_summary=_build_flagship_next_step_summary(
+            lane_id,
+            next_best_actions=next_best_actions,
+        ),
+        upgrade_note=_build_flagship_upgrade_note(
+            lane_id,
+            continuity_mode=continuity_mode,
+        ),
+    )
+
+
 def _build_decision_context_read_from_row(
     decision_context: models.DecisionContext | None,
     *,
@@ -6050,6 +6163,7 @@ def _build_matter_workspace_summary_from_tasks(
     shared_evidence_ids: set[str] = set()
     selected_pack_names: list[str] = []
     selected_agent_names: list[str] = []
+    flagship_lane = schemas.FlagshipLaneRead()
     current_decision_context_title = matter_workspace.current_decision_context_title
     current_decision_context_summary = matter_workspace.current_decision_context_summary
 
@@ -6113,6 +6227,22 @@ def _build_matter_workspace_summary_from_tasks(
             [*pack_resolution.selected_domain_packs, *pack_resolution.selected_industry_packs]
         )
         selected_agent_names.extend(agent_selection.selected_agent_names)
+        if latest_task is not None and task.id == latest_task.id:
+            continuity_mode, _ = resolve_continuity_policy_for_task(task, matter_workspace)
+            next_best_actions = (
+                list(matter_workspace.case_world_state.next_best_actions)
+                if matter_workspace.case_world_state is not None
+                else list(task.case_world_drafts[0].next_best_actions)
+                if task.case_world_drafts
+                else []
+            )
+            flagship_lane = _build_flagship_lane_read(
+                input_entry_mode,
+                deliverable_class_hint,
+                external_research_heavy_candidate,
+                continuity_mode,
+                next_best_actions,
+            )
 
     if matter_workspace.engagement_continuity_mode == EngagementContinuityMode.ONE_OFF.value:
         continuity_summary = (
@@ -6179,6 +6309,7 @@ def _build_matter_workspace_summary_from_tasks(
         ),
         continuity_summary=continuity_summary,
         active_work_summary=active_work_summary,
+        flagship_lane=flagship_lane,
         engagement_continuity_mode=EngagementContinuityMode(
             matter_workspace.engagement_continuity_mode
         ),
@@ -6893,6 +7024,13 @@ def _build_task_list_item_response(
         artifacts,
     )
     continuity_mode, writeback_depth = resolve_continuity_policy_for_task(task)
+    flagship_lane = _build_flagship_lane_read(
+        input_entry_mode,
+        deliverable_class_hint,
+        external_research_heavy_candidate,
+        continuity_mode,
+        list(task.case_world_drafts[0].next_best_actions) if task.case_world_drafts else [],
+    )
     return schemas.TaskListItemResponse(
         id=task.id,
         title=task.title,
@@ -6923,6 +7061,7 @@ def _build_task_list_item_response(
         writeback_depth=writeback_depth,
         deliverable_class_hint=deliverable_class_hint,
         external_research_heavy_candidate=external_research_heavy_candidate,
+        flagship_lane=flagship_lane,
         selected_pack_ids=pack_resolution.stack_order,
         selected_pack_names=[
             *[item.pack_name for item in pack_resolution.selected_domain_packs],
@@ -10040,6 +10179,19 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         follow_up_lane=follow_up_lane,
         progression_lane=progression_lane,
     )
+    flagship_lane = _build_flagship_lane_read(
+        input_entry_mode,
+        deliverable_class_hint,
+        external_research_heavy_candidate,
+        continuity_mode,
+        (
+            list(case_world_state_row.next_best_actions)
+            if case_world_state_row is not None
+            else list(case_world_draft_row.next_best_actions)
+            if case_world_draft_row is not None
+            else []
+        ),
+    )
     canonicalization_summary, canonicalization_candidates = build_matter_canonicalization_contract(
         db,
         matter_workspace_id=matter_workspace.id,
@@ -10084,6 +10236,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         writeback_depth=writeback_depth,
         deliverable_class_hint=deliverable_class_hint,
         external_research_heavy_candidate=external_research_heavy_candidate,
+        flagship_lane=flagship_lane,
         sparse_input_summary=_build_sparse_input_summary(
             input_entry_mode,
             deliverable_class_hint,

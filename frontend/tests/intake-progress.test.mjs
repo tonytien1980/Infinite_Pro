@@ -8,6 +8,10 @@ import {
   progressInfoFromRuntimeHandling,
   summarizeBatchProgress,
 } from "../src/lib/intake.ts";
+import {
+  CONSULTANT_START_OPTIONS,
+  resolveWorkflowValueForConsultingStart,
+} from "../src/lib/flagship-lane.ts";
 
 test("batch progress summary distinguishes done, parsing, failed, blocking, and reference-only items", () => {
   const items = buildIntakePreviewItems({
@@ -183,4 +187,31 @@ test("runtime handling exposes diagnostic category, retryability explanation, an
   });
   assert.equal(pending.diagnosticCategory, "parse_pending");
   assert.equal(pending.status, "pending");
+});
+
+test("consultant-facing start modes stay separate from internal workflow labels", () => {
+  assert.deepEqual(
+    CONSULTANT_START_OPTIONS.map((item) => item.value),
+    ["diagnostic_start", "material_review_start", "decision_convergence_start"],
+  );
+  assert.equal(CONSULTANT_START_OPTIONS[0]?.label, "先快速看清問題與下一步");
+  assert.equal(CONSULTANT_START_OPTIONS[1]?.label, "先審閱手上已有材料");
+  assert.equal(CONSULTANT_START_OPTIONS[2]?.label, "先比較方案並收斂決策");
+
+  assert.equal(
+    resolveWorkflowValueForConsultingStart("diagnostic_start", "需要快速盤點目前問題與下一步"),
+    "research_synthesis",
+  );
+  assert.equal(
+    resolveWorkflowValueForConsultingStart("material_review_start", "請審閱這份 agreement 的 termination 條款"),
+    "contract_review",
+  );
+  assert.equal(
+    resolveWorkflowValueForConsultingStart("material_review_start", "請幫我重整這份 proposal 草稿結構"),
+    "document_restructuring",
+  );
+  assert.equal(
+    resolveWorkflowValueForConsultingStart("decision_convergence_start", "請比較三種方案後給建議"),
+    "multi_agent",
+  );
 });

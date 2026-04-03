@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ReactNode, useEffect, useMemo, useState } from "react";
 
-import { buildTaskListWorkspaceSummary } from "@/lib/advisory-workflow";
+import { buildFlagshipLaneView, buildTaskListWorkspaceSummary } from "@/lib/advisory-workflow";
 import {
   applyMatterContinuationAction,
   getMatterWorkspace,
@@ -522,6 +522,7 @@ export function MatterWorkspacePanel({
   const constraintNotes = matter ? buildConstraintNotes(matter, evidenceCount) : [];
   const nextStepNotes = matter ? buildNextStepNotes(matter, evidenceCount) : [];
   const recentTaskSummary = recentTask ? buildTaskListWorkspaceSummary(recentTask) : null;
+  const flagshipLane = matter ? buildFlagshipLaneView(matter.summary.flagship_lane) : null;
   const resolvedContentSections = matter
     ? buildResolvedMatterContentSections(matter, fallbackRecord)
     : draftContentSections;
@@ -584,10 +585,12 @@ export function MatterWorkspacePanel({
       ? `目前有 ${pendingCanonicalizationCount} 組需確認是否同一份材料；若要處理，請到來源 / 證據工作面。`
       : canonicalizationSummary.summary
     : "目前沒有待處理的重複材料候選。";
-  const heroStrategySummary = continuityStrategySummary
-    ? `案件策略：${continuityStrategySummary}`
-    : "案件策略尚未完整建立。";
-  const heroStateSummary = followUpLane
+  const heroStrategySummary = flagshipLane
+    ? `起手方式：${flagshipLane.label}`
+    : continuityStrategySummary
+      ? `案件策略：${continuityStrategySummary}`
+      : "案件策略尚未完整建立。";
+  const heroStateSummary = flagshipLane?.summary || (followUpLane
     ? `最新檢查點：${followUpLane.latest_update?.summary || "尚未形成正式檢查點。"}`
     : progressionLane
       ? `最新推進狀態：${progressionLane.latest_progression?.summary || "目前還沒有新的推進更新。"}`
@@ -595,8 +598,9 @@ export function MatterWorkspacePanel({
         ? `最近交付物：${latestDeliverable.title}`
         : focusTask
           ? `焦點工作紀錄：${focusTask.title}`
-          : "目前還沒有焦點工作紀錄。";
-  const heroNextActionSummary = followUpLane?.next_follow_up_actions[0]
+          : "目前還沒有焦點工作紀錄。");
+  const heroNextActionSummary = flagshipLane?.nextStepSummary
+    || followUpLane?.next_follow_up_actions[0]
     || progressionLane?.next_progression_actions[0]
     || advanceGuide.primaryActionLabel
     || "先確認這個案件頁面的主線是否已對準你現在真正要推進的判斷。";

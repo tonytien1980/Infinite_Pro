@@ -36,6 +36,14 @@ class ORMModel(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class FlagshipLaneRead(BaseModel):
+    lane_id: str = "diagnostic_start"
+    label: str = ""
+    summary: str = ""
+    next_step_summary: str = ""
+    upgrade_note: str = ""
+
+
 class ConstraintCreate(BaseModel):
     description: str = Field(min_length=1)
     constraint_type: str = "general"
@@ -1156,6 +1164,7 @@ class MatterWorkspaceSummaryRead(BaseModel):
     latest_updated_at: datetime
     continuity_summary: str = ""
     active_work_summary: str = ""
+    flagship_lane: FlagshipLaneRead = Field(default_factory=FlagshipLaneRead)
     engagement_continuity_mode: EngagementContinuityMode = EngagementContinuityMode.ONE_OFF
     writeback_depth: WritebackDepth = WritebackDepth.MINIMAL
     selected_pack_names: list[str] = Field(default_factory=list)
@@ -1184,6 +1193,7 @@ class TaskListItemResponse(BaseModel):
     writeback_depth: WritebackDepth = WritebackDepth.MINIMAL
     deliverable_class_hint: DeliverableClass = DeliverableClass.EXPLORATORY_BRIEF
     external_research_heavy_candidate: bool = False
+    flagship_lane: FlagshipLaneRead = Field(default_factory=FlagshipLaneRead)
     selected_pack_ids: list[str] = Field(default_factory=list)
     selected_pack_names: list[str] = Field(default_factory=list)
     pack_summary: str | None = None
@@ -1403,6 +1413,7 @@ class TaskAggregateResponse(BaseModel):
     writeback_depth: WritebackDepth = WritebackDepth.MINIMAL
     deliverable_class_hint: DeliverableClass = DeliverableClass.EXPLORATORY_BRIEF
     external_research_heavy_candidate: bool = False
+    flagship_lane: FlagshipLaneRead = Field(default_factory=FlagshipLaneRead)
     sparse_input_summary: str = ""
     presence_state_summary: PresenceStateSummaryRead
     pack_resolution: PackResolutionRead = Field(default_factory=PackResolutionRead)

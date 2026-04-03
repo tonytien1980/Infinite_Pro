@@ -721,6 +721,12 @@ def test_task_creation_attaches_background_text_as_context_and_evidence(client: 
     assert body["domain_lenses"]
     assert body["input_entry_mode"] == "one_line_inquiry"
     assert body["deliverable_class_hint"] == "exploratory_brief"
+    assert body["flagship_lane"]["lane_id"] == "diagnostic_start"
+    assert body["flagship_lane"]["label"] == "先快速看清問題與下一步"
+    assert body["flagship_lane"]["summary"]
+    assert body["flagship_lane"]["next_step_summary"]
+    assert body["flagship_lane"]["upgrade_note"]
+    assert body["matter_workspace"]["flagship_lane"]["lane_id"] == "diagnostic_start"
     assert body["presence_state_summary"]["decision_context"]["state"] in {
         "explicit",
         "provisional",
@@ -2249,8 +2255,58 @@ def test_single_document_intake_updates_entry_mode_and_deliverable_hint(
 
     assert aggregate["input_entry_mode"] == "single_document_intake"
     assert aggregate["deliverable_class_hint"] == "assessment_review_memo"
+    assert aggregate["flagship_lane"]["lane_id"] == "material_review_start"
+    assert aggregate["flagship_lane"]["label"] == "先審閱手上已有材料"
+    assert aggregate["flagship_lane"]["summary"]
+    assert aggregate["flagship_lane"]["next_step_summary"]
+    assert aggregate["flagship_lane"]["upgrade_note"]
+    assert aggregate["matter_workspace"]["flagship_lane"]["lane_id"] == "material_review_start"
     assert aggregate["presence_state_summary"]["artifact"]["state"] == "explicit"
     assert aggregate["presence_state_summary"]["source_material"]["state"] == "explicit"
+
+
+def test_multi_material_case_exposes_decision_convergence_flagship_lane(
+    client: TestClient,
+) -> None:
+    task = client.post(
+        "/api/v1/tasks",
+        json=create_multi_agent_payload("Decision convergence lane"),
+    ).json()
+
+    upload = client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[
+            (
+                "files",
+                (
+                    "market-note.txt",
+                    b"Channel conflict and margin pressure are both rising across the last quarter.",
+                    "text/plain",
+                ),
+            ),
+            (
+                "files",
+                (
+                    "ops-note.txt",
+                    b"Fulfillment delays are now affecting renewal timing and account-level trust.",
+                    "text/plain",
+                ),
+            ),
+        ],
+    )
+
+    assert upload.status_code == 200
+
+    aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
+
+    assert aggregate["input_entry_mode"] == "multi_material_case"
+    assert aggregate["deliverable_class_hint"] == "decision_action_deliverable"
+    assert aggregate["flagship_lane"]["lane_id"] == "decision_convergence_start"
+    assert aggregate["flagship_lane"]["label"] == "先比較方案並收斂決策"
+    assert aggregate["flagship_lane"]["summary"]
+    assert aggregate["flagship_lane"]["next_step_summary"]
+    assert aggregate["flagship_lane"]["upgrade_note"]
+    assert aggregate["matter_workspace"]["flagship_lane"]["lane_id"] == "decision_convergence_start"
 
 
 def test_file_upload_creates_usable_md_evidence(client: TestClient) -> None:

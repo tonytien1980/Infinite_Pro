@@ -255,6 +255,27 @@ detail workspace 第一屏正式採下列分工：
 - detail workspace 的 metric strip 不只顯示數量，也應幫使用者快速辨識目前姿態，例如案件模式、版本狀態、依據厚度、代理 / 模組包路徑
 - 若 detail workspace 已經完成 structural pass，後續 visual pass 必須讓 hero / rail / section guide 在第一眼就更像正式工作台，不是維持中性白卡模板
 
+### 3.2.3 Flagship lane summary
+
+對目前已產品化的旗艦流程，首屏應可顯示：
+
+- 這輪目前屬於哪種起手姿態
+- 目前為什麼屬於這種姿態
+- 下一步最適合做什麼
+- 後續可如何升級到更完整的工作主線
+
+第一波正式值包括：
+
+- `diagnostic_start`
+- `material_review_start`
+- `decision_convergence_start`
+
+正式規則：
+
+- 它是 consultant-facing first-screen summary，不是新的 product taxonomy layer
+- 它必須由既有 runtime signals 衍生，而不是前端自創 workflow 真相
+- 第一波正式產品化重點是 sparse-start matters 的 `diagnostic_start`
+
 ### 3.3 Consultant-first, debug-on-demand
 
 以下內容可達、可追、可展開，但預設不應與主線同層競爭：
@@ -471,6 +492,12 @@ Primary action：
 
 - 建立案件 / 開始正式進件
 
+第一屏也應維持：
+
+- 先用顧問工作語言決定這次怎麼開始
+- internal workflow labels 留在 disclosure / advanced settings
+- 不讓使用者在第一步就被迫理解 specialist / multi-agent 等系統實作詞
+
 ### 7.3 `/matters/[matterId]`
 
 主任務：
@@ -491,6 +518,12 @@ Primary action 應隨 continuity mode 分流：
 - `continuous`
   - 補件 / 記錄 outcome / 打開最新交付物
 
+首屏也應明示：
+
+- 這個案件目前屬於哪種 flagship lane
+- 這輪為什麼還停在這個姿態
+- 下一步要補件、跑分析，還是回交付物
+
 ### 7.4 `/matters/[matterId]/evidence`
 
 主任務：
@@ -507,6 +540,12 @@ Primary action：
 
 - 依 continuity mode 做補件 / reopen / progression-linked supplement
 
+若案件屬於 sparse-start diagnostic lane，首屏應先回答：
+
+- 目前哪些支撐鏈還沒形成
+- 補完後會回哪條主線
+- 何時會從 first diagnosis 升級成較完整的 material review / decision convergence
+
 ### 7.5 `/tasks/[taskId]`
 
 主任務：
@@ -522,6 +561,12 @@ Primary action：
 Primary action：
 
 - 執行分析
+
+首屏也應明示：
+
+- 這筆工作現在屬於哪個 flagship lane
+- 目前是 exploratory、material review，還是 decision convergence posture
+- 執行分析後會往哪個正式交付結果前進
 
 ### 7.6 `/deliverables/[deliverableId]`
 
@@ -542,6 +587,12 @@ Primary action 應隨 continuity mode / status 分流：
   - 新增 checkpoint / 回案件工作台續推
 - `continuous`
   - 記錄 outcome / 更新下一步 / 回案件工作台續推
+
+若這份交付物來自 sparse-start / flagship lane，首屏應可回答：
+
+- 這份交付物目前屬於哪個工作姿態下的成果
+- 它是 exploratory、assessment，還是 decision-action 等級
+- 若要提高正式性，下一步應補什麼、升級到哪種主線
 
 ### 7.7 `/agents`
 

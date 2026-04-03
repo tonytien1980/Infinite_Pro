@@ -220,6 +220,31 @@ Ontology 在 Infinite Pro 中是：
 - `Task` 是 world 內的 work slice
 - supplements 回到同一 world，而不是平行 intake branch
 
+### 4.5 Consultant-facing flagship-lane read model
+
+目前正式 read-model baseline 也包含一層 consultant-facing derived lane contract。
+
+第一波正式值包括：
+
+- `diagnostic_start`
+- `material_review_start`
+- `decision_convergence_start`
+
+它是由既有 runtime signals 衍生而成，至少包括：
+
+- `input_entry_mode`
+- `deliverable_class_hint`
+- `external_research_heavy_candidate`
+- `next_best_actions`
+- continuity mode / writeback depth
+
+正式規則：
+
+- 這是 consultant-facing workflow read model，不是新的 architecture layer
+- 它不是新的 ontology world，也不是新的 execution mode taxonomy
+- 它的責任是把既有 runtime shape 翻譯成顧問可直接理解的起手姿態、下一步與升級方向
+- 第一波產品化重點是 sparse-start matters 的 `diagnostic_start`
+
 ---
 
 ## 5. Source, Evidence, Provenance, and Object-Set Contracts

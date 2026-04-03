@@ -6,6 +6,7 @@ import { ChangeEvent, FormEvent, ReactNode, useEffect, useRef, useState } from "
 import { IntakeMaterialPreviewList } from "@/components/intake-material-preview-list";
 import {
   buildArtifactEvidenceWorkspaceView,
+  buildFlagshipLaneView,
   buildMatterWorkspaceCard,
 } from "@/lib/advisory-workflow";
 import {
@@ -430,7 +431,10 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
           : " 目前已具備基本支撐鏈，可回到工作紀錄或交付物續推。"
       }`
     : "";
-  const evidenceSurfaceSummary = workspaceView?.summary || evidenceHeroSummary;
+  const flagshipLane = workspace ? buildFlagshipLaneView(workspace.matter_summary.flagship_lane) : null;
+  const evidenceSurfaceSummary = flagshipLane
+    ? `${flagshipLane.summary} ${workspaceView?.summary || evidenceHeroSummary}`
+    : workspaceView?.summary || evidenceHeroSummary;
   const evidenceLaneSummary = followUpLane
     ? followUpLane.latest_update?.summary || "尚未形成正式檢查點。"
     : progressionLane
@@ -916,7 +920,7 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                   </span>
                 </div>
                 <div className="hero-focus-card">
-                  <p className="hero-focus-label">這次要支撐哪個判斷</p>
+                  <p className="hero-focus-label">{flagshipLane?.label || "這次要支撐哪個判斷"}</p>
                   <h3 className="hero-focus-title">
                     {workspace.current_decision_context?.judgment_to_make ||
                       workspace.current_decision_context?.title ||
@@ -971,7 +975,7 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                       ? `下一步：${followUpLane.next_follow_up_actions[0] || "補完後回案件工作面更新檢查點。"}`
                       : progressionLane
                         ? `下一步：${progressionLane.next_progression_actions[0] || "回案件工作面更新推進狀態。"}`
-                        : sharedContinuitySummary}
+                        : flagshipLane?.nextStepSummary || sharedContinuitySummary}
                   </p>
                 </div>
               </div>

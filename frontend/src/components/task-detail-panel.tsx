@@ -20,6 +20,7 @@ import {
   buildEvidenceWorkspaceLane,
   buildExternalDataUsage,
   buildExecutiveSummary,
+  buildFlagshipLaneView,
   buildMatterWorkspaceCard,
   buildObjectNavigationStrip,
   buildOntologyChainSummary,
@@ -503,6 +504,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
   const ontologyChainSummary = task ? buildOntologyChainSummary(task, latestDeliverable) : null;
   const sparseInputOperatingView =
     task ? buildSparseInputOperatingView(task, latestDeliverable) : null;
+  const flagshipLane = task ? buildFlagshipLaneView(task.flagship_lane) : null;
   const evidenceWorkspaceLane =
     task ? buildEvidenceWorkspaceLane(task, latestDeliverable, readinessGovernance) : null;
   const deliverableBacklink = task ? buildDeliverableBacklinkView(task, latestDeliverable) : null;
@@ -680,14 +682,15 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
     task?.title ||
     "目前尚未形成清楚的判斷主題。";
   const taskHeroFocusCopy =
+    flagshipLane?.summary ||
     taskFraming?.analysisFocus ||
     taskActionSummary;
   const taskHeroLaneTitle = followUpLane
     ? "最近檢查點"
     : progressionLane
       ? "最近推進狀態"
-      : "目前狀態";
-  const taskHeroLaneSummary = followUpLane
+      : flagshipLane?.label || "目前狀態";
+  const taskHeroLaneSummary = flagshipLane?.nextStepSummary || (followUpLane
     ? followUpLane.latest_update?.summary || "尚未形成正式檢查點。"
     : progressionLane
       ? progressionLane.latest_progression?.summary || "目前還沒有新的推進更新。"
@@ -695,7 +698,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
         ? `已形成交付物「${latestDeliverable.title}」`
         : hasThinTaskEvidence
           ? "資料仍偏薄，建議補件或先跑第一版。"
-          : "這筆工作已具備基本分析條件。";
+          : "這筆工作已具備基本分析條件。");
   const taskHeroActionTitle = latestDeliverable
     ? "結果已形成，可先回看"
     : hasThinTaskEvidence

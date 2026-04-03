@@ -491,10 +491,19 @@ export interface MatterWorkspaceSummary {
   latest_updated_at: string;
   continuity_summary: string;
   active_work_summary: string;
+  flagship_lane: FlagshipLane;
   engagement_continuity_mode: EngagementContinuityMode;
   writeback_depth: WritebackDepth;
   selected_pack_names: string[];
   selected_agent_names: string[];
+}
+
+export interface FlagshipLane {
+  lane_id: string;
+  label: string;
+  summary: string;
+  next_step_summary: string;
+  upgrade_note: string;
 }
 
 export interface MatterDecisionPoint {
@@ -1285,6 +1294,7 @@ export interface TaskAggregate {
   writeback_depth: WritebackDepth;
   deliverable_class_hint: DeliverableClass;
   external_research_heavy_candidate: boolean;
+  flagship_lane: FlagshipLane;
   sparse_input_summary: string;
   presence_state_summary: PresenceStateSummary;
   pack_resolution: PackResolution;
@@ -1343,6 +1353,7 @@ export interface TaskListItem {
   writeback_depth: WritebackDepth;
   deliverable_class_hint: DeliverableClass;
   external_research_heavy_candidate: boolean;
+  flagship_lane: FlagshipLane;
   selected_pack_ids: string[];
   selected_pack_names: string[];
   pack_summary: string | null;

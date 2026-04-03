@@ -5,6 +5,12 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { IntakeMaterialPreviewList } from "@/components/intake-material-preview-list";
 import { createTask, ingestTaskSources, uploadTaskFiles } from "@/lib/api";
 import {
+  CONSULTANT_START_OPTIONS,
+  labelForConsultantStartMode,
+  resolveWorkflowValueForConsultingStart,
+  type ConsultantStartMode,
+} from "@/lib/flagship-lane";
+import {
   appendSelectedFiles,
   buildIntakePreviewItems,
   countIntakeMaterialUnits,
@@ -209,48 +215,6 @@ function deriveTaskTitle(description: string) {
   return headline.length <= 36 ? headline : `${headline.slice(0, 36)}...`;
 }
 
-function inferFlowValue({
-  description,
-  files,
-  urlsText,
-  pastedContent,
-}: {
-  description: string;
-  files: File[];
-  urlsText: string;
-  pastedContent: string;
-}): FlowOption["value"] {
-  const signalText = [description, urlsText, pastedContent, ...files.map((file) => file.name)]
-    .join(" ")
-    .toLowerCase();
-
-  if (
-    /(合約|契約|條款|redline|issue spotting|agreement|msa|nda|liability|termination|indemnity)/i.test(
-      signalText,
-    )
-  ) {
-    return "contract_review";
-  }
-
-  if (
-    /(重構|重寫|改寫|重組|大綱|outline|proposal|deck|簡報|提案|structure|restructure|rewrite)/i.test(
-      signalText,
-    )
-  ) {
-    return "document_restructuring";
-  }
-
-  if (
-    /(是否|值不值得|值得投入|要不要|該不該|比較|方案|決策|評估|投入|選擇|收斂|strategy|go-to-market)/i.test(
-      signalText,
-    )
-  ) {
-    return "multi_agent";
-  }
-
-  return "research_synthesis";
-}
-
 function inferClientStage(description: string) {
   const signalText = description.toLowerCase();
   if (/(創業|新創|起步|早期|驗證|pmf)/i.test(signalText)) {
@@ -323,6 +287,7 @@ function inferDomainLenses({
 }
 
 function buildConsultantBrief({
+  consultantStartLabel,
   flowLabel,
   inputModeLabel,
   title,
@@ -334,6 +299,7 @@ function buildConsultantBrief({
   targetReader,
   externalDataStrategy,
 }: {
+  consultantStartLabel: string;
   flowLabel: string;
   inputModeLabel: string;
   title: string;
@@ -346,8 +312,9 @@ function buildConsultantBrief({
   externalDataStrategy: ExternalDataStrategy;
 }) {
   return [
+    `顧問起手方式：${consultantStartLabel}`,
     `正式進件模式：${inputModeLabel}`,
-    `工作流程：${flowLabel}`,
+    `系統內部流程：${flowLabel}`,
     `任務名稱：${title.trim()}`,
     `核心問題：${description.trim()}`,
     subjectName.trim() ? `分析對象：${subjectName.trim()}` : "",
@@ -362,6 +329,8 @@ function buildConsultantBrief({
 }
 
 export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
+  const [consultantStartMode, setConsultantStartMode] =
+    useState<ConsultantStartMode>("diagnostic_start");
   const [workflowPreference, setWorkflowPreference] = useState<WorkflowPreference>("auto");
   const [description, setDescription] = useState("");
   const [subjectName, setSubjectName] = useState("");
@@ -398,7 +367,10 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
 
   const resolvedFlowValue =
     workflowPreference === "auto"
-      ? inferFlowValue({ description, files, urlsText, pastedContent })
+      ? resolveWorkflowValueForConsultingStart(
+          consultantStartMode,
+          [description, subjectName, urlsText, pastedContent, ...files.map((file) => file.name)].join(" "),
+        )
       : workflowPreference;
   const flow = FLOW_OPTIONS.find((item) => item.value === resolvedFlowValue) ?? FLOW_OPTIONS[0];
   const derivedTitle = useMemo(() => deriveTaskTitle(description), [description]);
@@ -454,6 +426,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
   const consultantBrief = useMemo(
     () =>
       buildConsultantBrief({
+        consultantStartLabel: labelForConsultantStartMode(consultantStartMode),
         flowLabel: flow.label,
         inputModeLabel: selectedInputMode.label,
         title: derivedTitle,
@@ -468,6 +441,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
     [
       analysisDepth,
       assumptions,
+      consultantStartMode,
       description,
       externalDataStrategy,
       flow.label,
@@ -983,7 +957,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
         <section className="intake-section">
           <div className="section-heading">
             <h3>統一進件入口</h3>
-            <p>這裡只有一個可見 intake surface。系統會根據主問題與材料組成，自動判讀這次是 sparse inquiry、單材料起手，還是 multi-source case。</p>
+            <p>這裡只有一個可見 intake surface。你先用顧問語言決定這次想怎麼開始，系統再把它對應到內部執行流程。</p>
           </div>
 
           <div className="summary-grid">
@@ -1012,6 +986,40 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
                 {WRITEBACK_DEPTH_OPTIONS.find((item) => item.value === writebackDepth)?.label}
               </p>
             </div>
+          </div>
+
+          <div className="section-heading" style={{ marginTop: "18px" }}>
+            <h3>這次想怎麼開始</h3>
+            <p>先選顧問工作上的起手方式，不需要先理解系統內部 workflow 名稱。</p>
+          </div>
+
+          <div className="summary-grid">
+            {CONSULTANT_START_OPTIONS.map((option) => (
+              <label
+                key={option.value}
+                className="section-card"
+                style={
+                  consultantStartMode === option.value
+                    ? {
+                        borderColor: "var(--accent-strong)",
+                        boxShadow: "inset 0 0 0 1px var(--accent-strong)",
+                      }
+                    : undefined
+                }
+              >
+                <input
+                  type="radio"
+                  name="consultant-start-mode"
+                  value={option.value}
+                  checked={consultantStartMode === option.value}
+                  onChange={() => setConsultantStartMode(option.value)}
+                  style={{ marginBottom: "12px" }}
+                />
+                <h4>{option.label}</h4>
+                <p className="content-block">{option.description}</p>
+                <p className="muted-text">目前會對應到系統內部流程「{flow.label}」。</p>
+              </label>
+            ))}
           </div>
         </section>
 
@@ -1282,7 +1290,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
           {showAdvanced ? (
             <div className="detail-list">
               <div className="field">
-                <label htmlFor="workflow-preference">工作流程</label>
+                <label htmlFor="workflow-preference">進階執行方式</label>
                 <select
                   id="workflow-preference"
                   value={workflowPreference}
@@ -1299,7 +1307,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
                 </select>
                 <small>
                   {workflowPreference === "auto"
-                    ? `目前會自動判斷為「${flow.label}」。${flow.description}`
+                    ? `目前顧問起手方式會自動對應為「${flow.label}」。${flow.description}`
                     : flow.description}
                 </small>
               </div>

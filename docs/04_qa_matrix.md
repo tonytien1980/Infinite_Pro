@@ -1226,3 +1226,65 @@ Important verification note:
 - Infinite Pro now has a stronger shipped RWD baseline rather than desktop-first CSS with incidental collapse behavior
 - entry pages and checked detail workspaces remain readable and actionable on a phone-sized viewport
 - mobile adaptation stayed aligned with the same consultant-workbench visual direction instead of introducing a separate mobile-only product language
+
+---
+
+## Entry: 2026-04-03 sparse intake diagnostic lane first pass
+
+Scope:
+- consultant-facing sparse-start flagship lane
+- derived `flagship_lane` read-model contract
+- intake first-screen language shift from internal workflow labels to consultant-facing start modes
+- matter / task / evidence / deliverable first-screen alignment with the new lane summary
+
+Environment used:
+- frontend runtime: `http://127.0.0.1:3000`
+- backend runtime: `http://127.0.0.1:8000/api/v1`
+- code verification: local repo workspace
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`102 passed`) |
+| `node --test frontend/tests/intake-progress.test.mjs` | Passed (`5 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && npx next typegen` | Passed |
+| `cd frontend && npm run typecheck` | Passed |
+
+Important verification note:
+- on this checkout, `npm run typecheck` required clearing stale Next cache metadata first: `rm -f frontend/.next/cache/.tsbuildinfo`, then `npx next typegen`, then `npm run typecheck`
+
+### Sparse-lane specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | task create API | Create sparse one-line inquiry matter | Verified | response now includes `flagship_lane=diagnostic_start` with label, summary, next-step summary, and upgrade note |
+| Backend | task aggregate API | Verify single-document intake lane | Verified | aggregate returns `material_review_start` after one uploaded material |
+| Backend | task aggregate API | Verify multi-material convergence lane | Verified | aggregate returns `decision_convergence_start` after two uploaded materials |
+| Backend | matter workspace API | Verify matter summary carries flagship lane | Verified | matter summary mirrors the same derived lane contract for first-screen use |
+| Frontend | `/new` | Check consultant-facing start-mode copy in live HTML | Verified | page now surfaces `先快速看清問題與下一步 / 先審閱手上已有材料 / 先比較方案並收斂決策` |
+| Frontend | `/new` | Confirm internal workflow labels stay in advanced settings | Verified | advanced section now labels this as `進階執行方式` |
+| Frontend | `/matters/[matterId]` | HTTP smoke on sparse-start matter route | Verified | route returned `200` on local runtime |
+| Frontend | `/tasks/[taskId]` | HTTP smoke on sparse-start task route | Verified | route returned `200` on local runtime |
+
+### Live smoke data
+
+- sparse-start verification task id: `c0318eb3-10cf-423b-860f-f7bab6375df8`
+- sparse-start verification matter id: `37a9410a-5003-4fe1-a6b7-4e17805a6a76`
+- task create API verification returned:
+  - `flagship_lane.lane_id=diagnostic_start`
+  - `flagship_lane.label=先快速看清問題與下一步`
+  - `flagship_lane.next_step_summary=先補至少一份檔案、網址或 pasted text。`
+
+### Residual note
+
+- dynamic detail pages were verified via live route `200` smoke plus API contract inspection in this pass; a full browser-MCP text-level assertion on those detail pages was not available here, so this entry does not overclaim a complete interactive browser pass for every detail route
+
+### Verified outcomes
+
+- sparse-start consulting work now has a first shipped flagship lane instead of only an implicit runtime behavior
+- the consultant-facing first decision on `/new` no longer leads with internal workflow labels
+- task and matter APIs now expose a stable derived lane contract that frontend surfaces can reuse without inventing a parallel truth layer
+- the first pass stayed within the existing ontology-first architecture and did not add a seventh layer or a separate app shell

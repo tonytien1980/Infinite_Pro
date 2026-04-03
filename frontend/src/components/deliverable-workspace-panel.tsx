@@ -20,6 +20,7 @@ import {
   buildDeliverableBacklinkView,
   buildDeliverableWorkspaceView,
   buildExecutiveSummary,
+  buildFlagshipLaneView,
   buildPackSelectionView,
   buildReadinessGovernance,
   buildRecommendationCards,
@@ -510,6 +511,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const followUpLane = continuationSurface?.follow_up_lane ?? null;
   const progressionLane = continuationSurface?.progression_lane ?? null;
   const workspaceView = workspace ? buildDeliverableWorkspaceView(workspace) : null;
+  const flagshipLane = task ? buildFlagshipLaneView(task.flagship_lane) : null;
   const readiness = task ? assessTaskReadiness(task) : null;
   const readinessGovernance =
     task && deliverable && readiness ? buildReadinessGovernance(task, deliverable, readiness) : null;
@@ -1058,7 +1060,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                 ) : null}
 
                 <div className="hero-focus-card">
-                  <p className="hero-focus-label">這份交付物在回答什麼</p>
+                  <p className="hero-focus-label">{flagshipLane?.label || "這份交付物在回答什麼"}</p>
                   <h3 className="hero-focus-title">
                     {preferredWorldDecisionContext?.judgment_to_make ||
                       preferredWorldDecisionContext?.title ||
@@ -1066,7 +1068,11 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                   </h3>
                   <p className="hero-focus-copy">
                     {truncateText(
-                      displaySummary || effectiveExecutiveSummary || decisionSnapshot?.conclusion || "目前沒有額外摘要。",
+                      displaySummary ||
+                        effectiveExecutiveSummary ||
+                        flagshipLane?.summary ||
+                        decisionSnapshot?.conclusion ||
+                        "目前沒有額外摘要。",
                       188,
                     )}
                   </p>
