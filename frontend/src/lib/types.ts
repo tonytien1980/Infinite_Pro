@@ -1308,6 +1308,20 @@ export interface ContinuationTimelineItem {
   deliverable_title: string | null;
 }
 
+export interface ContinuationOutcomeTracking {
+  label: string;
+  summary: string;
+  latest_signal_summary: string;
+  needs_deliverable_refresh: boolean;
+  tracked_signal_count: number;
+}
+
+export interface ContinuationReviewRhythm {
+  label: string;
+  summary: string;
+  next_review_prompt: string;
+}
+
 export interface ContinuationSurface {
   workflow_layer: "closure" | "checkpoint" | "progression";
   mode: EngagementContinuityMode;
@@ -1324,6 +1338,8 @@ export interface ContinuationSurface {
   health_signal: ContinuationHealthSignal | null;
   timeline_items: ContinuationTimelineItem[];
   next_step_queue: string[];
+  outcome_tracking: ContinuationOutcomeTracking | null;
+  review_rhythm: ContinuationReviewRhythm | null;
   follow_up_lane: FollowUpLane | null;
   progression_lane: ProgressionLane | null;
 }

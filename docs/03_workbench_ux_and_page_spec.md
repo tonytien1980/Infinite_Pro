@@ -562,12 +562,15 @@ Primary action 應隨 continuity mode 分流：
 - 現在健康嗎
 - 最近推進到哪裡
 - 下一步先做什麼
+- 這輪結果目前追到哪裡
+- 下一次應該什麼時候回看
 
 正式 guardrail：
 
 - 這三個答案應優先由 `continuation_surface` 提供，而不是前端自己拼接
 - 第一波可見 UX 先集中在 `matter workspace`
 - 可以比 `follow_up` 深，但不可長成厚重 dashboard
+- outcome tracking 與 review rhythm 也應沿用同一條 surface，不另開 calendar / reminder shell
 
 若 research guidance 被判定為 `recommended` 或 `active`，也可低噪音補充：
 

@@ -4226,6 +4226,12 @@ def test_continuous_surfaces_show_latest_previous_progression_and_guidance(
         assert payload["timeline_items"][0]["kind"] == "progression"
         assert payload["timeline_items"][0]["summary"].startswith("第二輪 outcome")
         assert payload["next_step_queue"]
+        assert payload["outcome_tracking"]["label"]
+        assert payload["outcome_tracking"]["summary"]
+        assert payload["outcome_tracking"]["latest_signal_summary"].startswith("第二輪 outcome")
+        assert payload["review_rhythm"]["label"]
+        assert payload["review_rhythm"]["summary"]
+        assert payload["review_rhythm"]["next_review_prompt"]
 
     assert evidence_workspace["continuation_surface"]["progression_lane"]["evidence_update_goal"]
     assert deliverable_workspace["continuation_surface"]["progression_lane"]["action_states"]

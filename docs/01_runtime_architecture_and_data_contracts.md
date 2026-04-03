@@ -460,6 +460,9 @@ Infinite Pro 的正式輸出不應退回 generic long answer。
   - `health_signal`
   - `timeline_items`
   - `next_step_queue`
+- 下一波 retained-advisory read-model 可在同一條 surface 補：
+  - `outcome_tracking`
+  - `review_rhythm`
 
 ### 6.5 Writeback records
 

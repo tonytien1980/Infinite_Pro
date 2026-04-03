@@ -1730,3 +1730,61 @@ Environment used:
 - `matter workspace` now behaves more like a long-running advisory control surface, without adding a new dashboard shell
 - first-screen complexity stays restrained: one new health answer on the hero rail, then timeline and queue in the main reading surface
 - `follow_up` / `one_off` guardrails remain intact while `continuous` gets the deeper retained-advisory treatment
+
+---
+
+## Entry: 2026-04-03 outcome tracking and review rhythm pass
+
+Scope:
+- extend the retained-advisory layer so `continuous` cases answer both outcome tracking and review rhythm
+- keep the new answers inside the existing `continuation_surface`
+- surface them in `matter workspace` without creating a scheduling UI or reminder center
+
+Environment used:
+- frontend runtime: `http://127.0.0.1:3001`
+- backend runtime: `http://127.0.0.1:8010/api/v1`
+- smoke database: `sqlite:////Users/oldtien_base/Desktop/Infinite Pro/outcome-review-smoke.db`
+- smoke storage: repo-local `storage/`
+- smoke provider: `MODEL_PROVIDER=mock`
+- code verification: local repo workspace
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`106 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`11 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed for local smoke bundle |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Outcome-tracking / review-rhythm verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | matter / task / evidence / deliverable continuation surface | Re-run continuous progression contract test | Verified | pytest now asserts `outcome_tracking` and `review_rhythm` exist across all continuous surfaces |
+| Frontend | continuity advisory helper | Verify consultant-facing outcome tracking and review rhythm copy | Verified | node test now covers `結果已開始站穩` and `本週內回看` output |
+| Frontend | `/matters/[matterId]` | Open live continuous matter workspace after two outcome logs | Verified | first screen shows `下次回看節奏` and the overview shows retained-advisory outcome tracking plus review rhythm |
+| Frontend | `/matters/[matterId]` | Route smoke with live local continuous matter id | Verified | route returned `200` |
+
+### Live smoke data
+
+- live outcome-review verification task id: `9579f18c-6bce-4866-a0d6-34c2b37a306b`
+- live outcome-review verification matter id: `769b046b-88ce-41a1-8edc-f05f57e4959c`
+- live outcome-review verification deliverable id: `0056a6b3-9604-49d3-be52-5eb51e196d44`
+- live API verification returned:
+  - `outcome_tracking.label=結果已開始站穩`
+  - `outcome_tracking.latest_signal_summary=第二輪 outcome 顯示主要阻塞已解除，建議這週內回看是否刷新 deliverable。`
+  - `review_rhythm.label=本週內回看`
+  - `review_rhythm.next_review_prompt=下次回看時，先確認這輪 outcome 是否已足以改寫正式交付物。`
+- frontend route smoke:
+  - `/matters/769b046b-88ce-41a1-8edc-f05f57e4959c` returned `200`
+- browser snapshot:
+  - matter workspace outcome-review snapshot: `.playwright-cli/page-2026-04-03T15-17-25-459Z.yml`
+
+### Verified outcomes
+
+- `continuous` retained-advisory MVP now answers not only “health / timeline / next step” but also “how outcome tracking is going” and “when to review next”
+- the product still avoids calendar-shell complexity and keeps review rhythm as guidance, not scheduling UI
+- matter workspace now reads more like a real long-running advisory operating surface while preserving the low-noise design constraint

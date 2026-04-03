@@ -5864,6 +5864,111 @@ def _build_continuation_next_step_queue(
     return _unique_preserve_order([_normalize_whitespace(item) for item in actions if _normalize_whitespace(item)])[:4]
 
 
+def _build_continuation_outcome_tracking(
+    *,
+    continuity_mode: EngagementContinuityMode,
+    progression_lane: schemas.ProgressionLaneRead | None,
+    outcome_record_count: int,
+) -> schemas.ContinuationOutcomeTrackingRead | None:
+    if continuity_mode != EngagementContinuityMode.CONTINUOUS:
+        return None
+
+    if progression_lane is None or progression_lane.latest_progression is None:
+        return schemas.ContinuationOutcomeTrackingRead(
+            label="待建立結果追蹤",
+            summary="目前還沒有可回看的 outcome tracking；先記第一輪 progression / outcome，再開始沿著同一條主線追蹤。",
+            latest_signal_summary="",
+            needs_deliverable_refresh=False,
+            tracked_signal_count=outcome_record_count,
+        )
+
+    blocked_count = sum(1 for item in progression_lane.action_states if item.state == "blocked")
+    completed_count = sum(1 for item in progression_lane.action_states if item.state == "completed")
+    latest_signal_summary = (
+        progression_lane.latest_progression.summary
+        or progression_lane.outcome_signals[0]
+        if progression_lane.outcome_signals
+        else ""
+    )
+
+    if blocked_count > 0:
+        return schemas.ContinuationOutcomeTrackingRead(
+            label="結果仍在解卡",
+            summary=f"目前至少有 {blocked_count} 項 action 仍受阻；這輪 outcome tracking 主要是在確認卡點、責任與補件方向。",
+            latest_signal_summary=latest_signal_summary,
+            needs_deliverable_refresh=False,
+            tracked_signal_count=outcome_record_count,
+        )
+
+    if completed_count > 0 or progression_lane.outcome_signals:
+        return schemas.ContinuationOutcomeTrackingRead(
+            label="結果已開始站穩",
+            summary=(
+                progression_lane.what_changed[0]
+                if progression_lane.what_changed
+                else "最近 outcome 已開始顯示可採用的新訊號，值得確認是否要刷新正式交付物。"
+            ),
+            latest_signal_summary=latest_signal_summary,
+            needs_deliverable_refresh=True,
+            tracked_signal_count=outcome_record_count,
+        )
+
+    return schemas.ContinuationOutcomeTrackingRead(
+        label="結果仍待確認",
+        summary="目前仍在持續推進，但 outcome 還不夠清楚；先等下一個明確訊號，再決定是否刷新 deliverable。",
+        latest_signal_summary=latest_signal_summary,
+        needs_deliverable_refresh=False,
+        tracked_signal_count=outcome_record_count,
+    )
+
+
+def _build_continuation_review_rhythm(
+    *,
+    continuity_mode: EngagementContinuityMode,
+    progression_lane: schemas.ProgressionLaneRead | None,
+) -> schemas.ContinuationReviewRhythmRead | None:
+    if continuity_mode != EngagementContinuityMode.CONTINUOUS:
+        return None
+
+    if progression_lane is None or progression_lane.latest_progression is None:
+        return schemas.ContinuationReviewRhythmRead(
+            label="先建立第一個回看節點",
+            summary="先形成第一輪 progression / outcome，再決定後續要用什麼節奏回看。",
+            next_review_prompt="下次回看時，先確認第一輪結果是否已足以形成正式的 retained advisory 基線。",
+        )
+
+    blocked_count = sum(1 for item in progression_lane.action_states if item.state == "blocked")
+    completed_count = sum(1 for item in progression_lane.action_states if item.state == "completed")
+    in_progress_count = sum(1 for item in progression_lane.action_states if item.state == "in_progress")
+
+    if blocked_count > 0:
+        return schemas.ContinuationReviewRhythmRead(
+            label="短週期回看",
+            summary="目前仍有阻塞，建議在下一個明確更新後盡快回看，不要讓卡點拖成背景雜訊。",
+            next_review_prompt="下次回看時，先確認哪些 action 仍卡住，以及是否已有新 evidence 可以解卡。",
+        )
+
+    if completed_count > 0 or progression_lane.outcome_signals:
+        return schemas.ContinuationReviewRhythmRead(
+            label="本週內回看",
+            summary="主要阻塞已解除或已有新 outcome，建議這週內確認是否要刷新 deliverable 與下一步。",
+            next_review_prompt="下次回看時，先確認這輪 outcome 是否已足以改寫正式交付物。",
+        )
+
+    if in_progress_count > 0:
+        return schemas.ContinuationReviewRhythmRead(
+            label="有新訊號就回看",
+            summary="主要 action 仍在推進中；等下一個明確里程碑或結果訊號，再補一筆 progression update。",
+            next_review_prompt="下次回看時，先確認進度是否跨過關鍵里程碑，或是否出現新的阻塞。",
+        )
+
+    return schemas.ContinuationReviewRhythmRead(
+        label="維持輕量回看",
+        summary="目前先維持低噪音追蹤，只要 action / outcome 有明顯變化就回看一次。",
+        next_review_prompt="下次回看時，先確認最近的 progress / outcome 是否改變了交付判斷。",
+    )
+
+
 def _build_continuation_surface(
     *,
     continuity_mode: EngagementContinuityMode,
@@ -5895,6 +6000,15 @@ def _build_continuation_surface(
     next_step_queue = _build_continuation_next_step_queue(
         continuity_mode=continuity_mode,
         follow_up_lane=follow_up_lane,
+        progression_lane=progression_lane,
+    )
+    outcome_tracking = _build_continuation_outcome_tracking(
+        continuity_mode=continuity_mode,
+        progression_lane=progression_lane,
+        outcome_record_count=outcome_record_count,
+    )
+    review_rhythm = _build_continuation_review_rhythm(
+        continuity_mode=continuity_mode,
         progression_lane=progression_lane,
     )
 
@@ -5930,6 +6044,8 @@ def _build_continuation_surface(
                 health_signal=health_signal,
                 timeline_items=timeline_items,
                 next_step_queue=next_step_queue,
+                outcome_tracking=outcome_tracking,
+                review_rhythm=review_rhythm,
             )
         if has_result_surface:
             return schemas.ContinuationSurfaceRead(
@@ -5963,6 +6079,8 @@ def _build_continuation_surface(
                 health_signal=health_signal,
                 timeline_items=timeline_items,
                 next_step_queue=next_step_queue,
+                outcome_tracking=outcome_tracking,
+                review_rhythm=review_rhythm,
             )
         return schemas.ContinuationSurfaceRead(
             workflow_layer=workflow_layer,
@@ -5989,6 +6107,8 @@ def _build_continuation_surface(
             health_signal=health_signal,
             timeline_items=timeline_items,
             next_step_queue=next_step_queue,
+            outcome_tracking=outcome_tracking,
+            review_rhythm=review_rhythm,
         )
 
     if continuity_mode == EngagementContinuityMode.FOLLOW_UP:
@@ -6034,6 +6154,8 @@ def _build_continuation_surface(
                 health_signal=health_signal,
                 timeline_items=timeline_items,
                 next_step_queue=next_step_queue,
+                outcome_tracking=outcome_tracking,
+                review_rhythm=review_rhythm,
                 follow_up_lane=follow_up_lane,
             )
         return schemas.ContinuationSurfaceRead(
@@ -6062,6 +6184,8 @@ def _build_continuation_surface(
             health_signal=health_signal,
             timeline_items=timeline_items,
             next_step_queue=next_step_queue,
+            outcome_tracking=outcome_tracking,
+            review_rhythm=review_rhythm,
             follow_up_lane=follow_up_lane,
         )
 
@@ -6107,6 +6231,8 @@ def _build_continuation_surface(
             health_signal=health_signal,
             timeline_items=timeline_items,
             next_step_queue=next_step_queue,
+            outcome_tracking=outcome_tracking,
+            review_rhythm=review_rhythm,
             progression_lane=progression_lane,
         )
 
@@ -6137,6 +6263,8 @@ def _build_continuation_surface(
         health_signal=health_signal,
         timeline_items=timeline_items,
         next_step_queue=next_step_queue,
+        outcome_tracking=outcome_tracking,
+        review_rhythm=review_rhythm,
         progression_lane=progression_lane,
     )
 

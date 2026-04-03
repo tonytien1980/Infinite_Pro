@@ -980,6 +980,15 @@ export function MatterWorkspacePanel({
                         <p className="muted-text">{continuationAdvisoryView.healthSummary}</p>
                       </div>
                     ) : null}
+                    {continuationAdvisoryView.shouldShow && continuationAdvisoryView.reviewRhythmLabel ? (
+                      <div className="detail-item">
+                        <h3>下次回看節奏</h3>
+                        <p className="content-block">{continuationAdvisoryView.reviewRhythmLabel}</p>
+                        <p className="muted-text">
+                          {continuationAdvisoryView.nextReviewPrompt || continuationAdvisoryView.reviewRhythmSummary}
+                        </p>
+                      </div>
+                    ) : null}
                     {flagshipLane ? (
                       <div className="detail-item">
                         <h3>要升級到下一階段還缺什麼</h3>
@@ -1218,13 +1227,33 @@ export function MatterWorkspacePanel({
                   ) : null}
                   {progressionLane ? (
                     <div className="detail-item">
-                      <h3>推進健康與時間線</h3>
+                      <h3>推進健康、結果與時間線</h3>
                       <p className="content-block">
                         {continuationAdvisoryView.healthLabel || "持續推進中"}
                       </p>
                       <p className="muted-text">
                         {continuationAdvisoryView.healthSummary || "目前還沒有額外的 retained advisory 健康摘要。"}
                       </p>
+                      {continuationAdvisoryView.outcomeTrackingLabel ? (
+                        <>
+                          <p className="content-block" style={{ marginTop: "12px" }}>
+                            {continuationAdvisoryView.outcomeTrackingLabel}
+                          </p>
+                          <p className="muted-text">
+                            {continuationAdvisoryView.outcomeTrackingSummary}
+                          </p>
+                          {continuationAdvisoryView.latestSignalSummary ? (
+                            <p className="muted-text">
+                              最新結果：{continuationAdvisoryView.latestSignalSummary}
+                            </p>
+                          ) : null}
+                          {continuationAdvisoryView.reviewRhythmLabel ? (
+                            <p className="muted-text">
+                              回看節奏：{continuationAdvisoryView.reviewRhythmLabel}｜{continuationAdvisoryView.reviewRhythmSummary}
+                            </p>
+                          ) : null}
+                        </>
+                      ) : null}
                       {continuationAdvisoryView.timelineItems.length > 0 ? (
                         <ul className="list-content" style={{ marginTop: "12px" }}>
                           {continuationAdvisoryView.timelineItems.map((item) => (

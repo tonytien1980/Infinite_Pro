@@ -380,6 +380,18 @@ test("continuous advisory view exposes health, timeline, and next-step queue in 
       "確認是否要刷新最新 deliverable，讓已完成 action 的 outcome 被正式寫回。",
       "回案件工作面補一筆 progression update，確認目前最重要的 action 與 outcome。",
     ],
+    outcome_tracking: {
+      label: "結果已開始站穩",
+      summary: "最近 outcome 已顯示主要阻塞解除，值得確認是否刷新交付物。",
+      latest_signal_summary: "第二輪 outcome 顯示主要阻塞已解除，可以考慮刷新 deliverable。",
+      needs_deliverable_refresh: true,
+      tracked_signal_count: 2,
+    },
+    review_rhythm: {
+      label: "本週內回看",
+      summary: "主要阻塞已解除，建議這週內確認是否要刷新 deliverable。",
+      next_review_prompt: "下次回看時，先確認這輪 outcome 是否已足以改寫正式交付物。",
+    },
   });
 
   assert.equal(view.shouldShow, true);
@@ -388,4 +400,7 @@ test("continuous advisory view exposes health, timeline, and next-step queue in 
   assert.equal(view.timelineItems.length, 2);
   assert.match(view.timelineItems[0].summary, /阻塞已解除/);
   assert.equal(view.nextStepQueue.length, 2);
+  assert.equal(view.outcomeTrackingLabel, "結果已開始站穩");
+  assert.equal(view.reviewRhythmLabel, "本週內回看");
+  assert.match(view.nextReviewPrompt, /刷新交付物|改寫正式交付物/);
 });

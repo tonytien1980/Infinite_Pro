@@ -1183,6 +1183,20 @@ class ContinuationTimelineItemRead(BaseModel):
     deliverable_title: str | None = None
 
 
+class ContinuationOutcomeTrackingRead(BaseModel):
+    label: str
+    summary: str
+    latest_signal_summary: str = ""
+    needs_deliverable_refresh: bool = False
+    tracked_signal_count: int = 0
+
+
+class ContinuationReviewRhythmRead(BaseModel):
+    label: str
+    summary: str
+    next_review_prompt: str
+
+
 class ContinuationSurfaceRead(BaseModel):
     workflow_layer: Literal["closure", "checkpoint", "progression"]
     mode: EngagementContinuityMode
@@ -1199,6 +1213,8 @@ class ContinuationSurfaceRead(BaseModel):
     health_signal: ContinuationHealthSignalRead | None = None
     timeline_items: list[ContinuationTimelineItemRead] = Field(default_factory=list)
     next_step_queue: list[str] = Field(default_factory=list)
+    outcome_tracking: ContinuationOutcomeTrackingRead | None = None
+    review_rhythm: ContinuationReviewRhythmRead | None = None
     follow_up_lane: FollowUpLaneRead | None = None
     progression_lane: ProgressionLaneRead | None = None
 
