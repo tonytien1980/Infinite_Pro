@@ -15,6 +15,7 @@ import {
   resolveMatterCanonicalizationReview,
   uploadMatterFiles,
 } from "@/lib/api";
+import { buildContinuationFocusSummary } from "@/lib/continuation-advisory";
 import {
   appendSelectedFiles,
   buildIntakePreviewItems,
@@ -240,6 +241,7 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
   const continuationSurface = workspace?.continuation_surface ?? null;
   const followUpLane = continuationSurface?.follow_up_lane ?? null;
   const progressionLane = continuationSurface?.progression_lane ?? null;
+  const continuationFocusSummary = buildContinuationFocusSummary(continuationSurface);
   const canonicalizationSummary = workspace?.canonicalization_summary ?? null;
   const canonicalizationCandidates = workspace?.canonicalization_candidates ?? [];
   const focusTask = workspace?.related_tasks[0] ?? null;
@@ -971,22 +973,28 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                   <p className="hero-focus-label">
                     {researchGuidance?.shouldShow
                       ? researchGuidance.label
-                      : followUpLane
-                        ? "最近檢查點"
-                        : progressionLane
-                          ? "最近推進狀態"
+                      : continuationFocusSummary.shouldShow
+                        ? continuationFocusSummary.label
+                        : followUpLane
+                          ? "最近檢查點"
+                          : progressionLane
+                            ? "最近推進狀態"
                           : "目前最要緊的限制"}
                   </p>
                   <h3 className="hero-focus-title">
                     {researchGuidance?.shouldShow
                       ? `${researchGuidance.depthLabel}｜${researchGuidance.firstQuestion}`
-                      : evidenceLaneSummary}
+                      : continuationFocusSummary.shouldShow
+                        ? continuationFocusSummary.title
+                        : evidenceLaneSummary}
                   </h3>
                   <p className="hero-focus-copy">
                     {researchGuidance?.shouldShow
                       ? `${researchGuidance.executionOwnerLabel}｜${
                           researchGuidance.sourceQualitySummary || researchGuidance.stopCondition || researchGuidance.handoffSummary
                         }${researchGuidance.freshnessSummary ? `｜${researchGuidance.freshnessSummary}` : ""}`
+                      : continuationFocusSummary.shouldShow
+                        ? continuationFocusSummary.copy
                       : followUpLane
                       ? `下一步：${followUpLane.next_follow_up_actions[0] || "補完後回案件工作面更新檢查點。"}`
                       : progressionLane

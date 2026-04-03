@@ -573,7 +573,8 @@ Primary action 應隨 continuity mode 分流：
 正式 guardrail：
 
 - 這三個答案應優先由 `continuation_surface` 提供，而不是前端自己拼接
-- 第一波可見 UX 先集中在 `matter workspace`
+- `matter workspace` 仍是 retained-advisory 主控面
+- `task / deliverable / evidence` 首屏也應沿用同一條 continuity focus summary，而不是各自重寫 lane 文案
 - 可以比 `follow_up` 深，但不可長成厚重 dashboard
 - outcome tracking 與 review rhythm 也應沿用同一條 surface，不另開 calendar / reminder shell
 
@@ -584,6 +585,12 @@ Primary action 應隨 continuity mode 分流：
 - 來源品質怎麼看
 - 這輪是否高度依賴新鮮度
 - 哪個矛盾訊號必須保留
+
+若 research guidance 目前為 `not_needed`，task 首屏 continuity 區塊應直接改用共通 focus summary，至少回答：
+
+- 目前是回來更新，還是持續推進
+- 最近最重要的變化是什麼
+- 下次回看節奏與下一步先做什麼
 
 ### 7.4 `/matters/[matterId]/evidence`
 
@@ -607,6 +614,12 @@ Primary action：
 - 補完後會回哪條主線
 - 何時會從 first diagnosis 升級成較完整的 material review / decision convergence
 - 目前這輪還不應被誤讀成什麼程度的正式交付
+
+若 research guidance 目前為 `not_needed`，evidence 首屏 continuity 區塊也應沿用共通 focus summary，至少回答：
+
+- 現在是 checkpoint 節奏還是 progression 節奏
+- 最近一輪變化是什麼
+- 應以什麼節奏回來更新，與下一步先補什麼
 
 若案件屬於 `material_review_start`，首屏也應先回答：
 
@@ -681,6 +694,7 @@ Primary action 應隨 continuity mode / status 分流：
 - `one_off` 應仍偏向發布 / 匯出 / 結案
 - `continuous` 才應保留較完整的 progression / outcome 心智
 - `continuous` 版交付物應清楚表達它承接長期推進，而不是單次 checkpoint 更新
+- 交付物右側 rail 的 continuity 區塊應沿用共通 focus summary，而不是只拼 raw lane summary
 
 若這份交付物來自 sparse-start / flagship lane，首屏應可回答：
 

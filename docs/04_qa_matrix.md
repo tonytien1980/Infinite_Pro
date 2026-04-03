@@ -1908,3 +1908,75 @@ Environment used:
 - `Research / Investigation` no longer stops at depth + first question; it now exposes a more mature consultant-facing contract
 - source quality, freshness, contradiction, citation-ready handoff, and gap-closure guidance now stay inside existing work surfaces instead of requiring a new research console
 - the product keeps research Host-owned and low-noise, while materially improving how ambiguous, external-fact-heavy cases are framed
+
+---
+
+## Entry: 2026-04-04 retained-advisory cross-surface alignment
+
+Scope:
+- align retained-advisory continuity wording across `task / deliverable / evidence` first-screen surfaces
+- reuse `continuation_surface` instead of adding a new backend contract
+- keep research guidance precedence intact, while exposing continuity focus when research is not needed
+
+Environment used:
+- frontend runtime: `http://127.0.0.1:3001`
+- backend runtime: `http://127.0.0.1:8010/api/v1`
+- smoke database: `sqlite:////Users/oldtien_base/Desktop/Infinite Pro/retained-cross-surface-smoke.db`
+- smoke storage: repo-local `storage/`
+- smoke provider: `MODEL_PROVIDER=mock`
+- code verification: local repo workspace
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`106 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`13 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed for local smoke bundle |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Cross-surface continuity verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Frontend | helper tests | Verify checkpoint and progression focus summary stay aligned across work surfaces | Verified | node test now covers `回來更新節奏` and `持續推進節奏` output from the shared helper |
+| Frontend | `/tasks/[taskId]` | Open strict follow-up task page after two checkpoints | Verified | hero continuity card shows `回來更新節奏`, latest checkpoint summary, and `有新資料就回來更新` |
+| Frontend | `/matters/[matterId]/evidence` | Open strict follow-up evidence workspace after two checkpoints | Verified | hero continuity card shows the same follow-up focus summary as task workspace |
+| Frontend | `/deliverables/[deliverableId]` | Open continuous deliverable workspace after two outcome logs | Verified | rail continuity summary shows `持續推進節奏｜結果已開始站穩` and the aligned review / next-step copy |
+| Frontend | route smoke | Verify task / deliverable / evidence routes return live `200` across follow-up and continuous smoke cases | Verified | all six route checks returned `200` |
+
+### Live smoke data
+
+- strict follow-up verification task id: `31458b75-7094-48e4-8900-163fb86a279e`
+- strict follow-up verification matter id: `f58ec14a-4347-4ac5-9780-38b03f106106`
+- strict follow-up verification deliverable id: `80ec9818-33db-4897-a2e3-1cb4144682a1`
+- continuous verification task id: `24bd0adb-00b4-4dd8-b5f7-695be25ecd26`
+- continuous verification matter id: `186f95b2-2c47-4335-b673-e0061e1f6aaa`
+- continuous verification deliverable id: `344e573d-47e4-4ae2-a9a0-32af258c217d`
+- live API verification returned:
+  - strict follow-up case: `research_guidance.status=not_needed`
+  - strict follow-up case: `continuation_surface.timeline_items[0].summary=Checkpoint B：改成優先修正 premium 報價敘事，渠道主線先延續。`
+  - continuous case: `health_signal.label=推進穩定`
+  - continuous case: `outcome_tracking.label=結果已開始站穩`
+  - continuous case: `review_rhythm.label=本週內回看`
+  - continuous case: `next_step_queue[0]=確認是否要刷新最新 deliverable，讓已完成 action 的 outcome 被正式寫回。`
+- frontend route smoke:
+  - `/tasks/3893cffc-e4fe-4521-b83a-e467792a182f` returned `200`
+  - `/tasks/24bd0adb-00b4-4dd8-b5f7-695be25ecd26` returned `200`
+  - `/deliverables/36bda7a9-6624-46fc-aa5d-6050d9d82f4e` returned `200`
+  - `/deliverables/344e573d-47e4-4ae2-a9a0-32af258c217d` returned `200`
+  - `/matters/07abd3e8-2cd2-40b8-9944-c2f1f469d2eb/evidence` returned `200`
+  - `/matters/186f95b2-2c47-4335-b673-e0061e1f6aaa/evidence` returned `200`
+- browser snapshots:
+  - task strict follow-up snapshot: `output/playwright/retained-cross-surface/.playwright-cli/page-2026-04-03T19-01-33-232Z.yml`
+  - evidence strict follow-up snapshot: `output/playwright/retained-cross-surface/.playwright-cli/page-2026-04-03T19-01-33-269Z.yml`
+  - deliverable continuous snapshot: `output/playwright/retained-cross-surface/.playwright-cli/page-2026-04-03T19-01-33-411Z.yml`
+
+### Verified outcomes
+
+- `task / deliverable / evidence` now read the same retained-advisory thread on first screen, instead of each surface inventing separate continuity wording
+- `follow_up` now stays checkpoint-first across both task and evidence without drifting into `continuous` phrasing
+- `continuous` deliverable now surfaces the same progression / outcome thread with low-noise review cadence and next-step guidance
+- research guidance still wins when it is genuinely needed, but strict follow-up cases now expose the aligned continuity focus instead of leaving those surfaces with older ad-hoc copy

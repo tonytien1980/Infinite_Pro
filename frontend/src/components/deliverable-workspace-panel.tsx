@@ -28,6 +28,7 @@ import {
   buildRiskCards,
 } from "@/lib/advisory-workflow";
 import { ADOPTION_FEEDBACK_OPTIONS, buildAdoptionFeedbackView } from "@/lib/adoption-feedback";
+import { buildContinuationFocusSummary } from "@/lib/continuation-advisory";
 import { buildContinuationPostureView } from "@/lib/continuity-ux";
 import { buildMaterialReviewPostureView } from "@/lib/material-review-ux";
 import { truncateText } from "@/lib/text-format";
@@ -518,6 +519,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const continuationSurface = workspace?.continuation_surface ?? null;
   const followUpLane = continuationSurface?.follow_up_lane ?? null;
   const progressionLane = continuationSurface?.progression_lane ?? null;
+  const continuationFocusSummary = buildContinuationFocusSummary(continuationSurface);
   const continuityPosture = buildContinuationPostureView(continuationSurface);
   const workspaceView = workspace ? buildDeliverableWorkspaceView(workspace) : null;
   const flagshipLane = task ? buildFlagshipLaneView(task.flagship_lane) : null;
@@ -1286,9 +1288,15 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
 
                 <div className="section-card deliverable-rail-card">
                   <h4>連續性與下一個限制</h4>
-                  <p className="content-block">{deliverableContinuitySummary}</p>
+                  <p className="content-block">
+                    {continuationFocusSummary.shouldShow
+                      ? `${continuationFocusSummary.label}｜${continuationFocusSummary.title}`
+                      : deliverableContinuitySummary}
+                  </p>
                   <p className="muted-text" style={{ marginTop: "12px" }}>
-                    {workspace.high_impact_gaps[0] || "目前沒有額外高影響缺口。"}
+                    {continuationFocusSummary.shouldShow
+                      ? continuationFocusSummary.copy
+                      : workspace.high_impact_gaps[0] || "目前沒有額外高影響缺口。"}
                   </p>
                   {readinessGovernance ? (
                     <p className="muted-text" style={{ marginTop: "8px" }}>

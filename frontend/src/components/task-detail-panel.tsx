@@ -38,6 +38,7 @@ import {
   getStructuredStringList,
 } from "@/lib/advisory-workflow";
 import { ADOPTION_FEEDBACK_OPTIONS, buildAdoptionFeedbackView } from "@/lib/adoption-feedback";
+import { buildContinuationFocusSummary } from "@/lib/continuation-advisory";
 import { buildContinuationPostureView } from "@/lib/continuity-ux";
 import { buildMaterialReviewPostureView } from "@/lib/material-review-ux";
 import { buildResearchGuidanceView } from "@/lib/research-lane";
@@ -506,6 +507,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
   const continuationSurface = task?.continuation_surface ?? null;
   const followUpLane = continuationSurface?.follow_up_lane ?? null;
   const progressionLane = continuationSurface?.progression_lane ?? null;
+  const continuationFocusSummary = buildContinuationFocusSummary(continuationSurface);
   const continuityPosture = buildContinuationPostureView(continuationSurface);
   const successCriteria = task ? getGoalSuccessCriteria(task.goals) : [];
   const latestContext = task?.contexts[0];
@@ -850,12 +852,18 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                 </div>
                 <div className="hero-focus-card">
                   <p className="hero-focus-label">
-                    {researchGuidance?.shouldShow ? researchGuidance.label : taskHeroLaneTitle}
+                    {researchGuidance?.shouldShow
+                      ? researchGuidance.label
+                      : continuationFocusSummary.shouldShow
+                        ? continuationFocusSummary.label
+                        : taskHeroLaneTitle}
                   </p>
                   <h3 className="hero-focus-title">
                     {researchGuidance?.shouldShow
                       ? `${researchGuidance.depthLabel}｜${researchGuidance.firstQuestion}`
-                      : taskHeroLaneSummary}
+                      : continuationFocusSummary.shouldShow
+                        ? continuationFocusSummary.title
+                        : taskHeroLaneSummary}
                   </h3>
                   {researchGuidance?.shouldShow ? (
                     <p className="hero-focus-copy">
@@ -863,6 +871,8 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                       {researchGuidance.sourceQualitySummary || researchGuidance.stopCondition || researchGuidance.handoffSummary}
                       {researchGuidance.freshnessSummary ? `｜${researchGuidance.freshnessSummary}` : ""}
                     </p>
+                  ) : continuationFocusSummary.shouldShow ? (
+                    <p className="hero-focus-copy">{continuationFocusSummary.copy}</p>
                   ) : followUpLane ? (
                     <p className="hero-focus-copy">
                       上一個檢查點：

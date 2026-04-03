@@ -14,7 +14,10 @@ import {
   resolveWorkflowValueForConsultingStart,
 } from "../src/lib/flagship-lane.ts";
 import { ADOPTION_FEEDBACK_OPTIONS, buildAdoptionFeedbackView } from "../src/lib/adoption-feedback.ts";
-import { buildContinuationAdvisoryView } from "../src/lib/continuation-advisory.ts";
+import {
+  buildContinuationAdvisoryView,
+  buildContinuationFocusSummary,
+} from "../src/lib/continuation-advisory.ts";
 import { buildMaterialReviewPostureView } from "../src/lib/material-review-ux.ts";
 import { buildContinuationPostureView } from "../src/lib/continuity-ux.ts";
 import { buildResearchGuidanceView } from "../src/lib/research-lane.ts";
@@ -463,4 +466,79 @@ test("follow-up advisory view exposes checkpoint timeline and review rhythm with
   assert.equal(view.reviewRhythmLabel, "有新資料就回來更新");
   assert.equal(view.outcomeTrackingLabel, "");
   assert.doesNotMatch(view.healthSummary, /outcome|progression/i);
+});
+
+test("continuity focus summary keeps checkpoint and progression wording aligned across work surfaces", () => {
+  const checkpointSummary = buildContinuationFocusSummary({
+    workflow_layer: "checkpoint",
+    current_state: "checkpoint_ready",
+    health_signal: {
+      status: "steady",
+      label: "更新節奏已站穩",
+      summary: "最近 checkpoint 已形成，而且這輪變化已可讀。",
+    },
+    timeline_items: [
+      {
+        kind: "checkpoint",
+        title: "最新 checkpoint",
+        summary: "Checkpoint B：這輪改成優先修正 premium 報價敘事，渠道主線先延續。",
+        created_at: "2026-04-04T09:00:00Z",
+        task_id: "task-2",
+        task_title: "Follow-up refresh",
+        deliverable_id: "deliverable-2",
+        deliverable_title: "Follow-up deliverable",
+      },
+    ],
+    next_step_queue: ["先補 premium 轉換與定價反饋，再回來更新 checkpoint。"],
+    outcome_tracking: null,
+    review_rhythm: {
+      label: "有新資料就回來更新",
+      summary: "這類案件以 milestone 更新為主。",
+      next_review_prompt: "下次回看時，先確認最新補件是否足以改寫 checkpoint。",
+    },
+  });
+  const progressionSummary = buildContinuationFocusSummary({
+    workflow_layer: "progression",
+    current_state: "progression_ready",
+    health_signal: {
+      status: "steady",
+      label: "推進穩定",
+      summary: "主要阻塞已解除，現在應優先確認是否刷新交付物。",
+    },
+    timeline_items: [
+      {
+        kind: "progression",
+        title: "最新推進",
+        summary: "第二輪 outcome 顯示主要阻塞已解除，可以考慮刷新 deliverable。",
+        created_at: "2026-04-04T10:00:00Z",
+        task_id: "task-3",
+        task_title: "Continuous progression",
+        deliverable_id: "deliverable-3",
+        deliverable_title: "Continuous deliverable",
+      },
+    ],
+    next_step_queue: ["確認是否要刷新最新 deliverable，讓已完成 action 的 outcome 被正式寫回。"],
+    outcome_tracking: {
+      label: "結果已開始站穩",
+      summary: "最近 outcome 已顯示主要阻塞解除，值得確認是否刷新交付物。",
+      latest_signal_summary: "第二輪 outcome 顯示主要阻塞已解除，可以考慮刷新 deliverable。",
+      needs_deliverable_refresh: true,
+      tracked_signal_count: 2,
+    },
+    review_rhythm: {
+      label: "本週內回看",
+      summary: "主要阻塞已解除，建議這週內確認是否要刷新 deliverable。",
+      next_review_prompt: "下次回看時，先確認這輪 outcome 是否已足以改寫正式交付物。",
+    },
+  });
+
+  assert.equal(checkpointSummary.label, "回來更新節奏");
+  assert.match(checkpointSummary.title, /Checkpoint B/);
+  assert.match(checkpointSummary.copy, /有新資料就回來更新/);
+  assert.doesNotMatch(checkpointSummary.copy, /outcome|progression/i);
+
+  assert.equal(progressionSummary.label, "持續推進節奏");
+  assert.equal(progressionSummary.title, "結果已開始站穩");
+  assert.match(progressionSummary.copy, /本週內回看/);
+  assert.match(progressionSummary.copy, /刷新 deliverable|改寫正式交付物/);
 });
