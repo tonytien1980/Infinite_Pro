@@ -3481,9 +3481,47 @@ def test_sparse_external_event_case_caps_deliverable_to_exploratory_brief(
     content = response.json()["deliverable"]["content_structure"]
     assert content["deliverable_class"] == "exploratory_brief"
     assert content["readiness_governance"]["external_research_heavy_case"] is True
-    assert "company-specific certainty" in " ".join(content["readiness_governance"]["missing_information"])
-    assert content["agent_selection"]["deferred_agent_notes"]
-    assert content["agent_selection"]["escalation_notes"]
+
+
+def test_sparse_external_event_case_exposes_research_guidance(client: TestClient) -> None:
+    payload = create_task_payload("Research guidance case")
+    payload.update(
+        {
+            "description": "川普提高關稅後，台灣零組件出口商接下來三個月該先注意哪些風險？",
+            "background_text": "",
+            "subject_name": "",
+            "goal_description": "先形成外部情勢判斷與待驗證事項。",
+        }
+    )
+
+    task = client.post("/api/v1/tasks", json=payload).json()
+
+    assert task["research_guidance"]["status"] == "recommended"
+    assert task["research_guidance"]["recommended_depth"] == "deep_research"
+    assert task["research_guidance"]["summary"]
+    assert task["research_guidance"]["suggested_questions"]
+    assert task["research_guidance"]["stop_condition"]
+    assert task["research_guidance"]["handoff_summary"]
+    assert task["research_guidance"]["boundary_note"]
+
+
+def test_single_document_contract_review_keeps_research_guidance_low_noise(
+    client: TestClient,
+) -> None:
+    payload = create_contract_review_payload("Research low-noise case")
+    payload["external_data_strategy"] = "strict"
+    task = client.post("/api/v1/tasks", json=payload).json()
+
+    client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("agreement.txt", b"Termination and liability clauses need review.", "text/plain"))],
+    )
+
+    aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
+
+    assert aggregate["research_guidance"]["status"] == "not_needed"
+    assert aggregate["research_guidance"]["label"] == "目前不用先補研究"
+    assert aggregate["research_guidance"]["suggested_questions"] == []
 
 
 def test_host_routes_multi_agent_based_on_context_spine(

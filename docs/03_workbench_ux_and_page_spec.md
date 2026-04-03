@@ -282,6 +282,22 @@ deepen 後，首屏還應能回答：
 - 目前不該被誤讀成什麼
 - 若要升級到下一階段，最先要補的是什麼
 
+### 3.2.4 Research guidance
+
+當案件需要補 research / investigation 時，工作面也應低噪音回答：
+
+- 這輪要不要先補研究
+- 建議研究深度
+- 優先子題
+- 查到哪裡就先停
+
+正式規則：
+
+- 不新增 research dashboard-first 頁面
+- 不把 research depth 暴露成首屏必選控制
+- research guidance 應嵌在既有 task / matter / evidence 工作面中，以「先查哪幾題」的顧問語言出現
+- 當研究不是必要條件時，這層不應搶走首屏
+
 ### 3.3 Consultant-first, debug-on-demand
 
 以下內容可達、可追、可展開，但預設不應與主線同層競爭：
@@ -531,6 +547,11 @@ Primary action 應隨 continuity mode 分流：
 - 這輪為什麼還停在這個姿態
 - 下一步要補件、跑分析，還是回交付物
 
+若 research guidance 被判定為 `recommended` 或 `active`，也可低噪音補充：
+
+- 第一個 research question
+- 研究大概補到哪裡就先停
+
 ### 7.4 `/matters/[matterId]/evidence`
 
 主任務：
@@ -554,6 +575,11 @@ Primary action：
 - 何時會從 first diagnosis 升級成較完整的 material review / decision convergence
 - 目前這輪還不應被誤讀成什麼程度的正式交付
 
+若 research guidance 為 `recommended`，也應補充：
+
+- 先查哪幾題
+- 補研究是為了補缺口，不是把所有公開資訊都抓完
+
 ### 7.5 `/tasks/[taskId]`
 
 主任務：
@@ -576,6 +602,12 @@ Primary action：
 - 目前是 exploratory、material review，還是 decision convergence posture
 - 若要升級到下一個交付等級，最先缺的是什麼
 - 執行分析後會往哪個正式交付結果前進
+
+若 research guidance 被判定為 `recommended` 或 `active`，可在同一個右側引導區補充：
+
+- 建議研究深度
+- 第一個 research question
+- stop condition
 
 ### 7.6 `/deliverables/[deliverableId]`
 

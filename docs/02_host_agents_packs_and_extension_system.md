@@ -221,6 +221,12 @@ catalog / management surface 維持：
 - Deep research 不是所有案件預設
 - research 深度仍由 Host 決定，不由 UI 或單一 agent 自行提升
 
+目前 first pass 產品化規則：
+
+- 不把 research depth 暴露成首屏必選設定
+- 不讓使用者先看到研究控制台或調研儀表板
+- 先由 runtime / Host signals 低噪音生成 research guidance，再讓工作面用顧問語言提示下一步
+
 ### 5.2 Research handoff boundaries
 
 正式 handoff 規則：
@@ -228,6 +234,13 @@ catalog / management surface 維持：
 - `research_intelligence` 偏 discovery / investigation / gap closure
 - `research_synthesis` 偏 implication shaping / deliverable-oriented synthesis
 - 當 research handoff 尚未穩定前，不應過早交給 synthesis specialist
+
+目前 first pass 對工作面的正式表達應優先是：
+
+- 要不要補研究
+- 若要補，先查哪幾題
+- 查到哪裡就先停
+- 研究結果之後要先交回哪條收斂主線
 
 ---
 

@@ -28,6 +28,7 @@ import {
   progressInfoFromRuntimeHandling,
   summarizeBatchProgress,
 } from "@/lib/intake";
+import { buildResearchGuidanceView } from "@/lib/research-lane";
 import type { ArtifactEvidenceWorkspace, RetrievalProvenance } from "@/lib/types";
 import {
   labelForCanonicalizationMatchBasis,
@@ -432,6 +433,7 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
       }`
     : "";
   const flagshipLane = workspace ? buildFlagshipLaneView(workspace.matter_summary.flagship_lane) : null;
+  const researchGuidance = workspace ? buildResearchGuidanceView(workspace.research_guidance) : null;
   const evidenceSurfaceSummary = flagshipLane
     ? `${flagshipLane.currentOutputSummary} ${workspaceView?.summary || evidenceHeroSummary}`
     : workspaceView?.summary || evidenceHeroSummary;
@@ -967,11 +969,23 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                 </div>
                 <div className="hero-focus-card">
                   <p className="hero-focus-label">
-                    {followUpLane ? "最近檢查點" : progressionLane ? "最近推進狀態" : "目前最要緊的限制"}
+                    {researchGuidance?.shouldShow
+                      ? researchGuidance.label
+                      : followUpLane
+                        ? "最近檢查點"
+                        : progressionLane
+                          ? "最近推進狀態"
+                          : "目前最要緊的限制"}
                   </p>
-                  <h3 className="hero-focus-title">{evidenceLaneSummary}</h3>
+                  <h3 className="hero-focus-title">
+                    {researchGuidance?.shouldShow
+                      ? `${researchGuidance.depthLabel}｜${researchGuidance.firstQuestion}`
+                      : evidenceLaneSummary}
+                  </h3>
                   <p className="hero-focus-copy">
-                    {followUpLane
+                    {researchGuidance?.shouldShow
+                      ? researchGuidance.stopCondition || researchGuidance.handoffSummary
+                      : followUpLane
                       ? `下一步：${followUpLane.next_follow_up_actions[0] || "補完後回案件工作面更新檢查點。"}`
                       : progressionLane
                         ? `下一步：${progressionLane.next_progression_actions[0] || "回案件工作面更新推進狀態。"}`
@@ -1072,6 +1086,17 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
             description="只有在你要追查這輪外部補完是怎麼進入證據鏈，或確認哪些缺口已被正式記錄時，再展開這層。"
           >
             <div className="summary-grid">
+              {researchGuidance?.shouldShow ? (
+                <div className="section-card">
+                  <h4>{researchGuidance.label}</h4>
+                  <p className="content-block">
+                    {researchGuidance.depthLabel}｜{researchGuidance.firstQuestion}
+                  </p>
+                  <p className="muted-text">
+                    {researchGuidance.stopCondition || researchGuidance.boundaryNote}
+                  </p>
+                </div>
+              ) : null}
               <div className="section-card">
                 <h4>研究執行紀錄</h4>
                 <CompactList

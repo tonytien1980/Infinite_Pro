@@ -12,6 +12,7 @@ import {
   runTask,
 } from "@/lib/api";
 import { describeRuntimeMaterialHandling } from "@/lib/intake";
+import { buildResearchGuidanceView } from "@/lib/research-lane";
 import { truncateText } from "@/lib/text-format";
 import type {
   ContinuationSurface,
@@ -523,6 +524,7 @@ export function MatterWorkspacePanel({
   const nextStepNotes = matter ? buildNextStepNotes(matter, evidenceCount) : [];
   const recentTaskSummary = recentTask ? buildTaskListWorkspaceSummary(recentTask) : null;
   const flagshipLane = matter ? buildFlagshipLaneView(matter.summary.flagship_lane) : null;
+  const researchGuidance = matter ? buildResearchGuidanceView(matter.research_guidance) : null;
   const resolvedContentSections = matter
     ? buildResolvedMatterContentSections(matter, fallbackRecord)
     : draftContentSections;
@@ -938,6 +940,14 @@ export function MatterWorkspacePanel({
                         <h3>要升級到下一階段還缺什麼</h3>
                         <p className="content-block">
                           {flagshipLane.upgradeRequirements[0] || flagshipLane.upgradeNote}
+                        </p>
+                      </div>
+                    ) : null}
+                    {researchGuidance?.shouldShow ? (
+                      <div className="detail-item">
+                        <h3>{researchGuidance.label}</h3>
+                        <p className="content-block">
+                          {researchGuidance.depthLabel}｜{researchGuidance.firstQuestion}
                         </p>
                       </div>
                     ) : null}

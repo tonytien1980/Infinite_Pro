@@ -512,6 +512,19 @@ export interface FlagshipLane {
   boundary_note: string;
 }
 
+export interface ResearchGuidance {
+  status: string;
+  label: string;
+  summary: string;
+  recommended_depth: string;
+  suggested_questions: string[];
+  evidence_gap_focus: string[];
+  stop_condition: string;
+  handoff_summary: string;
+  latest_run_summary: string;
+  boundary_note: string;
+}
+
 export interface MatterDecisionPoint {
   task_id: string;
   task_title: string;
@@ -1324,6 +1337,7 @@ export interface TaskAggregate {
   case_world_state: CaseWorldState | null;
   world_work_slice_summary: string;
   evidence_gaps: EvidenceGap[];
+  research_guidance: ResearchGuidance;
   research_runs: ResearchRun[];
   decision_records: DecisionRecord[];
   action_plans: ActionPlan[];
@@ -1393,6 +1407,7 @@ export interface MatterWorkspace {
   related_source_materials: MatterMaterialSummary[];
   case_world_drafts: CaseWorldDraft[];
   evidence_gaps: EvidenceGap[];
+  research_guidance: ResearchGuidance;
   research_runs: ResearchRun[];
   decision_records: DecisionRecord[];
   action_plans: ActionPlan[];
@@ -1481,6 +1496,7 @@ export interface ArtifactEvidenceWorkspace {
   evidence_expectations: string[];
   high_impact_gaps: string[];
   evidence_gaps: EvidenceGap[];
+  research_guidance: ResearchGuidance;
   research_runs: ResearchRun[];
   canonicalization_summary: CanonicalizationSummary;
   canonicalization_candidates: CanonicalizationCandidate[];

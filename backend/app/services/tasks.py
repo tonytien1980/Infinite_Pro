@@ -2851,6 +2851,212 @@ def _build_flagship_boundary_note(
     return "這一輪先以探索級第一版為主，重點是把問題說清楚、把缺口露出來，不是裝成已經全部搞清楚。"
 
 
+def _determine_research_guidance_depth(
+    *,
+    input_entry_mode: InputEntryMode,
+    external_data_strategy: ExternalDataStrategy,
+    capability: CapabilityArchetype,
+    external_research_heavy_candidate: bool,
+    pack_resolution: schemas.PackResolutionRead,
+    gap_titles: list[str],
+) -> str:
+    selected_pack_ids = {
+        *[item.pack_id for item in pack_resolution.selected_domain_packs],
+        *[item.pack_id for item in pack_resolution.selected_industry_packs],
+    }
+    if external_research_heavy_candidate:
+        return "deep_research"
+    if (
+        external_data_strategy == ExternalDataStrategy.LATEST
+        and input_entry_mode == InputEntryMode.ONE_LINE_INQUIRY
+    ):
+        return "deep_research"
+    if "research_intelligence_pack" in selected_pack_ids:
+        if input_entry_mode == InputEntryMode.ONE_LINE_INQUIRY:
+            return "standard_investigation"
+        if pack_resolution.evidence_expectations or gap_titles:
+            return "standard_investigation"
+    if capability in {
+        CapabilityArchetype.SYNTHESIZE_BRIEF,
+        CapabilityArchetype.SCENARIO_COMPARISON,
+        CapabilityArchetype.RISK_SURFACING,
+    } and (pack_resolution.evidence_expectations or gap_titles):
+        return "standard_investigation"
+    if len(gap_titles) >= 2 or len(pack_resolution.evidence_expectations) >= 3:
+        return "standard_investigation"
+    return "light_completion"
+
+
+def _build_research_guidance_questions(
+    *,
+    judgment: str,
+    evidence_expectations: list[str],
+    gap_titles: list[str],
+    capability: CapabilityArchetype,
+    research_depth: str,
+) -> list[str]:
+    questions: list[str] = []
+    if judgment:
+        questions.append(f"目前最需要先查清楚的外部事實是什麼，才能回答「{judgment}」？")
+    for expectation in evidence_expectations[:3]:
+        questions.append(f"哪些公開來源最能補上這類證據期待：{expectation}？")
+    for gap in gap_titles[:2]:
+        questions.append(f"若不先釐清「{gap}」，目前結論會在哪裡失真？")
+    if capability == CapabilityArchetype.SCENARIO_COMPARISON:
+        questions.append("目前外部訊號是否足以支持方案比較與 trade-off 判斷？")
+    if capability == CapabilityArchetype.RISK_SURFACING:
+        questions.append("目前最需要保留的不確定性與矛盾訊號是什麼？")
+    if research_depth == "deep_research":
+        questions.append("哪些高影響子題還需要第二輪擴展搜尋，才能降低不確定性？")
+    limit = 2 if research_depth == "light_completion" else 4 if research_depth == "standard_investigation" else 6
+    return _unique_preserve_order(questions)[:limit]
+
+
+def _build_research_guidance_stop_condition(research_depth: str) -> str:
+    if research_depth == "deep_research":
+        return "當高影響子題、矛盾訊號與新鮮度風險都已有可回看的來源與邊界時，就先停止補研究並回到收斂。"
+    if research_depth == "standard_investigation":
+        return "當主要子題已有可信來源、矛盾訊號已被記下、也能交回收斂時，就先停止補研究。"
+    return "當最小可信來源已足以補上主要事實與下一步判斷時，就先停止補研究。"
+
+
+def _build_research_guidance_handoff_summary(task_type: str, research_depth: str) -> str:
+    if task_type == "research_synthesis":
+        return f"這輪 {research_depth} 研究完成後，先交回研究綜整主線，整理成顧問可直接閱讀的摘要與下一步。"
+    return f"這輪 {research_depth} 研究完成後，先交回主控代理收斂，不要直接把原始來源堆成結論。"
+
+
+def _build_research_guidance_status(
+    *,
+    external_data_strategy: ExternalDataStrategy,
+    suggested_research_need: bool,
+    external_research_heavy_candidate: bool,
+    latest_run_status: str | None,
+    has_research_signal: bool,
+) -> str:
+    if latest_run_status == "running":
+        return "active"
+    if latest_run_status == "completed":
+        return "completed"
+    if external_data_strategy == ExternalDataStrategy.STRICT:
+        return "not_needed"
+    if external_research_heavy_candidate or suggested_research_need or external_data_strategy == ExternalDataStrategy.LATEST:
+        return "recommended"
+    if has_research_signal:
+        return "optional"
+    return "not_needed"
+
+
+def _label_for_research_guidance_status(status: str) -> str:
+    if status == "active":
+        return "研究進行中"
+    if status == "completed":
+        return "研究已補完"
+    if status == "recommended":
+        return "如果要補研究"
+    if status == "optional":
+        return "研究可後補"
+    return "目前不用先補研究"
+
+
+def _build_research_guidance_summary(
+    status: str,
+    *,
+    external_research_heavy_candidate: bool,
+    research_depth: str,
+    latest_run_summary: str,
+) -> str:
+    if status == "completed" and latest_run_summary:
+        return f"這輪研究已先補完：{latest_run_summary}"
+    if status == "active":
+        return "這輪研究正在補公開來源、來源品質與證據缺口，等研究脈絡穩定後再回到收斂。"
+    if external_research_heavy_candidate:
+        return f"這輪問題高度依賴外部事實與新鮮度，建議至少先做 {research_depth} 等級的研究補完。"
+    if status == "recommended":
+        return f"這輪案件已有明顯研究缺口，建議至少先做 {research_depth} 等級的研究，再進入正式收斂。"
+    if status == "optional":
+        return "這輪不一定要先補研究，但若你想提高判斷可信度，可以先補最小研究。"
+    return "目前這輪以你手上的資料與證據為主，不需要先補外部研究。"
+
+
+def _build_research_guidance_boundary_note(status: str) -> str:
+    if status in {"recommended", "active"}:
+        return "研究是為了補齊高影響缺口與外部事實，不是把所有公開資料都抓完再開始工作。"
+    if status == "completed":
+        return "研究已補進主鏈，但後續仍應由主控代理或綜整主線負責最後收斂，不要把來源列表直接當結論。"
+    return "目前不需要讓研究層搶走主線，先把手上材料與判斷問題處理清楚更重要。"
+
+
+def _build_research_guidance_read(
+    *,
+    task: models.Task,
+    decision_context: schemas.DecisionContextRead | None,
+    domain_lenses: list[str],
+    input_entry_mode: InputEntryMode,
+    external_research_heavy_candidate: bool,
+    pack_resolution: schemas.PackResolutionRead,
+    gap_titles: list[str],
+    suggested_research_need: bool,
+    latest_run: schemas.ResearchRunRead | None = None,
+) -> schemas.ResearchGuidanceRead:
+    strategy = get_external_data_strategy_for_task(task)
+    capability = _infer_capability_for_task(task, decision_context, domain_lenses)
+    has_research_signal = bool(
+        external_research_heavy_candidate
+        or suggested_research_need
+        or pack_resolution.evidence_expectations
+        or gap_titles
+        or strategy == ExternalDataStrategy.LATEST
+    )
+    research_depth = _determine_research_guidance_depth(
+        input_entry_mode=input_entry_mode,
+        external_data_strategy=strategy,
+        capability=capability,
+        external_research_heavy_candidate=external_research_heavy_candidate,
+        pack_resolution=pack_resolution,
+        gap_titles=gap_titles,
+    )
+    status = _build_research_guidance_status(
+        external_data_strategy=strategy,
+        suggested_research_need=suggested_research_need,
+        external_research_heavy_candidate=external_research_heavy_candidate,
+        latest_run_status=latest_run.status if latest_run else None,
+        has_research_signal=has_research_signal,
+    )
+    judgment = (
+        decision_context.judgment_to_make
+        if decision_context and decision_context.judgment_to_make
+        else task.description or task.title
+    )
+    return schemas.ResearchGuidanceRead(
+        status=status,
+        label=_label_for_research_guidance_status(status),
+        summary=_build_research_guidance_summary(
+            status,
+            external_research_heavy_candidate=external_research_heavy_candidate,
+            research_depth=research_depth,
+            latest_run_summary=latest_run.result_summary if latest_run else "",
+        ),
+        recommended_depth=research_depth,
+        suggested_questions=(
+            _build_research_guidance_questions(
+                judgment=judgment,
+                evidence_expectations=pack_resolution.evidence_expectations,
+                gap_titles=gap_titles,
+                capability=capability,
+                research_depth=research_depth,
+            )
+            if status != "not_needed"
+            else []
+        ),
+        evidence_gap_focus=gap_titles[:5],
+        stop_condition=_build_research_guidance_stop_condition(research_depth) if status != "not_needed" else "",
+        handoff_summary=_build_research_guidance_handoff_summary(task.task_type, research_depth) if status != "not_needed" else "",
+        latest_run_summary=latest_run.result_summary if latest_run else "",
+        boundary_note=_build_research_guidance_boundary_note(status),
+    )
+
+
 def _build_flagship_lane_read(
     input_entry_mode: InputEntryMode,
     deliverable_class_hint: DeliverableClass,
@@ -7589,6 +7795,41 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
         db,
         matter_workspace_id=matter_workspace.id,
     )
+    latest_research_run = (
+        sorted(research_runs, key=lambda item: item.started_at, reverse=True)[0]
+        if research_runs
+        else None
+    )
+    research_guidance = _build_research_guidance_read(
+        task=latest_task,
+        decision_context=current_decision_context,
+        domain_lenses=latest_task_spine[4],
+        input_entry_mode=_infer_input_entry_mode(latest_task, latest_task_spine[5], latest_task_spine[6]),
+        external_research_heavy_candidate=_is_external_research_heavy_candidate(
+            latest_task,
+            current_decision_context,
+            latest_task_spine[5],
+            latest_task_spine[6],
+            _infer_input_entry_mode(latest_task, latest_task_spine[5], latest_task_spine[6]),
+        ),
+        pack_resolution=resolve_pack_selection_for_task(
+            latest_task,
+            latest_task_spine[0],
+            latest_task_spine[1],
+            latest_task_spine[2],
+            current_decision_context,
+            latest_task_spine[4],
+        ),
+        gap_titles=[item.title for item in evidence_gap_records if item.status != "resolved"],
+        suggested_research_need=bool(
+            matter_workspace.case_world_state.suggested_research_need
+            if matter_workspace.case_world_state is not None
+            else latest_task.case_world_drafts[0].suggested_research_need
+            if latest_task.case_world_drafts
+            else False
+        ),
+        latest_run=latest_research_run,
+    )
 
     return schemas.MatterWorkspaceResponse(
         summary=summary,
@@ -7624,6 +7865,7 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
         audit_events=sorted(audit_events, key=lambda item: item.created_at, reverse=True)[:12],
         canonicalization_summary=canonicalization_summary,
         canonicalization_candidates=canonicalization_candidates[:8],
+        research_guidance=research_guidance,
         readiness_hint=readiness_hint,
         continuity_notes=continuity_notes,
         continuation_surface=continuation_surface,
@@ -8380,6 +8622,40 @@ def get_artifact_evidence_workspace(
         db,
         matter_workspace_id=matter_workspace.id,
     )
+    latest_research_run = (
+        sorted(research_runs, key=lambda item: item.started_at, reverse=True)[0]
+        if research_runs
+        else None
+    )
+    latest_input_entry_mode = _infer_input_entry_mode(
+        latest_task,
+        latest_task_spine[5],
+        latest_task_spine[6],
+    )
+    research_guidance = _build_research_guidance_read(
+        task=latest_task,
+        decision_context=current_decision_context,
+        domain_lenses=latest_task_spine[4],
+        input_entry_mode=latest_input_entry_mode,
+        external_research_heavy_candidate=external_research_heavy_detected,
+        pack_resolution=resolve_pack_selection_for_task(
+            latest_task,
+            latest_task_spine[0],
+            latest_task_spine[1],
+            latest_task_spine[2],
+            current_decision_context,
+            latest_task_spine[4],
+        ),
+        gap_titles=[item.title for item in evidence_gap_records if item.status != "resolved"],
+        suggested_research_need=bool(
+            matter_workspace.case_world_state.suggested_research_need
+            if matter_workspace.case_world_state is not None
+            else latest_task.case_world_drafts[0].suggested_research_need
+            if latest_task.case_world_drafts
+            else external_research_heavy_detected
+        ),
+        latest_run=latest_research_run,
+    )
 
     return schemas.ArtifactEvidenceWorkspaceResponse(
         matter_summary=matter_summary,
@@ -8398,6 +8674,7 @@ def get_artifact_evidence_workspace(
         research_runs=sorted(research_runs, key=lambda item: item.started_at, reverse=True)[:6],
         canonicalization_summary=canonicalization_summary,
         canonicalization_candidates=canonicalization_candidates[:8],
+        research_guidance=research_guidance,
         sufficiency_summary=sufficiency_summary,
         deliverable_limitations=_unique_preserve_order(deliverable_limitations)[:6],
         continuity_notes=_unique_preserve_order(continuity_notes)[:6],
@@ -10333,6 +10610,27 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         evidence_count=len(_usable_evidence(task)),
         presence_state_summary=presence_state_summary,
     )
+    research_guidance = _build_research_guidance_read(
+        task=task,
+        decision_context=preferred_decision_context,
+        domain_lenses=preferred_domain_lenses,
+        input_entry_mode=input_entry_mode,
+        external_research_heavy_candidate=external_research_heavy_candidate,
+        pack_resolution=pack_resolution,
+        gap_titles=[item.title for item in evidence_gap_rows if item.status != "resolved"],
+        suggested_research_need=bool(
+            case_world_state_row.suggested_research_need
+            if case_world_state_row is not None
+            else case_world_draft_row.suggested_research_need
+            if case_world_draft_row is not None
+            else external_research_heavy_candidate
+        ),
+        latest_run=(
+            schemas.ResearchRunRead.model_validate(task.research_runs[0])
+            if task.research_runs
+            else None
+        ),
+    )
     canonicalization_summary, canonicalization_candidates = build_matter_canonicalization_contract(
         db,
         matter_workspace_id=matter_workspace.id,
@@ -10413,6 +10711,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
             schemas.EvidenceGapRead.model_validate(item)
             for item in sorted(evidence_gap_rows, key=lambda gap: gap.updated_at, reverse=True)
         ],
+        research_guidance=research_guidance,
         research_runs=[schemas.ResearchRunRead.model_validate(item) for item in task.research_runs],
         decision_records=[schemas.DecisionRecordRead.model_validate(item) for item in task.decision_records],
         action_plans=[schemas.ActionPlanRead.model_validate(item) for item in task.action_plans],

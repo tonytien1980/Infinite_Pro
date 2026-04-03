@@ -36,6 +36,7 @@ import {
   getVisibleConstraints,
   getStructuredStringList,
 } from "@/lib/advisory-workflow";
+import { buildResearchGuidanceView } from "@/lib/research-lane";
 import type {
   ExtensionManagerSnapshot,
   RetrievalProvenance,
@@ -505,6 +506,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
   const sparseInputOperatingView =
     task ? buildSparseInputOperatingView(task, latestDeliverable) : null;
   const flagshipLane = task ? buildFlagshipLaneView(task.flagship_lane) : null;
+  const researchGuidance = task ? buildResearchGuidanceView(task.research_guidance) : null;
   const evidenceWorkspaceLane =
     task ? buildEvidenceWorkspaceLane(task, latestDeliverable, readinessGovernance) : null;
   const deliverableBacklink = task ? buildDeliverableBacklinkView(task, latestDeliverable) : null;
@@ -800,9 +802,19 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                   </ul>
                 </div>
                 <div className="hero-focus-card">
-                  <p className="hero-focus-label">{taskHeroLaneTitle}</p>
-                  <h3 className="hero-focus-title">{taskHeroLaneSummary}</h3>
-                  {followUpLane ? (
+                  <p className="hero-focus-label">
+                    {researchGuidance?.shouldShow ? researchGuidance.label : taskHeroLaneTitle}
+                  </p>
+                  <h3 className="hero-focus-title">
+                    {researchGuidance?.shouldShow
+                      ? `${researchGuidance.depthLabel}｜${researchGuidance.firstQuestion}`
+                      : taskHeroLaneSummary}
+                  </h3>
+                  {researchGuidance?.shouldShow ? (
+                    <p className="hero-focus-copy">
+                      {researchGuidance.stopCondition || researchGuidance.handoffSummary}
+                    </p>
+                  ) : followUpLane ? (
                     <p className="hero-focus-copy">
                       上一個檢查點：
                       {followUpLane.previous_checkpoint?.summary || "目前沒有更早的檢查點可比較。"}

@@ -267,6 +267,37 @@ Ontology 在 Infinite Pro 中是：
 - `upgrade_ready`
 - `boundary_note`
 
+### 4.6 Research-guidance read model
+
+目前 research / investigation lane 的第一波產品化，也以 derived read model 方式成立。
+
+它的責任不是新增 research app shell，而是低噪音回答：
+
+- 這輪是否需要先補研究
+- 建議研究深度
+- 優先子題
+- 停止條件
+- handoff 方向
+
+正式規則：
+
+- 這是 consultant-facing research guidance，不是新的 orchestration center
+- research 深度仍由 Host / runtime signals 決定，不由使用者在首屏手動調整
+- 當案件不需要研究時，這層應保持低噪音甚至不顯示
+
+第一波正式欄位 baseline 至少包括：
+
+- `status`
+- `label`
+- `summary`
+- `recommended_depth`
+- `suggested_questions`
+- `evidence_gap_focus`
+- `stop_condition`
+- `handoff_summary`
+- `latest_run_summary`
+- `boundary_note`
+
 ---
 
 ## 5. Source, Evidence, Provenance, and Object-Set Contracts

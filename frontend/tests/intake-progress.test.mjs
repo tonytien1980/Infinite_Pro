@@ -13,6 +13,7 @@ import {
   CONSULTANT_START_OPTIONS,
   resolveWorkflowValueForConsultingStart,
 } from "../src/lib/flagship-lane.ts";
+import { buildResearchGuidanceView } from "../src/lib/research-lane.ts";
 
 test("batch progress summary distinguishes done, parsing, failed, blocking, and reference-only items", () => {
   const items = buildIntakePreviewItems({
@@ -236,4 +237,28 @@ test("flagship lane view exposes current output level and upgrade checklist", ()
   assert.equal(lane.upgradeReady, false);
   assert.equal(lane.upgradeRequirements.length, 2);
   assert.match(lane.boundaryNote, /誤讀|完整決策/);
+});
+
+test("research guidance view turns backend guidance into low-noise consultant copy", () => {
+  const guidance = buildResearchGuidanceView({
+    status: "recommended",
+    label: "如果要補研究",
+    summary: "這輪案件已有明顯研究缺口，建議先補研究。",
+    recommended_depth: "standard_investigation",
+    suggested_questions: [
+      "目前最需要先查清楚的外部事實是什麼？",
+      "哪些公開來源最能補上主要證據期待？",
+    ],
+    evidence_gap_focus: ["外部政策變化", "競品反應"],
+    stop_condition: "當主要子題都有可信來源時，就先停止補研究。",
+    handoff_summary: "研究結果先交回主控代理收斂。",
+    latest_run_summary: "",
+    boundary_note: "研究是為了補齊缺口，不是先把所有公開資訊都抓完。",
+  });
+
+  assert.equal(guidance.shouldShow, true);
+  assert.equal(guidance.depthLabel, "標準研究");
+  assert.equal(guidance.firstQuestion, "目前最需要先查清楚的外部事實是什麼？");
+  assert.equal(guidance.focusSummary, "外部政策變化｜競品反應");
+  assert.match(guidance.boundaryNote, /補齊缺口/);
 });

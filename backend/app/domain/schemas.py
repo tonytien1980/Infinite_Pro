@@ -50,6 +50,19 @@ class FlagshipLaneRead(BaseModel):
     boundary_note: str = ""
 
 
+class ResearchGuidanceRead(BaseModel):
+    status: str = "not_needed"
+    label: str = ""
+    summary: str = ""
+    recommended_depth: str = ""
+    suggested_questions: list[str] = Field(default_factory=list)
+    evidence_gap_focus: list[str] = Field(default_factory=list)
+    stop_condition: str = ""
+    handoff_summary: str = ""
+    latest_run_summary: str = ""
+    boundary_note: str = ""
+
+
 class ConstraintCreate(BaseModel):
     description: str = Field(min_length=1)
     constraint_type: str = "general"
@@ -1302,6 +1315,7 @@ class MatterWorkspaceResponse(BaseModel):
         default_factory=CanonicalizationSummaryRead
     )
     canonicalization_candidates: list[CanonicalizationCandidateRead] = Field(default_factory=list)
+    research_guidance: ResearchGuidanceRead = Field(default_factory=ResearchGuidanceRead)
     readiness_hint: str = ""
     continuity_notes: list[str] = Field(default_factory=list)
     continuation_surface: ContinuationSurfaceRead | None = None
@@ -1387,6 +1401,7 @@ class ArtifactEvidenceWorkspaceResponse(BaseModel):
         default_factory=CanonicalizationSummaryRead
     )
     canonicalization_candidates: list[CanonicalizationCandidateRead] = Field(default_factory=list)
+    research_guidance: ResearchGuidanceRead = Field(default_factory=ResearchGuidanceRead)
     sufficiency_summary: str = ""
     deliverable_limitations: list[str] = Field(default_factory=list)
     continuity_notes: list[str] = Field(default_factory=list)
@@ -1443,6 +1458,7 @@ class TaskAggregateResponse(BaseModel):
     case_world_state: CaseWorldStateRead | None = None
     world_work_slice_summary: str = ""
     evidence_gaps: list[EvidenceGapRead] = Field(default_factory=list)
+    research_guidance: ResearchGuidanceRead = Field(default_factory=ResearchGuidanceRead)
     research_runs: list[ResearchRunRead] = Field(default_factory=list)
     decision_records: list[DecisionRecordRead] = Field(default_factory=list)
     action_plans: list[ActionPlanRead] = Field(default_factory=list)

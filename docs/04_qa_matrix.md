@@ -1343,3 +1343,58 @@ Environment used:
 - sparse-start cases now expose a clearer confidence boundary instead of only a generic upgrade note
 - material-review cases now give a more explicit path toward decision-convergence work
 - the deepen pass stayed within the same active runtime model and reused the existing world-first signals rather than inventing a parallel workflow system
+
+---
+
+## Entry: 2026-04-03 research investigation lane first pass
+
+Scope:
+- consultant-facing `research_guidance` read-model contract
+- low-noise research guidance on task / matter / evidence workspaces
+- keep research depth logic Host-owned and avoid adding a new research dashboard
+
+Environment used:
+- frontend runtime: `http://127.0.0.1:3000`
+- backend runtime: `http://127.0.0.1:8000/api/v1`
+- code verification: local repo workspace
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`104 passed`) |
+| `node --test frontend/tests/intake-progress.test.mjs` | Passed (`7 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Research-lane specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | task create API | Create sparse external-event case and inspect `research_guidance` | Verified | response returned `status=recommended`, `recommended_depth=deep_research`, first research question, stop condition, and handoff summary |
+| Backend | task aggregate API | Create strict single-document contract-review case | Verified | aggregate returned `status=not_needed` and `label=目前不用先補研究` |
+| Frontend | `/tasks/[taskId]` | Route smoke after research-guidance UI wiring | Verified | route returned `200` on local runtime |
+| Frontend | `/matters/[matterId]/evidence` | Evidence route smoke after research-guidance UI wiring | Verified | route returned `200` on local runtime |
+| Frontend | helper tests | Verify research guidance view helper | Verified | node test now covers low-noise consultant copy for research guidance |
+
+### Live smoke data
+
+- research lane verification task id: `3e07d39f-d359-4294-85f4-eead43ce0da3`
+- research lane verification matter id: `b482ee12-4a45-4777-88a0-23c19eba9a64`
+- sparse research API verification returned:
+  - `status=recommended`
+  - `recommended_depth=deep_research`
+  - first question: `目前最需要先查清楚的外部事實是什麼...`
+  - stop condition and handoff summary both populated
+- low-noise verification task id: `33c4a1a8-4bcf-4221-b3e0-4f5935a33958`
+- low-noise verification returned:
+  - `status=not_needed`
+  - `label=目前不用先補研究`
+
+### Verified outcomes
+
+- Research / Investigation now has a first shipped consultant-facing guidance layer instead of living only inside deeper runtime traces
+- the product can now distinguish between cases that should clearly trigger research and cases where research should stay out of the way
+- research depth, first question, and stop condition are now available without forcing the user into a separate research control surface
+- the first pass stayed aligned with the user's simplicity requirement by adding guidance inside existing workspaces rather than creating a new complex UI family
