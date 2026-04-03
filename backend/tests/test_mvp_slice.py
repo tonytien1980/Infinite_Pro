@@ -3556,6 +3556,11 @@ def test_sparse_external_event_case_exposes_research_guidance(client: TestClient
     assert task["research_guidance"]["summary"]
     assert task["research_guidance"]["execution_owner_label"] == "由系統研究主線處理"
     assert task["research_guidance"]["suggested_questions"]
+    assert task["research_guidance"]["source_quality_summary"]
+    assert task["research_guidance"]["freshness_summary"]
+    assert task["research_guidance"]["contradiction_watchouts"]
+    assert task["research_guidance"]["citation_ready_summary"]
+    assert task["research_guidance"]["evidence_gap_closure_plan"]
     assert task["research_guidance"]["stop_condition"]
     assert task["research_guidance"]["handoff_summary"]
     assert task["research_guidance"]["boundary_note"]
@@ -3581,6 +3586,11 @@ def test_single_document_contract_review_keeps_research_guidance_low_noise(
     assert aggregate["research_guidance"]["execution_owner_label"] == "目前不需要啟動系統研究主線"
     assert "補件主鏈" in aggregate["research_guidance"]["supplement_boundary_note"]
     assert aggregate["research_guidance"]["suggested_questions"] == []
+    assert aggregate["research_guidance"]["source_quality_summary"] == ""
+    assert aggregate["research_guidance"]["freshness_summary"] == ""
+    assert aggregate["research_guidance"]["contradiction_watchouts"] == []
+    assert aggregate["research_guidance"]["citation_ready_summary"] == ""
+    assert aggregate["research_guidance"]["evidence_gap_closure_plan"] == []
 
 
 def test_host_routes_multi_agent_based_on_context_spine(

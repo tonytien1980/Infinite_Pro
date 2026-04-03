@@ -260,6 +260,11 @@ test("research guidance view turns backend guidance into low-noise consultant co
     boundary_note: "研究是為了補齊缺口，不是先把所有公開資訊都抓完。",
     execution_owner_label: "由系統研究主線處理",
     supplement_boundary_note: "若缺的是客戶內部資料、附件或會議紀錄，請改走補件主鏈。",
+    source_quality_summary: "優先官方、原始與第一手來源；若是新聞型題材，至少交叉比對近期公開來源。",
+    freshness_summary: "這輪高度依賴近期訊號，若來源太舊，判斷可能失真。",
+    contradiction_watchouts: ["若官方說法與市場報導不一致，需保留矛盾訊號。"],
+    citation_ready_summary: "研究輸出應保留來源、矛盾與可回看引用線索，再交回主控代理收斂。",
+    evidence_gap_closure_plan: ["先補關稅政策與出口限制的近期官方來源。"],
   });
 
   assert.equal(guidance.shouldShow, true);
@@ -270,6 +275,11 @@ test("research guidance view turns backend guidance into low-noise consultant co
   assert.equal(guidance.executionOwnerLabel, "由系統研究主線處理");
   assert.match(guidance.supplementBoundaryNote, /補件主鏈/);
   assert.match(guidance.boundaryNote, /補齊缺口/);
+  assert.match(guidance.sourceQualitySummary, /官方|第一手/);
+  assert.match(guidance.freshnessSummary, /近期訊號/);
+  assert.equal(guidance.contradictionWatchouts.length, 1);
+  assert.match(guidance.citationReadySummary, /來源|矛盾/);
+  assert.equal(guidance.evidenceGapClosurePlan.length, 1);
 });
 
 test("continuity posture view keeps follow-up distinct from one-off and continuous", () => {

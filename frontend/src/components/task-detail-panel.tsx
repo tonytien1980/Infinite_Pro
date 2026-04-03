@@ -860,7 +860,8 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                   {researchGuidance?.shouldShow ? (
                     <p className="hero-focus-copy">
                       {researchGuidance.executionOwnerLabel}｜
-                      {researchGuidance.stopCondition || researchGuidance.handoffSummary}
+                      {researchGuidance.sourceQualitySummary || researchGuidance.stopCondition || researchGuidance.handoffSummary}
+                      {researchGuidance.freshnessSummary ? `｜${researchGuidance.freshnessSummary}` : ""}
                     </p>
                   ) : followUpLane ? (
                     <p className="hero-focus-copy">
@@ -980,6 +981,11 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     ? `已留存 ${task.research_runs.length} 筆研究執行紀錄；最近一筆為 ${labelForResearchDepth(task.research_runs[0].research_depth)}。`
                     : "目前沒有研究來源脈絡。"}
                 </p>
+                {researchGuidance?.shouldShow ? (
+                  <p className="muted-text">
+                    {researchGuidance.citationReadySummary || researchGuidance.handoffSummary}
+                  </p>
+                ) : null}
               </div>
               <div className="section-card">
                 <h4>共享材料連續性</h4>

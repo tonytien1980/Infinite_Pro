@@ -1004,6 +1004,12 @@ export function MatterWorkspacePanel({
                           {researchGuidance.depthLabel}｜{researchGuidance.firstQuestion}
                         </p>
                         <p className="muted-text">{researchGuidance.executionOwnerLabel}</p>
+                        {researchGuidance.sourceQualitySummary ? (
+                          <p className="muted-text">{researchGuidance.sourceQualitySummary}</p>
+                        ) : null}
+                        {researchGuidance.freshnessSummary ? (
+                          <p className="muted-text">{researchGuidance.freshnessSummary}</p>
+                        ) : null}
                       </div>
                     ) : null}
                   </div>
@@ -1303,6 +1309,25 @@ export function MatterWorkspacePanel({
                       <p className="empty-text">目前尚未整理出分析焦點。</p>
                     )}
                   </div>
+                  {researchGuidance?.shouldShow ? (
+                    <div className="detail-item">
+                      <h3>研究補完方式</h3>
+                      <ul className="list-content">
+                        {researchGuidance.sourceQualitySummary ? (
+                          <li>來源品質：{researchGuidance.sourceQualitySummary}</li>
+                        ) : null}
+                        {researchGuidance.freshnessSummary ? (
+                          <li>時效性：{researchGuidance.freshnessSummary}</li>
+                        ) : null}
+                        {researchGuidance.contradictionWatchouts[0] ? (
+                          <li>矛盾保留：{researchGuidance.contradictionWatchouts[0]}</li>
+                        ) : null}
+                        {researchGuidance.evidenceGapClosurePlan[0] ? (
+                          <li>缺口收斂：{researchGuidance.evidenceGapClosurePlan[0]}</li>
+                        ) : null}
+                      </ul>
+                    </div>
+                  ) : null}
                   <div className="detail-item">
                     <h3>限制 / 風險</h3>
                     {constraintItems.length > 0 ? (

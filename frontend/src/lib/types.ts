@@ -524,6 +524,11 @@ export interface ResearchGuidance {
   recommended_depth: string;
   suggested_questions: string[];
   evidence_gap_focus: string[];
+  source_quality_summary: string;
+  freshness_summary: string;
+  contradiction_watchouts: string[];
+  citation_ready_summary: string;
+  evidence_gap_closure_plan: string[];
   stop_condition: string;
   handoff_summary: string;
   latest_run_summary: string;

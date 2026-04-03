@@ -58,6 +58,11 @@ class ResearchGuidanceRead(BaseModel):
     recommended_depth: str = ""
     suggested_questions: list[str] = Field(default_factory=list)
     evidence_gap_focus: list[str] = Field(default_factory=list)
+    source_quality_summary: str = ""
+    freshness_summary: str = ""
+    contradiction_watchouts: list[str] = Field(default_factory=list)
+    citation_ready_summary: str = ""
+    evidence_gap_closure_plan: list[str] = Field(default_factory=list)
     stop_condition: str = ""
     handoff_summary: str = ""
     latest_run_summary: str = ""

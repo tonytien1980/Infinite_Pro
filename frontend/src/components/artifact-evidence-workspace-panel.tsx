@@ -985,8 +985,8 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                   <p className="hero-focus-copy">
                     {researchGuidance?.shouldShow
                       ? `${researchGuidance.executionOwnerLabel}｜${
-                          researchGuidance.stopCondition || researchGuidance.handoffSummary
-                        }`
+                          researchGuidance.sourceQualitySummary || researchGuidance.stopCondition || researchGuidance.handoffSummary
+                        }${researchGuidance.freshnessSummary ? `｜${researchGuidance.freshnessSummary}` : ""}`
                       : followUpLane
                       ? `下一步：${followUpLane.next_follow_up_actions[0] || "補完後回案件工作面更新檢查點。"}`
                       : progressionLane
@@ -1098,6 +1098,31 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                     {researchGuidance.executionOwnerLabel}｜
                     {researchGuidance.stopCondition || researchGuidance.boundaryNote}
                   </p>
+                  {researchGuidance.sourceQualitySummary ? (
+                    <p className="muted-text">{researchGuidance.sourceQualitySummary}</p>
+                  ) : null}
+                  {researchGuidance.freshnessSummary ? (
+                    <p className="muted-text">{researchGuidance.freshnessSummary}</p>
+                  ) : null}
+                </div>
+              ) : null}
+              {researchGuidance?.shouldShow ? (
+                <div className="section-card">
+                  <h4>研究收斂方式</h4>
+                  <CompactList
+                    items={[
+                      researchGuidance.contradictionWatchouts[0]
+                        ? `矛盾訊號：${researchGuidance.contradictionWatchouts[0]}`
+                        : "",
+                      researchGuidance.citationReadySummary
+                        ? `引用交接：${researchGuidance.citationReadySummary}`
+                        : "",
+                      researchGuidance.evidenceGapClosurePlan[0]
+                        ? `缺口收斂：${researchGuidance.evidenceGapClosurePlan[0]}`
+                        : "",
+                    ].filter(Boolean)}
+                    emptyText="目前沒有額外的研究收斂提示。"
+                  />
                 </div>
               ) : null}
               <div className="section-card">

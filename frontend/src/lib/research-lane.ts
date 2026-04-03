@@ -6,6 +6,12 @@ export interface ResearchGuidanceView {
   firstQuestion: string;
   questions: string[];
   focusSummary: string;
+  sourceQualitySummary: string;
+  freshnessSummary: string;
+  contradictionWatchouts: string[];
+  contradictionSummary: string;
+  citationReadySummary: string;
+  evidenceGapClosurePlan: string[];
   stopCondition: string;
   handoffSummary: string;
   executionOwnerLabel: string;
@@ -36,6 +42,11 @@ export function buildResearchGuidanceView(
         recommended_depth: string;
         suggested_questions: string[];
         evidence_gap_focus: string[];
+        source_quality_summary: string;
+        freshness_summary: string;
+        contradiction_watchouts: string[];
+        citation_ready_summary: string;
+        evidence_gap_closure_plan: string[];
         stop_condition: string;
         handoff_summary: string;
         latest_run_summary: string;
@@ -58,6 +69,12 @@ export function buildResearchGuidanceView(
     firstQuestion: questions[0] || "目前沒有額外建議子題。",
     questions,
     focusSummary: focus.join("｜"),
+    sourceQualitySummary: guidance?.source_quality_summary || "",
+    freshnessSummary: guidance?.freshness_summary || "",
+    contradictionWatchouts: guidance?.contradiction_watchouts || [],
+    contradictionSummary: (guidance?.contradiction_watchouts || []).join("｜"),
+    citationReadySummary: guidance?.citation_ready_summary || "",
+    evidenceGapClosurePlan: guidance?.evidence_gap_closure_plan || [],
     stopCondition: guidance?.stop_condition || "",
     handoffSummary: guidance?.handoff_summary || "",
     executionOwnerLabel: guidance?.execution_owner_label || "",

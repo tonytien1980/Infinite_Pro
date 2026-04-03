@@ -297,6 +297,11 @@ Ontology 在 Infinite Pro 中是：
 - `recommended_depth`
 - `suggested_questions`
 - `evidence_gap_focus`
+- `source_quality_summary`
+- `freshness_summary`
+- `contradiction_watchouts`
+- `citation_ready_summary`
+- `evidence_gap_closure_plan`
 - `stop_condition`
 - `handoff_summary`
 - `latest_run_summary`

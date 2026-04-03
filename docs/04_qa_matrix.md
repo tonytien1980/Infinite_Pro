@@ -1846,3 +1846,65 @@ Environment used:
 - `follow_up` now has a clearer checkpoint timeline and return-cadence answer, instead of only scattered raw fields
 - the shared advisory helper now supports both `follow_up` and `continuous` while preserving their different mental models
 - matter workspace keeps the UI low-noise and checkpoint-first rather than drifting into a reduced `continuous` dashboard
+
+---
+
+## Entry: 2026-04-03 research investigation complete pass
+
+Scope:
+- upgrade `research_guidance` from depth + first-question guidance into a fuller consultant-facing research contract
+- keep the workbench low-noise and reuse existing task / matter / evidence surfaces
+- formalize source quality, freshness, contradiction, citation-ready, and evidence-gap-closure summaries
+
+Environment used:
+- frontend runtime: `http://127.0.0.1:3001`
+- backend runtime: `http://127.0.0.1:8010/api/v1`
+- smoke database: `sqlite:////Users/oldtien_base/Desktop/Infinite Pro/research-guidance-smoke.db`
+- smoke storage: repo-local `storage/`
+- smoke provider: `MODEL_PROVIDER=mock`
+- code verification: local repo workspace
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`106 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`12 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed for local smoke bundle |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Research-lane verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | task create API | Create sparse external-research-heavy case and inspect `research_guidance` | Verified | response now includes source-quality, freshness, contradiction, citation-ready, and gap-closure fields |
+| Backend | task aggregate API | Re-run strict single-document low-noise case | Verified | pytest now asserts the new research fields stay empty when research is not needed |
+| Frontend | helper tests | Verify richer research-guidance view stays consultant-facing | Verified | node test now covers source quality, freshness, contradiction, citation-ready, and gap-closure summaries |
+| Frontend | `/tasks/[taskId]` | Open live sparse research-heavy task page | Verified | hero research card now shows depth, first question, source-quality guidance, and freshness note |
+| Frontend | `/tasks/[taskId]` | Route smoke with live local task id | Verified | route returned `200` |
+| Frontend | `/matters/[matterId]/evidence` | Route smoke with live local evidence workspace id | Verified | route returned `200` |
+
+### Live smoke data
+
+- live research-guidance verification task id: `e1a3adfa-d598-4da8-835a-b40c34099eb1`
+- live research-guidance verification matter id: `03c225cd-7834-4320-91be-1c868aa1c531`
+- live API verification returned:
+  - `source_quality_summary=優先官方、原始與第一手來源；若是新聞型題材，至少交叉比對近期公開來源，避免單一敘事直接變成結論。`
+  - `freshness_summary=這輪高度依賴近期訊號；若來源太舊，研究結果可能快速失真。`
+  - `contradiction_watchouts[0]=若「Research / Intelligence Pack 缺少關鍵支撐」仍無法被一致來源支撐，應把它保留為待驗證而不是強行下結論。`
+  - `citation_ready_summary=這輪 deep_research 研究輸出應保留來源、矛盾訊號與可回看引用線索，再交回主線收斂。`
+  - `evidence_gap_closure_plan[0]=先補能直接縮小「Research / Intelligence Pack 缺少關鍵支撐」的不確定性來源；補到可回看、可引用就先停。`
+- frontend route smoke:
+  - `/tasks/e1a3adfa-d598-4da8-835a-b40c34099eb1` returned `200`
+  - `/matters/03c225cd-7834-4320-91be-1c868aa1c531/evidence` returned `200`
+- task workspace live UI confirmation:
+  - task first-screen research card showed `深度研究｜...`
+  - same card also showed source-quality guidance and freshness note on the live local page
+
+### Verified outcomes
+
+- `Research / Investigation` no longer stops at depth + first question; it now exposes a more mature consultant-facing contract
+- source quality, freshness, contradiction, citation-ready handoff, and gap-closure guidance now stay inside existing work surfaces instead of requiring a new research console
+- the product keeps research Host-owned and low-noise, while materially improving how ambiguous, external-fact-heavy cases are framed

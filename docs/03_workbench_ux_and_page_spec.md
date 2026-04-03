@@ -581,6 +581,9 @@ Primary action 應隨 continuity mode 分流：
 
 - 第一個 research question
 - 研究大概補到哪裡就先停
+- 來源品質怎麼看
+- 這輪是否高度依賴新鮮度
+- 哪個矛盾訊號必須保留
 
 ### 7.4 `/matters/[matterId]/evidence`
 
@@ -616,6 +619,8 @@ Primary action：
 - 先查哪幾題
 - 補研究是為了補缺口，不是把所有公開資訊都抓完
 - 若缺的是客戶內部資料或附件，應明示改走補件主鏈
+- citation-ready handoff 應長什麼樣
+- 最先怎麼收斂 evidence gaps
 
 ### 7.5 `/tasks/[taskId]`
 
@@ -648,6 +653,7 @@ Primary action：
 - 第一個 research question
 - stop condition
 - 這是系統研究，不是要求顧問自己去查
+- 來源品質 / freshness 提示
 
 ### 7.6 `/deliverables/[deliverableId]`
 

@@ -227,6 +227,14 @@ catalog / management surface 維持：
 - 不讓使用者先看到研究控制台或調研儀表板
 - 先由 runtime / Host signals 低噪音生成 research guidance，再讓工作面用顧問語言提示下一步
 
+目前較成熟的 research guidance 應至少再補：
+
+- source quality summary
+- freshness summary
+- contradiction watchouts
+- citation-ready summary
+- evidence-gap closure plan
+
 ### 5.2 Research handoff boundaries
 
 正式 handoff 規則：
@@ -241,6 +249,10 @@ catalog / management surface 維持：
 - 若要補，先查哪幾題
 - 查到哪裡就先停
 - 研究結果之後要先交回哪條收斂主線
+- 來源品質與新鮮度怎麼看
+- 哪個矛盾訊號必須保留
+- citation-ready handoff 應長什麼樣
+- 哪些缺口最先收斂
 
 目前邊界也必須明確：
 

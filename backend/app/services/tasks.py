@@ -2930,6 +2930,94 @@ def _build_research_guidance_handoff_summary(task_type: str, research_depth: str
     return f"這輪 {research_depth} 研究完成後，先交回主控代理收斂，不要直接把原始來源堆成結論。"
 
 
+def _build_research_guidance_source_quality_summary(
+    *,
+    status: str,
+    research_depth: str,
+    latest_run: schemas.ResearchRunRead | None,
+) -> str:
+    if status == "not_needed":
+        return ""
+    if latest_run and latest_run.source_quality_summary:
+        return latest_run.source_quality_summary
+    if research_depth == "deep_research":
+        return "優先官方、原始與第一手來源；若是新聞型題材，至少交叉比對近期公開來源，避免單一敘事直接變成結論。"
+    if research_depth == "standard_investigation":
+        return "先用官方、原始或高可信來源補主要子題；若來源彼此落差大，至少保留交叉比對結果。"
+    return "先補最小可信來源，避免用二手整理直接當成正式判斷基礎。"
+
+
+def _build_research_guidance_freshness_summary(
+    *,
+    status: str,
+    strategy: ExternalDataStrategy,
+    external_research_heavy_candidate: bool,
+    latest_run: schemas.ResearchRunRead | None,
+) -> str:
+    if status == "not_needed":
+        return ""
+    if latest_run and latest_run.freshness_policy:
+        return latest_run.freshness_policy
+    if strategy == ExternalDataStrategy.LATEST or external_research_heavy_candidate:
+        return "這輪高度依賴近期訊號；若來源太舊，研究結果可能快速失真。"
+    return "這輪仍要注意來源時效，但不必為了追最新而把研究無限擴大。"
+
+
+def _build_research_guidance_contradiction_watchouts(
+    *,
+    status: str,
+    capability: CapabilityArchetype,
+    gap_titles: list[str],
+    latest_run: schemas.ResearchRunRead | None,
+) -> list[str]:
+    if status == "not_needed":
+        return []
+    if latest_run and latest_run.contradiction_summary:
+        return [item for item in latest_run.contradiction_summary.split("；") if _normalize_whitespace(item)]
+
+    watchouts: list[str] = []
+    if capability == CapabilityArchetype.RISK_SURFACING:
+        watchouts.append("若官方說法、媒體報導與市場體感彼此不一致，必須把矛盾訊號留在研究 handoff 中。")
+    if capability == CapabilityArchetype.SCENARIO_COMPARISON:
+        watchouts.append("若不同方案依賴的外部前提彼此矛盾，不能先假設其中一方為真。")
+    if gap_titles:
+        watchouts.append(f"若「{gap_titles[0]}」仍無法被一致來源支撐，應把它保留為待驗證而不是強行下結論。")
+    if not watchouts:
+        watchouts.append("若主要來源彼此不一致，應把矛盾來源與可能原因一起交回主控代理，不要自行抹平。")
+    return watchouts[:3]
+
+
+def _build_research_guidance_citation_ready_summary(
+    *,
+    status: str,
+    research_depth: str,
+    latest_run: schemas.ResearchRunRead | None,
+) -> str:
+    if status == "not_needed":
+        return ""
+    if latest_run and latest_run.citation_handoff_summary:
+        return latest_run.citation_handoff_summary
+    return f"這輪 {research_depth} 研究輸出應保留來源、矛盾訊號與可回看引用線索，再交回主線收斂。"
+
+
+def _build_research_guidance_evidence_gap_closure_plan(
+    *,
+    status: str,
+    evidence_expectations: list[str],
+    gap_titles: list[str],
+) -> list[str]:
+    if status == "not_needed":
+        return []
+    plan: list[str] = []
+    for gap in gap_titles[:2]:
+        plan.append(f"先補能直接縮小「{gap}」的不確定性來源；補到可回看、可引用就先停。")
+    for expectation in evidence_expectations[:2]:
+        plan.append(f"若要支撐這輪結論，至少補一組可對應「{expectation}」的公開來源或正式資料。")
+    if not plan:
+        plan.append("先補最能縮小主要研究缺口的一組高可信來源，再回主線收斂。")
+    return _unique_preserve_order(plan)[:4]
+
+
 def _build_research_guidance_status(
     *,
     external_data_strategy: ExternalDataStrategy,
@@ -3066,6 +3154,33 @@ def _build_research_guidance_read(
             else []
         ),
         evidence_gap_focus=gap_titles[:5],
+        source_quality_summary=_build_research_guidance_source_quality_summary(
+            status=status,
+            research_depth=research_depth,
+            latest_run=latest_run,
+        ),
+        freshness_summary=_build_research_guidance_freshness_summary(
+            status=status,
+            strategy=strategy,
+            external_research_heavy_candidate=external_research_heavy_candidate,
+            latest_run=latest_run,
+        ),
+        contradiction_watchouts=_build_research_guidance_contradiction_watchouts(
+            status=status,
+            capability=capability,
+            gap_titles=gap_titles,
+            latest_run=latest_run,
+        ),
+        citation_ready_summary=_build_research_guidance_citation_ready_summary(
+            status=status,
+            research_depth=research_depth,
+            latest_run=latest_run,
+        ),
+        evidence_gap_closure_plan=_build_research_guidance_evidence_gap_closure_plan(
+            status=status,
+            evidence_expectations=pack_resolution.evidence_expectations,
+            gap_titles=gap_titles,
+        ),
         stop_condition=_build_research_guidance_stop_condition(research_depth) if status != "not_needed" else "",
         handoff_summary=_build_research_guidance_handoff_summary(task.task_type, research_depth) if status != "not_needed" else "",
         latest_run_summary=latest_run.result_summary if latest_run else "",
