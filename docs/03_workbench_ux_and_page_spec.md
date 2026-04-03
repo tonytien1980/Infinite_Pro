@@ -547,6 +547,7 @@ Primary action 應隨 continuity mode 分流：
 - `follow_up` 首屏應明示這是「回來更新 / checkpoint」節奏
 - 不可把 `follow_up` 寫成縮小版 `continuous`
 - 不可讓 progression / outcome 語言在 `follow_up` 首屏與 checkpoint 同層競爭
+- `continuous` 才應明示這是「持續推進 / outcome」節奏
 
 首屏也應明示：
 
@@ -644,6 +645,7 @@ Primary action 應隨 continuity mode / status 分流：
 - `follow_up` 版交付物應明示它屬於回來更新 / checkpoint 版本
 - `one_off` 應仍偏向發布 / 匯出 / 結案
 - `continuous` 才應保留較完整的 progression / outcome 心智
+- `continuous` 版交付物應清楚表達它承接長期推進，而不是單次 checkpoint 更新
 
 若這份交付物來自 sparse-start / flagship lane，首屏應可回答：
 

@@ -631,7 +631,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
       : continuationSurface?.workflow_layer === "checkpoint"
       ? "這份交付物屬於回來更新 / checkpoint 版本"
       : continuationSurface?.workflow_layer === "progression"
-        ? "這份交付物承接持續推進節奏"
+        ? "這份交付物承接持續推進 / outcome 節奏"
       : deliverableStatus === "final"
       ? "這份交付物已可匯出與回看"
       : deliverableStatus === "archived"
@@ -650,8 +650,8 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
             : `${continuityPosture.primarySummary} 先回看結果，再決定要不要回案件工作面補一筆 checkpoint。`
           : continuationSurface?.workflow_layer === "progression"
             ? progressionLane?.latest_progression?.summary
-              ? `這份交付物目前承接持續推進狀態「${progressionLane.latest_progression.summary}」。先確認行動／結果的最新變化，再決定要不要刷新交付物。`
-              : "這份交付物目前更像持續推進的基線。先回看結論與依據，再回案件工作面記錄進度或結果。"
+              ? `${continuityPosture.primarySummary} 這份交付物目前承接持續推進狀態「${progressionLane.latest_progression.summary}」。先確認進度與 outcome 的最新變化，再決定要不要刷新交付物。`
+              : `${continuityPosture.primarySummary} 先回看結論與依據，再回案件工作面記錄進度或結果。`
       : deliverableStatus === "final"
         ? "現在最有效率的做法是匯出正式版本，或回到下方檢查依據來源、版本紀錄與連續性。"
       : deliverableStatus === "archived"
@@ -739,7 +739,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const deliverableContinuitySummary = followUpLane?.latest_update?.summary
     ? `回來更新 / checkpoint｜${followUpLane.latest_update.summary}`
     : progressionLane?.latest_progression?.summary
-      ? `最新推進狀態：${progressionLane.latest_progression.summary}`
+      ? `持續推進 / outcome｜${progressionLane.latest_progression.summary}`
       : continuationSurface?.workflow_layer === "closure"
         ? "這個單次案件已具備基本脈絡、證據與交付結果，下一步應偏向正式結案、發布或匯出。"
       : continuationSurface?.summary

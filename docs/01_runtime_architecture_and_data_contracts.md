@@ -438,11 +438,18 @@ Infinite Pro 的正式輸出不應退回 generic long answer。
 
 - 保留 `follow_up` baseline
 - 正式支援 decision -> action -> outcome loop
+- 正式定位是 retained advisory / 持續推進層，不可退化成 generic progress tracker
 - 應能回答：
   - latest progression state
   - previous progression snapshot
   - action / outcome state
   - next progression action
+
+正式 UX / read-model 規則：
+
+- 首屏應優先使用「持續推進 / outcome」語言
+- 這一層才需要較完整的 action state 與 outcome signal 表達
+- 不可反向污染 `follow_up` 的 checkpoint / milestone 心智
 
 ### 6.5 Writeback records
 

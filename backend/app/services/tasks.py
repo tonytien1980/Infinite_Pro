@@ -5900,12 +5900,13 @@ def _build_continuation_surface(
             mode=continuity_mode,
             writeback_depth=writeback_depth,
             current_state="progression_ready",
-            title="這案目前適合記錄進度與 outcome",
+            title="這案目前屬於持續推進 / outcome 節奏",
             summary=(
-                (
-                    progression_lane.what_changed[0]
+                "這輪不是一次性交付，也不是單次 checkpoint 更新；重點是沿著同一個案件世界持續回看進度、action 狀態與 outcome 新訊號。"
+                + (
+                    f" {progression_lane.what_changed[0]}"
                     if progression_lane is not None and progression_lane.what_changed
-                    else "continuous 案件才需要較完整的 progression surface；"
+                    else ""
                 )
                 + (
                     f" 下一步建議：{progression_lane.next_progression_actions[0]}"
@@ -5940,10 +5941,10 @@ def _build_continuation_surface(
         mode=continuity_mode,
         writeback_depth=writeback_depth,
         current_state="progression_pending",
-        title="先建立第一輪持續推進基線",
+        title="這案目前屬於持續推進 / outcome 節奏",
         summary=(
-            "這案屬於 continuous 模式，但目前還沒有足夠的 decision / deliverable 基線；"
-            "先完成第一輪分析，之後再記錄 progression 與 outcome。"
+            "這案屬於持續推進節奏，但目前還沒有足夠的 decision / deliverable 基線；"
+            "先完成第一輪分析，之後再定期回看進度與 outcome。"
         ),
         primary_action=_build_continuation_action(
             "run_analysis",

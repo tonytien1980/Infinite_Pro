@@ -1503,3 +1503,54 @@ Environment used:
 - `follow_up` now reads as a distinct checkpoint / milestone middle layer instead of a weaker `continuous` shell
 - matter, task, and deliverable first screens now use clearer consultant-facing continuity posture language
 - the new continuity helper gives the frontend one shared place to keep `one_off / follow_up / continuous` copy separated
+
+---
+
+## Entry: 2026-04-03 continuous posture clarity
+
+Scope:
+- clarify `continuous` as the only continuity posture that should use stronger progression / outcome language
+- keep `continuous` distinct from checkpoint-style `follow_up`
+- align backend continuation summaries, frontend first-screen copy, active docs, and QA evidence
+
+Environment used:
+- frontend runtime: `http://127.0.0.1:3000`
+- backend runtime: `http://127.0.0.1:8000/api/v1`
+- code verification: local repo workspace
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`104 passed`) |
+| `node --test frontend/tests/intake-progress.test.mjs` | Passed (`8 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Continuous posture verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | continuation surface contract | Re-run focused continuous continuity test | Verified | pytest now asserts progression surfaces use `持續推進` wording and keep stronger `outcome` language |
+| Frontend | continuity helper | Re-run helper tests after continuous posture changes | Verified | node test still keeps `one_off / follow_up / continuous` mode labels separated |
+| Frontend | `/tasks/[taskId]` | Route smoke with live local continuous task id | Verified | route returned `200` |
+| Frontend | `/matters/[matterId]` | Route smoke with live local continuous matter id | Verified | route returned `200` |
+
+### Live smoke data
+
+- live continuous verification task id: `c0188901-cb25-433d-8a3d-bdd95fbccf00`
+- live continuous verification matter id: `bf46628a-0f8a-4d80-acd3-eff432be6cd1`
+- live API verification returned:
+  - `title=這案目前屬於持續推進 / outcome 節奏`
+  - `summary=這案屬於持續推進節奏，但目前還沒有足夠的 decision / deliverable 基線；先完成第一輪分析，之後再定期回看進度與 outcome。`
+  - `primary_action.label=先建立持續推進基線`
+- frontend route smoke:
+  - `/tasks/c0188901-cb25-433d-8a3d-bdd95fbccf00` returned `200`
+  - `/matters/bf46628a-0f8a-4d80-acd3-eff432be6cd1` returned `200`
+
+### Verified outcomes
+
+- `continuous` now reads as the long-running progression / outcome layer instead of generic “more follow-up”
+- the continuity posture split is now clearer across all three modes: `one_off`, `follow_up`, and `continuous`
+- the product keeps the stronger progression language contained inside `continuous` instead of leaking it back into the lighter continuity modes

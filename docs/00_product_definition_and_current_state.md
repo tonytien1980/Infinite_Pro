@@ -435,6 +435,9 @@ Infinite Pro 目前沒有也不應硬對齊於：
 - `follow_up` 目前也正式朝「checkpoint / milestone middle layer」深化：
   - 目標不是把所有後續案件都做成長期追蹤
   - 而是把 `one_off`、`follow_up`、`continuous` 三者的首屏心智清楚分開
+- `continuous` 目前也開始朝「持續推進 / outcome」姿態深化：
+  - 這一層才承接較完整的進度、action 狀態與 outcome 訊號
+  - 目標是讓長期案件更清楚，而不是把這套語言外溢到所有案件
 
 ---
 

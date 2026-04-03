@@ -238,6 +238,15 @@ function buildMatterAdvanceGuide({
         primaryActionLabel: continuationSurface.primary_action.label,
       };
     }
+    if (continuationSurface.workflow_layer === "progression") {
+      return {
+        title: "這案目前屬於持續推進 / outcome 節奏",
+        summary:
+          "這輪重點是沿著同一個案件世界持續回看進度、action 狀態與結果訊號，不是單次 checkpoint 更新。",
+        checklist,
+        primaryActionLabel: continuationSurface.primary_action.label,
+      };
+    }
     return {
       title: continuationSurface.title,
       summary: continuationSurface.summary,
@@ -265,6 +274,15 @@ function buildMatterAdvanceGuide({
   }
 
   if (sourceMaterialCount === 0 || evidenceCount < 2) {
+    if (continuationSurface?.workflow_layer === "progression") {
+      return {
+        title: "這案目前屬於持續推進 / outcome 節奏",
+        summary:
+          "這個案件後續會持續追進度與結果，但現在還缺第一輪基線。先補件或先跑分析，之後再回到持續推進節奏。",
+        checklist,
+        primaryActionLabel: "先建立持續推進基線",
+      };
+    }
     return {
       title: arrivedFromNew ? "案件已建立，現在先補件或先跑第一版" : "現在先補件或先跑第一版",
       summary: "建立案件只代表主鏈已成立，不代表結果已產出。你可以先補來源與證據，也可以直接讓系統先做一版可回看的交付物骨架。",

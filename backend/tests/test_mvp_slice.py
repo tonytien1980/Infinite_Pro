@@ -4158,6 +4158,8 @@ def test_continuous_surfaces_show_latest_previous_progression_and_guidance(
         deliverable_workspace["continuation_surface"],
     ):
         assert payload["workflow_layer"] == "progression"
+        assert "持續推進" in payload["title"]
+        assert "outcome" in payload["summary"]
         assert payload["follow_up_lane"] is None
         assert payload["progression_lane"]["latest_progression"]["summary"].startswith("第二輪 outcome")
         assert payload["progression_lane"]["previous_progression"]["summary"].startswith("第一輪 action")
