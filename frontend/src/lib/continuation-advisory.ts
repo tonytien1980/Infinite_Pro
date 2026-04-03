@@ -31,7 +31,10 @@ export function buildContinuationAdvisoryView(
     | null
     | undefined,
 ): ContinuationAdvisoryView {
-  if (surface?.workflow_layer !== "progression" || surface.health_signal == null) {
+  if (
+    (surface?.workflow_layer !== "progression" && surface?.workflow_layer !== "checkpoint")
+    || surface.health_signal == null
+  ) {
     return {
       shouldShow: false,
       healthLabel: "",
@@ -53,7 +56,8 @@ export function buildContinuationAdvisoryView(
     shouldShow: true,
     healthLabel: surface.health_signal.label,
     healthSummary: surface.health_signal.summary,
-    timelineTitle: "最近推進時間線",
+    timelineTitle:
+      surface.workflow_layer === "checkpoint" ? "最近 checkpoint 時間線" : "最近推進時間線",
     timelineItems: surface.timeline_items.slice(0, 3),
     nextStepQueue: surface.next_step_queue.slice(0, 4),
     outcomeTrackingLabel: surface.outcome_tracking?.label || "",

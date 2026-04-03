@@ -4061,6 +4061,12 @@ def test_follow_up_surfaces_show_latest_previous_checkpoint_and_change_guidance(
         assert len(payload["follow_up_lane"]["recent_checkpoints"]) >= 2
         assert payload["follow_up_lane"]["what_changed"]
         assert payload["follow_up_lane"]["evidence_update_goal"]
+        assert len(payload["timeline_items"]) >= 2
+        assert payload["timeline_items"][0]["kind"] == "checkpoint"
+        assert payload["timeline_items"][0]["summary"] == second_checkpoint_summary
+        assert payload["review_rhythm"]["label"]
+        assert payload["review_rhythm"]["summary"]
+        assert payload["review_rhythm"]["next_review_prompt"]
 
     assert matter_workspace["outcome_records"] == []
     assert task_aggregate["outcome_records"] == []

@@ -549,6 +549,11 @@ Primary action 應隨 continuity mode 分流：
 - 不可把 `follow_up` 寫成縮小版 `continuous`
 - 不可讓 progression / outcome 語言在 `follow_up` 首屏與 checkpoint 同層競爭
 - `continuous` 才應明示這是「持續推進 / outcome」節奏
+- `follow_up` 也可用共通 advisory surface 回答：
+  - 最近 checkpoint 時間線
+  - 目前更新節奏穩不穩
+  - 下次何時值得回來更新
+- 但這一層不可露出 `outcome tracking` 主語言
 
 首屏也應明示：
 

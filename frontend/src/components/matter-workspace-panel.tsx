@@ -1215,14 +1215,37 @@ export function MatterWorkspacePanel({
                   ) : null}
                   {followUpLane ? (
                     <div className="detail-item">
-                      <h3>最近檢查點與變化</h3>
-                      <ul className="list-content">
-                        <li>最近檢查點：{followUpLane.latest_update?.summary || "尚未形成正式檢查點。"}</li>
-                        <li>上一個檢查點：{followUpLane.previous_checkpoint?.summary || "目前沒有更早的檢查點可比較。"}</li>
-                        {followUpLane.what_changed.map((item) => (
-                          <li key={item}>{item}</li>
-                        ))}
-                      </ul>
+                      <h3>checkpoint 時間線與變化</h3>
+                      <p className="content-block">
+                        {continuationAdvisoryView.healthLabel || "回來更新中"}
+                      </p>
+                      <p className="muted-text">
+                        {continuationAdvisoryView.healthSummary || "目前還沒有額外的 checkpoint 健康摘要。"}
+                      </p>
+                      {continuationAdvisoryView.timelineItems.length > 0 ? (
+                        <ul className="list-content" style={{ marginTop: "12px" }}>
+                          {continuationAdvisoryView.timelineItems.map((item) => (
+                            <li key={`${item.kind}-${item.created_at || item.summary}`}>
+                              {item.title}：{item.summary}
+                              {item.created_at ? `｜${formatDisplayDate(item.created_at)}` : ""}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="empty-text">目前還沒有可回看的 checkpoint 時間線。</p>
+                      )}
+                      {followUpLane.what_changed.length > 0 ? (
+                        <ul className="list-content" style={{ marginTop: "12px" }}>
+                          {followUpLane.what_changed.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      ) : null}
+                      {continuationAdvisoryView.reviewRhythmLabel ? (
+                        <p className="muted-text" style={{ marginTop: "12px" }}>
+                          回來更新節奏：{continuationAdvisoryView.reviewRhythmLabel}｜{continuationAdvisoryView.nextReviewPrompt || continuationAdvisoryView.reviewRhythmSummary}
+                        </p>
+                      ) : null}
                     </div>
                   ) : null}
                   {progressionLane ? (

@@ -5925,8 +5925,22 @@ def _build_continuation_outcome_tracking(
 def _build_continuation_review_rhythm(
     *,
     continuity_mode: EngagementContinuityMode,
+    follow_up_lane: schemas.FollowUpLaneRead | None = None,
     progression_lane: schemas.ProgressionLaneRead | None,
 ) -> schemas.ContinuationReviewRhythmRead | None:
+    if continuity_mode == EngagementContinuityMode.FOLLOW_UP:
+        if follow_up_lane is None or follow_up_lane.latest_update is None:
+            return schemas.ContinuationReviewRhythmRead(
+                label="先形成這輪 checkpoint",
+                summary="先完成這輪更新，再決定下一次何時回來看，避免案件節奏停在半套。",
+                next_review_prompt="下次回看時，先確認這輪補件是否已足以形成正式 checkpoint。",
+            )
+        return schemas.ContinuationReviewRhythmRead(
+            label="有新資料就回來更新",
+            summary="這類案件以 checkpoint / milestone 更新為主，不需要用 continuous 的長期推進節奏來看。",
+            next_review_prompt="下次回看時，先確認最新補件是否足以改寫 checkpoint。",
+        )
+
     if continuity_mode != EngagementContinuityMode.CONTINUOUS:
         return None
 
@@ -6009,6 +6023,7 @@ def _build_continuation_surface(
     )
     review_rhythm = _build_continuation_review_rhythm(
         continuity_mode=continuity_mode,
+        follow_up_lane=follow_up_lane,
         progression_lane=progression_lane,
     )
 

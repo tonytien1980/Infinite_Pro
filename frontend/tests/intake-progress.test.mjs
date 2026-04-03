@@ -404,3 +404,53 @@ test("continuous advisory view exposes health, timeline, and next-step queue in 
   assert.equal(view.reviewRhythmLabel, "本週內回看");
   assert.match(view.nextReviewPrompt, /刷新交付物|改寫正式交付物/);
 });
+
+test("follow-up advisory view exposes checkpoint timeline and review rhythm without reading like continuous", () => {
+  const view = buildContinuationAdvisoryView({
+    workflow_layer: "checkpoint",
+    current_state: "checkpoint_ready",
+    health_signal: {
+      status: "steady",
+      label: "更新節奏已站穩",
+      summary: "最近 checkpoint 已形成，而且這輪變化已可讀。",
+    },
+    timeline_items: [
+      {
+        kind: "checkpoint",
+        title: "最新 checkpoint",
+        summary: "Checkpoint B：這輪改成優先修正 premium 報價敘事，渠道主線先延續。",
+        created_at: "2026-04-03T14:00:00Z",
+        task_id: "task-2",
+        task_title: "Follow-up refresh",
+        deliverable_id: "deliverable-2",
+        deliverable_title: "Follow-up deliverable",
+      },
+      {
+        kind: "checkpoint",
+        title: "上一個 checkpoint",
+        summary: "Checkpoint A：先維持主方案，但需追蹤報價與渠道效率。",
+        created_at: "2026-04-03T13:00:00Z",
+        task_id: "task-1",
+        task_title: "Follow-up baseline",
+        deliverable_id: "deliverable-1",
+        deliverable_title: "Baseline deliverable",
+      },
+    ],
+    next_step_queue: [
+      "先補 premium 轉換與定價反饋，再回來更新 checkpoint。",
+    ],
+    outcome_tracking: null,
+    review_rhythm: {
+      label: "有新資料就回來更新",
+      summary: "這類案件以 milestone 更新為主，不需要固定用長期推進節奏回看。",
+      next_review_prompt: "下次回看時，先確認最新補件是否足以改寫 checkpoint。",
+    },
+  });
+
+  assert.equal(view.shouldShow, true);
+  assert.equal(view.timelineTitle, "最近 checkpoint 時間線");
+  assert.equal(view.timelineItems[0].kind, "checkpoint");
+  assert.equal(view.reviewRhythmLabel, "有新資料就回來更新");
+  assert.equal(view.outcomeTrackingLabel, "");
+  assert.doesNotMatch(view.healthSummary, /outcome|progression/i);
+});

@@ -435,6 +435,10 @@ Infinite Pro 的正式輸出不應退回 generic long answer。
 - 首屏應優先使用「回來更新 / checkpoint」語言，而不是 progression / outcome 語言
 - `follow_up` 的重點是 checkpoint / milestone update，不要求完整 action / outcome loop
 - 若後續真的要追 action / outcome，才應升級到 `continuous`
+- 若要讓 middle-layer 真的好用，`follow_up` 也應能透過同一條 `continuation_surface` 回答：
+  - `timeline_items`
+  - `review_rhythm`
+- 但這一層的 review rhythm 必須維持「有新資料就回來更新 / 補件後回看」語氣，不可漂成 `continuous` 的 progression cadence
 
 ### 6.4 continuous
 

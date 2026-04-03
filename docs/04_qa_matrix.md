@@ -1788,3 +1788,61 @@ Environment used:
 - `continuous` retained-advisory MVP now answers not only “health / timeline / next step” but also “how outcome tracking is going” and “when to review next”
 - the product still avoids calendar-shell complexity and keeps review rhythm as guidance, not scheduling UI
 - matter workspace now reads more like a real long-running advisory operating surface while preserving the low-noise design constraint
+
+---
+
+## Entry: 2026-04-03 follow-up checkpoint timeline pass
+
+Scope:
+- extend `follow_up` so checkpoint timeline and return cadence are first-class on the shared continuity surface
+- keep the UX checkpoint-first and explicitly distinct from `continuous`
+- surface the new answers in `matter workspace` without adding a new page
+
+Environment used:
+- frontend runtime: `http://127.0.0.1:3001`
+- backend runtime: `http://127.0.0.1:8010/api/v1`
+- smoke database: `sqlite:////Users/oldtien_base/Desktop/Infinite Pro/follow-up-timeline-smoke.db`
+- smoke storage: repo-local `storage/`
+- smoke provider: `MODEL_PROVIDER=mock`
+- code verification: local repo workspace
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`106 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`12 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed for local smoke bundle |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Follow-up checkpoint verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | matter / task / evidence / deliverable continuation surface | Re-run follow-up checkpoint contract test | Verified | pytest now asserts `timeline_items` and `review_rhythm` exist for follow-up surfaces |
+| Frontend | continuity advisory helper | Verify follow-up advisory copy stays checkpoint-first | Verified | node helper test now covers `最近 checkpoint 時間線` and `有新資料就回來更新` |
+| Frontend | `/matters/[matterId]` | Open live follow-up matter workspace after two checkpoints | Verified | first screen shows `下次回看節奏`, and overview shows `checkpoint 時間線與變化` with recent checkpoint items |
+| Frontend | `/matters/[matterId]` | Route smoke with live local follow-up matter id | Verified | route returned `200` |
+
+### Live smoke data
+
+- live follow-up verification task id: `e3f93da9-e43b-4798-8a99-8db4c6cad16c`
+- live follow-up verification matter id: `9556cac7-627e-428c-a6b0-12a0907b185b`
+- live follow-up verification deliverable id: `c9d41999-2442-42bf-8111-b286d1bddad7`
+- live API verification returned:
+  - `timeline_items[0].kind=checkpoint`
+  - `timeline_items[0].summary=Checkpoint B：這輪改成優先修正 premium 報價敘事，渠道主線先延續。`
+  - `review_rhythm.label=有新資料就回來更新`
+  - `review_rhythm.next_review_prompt=下次回看時，先確認最新補件是否足以改寫 checkpoint。`
+- frontend route smoke:
+  - `/matters/9556cac7-627e-428c-a6b0-12a0907b185b` returned `200`
+- browser snapshot:
+  - matter workspace follow-up checkpoint snapshot: `.playwright-cli/page-2026-04-03T15-33-17-722Z.yml`
+
+### Verified outcomes
+
+- `follow_up` now has a clearer checkpoint timeline and return-cadence answer, instead of only scattered raw fields
+- the shared advisory helper now supports both `follow_up` and `continuous` while preserving their different mental models
+- matter workspace keeps the UI low-noise and checkpoint-first rather than drifting into a reduced `continuous` dashboard
