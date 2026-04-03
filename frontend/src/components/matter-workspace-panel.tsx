@@ -586,7 +586,7 @@ export function MatterWorkspacePanel({
       : canonicalizationSummary.summary
     : "目前沒有待處理的重複材料候選。";
   const heroStrategySummary = flagshipLane
-    ? `起手方式：${flagshipLane.label}`
+    ? `起手方式：${flagshipLane.label}｜目前交付等級：${flagshipLane.currentOutputLabel}`
     : continuityStrategySummary
       ? `案件策略：${continuityStrategySummary}`
       : "案件策略尚未完整建立。";
@@ -933,6 +933,14 @@ export function MatterWorkspacePanel({
                       <h3>下一步最建議做什麼</h3>
                       <p className="content-block">{heroNextActionSummary}</p>
                     </div>
+                    {flagshipLane ? (
+                      <div className="detail-item">
+                        <h3>要升級到下一階段還缺什麼</h3>
+                        <p className="content-block">
+                          {flagshipLane.upgradeRequirements[0] || flagshipLane.upgradeNote}
+                        </p>
+                      </div>
+                    ) : null}
                   </div>
                   {continuationSurface?.primary_action?.action_id === "record_checkpoint" ? (
                     <div className="field" style={{ marginTop: "12px" }}>

@@ -42,6 +42,12 @@ class FlagshipLaneRead(BaseModel):
     summary: str = ""
     next_step_summary: str = ""
     upgrade_note: str = ""
+    current_output_label: str = ""
+    current_output_summary: str = ""
+    upgrade_target_label: str = ""
+    upgrade_requirements: list[str] = Field(default_factory=list)
+    upgrade_ready: bool = False
+    boundary_note: str = ""
 
 
 class ConstraintCreate(BaseModel):

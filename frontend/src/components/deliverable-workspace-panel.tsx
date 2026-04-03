@@ -1045,6 +1045,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                 </p>
                 <div className="meta-row deliverable-meta-row" style={{ marginTop: "16px" }}>
                   <span className="pill">{workspaceView.deliverableClassLabel}</span>
+                  {flagshipLane ? <span>{flagshipLane.currentOutputLabel}</span> : null}
                   <span>{workspaceView.deliverableTypeLabel}</span>
                   <span>{labelForDeliverableStatus(deliverableStatus)}</span>
                   <span>{workspaceView.workspaceStatusLabel}</span>
@@ -1070,6 +1071,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                     {truncateText(
                       displaySummary ||
                         effectiveExecutiveSummary ||
+                        flagshipLane?.currentOutputSummary ||
                         flagshipLane?.summary ||
                         decisionSnapshot?.conclusion ||
                         "目前沒有額外摘要。",
@@ -1083,7 +1085,10 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                 <div className="hero-focus-card">
                   <p className="hero-focus-label">{deliverableActionTitle}</p>
                   <h3 className="hero-focus-title">先決定是整理版本，還是正式發布</h3>
-                  <p className="hero-focus-copy">{deliverableActionSummary}</p>
+                  <p className="hero-focus-copy">
+                    {deliverableActionSummary}
+                    {flagshipLane?.boundaryNote ? ` ${flagshipLane.boundaryNote}` : ""}
+                  </p>
                   <div className="button-row" style={{ marginTop: "6px" }}>
                     {continuationSurface?.primary_action?.action_id === "close_case" &&
                     workspace?.matter_workspace ? (

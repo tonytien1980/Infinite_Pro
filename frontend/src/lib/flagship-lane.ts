@@ -9,6 +9,19 @@ export type InternalWorkflowValue =
   | "document_restructuring"
   | "multi_agent";
 
+export interface FlagshipLaneView {
+  label: string;
+  summary: string;
+  nextStepSummary: string;
+  upgradeNote: string;
+  currentOutputLabel: string;
+  currentOutputSummary: string;
+  upgradeTargetLabel: string;
+  upgradeRequirements: string[];
+  upgradeReady: boolean;
+  boundaryNote: string;
+}
+
 export const CONSULTANT_START_OPTIONS: Array<{
   value: ConsultantStartMode;
   label: string;
@@ -64,4 +77,37 @@ export function labelForConsultantStartMode(startMode: ConsultantStartMode) {
     CONSULTANT_START_OPTIONS.find((item) => item.value === startMode)?.label ??
     CONSULTANT_START_OPTIONS[0].label
   );
+}
+
+export function buildFlagshipLaneView(
+  lane:
+    | {
+        label: string;
+        summary: string;
+        next_step_summary: string;
+        upgrade_note: string;
+        current_output_label?: string;
+        current_output_summary?: string;
+        upgrade_target_label?: string;
+        upgrade_requirements?: string[];
+        upgrade_ready?: boolean;
+        boundary_note?: string;
+      }
+    | null
+    | undefined,
+): FlagshipLaneView {
+  return {
+    label: lane?.label || "先快速看清問題與下一步",
+    summary: lane?.summary || "目前先以少資訊起手，形成第一輪可回看的顧問判斷。",
+    nextStepSummary:
+      lane?.next_step_summary || "先確認主問題，再補最少但最有用的來源或直接先跑第一版。",
+    upgradeNote:
+      lane?.upgrade_note || "等補進更多來源與證據後，再把案件升級成更完整的判斷主線。",
+    currentOutputLabel: lane?.current_output_label || "探索型簡報",
+    currentOutputSummary: lane?.current_output_summary || "目前先形成探索級第一版交付。",
+    upgradeTargetLabel: lane?.upgrade_target_label || "評估 / 審閱備忘",
+    upgradeRequirements: lane?.upgrade_requirements || [],
+    upgradeReady: lane?.upgrade_ready || false,
+    boundaryNote: lane?.boundary_note || "這一輪仍有邊界，不應被誤讀成完整定論。",
+  };
 }

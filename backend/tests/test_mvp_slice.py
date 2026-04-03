@@ -726,6 +726,11 @@ def test_task_creation_attaches_background_text_as_context_and_evidence(client: 
     assert body["flagship_lane"]["summary"]
     assert body["flagship_lane"]["next_step_summary"]
     assert body["flagship_lane"]["upgrade_note"]
+    assert body["flagship_lane"]["current_output_label"] == "探索型簡報"
+    assert body["flagship_lane"]["upgrade_target_label"] == "評估 / 審閱備忘"
+    assert body["flagship_lane"]["upgrade_requirements"]
+    assert body["flagship_lane"]["upgrade_ready"] is False
+    assert body["flagship_lane"]["boundary_note"]
     assert body["matter_workspace"]["flagship_lane"]["lane_id"] == "diagnostic_start"
     assert body["presence_state_summary"]["decision_context"]["state"] in {
         "explicit",
@@ -2260,6 +2265,10 @@ def test_single_document_intake_updates_entry_mode_and_deliverable_hint(
     assert aggregate["flagship_lane"]["summary"]
     assert aggregate["flagship_lane"]["next_step_summary"]
     assert aggregate["flagship_lane"]["upgrade_note"]
+    assert aggregate["flagship_lane"]["current_output_label"] == "評估 / 審閱備忘"
+    assert aggregate["flagship_lane"]["upgrade_target_label"] == "決策 / 行動交付物"
+    assert aggregate["flagship_lane"]["upgrade_requirements"]
+    assert aggregate["flagship_lane"]["boundary_note"]
     assert aggregate["matter_workspace"]["flagship_lane"]["lane_id"] == "material_review_start"
     assert aggregate["presence_state_summary"]["artifact"]["state"] == "explicit"
     assert aggregate["presence_state_summary"]["source_material"]["state"] == "explicit"
@@ -2306,6 +2315,9 @@ def test_multi_material_case_exposes_decision_convergence_flagship_lane(
     assert aggregate["flagship_lane"]["summary"]
     assert aggregate["flagship_lane"]["next_step_summary"]
     assert aggregate["flagship_lane"]["upgrade_note"]
+    assert aggregate["flagship_lane"]["current_output_label"] == "決策 / 行動交付物"
+    assert aggregate["flagship_lane"]["upgrade_target_label"]
+    assert aggregate["flagship_lane"]["boundary_note"]
     assert aggregate["matter_workspace"]["flagship_lane"]["lane_id"] == "decision_convergence_start"
 
 

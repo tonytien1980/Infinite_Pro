@@ -9,6 +9,7 @@ import {
   summarizeBatchProgress,
 } from "../src/lib/intake.ts";
 import {
+  buildFlagshipLaneView,
   CONSULTANT_START_OPTIONS,
   resolveWorkflowValueForConsultingStart,
 } from "../src/lib/flagship-lane.ts";
@@ -214,4 +215,25 @@ test("consultant-facing start modes stay separate from internal workflow labels"
     resolveWorkflowValueForConsultingStart("decision_convergence_start", "請比較三種方案後給建議"),
     "multi_agent",
   );
+});
+
+test("flagship lane view exposes current output level and upgrade checklist", () => {
+  const lane = buildFlagshipLaneView({
+    label: "先快速看清問題與下一步",
+    summary: "先用探索級方式整理第一輪判斷。",
+    next_step_summary: "先補至少一份正式來源材料。",
+    upgrade_note: "補完之後可升級成評估 / 審閱備忘。",
+    current_output_label: "探索型簡報",
+    current_output_summary: "目前先形成探索級交付。",
+    upgrade_target_label: "評估 / 審閱備忘",
+    upgrade_requirements: ["至少補 1 份正式來源材料", "補到至少 2 則可用證據"],
+    upgrade_ready: false,
+    boundary_note: "這一輪不應被誤讀成完整決策結論。",
+  });
+
+  assert.equal(lane.currentOutputLabel, "探索型簡報");
+  assert.equal(lane.upgradeTargetLabel, "評估 / 審閱備忘");
+  assert.equal(lane.upgradeReady, false);
+  assert.equal(lane.upgradeRequirements.length, 2);
+  assert.match(lane.boundaryNote, /誤讀|完整決策/);
 });

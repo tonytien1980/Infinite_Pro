@@ -433,7 +433,7 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
     : "";
   const flagshipLane = workspace ? buildFlagshipLaneView(workspace.matter_summary.flagship_lane) : null;
   const evidenceSurfaceSummary = flagshipLane
-    ? `${flagshipLane.summary} ${workspaceView?.summary || evidenceHeroSummary}`
+    ? `${flagshipLane.currentOutputSummary} ${workspaceView?.summary || evidenceHeroSummary}`
     : workspaceView?.summary || evidenceHeroSummary;
   const evidenceLaneSummary = followUpLane
     ? followUpLane.latest_update?.summary || "尚未形成正式檢查點。"
@@ -975,7 +975,9 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                       ? `下一步：${followUpLane.next_follow_up_actions[0] || "補完後回案件工作面更新檢查點。"}`
                       : progressionLane
                         ? `下一步：${progressionLane.next_progression_actions[0] || "回案件工作面更新推進狀態。"}`
-                        : flagshipLane?.nextStepSummary || sharedContinuitySummary}
+                        : flagshipLane?.upgradeRequirements[0] ||
+                          flagshipLane?.nextStepSummary ||
+                          sharedContinuitySummary}
                   </p>
                 </div>
               </div>

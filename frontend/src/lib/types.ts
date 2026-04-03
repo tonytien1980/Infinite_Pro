@@ -504,6 +504,12 @@ export interface FlagshipLane {
   summary: string;
   next_step_summary: string;
   upgrade_note: string;
+  current_output_label: string;
+  current_output_summary: string;
+  upgrade_target_label: string;
+  upgrade_requirements: string[];
+  upgrade_ready: boolean;
+  boundary_note: string;
 }
 
 export interface MatterDecisionPoint {

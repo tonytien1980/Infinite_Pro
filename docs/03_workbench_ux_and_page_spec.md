@@ -276,6 +276,12 @@ detail workspace 第一屏正式採下列分工：
 - 它必須由既有 runtime signals 衍生，而不是前端自創 workflow 真相
 - 第一波正式產品化重點是 sparse-start matters 的 `diagnostic_start`
 
+deepen 後，首屏還應能回答：
+
+- 目前這輪最多能交到什麼等級
+- 目前不該被誤讀成什麼
+- 若要升級到下一階段，最先要補的是什麼
+
 ### 3.3 Consultant-first, debug-on-demand
 
 以下內容可達、可追、可展開，但預設不應與主線同層競爭：
@@ -521,6 +527,7 @@ Primary action 應隨 continuity mode 分流：
 首屏也應明示：
 
 - 這個案件目前屬於哪種 flagship lane
+- 目前交付等級與輸出邊界
 - 這輪為什麼還停在這個姿態
 - 下一步要補件、跑分析，還是回交付物
 
@@ -545,6 +552,7 @@ Primary action：
 - 目前哪些支撐鏈還沒形成
 - 補完後會回哪條主線
 - 何時會從 first diagnosis 升級成較完整的 material review / decision convergence
+- 目前這輪還不應被誤讀成什麼程度的正式交付
 
 ### 7.5 `/tasks/[taskId]`
 
@@ -566,6 +574,7 @@ Primary action：
 
 - 這筆工作現在屬於哪個 flagship lane
 - 目前是 exploratory、material review，還是 decision convergence posture
+- 若要升級到下一個交付等級，最先缺的是什麼
 - 執行分析後會往哪個正式交付結果前進
 
 ### 7.6 `/deliverables/[deliverableId]`
@@ -593,6 +602,7 @@ Primary action 應隨 continuity mode / status 分流：
 - 這份交付物目前屬於哪個工作姿態下的成果
 - 它是 exploratory、assessment，還是 decision-action 等級
 - 若要提高正式性，下一步應補什麼、升級到哪種主線
+- 目前這份交付物的適用邊界在哪裡
 
 ### 7.7 `/agents`
 

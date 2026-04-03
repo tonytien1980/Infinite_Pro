@@ -13,6 +13,8 @@ import type {
   TaskListItem,
   PresenceStateItem,
 } from "@/lib/types";
+export { buildFlagshipLaneView } from "@/lib/flagship-lane";
+export type { FlagshipLaneView } from "@/lib/flagship-lane";
 import {
   extractModeSpecificAppendix,
   getModeSpecificReadinessSignals,
@@ -214,13 +216,6 @@ export interface SparseInputOperatingView {
   deliverableGuidance: string;
   externalResearchHeavy: boolean;
   presenceHighlights: string[];
-}
-
-export interface FlagshipLaneView {
-  label: string;
-  summary: string;
-  nextStepSummary: string;
-  upgradeNote: string;
 }
 
 export interface WorkspaceMaterialCardView {
@@ -1459,19 +1454,6 @@ export function buildSparseInputOperatingView(
     deliverableGuidance,
     externalResearchHeavy,
     presenceHighlights: getPresenceHighlights(task, deliverable),
-  };
-}
-
-export function buildFlagshipLaneView(
-  lane: { label: string; summary: string; next_step_summary: string; upgrade_note: string } | null | undefined,
-): FlagshipLaneView {
-  return {
-    label: lane?.label || "先快速看清問題與下一步",
-    summary: lane?.summary || "目前先以少資訊起手，形成第一輪可回看的顧問判斷。",
-    nextStepSummary:
-      lane?.next_step_summary || "先確認主問題，再補最少但最有用的來源或直接先跑第一版。",
-    upgradeNote:
-      lane?.upgrade_note || "等補進更多來源與證據後，再把案件升級成更完整的判斷主線。",
   };
 }
 

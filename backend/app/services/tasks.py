@@ -2688,6 +2688,14 @@ def _label_for_flagship_lane(lane_id: str) -> str:
     return "先快速看清問題與下一步"
 
 
+def _label_for_deliverable_class_hint(deliverable_class_hint: DeliverableClass) -> str:
+    if deliverable_class_hint == DeliverableClass.ASSESSMENT_REVIEW_MEMO:
+        return "評估 / 審閱備忘"
+    if deliverable_class_hint == DeliverableClass.DECISION_ACTION_DELIVERABLE:
+        return "決策 / 行動交付物"
+    return "探索型簡報"
+
+
 def _build_flagship_lane_summary(
     lane_id: str,
     *,
@@ -2748,17 +2756,128 @@ def _build_flagship_upgrade_note(
     return "等補進更多來源、證據或公司情境後，這筆案件可以自然升級成材料審閱或決策收斂主線。"
 
 
+def _build_flagship_current_output_summary(
+    lane_id: str,
+    *,
+    deliverable_class_hint: DeliverableClass,
+    source_material_count: int,
+    evidence_count: int,
+) -> str:
+    if lane_id == "decision_convergence_start":
+        return (
+            f"目前已具備 {source_material_count} 份來源材料與 {evidence_count} 則可用證據，"
+            "這一輪可以整理成較完整的決策 / 行動級交付物。"
+        )
+    if lane_id == "material_review_start":
+        return (
+            f"目前已進入材料審閱姿態，至少有 {source_material_count} 份正式來源材料可回看；"
+            "這一輪較適合形成評估 / 審閱備忘，而不是直接假裝已完成完整決策收斂。"
+        )
+    if deliverable_class_hint == DeliverableClass.EXPLORATORY_BRIEF:
+        return "目前最適合先形成探索級第一版交付，重點是釐清問題、缺口與下一步，而不是直接下完整定論。"
+    return "目前先以較保守的工作姿態形成第一版可回看交付。"
+
+
+def _build_flagship_upgrade_target_label(
+    lane_id: str,
+    *,
+    continuity_mode: EngagementContinuityMode,
+) -> str:
+    if lane_id == "material_review_start":
+        return "決策 / 行動交付物"
+    if lane_id == "decision_convergence_start":
+        if continuity_mode == EngagementContinuityMode.ONE_OFF:
+            return "後續追蹤 / 檢查點續推"
+        if continuity_mode == EngagementContinuityMode.FOLLOW_UP:
+            return "更穩定的檢查點續推"
+        return "持續推進 / 結果續推"
+    return "評估 / 審閱備忘"
+
+
+def _build_flagship_upgrade_requirements(
+    lane_id: str,
+    *,
+    source_material_count: int,
+    evidence_count: int,
+    presence_state_summary: schemas.PresenceStateSummaryRead | None,
+    continuity_mode: EngagementContinuityMode,
+) -> list[str]:
+    requirements: list[str] = []
+
+    if lane_id == "diagnostic_start":
+        if source_material_count == 0:
+            requirements.append("至少補 1 份正式來源材料，讓案件從純問題起手升級成可回看材料主線。")
+        if evidence_count < 2:
+            requirements.append("補到至少 2 則可用證據，避免第一輪判斷只停在探索級猜測。")
+        if presence_state_summary and presence_state_summary.decision_context.state != PresenceState.EXPLICIT:
+            requirements.append("把這輪真正要回答的決策問題講得更清楚，避免後續補件越補越散。")
+        if presence_state_summary and presence_state_summary.client.state in {
+            PresenceState.MISSING,
+            PresenceState.PROVISIONAL,
+        }:
+            requirements.append("補清客戶 / 案件情境，讓後續建議不只停在通用答案。")
+
+    elif lane_id == "material_review_start":
+        if source_material_count < 2:
+            requirements.append("若要升級成決策收斂，建議至少再補 1 類不同來源或背景材料。")
+        if evidence_count < 2:
+            requirements.append("把現有材料整理成更多可回鏈證據，再進入較完整的決策 / 行動交付。")
+        if presence_state_summary and presence_state_summary.decision_context.state != PresenceState.EXPLICIT:
+            requirements.append("補清這輪最後要收斂哪個決策問題，避免只停在材料摘要。")
+
+    else:
+        if continuity_mode == EngagementContinuityMode.ONE_OFF:
+            requirements.append("若之後還要追蹤執行結果，請把這輪結論接到 follow_up 或 continuous 的續推節奏。")
+        elif continuity_mode == EngagementContinuityMode.FOLLOW_UP:
+            requirements.append("把這輪結論寫成 checkpoint，再讓後續更新沿著同一個案件世界續推。")
+        else:
+            requirements.append("把這輪結論接到 action / outcome 記錄，讓系統開始真的追蹤推進結果。")
+
+    return requirements
+
+
+def _build_flagship_boundary_note(
+    lane_id: str,
+    *,
+    deliverable_class_hint: DeliverableClass,
+    external_research_heavy_candidate: bool,
+) -> str:
+    if external_research_heavy_candidate:
+        return "這一輪仍偏外部態勢 / 少資訊起手，不應把目前內容誤讀成已完整對齊公司內部真相的正式決策結論。"
+    if lane_id == "material_review_start":
+        return "這一輪主要是圍繞現有材料做評估 / 審閱，不等於已完成完整方案比較與最終決策收斂。"
+    if deliverable_class_hint == DeliverableClass.DECISION_ACTION_DELIVERABLE:
+        return "這一輪已接近正式決策 / 行動交付，但若後續要長期追蹤，仍需要接上 checkpoint 或 progression 續推。"
+    return "這一輪先以探索級第一版為主，重點是把問題說清楚、把缺口露出來，不是裝成已經全部搞清楚。"
+
+
 def _build_flagship_lane_read(
     input_entry_mode: InputEntryMode,
     deliverable_class_hint: DeliverableClass,
     external_research_heavy_candidate: bool,
     continuity_mode: EngagementContinuityMode,
     next_best_actions: list[str],
+    *,
+    source_material_count: int = 0,
+    evidence_count: int = 0,
+    presence_state_summary: schemas.PresenceStateSummaryRead | None = None,
 ) -> schemas.FlagshipLaneRead:
     lane_id = _resolve_flagship_lane_id(
         input_entry_mode,
         deliverable_class_hint,
         external_research_heavy_candidate,
+    )
+    current_output_label = _label_for_deliverable_class_hint(deliverable_class_hint)
+    upgrade_target_label = _build_flagship_upgrade_target_label(
+        lane_id,
+        continuity_mode=continuity_mode,
+    )
+    upgrade_requirements = _build_flagship_upgrade_requirements(
+        lane_id,
+        source_material_count=source_material_count,
+        evidence_count=evidence_count,
+        presence_state_summary=presence_state_summary,
+        continuity_mode=continuity_mode,
     )
     return schemas.FlagshipLaneRead(
         lane_id=lane_id,
@@ -2774,6 +2893,21 @@ def _build_flagship_lane_read(
         upgrade_note=_build_flagship_upgrade_note(
             lane_id,
             continuity_mode=continuity_mode,
+        ),
+        current_output_label=current_output_label,
+        current_output_summary=_build_flagship_current_output_summary(
+            lane_id,
+            deliverable_class_hint=deliverable_class_hint,
+            source_material_count=source_material_count,
+            evidence_count=evidence_count,
+        ),
+        upgrade_target_label=upgrade_target_label,
+        upgrade_requirements=upgrade_requirements,
+        upgrade_ready=len(upgrade_requirements) == 0,
+        boundary_note=_build_flagship_boundary_note(
+            lane_id,
+            deliverable_class_hint=deliverable_class_hint,
+            external_research_heavy_candidate=external_research_heavy_candidate,
         ),
     )
 
@@ -6242,6 +6376,8 @@ def _build_matter_workspace_summary_from_tasks(
                 external_research_heavy_candidate,
                 continuity_mode,
                 next_best_actions,
+                source_material_count=len(_meaningful_source_materials(source_materials)),
+                evidence_count=len(_usable_evidence(task)),
             )
 
     if matter_workspace.engagement_continuity_mode == EngagementContinuityMode.ONE_OFF.value:
@@ -7030,6 +7166,8 @@ def _build_task_list_item_response(
         external_research_heavy_candidate,
         continuity_mode,
         list(task.case_world_drafts[0].next_best_actions) if task.case_world_drafts else [],
+        source_material_count=len(_meaningful_source_materials(source_materials)),
+        evidence_count=len(_usable_evidence(task)),
     )
     return schemas.TaskListItemResponse(
         id=task.id,
@@ -10191,6 +10329,9 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
             if case_world_draft_row is not None
             else []
         ),
+        source_material_count=len(_meaningful_source_materials(source_materials)),
+        evidence_count=len(_usable_evidence(task)),
+        presence_state_summary=presence_state_summary,
     )
     canonicalization_summary, canonicalization_candidates = build_matter_canonicalization_contract(
         db,

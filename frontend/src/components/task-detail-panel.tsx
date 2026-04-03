@@ -689,7 +689,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
     ? "最近檢查點"
     : progressionLane
       ? "最近推進狀態"
-      : flagshipLane?.label || "目前狀態";
+      : flagshipLane
+        ? `目前交付等級｜${flagshipLane.currentOutputLabel}`
+        : "目前狀態";
   const taskHeroLaneSummary = flagshipLane?.nextStepSummary || (followUpLane
     ? followUpLane.latest_update?.summary || "尚未形成正式檢查點。"
     : progressionLane
@@ -809,6 +811,10 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     <p className="hero-focus-copy">
                       下一步：
                       {progressionLane.next_progression_actions[0] || "回案件工作面更新推進狀態。"}
+                    </p>
+                  ) : flagshipLane ? (
+                    <p className="hero-focus-copy">
+                      {flagshipLane.upgradeRequirements[0] || flagshipLane.boundaryNote}
                     </p>
                   ) : null}
                 </div>

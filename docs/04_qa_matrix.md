@@ -1288,3 +1288,58 @@ Important verification note:
 - the consultant-facing first decision on `/new` no longer leads with internal workflow labels
 - task and matter APIs now expose a stable derived lane contract that frontend surfaces can reuse without inventing a parallel truth layer
 - the first pass stayed within the existing ontology-first architecture and did not add a seventh layer or a separate app shell
+
+---
+
+## Entry: 2026-04-03 sparse intake diagnostic lane deepening pass
+
+Scope:
+- flagship lane current-output / upgrade-target / boundary guidance
+- consultant-facing upgrade checklist for sparse-start and material-review cases
+- deeper first-screen guidance across matter / task / evidence / deliverable surfaces
+
+Environment used:
+- frontend runtime: `http://127.0.0.1:3000`
+- backend runtime: `http://127.0.0.1:8000/api/v1`
+- code verification: local repo workspace
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`102 passed`) |
+| `node --test frontend/tests/intake-progress.test.mjs` | Passed (`6 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Deepening-specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | task create API | Create sparse-start matter and inspect deeper flagship-lane fields | Verified | response now includes current output label, upgrade target, upgrade requirements, and boundary note |
+| Backend | task aggregate API | Verify single-document material-review lane exposes upgrade guidance | Verified | aggregate returns current output `評估 / 審閱備忘` and upgrade target `決策 / 行動交付物` |
+| Frontend | `/new` | Re-check consultant-facing start-mode copy after deepening pass | Verified | intake still preserves consultant-facing start language while backend lane guidance deepens separately |
+| Frontend | task / matter / evidence / deliverable surfaces | Build and typecheck after deeper lane UI wiring | Verified | no regression found in production build or TypeScript validation |
+
+### Live smoke data
+
+- sparse deepening verification task id: `a7de27c3-2ed4-4bb8-9887-2c1772b008d9`
+- sparse deepening verification matter id: `84cfbae8-9de6-46aa-9ac8-37e39790c79f`
+- sparse API verification returned:
+  - `current_output_label=探索型簡報`
+  - `upgrade_target_label=評估 / 審閱備忘`
+  - `upgrade_requirements[0]=至少補 1 份正式來源材料，讓案件從純問題起手升級成可回看材料主線。`
+  - `boundary_note=這一輪先以探索級第一版為主...`
+- single-document deepening verification task id: `7ce02436-dd90-4f23-9774-43f0ba46e018`
+- single-document API verification returned:
+  - `lane_id=material_review_start`
+  - `current_output_label=評估 / 審閱備忘`
+  - `upgrade_target_label=決策 / 行動交付物`
+
+### Verified outcomes
+
+- flagship lane now explains not only the current lane, but also the current output level and what is required to level up
+- sparse-start cases now expose a clearer confidence boundary instead of only a generic upgrade note
+- material-review cases now give a more explicit path toward decision-convergence work
+- the deepen pass stayed within the same active runtime model and reused the existing world-first signals rather than inventing a parallel workflow system

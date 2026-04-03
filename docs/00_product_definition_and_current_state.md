@@ -272,6 +272,15 @@ Infinite Pro 的長期形態不是單一工具頁面，而是一套 object-aware
 - `diagnostic_start / material_review_start / decision_convergence_start` 現已作為 consultant-facing derived lane baseline 出現在 task / matter read model 與核心工作面首屏
 - 這條 lane 是既有 runtime signals 的衍生讀取契約，不是新的架構層，也不是新的 ontology world
 
+### 6.9 First flagship workflow deepening
+
+- flagship lane 不只會標示目前屬於哪種起手姿態，現在也會進一步說明：
+  - 目前交付等級
+  - 目前輸出邊界
+  - 下一個升級目標
+  - 升級還缺什麼
+- 這讓 sparse-start matters 不只停在「知道自己在哪條路」，而是開始具備「知道現在最多能交到哪裡、要往下一階段補什麼」的正式工作引導
+
 ---
 
 ## 10. What The Product Is Good At Now

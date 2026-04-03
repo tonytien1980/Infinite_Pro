@@ -245,6 +245,28 @@ Ontology 在 Infinite Pro 中是：
 - 它的責任是把既有 runtime shape 翻譯成顧問可直接理解的起手姿態、下一步與升級方向
 - 第一波產品化重點是 sparse-start matters 的 `diagnostic_start`
 
+目前第一輪 deepen 後，這份 derived contract 至少應包括：
+
+- 目前起手姿態
+- 目前交付等級
+- 目前輸出邊界
+- 下一個升級目標
+- 升級 requirements
+
+正式欄位 baseline 至少包括：
+
+- `lane_id`
+- `label`
+- `summary`
+- `next_step_summary`
+- `upgrade_note`
+- `current_output_label`
+- `current_output_summary`
+- `upgrade_target_label`
+- `upgrade_requirements`
+- `upgrade_ready`
+- `boundary_note`
+
 ---
 
 ## 5. Source, Evidence, Provenance, and Object-Set Contracts
