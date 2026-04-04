@@ -274,6 +274,7 @@ class HostOrchestrator:
             pack_resolution=aggregate.pack_resolution,
             agent_selection=aggregate.agent_selection,
             precedent_reference_guidance=aggregate.precedent_reference_guidance,
+            review_lens_guidance=aggregate.review_lens_guidance,
             source_materials=aggregate.source_materials,
             artifacts=aggregate.artifacts,
             subjects=aggregate.subjects,

@@ -662,6 +662,70 @@ deliverable workspace 採：
 - 它不等於 playbook library
 - 它也不等於 template auto-apply
 
+### 6.10.2 Reusable review lenses
+
+在 Host-safe precedent reference 已成立後，precedent / reusable intelligence 的第一批真正可重用資產應先是：
+
+- `review_lens_guidance`
+
+正式規則：
+
+- review lenses 仍是 Host-owned
+- frontend 不可自行從 candidate pool 或 pack raw fields 拼出 lens list 再回灌主線
+- review lens 的正式角色是回答：
+  - 這輪先看哪幾點
+  - 為什麼這幾點要先看
+- 它不是：
+  - 自動結論
+  - common risk library
+  - deliverable template
+  - 舊案正文 reuse
+- 第一波只允許少量 lens：
+  - 2 到 4 個
+- lens source 第一波至少包括：
+  - `precedent_reference`
+  - `pack_decision_pattern`
+  - `pack_common_risk`
+  - `task_heuristic`
+- 這層的正式目的，是改善 review / analysis ordering，不是直接複製 prior text
+
+第一波 `review_lens_guidance` contract 至少包括：
+
+- `status`
+  - `available`
+  - `fallback`
+  - `none`
+- `label`
+- `summary`
+- `boundary_note`
+- `lenses`
+
+每筆 `lens` 至少包括：
+
+- `lens_id`
+- `title`
+- `summary`
+- `why_now`
+- `source_kind`
+- `source_label`
+- `priority`
+
+正式規則：
+
+- `available` 代表至少已有 precedent / pack / stronger runtime source
+- `fallback` 代表目前主要仍靠 task heuristic 補最小可信 lens
+- `none` 代表這輪不額外補 review lenses
+- review lenses 若要進模型上下文，必須經 Host 整理成 prompt-safe `review_lens_context`
+- `review_lens_context` 應與 `precedent_context` 並存，但角色不同：
+  - precedent context：為什麼這個模式和現在相似
+  - review lens context：這輪先看哪幾點
+- 第一波只允許影響：
+  - framing / review ordering
+  - deliverable shaping 的閱讀順序
+- 不可被誤用成 template auto-fill 或自動風險判定
+- task / deliverable surface 目前只應以 second-layer disclosure 低噪音回讀
+- matter / overview 目前不應長出 review lens dashboard hero
+
 ### 6.11 Matter-scoped canonicalization and duplicate governance
 
 正式規則：

@@ -963,6 +963,38 @@ Primary action：
   - 不會直接複製舊案正文
 - 若同案 duplicate governance 尚未處理，UI 不需要把這種內部去重邏輯放上首屏，但 history family 應能回看這些 duplicate groups
 
+### 9.2.3 Reusable review-lens reading
+
+當 Host 已開始把 precedent / pack / heuristic signals 收斂成 reusable review lenses 時，UI 也應維持低噪音回讀：
+
+- 這輪先看哪幾點
+- 為什麼這幾點要先看
+- 這些 lens 主要來自哪類 source
+- 這層只是在排 review 順序，不是自動結論
+
+正式規則：
+
+- 第一波只應出現在 `task detail` 與 `deliverable workspace` 的 second-layer disclosure
+- 每次只應顯示少量 lens：
+  - 2 到 4 個
+- `matter workspace`、`overview`、`history` 目前都不應長出 review-lens hero
+- UI 必須清楚標示這層是在回答：
+  - `這輪先看哪幾點`
+- 不可把這層寫成：
+  - 風險清單總表
+  - 可直接採用的結論
+  - 手動維護 checklist 管理頁
+- 每個 lens card 第一波應優先顯示：
+  - `title`
+  - `why_now`
+  - `source_label`
+- 若要補 list，只應輕量回讀：
+  - `這輪先照這個順序展開`
+- boundary copy 應明講：
+  - 這是在幫顧問排審閱順序
+  - 不是自動結論
+  - 若與正式證據衝突，仍以這案的正式證據為準
+
 ### 9.3 Specialized hardening views
 
 以下能力雖已 shipped，但仍應保持低噪音：

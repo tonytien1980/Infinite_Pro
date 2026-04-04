@@ -814,6 +814,29 @@ class PrecedentReferenceGuidanceRead(BaseModel):
     matched_items: list[PrecedentReferenceItemRead] = Field(default_factory=list)
 
 
+class ReviewLensItemRead(BaseModel):
+    lens_id: str
+    title: str
+    summary: str = ""
+    why_now: str = ""
+    source_kind: Literal[
+        "precedent_reference",
+        "pack_decision_pattern",
+        "pack_common_risk",
+        "task_heuristic",
+    ] = "task_heuristic"
+    source_label: str = ""
+    priority: Literal["high", "medium", "low"] = "medium"
+
+
+class ReviewLensGuidanceRead(BaseModel):
+    status: Literal["available", "fallback", "none"] = "none"
+    label: str = ""
+    summary: str = ""
+    boundary_note: str = ""
+    lenses: list[ReviewLensItemRead] = Field(default_factory=list)
+
+
 class PrecedentDuplicateSummaryRead(BaseModel):
     pending_review_count: int = 0
     human_confirmed_count: int = 0
@@ -1627,6 +1650,7 @@ class TaskAggregateResponse(BaseModel):
     precedent_reference_guidance: PrecedentReferenceGuidanceRead = Field(
         default_factory=PrecedentReferenceGuidanceRead
     )
+    review_lens_guidance: ReviewLensGuidanceRead = Field(default_factory=ReviewLensGuidanceRead)
     research_runs: list[ResearchRunRead] = Field(default_factory=list)
     decision_records: list[DecisionRecordRead] = Field(default_factory=list)
     action_plans: list[ActionPlanRead] = Field(default_factory=list)

@@ -29,6 +29,7 @@ from app.domain.schemas import (
     PackResolutionRead,
     PrecedentReferenceGuidanceRead,
     PresenceStateSummaryRead,
+    ReviewLensGuidanceRead,
     SourceMaterialRead,
     SubjectRead,
     WorkstreamRead,
@@ -81,6 +82,7 @@ class AgentInputPayload(BaseModel):
     precedent_reference_guidance: PrecedentReferenceGuidanceRead = Field(
         default_factory=PrecedentReferenceGuidanceRead
     )
+    review_lens_guidance: ReviewLensGuidanceRead = Field(default_factory=ReviewLensGuidanceRead)
     source_materials: list[SourceMaterialRead] = Field(default_factory=list)
     artifacts: list[ArtifactRead] = Field(default_factory=list)
     subjects: list[SubjectRead] = Field(default_factory=list)
@@ -102,6 +104,24 @@ def build_payload_precedent_context(payload: AgentInputPayload) -> list[str]:
                 f"為何相似：{item.match_reason or '與目前案件主線相似。'}",
                 f"可參考：{item.safe_use_note or '只可拿來參考模式，不可直接複製舊案內容。'}",
                 f"摘要：{item.summary or item.reusable_reason or '目前沒有額外摘要。'}",
+            ]
+        )
+    lines.append(f"整體邊界：{guidance.boundary_note}")
+    return lines
+
+
+def build_payload_review_lens_context(payload: AgentInputPayload) -> list[str]:
+    guidance = payload.review_lens_guidance
+    if guidance.status == "none" or not guidance.lenses:
+        return []
+
+    lines: list[str] = []
+    for index, item in enumerate(guidance.lenses[:4], start=1):
+        lines.extend(
+            [
+                f"視角 {index}：{item.title}",
+                f"為什麼現在先看：{item.why_now}",
+                f"來源：{item.source_label or item.source_kind}",
             ]
         )
     lines.append(f"整體邊界：{guidance.boundary_note}")

@@ -9,6 +9,7 @@ from app.agents.base import (
     RecommendationDraft,
     RiskDraft,
     build_payload_precedent_context,
+    build_payload_review_lens_context,
 )
 from app.domain.enums import AgentCategory, AgentStatus, FlowMode
 from app.model_router.base import CoreAnalysisRequest, ModelProvider
@@ -47,6 +48,7 @@ class LegalRiskAgent(CoreAnalysisAgent):
                     for evidence in payload.evidence
                 ],
                 precedent_context=build_payload_precedent_context(payload),
+                review_lens_context=build_payload_review_lens_context(payload),
             )
         )
         evidence_refs = [item.id for item in payload.evidence][:3]

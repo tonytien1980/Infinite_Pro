@@ -10,6 +10,7 @@ from app.agents.base import (
     RiskDraft,
     SpecialistAgent,
     build_payload_precedent_context,
+    build_payload_review_lens_context,
 )
 from app.domain.enums import AgentCategory, AgentStatus, FlowMode
 from app.model_router.base import ContractReviewRequest, ModelProvider
@@ -130,6 +131,7 @@ class ContractReviewAgent(SpecialistAgent):
                     for evidence in usable_evidence
                 ],
                 precedent_context=build_payload_precedent_context(payload),
+                review_lens_context=build_payload_review_lens_context(payload),
             )
         )
 

@@ -1145,6 +1145,28 @@ export interface PrecedentReferenceGuidance {
   matched_items: PrecedentReferenceItem[];
 }
 
+export interface ReviewLensItem {
+  lens_id: string;
+  title: string;
+  summary: string;
+  why_now: string;
+  source_kind:
+    | "precedent_reference"
+    | "pack_decision_pattern"
+    | "pack_common_risk"
+    | "task_heuristic";
+  source_label: string;
+  priority: "high" | "medium" | "low";
+}
+
+export interface ReviewLensGuidance {
+  status: "available" | "fallback" | "none";
+  label: string;
+  summary: string;
+  boundary_note: string;
+  lenses: ReviewLensItem[];
+}
+
 export interface PrecedentCandidateStatusUpdatePayload {
   candidate_status: PrecedentCandidateStatus;
 }
@@ -1543,6 +1565,7 @@ export interface TaskAggregate {
   evidence_gaps: EvidenceGap[];
   research_guidance: ResearchGuidance;
   precedent_reference_guidance: PrecedentReferenceGuidance;
+  review_lens_guidance: ReviewLensGuidance;
   research_runs: ResearchRun[];
   decision_records: DecisionRecord[];
   action_plans: ActionPlan[];

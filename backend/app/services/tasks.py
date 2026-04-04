@@ -93,6 +93,7 @@ from app.services.precedent_duplicate_governance import (
 from app.services.precedent_intelligence import (
     select_precedent_reference_matches,
 )
+from app.services.review_lens_intelligence import build_review_lens_guidance
 from app.services.source_materials import (
     build_source_material_summary,
     ensure_source_chain_participation_links,
@@ -11336,6 +11337,14 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
             else decision_context.client_type if decision_context else client.client_type if client else None
         ),
     )
+    review_lens_guidance = build_review_lens_guidance(
+        task_type=task.task_type,
+        flagship_lane=flagship_lane,
+        deliverable_class_hint=deliverable_class_hint,
+        input_entry_mode=input_entry_mode,
+        precedent_reference_guidance=precedent_reference_guidance,
+        pack_resolution=pack_resolution,
+    )
     canonicalization_summary, canonicalization_candidates = build_matter_canonicalization_contract(
         db,
         matter_workspace_id=matter_workspace.id,
@@ -11418,6 +11427,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         ],
         research_guidance=research_guidance,
         precedent_reference_guidance=precedent_reference_guidance,
+        review_lens_guidance=review_lens_guidance,
         research_runs=[schemas.ResearchRunRead.model_validate(item) for item in task.research_runs],
         decision_records=[schemas.DecisionRecordRead.model_validate(item) for item in task.decision_records],
         action_plans=[schemas.ActionPlanRead.model_validate(item) for item in task.action_plans],

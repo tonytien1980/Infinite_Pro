@@ -55,6 +55,7 @@ import {
   buildPrecedentCandidateView,
 } from "@/lib/precedent-candidates";
 import { buildPrecedentReferenceView } from "@/lib/precedent-reference";
+import { buildReviewLensView } from "@/lib/review-lenses";
 import type {
   ExtensionManagerSnapshot,
   RetrievalProvenance,
@@ -594,6 +595,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
   const precedentReferenceView = task
     ? buildPrecedentReferenceView(task.precedent_reference_guidance)
     : null;
+  const reviewLensView = task ? buildReviewLensView(task.review_lens_guidance) : null;
   const evidenceWorkspaceLane =
     task ? buildEvidenceWorkspaceLane(task, latestDeliverable, readinessGovernance) : null;
   const deliverableBacklink = task ? buildDeliverableBacklinkView(task, latestDeliverable) : null;
@@ -1301,6 +1303,34 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     ) : null}
                     <p className="muted-text" style={{ marginTop: "12px" }}>
                       {precedentReferenceView.boundaryNote}
+                    </p>
+                  </div>
+                ) : null}
+                {reviewLensView?.shouldShow ? (
+                  <div className="detail-item">
+                    <h3>{reviewLensView.sectionTitle}</h3>
+                    <p className="content-block">{reviewLensView.summary}</p>
+                    <div className="summary-grid" style={{ marginTop: "16px" }}>
+                      {reviewLensView.cards.map((card) => (
+                        <div className="section-card" key={`task-review-lens-${card.title}`}>
+                          <h4>{card.title}</h4>
+                          <p className="content-block">{card.summary}</p>
+                          <p className="muted-text">{card.meta}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {reviewLensView.listItems.length > 0 ? (
+                      <>
+                        <h4 style={{ marginTop: "16px" }}>{reviewLensView.listTitle}</h4>
+                        <ul className="list-content" style={{ marginTop: "12px" }}>
+                          {reviewLensView.listItems.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      </>
+                    ) : null}
+                    <p className="muted-text" style={{ marginTop: "12px" }}>
+                      {reviewLensView.boundaryNote}
                     </p>
                   </div>
                 ) : null}

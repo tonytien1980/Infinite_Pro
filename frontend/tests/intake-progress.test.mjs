@@ -35,6 +35,7 @@ import {
   filterPrecedentReviewItems,
 } from "../src/lib/precedent-review.ts";
 import { buildPrecedentReferenceView } from "../src/lib/precedent-reference.ts";
+import { buildReviewLensView } from "../src/lib/review-lenses.ts";
 import { buildContinuationPostureView } from "../src/lib/continuity-ux.ts";
 import { buildResearchDetailView, buildResearchGuidanceView } from "../src/lib/research-lane.ts";
 
@@ -1100,6 +1101,46 @@ test("precedent reference view stays low-noise and consultant-readable", () => {
   assert.equal(view.cards[0]?.meta, "同樣屬於 material review start，且交付型態一致。");
   assert.equal(view.listItems[0], "先看 framing");
   assert.equal(view.boundaryNote, "這些模式只可拿來參考判斷順序與骨架，不會直接複製舊案正文。");
+});
+
+test("review lens view stays low-noise and consultant-readable", () => {
+  const view = buildReviewLensView({
+    status: "available",
+    label: "這輪先看哪幾點",
+    summary: "Host 先整理出 2 個 review lenses，幫你把這輪審閱順序排好。",
+    boundary_note: "這些視角是幫你排審閱順序，不是自動結論；若與正式證據衝突，仍以這案的正式證據為準。",
+    lenses: [
+      {
+        lens_id: "precedent_reference:abc",
+        title: "先比對這次案件與既有合約審閱模式的差異點",
+        summary: "先回看這個既有模式目前代表的審閱骨架。",
+        why_now: "目前找到高度相似的既有模式，先用它校正審閱方向。",
+        source_kind: "precedent_reference",
+        source_label: "來源：precedent reference",
+        priority: "high",
+      },
+      {
+        lens_id: "pack_common_risk:def",
+        title: "先檢查責任限制與賠償風險",
+        summary: "先確認這個高頻風險是否已經在目前材料、判斷或交付骨架中出現。",
+        why_now: "這是目前 selected packs 的常見風險之一，適合先拿來做風險掃描。",
+        source_kind: "pack_common_risk",
+        source_label: "來源：pack common risk",
+        priority: "medium",
+      },
+    ],
+  });
+
+  assert.equal(view.shouldShow, true);
+  assert.equal(view.sectionTitle, "這輪先看哪幾點");
+  assert.match(view.summary, /審閱順序/);
+  assert.equal(view.cards.length, 2);
+  assert.equal(view.cards[0]?.title, "先比對這次案件與既有合約審閱模式的差異點");
+  assert.match(view.cards[0]?.summary ?? "", /先用它校正審閱方向/);
+  assert.match(view.cards[0]?.meta ?? "", /precedent reference/);
+  assert.equal(view.listTitle, "這輪先照這個順序展開");
+  assert.match(view.listItems[0] ?? "", /先比對這次案件/);
+  assert.match(view.boundaryNote, /不是自動結論/);
 });
 
 test("precedent duplicate governance view stays consultant-readable", () => {

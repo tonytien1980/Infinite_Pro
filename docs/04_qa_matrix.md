@@ -2559,3 +2559,72 @@ Environment used:
 - same-matter duplicate precedent groups can now be surfaced and manually marked as merged conceptually, kept separate, or split
 - Host-safe precedent reference no longer needs to carry unresolved duplicate groups into model context by default
 - `/history` remains the single precedent management family; no new canonicalization or precedent dashboard was added
+
+---
+
+## Entry: 2026-04-04 reusable review lenses pass
+
+Scope:
+- first reusable review-lens asset
+- Host-owned `review_lens_guidance`
+- prompt-safe review-lens context through provider boundary
+- low-noise task / deliverable review-lens reading
+
+Environment used:
+- frontend runtime: `http://127.0.0.1:3001`
+- backend runtime: `http://127.0.0.1:8010/api/v1`
+- supplemental browser-hydration backend: `http://127.0.0.1:8000/api/v1`
+- runtime database: local `review-lenses-smoke.db`
+- browser evidence: local `playwright-cli` smoke artifacts
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`118 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`23 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Review-lens specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | task aggregate | Read `review_lens_guidance` | Verified | targeted backend test confirms task aggregate now returns `available / fallback / none` guidance with lens rows |
+| Backend | model-router prompt | Render review-lens context block | Verified | targeted backend test confirms contract-review prompt now contains `這輪先看哪幾點` block |
+| Backend | Host boundary | Pass review-lens context into model-router requests | Verified | compile + full regression suite confirm patched core / specialist agents still serialize successfully |
+| Frontend | review-lens helper | Render consultant-facing lens reading | Verified | frontend helper test confirms section title, card copy, order list, and boundary note stay low-noise |
+| Frontend | `/tasks/[taskId]` | Expand second-layer reading and inspect rendered review lenses | Verified | browser snapshot shows `可參考既有模式` and `這輪先看哪幾點` under the existing disclosure |
+| Frontend | `/deliverables/[deliverableId]` | Expand continuity / research disclosure and inspect rendered review lenses | Verified | browser snapshot shows the same review-lens reading inside the existing second-layer deliverable surface |
+
+### Live smoke data
+
+- precedent source task id: `ab9fa2f9-850c-4af8-816e-4e88ad5b1d0d`
+- precedent source deliverable id: `33bb9a37-ae05-4318-8f4e-85f08f9c47ce`
+- current task id: `53ee586a-45f6-4c8e-aa67-0bba2ba52879`
+- current deliverable id: `5fd467bb-7940-439a-8b98-13c23b12ec16`
+- live API verification returned:
+  - review-lens status: `available`
+  - review-lens count: `4`
+  - first lens source kind: `precedent_reference`
+  - first lens title: `先比對這次案件與「Smoke precedent source - 合約審閱 - 合約審閱」的差異點`
+- frontend route smoke:
+  - `/tasks/53ee586a-45f6-4c8e-aa67-0bba2ba52879` returned `200`
+  - `/deliverables/5fd467bb-7940-439a-8b98-13c23b12ec16` returned `200`
+- browser artifacts:
+  - API smoke artifact: `output/playwright/reusable-review-lenses/api-smoke.json`
+  - task snapshot: `output/playwright/reusable-review-lenses/task.yml`
+  - deliverable snapshot: `output/playwright/reusable-review-lenses/deliverable.yml`
+
+### Residual note
+
+- local browser hydration still preferred the repo's `:8000` fallback API base in this session, so a same-DB mirror backend was started on `8000` to capture true browser evidence. The feature itself was also independently verified through `8010` live API smoke plus full automated tests.
+- this round still does not provide common risk libraries, deliverable templates, or auto-apply; review lenses only help Host and the consultant order what to look at first.
+
+### Verified outcomes
+
+- precedent / reusable intelligence now has its first true reusable consultant asset, not just candidate governance
+- Host can now carry small, explainable `review_lens_context` into specialist / core analysis requests without copying prior-case prose
+- task / deliverable surfaces can now low-noise read back `這輪先看哪幾點`, keeping the UI simple while moving more judgment strength into the runtime
