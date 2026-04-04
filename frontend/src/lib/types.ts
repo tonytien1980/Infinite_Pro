@@ -1292,6 +1292,7 @@ export interface DeliverableTemplateBlock {
   source_kind:
     | "precedent_deliverable_template"
     | "pack_deliverable_preset"
+    | "deliverable_shape"
     | "domain_playbook"
     | "task_heuristic";
   source_label: string;
@@ -1304,6 +1305,8 @@ export interface DeliverableTemplateGuidance {
   summary: string;
   template_label: string;
   template_fit_summary: string;
+  fit_summary: string;
+  source_mix_summary: string;
   core_sections: string[];
   optional_sections: string[];
   boundary_note: string;

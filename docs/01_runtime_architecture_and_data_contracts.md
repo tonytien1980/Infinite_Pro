@@ -1181,6 +1181,14 @@ deliverable workspace 採：
   - `domain_playbook`
   - `task_heuristic`
 
+在 v2，deliverable template 應開始允許：
+
+- `deliverable_shape`
+
+也就是：
+
+- 若交付骨架已先收斂，template guidance 可以正式把 shape 當成一種來源，而不是只當隱性 fallback
+
 第一波 `deliverable_template_guidance` contract 至少包括：
 
 - `status`
@@ -1191,6 +1199,8 @@ deliverable workspace 採：
 - `summary`
 - `template_label`
 - `template_fit_summary`
+- `fit_summary`
+- `source_mix_summary`
 - `core_sections`
 - `optional_sections`
 - `boundary_note`
@@ -1211,10 +1221,17 @@ deliverable workspace 採：
 - `available` 代表至少已有 precedent / pack / playbook 等較強來源
 - `fallback` 代表目前主要仍靠 task heuristic 補最小可信模板主線
 - `none` 代表這輪不額外補 deliverable template guidance
+- `fit_summary` 應回答：
+  - 這輪為什麼適合這個模板主線
+- `source_mix_summary` 應回答：
+  - 這個模板主線主要由哪些來源組合收斂出來
 - deliverable template 若要進模型上下文，必須經 Host 整理成 prompt-safe `deliverable_template_context`
 - `deliverable_template_context` 應與 `deliverable_shape_context` 並存，但角色不同：
   - deliverable shape context：這份交付物通常怎麼收比較穩
   - deliverable template context：這份交付比較適合沿用哪種模板主線
+- v2 可吸收 deliverable shape 與 richer domain playbook signal，但仍不可把：
+  - 交付骨架 = 模板主線
+  - playbook = template library
 - 第一波只允許影響：
   - deliverable shaping 的模板主線與 section grouping
 - 不可被誤讀成 template picker 或 auto-apply

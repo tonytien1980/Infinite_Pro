@@ -2993,6 +2993,44 @@ Environment used:
 
 ---
 
+## Entry: 2026-04-05 deliverable templates v2 pass
+
+Scope:
+- deliverable template fit / source-mix explainability
+- formal deliverable-shape template source
+- low-noise task / deliverable template readback
+
+Environment used:
+- local repo runtime checks only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`143 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`30 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Deliverable-template-v2 specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | task aggregate | Read richer `deliverable_template_guidance` | Verified | targeted backend test confirms template guidance now returns `fit_summary`, `source_mix_summary`, and a `deliverable_shape` block when shape guidance is present |
+| Backend | agent payload | Build prompt-safe `deliverable_template_context` | Verified | targeted backend test confirms payload now includes `這輪為何適用` and `收斂依據` lines |
+| Frontend | deliverable-template helper | Render v2 low-noise template reading | Verified | frontend helper test confirms UI reads `fitSummary` / `sourceMixSummary` and keeps shape-sourced blocks consultant-readable |
+| Live runtime | `3001 / 8010` local smoke | Browser verification | Not run | local frontend/backend runtime was not started in this pass |
+
+### Verified outcomes
+
+- Infinite Pro now lets deliverable templates explain not only which template mainline fits, but why it fits and which source mix produced it
+- deliverable shape is now a formal template source rather than only an implicit fallback
+- task detail and deliverable workspace stay low-noise: stronger template intelligence is visible without turning into a template picker or library shell
+
+---
+
 ## Entry: 2026-04-05 domain playbooks v2 pass
 
 Scope:

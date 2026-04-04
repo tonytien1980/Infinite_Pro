@@ -6102,6 +6102,31 @@ def test_contract_review_spec_includes_deliverable_template_block() -> None:
     assert "核心區塊：一句話結論、主要發現、主要風險、建議處置" in spec.user_prompt
 
 
+def test_contract_review_spec_includes_deliverable_template_v2_lines() -> None:
+    from app.model_router.base import ContractReviewRequest
+    from app.model_router.structured_tasks import build_contract_review_spec
+
+    spec = build_contract_review_spec(
+        ContractReviewRequest(
+            task_title="Contract deliverable template v2 test",
+            task_description="Ensure deliverable template v2 guidance reaches the prompt.",
+            background_text="Current agreement review",
+            deliverable_template_context=[
+                "模板主線：合約審閱備忘模板",
+                "這輪適合：這輪仍屬 review / assessment 主線，先站穩審閱備忘模板會更可靠。",
+                "這輪為何適用：同時有 precedent、shape 與 playbook 主線，不需要只靠 heuristic。",
+                "收斂依據：precedent deliverable template、deliverable shape、domain playbook",
+                "核心區塊：一句話結論、主要發現、主要風險、建議處置",
+                "可選區塊：待補資料、已審範圍",
+            ],
+        )
+    )
+
+    assert "這份交付比較適合沿用哪種模板主線" in spec.user_prompt
+    assert "這輪為何適用" in spec.user_prompt
+    assert "收斂依據" in spec.user_prompt
+
+
 def test_contract_review_spec_includes_domain_playbook_block() -> None:
     from app.model_router.base import ContractReviewRequest
     from app.model_router.structured_tasks import build_contract_review_spec
@@ -6123,6 +6148,53 @@ def test_contract_review_spec_includes_domain_playbook_block() -> None:
     assert "這類案子通常怎麼走" in spec.user_prompt
     assert "工作主線：合約審閱工作主線" in spec.user_prompt
     assert "下一步通常接：再收斂高風險點與建議處置" in spec.user_prompt
+
+
+def test_deliverable_template_v2_uses_shape_and_source_mix(
+    client: TestClient,
+) -> None:
+    prior_payload = create_contract_review_payload("Deliverable template prior matter")
+    prior_payload["client_name"] = "Acme Corp"
+    prior_payload["engagement_name"] = "年度法務盤點"
+    prior_payload["workstream_name"] = "合約風險整理"
+    prior_task = client.post("/api/v1/tasks", json=prior_payload).json()
+    client.post(
+        f"/api/v1/tasks/{prior_task['id']}/uploads",
+        files=[("files", ("agreement.txt", b"Termination and liability clauses need review.", "text/plain"))],
+    )
+    prior_run = client.post(f"/api/v1/tasks/{prior_task['id']}/run")
+    assert prior_run.status_code == 200
+    prior_deliverable_id = prior_run.json()["deliverable"]["id"]
+    client.post(
+        f"/api/v1/deliverables/{prior_deliverable_id}/feedback",
+        json={
+            "feedback_status": "template_candidate",
+            "reason_codes": ["reusable_structure"],
+            "note": "這份交付值得保留成模板主線。",
+        },
+    )
+    client.post(
+        f"/api/v1/deliverables/{prior_deliverable_id}/precedent-candidate",
+        json={"candidate_status": "promoted"},
+    )
+
+    current_payload = create_contract_review_payload("Deliverable template current matter")
+    current_payload["client_name"] = "Acme Corp"
+    current_payload["engagement_name"] = "續約商務盤點"
+    current_payload["workstream_name"] = "續約條件整理"
+    current_task = client.post("/api/v1/tasks", json=current_payload).json()
+    client.post(
+        f"/api/v1/tasks/{current_task['id']}/uploads",
+        files=[("files", ("renewal.txt", b"Renewal pricing and termination carve-outs need review.", "text/plain"))],
+    )
+    assert client.post(f"/api/v1/tasks/{current_task['id']}/run").status_code == 200
+
+    aggregate = client.get(f"/api/v1/tasks/{current_task['id']}").json()
+    guidance = aggregate["deliverable_template_guidance"]
+    assert guidance["status"] == "available"
+    assert guidance["fit_summary"]
+    assert guidance["source_mix_summary"]
+    assert any(item["source_kind"] == "deliverable_shape" for item in guidance["blocks"])
 
 
 def test_openai_provider_retries_once_after_timeout(

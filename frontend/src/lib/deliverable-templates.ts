@@ -18,6 +18,8 @@ export function buildDeliverableTemplateView(
   summary: string;
   templateLabel: string;
   templateFitSummary: string;
+  fitSummary: string;
+  sourceMixSummary: string;
   cards: Array<{ title: string; summary: string; meta: string }>;
   coreListTitle: string;
   coreSections: string[];
@@ -32,6 +34,8 @@ export function buildDeliverableTemplateView(
       summary: "",
       templateLabel: "",
       templateFitSummary: "",
+      fitSummary: "",
+      sourceMixSummary: "",
       cards: [],
       coreListTitle: "",
       coreSections: [],
@@ -47,6 +51,8 @@ export function buildDeliverableTemplateView(
     summary: guidance.summary || "Host 已先整理這輪較穩的模板主線。",
     templateLabel: guidance.template_label,
     templateFitSummary: guidance.template_fit_summary,
+    fitSummary: guidance.fit_summary,
+    sourceMixSummary: guidance.source_mix_summary,
     cards: guidance.blocks.map((block) => ({
       title: block.title,
       summary: [block.why_fit, block.summary].filter(Boolean).join("｜"),

@@ -1500,6 +1500,12 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     {deliverableTemplateView.templateFitSummary ? (
                       <p className="muted-text">{deliverableTemplateView.templateFitSummary}</p>
                     ) : null}
+                    {deliverableTemplateView.fitSummary ? (
+                      <p className="muted-text">{deliverableTemplateView.fitSummary}</p>
+                    ) : null}
+                    {deliverableTemplateView.sourceMixSummary ? (
+                      <p className="muted-text">{deliverableTemplateView.sourceMixSummary}</p>
+                    ) : null}
                     <div className="summary-grid" style={{ marginTop: "16px" }}>
                       {deliverableTemplateView.cards.map((card) => (
                         <div className="section-card" key={`task-deliverable-template-${card.title}`}>

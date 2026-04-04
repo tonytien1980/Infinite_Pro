@@ -1180,6 +1180,8 @@ Primary action：
 當 Host 已開始把 precedent / pack / shape / playbook / heuristic signals 收斂成 deliverable templates 時，UI 也應維持低噪音回讀：
 
 - 這份交付比較適合沿用哪種模板主線
+- 這輪為何適合這個模板主線
+- 這個模板主線主要由哪些來源組合收斂出來
 - 哪些區塊應視為 core sections
 - 哪些區塊屬於 optional sections
 
@@ -1199,6 +1201,8 @@ Primary action：
 - 第一波應優先顯示：
   - `模板主線`
   - `這輪適合`
+  - `這輪為何適用`
+  - `收斂依據`
   - `核心區塊`
   - `可選區塊`
   - 少量 template blocks
@@ -1210,6 +1214,9 @@ Primary action：
   - 這是在提示模板主線
   - 不是自動套模板
   - 若和這案正式證據衝突，仍以這案當前判斷與證據為準
+- 即使已吸收 deliverable shape 與 domain playbook v2，UI 也只可把它讀成：
+  - 模板主線為何更站得住
+  - 不可把它讀成 template picker / template library
 
 ### 9.3 Specialized hardening views
 

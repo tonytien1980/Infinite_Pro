@@ -1458,6 +1458,8 @@ test("deliverable template view stays low-noise and consultant-readable", () => 
     summary: "Host 先整理出較穩的模板主線，幫你知道這份交付更像哪一型正式模板。",
     template_label: "合約審閱備忘模板",
     template_fit_summary: "這輪仍屬 review / assessment 主線，先站穩審閱備忘模板會更可靠。",
+    fit_summary: "這輪同時有 precedent、shape 與 playbook 主線，所以不需要只靠 heuristic 定模板。",
+    source_mix_summary: "收斂依據：precedent deliverable template、deliverable shape、domain playbook",
     core_sections: ["一句話結論", "主要發現", "主要風險", "建議處置"],
     optional_sections: ["待補資料", "已審範圍"],
     boundary_note: "這是在提示模板主線，不是自動套模板；若和這案正式證據衝突，仍以這案當前判斷與證據為準。",
@@ -1480,6 +1482,15 @@ test("deliverable template view stays low-noise and consultant-readable", () => 
         source_label: "來源：domain playbook",
         priority: "medium",
       },
+      {
+        block_id: "deliverable_shape:ghi",
+        title: "模板主線先對齊到評估 / 審閱備忘這個交付骨架",
+        summary: "目前 shape hint 已把這份交付定成 review memo 骨架。",
+        why_fit: "先守住交付骨架，模板主線才不會太早漂成 final decision template。",
+        source_kind: "deliverable_shape",
+        source_label: "來源：deliverable shape",
+        priority: "medium",
+      },
     ],
   });
 
@@ -1487,11 +1498,14 @@ test("deliverable template view stays low-noise and consultant-readable", () => 
   assert.equal(view.sectionTitle, "這份交付比較適合沿用哪種模板主線");
   assert.equal(view.templateLabel, "合約審閱備忘模板");
   assert.match(view.templateFitSummary, /review \/ assessment/);
+  assert.match(view.fitSummary, /shape 與 playbook 主線/);
+  assert.match(view.sourceMixSummary, /deliverable shape/);
   assert.equal(view.coreListTitle, "先守住這些核心區塊");
   assert.equal(view.coreSections[0], "一句話結論");
   assert.equal(view.optionalListTitle, "這些區塊視案件補");
   assert.equal(view.optionalSections[0], "待補資料");
   assert.match(view.cards[0]?.meta ?? "", /precedent deliverable template/);
+  assert.match(view.cards[2]?.meta ?? "", /deliverable shape/);
   assert.match(view.boundaryNote, /不是自動套模板/);
 });
 

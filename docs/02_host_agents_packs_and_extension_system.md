@@ -55,6 +55,7 @@ Host 正式負責：
 - common risk libraries 若要進模型上下文，必須經 Host 收斂成 prompt-safe guidance，不可由前端或單一 agent 自行把 common risks 擴寫成正式風險結論
 - deliverable shape hints 若要進模型上下文，必須經 Host 收斂成 prompt-safe guidance，不可由前端或單一 agent 自行把交付提示擴寫成 template auto-fill
 - deliverable templates 若要進模型上下文，必須經 Host 收斂成 prompt-safe guidance，不可由前端或單一 agent 自行把模板提示擴寫成 template picker / auto-fill shell
+- deliverable templates 在 v2 可開始吸收 deliverable shape 與 richer domain-playbook signals，但只能由 Host 轉成模板適配理由、來源組合與少量 template blocks；不可把 shape / playbook 直接擴寫成 template library
 - domain playbooks 若要進模型上下文，必須經 Host 收斂成 prompt-safe guidance，不可由前端或單一 agent 自行把工作主線擴寫成 checklist shell
 - domain playbooks 在 v2 可開始吸收 cross-matter organization memory，但只能由 Host 轉成為何適用 / 收斂依據 / stage hints；不可把 related matters 自動展開成 playbook library 或 CRM shell
 - reusable review lenses、common risk libraries、deliverable shape hints、deliverable templates、domain playbooks 之間的角色必須保持分離：

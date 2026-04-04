@@ -271,6 +271,18 @@ def build_payload_deliverable_template_context(payload: AgentInputPayload) -> li
         lines.append(f"模板主線：{guidance.template_label}")
     if guidance.template_fit_summary:
         lines.append(f"這輪適合：{guidance.template_fit_summary}")
+    if guidance.fit_summary:
+        lines.append(
+            guidance.fit_summary
+            if guidance.fit_summary.startswith("這輪為何適用：")
+            else f"這輪為何適用：{guidance.fit_summary}"
+        )
+    if guidance.source_mix_summary:
+        lines.append(
+            guidance.source_mix_summary
+            if guidance.source_mix_summary.startswith("收斂依據：")
+            else f"收斂依據：{guidance.source_mix_summary}"
+        )
     if guidance.core_sections:
         lines.append("核心區塊：" + "、".join(guidance.core_sections))
     if guidance.optional_sections:

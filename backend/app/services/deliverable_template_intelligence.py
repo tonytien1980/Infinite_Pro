@@ -123,6 +123,7 @@ def build_deliverable_template_guidance(
 ) -> schemas.DeliverableTemplateGuidanceRead:
     blocks: list[schemas.DeliverableTemplateBlockRead] = []
     seen_keys: set[str] = set()
+    source_kinds_used: list[str] = []
     template_label = ""
     template_fit_summary = ""
     core_sections: list[str] = []
@@ -141,6 +142,8 @@ def build_deliverable_template_guidance(
         if not title or key in seen_keys or len(blocks) >= 4:
             return
         seen_keys.add(key)
+        if source_kind not in source_kinds_used:
+            source_kinds_used.append(source_kind)
         blocks.append(
             schemas.DeliverableTemplateBlockRead(
                 block_id=_build_block_id(source_kind, title),
@@ -200,11 +203,26 @@ def build_deliverable_template_guidance(
             priority="medium",
         )
 
+    if deliverable_shape_guidance.status != "none":
+        shape_title = deliverable_shape_guidance.primary_shape_label or "目前交付骨架"
+        add_block(
+            title=f"模板主線先對齊到「{shape_title}」這個交付骨架",
+            summary=deliverable_shape_guidance.summary or "先讓模板主線與目前交付骨架一致。",
+            why_fit=deliverable_shape_guidance.boundary_note or "先守住交付骨架，模板主線才不會太早漂掉。",
+            source_kind="deliverable_shape",
+            source_label="來源：deliverable shape",
+            priority="medium",
+        )
+
     if domain_playbook_guidance.status != "none":
         add_block(
             title=f"模板主線先對齊到「{domain_playbook_guidance.current_stage_label or domain_playbook_guidance.playbook_label}」",
             summary=domain_playbook_guidance.summary or "先讓模板節奏對齊目前這類案件的工作主線。",
-            why_fit=domain_playbook_guidance.next_stage_label or domain_playbook_guidance.boundary_note,
+            why_fit=(
+                domain_playbook_guidance.fit_summary
+                or domain_playbook_guidance.next_stage_label
+                or domain_playbook_guidance.boundary_note
+            ),
             source_kind="domain_playbook",
             source_label="來源：domain playbook",
             priority="medium",
@@ -244,8 +262,34 @@ def build_deliverable_template_guidance(
             status="none",
             label="目前沒有額外 deliverable template guidance",
             summary="這一輪先依現有證據與主問題推進，不額外補模板主線提示。",
+            fit_summary="",
+            source_mix_summary="",
             boundary_note="這是在提示模板主線，不是自動套模板。",
         )
+
+    fit_parts: list[str] = []
+    if precedent_reference_guidance.status == "available":
+        fit_parts.append("已有可參考的 precedent 模板主線")
+    if deliverable_shape_guidance.status != "none":
+        fit_parts.append("交付骨架已先收斂")
+    if domain_playbook_guidance.status != "none":
+        fit_parts.append("playbook 主線已經站穩")
+    if any(item.source_kind == "pack_deliverable_preset" for item in blocks):
+        fit_parts.append("pack deliverable preset 可補模板主線")
+    if not fit_parts:
+        fit_parts.append("目前仍以 task heuristic 補最小可信模板主線")
+    fit_summary = "這輪為何適用：" + "、".join(fit_parts) + "。"
+
+    source_label_map = {
+        "precedent_deliverable_template": "precedent deliverable template",
+        "pack_deliverable_preset": "pack deliverable preset",
+        "deliverable_shape": "deliverable shape",
+        "domain_playbook": "domain playbook",
+        "task_heuristic": "task heuristic",
+    }
+    source_mix_summary = "收斂依據：" + "、".join(
+        source_label_map[item] for item in source_kinds_used if item in source_label_map
+    )
 
     return schemas.DeliverableTemplateGuidanceRead(
         status="available" if any(item.source_kind != "task_heuristic" for item in blocks) else "fallback",
@@ -253,6 +297,8 @@ def build_deliverable_template_guidance(
         summary="Host 先整理出較穩的模板主線，幫你知道這份交付更像哪一型正式模板。",
         template_label=template_label,
         template_fit_summary=template_fit_summary or fallback_fit,
+        fit_summary=fit_summary,
+        source_mix_summary=source_mix_summary,
         core_sections=core_sections,
         optional_sections=optional_sections,
         boundary_note="這是在提示模板主線，不是自動套模板；若和這案正式證據衝突，仍以這案當前判斷與證據為準。",
