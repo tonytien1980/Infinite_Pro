@@ -44,7 +44,10 @@ import {
 } from "@/lib/continuation-advisory";
 import { buildContinuationPostureView } from "@/lib/continuity-ux";
 import { buildMaterialReviewPostureView } from "@/lib/material-review-ux";
-import { buildResearchGuidanceView } from "@/lib/research-lane";
+import {
+  buildResearchDetailView,
+  buildResearchGuidanceView,
+} from "@/lib/research-lane";
 import type {
   ExtensionManagerSnapshot,
   RetrievalProvenance,
@@ -545,6 +548,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
   const flagshipLane = task ? buildFlagshipLaneView(task.flagship_lane) : null;
   const materialReviewPosture = buildMaterialReviewPostureView(flagshipLane);
   const researchGuidance = task ? buildResearchGuidanceView(task.research_guidance) : null;
+  const researchDetailView = task
+    ? buildResearchDetailView(researchGuidance, task.research_runs[0] ?? null)
+    : null;
   const evidenceWorkspaceLane =
     task ? buildEvidenceWorkspaceLane(task, latestDeliverable, readinessGovernance) : null;
   const deliverableBacklink = task ? buildDeliverableBacklinkView(task, latestDeliverable) : null;
@@ -995,9 +1001,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     ? `已留存 ${task.research_runs.length} 筆研究執行紀錄；最近一筆為 ${labelForResearchDepth(task.research_runs[0].research_depth)}。`
                     : "目前沒有研究來源脈絡。"}
                 </p>
-                {researchGuidance?.shouldShow ? (
+                {researchDetailView?.shouldShow ? (
                   <p className="muted-text">
-                    {researchGuidance.citationReadySummary || researchGuidance.handoffSummary}
+                    {researchDetailView.cards[3]?.summary || researchDetailView.cards[0]?.summary}
                   </p>
                 ) : null}
               </div>
@@ -1179,6 +1185,29 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                         <li key={item}>{item}</li>
                       ))}
                     </ul>
+                  </div>
+                ) : null}
+                {researchDetailView?.shouldShow ? (
+                  <div className="detail-item">
+                    <h3>{researchDetailView.sectionTitle}</h3>
+                    <div className="summary-grid">
+                      {researchDetailView.cards.map((card) => (
+                        <div className="section-card" key={`task-research-${card.title}`}>
+                          <h4>{card.title}</h4>
+                          <p className="content-block">{card.summary}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {researchDetailView.listItems.length > 0 ? (
+                      <>
+                        <h4 style={{ marginTop: "16px" }}>{researchDetailView.listTitle}</h4>
+                        <ul className="list-content" style={{ marginTop: "12px" }}>
+                          {researchDetailView.listItems.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      </>
+                    ) : null}
                   </div>
                 ) : null}
               </div>

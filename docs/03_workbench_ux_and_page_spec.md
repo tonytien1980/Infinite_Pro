@@ -586,6 +586,7 @@ Primary action 應隨 continuity mode 分流：
 - 來源品質怎麼看
 - 這輪是否高度依賴新鮮度
 - 哪個矛盾訊號必須保留
+- 第二層研究區塊也應沿用共用 detail helper，而不是各頁自己拼研究卡片
 
 若 research guidance 目前為 `not_needed`，task 首屏 continuity 區塊應直接改用共通 focus summary，至少回答：
 
@@ -635,6 +636,7 @@ Primary action：
 - 若缺的是客戶內部資料或附件，應明示改走補件主鏈
 - citation-ready handoff 應長什麼樣
 - 最先怎麼收斂 evidence gaps
+- 第二層研究區塊應把「這輪先查什麼 / 來源品質 / 時效性與矛盾 / 研究交接 / 研究子題與缺口收斂」讀成同一條系統研究主線
 
 ### 7.5 `/tasks/[taskId]`
 
@@ -668,6 +670,7 @@ Primary action：
 - stop condition
 - 這是系統研究，不是要求顧問自己去查
 - 來源品質 / freshness 提示
+- 第二層研究區塊也應沿用共用 detail helper，而不是只留下簡短 metadata
 
 若 research guidance 目前為 `not_needed`，task 第二層 continuity 區塊也應延用共通 detail helper，至少回答：
 
@@ -703,6 +706,13 @@ Primary action 應隨 continuity mode / status 分流：
 - `continuous` 版交付物應清楚表達它承接長期推進，而不是單次 checkpoint 更新
 - 交付物右側 rail 的 continuity 區塊應沿用共通 focus summary，而不是只拼 raw lane summary
 - 第二層 continuity 區塊也應沿用共通 detail helper，把推進健康、結果追蹤、回看節奏與下一步建議讀成同一條 retained-advisory 主線
+
+若這份交付物有 research run history，研究區塊應讀成「最近系統研究交接」，而不是 raw `research runs` 清單，至少回答：
+
+- 最近研究交接了什麼
+- 來源品質怎麼看
+- 時效性與矛盾怎麼看
+- 研究結果如何交回主線
 
 若這份交付物來自 sparse-start / flagship lane，首屏應可回答：
 

@@ -17,7 +17,10 @@ import {
 } from "@/lib/continuation-advisory";
 import { describeRuntimeMaterialHandling } from "@/lib/intake";
 import { buildContinuationPostureView } from "@/lib/continuity-ux";
-import { buildResearchGuidanceView } from "@/lib/research-lane";
+import {
+  buildResearchDetailView,
+  buildResearchGuidanceView,
+} from "@/lib/research-lane";
 import { buildMaterialReviewPostureView } from "@/lib/material-review-ux";
 import { truncateText } from "@/lib/text-format";
 import type {
@@ -562,6 +565,9 @@ export function MatterWorkspacePanel({
   const flagshipLane = matter ? buildFlagshipLaneView(matter.summary.flagship_lane) : null;
   const materialReviewPosture = buildMaterialReviewPostureView(flagshipLane);
   const researchGuidance = matter ? buildResearchGuidanceView(matter.research_guidance) : null;
+  const researchDetailView = matter
+    ? buildResearchDetailView(researchGuidance, matter.research_runs[0] ?? null)
+    : null;
   const resolvedContentSections = matter
     ? buildResolvedMatterContentSections(matter, fallbackRecord)
     : draftContentSections;
@@ -1290,23 +1296,27 @@ export function MatterWorkspacePanel({
                       <p className="empty-text">目前尚未整理出分析焦點。</p>
                     )}
                   </div>
-                  {researchGuidance?.shouldShow ? (
+                  {researchDetailView?.shouldShow ? (
                     <div className="detail-item">
-                      <h3>研究補完方式</h3>
-                      <ul className="list-content">
-                        {researchGuidance.sourceQualitySummary ? (
-                          <li>來源品質：{researchGuidance.sourceQualitySummary}</li>
-                        ) : null}
-                        {researchGuidance.freshnessSummary ? (
-                          <li>時效性：{researchGuidance.freshnessSummary}</li>
-                        ) : null}
-                        {researchGuidance.contradictionWatchouts[0] ? (
-                          <li>矛盾保留：{researchGuidance.contradictionWatchouts[0]}</li>
-                        ) : null}
-                        {researchGuidance.evidenceGapClosurePlan[0] ? (
-                          <li>缺口收斂：{researchGuidance.evidenceGapClosurePlan[0]}</li>
-                        ) : null}
-                      </ul>
+                      <h3>{researchDetailView.sectionTitle}</h3>
+                      <div className="summary-grid">
+                        {researchDetailView.cards.map((card) => (
+                          <div className="section-card" key={`matter-research-${card.title}`}>
+                            <h4>{card.title}</h4>
+                            <p className="content-block">{card.summary}</p>
+                          </div>
+                        ))}
+                      </div>
+                      {researchDetailView.listItems.length > 0 ? (
+                        <>
+                          <h4 style={{ marginTop: "16px" }}>{researchDetailView.listTitle}</h4>
+                          <ul className="list-content" style={{ marginTop: "12px" }}>
+                            {researchDetailView.listItems.map((item) => (
+                              <li key={item}>{item}</li>
+                            ))}
+                          </ul>
+                        </>
+                      ) : null}
                     </div>
                   ) : null}
                   <div className="detail-item">

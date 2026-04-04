@@ -34,6 +34,7 @@ import {
 } from "@/lib/continuation-advisory";
 import { buildContinuationPostureView } from "@/lib/continuity-ux";
 import { buildMaterialReviewPostureView } from "@/lib/material-review-ux";
+import { buildResearchDetailView } from "@/lib/research-lane";
 import { truncateText } from "@/lib/text-format";
 import type {
   DeliverableContentRevision,
@@ -524,6 +525,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const progressionLane = continuationSurface?.progression_lane ?? null;
   const continuationFocusSummary = buildContinuationFocusSummary(continuationSurface);
   const continuationDetailView = buildContinuationDetailView(continuationSurface);
+  const researchDetailView = buildResearchDetailView(null, workspace?.research_runs[0] ?? null);
   const continuityPosture = buildContinuationPostureView(continuationSurface);
   const workspaceView = workspace ? buildDeliverableWorkspaceView(workspace) : null;
   const flagshipLane = task ? buildFlagshipLaneView(task.flagship_lane) : null;
@@ -1484,18 +1486,30 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                 )}
               </div>
               <div className="detail-item">
-                <h3>Research runs</h3>
-                {workspace.research_runs.length > 0 ? (
-                  <ul className="list-content">
-                    {workspace.research_runs.slice(0, 3).map((item) => (
-                      <li key={item.id}>
-                        {item.research_depth}｜{item.query}｜{item.result_summary || item.status}
-                        {item.source_quality_summary ? `｜${item.source_quality_summary}` : ""}
-                      </li>
-                    ))}
-                  </ul>
+                <h3>{researchDetailView.shouldShow ? researchDetailView.sectionTitle : "最近系統研究交接"}</h3>
+                {researchDetailView.shouldShow ? (
+                  <>
+                    <div className="summary-grid">
+                      {researchDetailView.cards.map((card) => (
+                        <div className="section-card" key={`deliverable-research-${card.title}`}>
+                          <h4>{card.title}</h4>
+                          <p className="content-block">{card.summary}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {researchDetailView.listItems.length > 0 ? (
+                      <>
+                        <h4 style={{ marginTop: "16px" }}>{researchDetailView.listTitle}</h4>
+                        <ul className="list-content">
+                          {researchDetailView.listItems.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      </>
+                    ) : null}
+                  </>
                 ) : (
-                  <p className="empty-text">目前沒有 research runs。</p>
+                  <p className="empty-text">目前沒有系統研究交接可回看。</p>
                 )}
               </div>
               <div className="detail-item">

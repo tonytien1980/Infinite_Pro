@@ -2053,3 +2053,70 @@ Environment used:
 - `follow_up` now stays checkpoint-first in both first-screen and deeper reading surfaces
 - `continuous` now keeps the same progression / outcome language in deliverable detail sections instead of dropping back to raw lane lists
 - visible continuity copy drift and leftover English continuity labels were reduced in the affected surfaces
+
+---
+
+## Entry: 2026-04-04 research final-mile pass
+
+Scope:
+- align second-layer research reading across `matter / task / evidence / deliverable`
+- reuse `research_guidance` and `research_runs` instead of adding a research console
+- upgrade deliverable research reading from raw `research runs` into consultant-facing research handoff language
+
+Environment used:
+- frontend runtime: `http://127.0.0.1:3001`
+- backend runtime: `http://127.0.0.1:8010/api/v1`
+- smoke database: `sqlite:////Users/oldtien_base/Desktop/Infinite Pro/research-final-mile-smoke.db`
+- smoke storage: repo-local `storage/`
+- smoke provider: `MODEL_PROVIDER=mock`
+- code verification: local repo workspace
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`106 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`15 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed for local smoke bundle |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Research final-mile verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Frontend | helper tests | Verify shared research second-layer helper | Verified | node test now covers both guidance-driven and run-driven research reading |
+| Frontend | `/matters/[matterId]` | Open live research-heavy matter page | Verified | second-layer research block now reads as `系統研究主線` with shared cards and research subtopic list |
+| Frontend | `/tasks/[taskId]` | Open live research-heavy task page | Verified | task now keeps research reading in the same shared structure instead of only short metadata |
+| Frontend | `/matters/[matterId]/evidence` | Open live research-heavy evidence page | Verified | research disclosure now reuses the shared cards/list before evidence-gap specifics |
+| Frontend | `/deliverables/[deliverableId]` | Open live deliverable page with research run history | Verified | deliverable now reads `最近系統研究交接` instead of raw `research runs` |
+| Frontend | route smoke | Verify live matter / task / evidence / deliverable routes | Verified | all four route checks returned `200` |
+
+### Live smoke data
+
+- research final-mile verification task id: `cab699e4-97a9-4788-979c-ad5cdaa258b6`
+- research final-mile verification matter id: `7824ce3a-c113-46fa-b248-4d7761a6c36e`
+- research final-mile verification deliverable id: `da58960b-6f80-4cad-a7bf-6e248913e191`
+- live API verification returned:
+  - `research_guidance.recommended_depth=standard_investigation`
+  - `research_guidance.source_quality_summary=本輪以 deep_research 深度補入 8 筆公開來源...`
+  - `research_guidance.freshness_summary=latest_public_web`
+  - `research_guidance.citation_ready_summary=後續交接時，應保留來源標題、URL、摘要與用途說明...`
+  - latest deliverable research run existed and was used for run-driven handoff reading
+- frontend route smoke:
+  - `/matters/7824ce3a-c113-46fa-b248-4d7761a6c36e` returned `200`
+  - `/tasks/cab699e4-97a9-4788-979c-ad5cdaa258b6` returned `200`
+  - `/matters/7824ce3a-c113-46fa-b248-4d7761a6c36e/evidence` returned `200`
+  - `/deliverables/da58960b-6f80-4cad-a7bf-6e248913e191` returned `200`
+- browser snapshots:
+  - matter research final-mile snapshot: `output/playwright/research-final-mile/.playwright-cli/page-2026-04-04T02-21-58-990Z.yml`
+  - task research final-mile snapshot: `output/playwright/research-final-mile/.playwright-cli/page-2026-04-04T02-21-43-401Z.yml`
+  - evidence research final-mile snapshot: `output/playwright/research-final-mile/.playwright-cli/page-2026-04-04T02-21-43-251Z.yml`
+  - deliverable research final-mile snapshot: `output/playwright/research-final-mile/.playwright-cli/page-2026-04-04T02-21-43-377Z.yml`
+
+### Verified outcomes
+
+- research no longer aligns only at hero guidance level; second-layer research reading is now materially closer across matter, task, evidence, and deliverable
+- deliverable research history now reads like a system research handoff instead of a raw runtime trace
+- the product still keeps research Host-owned and low-noise, but makes it much easier to understand what was researched, what uncertainty remains, and how the result should be handed back to the mainline

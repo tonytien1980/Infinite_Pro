@@ -21,7 +21,7 @@ import {
 } from "../src/lib/continuation-advisory.ts";
 import { buildMaterialReviewPostureView } from "../src/lib/material-review-ux.ts";
 import { buildContinuationPostureView } from "../src/lib/continuity-ux.ts";
-import { buildResearchGuidanceView } from "../src/lib/research-lane.ts";
+import { buildResearchDetailView, buildResearchGuidanceView } from "../src/lib/research-lane.ts";
 
 test("batch progress summary distinguishes done, parsing, failed, blocking, and reference-only items", () => {
   const items = buildIntakePreviewItems({
@@ -713,4 +713,74 @@ test("continuity detail view keeps second-layer checkpoint and progression readi
   assert.match(progressionDetail.cards[1]?.summary ?? "", /結果已開始站穩/);
   assert.match(progressionDetail.cards[3]?.summary ?? "", /本週內回看/);
   assert.match(progressionDetail.cards[4]?.summary ?? "", /刷新最新 deliverable/);
+});
+
+test("research detail view keeps guidance-driven and run-driven reading aligned", () => {
+  const guidanceView = buildResearchGuidanceView({
+    status: "recommended",
+    label: "系統研究建議",
+    summary: "這輪案件已有明顯研究缺口，建議先由系統研究主線補公開來源。",
+    recommended_depth: "standard_investigation",
+    suggested_questions: [
+      "目前最需要先查清楚的外部事實是什麼？",
+      "哪些公開來源最能補上主要證據期待？",
+    ],
+    evidence_gap_focus: ["外部政策變化", "競品反應"],
+    stop_condition: "當主要子題都有可信來源時，就先停止補研究。",
+    handoff_summary: "研究結果先交回主控代理收斂。",
+    latest_run_summary: "",
+    boundary_note: "研究是為了補齊缺口，不是先把所有公開資訊都抓完。",
+    execution_owner_label: "由系統研究主線處理",
+    supplement_boundary_note: "若缺的是客戶內部資料、附件或會議紀錄，請改走補件主鏈。",
+    source_quality_summary: "優先官方、原始與第一手來源。",
+    freshness_summary: "這輪高度依賴近期訊號，若來源太舊，判斷可能失真。",
+    contradiction_watchouts: ["若官方說法與市場報導不一致，需保留矛盾訊號。"],
+    citation_ready_summary: "研究輸出應保留來源、矛盾與可回看引用線索，再交回主控代理收斂。",
+    evidence_gap_closure_plan: ["先補關稅政策與出口限制的近期官方來源。"],
+  });
+
+  const guidanceDetail = buildResearchDetailView(guidanceView, null);
+  const runDetail = buildResearchDetailView(null, {
+    id: "run-1",
+    task_id: "task-1",
+    matter_workspace_id: "matter-1",
+    status: "completed",
+    query: "出口限制與關稅風險",
+    trigger_reason: "host_research_guidance",
+    research_scope: "public_web",
+    research_depth: "deep_research",
+    freshness_policy: "優先最近 30 天的公開來源。",
+    confidence_note: "目前來源大多一致，但仍需保留政策更新風險。",
+    source_trace_summary: "已整理 6 筆公開來源。",
+    selected_domain_pack_ids: [],
+    selected_industry_pack_ids: [],
+    sub_questions: ["政策變動何時生效？", "哪些產業先受影響？"],
+    evidence_gap_focus: ["出口限制", "關稅政策"],
+    source_quality_summary: "以官方、原始與第一手來源為主。",
+    contradiction_summary: "官方口徑與市場報導仍有落差。",
+    citation_handoff_summary: "研究結果已整理成可回看引用線索，可交回主線收斂。",
+    result_summary: "已補齊第一輪公開來源缺口。",
+    source_count: 6,
+    error_message: null,
+    started_at: "2026-04-04T10:00:00Z",
+    completed_at: "2026-04-04T10:10:00Z",
+  });
+
+  assert.equal(guidanceDetail.sectionTitle, "系統研究主線");
+  assert.equal(guidanceDetail.cards[0]?.title, "這輪先查什麼");
+  assert.match(guidanceDetail.cards[0]?.summary ?? "", /標準研究|外部事實/);
+  assert.match(guidanceDetail.cards[1]?.summary ?? "", /官方|第一手/);
+  assert.match(guidanceDetail.cards[2]?.summary ?? "", /近期訊號|矛盾訊號/);
+  assert.match(guidanceDetail.cards[3]?.summary ?? "", /引用|交回主控代理/);
+  assert.equal(guidanceDetail.listTitle, "研究子題 / 缺口收斂");
+  assert.equal(guidanceDetail.listItems.length, 3);
+
+  assert.equal(runDetail.sectionTitle, "最近系統研究交接");
+  assert.equal(runDetail.cards[0]?.title, "最近研究交接");
+  assert.match(runDetail.cards[0]?.summary ?? "", /深度研究|出口限制與關稅風險/);
+  assert.match(runDetail.cards[1]?.summary ?? "", /官方|第一手/);
+  assert.match(runDetail.cards[2]?.summary ?? "", /30 天|政策更新風險/);
+  assert.match(runDetail.cards[3]?.summary ?? "", /引用線索|主線收斂/);
+  assert.equal(runDetail.listTitle, "研究子題 / 來源線索");
+  assert.equal(runDetail.listItems.length, 3);
 });

@@ -32,7 +32,10 @@ import {
   progressInfoFromRuntimeHandling,
   summarizeBatchProgress,
 } from "@/lib/intake";
-import { buildResearchGuidanceView } from "@/lib/research-lane";
+import {
+  buildResearchDetailView,
+  buildResearchGuidanceView,
+} from "@/lib/research-lane";
 import type { ArtifactEvidenceWorkspace, RetrievalProvenance } from "@/lib/types";
 import {
   labelForCanonicalizationMatchBasis,
@@ -440,6 +443,9 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
     : "";
   const flagshipLane = workspace ? buildFlagshipLaneView(workspace.matter_summary.flagship_lane) : null;
   const researchGuidance = workspace ? buildResearchGuidanceView(workspace.research_guidance) : null;
+  const researchDetailView = workspace
+    ? buildResearchDetailView(researchGuidance, workspace.research_runs[0] ?? null)
+    : null;
   const evidenceSurfaceSummary = flagshipLane
     ? `${flagshipLane.currentOutputSummary} ${workspaceView?.summary || evidenceHeroSummary}`
     : workspaceView?.summary || evidenceHeroSummary;
@@ -1100,43 +1106,14 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
             description="只有在你要追查這輪外部補完是怎麼進入證據鏈，或確認哪些缺口已被正式記錄時，再展開這層。"
           >
             <div className="summary-grid">
-              {researchGuidance?.shouldShow ? (
-                <div className="section-card">
-                  <h4>{researchGuidance.label}</h4>
-                  <p className="content-block">
-                    {researchGuidance.depthLabel}｜{researchGuidance.firstQuestion}
-                  </p>
-                  <p className="muted-text">
-                    {researchGuidance.executionOwnerLabel}｜
-                    {researchGuidance.stopCondition || researchGuidance.boundaryNote}
-                  </p>
-                  {researchGuidance.sourceQualitySummary ? (
-                    <p className="muted-text">{researchGuidance.sourceQualitySummary}</p>
-                  ) : null}
-                  {researchGuidance.freshnessSummary ? (
-                    <p className="muted-text">{researchGuidance.freshnessSummary}</p>
-                  ) : null}
-                </div>
-              ) : null}
-              {researchGuidance?.shouldShow ? (
-                <div className="section-card">
-                  <h4>研究收斂方式</h4>
-                  <CompactList
-                    items={[
-                      researchGuidance.contradictionWatchouts[0]
-                        ? `矛盾訊號：${researchGuidance.contradictionWatchouts[0]}`
-                        : "",
-                      researchGuidance.citationReadySummary
-                        ? `引用交接：${researchGuidance.citationReadySummary}`
-                        : "",
-                      researchGuidance.evidenceGapClosurePlan[0]
-                        ? `缺口收斂：${researchGuidance.evidenceGapClosurePlan[0]}`
-                        : "",
-                    ].filter(Boolean)}
-                    emptyText="目前沒有額外的研究收斂提示。"
-                  />
-                </div>
-              ) : null}
+              {researchDetailView?.shouldShow
+                ? researchDetailView.cards.map((card) => (
+                    <div className="section-card" key={`evidence-research-${card.title}`}>
+                      <h4>{card.title}</h4>
+                      <p className="content-block">{card.summary}</p>
+                    </div>
+                  ))
+                : null}
               <div className="section-card">
                 <h4>研究執行紀錄</h4>
                 <CompactList
@@ -1157,6 +1134,15 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                 />
               </div>
             </div>
+            {researchDetailView?.listItems.length ? (
+              <div className="detail-item" style={{ marginTop: "18px" }}>
+                <h3>{researchDetailView.listTitle}</h3>
+                <CompactList
+                  items={researchDetailView.listItems}
+                  emptyText="目前沒有額外的研究收斂提示。"
+                />
+              </div>
+            ) : null}
           </DisclosurePanel>
 
           <section className="panel section-anchor" id="evidence-supplement">
