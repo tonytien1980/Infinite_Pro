@@ -156,6 +156,13 @@ def build_payload_organization_memory_context(payload: AgentInputPayload) -> lis
         lines.append("已知限制：" + "；".join(guidance.known_constraints[:4]))
     if guidance.continuity_anchor:
         lines.append(f"延續主線：{guidance.continuity_anchor}")
+    if guidance.cross_matter_summary:
+        lines.append(f"跨案件背景：{guidance.cross_matter_summary}")
+    for index, item in enumerate(guidance.cross_matter_items[:2], start=1):
+        parts = [item.matter_title, item.summary]
+        if item.relation_reason:
+            parts.append(item.relation_reason)
+        lines.append(f"跨案件參考 {index}：" + "｜".join(part for part in parts if part))
     lines.append(f"整體邊界：{guidance.boundary_note}")
     return lines
 

@@ -3539,6 +3539,49 @@ def test_task_and_matter_expose_matter_scoped_organization_memory(
     assert matter_guidance["stable_context_items"]
 
 
+def test_task_and_matter_expose_cross_matter_organization_memory(
+    client: TestClient,
+) -> None:
+    first_payload = create_contract_review_payload("Organization memory prior matter")
+    first_payload["client_name"] = "Acme Corp"
+    first_payload["engagement_name"] = "年度法務盤點"
+    first_payload["workstream_name"] = "合約風險整理"
+    first_task = client.post("/api/v1/tasks", json=first_payload).json()
+    client.post(
+        f"/api/v1/tasks/{first_task['id']}/uploads",
+        files=[("files", ("agreement.txt", b"Termination and liability clauses need review.", "text/plain"))],
+    )
+    first_run = client.post(f"/api/v1/tasks/{first_task['id']}/run")
+    assert first_run.status_code == 200
+
+    second_payload = create_contract_review_payload("Organization memory current matter")
+    second_payload["client_name"] = "Acme Corp"
+    second_payload["engagement_name"] = "續約商務盤點"
+    second_payload["workstream_name"] = "續約條件整理"
+    second_task = client.post("/api/v1/tasks", json=second_payload).json()
+    client.post(
+        f"/api/v1/tasks/{second_task['id']}/uploads",
+        files=[("files", ("renewal.txt", b"Renewal pricing and termination carve-outs need review.", "text/plain"))],
+    )
+    second_run = client.post(f"/api/v1/tasks/{second_task['id']}/run")
+    assert second_run.status_code == 200
+
+    aggregate = client.get(f"/api/v1/tasks/{second_task['id']}").json()
+    guidance = aggregate["organization_memory_guidance"]
+    assert guidance["status"] == "available"
+    assert guidance["cross_matter_summary"]
+    assert len(guidance["cross_matter_items"]) == 1
+    assert guidance["cross_matter_items"][0]["matter_title"]
+    assert guidance["cross_matter_items"][0]["relation_reason"]
+    assert guidance["cross_matter_items"][0]["matter_workspace_id"] != aggregate["matter_workspace"]["id"]
+
+    matter_id = aggregate["matter_workspace"]["id"]
+    matter_workspace = client.get(f"/api/v1/matters/{matter_id}").json()
+    matter_guidance = matter_workspace["organization_memory_guidance"]
+    assert matter_guidance["cross_matter_summary"]
+    assert len(matter_guidance["cross_matter_items"]) == 1
+
+
 def test_build_payload_organization_memory_context_keeps_prompt_safe_lines() -> None:
     payload = AgentInputPayload(
         task_id="task-1",
@@ -3565,6 +3608,15 @@ def test_build_payload_organization_memory_context_keeps_prompt_safe_lines() -> 
             stable_context_items=["主要工作焦點：法務、營運", "目前常用模組包：Professional Services Pack"],
             known_constraints=["Keep the output internal and non-final."],
             continuity_anchor="這案目前延續合約審閱這條主線。",
+            cross_matter_summary="另有 1 個同客戶案件可回看其穩定背景。",
+            cross_matter_items=[
+                schemas.CrossMatterOrganizationMemoryItemRead(
+                    matter_workspace_id="matter-1",
+                    matter_title="年度法務盤點｜合約風險整理",
+                    summary="先前案件主要聚焦 termination、liability 與附件邊界。",
+                    relation_reason="同一客戶｜同樣偏法務風險主線",
+                )
+            ],
             boundary_note="這是同一案件世界內目前已知的穩定背景。",
         ),
     )
@@ -3576,6 +3628,9 @@ def test_build_payload_organization_memory_context_keeps_prompt_safe_lines() -> 
     assert any("穩定背景：" in item for item in lines)
     assert any("已知限制：" in item for item in lines)
     assert any("延續主線：" in item for item in lines)
+    assert any("跨案件背景：" in item for item in lines)
+    assert any("跨案件參考 1：" in item for item in lines)
+
 
 
 def test_task_and_matter_expose_domain_playbook_guidance(

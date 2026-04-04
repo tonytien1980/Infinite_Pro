@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+from difflib import SequenceMatcher
+
 from app.domain import schemas
 from app.domain.enums import EngagementContinuityMode
+
+DEFAULT_ORGANIZATION_LABEL = "尚未明確標示客戶"
 
 
 def _unique(items: list[str]) -> list[str]:
@@ -16,8 +20,99 @@ def _unique(items: list[str]) -> list[str]:
     return result
 
 
+def _normalize_key(value: str | None) -> str:
+    return " ".join((value or "").strip().split()).casefold()
+
+
+def _looks_like_same_organization(current_label: str, candidate_label: str) -> bool:
+    current_key = _normalize_key(current_label)
+    candidate_key = _normalize_key(candidate_label)
+    if not current_key or not candidate_key:
+        return False
+    if current_key == candidate_key:
+        return True
+    if current_key in candidate_key or candidate_key in current_key:
+        return min(len(current_key), len(candidate_key)) >= 4
+    return SequenceMatcher(None, current_key, candidate_key).ratio() >= 0.9
+
+
+def _summarize_related_matter(summary: schemas.MatterWorkspaceSummaryRead) -> str:
+    return (
+        summary.workspace_summary
+        or summary.current_decision_context_summary
+        or summary.active_work_summary
+        or summary.continuity_summary
+        or "目前沒有額外的跨案件摘要。"
+    )
+
+
+def build_cross_matter_organization_memory_items(
+    *,
+    current_matter_workspace_id: str | None,
+    client_name: str,
+    client_stage: str | None,
+    client_type: str | None,
+    domain_lenses: list[str],
+    matter_summaries: list[schemas.MatterWorkspaceSummaryRead],
+) -> tuple[str, list[schemas.CrossMatterOrganizationMemoryItemRead]]:
+    normalized_client_name = _normalize_key(client_name)
+    if not normalized_client_name or normalized_client_name == _normalize_key(DEFAULT_ORGANIZATION_LABEL):
+        return "", []
+
+    ranked: list[tuple[int, float, schemas.CrossMatterOrganizationMemoryItemRead]] = []
+    current_lenses = {_normalize_key(item) for item in domain_lenses if _normalize_key(item)}
+
+    for summary in matter_summaries:
+        if current_matter_workspace_id and summary.id == current_matter_workspace_id:
+            continue
+        if not _looks_like_same_organization(client_name, summary.client_name):
+            continue
+
+        relation_bits = ["同一客戶"]
+        score = 10
+
+        if client_stage and summary.client_stage and client_stage == summary.client_stage:
+            relation_bits.append("同階段")
+            score += 2
+        if client_type and summary.client_type and client_type == summary.client_type:
+            relation_bits.append("同客群")
+            score += 2
+
+        overlap_lenses = [
+            item
+            for item in summary.domain_lenses
+            if _normalize_key(item) in current_lenses and _normalize_key(item)
+        ]
+        if overlap_lenses:
+            relation_bits.append(f"共通焦點：{'、'.join(overlap_lenses[:2])}")
+            score += 1
+
+        item = schemas.CrossMatterOrganizationMemoryItemRead(
+            matter_workspace_id=summary.id,
+            matter_title=summary.title,
+            summary=_summarize_related_matter(summary),
+            relation_reason="｜".join(relation_bits),
+        )
+        ranked.append(
+            (
+                score,
+                summary.latest_updated_at.timestamp(),
+                item,
+            )
+        )
+
+    ranked.sort(key=lambda entry: (-entry[0], -entry[1], entry[2].matter_title))
+    items = [entry[2] for entry in ranked[:3]]
+    if not items:
+        return "", []
+
+    summary = f"另有 {len(items)} 個同客戶案件可回看其穩定背景。"
+    return summary, items
+
+
 def build_organization_memory_guidance(
     *,
+    current_matter_workspace_id: str | None = None,
     client_name: str,
     client_stage: str | None,
     client_type: str | None,
@@ -27,6 +122,7 @@ def build_organization_memory_guidance(
     current_decision_context_title: str | None,
     next_best_actions: list[str],
     constraint_descriptions: list[str],
+    cross_matter_summaries: list[schemas.MatterWorkspaceSummaryRead] | None = None,
 ) -> schemas.OrganizationMemoryGuidanceRead:
     organization_label_parts = [client_name.strip() or "目前案件世界"]
     if client_stage:
@@ -53,6 +149,14 @@ def build_organization_memory_guidance(
     )[:4]
 
     known_constraints = _unique(constraint_descriptions)[:4]
+    cross_matter_summary, cross_matter_items = build_cross_matter_organization_memory_items(
+        current_matter_workspace_id=current_matter_workspace_id,
+        client_name=client_name,
+        client_stage=client_stage,
+        client_type=client_type,
+        domain_lenses=domain_lenses,
+        matter_summaries=list(cross_matter_summaries or []),
+    )
 
     continuity_anchor = ""
     if current_decision_context_title and next_best_actions:
@@ -64,7 +168,12 @@ def build_organization_memory_guidance(
     elif continuity_mode != EngagementContinuityMode.ONE_OFF:
         continuity_anchor = "這案目前仍在同一案件世界內持續推進，不是一次性輸出後就結束。"
 
-    if not stable_context_items and not known_constraints and not continuity_anchor:
+    if (
+        not stable_context_items
+        and not known_constraints
+        and not continuity_anchor
+        and not cross_matter_items
+    ):
         return schemas.OrganizationMemoryGuidanceRead(
             status="none",
             label="目前還沒有足夠穩定的組織背景",
@@ -75,10 +184,15 @@ def build_organization_memory_guidance(
     return schemas.OrganizationMemoryGuidanceRead(
         status="available",
         label="這個客戶 / 組織目前已知的穩定背景",
-        summary="Host 先把同一案件世界裡已站穩的組織背景、限制與延續主線整理出來，避免這輪又從零重問一次。",
+        summary=(
+            "Host 先把同一案件世界裡已站穩的組織背景、限制與延續主線整理出來；"
+            "若已有高度相近的同客戶案件，也只低風險補少量跨案件摘要，避免這輪又從零重問一次。"
+        ),
         organization_label=organization_label,
         stable_context_items=stable_context_items,
         known_constraints=known_constraints,
         continuity_anchor=continuity_anchor,
-        boundary_note="這是同一案件世界內目前已知的穩定背景，不代表跨客戶通用 profile；若與這輪正式證據衝突，仍以這案當前證據為準。",
+        cross_matter_summary=cross_matter_summary,
+        cross_matter_items=cross_matter_items,
+        boundary_note="這是在提示同案穩定背景與少量同客戶跨案件摘要，不是 CRM profile 卡，也不代表跨客戶通用 profile；若與這輪正式證據衝突，仍以這案當前證據為準。",
     )

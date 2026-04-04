@@ -1109,6 +1109,29 @@ Primary action：
   - 不是 CRM profile 卡
   - 若和這案正式證據衝突，仍以這案當前判斷與證據為準
 
+若 Host 已開始補上同客戶跨案件的 organization memory v2，UI 也只可低噪音補：
+
+- `另有 N 個同客戶案件可回看其穩定背景`
+- 少量跨案件摘要卡
+- 為什麼這些案件和現在相近
+
+正式規則：
+
+- `matter workspace` 可讀得稍完整，因為它是案件主工作面
+- `task detail` 只做更輕的 second-layer 回讀
+- 不新增 organization memory page family
+- 不把這層做成案件資料庫、客戶履歷頁、或 CRM 檔案櫃
+- 每次只應顯示少量跨案件摘要：
+  - 1 到 3 筆
+- 跨案件卡應回答：
+  - 這是哪個相關案件
+  - 它留下了什麼穩定背景
+  - 為什麼和現在相近
+- 不可直接顯示：
+  - 舊案全文
+  - 大量歷史清單
+  - 原始 precedent rows
+
 ### 9.2.7 Domain-playbook reading
 
 當 Host 已開始把同類案件的工作主線收斂成 domain playbooks 時，UI 也應維持低噪音回讀：

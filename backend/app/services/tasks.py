@@ -7163,6 +7163,22 @@ def _build_matter_workspace_summary_map(
     }
 
 
+def _build_other_matter_workspace_summaries(
+    db: Session,
+    *,
+    current_matter_workspace_id: str | None,
+) -> list[schemas.MatterWorkspaceSummaryRead]:
+    matter_workspaces = db.scalars(
+        select(models.MatterWorkspace).order_by(models.MatterWorkspace.updated_at.desc())
+    ).all()
+    filtered = [
+        item for item in matter_workspaces if not current_matter_workspace_id or item.id != current_matter_workspace_id
+    ]
+    if not filtered:
+        return []
+    return list(_build_matter_workspace_summary_map(db, filtered).values())
+
+
 def _build_evidence_object_mappings(
     source_materials: list[schemas.SourceMaterialRead],
     artifacts: list[schemas.ArtifactRead],
@@ -8498,6 +8514,7 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
         latest_run=latest_research_run,
     )
     organization_memory_guidance = build_organization_memory_guidance(
+        current_matter_workspace_id=matter_workspace.id,
         client_name=summary.client_name,
         client_stage=summary.client_stage,
         client_type=summary.client_type,
@@ -8515,6 +8532,10 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
             for task in related_tasks
             for constraint in task.constraints
         ],
+        cross_matter_summaries=_build_other_matter_workspace_summaries(
+            db,
+            current_matter_workspace_id=matter_workspace.id,
+        ),
     )
     matter_input_entry_mode = _infer_input_entry_mode(
         latest_task,
@@ -11409,6 +11430,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         ),
     )
     organization_memory_guidance = build_organization_memory_guidance(
+        current_matter_workspace_id=matter_workspace.id if matter_workspace else None,
         client_name=matter_workspace_summary.client_name if matter_workspace_summary else (world_client.name if world_client else ""),
         client_stage=(
             world_decision_context.client_stage
@@ -11440,6 +11462,10 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
             else []
         ),
         constraint_descriptions=[constraint.description for related_task in related_tasks_for_lane for constraint in related_task.constraints],
+        cross_matter_summaries=_build_other_matter_workspace_summaries(
+            db,
+            current_matter_workspace_id=matter_workspace.id if matter_workspace else None,
+        ),
     )
     precedent_reference_guidance = _build_precedent_reference_guidance_read(
         db,

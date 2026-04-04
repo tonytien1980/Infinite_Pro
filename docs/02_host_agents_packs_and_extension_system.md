@@ -50,6 +50,7 @@ Host 正式負責：
 - UI-only logic 不得取代 Host 決定核心 workflow
 - direct model call 不得繞過 Host orchestration 與 provider boundary
 - precedent 若要進模型上下文，必須經 Host 選取與縮寫，不可由前端直接回灌 raw candidate content
+- organization memory 若要進模型上下文，必須經 Host 收斂成 prompt-safe guidance；即使進到 cross-matter v2，也不可由前端自行把 related matters 拼成 CRM shell 或 raw history retrieval
 - reusable review lenses 若要進模型上下文，必須經 Host 收斂成 prompt-safe guidance，不可由前端或單一 agent 自行擴寫成 checklist shell
 - common risk libraries 若要進模型上下文，必須經 Host 收斂成 prompt-safe guidance，不可由前端或單一 agent 自行把 common risks 擴寫成正式風險結論
 - deliverable shape hints 若要進模型上下文，必須經 Host 收斂成 prompt-safe guidance，不可由前端或單一 agent 自行把交付提示擴寫成 template auto-fill

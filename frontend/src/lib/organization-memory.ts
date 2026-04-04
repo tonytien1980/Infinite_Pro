@@ -10,6 +10,8 @@ export function buildOrganizationMemoryView(
   stableContextItems: string[];
   knownConstraints: string[];
   continuityAnchor: string;
+  crossMatterSummary: string;
+  crossMatterItems: Array<{ title: string; summary: string; meta: string; matterWorkspaceId: string }>;
   boundaryNote: string;
 } {
   if (!guidance || guidance.status !== "available") {
@@ -21,6 +23,8 @@ export function buildOrganizationMemoryView(
       stableContextItems: [],
       knownConstraints: [],
       continuityAnchor: "",
+      crossMatterSummary: "",
+      crossMatterItems: [],
       boundaryNote: "",
     };
   }
@@ -33,6 +37,13 @@ export function buildOrganizationMemoryView(
     stableContextItems: guidance.stable_context_items,
     knownConstraints: guidance.known_constraints,
     continuityAnchor: guidance.continuity_anchor,
+    crossMatterSummary: guidance.cross_matter_summary,
+    crossMatterItems: (guidance.cross_matter_items || []).map((item) => ({
+      title: item.matter_title,
+      summary: item.summary,
+      meta: item.relation_reason,
+      matterWorkspaceId: item.matter_workspace_id,
+    })),
     boundaryNote: guidance.boundary_note,
   };
 }

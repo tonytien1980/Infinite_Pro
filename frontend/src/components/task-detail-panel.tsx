@@ -1348,6 +1348,25 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                         ))}
                       </ul>
                     ) : null}
+                    {organizationMemoryView.crossMatterSummary ? (
+                      <p className="muted-text" style={{ marginTop: "12px" }}>
+                        {organizationMemoryView.crossMatterSummary}
+                      </p>
+                    ) : null}
+                    {organizationMemoryView.crossMatterItems.length > 0 ? (
+                      <div className="summary-grid" style={{ marginTop: "16px" }}>
+                        {organizationMemoryView.crossMatterItems.map((item) => (
+                          <div
+                            className="section-card"
+                            key={`task-cross-memory-${item.matterWorkspaceId}`}
+                          >
+                            <h4>{item.title}</h4>
+                            <p className="content-block">{item.summary}</p>
+                            <p className="muted-text">{item.meta}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
                     {organizationMemoryView.knownConstraints.length > 0 ? (
                       <>
                         <h4 style={{ marginTop: "16px" }}>已知限制</h4>

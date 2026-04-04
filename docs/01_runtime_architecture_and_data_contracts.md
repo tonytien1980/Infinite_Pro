@@ -876,6 +876,45 @@ deliverable workspace 採：
   - precedent context：以前哪些模式值得參考
   - organization memory context：這個客戶 / 組織目前有哪些穩定背景不必重問
 
+在 matter-scoped v1 已成立後，第二版應先補：
+
+- `cross-matter organization memory v2`
+
+正式規則：
+
+- 第一波只允許整理：
+  - 同一客戶 / 組織、且名稱高度相近的其他案件摘要
+- 不做跨 client 自動合併
+- 不做 CRM shell
+- 不做 raw 舊案正文回灌
+- Host 可把這層收斂成同一份 prompt-safe `organization_memory_context`
+- 這層的正式角色是回答：
+  - 同一客戶是否已有其他案件留下穩定背景
+  - 這些跨案件背景為什麼和本案相近
+  - 目前只值得補哪些少量跨案件摘要
+
+第二版 contract 至少包括：
+
+- `cross_matter_summary`
+- `cross_matter_items`
+
+每筆 `cross_matter_item` 至少包括：
+
+- `matter_workspace_id`
+- `matter_title`
+- `summary`
+- `relation_reason`
+
+正式規則：
+
+- `organization_memory_context` 仍應優先以本案穩定背景為主
+- 跨案件摘要只可作為少量補充，不可壓過這案當前證據
+- 這層不是 precedent retrieval，也不是 playbook library
+- boundary copy 應明講：
+  - 這是在提示同客戶跨案件背景
+  - 不是 CRM profile
+  - 若與這案正式證據衝突，仍以這案當前證據為準
+
 ### 6.10.2B Domain playbooks
 
 在 reusable assets 已開始知道 `先看哪幾點 / 常漏哪些風險 / 交付怎麼收` 之後，precedent / reusable intelligence 的下一版可重用資產應先補：

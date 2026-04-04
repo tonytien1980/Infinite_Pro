@@ -2993,6 +2993,45 @@ Environment used:
 
 ---
 
+## Entry: 2026-04-05 cross-matter organization memory v2 pass
+
+Scope:
+- same-client cross-matter organization memory summary
+- Host-safe cross-matter organization context
+- low-noise matter / task cross-matter readback
+
+Environment used:
+- local repo runtime checks only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`140 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`30 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Cross-matter memory specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | task aggregate | Read cross-matter organization memory | Verified | targeted backend test confirms second matter on the same client now exposes `cross_matter_summary` and `cross_matter_items` |
+| Backend | matter workspace | Read cross-matter organization memory | Verified | targeted backend test confirms matter workspace returns the same low-noise cross-matter memory block |
+| Backend | agent payload | Build prompt-safe cross-matter organization context | Verified | targeted backend test confirms `organization_memory_context` now includes `跨案件背景` and compact `跨案件參考` lines |
+| Frontend | organization-memory helper | Render cross-matter summary and cards | Verified | frontend helper test confirms low-noise view returns `crossMatterSummary` plus compact related-matter cards |
+| Live runtime | `3001 / 8010` local smoke | Browser verification | Not run | local frontend/backend runtime was not started in this pass |
+
+### Verified outcomes
+
+- Infinite Pro now starts remembering not only this matter's stable background, but also a small amount of same-client context from other matters
+- Host can carry this cross-matter memory into prompt-safe context without turning the product into a CRM shell or raw history retriever
+- matter workspace and task detail stay low-noise: only a short summary plus a few related-matter cards
+
+---
+
 ## Entry: 2026-04-05 team-attributed reusable intelligence governance v1 pass
 
 Scope:

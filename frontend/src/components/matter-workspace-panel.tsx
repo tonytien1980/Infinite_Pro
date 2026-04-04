@@ -1068,11 +1068,40 @@ export function MatterWorkspacePanel({
                             ))}
                           </ul>
                         ) : null}
+                        {organizationMemoryView.crossMatterSummary ? (
+                          <p className="muted-text" style={{ marginTop: "12px" }}>
+                            {organizationMemoryView.crossMatterSummary}
+                          </p>
+                        ) : null}
+                        {organizationMemoryView.crossMatterItems.length > 0 ? (
+                          <div className="summary-grid" style={{ marginTop: "16px" }}>
+                            {organizationMemoryView.crossMatterItems.map((item) => (
+                              <div
+                                className="section-card"
+                                key={`matter-cross-memory-${item.matterWorkspaceId}`}
+                              >
+                                <h4>{item.title}</h4>
+                                <p className="content-block">{item.summary}</p>
+                                <p className="muted-text">{item.meta}</p>
+                                <Link
+                                  className="button-secondary"
+                                  href={`/matters/${item.matterWorkspaceId}`}
+                                  style={{ marginTop: "12px" }}
+                                >
+                                  打開相關案件
+                                </Link>
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
                         {organizationMemoryView.continuityAnchor ? (
                           <p className="muted-text" style={{ marginTop: "12px" }}>
                             {organizationMemoryView.continuityAnchor}
                           </p>
                         ) : null}
+                        <p className="muted-text" style={{ marginTop: "12px" }}>
+                          {organizationMemoryView.boundaryNote}
+                        </p>
                       </div>
                     ) : null}
                     {domainPlaybookView?.shouldShow ? (

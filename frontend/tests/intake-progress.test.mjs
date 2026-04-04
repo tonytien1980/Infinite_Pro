@@ -461,6 +461,15 @@ test("organization memory view stays low-noise and consultant-readable", () => {
     stable_context_items: ["主要工作焦點：法務、營運", "目前常用模組包：Professional Services Pack"],
     known_constraints: ["Keep the output internal and non-final."],
     continuity_anchor: "這案目前延續合約審閱這條主線。",
+    cross_matter_summary: "另有 1 個同客戶案件可回看其穩定背景。",
+    cross_matter_items: [
+      {
+        matter_workspace_id: "matter-1",
+        matter_title: "年度法務盤點｜合約風險整理",
+        summary: "先前案件主要聚焦 termination、liability 與附件邊界。",
+        relation_reason: "同一客戶｜同樣偏法務風險主線",
+      },
+    ],
     boundary_note: "這是同一案件世界內目前已知的穩定背景。",
   });
 
@@ -469,6 +478,9 @@ test("organization memory view stays low-noise and consultant-readable", () => {
   assert.equal(view.stableContextItems[0], "主要工作焦點：法務、營運");
   assert.equal(view.knownConstraints[0], "Keep the output internal and non-final.");
   assert.match(view.continuityAnchor, /合約審閱/);
+  assert.equal(view.crossMatterSummary, "另有 1 個同客戶案件可回看其穩定背景。");
+  assert.equal(view.crossMatterItems[0]?.title, "年度法務盤點｜合約風險整理");
+  assert.match(view.crossMatterItems[0]?.meta ?? "", /同一客戶/);
 });
 
 test("domain playbook view stays low-noise and consultant-readable", () => {

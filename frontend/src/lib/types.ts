@@ -1184,7 +1184,16 @@ export interface OrganizationMemoryGuidance {
   stable_context_items: string[];
   known_constraints: string[];
   continuity_anchor: string;
+  cross_matter_summary: string;
+  cross_matter_items: CrossMatterOrganizationMemoryItem[];
   boundary_note: string;
+}
+
+export interface CrossMatterOrganizationMemoryItem {
+  matter_workspace_id: string;
+  matter_title: string;
+  summary: string;
+  relation_reason: string;
 }
 
 export interface DomainPlaybookStage {
