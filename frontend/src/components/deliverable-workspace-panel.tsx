@@ -29,7 +29,7 @@ import {
   buildRecommendationCards,
   buildRiskCards,
 } from "@/lib/advisory-workflow";
-import { ADOPTION_FEEDBACK_OPTIONS, buildAdoptionFeedbackView } from "@/lib/adoption-feedback";
+import { AdoptionFeedbackControls } from "@/components/adoption-feedback-controls";
 import {
   buildContinuationDetailView,
   buildContinuationFocusSummary,
@@ -47,6 +47,7 @@ import { buildResearchDetailView } from "@/lib/research-lane";
 import { buildReviewLensView } from "@/lib/review-lenses";
 import { truncateText } from "@/lib/text-format";
 import type {
+  AdoptionFeedbackPayload,
   DeliverableContentRevision,
   DeliverableWorkspace,
   ObjectSet,
@@ -533,7 +534,6 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
 
   const task = workspace?.task ?? null;
   const deliverable = workspace?.deliverable ?? null;
-  const deliverableFeedbackView = buildAdoptionFeedbackView(deliverable?.adoption_feedback);
   const deliverableCandidateView = buildPrecedentCandidateView(deliverable?.precedent_candidate);
   const deliverableCandidateActions = deliverable?.precedent_candidate
     ? buildPrecedentCandidateActionView(deliverable.precedent_candidate)
@@ -834,9 +834,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
     setExportMessage(null);
   }
 
-  async function handleDeliverableFeedback(
-    feedbackStatus: "adopted" | "needs_revision" | "not_adopted" | "template_candidate",
-  ) {
+  async function handleDeliverableFeedback(payload: AdoptionFeedbackPayload) {
     if (!deliverable) {
       return;
     }
@@ -845,11 +843,9 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
       setIsApplyingDeliverableFeedback(true);
       setDeliverableFeedbackMessage(null);
       setError(null);
-      const response = await applyDeliverableFeedback(deliverable.id, {
-        feedback_status: feedbackStatus,
-        note: "",
-      });
+      const response = await applyDeliverableFeedback(deliverable.id, payload);
       setWorkspace(response);
+      const feedbackStatus = payload.feedback_status;
       setDeliverableFeedbackMessage(
         `已記錄這份交付物的回饋：${labelForAdoptionFeedbackStatus(feedbackStatus)}`,
       );
@@ -1279,35 +1275,15 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
 
                 <div className="section-card deliverable-rail-card">
                   <h4>採納回饋</h4>
-                  <p className="content-block">{deliverableFeedbackView.currentLabel}</p>
-                  <p className="muted-text">
-                    用很輕的方式標記這份交付物目前是否可直接採用、需改寫、目前不採用，或值得當範本。
-                  </p>
-                  <div className="button-row" style={{ marginTop: "10px" }}>
-                    {ADOPTION_FEEDBACK_OPTIONS.map((option) => (
-                      <button
-                        key={`deliverable-feedback-${option.value}`}
-                        className={
-                          deliverableFeedbackView.currentStatus === option.value
-                            ? "button-primary"
-                            : "button-secondary"
-                        }
-                        type="button"
-                        disabled={isApplyingDeliverableFeedback}
-                        onClick={() => void handleDeliverableFeedback(option.value)}
-                      >
-                        {isApplyingDeliverableFeedback &&
-                        deliverableFeedbackView.currentStatus !== option.value
-                          ? "儲存中..."
-                          : option.label}
-                      </button>
-                    ))}
-                  </div>
-                  {deliverableFeedbackMessage ? (
-                    <p className="success-text" role="status" aria-live="polite">
-                      {deliverableFeedbackMessage}
-                    </p>
-                  ) : null}
+                  <AdoptionFeedbackControls
+                    surface="deliverable"
+                    feedback={deliverable?.adoption_feedback}
+                    description="先用很輕的方式標記這份交付物是否可直接採用；若願意再補半拍，系統會更知道這次為什麼可用。"
+                    instanceId={`deliverable-${deliverable?.id ?? deliverableId}`}
+                    isSubmitting={isApplyingDeliverableFeedback}
+                    message={deliverableFeedbackMessage}
+                    onApply={handleDeliverableFeedback}
+                  />
                   {deliverableCandidateView.shouldShow ? (
                     <div style={{ marginTop: "12px" }}>
                       <p className="content-block">{deliverableCandidateView.badgeLabel}</p>

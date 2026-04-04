@@ -14,7 +14,11 @@ import {
   CONSULTANT_START_OPTIONS,
   resolveWorkflowValueForConsultingStart,
 } from "../src/lib/flagship-lane.ts";
-import { ADOPTION_FEEDBACK_OPTIONS, buildAdoptionFeedbackView } from "../src/lib/adoption-feedback.ts";
+import {
+  ADOPTION_FEEDBACK_OPTIONS,
+  buildAdoptionFeedbackView,
+  getAdoptionFeedbackReasonOptions,
+} from "../src/lib/adoption-feedback.ts";
 import {
   buildContinuationAdvisoryView,
   buildContinuationDetailView,
@@ -427,14 +431,22 @@ test("adoption feedback view exposes lightweight consultant-facing feedback stat
     deliverable_id: "deliverable-1",
     recommendation_id: null,
     feedback_status: "template_candidate",
+    reason_codes: ["reusable_structure"],
     note: "",
     created_at: "2026-04-03T00:00:00Z",
     updated_at: "2026-04-03T00:00:00Z",
-  });
+  }, "deliverable");
 
   assert.equal(feedback.currentStatus, "template_candidate");
   assert.equal(feedback.currentLabel, "值得當範本");
   assert.equal(feedback.hasFeedback, true);
+  assert.equal(feedback.currentReasonLabels[0], "可重用的交付結構");
+  assert.equal(feedback.shouldShowReasonStage, true);
+  assert.equal(feedback.reasonPrompt, "補一個主要原因");
+
+  const reasonOptions = getAdoptionFeedbackReasonOptions("deliverable", "template_candidate");
+  assert.equal(reasonOptions[0]?.value, "reusable_structure");
+  assert.equal(reasonOptions[0]?.label, "可重用的交付結構");
 });
 
 test("continuous advisory view exposes health, timeline, and next-step queue in consultant-facing copy", () => {

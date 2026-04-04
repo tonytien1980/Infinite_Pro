@@ -39,7 +39,7 @@ import {
   getVisibleConstraints,
   getStructuredStringList,
 } from "@/lib/advisory-workflow";
-import { ADOPTION_FEEDBACK_OPTIONS, buildAdoptionFeedbackView } from "@/lib/adoption-feedback";
+import { AdoptionFeedbackControls } from "@/components/adoption-feedback-controls";
 import {
   buildContinuationDetailView,
   buildContinuationFocusSummary,
@@ -59,6 +59,7 @@ import { buildDeliverableShapeHintView } from "@/lib/deliverable-shape-hints";
 import { buildPrecedentReferenceView } from "@/lib/precedent-reference";
 import { buildReviewLensView } from "@/lib/review-lenses";
 import type {
+  AdoptionFeedbackPayload,
   ExtensionManagerSnapshot,
   RetrievalProvenance,
   TaskAggregate,
@@ -490,17 +491,15 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
 
   async function handleRecommendationFeedback(
     recommendationId: string,
-    feedbackStatus: "adopted" | "needs_revision" | "not_adopted" | "template_candidate",
+    payload: AdoptionFeedbackPayload,
   ) {
     try {
       setFeedbackRecommendationId(recommendationId);
       setRecommendationFeedbackMessage(null);
       setError(null);
-      const response = await applyRecommendationFeedback(taskId, recommendationId, {
-        feedback_status: feedbackStatus,
-        note: "",
-      });
+      const response = await applyRecommendationFeedback(taskId, recommendationId, payload);
       setTask(response);
+      const feedbackStatus = payload.feedback_status;
       setRecommendationFeedbackMessage(
         `已記錄這則建議的回饋：${labelForAdoptionFeedbackStatus(feedbackStatus)}`,
       );
@@ -2368,7 +2367,6 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                 <div className="detail-list">
                   {sortedRecommendations.length > 0 ? (
                     sortedRecommendations.slice(0, 3).map((recommendation, index) => {
-                      const feedbackView = buildAdoptionFeedbackView(recommendation.adoption_feedback);
                       const precedentCandidateView = buildPrecedentCandidateView(
                         recommendation.precedent_candidate,
                       );
@@ -2381,7 +2379,13 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                       <div className="detail-item" key={recommendation.id}>
                         <div className="meta-row">
                           <span className="pill">{labelForPriority(recommendation.priority)}</span>
-                          <span>{feedbackView.currentLabel}</span>
+                          <span>
+                            {recommendation.adoption_feedback
+                              ? labelForAdoptionFeedbackStatus(
+                                  recommendation.adoption_feedback.feedback_status,
+                                )
+                              : "尚未提供回饋"}
+                          </span>
                         </div>
                         <h3>{recommendation.summary}</h3>
                         <ExpandableText
@@ -2418,25 +2422,18 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                             ) : null}
                           </div>
                         ) : null}
-                        <div className="button-row" style={{ marginTop: "12px" }}>
-                          {ADOPTION_FEEDBACK_OPTIONS.map((option) => (
-                            <button
-                              key={`${recommendation.id}-${option.value}`}
-                              className={
-                                feedbackView.currentStatus === option.value
-                                  ? "button-primary"
-                                  : "button-secondary"
-                              }
-                              type="button"
-                              disabled={feedbackRecommendationId === recommendation.id}
-                              onClick={() => void handleRecommendationFeedback(recommendation.id, option.value)}
-                            >
-                              {feedbackRecommendationId === recommendation.id &&
-                              feedbackView.currentStatus !== option.value
-                                ? "儲存中..."
-                                : option.label}
-                            </button>
-                          ))}
+                        <div style={{ marginTop: "12px" }}>
+                          <AdoptionFeedbackControls
+                            surface="recommendation"
+                            feedback={recommendation.adoption_feedback}
+                            description="先快速標記這則建議是否真的可用；若再補一個主要原因，系統會更知道這條建議為什麼值得保留。"
+                            instanceId={`recommendation-${recommendation.id}`}
+                            isSubmitting={feedbackRecommendationId === recommendation.id}
+                            message={null}
+                            onApply={(payload) =>
+                              handleRecommendationFeedback(recommendation.id, payload)
+                            }
+                          />
                         </div>
                       </div>
                     )})

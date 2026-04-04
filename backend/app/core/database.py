@@ -186,6 +186,9 @@ def _ensure_incremental_schema_updates() -> None:
         "outcome_records": {
             "function_type": "VARCHAR(50) NOT NULL DEFAULT 'outcome_observation'",
         },
+        "adoption_feedback": {
+            "reason_codes": "JSON NOT NULL DEFAULT '[]'",
+        },
         "object_set_members": {
             "support_evidence_id": "VARCHAR(36)",
             "member_metadata": "JSON NOT NULL DEFAULT '{}'",

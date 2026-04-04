@@ -913,12 +913,22 @@ Primary action：
   - `deliverable workspace`
   - `recommendation` 相關工作面
 - 互動必須輕量、可快速完成，不應打斷主線
-- 第一波預設應維持 one-click feedback；備註欄位可留作第二層，不應擋住主線
+- V1 預設應維持 one-click feedback：
+  - 第 1 拍：先按 status
+  - 第 2 拍：若願意，再補 quick-reply primary reason
+  - 第 3 層：若仍需要，再補一句 note
+- reason chips 應像 quick reply，而不是表單欄位
+- 備註欄位應保持收合，不應擋住主線
 - 第一波正式值至少包括：
   - 可直接採用
   - 需改寫後採用
   - 目前不採用
   - 值得當範本
+- V1 的 structured reason signal 只應低噪音回答：
+  - 為什麼這次可用
+  - 為什麼這次還要改
+  - 為什麼這次不採用
+  - 為什麼值得保留成可重用模式
 - 這層的正式責任是收集 explicit human adoption signal，而不是直接等於 precedent selection
 
 ### 9.2.1 Precedent candidate reading

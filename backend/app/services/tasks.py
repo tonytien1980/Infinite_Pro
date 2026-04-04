@@ -46,6 +46,10 @@ from app.extensions.schemas import (
     PackType,
 )
 from app.services.artifact_storage import load_artifact_content
+from app.services.adoption_feedback_intelligence import (
+    normalize_adoption_feedback_reason_codes,
+    summarize_adoption_feedback_reason,
+)
 from app.services.canonicalization import build_matter_canonicalization_contract
 from app.services.common_risk_intelligence import build_common_risk_guidance
 from app.services.content_revisions import (
@@ -7485,6 +7489,7 @@ def _serialize_adoption_feedback(item: models.AdoptionFeedback) -> schemas.Adopt
         deliverable_id=item.deliverable_id,
         recommendation_id=item.recommendation_id,
         feedback_status=AdoptionFeedbackStatus(item.feedback_status),
+        reason_codes=list(item.reason_codes or []),
         note=item.note or "",
         created_at=item.created_at,
         updated_at=item.updated_at,
@@ -11471,16 +11476,17 @@ def _feedback_status_creates_precedent_candidate(status: AdoptionFeedbackStatus)
 
 
 def _default_precedent_reusable_reason(
+    surface_kind: str,
     feedback_status: AdoptionFeedbackStatus,
     feedback_note: str,
+    feedback_reason_codes: list[str] | None,
 ) -> str:
-    if feedback_note:
-        return feedback_note
-    if feedback_status == AdoptionFeedbackStatus.ADOPTED:
-        return "已被明確標記為可直接採用，適合作為後續可重用模式候選。"
-    if feedback_status == AdoptionFeedbackStatus.NEEDS_REVISION:
-        return "已被標記為可在改寫後採用，適合作為後續修正版模式候選。"
-    return "已被標記為值得當範本，適合作為後續可重用模式候選。"
+    return summarize_adoption_feedback_reason(
+        surface_kind,
+        feedback_status,
+        feedback_note,
+        feedback_reason_codes,
+    )
 
 
 def _build_precedent_keywords(
@@ -11556,6 +11562,7 @@ def _build_precedent_candidate_seed(
     matter_workspace: models.MatterWorkspace | None,
     feedback_status: AdoptionFeedbackStatus,
     feedback_note: str,
+    feedback_reason_codes: list[str] | None,
     *,
     deliverable: models.Deliverable | None = None,
     recommendation: models.Recommendation | None = None,
@@ -11626,7 +11633,12 @@ def _build_precedent_candidate_seed(
             "candidate_type": PrecedentCandidateType.DELIVERABLE_PATTERN.value,
             "title": title,
             "summary": summary,
-            "reusable_reason": _default_precedent_reusable_reason(feedback_status, feedback_note),
+            "reusable_reason": _default_precedent_reusable_reason(
+                "deliverable",
+                feedback_status,
+                feedback_note,
+                feedback_reason_codes,
+            ),
             "lane_id": flagship_lane.lane_id,
             "continuity_mode": continuity_mode.value,
             "deliverable_type": deliverable.deliverable_type,
@@ -11660,7 +11672,12 @@ def _build_precedent_candidate_seed(
         "candidate_type": PrecedentCandidateType.RECOMMENDATION_PATTERN.value,
         "title": (recommendation_summary or "建議模式候選")[:255],
         "summary": recommendation_summary,
-        "reusable_reason": _default_precedent_reusable_reason(feedback_status, feedback_note),
+        "reusable_reason": _default_precedent_reusable_reason(
+            "recommendation",
+            feedback_status,
+            feedback_note,
+            feedback_reason_codes,
+        ),
         "lane_id": flagship_lane.lane_id,
         "continuity_mode": continuity_mode.value,
         "deliverable_type": deliverable_class_hint.value,
@@ -11716,6 +11733,7 @@ def _sync_precedent_candidate_for_feedback(
         matter_workspace,
         feedback_status,
         feedback.note or "",
+        list(feedback.reason_codes or []),
         deliverable=deliverable,
         recommendation=recommendation,
     )
@@ -11813,17 +11831,30 @@ def apply_deliverable_adoption_feedback(
     feedback = db.scalars(
         select(models.AdoptionFeedback).where(models.AdoptionFeedback.deliverable_id == deliverable_id)
     ).one_or_none()
+    normalized_reason_codes = normalize_adoption_feedback_reason_codes(
+        "deliverable",
+        payload.feedback_status,
+        payload.reason_codes,
+    )
+    normalized_note = _normalize_whitespace(payload.note) if payload.note is not None else None
     if feedback is None:
         feedback = models.AdoptionFeedback(
             task_id=task.id,
             matter_workspace_id=matter_workspace.id if matter_workspace else None,
             deliverable_id=deliverable.id,
             feedback_status=payload.feedback_status.value,
-            note=_normalize_whitespace(payload.note),
+            reason_codes=normalized_reason_codes,
+            note=normalized_note or "",
         )
     else:
+        previous_status = feedback.feedback_status
         feedback.feedback_status = payload.feedback_status.value
-        feedback.note = _normalize_whitespace(payload.note)
+        if previous_status != payload.feedback_status.value:
+            feedback.reason_codes = []
+        if payload.reason_codes is not None:
+            feedback.reason_codes = normalized_reason_codes
+        if normalized_note is not None:
+            feedback.note = normalized_note
         feedback.task_id = task.id
         feedback.matter_workspace_id = matter_workspace.id if matter_workspace else None
 
@@ -11854,17 +11885,30 @@ def apply_recommendation_adoption_feedback(
     feedback = db.scalars(
         select(models.AdoptionFeedback).where(models.AdoptionFeedback.recommendation_id == recommendation_id)
     ).one_or_none()
+    normalized_reason_codes = normalize_adoption_feedback_reason_codes(
+        "recommendation",
+        payload.feedback_status,
+        payload.reason_codes,
+    )
+    normalized_note = _normalize_whitespace(payload.note) if payload.note is not None else None
     if feedback is None:
         feedback = models.AdoptionFeedback(
             task_id=task.id,
             matter_workspace_id=matter_workspace.id if matter_workspace else None,
             recommendation_id=recommendation.id,
             feedback_status=payload.feedback_status.value,
-            note=_normalize_whitespace(payload.note),
+            reason_codes=normalized_reason_codes,
+            note=normalized_note or "",
         )
     else:
+        previous_status = feedback.feedback_status
         feedback.feedback_status = payload.feedback_status.value
-        feedback.note = _normalize_whitespace(payload.note)
+        if previous_status != payload.feedback_status.value:
+            feedback.reason_codes = []
+        if payload.reason_codes is not None:
+            feedback.reason_codes = normalized_reason_codes
+        if normalized_note is not None:
+            feedback.note = normalized_note
         feedback.task_id = task.id
         feedback.matter_workspace_id = matter_workspace.id if matter_workspace else None
 

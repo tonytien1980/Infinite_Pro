@@ -3337,6 +3337,36 @@ def test_recommendation_feedback_persists_on_task_aggregate(
     assert recommendation["adoption_feedback"]["note"] == "這類建議可作為範本候選。"
 
 
+def test_deliverable_feedback_persists_reason_codes_and_candidate_reusable_reason(
+    client: TestClient,
+) -> None:
+    payload = create_contract_review_payload("Deliverable structured feedback")
+    task = client.post("/api/v1/tasks", json=payload).json()
+
+    client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("agreement.txt", b"Termination and liability clauses need review.", "text/plain"))],
+    )
+    run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
+    assert run_response.status_code == 200
+    deliverable_id = run_response.json()["deliverable"]["id"]
+
+    feedback_response = client.post(
+        f"/api/v1/deliverables/{deliverable_id}/feedback",
+        json={
+            "feedback_status": "template_candidate",
+            "reason_codes": ["reusable_structure"],
+        },
+    )
+
+    assert feedback_response.status_code == 200
+    workspace = feedback_response.json()
+    feedback = workspace["deliverable"]["adoption_feedback"]
+    assert feedback["feedback_status"] == "template_candidate"
+    assert feedback["reason_codes"] == ["reusable_structure"]
+    assert workspace["deliverable"]["precedent_candidate"]["reusable_reason"] == "可重用的交付結構"
+
+
 def test_deliverable_feedback_creates_precedent_candidate_and_updates_matter_summary(
     client: TestClient,
 ) -> None:
@@ -3433,6 +3463,46 @@ def test_not_adopted_feedback_does_not_create_precedent_candidate(
     updated = feedback_response.json()
     recommendation = next(item for item in updated["recommendations"] if item["id"] == recommendation_id)
     assert recommendation["precedent_candidate"] is None
+
+
+def test_recommendation_feedback_status_change_clears_reason_codes_and_preserves_note(
+    client: TestClient,
+) -> None:
+    payload = create_task_payload("Recommendation feedback status change")
+    task = client.post("/api/v1/tasks", json=payload).json()
+
+    client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("notes.txt", b"Keep the recommendation flow simple and explicit.", "text/plain"))],
+    )
+    run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
+    assert run_response.status_code == 200
+
+    aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
+    recommendation_id = aggregate["recommendations"][0]["id"]
+
+    first_feedback = client.post(
+        f"/api/v1/tasks/{task['id']}/recommendations/{recommendation_id}/feedback",
+        json={
+            "feedback_status": "template_candidate",
+            "reason_codes": ["reusable_action_pattern"],
+            "note": "這個模式適合留作後續參考。",
+        },
+    )
+    assert first_feedback.status_code == 200
+
+    second_feedback = client.post(
+        f"/api/v1/tasks/{task['id']}/recommendations/{recommendation_id}/feedback",
+        json={
+            "feedback_status": "adopted",
+        },
+    )
+    assert second_feedback.status_code == 200
+    updated = second_feedback.json()
+    recommendation = next(item for item in updated["recommendations"] if item["id"] == recommendation_id)
+    assert recommendation["adoption_feedback"]["feedback_status"] == "adopted"
+    assert recommendation["adoption_feedback"]["reason_codes"] == []
+    assert recommendation["adoption_feedback"]["note"] == "這個模式適合留作後續參考。"
 
 
 def test_deliverable_precedent_candidate_can_be_promoted_and_demoted(

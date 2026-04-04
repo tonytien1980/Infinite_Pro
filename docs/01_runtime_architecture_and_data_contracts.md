@@ -538,7 +538,16 @@ deliverable workspace 採：
   - `needs_revision`
   - `not_adopted`
   - `template_candidate`
-- feedback record 可附帶 optional note，但第一波 UI 不應要求使用者先寫備註才能完成回饋
+- feedback record 現在也可附帶：
+  - `reason_codes`
+  - optional `note`
+- V1 正式規則：
+  - `reason_codes` 可為空
+  - V1 UI 只會主動收 0 到 1 個 primary reason
+  - `note` 仍是 optional
+  - status click 不應要求先填 note 或先選 reason 才能完成
+- 若 status 被切換到另一個值，既有 `reason_codes` 應先清空，避免把舊原因帶到新狀態
+- 若 request 沒有明確傳入 `note`，既有 note 不應被靜默清空
 - publish / approval / revision 仍屬治理或版本訊號，不等於 explicit human adoption feedback
 - 這層的正式目的，是為未來 precedent / reusable intelligence 提供更可靠的人類採納訊號
 

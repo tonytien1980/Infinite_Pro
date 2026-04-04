@@ -216,7 +216,8 @@ class DeliverablePublishRequest(BaseModel):
 
 class AdoptionFeedbackRequest(BaseModel):
     feedback_status: AdoptionFeedbackStatus
-    note: str = ""
+    reason_codes: list[str] | None = None
+    note: str | None = None
 
 
 class PrecedentCandidateStatusUpdateRequest(BaseModel):
@@ -754,6 +755,7 @@ class AdoptionFeedbackRead(ORMModel):
     deliverable_id: str | None = None
     recommendation_id: str | None = None
     feedback_status: AdoptionFeedbackStatus
+    reason_codes: list[str] = Field(default_factory=list)
     note: str = ""
     created_at: datetime
     updated_at: datetime

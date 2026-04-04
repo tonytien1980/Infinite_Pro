@@ -1082,6 +1082,7 @@ export interface AdoptionFeedback {
   deliverable_id: string | null;
   recommendation_id: string | null;
   feedback_status: AdoptionFeedbackStatus;
+  reason_codes: string[];
   note: string;
   created_at: string;
   updated_at: string;
@@ -2086,7 +2087,8 @@ export interface DeliverablePublishPayload {
 
 export interface AdoptionFeedbackPayload {
   feedback_status: AdoptionFeedbackStatus;
-  note: string;
+  reason_codes?: string[] | null;
+  note?: string | null;
 }
 
 export interface MatterContinuationActionPayload {

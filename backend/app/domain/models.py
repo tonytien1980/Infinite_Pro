@@ -1154,6 +1154,7 @@ class AdoptionFeedback(Base):
         nullable=True,
     )
     feedback_status: Mapped[str] = mapped_column(String(50), nullable=False)
+    reason_codes: Mapped[list[str]] = mapped_column(JSON, default=list)
     note: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)

@@ -2802,3 +2802,42 @@ Environment used:
 - `reusable review lenses` now read more clearly as angle / ordering guidance instead of a disguised risk list
 - `common risk libraries` remain the omission-guardrail layer rather than duplicating review-lens language
 - `deliverable shape hints` now read more like consultant deliverable skeletons instead of leaking raw internal section names into the first visible list
+
+---
+
+## Entry: 2026-04-04 adoption feedback v1 pass
+
+Scope:
+- deepen adoption feedback from status-only foundation into structured feedback v1
+- keep one-click status as first tap
+- add quick-reply primary reason as second tap
+- keep optional short note as a low-noise third layer
+
+Environment used:
+- local repo runtime checks only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`126 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`26 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Adoption-feedback v1 specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | deliverable feedback API | Save `feedback_status + reason_codes` | Verified | targeted backend test confirms deliverable adoption feedback now persists structured reason codes |
+| Backend | recommendation feedback API | Change status after a reason was selected | Verified | targeted backend test confirms status changes clear reason codes while preserving existing note when note is omitted |
+| Backend | precedent candidate seed | Fallback reusable reason from structured feedback | Verified | targeted backend test confirms empty-note candidate fallback now prefers human-selected reason label |
+| Frontend | adoption-feedback helper | Render primary-reason summary and quick-reply options | Verified | frontend helper test confirms `buildAdoptionFeedbackView` and `getAdoptionFeedbackReasonOptions` stay consultant-readable |
+
+### Verified outcomes
+
+- adoption feedback is no longer only a coarse status signal; it now has a lightweight structured-reason layer
+- the first tap remains one-click, so the main workbench flow stays fast
+- the second tap now gives Host and precedent governance a cleaner human reason signal without turning the UI into a form-heavy review console
