@@ -10,6 +10,7 @@ import {
   getExtensionManager,
   getTask,
   runTask,
+  updateRecommendationPrecedentCandidateStatus,
   updateTaskExtensions,
 } from "@/lib/api";
 import {
@@ -49,7 +50,10 @@ import {
   buildResearchDetailView,
   buildResearchGuidanceView,
 } from "@/lib/research-lane";
-import { buildPrecedentCandidateView } from "@/lib/precedent-candidates";
+import {
+  buildPrecedentCandidateActionView,
+  buildPrecedentCandidateView,
+} from "@/lib/precedent-candidates";
 import type {
   ExtensionManagerSnapshot,
   RetrievalProvenance,
@@ -393,6 +397,8 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
   const [approvalFeedback, setApprovalFeedback] = useState<string | null>(null);
   const [recommendationFeedbackMessage, setRecommendationFeedbackMessage] = useState<string | null>(null);
   const [feedbackRecommendationId, setFeedbackRecommendationId] = useState<string | null>(null);
+  const [candidateRecommendationId, setCandidateRecommendationId] = useState<string | null>(null);
+  const [recommendationCandidateMessage, setRecommendationCandidateMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [extensionError, setExtensionError] = useState<string | null>(null);
 
@@ -498,6 +504,36 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
       setError(feedbackError instanceof Error ? feedbackError.message : "記錄建議回饋失敗。");
     } finally {
       setFeedbackRecommendationId(null);
+    }
+  }
+
+  async function handleRecommendationCandidateStatus(
+    recommendationId: string,
+    candidateStatus: "candidate" | "promoted" | "dismissed",
+  ) {
+    try {
+      setCandidateRecommendationId(recommendationId);
+      setRecommendationCandidateMessage(null);
+      setError(null);
+      const response = await updateRecommendationPrecedentCandidateStatus(
+        taskId,
+        recommendationId,
+        {
+          candidate_status: candidateStatus,
+        },
+      );
+      setTask(response);
+      setRecommendationCandidateMessage(
+        candidateStatus === "promoted"
+          ? "這條建議已升格成正式可重用模式。"
+          : candidateStatus === "dismissed"
+            ? "這條建議已先停用，不列入 active 候選。"
+            : "這條建議已重新列回候選。"
+      );
+    } catch (candidateError) {
+      setError(candidateError instanceof Error ? candidateError.message : "更新建議候選狀態失敗。");
+    } finally {
+      setCandidateRecommendationId(null);
     }
   }
 
@@ -2193,6 +2229,11 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     {recommendationFeedbackMessage}
                   </p>
                 ) : null}
+                {recommendationCandidateMessage ? (
+                  <p className="success-text" role="status" aria-live="polite">
+                    {recommendationCandidateMessage}
+                  </p>
+                ) : null}
                 <div className="detail-list">
                   {sortedRecommendations.length > 0 ? (
                     sortedRecommendations.slice(0, 3).map((recommendation, index) => {
@@ -2200,6 +2241,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                       const precedentCandidateView = buildPrecedentCandidateView(
                         recommendation.precedent_candidate,
                       );
+                      const precedentCandidateActions = recommendation.precedent_candidate
+                        ? buildPrecedentCandidateActionView(recommendation.precedent_candidate)
+                        : null;
                       const expectedEffect =
                         recommendationCards[index]?.expectedEffect || "可讓下一輪判斷與執行更具可操作性。";
                       return (
@@ -2217,7 +2261,30 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                         {precedentCandidateView.shouldShow ? (
                           <div className="section-card" style={{ marginTop: "12px" }}>
                             <h4>{precedentCandidateView.badgeLabel}</h4>
+                            <p className="muted-text">目前狀態：{precedentCandidateView.statusLabel}</p>
                             <p className="muted-text">{precedentCandidateView.summary}</p>
+                            {precedentCandidateActions ? (
+                              <div className="button-row" style={{ marginTop: "10px" }}>
+                                {precedentCandidateActions.actions.map((action) => (
+                                  <button
+                                    key={`${recommendation.id}-candidate-${action.nextStatus}`}
+                                    className="button-secondary"
+                                    type="button"
+                                    disabled={candidateRecommendationId === recommendation.id}
+                                    onClick={() =>
+                                      void handleRecommendationCandidateStatus(
+                                        recommendation.id,
+                                        action.nextStatus,
+                                      )
+                                    }
+                                  >
+                                    {candidateRecommendationId === recommendation.id
+                                      ? "處理中..."
+                                      : action.label}
+                                  </button>
+                                ))}
+                              </div>
+                            ) : null}
                           </div>
                         ) : null}
                         <div className="button-row" style={{ marginTop: "12px" }}>

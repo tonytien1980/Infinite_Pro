@@ -213,6 +213,10 @@ class AdoptionFeedbackRequest(BaseModel):
     note: str = ""
 
 
+class PrecedentCandidateStatusUpdateRequest(BaseModel):
+    candidate_status: PrecedentCandidateStatus
+
+
 class TaskContextRead(ORMModel):
     id: str
     task_id: str

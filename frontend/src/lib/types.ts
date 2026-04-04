@@ -1044,6 +1044,10 @@ export interface PrecedentCandidateSummary {
   summary: string;
 }
 
+export interface PrecedentCandidateStatusUpdatePayload {
+  candidate_status: PrecedentCandidateStatus;
+}
+
 export interface TaskRun {
   id: string;
   task_id: string;

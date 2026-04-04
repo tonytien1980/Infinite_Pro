@@ -19,6 +19,7 @@ import {
   MatterWorkspaceSummary,
   PackContractDraftPayload,
   PackContractDraftResult,
+  PrecedentCandidateStatusUpdatePayload,
   ProviderValidationResult,
   MatterWorkspaceUpdatePayload,
   PackCatalogEntryUpdatePayload,
@@ -117,6 +118,24 @@ export async function applyRecommendationFeedback(
   return parseResponse<TaskAggregate>(response);
 }
 
+export async function updateRecommendationPrecedentCandidateStatus(
+  taskId: string,
+  recommendationId: string,
+  payload: PrecedentCandidateStatusUpdatePayload,
+): Promise<TaskAggregate> {
+  const response = await fetch(
+    `${getApiBaseUrl()}/tasks/${taskId}/recommendations/${recommendationId}/precedent-candidate`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+  );
+  return parseResponse<TaskAggregate>(response);
+}
+
 export async function getExtensionManager(): Promise<ExtensionManagerSnapshot> {
   const response = await fetch(`${getApiBaseUrl()}/extensions/manager`, {
     cache: "no-store",
@@ -152,6 +171,23 @@ export async function updatePackCatalogEntry(
     body: JSON.stringify(payload),
   });
   return parseResponse<ExtensionManagerSnapshot>(response);
+}
+
+export async function updateDeliverablePrecedentCandidateStatus(
+  deliverableId: string,
+  payload: PrecedentCandidateStatusUpdatePayload,
+): Promise<DeliverableWorkspace> {
+  const response = await fetch(
+    `${getApiBaseUrl()}/deliverables/${deliverableId}/precedent-candidate`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+  );
+  return parseResponse<DeliverableWorkspace>(response);
 }
 
 export async function draftAgentContract(

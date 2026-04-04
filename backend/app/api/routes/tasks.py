@@ -13,6 +13,7 @@ from app.services.tasks import (
     get_task_history,
     list_tasks,
     serialize_task,
+    update_recommendation_precedent_candidate_status,
     update_task_extension_overrides,
 )
 
@@ -69,6 +70,24 @@ def apply_recommendation_adoption_feedback_route(
     db: Session = Depends(get_db),
 ) -> schemas.TaskAggregateResponse:
     return apply_recommendation_adoption_feedback(db, task_id, recommendation_id, payload)
+
+
+@router.post(
+    "/{task_id}/recommendations/{recommendation_id}/precedent-candidate",
+    response_model=schemas.TaskAggregateResponse,
+)
+def update_recommendation_precedent_candidate_status_route(
+    task_id: str,
+    recommendation_id: str,
+    payload: schemas.PrecedentCandidateStatusUpdateRequest,
+    db: Session = Depends(get_db),
+) -> schemas.TaskAggregateResponse:
+    return update_recommendation_precedent_candidate_status(
+        db,
+        task_id,
+        recommendation_id,
+        payload,
+    )
 
 
 @router.get("/{task_id}/history", response_model=schemas.TaskHistoryResponse)

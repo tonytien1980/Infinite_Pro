@@ -7528,8 +7528,6 @@ def _build_precedent_candidate_maps(
     deliverable_map: dict[str, schemas.PrecedentCandidateRead] = {}
     recommendation_map: dict[str, schemas.PrecedentCandidateRead] = {}
     for item in task.precedent_candidates:
-        if item.candidate_status == PrecedentCandidateStatus.DISMISSED.value:
-            continue
         serialized = _serialize_precedent_candidate(item)
         if item.source_deliverable_id:
             deliverable_map[item.source_deliverable_id] = serialized
@@ -11560,6 +11558,59 @@ def _sync_precedent_candidate_for_feedback(
     candidate.pattern_snapshot = seed["pattern_snapshot"]
     db.add(candidate)
     db.flush()
+
+
+def _update_precedent_candidate_status(
+    db: Session,
+    candidate: models.PrecedentCandidate | None,
+    candidate_status: PrecedentCandidateStatus,
+) -> None:
+    if candidate is None:
+        raise HTTPException(status_code=404, detail="找不到可管理的可重用候選。")
+    candidate.candidate_status = candidate_status.value
+    db.add(candidate)
+    db.flush()
+
+
+def update_deliverable_precedent_candidate_status(
+    db: Session,
+    deliverable_id: str,
+    payload: schemas.PrecedentCandidateStatusUpdateRequest,
+) -> schemas.DeliverableWorkspaceResponse:
+    deliverable = db.scalars(select(models.Deliverable).where(models.Deliverable.id == deliverable_id)).one_or_none()
+    if deliverable is None:
+        raise HTTPException(status_code=404, detail="找不到指定交付物。")
+
+    candidate = db.scalars(
+        select(models.PrecedentCandidate).where(
+            models.PrecedentCandidate.source_deliverable_id == deliverable_id
+        )
+    ).one_or_none()
+    _update_precedent_candidate_status(db, candidate, payload.candidate_status)
+    db.commit()
+    return get_deliverable_workspace(db, deliverable_id)
+
+
+def update_recommendation_precedent_candidate_status(
+    db: Session,
+    task_id: str,
+    recommendation_id: str,
+    payload: schemas.PrecedentCandidateStatusUpdateRequest,
+) -> schemas.TaskAggregateResponse:
+    task = get_loaded_task(db, task_id)
+    recommendation = next((item for item in task.recommendations if item.id == recommendation_id), None)
+    if recommendation is None:
+        raise HTTPException(status_code=404, detail="找不到指定建議。")
+
+    candidate = db.scalars(
+        select(models.PrecedentCandidate).where(
+            models.PrecedentCandidate.source_recommendation_id == recommendation_id
+        )
+    ).one_or_none()
+    _update_precedent_candidate_status(db, candidate, payload.candidate_status)
+    db.commit()
+    refreshed_task = get_loaded_task(db, task_id)
+    return serialize_task(refreshed_task)
 
 
 def apply_deliverable_adoption_feedback(

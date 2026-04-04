@@ -909,6 +909,11 @@ Primary action：
 - `recommendation` 應優先把這層掛在既有建議卡附近
 - `matter workspace` 只應提供很輕的 candidate summary，不可做成 precedent dashboard hero
 - 這層是在說「這個內容值得被記住」，不是在說「系統已經自動重用它」
+- governance action 也應保持低噪音：
+  - `candidate` 可升格或先停用
+  - `promoted` 可降回候選或停用
+  - `dismissed` 可重新列回候選
+- 這些 action 只應出現在既有 candidate 區塊附近，不可新增 precedent management page
 
 ### 9.3 Specialized hardening views
 

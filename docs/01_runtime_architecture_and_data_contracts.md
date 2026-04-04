@@ -583,7 +583,14 @@ deliverable workspace 採：
 
 正式規則：
 
-- 第一波預設只建立 `candidate`，不自動升格 `promoted`
+- 第一波建立後預設是 `candidate`
+- managed pass 後，允許：
+  - `candidate -> promoted`
+  - `candidate -> dismissed`
+  - `promoted -> candidate`
+  - `promoted -> dismissed`
+  - `dismissed -> candidate`
+- precedence governance 不應改寫 adoption feedback 本身；它只管理 `candidate_status`
 - 候選內容應優先保存 pattern / shape / reusable reason，而不是整份舊案全文
 - future retrieval remains Host-owned；前端不可自行把 candidate 當 prompt snippet 插回主線
 

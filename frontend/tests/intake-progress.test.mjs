@@ -22,6 +22,7 @@ import {
 } from "../src/lib/continuation-advisory.ts";
 import { buildMaterialReviewPostureView } from "../src/lib/material-review-ux.ts";
 import {
+  buildPrecedentCandidateActionView,
   buildPrecedentCandidateSummaryView,
   buildPrecedentCandidateView,
 } from "../src/lib/precedent-candidates.ts";
@@ -909,4 +910,33 @@ test("precedent candidate views keep deliverable, recommendation, and matter sum
   assert.equal(matterSummaryView.title, "可重用候選");
   assert.match(matterSummaryView.summary, /2 個可重用候選/);
   assert.match(matterSummaryView.meta, /交付物 1|建議 1/);
+});
+
+test("precedent candidate action view keeps governance states low-noise", () => {
+  const candidateActions = buildPrecedentCandidateActionView({
+    candidate_status: "candidate",
+    candidate_type: "deliverable_pattern",
+  });
+  const promotedActions = buildPrecedentCandidateActionView({
+    candidate_status: "promoted",
+    candidate_type: "recommendation_pattern",
+  });
+  const dismissedActions = buildPrecedentCandidateActionView({
+    candidate_status: "dismissed",
+    candidate_type: "recommendation_pattern",
+  });
+
+  assert.equal(candidateActions.statusLabel, "候選中");
+  assert.equal(candidateActions.actions.length, 2);
+  assert.equal(candidateActions.actions[0]?.label, "升格成正式可重用模式");
+  assert.equal(candidateActions.actions[1]?.label, "先停用這個候選");
+
+  assert.equal(promotedActions.statusLabel, "正式可重用模式");
+  assert.equal(promotedActions.actions.length, 2);
+  assert.equal(promotedActions.actions[0]?.label, "降回候選");
+  assert.equal(promotedActions.actions[1]?.label, "停用這個模式");
+
+  assert.equal(dismissedActions.statusLabel, "已停用");
+  assert.equal(dismissedActions.actions.length, 1);
+  assert.equal(dismissedActions.actions[0]?.label, "重新列回候選");
 });

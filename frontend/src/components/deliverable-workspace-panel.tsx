@@ -12,6 +12,7 @@ import {
   getDeliverableWorkspace,
   publishDeliverableRelease,
   rollbackDeliverableContentRevision,
+  updateDeliverablePrecedentCandidateStatus,
 } from "@/lib/api";
 import {
   assessTaskReadiness,
@@ -35,7 +36,10 @@ import {
 } from "@/lib/continuation-advisory";
 import { buildContinuationPostureView } from "@/lib/continuity-ux";
 import { buildMaterialReviewPostureView } from "@/lib/material-review-ux";
-import { buildPrecedentCandidateView } from "@/lib/precedent-candidates";
+import {
+  buildPrecedentCandidateActionView,
+  buildPrecedentCandidateView,
+} from "@/lib/precedent-candidates";
 import { buildResearchDetailView } from "@/lib/research-lane";
 import { truncateText } from "@/lib/text-format";
 import type {
@@ -468,6 +472,10 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deliverableFeedbackMessage, setDeliverableFeedbackMessage] = useState<string | null>(null);
+  const [deliverableCandidateMessage, setDeliverableCandidateMessage] = useState<string | null>(null);
+  const [activeDeliverableCandidateStatus, setActiveDeliverableCandidateStatus] = useState<
+    "candidate" | "promoted" | "dismissed" | null
+  >(null);
 
   useEffect(() => {
     void (async () => {
@@ -523,6 +531,9 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const deliverable = workspace?.deliverable ?? null;
   const deliverableFeedbackView = buildAdoptionFeedbackView(deliverable?.adoption_feedback);
   const deliverableCandidateView = buildPrecedentCandidateView(deliverable?.precedent_candidate);
+  const deliverableCandidateActions = deliverable?.precedent_candidate
+    ? buildPrecedentCandidateActionView(deliverable.precedent_candidate)
+    : null;
   const continuationSurface = workspace?.continuation_surface ?? null;
   const followUpLane = continuationSurface?.follow_up_lane ?? null;
   const progressionLane = continuationSurface?.progression_lane ?? null;
@@ -832,6 +843,35 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
       setError(feedbackError instanceof Error ? feedbackError.message : "記錄交付物回饋失敗。");
     } finally {
       setIsApplyingDeliverableFeedback(false);
+    }
+  }
+
+  async function handleDeliverableCandidateStatus(
+    candidateStatus: "candidate" | "promoted" | "dismissed",
+  ) {
+    if (!deliverable) {
+      return;
+    }
+
+    try {
+      setActiveDeliverableCandidateStatus(candidateStatus);
+      setDeliverableCandidateMessage(null);
+      setError(null);
+      const response = await updateDeliverablePrecedentCandidateStatus(deliverable.id, {
+        candidate_status: candidateStatus,
+      });
+      setWorkspace(response);
+      setDeliverableCandidateMessage(
+        candidateStatus === "promoted"
+          ? "這份交付物已升格成正式可重用模式。"
+          : candidateStatus === "dismissed"
+            ? "這份交付物已先停用，不列入 active 候選。"
+            : "這份交付物已重新列回候選。"
+      );
+    } catch (candidateError) {
+      setError(candidateError instanceof Error ? candidateError.message : "更新可重用候選狀態失敗。");
+    } finally {
+      setActiveDeliverableCandidateStatus(null);
     }
   }
 
@@ -1257,7 +1297,30 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                   {deliverableCandidateView.shouldShow ? (
                     <div style={{ marginTop: "12px" }}>
                       <p className="content-block">{deliverableCandidateView.badgeLabel}</p>
+                      <p className="muted-text">目前狀態：{deliverableCandidateView.statusLabel}</p>
                       <p className="muted-text">{deliverableCandidateView.summary}</p>
+                      {deliverableCandidateActions ? (
+                        <div className="button-row" style={{ marginTop: "10px" }}>
+                          {deliverableCandidateActions.actions.map((action) => (
+                            <button
+                              key={`deliverable-candidate-${action.nextStatus}`}
+                              className="button-secondary"
+                              type="button"
+                              disabled={activeDeliverableCandidateStatus === action.nextStatus}
+                              onClick={() => void handleDeliverableCandidateStatus(action.nextStatus)}
+                            >
+                              {activeDeliverableCandidateStatus === action.nextStatus
+                                ? "處理中..."
+                                : action.label}
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
+                      {deliverableCandidateMessage ? (
+                        <p className="success-text" role="status" aria-live="polite">
+                          {deliverableCandidateMessage}
+                        </p>
+                      ) : null}
                     </div>
                   ) : null}
                 </div>

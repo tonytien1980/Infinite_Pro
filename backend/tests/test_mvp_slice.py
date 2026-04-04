@@ -3432,6 +3432,86 @@ def test_not_adopted_feedback_does_not_create_precedent_candidate(
     assert recommendation["precedent_candidate"] is None
 
 
+def test_deliverable_precedent_candidate_can_be_promoted_and_demoted(
+    client: TestClient,
+) -> None:
+    payload = create_contract_review_payload("Deliverable precedent governance")
+    task = client.post("/api/v1/tasks", json=payload).json()
+
+    client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("agreement.txt", b"Termination and liability clauses need review.", "text/plain"))],
+    )
+    run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
+    assert run_response.status_code == 200
+    deliverable_id = run_response.json()["deliverable"]["id"]
+
+    client.post(
+        f"/api/v1/deliverables/{deliverable_id}/feedback",
+        json={"feedback_status": "adopted", "note": "這份交付值得保留成可重用模式。"},
+    )
+
+    promote_response = client.post(
+        f"/api/v1/deliverables/{deliverable_id}/precedent-candidate",
+        json={"candidate_status": "promoted"},
+    )
+    assert promote_response.status_code == 200
+    assert promote_response.json()["deliverable"]["precedent_candidate"]["candidate_status"] == "promoted"
+
+    demote_response = client.post(
+        f"/api/v1/deliverables/{deliverable_id}/precedent-candidate",
+        json={"candidate_status": "candidate"},
+    )
+    assert demote_response.status_code == 200
+    assert demote_response.json()["deliverable"]["precedent_candidate"]["candidate_status"] == "candidate"
+
+
+def test_recommendation_precedent_candidate_can_be_dismissed_and_restored(
+    client: TestClient,
+) -> None:
+    payload = create_task_payload("Recommendation precedent governance")
+    task = client.post("/api/v1/tasks", json=payload).json()
+
+    client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("notes.txt", b"Pricing and channel suggestions need review.", "text/plain"))],
+    )
+    run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
+    assert run_response.status_code == 200
+
+    aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
+    recommendation_id = aggregate["recommendations"][0]["id"]
+
+    client.post(
+        f"/api/v1/tasks/{task['id']}/recommendations/{recommendation_id}/feedback",
+        json={"feedback_status": "template_candidate", "note": "這條建議很適合做成模式候選。"},
+    )
+
+    dismiss_response = client.post(
+        f"/api/v1/tasks/{task['id']}/recommendations/{recommendation_id}/precedent-candidate",
+        json={"candidate_status": "dismissed"},
+    )
+    assert dismiss_response.status_code == 200
+    recommendation = next(
+        item for item in dismiss_response.json()["recommendations"] if item["id"] == recommendation_id
+    )
+    assert recommendation["precedent_candidate"]["candidate_status"] == "dismissed"
+
+    matter_id = dismiss_response.json()["matter_workspace"]["id"]
+    matter_workspace = client.get(f"/api/v1/matters/{matter_id}").json()
+    assert matter_workspace["summary"]["precedent_candidate_summary"]["total_candidates"] == 0
+
+    restore_response = client.post(
+        f"/api/v1/tasks/{task['id']}/recommendations/{recommendation_id}/precedent-candidate",
+        json={"candidate_status": "candidate"},
+    )
+    assert restore_response.status_code == 200
+    restored = next(
+        item for item in restore_response.json()["recommendations"] if item["id"] == recommendation_id
+    )
+    assert restored["precedent_candidate"]["candidate_status"] == "candidate"
+
+
 def test_specialist_run_returns_explicit_uncertainty_when_model_router_fails(
     client: TestClient,
     monkeypatch: pytest.MonkeyPatch,

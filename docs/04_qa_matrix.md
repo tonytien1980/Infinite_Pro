@@ -2262,3 +2262,64 @@ Environment used:
 - Infinite Pro 現在已不只會收 adoption feedback，還會把正向採納訊號轉成可回看的 precedent candidates
 - candidate pool 目前仍維持低噪音，沒有長成新的 precedent dashboard 或知識庫首頁
 - matter / task / deliverable 都能用 consultant-facing 的語言讀到「這個內容值得被記住」，但還沒有過早變成自動套用系統
+
+## Entry: 2026-04-04 precedent candidate governance pass
+
+Scope:
+- first managed pass for precedent candidates
+- `candidate / promoted / dismissed` governance states
+- low-noise governance actions on deliverable / recommendation surfaces
+
+Environment used:
+- frontend runtime: `http://127.0.0.1:3001`
+- backend runtime: `http://127.0.0.1:8010/api/v1`
+- runtime database: local `precedent-governance-smoke.db`
+- browser evidence: local `playwright-cli` smoke artifacts
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`111 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`18 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+| `git diff --check` | Passed |
+
+### Governance-specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | deliverable precedent route | Promote a deliverable candidate to `promoted` | Verified | route returns updated deliverable workspace with `candidate_status=promoted` |
+| Backend | deliverable precedent route | Demote a promoted deliverable candidate back to `candidate` | Verified | regression test covers status round-trip |
+| Backend | recommendation precedent route | Dismiss a recommendation candidate | Verified | route returns `candidate_status=dismissed` while keeping source-surface read model available |
+| Backend | recommendation precedent route | Restore a dismissed recommendation candidate back to `candidate` | Verified | route returns restored candidate and matter summary re-includes the active candidate |
+| Frontend | `/deliverables/[deliverableId]` | Click `升格成正式可重用模式` | Verified | page now shows `已升格成正式可重用模式` and `目前狀態：正式可重用模式` |
+| Frontend | `/tasks/[taskId]` | Expand `交付細節與場景延伸` and click `先停用這個候選` | Verified | recommendation card now shows `目前已停用這個候選` and `目前狀態：已停用` |
+| Frontend | `/tasks/[taskId]` | Click `重新列回候選` | Verified | recommendation card returns to `候選中` with the promote / dismiss buttons restored |
+
+### Live smoke data
+
+- deliverable-governance verification task id: `02482453-4170-409a-885f-daa8f5b0371c`
+- deliverable-governance verification deliverable id: `9b0265a5-f31e-41b8-9c66-c479504bc31e`
+- recommendation-governance verification task id: `6c7ef907-5b4c-4ae1-96a6-9d9fe5d14021`
+- recommendation-governance verification recommendation id: `1e43454f-c642-42e7-9baf-4c6be05e65bc`
+- recommendation-governance verification matter id: `4a68c0ef-8719-4e75-8ef9-c923863f2049`
+- live API verification returned after restore:
+  - matter candidate summary: `這案目前留下 1 個可重用候選。交付物 0 個 / 建議 1 個。|1`
+- browser artifacts:
+  - deliverable promoted snapshot: `output/playwright/precedent-governance/deliverable-promoted.txt`
+  - task dismissed snapshot: `output/playwright/precedent-governance/task-dismissed.txt`
+  - task restored snapshot: `output/playwright/precedent-governance/task-restored.txt`
+
+### Residual note
+
+- 這一輪只補 candidate governance，不做 Host automatic retrieval、precedent ranking 或 auto-apply。
+
+### Verified outcomes
+
+- precedent candidate pool 已不只是被動收集，而是開始具備最小治理能力
+- `dismissed` 會從 matter summary 排除，但仍保留在 source surface 方便 restore
+- precedent governance 仍停留在既有 deliverable / recommendation UI 附近，沒有長成新的管理後台

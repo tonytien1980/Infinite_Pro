@@ -14,6 +14,7 @@ from app.services.tasks import (
     get_deliverable_workspace,
     publish_deliverable_release,
     rollback_deliverable_content_revision,
+    update_deliverable_precedent_candidate_status,
     update_deliverable_metadata,
     update_deliverable_workspace,
 )
@@ -63,6 +64,18 @@ def apply_deliverable_adoption_feedback_route(
     db: Session = Depends(get_db),
 ) -> schemas.DeliverableWorkspaceResponse:
     return apply_deliverable_adoption_feedback(db, deliverable_id, payload)
+
+
+@router.post(
+    "/{deliverable_id}/precedent-candidate",
+    response_model=schemas.DeliverableWorkspaceResponse,
+)
+def update_deliverable_precedent_candidate_status_route(
+    deliverable_id: str,
+    payload: schemas.PrecedentCandidateStatusUpdateRequest,
+    db: Session = Depends(get_db),
+) -> schemas.DeliverableWorkspaceResponse:
+    return update_deliverable_precedent_candidate_status(db, deliverable_id, payload)
 
 
 @router.post(
