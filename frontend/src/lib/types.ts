@@ -124,6 +124,42 @@ export interface WorkbenchSettings {
   deliverableSortPreference: DeliverableSortPreference;
 }
 
+export interface PrecedentReviewItem {
+  id: string;
+  candidate_type: PrecedentCandidateType;
+  candidate_status: PrecedentCandidateStatus;
+  title: string;
+  summary: string;
+  reusable_reason: string;
+  lane_id: string;
+  continuity_mode: string;
+  deliverable_type: string | null;
+  client_stage: string | null;
+  client_type: string | null;
+  matter_workspace_id: string | null;
+  matter_title: string | null;
+  task_id: string;
+  task_title: string;
+  deliverable_id: string | null;
+  deliverable_title: string | null;
+  recommendation_id: string | null;
+  recommendation_summary: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PrecedentReviewSummary {
+  total_items: number;
+  candidate_count: number;
+  promoted_count: number;
+  dismissed_count: number;
+}
+
+export interface PrecedentReviewResponse {
+  summary: PrecedentReviewSummary;
+  items: PrecedentReviewItem[];
+}
+
 export interface ProviderPreset {
   providerId: ProviderId;
   displayName: string;

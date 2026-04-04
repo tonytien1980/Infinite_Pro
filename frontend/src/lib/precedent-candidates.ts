@@ -5,6 +5,11 @@ import type {
   PrecedentCandidateType,
 } from "@/lib/types";
 
+type PrecedentCandidateLike = Pick<
+  PrecedentCandidate,
+  "candidate_type" | "candidate_status" | "summary" | "reusable_reason"
+>;
+
 function labelForCandidateType(candidateType: PrecedentCandidateType) {
   if (candidateType === "deliverable_pattern") {
     return "交付物模式候選";
@@ -13,7 +18,7 @@ function labelForCandidateType(candidateType: PrecedentCandidateType) {
 }
 
 export function buildPrecedentCandidateView(
-  candidate: PrecedentCandidate | null | undefined,
+  candidate: PrecedentCandidateLike | null | undefined,
 ): {
   shouldShow: boolean;
   badgeLabel: string;

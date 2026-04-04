@@ -15,6 +15,7 @@ import {
   MatterWorkspace,
   MatterContinuationActionPayload,
   MatterCanonicalizationReviewPayload,
+  PrecedentReviewResponse,
   MatterWorkspaceMetadataUpdatePayload,
   MatterWorkspaceSummary,
   PackContractDraftPayload,
@@ -77,6 +78,13 @@ export async function listTasks(): Promise<TaskListItem[]> {
     cache: "no-store",
   });
   return parseResponse<TaskListItem[]>(response);
+}
+
+export async function getPrecedentReviewState(): Promise<PrecedentReviewResponse> {
+  const response = await fetch(`${getApiBaseUrl()}/workbench/precedent-candidates`, {
+    cache: "no-store",
+  });
+  return parseResponse<PrecedentReviewResponse>(response);
 }
 
 export async function getTask(taskId: string): Promise<TaskAggregate> {

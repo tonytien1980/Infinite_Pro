@@ -26,6 +26,7 @@ import {
   buildPrecedentCandidateSummaryView,
   buildPrecedentCandidateView,
 } from "../src/lib/precedent-candidates.ts";
+import { filterPrecedentReviewItems } from "../src/lib/precedent-review.ts";
 import { buildContinuationPostureView } from "../src/lib/continuity-ux.ts";
 import { buildResearchDetailView, buildResearchGuidanceView } from "../src/lib/research-lane.ts";
 
@@ -939,4 +940,88 @@ test("precedent candidate action view keeps governance states low-noise", () => 
   assert.equal(dismissedActions.statusLabel, "已停用");
   assert.equal(dismissedActions.actions.length, 1);
   assert.equal(dismissedActions.actions[0]?.label, "重新列回候選");
+});
+
+test("precedent review filter keeps status and type filters predictable", () => {
+  const items = [
+    {
+      id: "1",
+      candidate_type: "deliverable_pattern",
+      candidate_status: "candidate",
+      title: "合約審閱交付骨架",
+      summary: "review memo 候選",
+      reusable_reason: "已被採納",
+      lane_id: "material_review_start",
+      continuity_mode: "one_off",
+      deliverable_type: "contract_review",
+      client_stage: "institutionalizing",
+      client_type: "smb",
+      matter_workspace_id: "matter-1",
+      matter_title: "法務審閱案",
+      task_id: "task-1",
+      task_title: "合約審閱",
+      deliverable_id: "deliverable-1",
+      deliverable_title: "合約審閱交付物",
+      recommendation_id: null,
+      recommendation_summary: null,
+      created_at: "2026-04-04T10:00:00Z",
+      updated_at: "2026-04-04T10:00:00Z",
+    },
+    {
+      id: "2",
+      candidate_type: "recommendation_pattern",
+      candidate_status: "promoted",
+      title: "價格分層建議",
+      summary: "成長建議模式",
+      reusable_reason: "值得保留",
+      lane_id: "decision_convergence_start",
+      continuity_mode: "follow_up",
+      deliverable_type: "decision_memo",
+      client_stage: "scaling",
+      client_type: "professional_service",
+      matter_workspace_id: "matter-2",
+      matter_title: "成長建議案",
+      task_id: "task-2",
+      task_title: "價格建議",
+      deliverable_id: null,
+      deliverable_title: null,
+      recommendation_id: "recommendation-2",
+      recommendation_summary: "先切客群再談渠道與價格",
+      created_at: "2026-04-04T10:00:00Z",
+      updated_at: "2026-04-04T10:00:00Z",
+    },
+  ];
+
+  assert.equal(
+    filterPrecedentReviewItems(items, {
+      query: "",
+      status: "all",
+      type: "all",
+    }).length,
+    2,
+  );
+  assert.equal(
+    filterPrecedentReviewItems(items, {
+      query: "",
+      status: "promoted",
+      type: "all",
+    }).length,
+    1,
+  );
+  assert.equal(
+    filterPrecedentReviewItems(items, {
+      query: "",
+      status: "all",
+      type: "deliverable_pattern",
+    }).length,
+    1,
+  );
+  assert.equal(
+    filterPrecedentReviewItems(items, {
+      query: "價格",
+      status: "all",
+      type: "all",
+    })[0]?.id,
+    "2",
+  );
 });

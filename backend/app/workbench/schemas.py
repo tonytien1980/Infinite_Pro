@@ -235,3 +235,41 @@ class HistoryVisibilityStateResponse(BaseModel):
 class HistoryVisibilityUpdateRequest(BaseModel):
     task_ids: list[str] = Field(default_factory=list)
     visibility_state: Literal["visible", "hidden"] = "hidden"
+
+
+class PrecedentReviewItemResponse(BaseModel):
+    id: str
+    candidate_type: Literal["deliverable_pattern", "recommendation_pattern"]
+    candidate_status: Literal["candidate", "promoted", "dismissed"]
+    title: str
+    summary: str = ""
+    reusable_reason: str = ""
+    lane_id: str = ""
+    continuity_mode: str = "one_off"
+    deliverable_type: str | None = None
+    client_stage: str | None = None
+    client_type: str | None = None
+    matter_workspace_id: str | None = None
+    matter_title: str | None = None
+    task_id: str
+    task_title: str = ""
+    deliverable_id: str | None = None
+    deliverable_title: str | None = None
+    recommendation_id: str | None = None
+    recommendation_summary: str | None = None
+    created_at: str
+    updated_at: str
+
+
+class PrecedentReviewSummaryResponse(BaseModel):
+    total_items: int = 0
+    candidate_count: int = 0
+    promoted_count: int = 0
+    dismissed_count: int = 0
+
+
+class PrecedentReviewResponse(BaseModel):
+    summary: PrecedentReviewSummaryResponse = Field(
+        default_factory=PrecedentReviewSummaryResponse
+    )
+    items: list[PrecedentReviewItemResponse] = Field(default_factory=list)

@@ -811,10 +811,24 @@ Primary action：
 主任務：
 
 - 回看與整理歷史
+- 集中回看 precedent candidates
 
 Primary action：
 
 - 打開工作紀錄
+
+同頁也應成立第二條低噪音 precedent review lane：
+
+- 可重用候選回看
+- 狀態篩選
+- 類型篩選
+- item-level 升格 / 停用 / 恢復
+
+正式規則：
+
+- precedent review 應留在 `history / management` family 內，不新增 precedent page family
+- 這條 lane 不可搶走 history hero 的主定位
+- task history list 與 precedent review list 應清楚分隔，但留在同一頁
 
 ### 7.10 `/settings`
 

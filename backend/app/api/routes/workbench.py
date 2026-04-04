@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.services.workbench import (
     get_history_visibility_state,
+    get_precedent_review_state,
     get_workbench_preferences,
     update_history_visibility_state,
     update_workbench_preferences,
@@ -90,3 +91,10 @@ def update_history_visibility_route(
     db: Session = Depends(get_db),
 ) -> schemas.HistoryVisibilityStateResponse:
     return update_history_visibility_state(db, payload)
+
+
+@router.get("/precedent-candidates", response_model=schemas.PrecedentReviewResponse)
+def get_precedent_review_route(
+    db: Session = Depends(get_db),
+) -> schemas.PrecedentReviewResponse:
+    return get_precedent_review_state(db)

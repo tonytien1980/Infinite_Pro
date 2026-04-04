@@ -2323,3 +2323,58 @@ Environment used:
 - precedent candidate pool 已不只是被動收集，而是開始具備最小治理能力
 - `dismissed` 會從 matter summary 排除，但仍保留在 source surface 方便 restore
 - precedent governance 仍停留在既有 deliverable / recommendation UI 附近，沒有長成新的管理後台
+
+---
+
+## Entry: 2026-04-04 precedent review surface pass
+
+Scope:
+- precedent review surface inside existing `/history`
+- low-noise status / type filtering
+- centralized review without adding a new precedent page family
+
+Environment used:
+- frontend runtime: `http://127.0.0.1:3001`
+- backend runtime: `http://127.0.0.1:8010/api/v1`
+- runtime database: local `precedent-review-smoke.db`
+- browser evidence: local `playwright-cli` smoke artifacts
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`112 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`19 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Review-surface specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | workbench precedent route | Load centralized precedent review state | Verified | route returns summary counts plus item rows with source labels |
+| Frontend | `/history` | Read precedent review panel on the same page as task history | Verified | page shows `可重用候選回看` without adding a new page family |
+| Frontend | `/history` | Verify status and type filter controls render | Verified | page shows `全部狀態 / 正式可重用模式 / 已停用 / 交付物候選 / 建議候選` |
+| Frontend | `/history` | Verify mixed-state candidate list renders | Verified | page shows one `正式可重用模式` deliverable candidate and one `已停用` recommendation candidate |
+| Frontend | `/history` | Verify item-level actions still appear inside the centralized review lane | Verified | promoted item shows `降回候選 / 停用這個模式`; dismissed item shows `重新列回候選` |
+
+### Live smoke data
+
+- deliverable-review verification deliverable id: `7c446e00-91af-4431-9fed-497008d76c31`
+- recommendation-review verification recommendation id: `6e3a5d45-d5e3-41a1-9edf-992e0bf6a7e6`
+- frontend route smoke:
+  - `/history` returned `200`
+- browser artifacts:
+  - history precedent review snapshot: `output/playwright/precedent-review-surface/history.txt`
+
+### Residual note
+
+- 這一輪只提供 centralized review surface，不做 bulk action、ranking 或 auto-apply。
+
+### Verified outcomes
+
+- precedent candidates 現在不只可在 source surface 個別管理，也可在既有 `/history` 裡集中回看
+- precedent review 保持在既有 history / management family 內，沒有再長出新的 precedent shell
+- UI 仍維持 consultant-first、low-noise，而不是變成知識庫 dashboard

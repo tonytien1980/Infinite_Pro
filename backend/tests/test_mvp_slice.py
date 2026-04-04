@@ -3512,6 +3512,61 @@ def test_recommendation_precedent_candidate_can_be_dismissed_and_restored(
     assert restored["precedent_candidate"]["candidate_status"] == "candidate"
 
 
+def test_workbench_precedent_review_lists_candidate_states_and_sources(
+    client: TestClient,
+) -> None:
+    payload = create_contract_review_payload("Precedent review list deliverable")
+    task = client.post("/api/v1/tasks", json=payload).json()
+    client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("agreement.txt", b"Termination and liability clauses need review.", "text/plain"))],
+    )
+    run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
+    deliverable_id = run_response.json()["deliverable"]["id"]
+    client.post(
+        f"/api/v1/deliverables/{deliverable_id}/feedback",
+        json={"feedback_status": "adopted", "note": "這份交付值得保留成可重用模式。"},
+    )
+    client.post(
+        f"/api/v1/deliverables/{deliverable_id}/precedent-candidate",
+        json={"candidate_status": "promoted"},
+    )
+
+    payload_2 = create_task_payload("Precedent review list recommendation")
+    task_2 = client.post("/api/v1/tasks", json=payload_2).json()
+    client.post(
+        f"/api/v1/tasks/{task_2['id']}/uploads",
+        files=[("files", ("notes.txt", b"Pricing and channel suggestions need review.", "text/plain"))],
+    )
+    client.post(f"/api/v1/tasks/{task_2['id']}/run")
+    aggregate = client.get(f"/api/v1/tasks/{task_2['id']}").json()
+    recommendation_id = aggregate["recommendations"][0]["id"]
+    client.post(
+        f"/api/v1/tasks/{task_2['id']}/recommendations/{recommendation_id}/feedback",
+        json={"feedback_status": "template_candidate", "note": "這條建議很適合做成模式候選。"},
+    )
+    client.post(
+        f"/api/v1/tasks/{task_2['id']}/recommendations/{recommendation_id}/precedent-candidate",
+        json={"candidate_status": "dismissed"},
+    )
+
+    response = client.get("/api/v1/workbench/precedent-candidates")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["summary"]["total_items"] >= 2
+    assert body["summary"]["promoted_count"] >= 1
+    assert body["summary"]["dismissed_count"] >= 1
+    deliverable_item = next(item for item in body["items"] if item["deliverable_id"] == deliverable_id)
+    assert deliverable_item["candidate_status"] == "promoted"
+    assert deliverable_item["matter_title"]
+    recommendation_item = next(
+        item for item in body["items"] if item["recommendation_id"] == recommendation_id
+    )
+    assert recommendation_item["candidate_status"] == "dismissed"
+    assert recommendation_item["task_title"]
+
+
 def test_specialist_run_returns_explicit_uncertainty_when_model_router_fails(
     client: TestClient,
     monkeypatch: pytest.MonkeyPatch,

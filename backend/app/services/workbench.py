@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import HTTPException
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.domain import models
 from app.workbench import schemas
@@ -130,3 +130,57 @@ def update_history_visibility_state(
 
     db.commit()
     return get_history_visibility_state(db)
+
+
+def get_precedent_review_state(db: Session) -> schemas.PrecedentReviewResponse:
+    rows = (
+        db.scalars(
+            select(models.PrecedentCandidate)
+            .options(
+                selectinload(models.PrecedentCandidate.task),
+                selectinload(models.PrecedentCandidate.matter_workspace),
+                selectinload(models.PrecedentCandidate.deliverable),
+                selectinload(models.PrecedentCandidate.recommendation),
+            )
+            .order_by(models.PrecedentCandidate.updated_at.desc())
+        )
+        .unique()
+        .all()
+    )
+
+    items = [
+        schemas.PrecedentReviewItemResponse(
+            id=row.id,
+            candidate_type=row.candidate_type,  # type: ignore[arg-type]
+            candidate_status=row.candidate_status,  # type: ignore[arg-type]
+            title=row.title or "",
+            summary=row.summary or "",
+            reusable_reason=row.reusable_reason or "",
+            lane_id=row.lane_id or "",
+            continuity_mode=row.continuity_mode or "one_off",
+            deliverable_type=row.deliverable_type,
+            client_stage=row.client_stage,
+            client_type=row.client_type,
+            matter_workspace_id=row.matter_workspace_id,
+            matter_title=row.matter_workspace.title if row.matter_workspace else None,
+            task_id=row.task_id,
+            task_title=row.task.title if row.task else "",
+            deliverable_id=row.source_deliverable_id,
+            deliverable_title=row.deliverable.title if row.deliverable else None,
+            recommendation_id=row.source_recommendation_id,
+            recommendation_summary=row.recommendation.summary if row.recommendation else None,
+            created_at=row.created_at.isoformat(),
+            updated_at=row.updated_at.isoformat(),
+        )
+        for row in rows
+    ]
+
+    return schemas.PrecedentReviewResponse(
+        summary=schemas.PrecedentReviewSummaryResponse(
+            total_items=len(items),
+            candidate_count=sum(1 for item in items if item.candidate_status == "candidate"),
+            promoted_count=sum(1 for item in items if item.candidate_status == "promoted"),
+            dismissed_count=sum(1 for item in items if item.candidate_status == "dismissed"),
+        ),
+        items=items,
+    )

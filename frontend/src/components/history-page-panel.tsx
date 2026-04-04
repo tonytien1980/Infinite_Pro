@@ -4,7 +4,17 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { buildTaskListWorkspaceSummary } from "@/lib/advisory-workflow";
-import { listTasks } from "@/lib/api";
+import {
+  getPrecedentReviewState,
+  listTasks,
+  updateDeliverablePrecedentCandidateStatus,
+  updateRecommendationPrecedentCandidateStatus,
+} from "@/lib/api";
+import {
+  buildPrecedentCandidateActionView,
+  buildPrecedentCandidateView,
+} from "@/lib/precedent-candidates";
+import { filterPrecedentReviewItems } from "@/lib/precedent-review";
 import {
   applyHistoryFallbackState,
   buildHistoryVisibilityFeedback,
@@ -13,7 +23,7 @@ import {
   syncHistoryStateFromRemote,
 } from "@/lib/workbench-persistence";
 import { truncateText } from "@/lib/text-format";
-import type { TaskListItem } from "@/lib/types";
+import type { PrecedentReviewItem, TaskListItem } from "@/lib/types";
 import {
   formatDisplayDate,
   labelForTaskStatus,
@@ -28,9 +38,13 @@ const PAGE_SIZE_OPTIONS = [10, 20, 30, 50];
 
 export function HistoryPagePanel() {
   const [tasks, setTasks] = useState<TaskListItem[]>([]);
+  const [precedentItems, setPrecedentItems] = useState<PrecedentReviewItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [matterFilter, setMatterFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [precedentQuery, setPrecedentQuery] = useState("");
+  const [precedentStatusFilter, setPrecedentStatusFilter] = useState("all");
+  const [precedentTypeFilter, setPrecedentTypeFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -41,6 +55,8 @@ export function HistoryPagePanel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [historyMessage, setHistoryMessage] = useState<string | null>(null);
+  const [precedentMessage, setPrecedentMessage] = useState<string | null>(null);
+  const [activePrecedentId, setActivePrecedentId] = useState<string | null>(null);
 
   useEffect(() => {
     setPageSize(settings.historyDefaultPageSize);
@@ -50,11 +66,13 @@ export function HistoryPagePanel() {
     try {
       setLoading(true);
       setError(null);
-      const [taskResponse, visibilityResponse] = await Promise.all([
+      const [taskResponse, visibilityResponse, precedentResponse] = await Promise.all([
         listTasks(),
         hydrateHistoryVisibility(),
+        getPrecedentReviewState(),
       ]);
       setTasks(taskResponse);
+      setPrecedentItems(precedentResponse.items);
       if (visibilityResponse.source === "remote") {
         setHistoryState((current) => syncHistoryStateFromRemote(current, visibilityResponse.state));
       }
@@ -121,6 +139,16 @@ export function HistoryPagePanel() {
       })
       .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
   }, [dateFrom, dateTo, matterFilter, searchQuery, typeFilter, visibleTasks]);
+
+  const filteredPrecedentItems = useMemo(
+    () =>
+      filterPrecedentReviewItems(precedentItems, {
+        query: precedentQuery,
+        status: precedentStatusFilter as "all" | "candidate" | "promoted" | "dismissed",
+        type: precedentTypeFilter as "all" | "deliverable_pattern" | "recommendation_pattern",
+      }),
+    [precedentItems, precedentQuery, precedentStatusFilter, precedentTypeFilter],
+  );
 
   useEffect(() => {
     setPage(1);
@@ -192,6 +220,37 @@ export function HistoryPagePanel() {
     }
 
     await hideTasks(tasks.map((task) => task.id));
+  }
+
+  async function handlePrecedentAction(item: PrecedentReviewItem, nextStatus: "candidate" | "promoted" | "dismissed") {
+    try {
+      setActivePrecedentId(item.id);
+      setPrecedentMessage(null);
+      if (item.deliverable_id) {
+        await updateDeliverablePrecedentCandidateStatus(item.deliverable_id, {
+          candidate_status: nextStatus,
+        });
+      } else if (item.recommendation_id) {
+        await updateRecommendationPrecedentCandidateStatus(item.task_id, item.recommendation_id, {
+          candidate_status: nextStatus,
+        });
+      }
+      const precedentResponse = await getPrecedentReviewState();
+      setPrecedentItems(precedentResponse.items);
+      setPrecedentMessage(
+        nextStatus === "promoted"
+          ? "這個可重用候選已升格成正式可重用模式。"
+          : nextStatus === "dismissed"
+            ? "這個可重用候選已先停用。"
+            : "這個可重用候選已重新列回候選。"
+      );
+    } catch (precedentError) {
+      setPrecedentMessage(
+        precedentError instanceof Error ? precedentError.message : "更新可重用候選狀態失敗。"
+      );
+    } finally {
+      setActivePrecedentId(null);
+    }
   }
 
   return (
@@ -280,6 +339,131 @@ export function HistoryPagePanel() {
                   <li key={item}>{item}</li>
                 ))}
               </ul>
+            </div>
+          </div>
+
+          <div className="panel" style={{ marginTop: "24px" }}>
+            <div className="panel-header">
+              <div>
+                <h2 className="panel-title">可重用候選回看</h2>
+                <p className="panel-copy">集中回看 precedent candidates，先篩狀態與類型，再決定要升格、停用，或恢復回候選。</p>
+              </div>
+            </div>
+
+            <div className="summary-grid">
+              <div className="section-card">
+                <h4>目前候選總數</h4>
+                <p className="workbench-metric">{precedentItems.length}</p>
+                <p className="muted-text">包含 candidate、正式可重用模式與已停用。</p>
+              </div>
+              <div className="section-card">
+                <h4>目前篩選結果</h4>
+                <p className="content-block">{filteredPrecedentItems.length} 筆</p>
+                <p className="muted-text">可依狀態、類型與關鍵字集中回看。</p>
+              </div>
+            </div>
+
+            <div className="toolbar-grid toolbar-grid-wide">
+              <div className="field">
+                <label htmlFor="precedent-search">搜尋候選</label>
+                <input
+                  id="precedent-search"
+                  value={precedentQuery}
+                  onChange={(event) => setPrecedentQuery(event.target.value)}
+                  placeholder="搜尋標題、案件、交付物或重用理由"
+                />
+              </div>
+
+              <div className="field">
+                <label htmlFor="precedent-status-filter">狀態</label>
+                <select
+                  id="precedent-status-filter"
+                  value={precedentStatusFilter}
+                  onChange={(event) => setPrecedentStatusFilter(event.target.value)}
+                >
+                  <option value="all">全部狀態</option>
+                  <option value="candidate">候選中</option>
+                  <option value="promoted">正式可重用模式</option>
+                  <option value="dismissed">已停用</option>
+                </select>
+              </div>
+
+              <div className="field">
+                <label htmlFor="precedent-type-filter">類型</label>
+                <select
+                  id="precedent-type-filter"
+                  value={precedentTypeFilter}
+                  onChange={(event) => setPrecedentTypeFilter(event.target.value)}
+                >
+                  <option value="all">全部類型</option>
+                  <option value="deliverable_pattern">交付物候選</option>
+                  <option value="recommendation_pattern">建議候選</option>
+                </select>
+              </div>
+            </div>
+
+            {precedentMessage ? (
+              <p className="success-text" role="status" aria-live="polite">
+                {precedentMessage}
+              </p>
+            ) : null}
+
+            <div className="history-list" style={{ marginTop: "18px" }}>
+              {filteredPrecedentItems.length > 0 ? (
+                filteredPrecedentItems.map((item) => {
+                  const candidateView = buildPrecedentCandidateView(item);
+                  const actionView = buildPrecedentCandidateActionView(item);
+                  return (
+                    <article className="history-item management-card" key={`precedent-${item.id}`}>
+                      <div className="history-item-header">
+                        <div>
+                          <h3>{item.title}</h3>
+                          <p className="muted-text">
+                            {item.matter_title || "未掛案件"}｜{item.task_title}
+                          </p>
+                        </div>
+                        <div className="meta-row">
+                          <span className="pill">{candidateView.statusLabel}</span>
+                          <span>{item.candidate_type === "deliverable_pattern" ? "交付物候選" : "建議候選"}</span>
+                        </div>
+                      </div>
+                      <p className="content-block">{candidateView.summary}</p>
+                      <p className="muted-text">
+                        {item.lane_id || "未標示 lane"}｜{item.continuity_mode}｜{item.deliverable_type || "未標示交付類型"}
+                      </p>
+                      <div className="button-row" style={{ marginTop: "12px" }}>
+                        {item.deliverable_id ? (
+                          <Link className="button-secondary" href={`/deliverables/${item.deliverable_id}`}>
+                            打開交付物
+                          </Link>
+                        ) : (
+                          <Link className="button-secondary" href={`/tasks/${item.task_id}`}>
+                            打開工作紀錄
+                          </Link>
+                        )}
+                        {item.matter_workspace_id ? (
+                          <Link className="button-secondary" href={`/matters/${item.matter_workspace_id}`}>
+                            回案件工作面
+                          </Link>
+                        ) : null}
+                        {actionView.actions.map((action) => (
+                          <button
+                            key={`${item.id}-${action.nextStatus}`}
+                            className="button-secondary"
+                            type="button"
+                            disabled={activePrecedentId === item.id}
+                            onClick={() => void handlePrecedentAction(item, action.nextStatus)}
+                          >
+                            {activePrecedentId === item.id ? "處理中..." : action.label}
+                          </button>
+                        ))}
+                      </div>
+                    </article>
+                  );
+                })
+              ) : (
+                <p className="empty-text">目前沒有符合條件的可重用候選。</p>
+              )}
             </div>
           </div>
 
