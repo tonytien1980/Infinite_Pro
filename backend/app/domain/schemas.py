@@ -869,6 +869,7 @@ class DomainPlaybookStageRead(BaseModel):
         "precedent_reference",
         "pack_stage_heuristic",
         "research_guidance",
+        "organization_memory",
         "continuity_signal",
         "task_heuristic",
     ] = "task_heuristic"
@@ -883,6 +884,8 @@ class DomainPlaybookGuidanceRead(BaseModel):
     playbook_label: str = ""
     current_stage_label: str = ""
     next_stage_label: str = ""
+    fit_summary: str = ""
+    source_mix_summary: str = ""
     boundary_note: str = ""
     stages: list[DomainPlaybookStageRead] = Field(default_factory=list)
 

@@ -1205,6 +1205,7 @@ export interface DomainPlaybookStage {
     | "precedent_reference"
     | "pack_stage_heuristic"
     | "research_guidance"
+    | "organization_memory"
     | "continuity_signal"
     | "task_heuristic";
   source_label: string;
@@ -1218,6 +1219,8 @@ export interface DomainPlaybookGuidance {
   playbook_label: string;
   current_stage_label: string;
   next_stage_label: string;
+  fit_summary: string;
+  source_mix_summary: string;
   boundary_note: string;
   stages: DomainPlaybookStage[];
 }

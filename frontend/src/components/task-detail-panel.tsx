@@ -1394,6 +1394,12 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     {domainPlaybookView.playbookLabel ? (
                       <p className="muted-text">{domainPlaybookView.playbookLabel}</p>
                     ) : null}
+                    {domainPlaybookView.fitSummary ? (
+                      <p className="muted-text">{domainPlaybookView.fitSummary}</p>
+                    ) : null}
+                    {domainPlaybookView.sourceMixSummary ? (
+                      <p className="muted-text">{domainPlaybookView.sourceMixSummary}</p>
+                    ) : null}
                     {domainPlaybookView.currentStageLabel ? (
                       <p className="muted-text">
                         目前這輪：{domainPlaybookView.currentStageLabel}

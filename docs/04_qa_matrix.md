@@ -2993,6 +2993,45 @@ Environment used:
 
 ---
 
+## Entry: 2026-04-05 domain playbooks v2 pass
+
+Scope:
+- cross-matter-aware domain playbooks
+- playbook fit summary / source-mix explainability
+- low-noise matter / task playbook readback
+
+Environment used:
+- local repo runtime checks only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`141 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`30 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Domain-playbook-v2 specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | task aggregate | Read cross-matter-aware `domain_playbook_guidance` | Verified | targeted backend test confirms same-client follow-on matter now returns `fit_summary`, `source_mix_summary`, and at least one `organization_memory` stage |
+| Backend | matter workspace | Read cross-matter-aware `domain_playbook_guidance` | Verified | targeted backend test confirms matter workspace mirrors the same v2 playbook fields |
+| Backend | agent payload | Build prompt-safe `domain_playbook_context` | Verified | targeted backend test confirms payload now includes `這輪為何適用` and `收斂依據` lines |
+| Frontend | domain-playbook helper | Render v2 low-noise playbook reading | Verified | frontend helper test confirms UI reads `fitSummary` / `sourceMixSummary` and keeps organization-memory sourced stages consultant-readable |
+| Live runtime | `3001 / 8010` local smoke | Browser verification | Not run | local frontend/backend runtime was not started in this pass |
+
+### Verified outcomes
+
+- Infinite Pro now lets domain playbooks absorb cross-matter organization memory without turning playbooks into CRM or history shells
+- Host can explain not only what the current work mainline is, but also why it fits this round and which source mix produced it
+- matter workspace and task detail stay low-noise: shared-intelligence uplift is visible, but no new playbook dashboard was introduced
+
+---
+
 ## Entry: 2026-04-05 cross-matter organization memory v2 pass
 
 Scope:

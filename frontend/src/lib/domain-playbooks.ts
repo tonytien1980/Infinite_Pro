@@ -9,6 +9,8 @@ export function buildDomainPlaybookView(
   playbookLabel: string;
   currentStageLabel: string;
   nextStageLabel: string;
+  fitSummary: string;
+  sourceMixSummary: string;
   cards: Array<{ title: string; summary: string; meta: string }>;
   listTitle: string;
   listItems: string[];
@@ -22,6 +24,8 @@ export function buildDomainPlaybookView(
       playbookLabel: "",
       currentStageLabel: "",
       nextStageLabel: "",
+      fitSummary: "",
+      sourceMixSummary: "",
       cards: [],
       listTitle: "",
       listItems: [],
@@ -36,6 +40,8 @@ export function buildDomainPlaybookView(
     playbookLabel: guidance.playbook_label,
     currentStageLabel: guidance.current_stage_label,
     nextStageLabel: guidance.next_stage_label,
+    fitSummary: guidance.fit_summary,
+    sourceMixSummary: guidance.source_mix_summary,
     cards: guidance.stages.slice(0, 3).map((item) => ({
       title: item.title,
       summary: item.why_now || item.summary,

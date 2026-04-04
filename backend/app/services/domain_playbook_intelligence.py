@@ -133,6 +133,7 @@ def build_domain_playbook_guidance(
 ) -> schemas.DomainPlaybookGuidanceRead:
     stages: list[schemas.DomainPlaybookStageRead] = []
     seen_keys: set[str] = set()
+    source_kinds_used: list[str] = []
 
     def add_stage(
         *,
@@ -147,6 +148,8 @@ def build_domain_playbook_guidance(
         if not title or key in seen_keys or len(stages) >= 4:
             return
         seen_keys.add(key)
+        if source_kind not in source_kinds_used:
+            source_kinds_used.append(source_kind)
         stages.append(
             schemas.DomainPlaybookStageRead(
                 stage_id=_build_stage_id(source_kind, title),
@@ -157,6 +160,20 @@ def build_domain_playbook_guidance(
                 source_label=source_label,
                 priority=priority,  # type: ignore[arg-type]
             )
+        )
+
+    if (
+        organization_memory_guidance.status == "available"
+        and organization_memory_guidance.cross_matter_items
+    ):
+        top_related = organization_memory_guidance.cross_matter_items[0]
+        add_stage(
+            title="先對照同客戶既有案件的限制與推進節奏",
+            summary=top_related.summary or "同客戶既有案件已留下可回看的穩定背景。",
+            why_now=top_related.relation_reason or organization_memory_guidance.cross_matter_summary,
+            source_kind="organization_memory",
+            source_label="來源：cross-matter organization memory",
+            priority="high" if not stages else "medium",
         )
 
     if research_guidance.status in {"recommended", "active"}:
@@ -252,6 +269,8 @@ def build_domain_playbook_guidance(
             status="none",
             label="目前沒有可收斂的 domain playbook",
             summary="這一輪先依現有證據與主問題推進，不額外補工作主線提示。",
+            fit_summary="",
+            source_mix_summary="",
             boundary_note="domain playbook 是在提示這類案子通常怎麼走，不是強制 checklist。",
         )
 
@@ -271,6 +290,34 @@ def build_domain_playbook_guidance(
     else:
         summary += "。"
 
+    fit_parts: list[str] = []
+    if (
+        organization_memory_guidance.status == "available"
+        and organization_memory_guidance.cross_matter_items
+    ):
+        fit_parts.append("同客戶跨案件背景已成立")
+    if precedent_reference_guidance.status == "available":
+        fit_parts.append("已有可參考的既有模式")
+    if research_guidance.status in {"recommended", "active"}:
+        fit_parts.append("研究與外部事實仍在影響主線")
+    if any(item.source_kind == "pack_stage_heuristic" for item in stages):
+        fit_parts.append("pack stage heuristic 已提供較穩的順序提示")
+    if not fit_parts:
+        fit_parts.append("目前仍以 task heuristic 補最小可信工作主線")
+    fit_summary = "這輪為何適用：" + "、".join(fit_parts) + "。"
+
+    source_label_map = {
+        "organization_memory": "cross-matter organization memory",
+        "precedent_reference": "precedent reference",
+        "research_guidance": "research guidance",
+        "pack_stage_heuristic": "pack stage heuristic",
+        "continuity_signal": "continuity signal",
+        "task_heuristic": "task heuristic",
+    }
+    source_mix_summary = "收斂依據：" + "、".join(
+        source_label_map[item] for item in source_kinds_used if item in source_label_map
+    )
+
     return schemas.DomainPlaybookGuidanceRead(
         status="available" if any(item.source_kind != "task_heuristic" for item in stages) else "fallback",
         label="這類案子通常怎麼走",
@@ -278,6 +325,8 @@ def build_domain_playbook_guidance(
         playbook_label=playbook_label,
         current_stage_label=current_stage_label,
         next_stage_label=next_stage_label,
+        fit_summary=fit_summary,
+        source_mix_summary=source_mix_summary,
         boundary_note="這是在提示工作主線，不是強制 checklist；若和這案正式證據衝突，仍以這案正式判斷為準。",
         stages=stages,
     )

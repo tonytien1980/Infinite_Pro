@@ -197,6 +197,18 @@ def build_payload_domain_playbook_context(payload: AgentInputPayload) -> list[st
         lines.append(f"目前這輪：{guidance.current_stage_label}")
     if guidance.next_stage_label:
         lines.append(f"下一步通常接：{guidance.next_stage_label}")
+    if guidance.fit_summary:
+        lines.append(
+            guidance.fit_summary
+            if guidance.fit_summary.startswith("這輪為何適用：")
+            else f"這輪為何適用：{guidance.fit_summary}"
+        )
+    if guidance.source_mix_summary:
+        lines.append(
+            guidance.source_mix_summary
+            if guidance.source_mix_summary.startswith("收斂依據：")
+            else f"收斂依據：{guidance.source_mix_summary}"
+        )
     for index, item in enumerate(guidance.stages[:4], start=1):
         lines.extend(
             [

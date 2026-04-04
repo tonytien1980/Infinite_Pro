@@ -943,6 +943,15 @@ deliverable workspace 採：
   - `continuity_signal`
   - `task_heuristic`
 
+在 v2，domain playbook 應開始允許：
+
+- `organization_memory`
+
+也就是：
+
+- 若同客戶跨案件背景已成立，playbook 可以開始吸收少量 cross-matter organization memory 來校正這輪主線
+- 但這層仍不是 CRM / profile shell，也不是 prior-case content reuse
+
 第一波 `domain_playbook_guidance` contract 至少包括：
 
 - `status`
@@ -954,6 +963,8 @@ deliverable workspace 採：
 - `playbook_label`
 - `current_stage_label`
 - `next_stage_label`
+- `fit_summary`
+- `source_mix_summary`
 - `boundary_note`
 - `stages`
 
@@ -972,6 +983,10 @@ deliverable workspace 採：
 - `available` 代表至少已有 precedent / pack / research / continuity 等較強來源
 - `fallback` 代表目前主要仍靠 task heuristic 補最小可信工作主線
 - `none` 代表這輪不額外補 domain playbook
+- `fit_summary` 應回答：
+  - 這輪為什麼適合這條主線
+- `source_mix_summary` 應回答：
+  - 這條主線主要由哪些來源組合收斂出來
 - domain playbook 若要進模型上下文，必須經 Host 整理成 prompt-safe `domain_playbook_context`
 - `domain_playbook_context` 應與 `organization_memory_context`、`precedent_context`、`review_lens_context` 並存，但角色不同：
   - organization memory context：這個客戶 / 組織有哪些穩定背景
@@ -983,6 +998,9 @@ deliverable workspace 採：
   - review / convergence ordering
   - continuity-aware next-step alignment
 - 不可被誤讀成強制 checklist 或 playbook library shell
+- v2 仍不可把 organization memory 直接等同於 playbook：
+  - organization memory = 穩定背景
+  - domain playbook = 工作主線
 - `matter / task` surface 目前只應以 second-layer disclosure 低噪音回讀
 - `overview / history / settings` 目前不應長出 domain-playbook dashboard hero
 

@@ -1137,6 +1137,8 @@ Primary action：
 當 Host 已開始把同類案件的工作主線收斂成 domain playbooks 時，UI 也應維持低噪音回讀：
 
 - 這類案子通常怎麼走
+- 這輪為何適用這條主線
+- 這條主線主要由哪些來源組合收斂出來
 - 這輪目前比較像在哪一步
 - 下一步通常接什麼
 
@@ -1156,6 +1158,8 @@ Primary action：
   - 已完成流程圖
 - 第一波應優先顯示：
   - `工作主線`
+  - `這輪為何適用`
+  - `收斂依據`
   - `目前這輪`
   - `下一步通常接`
   - 少量 stage cards
@@ -1163,6 +1167,9 @@ Primary action：
   - `title`
   - `why_now`
   - `source_label`
+- 即使已吸收 cross-matter organization memory，UI 也只可把它讀成：
+  - 這輪主線為何更站得住
+  - 不可把它讀成 CRM 卡或歷史案件總表
 - boundary copy 應明講：
   - 這是在提示工作主線
   - 不是強制 checklist

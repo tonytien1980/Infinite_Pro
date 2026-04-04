@@ -3661,6 +3661,46 @@ def test_task_and_matter_expose_domain_playbook_guidance(
     assert matter_guidance["stages"]
 
 
+def test_domain_playbook_v2_uses_cross_matter_memory_and_source_mix(
+    client: TestClient,
+) -> None:
+    prior_payload = create_contract_review_payload("Domain playbook prior matter")
+    prior_payload["client_name"] = "Acme Corp"
+    prior_payload["engagement_name"] = "年度法務盤點"
+    prior_payload["workstream_name"] = "合約風險整理"
+    prior_task = client.post("/api/v1/tasks", json=prior_payload).json()
+    client.post(
+        f"/api/v1/tasks/{prior_task['id']}/uploads",
+        files=[("files", ("agreement.txt", b"Termination and liability clauses need review.", "text/plain"))],
+    )
+    assert client.post(f"/api/v1/tasks/{prior_task['id']}/run").status_code == 200
+
+    current_payload = create_contract_review_payload("Domain playbook current matter")
+    current_payload["client_name"] = "Acme Corp"
+    current_payload["engagement_name"] = "續約商務盤點"
+    current_payload["workstream_name"] = "續約條件整理"
+    current_task = client.post("/api/v1/tasks", json=current_payload).json()
+    client.post(
+        f"/api/v1/tasks/{current_task['id']}/uploads",
+        files=[("files", ("renewal.txt", b"Renewal pricing and termination carve-outs need review.", "text/plain"))],
+    )
+    assert client.post(f"/api/v1/tasks/{current_task['id']}/run").status_code == 200
+
+    aggregate = client.get(f"/api/v1/tasks/{current_task['id']}").json()
+    guidance = aggregate["domain_playbook_guidance"]
+    assert guidance["status"] == "available"
+    assert guidance["fit_summary"]
+    assert guidance["source_mix_summary"]
+    assert any(item["source_kind"] == "organization_memory" for item in guidance["stages"])
+
+    matter_id = aggregate["matter_workspace"]["id"]
+    matter_workspace = client.get(f"/api/v1/matters/{matter_id}").json()
+    matter_guidance = matter_workspace["domain_playbook_guidance"]
+    assert matter_guidance["fit_summary"]
+    assert matter_guidance["source_mix_summary"]
+    assert any(item["source_kind"] == "organization_memory" for item in matter_guidance["stages"])
+
+
 def test_build_payload_domain_playbook_context_keeps_prompt_safe_lines() -> None:
     payload = AgentInputPayload(
         task_id="task-1",
@@ -3686,6 +3726,8 @@ def test_build_payload_domain_playbook_context_keeps_prompt_safe_lines() -> None
             playbook_label="合約審閱工作主線",
             current_stage_label="先補齊審閱範圍與條款邊界",
             next_stage_label="再收斂高風險點與建議處置",
+            fit_summary="這輪同時有 research、precedent 與同客戶跨案件背景，所以工作主線不需要只靠 heuristic。",
+            source_mix_summary="收斂依據：research guidance、precedent reference、cross-matter organization memory",
             boundary_note="這是在提示工作主線，不是強制 checklist。",
             stages=[
                 schemas.DomainPlaybookStageRead(
@@ -3697,6 +3739,15 @@ def test_build_payload_domain_playbook_context_keeps_prompt_safe_lines() -> None
                     source_label="來源：task heuristic",
                     priority="high",
                 ),
+                schemas.DomainPlaybookStageRead(
+                    stage_id="stage-2",
+                    title="先對照同客戶既有案件的限制與推進節奏",
+                    summary="這個客戶先前案件已暴露附件、責任與終止條件的高頻缺口。",
+                    why_now="同客戶跨案件背景已成立，可先用來避免這輪從零重建工作主線。",
+                    source_kind="organization_memory",
+                    source_label="來源：cross-matter organization memory",
+                    priority="medium",
+                ),
             ],
         ),
     )
@@ -3707,6 +3758,8 @@ def test_build_payload_domain_playbook_context_keeps_prompt_safe_lines() -> None
     assert any("工作主線：" in item for item in lines)
     assert any("目前這輪：" in item for item in lines)
     assert any("下一步通常接：" in item for item in lines)
+    assert any("這輪為何適用：" in item for item in lines)
+    assert any("收斂依據：" in item for item in lines)
     assert any("playbook 1：" in item for item in lines)
 
 

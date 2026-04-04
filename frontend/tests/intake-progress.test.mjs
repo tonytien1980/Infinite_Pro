@@ -491,6 +491,8 @@ test("domain playbook view stays low-noise and consultant-readable", () => {
     playbook_label: "合約審閱工作主線",
     current_stage_label: "先補齊審閱範圍與條款邊界",
     next_stage_label: "再收斂高風險點與建議處置",
+    fit_summary: "這輪同時有 precedent、pack 與同客戶跨案件背景，所以工作主線不需要只靠 heuristic。",
+    source_mix_summary: "收斂依據：precedent reference、pack stage heuristic、cross-matter organization memory",
     boundary_note: "這是在提示工作主線，不是強制 checklist；若和這案正式證據衝突，仍以這案正式判斷為準。",
     stages: [
       {
@@ -511,6 +513,15 @@ test("domain playbook view stays low-noise and consultant-readable", () => {
         source_label: "來源：pack decision pattern",
         priority: "medium",
       },
+      {
+        stage_id: "organization_memory:ghi",
+        title: "先對照同客戶既有案件的限制與推進節奏",
+        summary: "先前案件已暴露附件、責任與終止條件的高頻缺口。",
+        why_now: "同客戶跨案件背景已成立，可先用來避免這輪從零重建工作主線。",
+        source_kind: "organization_memory",
+        source_label: "來源：cross-matter organization memory",
+        priority: "medium",
+      },
     ],
   });
 
@@ -519,9 +530,12 @@ test("domain playbook view stays low-noise and consultant-readable", () => {
   assert.equal(view.playbookLabel, "合約審閱工作主線");
   assert.equal(view.currentStageLabel, "先補齊審閱範圍與條款邊界");
   assert.equal(view.nextStageLabel, "再收斂高風險點與建議處置");
+  assert.match(view.fitSummary, /同客戶跨案件背景/);
+  assert.match(view.sourceMixSummary, /cross-matter organization memory/);
   assert.equal(view.listTitle, "這類案子通常這樣推進");
   assert.match(view.listItems[0] ?? "", /先補齊審閱範圍/);
   assert.match(view.cards[0]?.meta ?? "", /task heuristic/);
+  assert.match(view.cards[2]?.meta ?? "", /cross-matter organization memory/);
   assert.match(view.boundaryNote, /不是強制 checklist/);
 });
 
