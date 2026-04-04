@@ -21,6 +21,10 @@ import {
   buildContinuationFocusSummary,
 } from "../src/lib/continuation-advisory.ts";
 import { buildMaterialReviewPostureView } from "../src/lib/material-review-ux.ts";
+import {
+  buildPrecedentCandidateSummaryView,
+  buildPrecedentCandidateView,
+} from "../src/lib/precedent-candidates.ts";
 import { buildContinuationPostureView } from "../src/lib/continuity-ux.ts";
 import { buildResearchDetailView, buildResearchGuidanceView } from "../src/lib/research-lane.ts";
 
@@ -835,4 +839,74 @@ test("flagship detail view keeps diagnostic and review reading aligned", () => {
   assert.match(reviewDetail.cards[3]?.summary ?? "", /決策 \/ 行動交付物/);
   assert.match(reviewDetail.cards[4]?.summary ?? "", /核心材料|更多背景/);
   assert.equal(reviewDetail.listItems.length, 1);
+});
+
+test("precedent candidate views keep deliverable, recommendation, and matter summary low-noise", () => {
+  const deliverableCandidateView = buildPrecedentCandidateView({
+    id: "candidate-deliverable-1",
+    candidate_type: "deliverable_pattern",
+    candidate_status: "candidate",
+    source_feedback_status: "adopted",
+    source_task_id: "task-1",
+    source_deliverable_id: "deliverable-1",
+    source_recommendation_id: null,
+    title: "合約審閱交付骨架",
+    summary: "這份交付值得保留成下一輪 document-heavy review 的骨架候選。",
+    reusable_reason: "已被明確採納，且結構邊界清楚。",
+    lane_id: "material_review_start",
+    continuity_mode: "one_off",
+    deliverable_type: "contract_review",
+    client_stage: "institutionalizing",
+    client_type: "smb",
+    domain_lenses: ["legal_risk"],
+    selected_pack_ids: ["legal-risk-pack"],
+    keywords: ["contract", "termination", "liability"],
+    pattern_snapshot: { summary: "先審核心條款，再整理高風險點與下一步。" },
+    created_at: "2026-04-04T10:00:00Z",
+    updated_at: "2026-04-04T10:00:00Z",
+  });
+
+  const recommendationCandidateView = buildPrecedentCandidateView({
+    id: "candidate-recommendation-1",
+    candidate_type: "recommendation_pattern",
+    candidate_status: "candidate",
+    source_feedback_status: "template_candidate",
+    source_task_id: "task-2",
+    source_deliverable_id: null,
+    source_recommendation_id: "recommendation-1",
+    title: "價格分層建議模式",
+    summary: "這條建議值得保留成模式候選。",
+    reusable_reason: "適用範圍清楚，且已被標記為值得當範本。",
+    lane_id: "decision_convergence_start",
+    continuity_mode: "follow_up",
+    deliverable_type: "decision_memo",
+    client_stage: "scaling",
+    client_type: "professional_service",
+    domain_lenses: ["pricing"],
+    selected_pack_ids: ["pricing-pack"],
+    keywords: ["pricing", "segmentation"],
+    pattern_snapshot: { summary: "先切客群，再拆定價與渠道建議。" },
+    created_at: "2026-04-04T10:00:00Z",
+    updated_at: "2026-04-04T10:00:00Z",
+  });
+
+  const matterSummaryView = buildPrecedentCandidateSummaryView({
+    total_candidates: 2,
+    deliverable_candidate_count: 1,
+    recommendation_candidate_count: 1,
+    summary: "這案目前留下 2 個可重用候選。",
+  });
+
+  assert.equal(deliverableCandidateView.shouldShow, true);
+  assert.equal(deliverableCandidateView.badgeLabel, "已進入可重用候選池");
+  assert.match(deliverableCandidateView.summary, /交付|骨架候選|明確採納/);
+
+  assert.equal(recommendationCandidateView.shouldShow, true);
+  assert.match(recommendationCandidateView.badgeLabel, /建議模式候選/);
+  assert.match(recommendationCandidateView.summary, /值得保留|範本/);
+
+  assert.equal(matterSummaryView.shouldShow, true);
+  assert.equal(matterSummaryView.title, "可重用候選");
+  assert.match(matterSummaryView.summary, /2 個可重用候選/);
+  assert.match(matterSummaryView.meta, /交付物 1|建議 1/);
 });

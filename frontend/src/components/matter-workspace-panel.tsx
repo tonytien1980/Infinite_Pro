@@ -26,6 +26,7 @@ import {
   buildResearchGuidanceView,
 } from "@/lib/research-lane";
 import { buildMaterialReviewPostureView } from "@/lib/material-review-ux";
+import { buildPrecedentCandidateSummaryView } from "@/lib/precedent-candidates";
 import { truncateText } from "@/lib/text-format";
 import type {
   ContinuationSurface,
@@ -569,6 +570,9 @@ export function MatterWorkspacePanel({
   const flagshipLane = matter ? buildFlagshipLaneView(matter.summary.flagship_lane) : null;
   const flagshipDetailView = buildFlagshipDetailView(flagshipLane);
   const materialReviewPosture = buildMaterialReviewPostureView(flagshipLane);
+  const precedentCandidateSummaryView = matter
+    ? buildPrecedentCandidateSummaryView(matter.summary.precedent_candidate_summary)
+    : null;
   const researchGuidance = matter ? buildResearchGuidanceView(matter.research_guidance) : null;
   const researchDetailView = matter
     ? buildResearchDetailView(researchGuidance, matter.research_runs[0] ?? null)
@@ -1040,6 +1044,13 @@ export function MatterWorkspacePanel({
                         {researchGuidance.freshnessSummary ? (
                           <p className="muted-text">{researchGuidance.freshnessSummary}</p>
                         ) : null}
+                      </div>
+                    ) : null}
+                    {precedentCandidateSummaryView?.shouldShow ? (
+                      <div className="detail-item">
+                        <h3>{precedentCandidateSummaryView.title}</h3>
+                        <p className="content-block">{precedentCandidateSummaryView.summary}</p>
+                        <p className="muted-text">{precedentCandidateSummaryView.meta}</p>
                       </div>
                     ) : null}
                   </div>

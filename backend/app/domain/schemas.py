@@ -25,6 +25,8 @@ from app.domain.enums import (
     ObjectSetMembershipSource,
     ObjectSetScopeType,
     ObjectSetType,
+    PrecedentCandidateStatus,
+    PrecedentCandidateType,
     PresenceState,
     RunStatus,
     TaskStatus,
@@ -690,6 +692,7 @@ class RecommendationRead(ORMModel):
     priority: str
     owner_suggestion: str | None
     adoption_feedback: "AdoptionFeedbackRead | None" = None
+    precedent_candidate: "PrecedentCandidateRead | None" = None
     created_at: datetime
 
 
@@ -730,6 +733,7 @@ class DeliverableRead(ORMModel):
     version: int
     linked_objects: list[DeliverableObjectLinkRead] = Field(default_factory=list)
     adoption_feedback: "AdoptionFeedbackRead | None" = None
+    precedent_candidate: "PrecedentCandidateRead | None" = None
     generated_at: datetime
 
 
@@ -743,6 +747,37 @@ class AdoptionFeedbackRead(ORMModel):
     note: str = ""
     created_at: datetime
     updated_at: datetime
+
+
+class PrecedentCandidateRead(ORMModel):
+    id: str
+    candidate_type: PrecedentCandidateType
+    candidate_status: PrecedentCandidateStatus
+    source_feedback_status: AdoptionFeedbackStatus
+    source_task_id: str
+    source_deliverable_id: str | None = None
+    source_recommendation_id: str | None = None
+    title: str = ""
+    summary: str = ""
+    reusable_reason: str = ""
+    lane_id: str = ""
+    continuity_mode: str = "one_off"
+    deliverable_type: str | None = None
+    client_stage: str | None = None
+    client_type: str | None = None
+    domain_lenses: list[str] = Field(default_factory=list)
+    selected_pack_ids: list[str] = Field(default_factory=list)
+    keywords: list[str] = Field(default_factory=list)
+    pattern_snapshot: dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime
+    updated_at: datetime
+
+
+class PrecedentCandidateSummaryRead(BaseModel):
+    total_candidates: int = 0
+    deliverable_candidate_count: int = 0
+    recommendation_candidate_count: int = 0
+    summary: str = ""
 
 
 class ObjectSetMemberRead(ORMModel):
@@ -1251,6 +1286,9 @@ class MatterWorkspaceSummaryRead(BaseModel):
     writeback_depth: WritebackDepth = WritebackDepth.MINIMAL
     selected_pack_names: list[str] = Field(default_factory=list)
     selected_agent_names: list[str] = Field(default_factory=list)
+    precedent_candidate_summary: PrecedentCandidateSummaryRead = Field(
+        default_factory=PrecedentCandidateSummaryRead
+    )
 
 
 class TaskListItemResponse(BaseModel):

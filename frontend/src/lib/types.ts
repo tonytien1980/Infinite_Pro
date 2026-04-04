@@ -501,6 +501,7 @@ export interface MatterWorkspaceSummary {
   writeback_depth: WritebackDepth;
   selected_pack_names: string[];
   selected_agent_names: string[];
+  precedent_candidate_summary: PrecedentCandidateSummary;
 }
 
 export interface FlagshipLane {
@@ -952,6 +953,7 @@ export interface Recommendation {
   priority: string;
   owner_suggestion: string | null;
   adoption_feedback: AdoptionFeedback | null;
+  precedent_candidate: PrecedentCandidate | null;
   created_at: string;
 }
 
@@ -992,6 +994,7 @@ export interface Deliverable {
   version: number;
   linked_objects: DeliverableObjectLink[];
   adoption_feedback: AdoptionFeedback | null;
+  precedent_candidate: PrecedentCandidate | null;
   generated_at: string;
 }
 
@@ -1005,6 +1008,40 @@ export interface AdoptionFeedback {
   note: string;
   created_at: string;
   updated_at: string;
+}
+
+export type PrecedentCandidateType = "deliverable_pattern" | "recommendation_pattern";
+export type PrecedentCandidateStatus = "candidate" | "promoted" | "dismissed";
+
+export interface PrecedentCandidate {
+  id: string;
+  candidate_type: PrecedentCandidateType;
+  candidate_status: PrecedentCandidateStatus;
+  source_feedback_status: AdoptionFeedbackStatus;
+  source_task_id: string;
+  source_deliverable_id: string | null;
+  source_recommendation_id: string | null;
+  title: string;
+  summary: string;
+  reusable_reason: string;
+  lane_id: string;
+  continuity_mode: string;
+  deliverable_type: string | null;
+  client_stage: string | null;
+  client_type: string | null;
+  domain_lenses: string[];
+  selected_pack_ids: string[];
+  keywords: string[];
+  pattern_snapshot: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PrecedentCandidateSummary {
+  total_candidates: number;
+  deliverable_candidate_count: number;
+  recommendation_candidate_count: number;
+  summary: string;
 }
 
 export interface TaskRun {

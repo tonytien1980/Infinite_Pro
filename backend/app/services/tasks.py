@@ -23,6 +23,8 @@ from app.domain.enums import (
     ExternalDataStrategy,
     InputEntryMode,
     FunctionType,
+    PrecedentCandidateStatus,
+    PrecedentCandidateType,
     PresenceState,
     TaskStatus,
     WritebackDepth,
@@ -673,6 +675,7 @@ def task_load_options():
         selectinload(models.Task.recommendations),
         selectinload(models.Task.action_items),
         selectinload(models.Task.adoption_feedback_records),
+        selectinload(models.Task.precedent_candidates),
         selectinload(models.Task.recommendation_evidence_links),
         selectinload(models.Task.risk_evidence_links),
         selectinload(models.Task.action_item_evidence_links),
@@ -7115,6 +7118,7 @@ def _build_matter_workspace_summary_from_tasks(
             ]
         )[:6],
         selected_agent_names=_unique_preserve_order(selected_agent_names)[:6],
+        precedent_candidate_summary=_build_precedent_candidate_summary_from_tasks(related_tasks),
     )
 
 
@@ -7342,6 +7346,7 @@ def _serialize_recommendations(
     task: models.Task,
     supporting_map: dict[str, list[str]],
     feedback_map: dict[str, schemas.AdoptionFeedbackRead],
+    candidate_map: dict[str, schemas.PrecedentCandidateRead],
 ) -> list[schemas.RecommendationRead]:
     return [
         schemas.RecommendationRead(
@@ -7354,6 +7359,7 @@ def _serialize_recommendations(
             priority=item.priority,
             owner_suggestion=item.owner_suggestion,
             adoption_feedback=feedback_map.get(item.id),
+            precedent_candidate=candidate_map.get(item.id),
             created_at=item.created_at,
         )
         for item in task.recommendations
@@ -7416,6 +7422,7 @@ def _serialize_deliverables(
     task: models.Task,
     object_label_map: dict[str, dict[str, str]],
     feedback_map: dict[str, schemas.AdoptionFeedbackRead],
+    candidate_map: dict[str, schemas.PrecedentCandidateRead],
 ) -> list[schemas.DeliverableRead]:
     deliverables: list[schemas.DeliverableRead] = []
     for item in task.deliverables:
@@ -7454,6 +7461,7 @@ def _serialize_deliverables(
                 version=item.version,
                 linked_objects=linked_objects,
                 adoption_feedback=feedback_map.get(item.id),
+                precedent_candidate=candidate_map.get(item.id),
                 generated_at=item.generated_at,
             )
         )
@@ -7474,6 +7482,32 @@ def _serialize_adoption_feedback(item: models.AdoptionFeedback) -> schemas.Adopt
     )
 
 
+def _serialize_precedent_candidate(item: models.PrecedentCandidate) -> schemas.PrecedentCandidateRead:
+    return schemas.PrecedentCandidateRead(
+        id=item.id,
+        candidate_type=PrecedentCandidateType(item.candidate_type),
+        candidate_status=PrecedentCandidateStatus(item.candidate_status),
+        source_feedback_status=AdoptionFeedbackStatus(item.source_feedback_status),
+        source_task_id=item.task_id,
+        source_deliverable_id=item.source_deliverable_id,
+        source_recommendation_id=item.source_recommendation_id,
+        title=item.title or "",
+        summary=item.summary or "",
+        reusable_reason=item.reusable_reason or "",
+        lane_id=item.lane_id or "",
+        continuity_mode=item.continuity_mode or EngagementContinuityMode.ONE_OFF.value,
+        deliverable_type=item.deliverable_type,
+        client_stage=item.client_stage,
+        client_type=item.client_type,
+        domain_lenses=list(item.domain_lenses or []),
+        selected_pack_ids=list(item.selected_pack_ids or []),
+        keywords=list(item.keywords or []),
+        pattern_snapshot=dict(item.pattern_snapshot or {}),
+        created_at=item.created_at,
+        updated_at=item.updated_at,
+    )
+
+
 def _build_adoption_feedback_maps(
     task: models.Task,
 ) -> tuple[dict[str, schemas.AdoptionFeedbackRead], dict[str, schemas.AdoptionFeedbackRead]]:
@@ -7486,6 +7520,53 @@ def _build_adoption_feedback_maps(
         if item.recommendation_id:
             recommendation_map[item.recommendation_id] = serialized
     return deliverable_map, recommendation_map
+
+
+def _build_precedent_candidate_maps(
+    task: models.Task,
+) -> tuple[dict[str, schemas.PrecedentCandidateRead], dict[str, schemas.PrecedentCandidateRead]]:
+    deliverable_map: dict[str, schemas.PrecedentCandidateRead] = {}
+    recommendation_map: dict[str, schemas.PrecedentCandidateRead] = {}
+    for item in task.precedent_candidates:
+        if item.candidate_status == PrecedentCandidateStatus.DISMISSED.value:
+            continue
+        serialized = _serialize_precedent_candidate(item)
+        if item.source_deliverable_id:
+            deliverable_map[item.source_deliverable_id] = serialized
+        if item.source_recommendation_id:
+            recommendation_map[item.source_recommendation_id] = serialized
+    return deliverable_map, recommendation_map
+
+
+def _build_precedent_candidate_summary_from_tasks(
+    related_tasks: list[models.Task],
+) -> schemas.PrecedentCandidateSummaryRead:
+    active_candidates = [
+        item
+        for task in related_tasks
+        for item in task.precedent_candidates
+        if item.candidate_status != PrecedentCandidateStatus.DISMISSED.value
+    ]
+    deliverable_candidate_count = sum(
+        1 for item in active_candidates if item.candidate_type == PrecedentCandidateType.DELIVERABLE_PATTERN.value
+    )
+    recommendation_candidate_count = sum(
+        1
+        for item in active_candidates
+        if item.candidate_type == PrecedentCandidateType.RECOMMENDATION_PATTERN.value
+    )
+    total_candidates = len(active_candidates)
+    if total_candidates == 0:
+        return schemas.PrecedentCandidateSummaryRead()
+    return schemas.PrecedentCandidateSummaryRead(
+        total_candidates=total_candidates,
+        deliverable_candidate_count=deliverable_candidate_count,
+        recommendation_candidate_count=recommendation_candidate_count,
+        summary=(
+            f"這案目前留下 {total_candidates} 個可重用候選。"
+            f"交付物 {deliverable_candidate_count} 個 / 建議 {recommendation_candidate_count} 個。"
+        ),
+    )
 
 
 def get_loaded_task(db: Session, task_id: str) -> models.Task:
@@ -8658,8 +8739,14 @@ def get_artifact_evidence_workspace(
             task
         )
         deliverable_feedback_map, recommendation_feedback_map = _build_adoption_feedback_maps(task)
+        deliverable_candidate_map, recommendation_candidate_map = _build_precedent_candidate_maps(
+            task
+        )
         recommendations = _serialize_recommendations(
-            task, recommendation_support_map, recommendation_feedback_map
+            task,
+            recommendation_support_map,
+            recommendation_feedback_map,
+            recommendation_candidate_map,
         )
         risks = _serialize_risks(task, risk_support_map)
         action_items = _serialize_action_items(task, action_item_support_map)
@@ -8679,6 +8766,7 @@ def get_artifact_evidence_workspace(
                 task_spine[2],
             ),
             deliverable_feedback_map,
+            deliverable_candidate_map,
         )
         input_entry_mode = _infer_input_entry_mode(task, source_materials, artifacts)
         external_research_heavy_candidate = _is_external_research_heavy_candidate(
@@ -10889,7 +10977,13 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         task
     )
     deliverable_feedback_map, recommendation_feedback_map = _build_adoption_feedback_maps(task)
-    recommendations = _serialize_recommendations(task, recommendation_support_map, recommendation_feedback_map)
+    deliverable_candidate_map, recommendation_candidate_map = _build_precedent_candidate_maps(task)
+    recommendations = _serialize_recommendations(
+        task,
+        recommendation_support_map,
+        recommendation_feedback_map,
+        recommendation_candidate_map,
+    )
     risks = _serialize_risks(task, risk_support_map)
     action_items = _serialize_action_items(task, action_item_support_map)
     deliverables = _serialize_deliverables(
@@ -10908,6 +11002,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
             world_workstream,
         ),
         deliverable_feedback_map,
+        deliverable_candidate_map,
     )
     input_entry_mode = _infer_input_entry_mode(task, source_materials, artifacts)
     external_research_heavy_candidate = _is_external_research_heavy_candidate(
@@ -10997,7 +11092,15 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
             task
         )
         deliverable_feedback_map, recommendation_feedback_map = _build_adoption_feedback_maps(task)
-        recommendations = _serialize_recommendations(task, recommendation_support_map, recommendation_feedback_map)
+        deliverable_candidate_map, recommendation_candidate_map = _build_precedent_candidate_maps(
+            task
+        )
+        recommendations = _serialize_recommendations(
+            task,
+            recommendation_support_map,
+            recommendation_feedback_map,
+            recommendation_candidate_map,
+        )
         risks = _serialize_risks(task, risk_support_map)
         action_items = _serialize_action_items(task, action_item_support_map)
         deliverables = _serialize_deliverables(
@@ -11016,6 +11119,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
                 world_workstream,
             ),
             deliverable_feedback_map,
+            deliverable_candidate_map,
         )
         case_world_draft_row = task.case_world_drafts[0] if task.case_world_drafts else case_world_draft_row
         case_world_state_row = matter_workspace.case_world_state
@@ -11237,6 +11341,226 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         continuation_surface=continuation_surface,
     )
 
+def _feedback_status_creates_precedent_candidate(status: AdoptionFeedbackStatus) -> bool:
+    return status in {
+        AdoptionFeedbackStatus.ADOPTED,
+        AdoptionFeedbackStatus.NEEDS_REVISION,
+        AdoptionFeedbackStatus.TEMPLATE_CANDIDATE,
+    }
+
+
+def _default_precedent_reusable_reason(
+    feedback_status: AdoptionFeedbackStatus,
+    feedback_note: str,
+) -> str:
+    if feedback_note:
+        return feedback_note
+    if feedback_status == AdoptionFeedbackStatus.ADOPTED:
+        return "已被明確標記為可直接採用，適合作為後續可重用模式候選。"
+    if feedback_status == AdoptionFeedbackStatus.NEEDS_REVISION:
+        return "已被標記為可在改寫後採用，適合作為後續修正版模式候選。"
+    return "已被標記為值得當範本，適合作為後續可重用模式候選。"
+
+
+def _build_precedent_keywords(
+    lane_id: str,
+    deliverable_type: str | None,
+    domain_lenses: list[str],
+    selected_pack_ids: list[str],
+) -> list[str]:
+    return _unique_preserve_order(
+        [lane_id, *(domain_lenses or []), *(selected_pack_ids or []), deliverable_type or ""]
+    )[:8]
+
+
+def _build_precedent_candidate_seed(
+    task: models.Task,
+    matter_workspace: models.MatterWorkspace | None,
+    feedback_status: AdoptionFeedbackStatus,
+    feedback_note: str,
+    *,
+    deliverable: models.Deliverable | None = None,
+    recommendation: models.Recommendation | None = None,
+) -> dict:
+    client, engagement, workstream, decision_context, domain_lenses, source_materials, artifacts = (
+        _build_world_preferred_ontology_spine_for_task(task)
+    )
+    input_entry_mode = _infer_input_entry_mode(task, source_materials, artifacts)
+    external_research_heavy_candidate = _is_external_research_heavy_candidate(
+        task,
+        decision_context,
+        source_materials,
+        artifacts,
+        input_entry_mode,
+    )
+    deliverable_class_hint = _resolve_deliverable_class_hint(
+        input_entry_mode,
+        decision_context,
+        source_materials,
+        artifacts,
+        len(_usable_evidence(task)),
+        external_research_heavy_candidate,
+    )
+    continuity_mode, _ = resolve_continuity_policy_for_task(task, matter_workspace)
+    next_best_actions = (
+        list(matter_workspace.case_world_state.next_best_actions)
+        if matter_workspace and matter_workspace.case_world_state is not None
+        else list(task.case_world_drafts[0].next_best_actions)
+        if task.case_world_drafts
+        else []
+    )
+    flagship_lane = _build_flagship_lane_read(
+        input_entry_mode,
+        deliverable_class_hint,
+        external_research_heavy_candidate,
+        continuity_mode,
+        next_best_actions,
+        source_material_count=len(_meaningful_source_materials(source_materials)),
+        evidence_count=len(_usable_evidence(task)),
+    )
+    pack_resolution = resolve_pack_selection_for_task(
+        task,
+        client,
+        engagement,
+        workstream,
+        decision_context,
+        domain_lenses,
+    )
+    selected_pack_ids = _unique_preserve_order(
+        [
+            *[item.pack_id for item in pack_resolution.selected_domain_packs],
+            *[item.pack_id for item in pack_resolution.selected_industry_packs],
+        ]
+    )
+    normalized_client_stage = (
+        client.client_stage if client and client.client_stage != UNSPECIFIED_LABEL else None
+    )
+    normalized_client_type = (
+        client.client_type if client and client.client_type != UNSPECIFIED_LABEL else None
+    )
+
+    if deliverable is not None:
+        summary = _resolve_deliverable_summary_text(deliverable)
+        title = _normalize_whitespace(deliverable.title) or "交付物模式候選"
+        return {
+            "candidate_type": PrecedentCandidateType.DELIVERABLE_PATTERN.value,
+            "title": title,
+            "summary": summary,
+            "reusable_reason": _default_precedent_reusable_reason(feedback_status, feedback_note),
+            "lane_id": flagship_lane.lane_id,
+            "continuity_mode": continuity_mode.value,
+            "deliverable_type": deliverable.deliverable_type,
+            "client_stage": normalized_client_stage,
+            "client_type": normalized_client_type,
+            "domain_lenses": list(domain_lenses or []),
+            "selected_pack_ids": selected_pack_ids,
+            "keywords": _build_precedent_keywords(
+                flagship_lane.lane_id,
+                deliverable.deliverable_type,
+                list(domain_lenses or []),
+                selected_pack_ids,
+            ),
+            "pattern_snapshot": {
+                "summary": summary,
+                "deliverable_title": title,
+                "deliverable_type": deliverable.deliverable_type,
+                "lane_label": flagship_lane.label,
+                "current_output_label": flagship_lane.current_output_label,
+                "boundary_note": flagship_lane.boundary_note,
+            },
+        }
+
+    recommendation_summary = _normalize_whitespace(recommendation.summary if recommendation else "")
+    recommendation_rationale = _normalize_whitespace(
+        recommendation.rationale if recommendation else ""
+    )
+    return {
+        "candidate_type": PrecedentCandidateType.RECOMMENDATION_PATTERN.value,
+        "title": (recommendation_summary or "建議模式候選")[:255],
+        "summary": recommendation_summary,
+        "reusable_reason": _default_precedent_reusable_reason(feedback_status, feedback_note),
+        "lane_id": flagship_lane.lane_id,
+        "continuity_mode": continuity_mode.value,
+        "deliverable_type": deliverable_class_hint.value,
+        "client_stage": normalized_client_stage,
+        "client_type": normalized_client_type,
+        "domain_lenses": list(domain_lenses or []),
+        "selected_pack_ids": selected_pack_ids,
+        "keywords": _build_precedent_keywords(
+            flagship_lane.lane_id,
+            deliverable_class_hint.value,
+            list(domain_lenses or []),
+            selected_pack_ids,
+        ),
+        "pattern_snapshot": {
+            "summary": recommendation_summary,
+            "rationale": recommendation_rationale,
+            "priority": recommendation.priority if recommendation else "",
+            "owner_suggestion": recommendation.owner_suggestion if recommendation else None,
+            "lane_label": flagship_lane.label,
+        },
+    }
+
+
+def _sync_precedent_candidate_for_feedback(
+    db: Session,
+    task: models.Task,
+    matter_workspace: models.MatterWorkspace | None,
+    feedback: models.AdoptionFeedback,
+    *,
+    deliverable: models.Deliverable | None = None,
+    recommendation: models.Recommendation | None = None,
+) -> None:
+    statement = select(models.PrecedentCandidate)
+    if deliverable is not None:
+        statement = statement.where(models.PrecedentCandidate.source_deliverable_id == deliverable.id)
+    else:
+        statement = statement.where(
+            models.PrecedentCandidate.source_recommendation_id == recommendation.id
+        )
+    existing = db.scalars(statement).one_or_none()
+
+    feedback_status = AdoptionFeedbackStatus(feedback.feedback_status)
+    if not _feedback_status_creates_precedent_candidate(feedback_status):
+        if existing is not None:
+            db.delete(existing)
+            db.flush()
+        return
+
+    seed = _build_precedent_candidate_seed(
+        task,
+        matter_workspace,
+        feedback_status,
+        feedback.note or "",
+        deliverable=deliverable,
+        recommendation=recommendation,
+    )
+    candidate = existing or models.PrecedentCandidate(
+        task_id=task.id,
+        matter_workspace_id=matter_workspace.id if matter_workspace else None,
+        source_deliverable_id=deliverable.id if deliverable else None,
+        source_recommendation_id=recommendation.id if recommendation else None,
+    )
+    candidate.task_id = task.id
+    candidate.matter_workspace_id = matter_workspace.id if matter_workspace else None
+    candidate.source_feedback_status = feedback_status.value
+    candidate.candidate_status = PrecedentCandidateStatus.CANDIDATE.value
+    candidate.candidate_type = seed["candidate_type"]
+    candidate.title = seed["title"]
+    candidate.summary = seed["summary"]
+    candidate.reusable_reason = seed["reusable_reason"]
+    candidate.lane_id = seed["lane_id"]
+    candidate.continuity_mode = seed["continuity_mode"]
+    candidate.deliverable_type = seed["deliverable_type"]
+    candidate.client_stage = seed["client_stage"]
+    candidate.client_type = seed["client_type"]
+    candidate.domain_lenses = seed["domain_lenses"]
+    candidate.selected_pack_ids = seed["selected_pack_ids"]
+    candidate.keywords = seed["keywords"]
+    candidate.pattern_snapshot = seed["pattern_snapshot"]
+    db.add(candidate)
+    db.flush()
+
 
 def apply_deliverable_adoption_feedback(
     db: Session,
@@ -11267,6 +11591,13 @@ def apply_deliverable_adoption_feedback(
         feedback.matter_workspace_id = matter_workspace.id if matter_workspace else None
 
     db.add(feedback)
+    _sync_precedent_candidate_for_feedback(
+        db,
+        task,
+        matter_workspace,
+        feedback,
+        deliverable=deliverable,
+    )
     db.commit()
     return get_deliverable_workspace(db, deliverable_id)
 
@@ -11301,6 +11632,13 @@ def apply_recommendation_adoption_feedback(
         feedback.matter_workspace_id = matter_workspace.id if matter_workspace else None
 
     db.add(feedback)
+    _sync_precedent_candidate_for_feedback(
+        db,
+        task,
+        matter_workspace,
+        feedback,
+        recommendation=recommendation,
+    )
     db.commit()
     refreshed_task = get_loaded_task(db, task_id)
     return serialize_task(refreshed_task)
@@ -11316,7 +11654,13 @@ def get_task_history(db: Session, task_id: str) -> schemas.TaskHistoryResponse:
         task
     )
     deliverable_feedback_map, recommendation_feedback_map = _build_adoption_feedback_maps(task)
-    recommendations = _serialize_recommendations(task, recommendation_support_map, recommendation_feedback_map)
+    deliverable_candidate_map, recommendation_candidate_map = _build_precedent_candidate_maps(task)
+    recommendations = _serialize_recommendations(
+        task,
+        recommendation_support_map,
+        recommendation_feedback_map,
+        recommendation_candidate_map,
+    )
     action_items = _serialize_action_items(task, action_item_support_map)
     risks = _serialize_risks(task, risk_support_map)
     deliverables = _serialize_deliverables(
@@ -11335,6 +11679,7 @@ def get_task_history(db: Session, task_id: str) -> schemas.TaskHistoryResponse:
             workstream,
         ),
         deliverable_feedback_map,
+        deliverable_candidate_map,
     )
     return schemas.TaskHistoryResponse(
         task_id=task.id,

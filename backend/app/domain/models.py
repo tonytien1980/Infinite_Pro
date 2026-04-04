@@ -107,6 +107,11 @@ class Task(Base):
     adoption_feedback_records: Mapped[list["AdoptionFeedback"]] = relationship(
         back_populates="task", cascade="all, delete-orphan", order_by="AdoptionFeedback.updated_at.desc()"
     )
+    precedent_candidates: Mapped[list["PrecedentCandidate"]] = relationship(
+        back_populates="task",
+        cascade="all, delete-orphan",
+        order_by="PrecedentCandidate.updated_at.desc()",
+    )
     recommendation_evidence_links: Mapped[list["RecommendationEvidenceLink"]] = relationship(
         back_populates="task", cascade="all, delete-orphan"
     )
@@ -309,6 +314,11 @@ class MatterWorkspace(Base):
     object_sets: Mapped[list["ObjectSet"]] = relationship(
         back_populates="matter_workspace",
         order_by="ObjectSet.updated_at.desc()",
+    )
+    precedent_candidates: Mapped[list["PrecedentCandidate"]] = relationship(
+        back_populates="matter_workspace",
+        cascade="all, delete-orphan",
+        order_by="PrecedentCandidate.updated_at.desc()",
     )
 
 
@@ -1007,6 +1017,9 @@ class Recommendation(Base):
     adoption_feedback_records: Mapped[list["AdoptionFeedback"]] = relationship(
         back_populates="recommendation", cascade="all, delete-orphan"
     )
+    precedent_candidates: Mapped[list["PrecedentCandidate"]] = relationship(
+        back_populates="recommendation", cascade="all, delete-orphan"
+    )
 
 
 class ActionItem(Base):
@@ -1076,6 +1089,9 @@ class Deliverable(Base):
     adoption_feedback_records: Mapped[list["AdoptionFeedback"]] = relationship(
         back_populates="deliverable", cascade="all, delete-orphan"
     )
+    precedent_candidates: Mapped[list["PrecedentCandidate"]] = relationship(
+        back_populates="deliverable", cascade="all, delete-orphan"
+    )
 
 
 class AdoptionFeedback(Base):
@@ -1104,6 +1120,51 @@ class AdoptionFeedback(Base):
     task: Mapped["Task"] = relationship(back_populates="adoption_feedback_records")
     deliverable: Mapped["Deliverable | None"] = relationship(back_populates="adoption_feedback_records")
     recommendation: Mapped["Recommendation | None"] = relationship(back_populates="adoption_feedback_records")
+
+
+class PrecedentCandidate(Base):
+    __tablename__ = "precedent_candidates"
+    __table_args__ = (
+        UniqueConstraint("source_deliverable_id", name="uq_precedent_candidate_deliverable"),
+        UniqueConstraint("source_recommendation_id", name="uq_precedent_candidate_recommendation"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    matter_workspace_id: Mapped[str | None] = mapped_column(
+        ForeignKey("matter_workspaces.id"),
+        nullable=True,
+    )
+    source_deliverable_id: Mapped[str | None] = mapped_column(
+        ForeignKey("deliverables.id"),
+        nullable=True,
+    )
+    source_recommendation_id: Mapped[str | None] = mapped_column(
+        ForeignKey("recommendations.id"),
+        nullable=True,
+    )
+    candidate_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    candidate_status: Mapped[str] = mapped_column(String(50), nullable=False, default="candidate")
+    source_feedback_status: Mapped[str] = mapped_column(String(50), nullable=False)
+    title: Mapped[str] = mapped_column(String(255), default="")
+    summary: Mapped[str] = mapped_column(Text, default="")
+    reusable_reason: Mapped[str] = mapped_column(Text, default="")
+    lane_id: Mapped[str] = mapped_column(String(50), default="")
+    continuity_mode: Mapped[str] = mapped_column(String(30), default="one_off")
+    deliverable_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    client_stage: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    client_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    domain_lenses: Mapped[list[str]] = mapped_column(JSON, default=list)
+    selected_pack_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
+    keywords: Mapped[list[str]] = mapped_column(JSON, default=list)
+    pattern_snapshot: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+    task: Mapped["Task"] = relationship(back_populates="precedent_candidates")
+    matter_workspace: Mapped["MatterWorkspace | None"] = relationship(back_populates="precedent_candidates")
+    deliverable: Mapped["Deliverable | None"] = relationship(back_populates="precedent_candidates")
+    recommendation: Mapped["Recommendation | None"] = relationship(back_populates="precedent_candidates")
 
 
 class DeliverableVersionEvent(Base):

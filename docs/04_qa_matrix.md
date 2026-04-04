@@ -2193,3 +2193,72 @@ Environment used:
 - `matter / evidence` 會直接把旗艦流程的姿態、邊界與升級條件講清楚
 - `task / deliverable` 也能沿用同一套旗艦閱讀，但維持在較低噪音的工作面深層，不讓首屏變成資訊牆
 - document-heavy review workflow 現在不只在 hero 口徑上對齊，也能在交付物深層閱讀中穩定說清楚「目前是 review memo / assessment，而不是最終決策版本」
+
+---
+
+## Entry: 2026-04-04 precedent candidate pool first pass
+
+Scope:
+- first-pass `precedent candidate pool`
+- create candidate rows from explicit adoption feedback on `deliverable` / `recommendation`
+- low-noise precedent candidate reading on matter / task / deliverable surfaces
+
+Environment used:
+- frontend runtime: `http://127.0.0.1:3001`
+- backend runtime: `http://127.0.0.1:8010/api/v1`
+- runtime database: local `precedent-candidates-smoke.db`
+- browser evidence: local `playwright-cli` smoke artifacts
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`109 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`17 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Precedent-candidate specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | deliverable feedback API | Mark a contract-review deliverable as `adopted` | Verified | response now includes `deliverable.precedent_candidate` |
+| Backend | recommendation feedback API | Mark a recommendation as `template_candidate` | Verified | task aggregate now includes `recommendation.precedent_candidate` |
+| Backend | recommendation feedback API | Mark a recommendation as `not_adopted` | Verified | no precedent candidate is returned |
+| Backend | matter workspace API | Re-fetch matter after deliverable candidate creation | Verified | matter summary now includes `precedent_candidate_summary` |
+| Frontend | `/matters/[matterId]` | Read candidate summary on matter surface | Verified | page shows `可重用候選` as a low-noise summary, not a new hero |
+| Frontend | `/deliverables/[deliverableId]` | Read deliverable candidate status near adoption feedback | Verified | page shows `已進入可重用候選池` inside the existing adoption-feedback area |
+| Frontend | `/tasks/[taskId]` | Expand `交付細節與場景延伸` and inspect recommendation candidate status | Verified | expanded recommendation card shows `建議模式候選` instead of adding a new task-level dashboard |
+| Frontend | loaded routes | Re-run local route smoke on matter / task / deliverable | Verified | all three checked routes returned `200` on the local runtime |
+
+### Live smoke data
+
+- deliverable-candidate verification task id: `0f0cea02-3cc4-495e-96ad-0e2de3ffc079`
+- deliverable-candidate verification matter id: `28e39eb8-baf4-4275-aba6-28c833ce25e8`
+- deliverable-candidate verification deliverable id: `7fc46c06-2eca-4246-960f-1f63fa465fd3`
+- recommendation-candidate verification task id: `d833ce62-66a7-43e4-9ad7-7b5dc3f900ff`
+- recommendation-candidate verification recommendation id: `d245313b-1b8b-45f2-b235-49e1dce2d868`
+- live API verification returned:
+  - deliverable candidate: `deliverable_pattern|adopted|material_review_start`
+  - matter candidate summary: `這案目前留下 1 個可重用候選。交付物 1 個 / 建議 0 個。|1`
+  - recommendation candidate: `recommendation_pattern|template_candidate|先把這份綜整當成支撐「Highlight the strongest findings and next actions.」的內部工作簡報。`
+- frontend route smoke:
+  - `/matters/28e39eb8-baf4-4275-aba6-28c833ce25e8` returned `200`
+  - `/tasks/d833ce62-66a7-43e4-9ad7-7b5dc3f900ff` returned `200`
+  - `/deliverables/7fc46c06-2eca-4246-960f-1f63fa465fd3` returned `200`
+- browser artifacts:
+  - matter candidate summary snapshot: `output/playwright/precedent-candidates-first-pass/matter.txt`
+  - deliverable candidate rail snapshot: `output/playwright/precedent-candidates-first-pass/deliverable.txt`
+  - task recommendation candidate snapshot: `output/playwright/precedent-candidates-first-pass/task-expanded.txt`
+
+### Residual note
+
+- 第一輪 precedent 只建立 candidate pool，不做 Host automatic retrieval，也不把 precedent 直接套進新案件。
+
+### Verified outcomes
+
+- Infinite Pro 現在已不只會收 adoption feedback，還會把正向採納訊號轉成可回看的 precedent candidates
+- candidate pool 目前仍維持低噪音，沒有長成新的 precedent dashboard 或知識庫首頁
+- matter / task / deliverable 都能用 consultant-facing 的語言讀到「這個內容值得被記住」，但還沒有過早變成自動套用系統

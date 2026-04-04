@@ -605,6 +605,13 @@ Primary action 應隨 continuity mode 分流：
 - 哪個矛盾訊號必須保留
 - 第二層研究區塊也應沿用共用 detail helper，而不是各頁自己拼研究卡片
 
+若這個案件世界已累積 precedent candidates，也只應低噪音補一個 summary：
+
+- 這案目前留下了幾個可重用候選
+- 交付物候選與建議候選各有多少
+
+不可把 precedent candidate summary 做成新的 hero 主線。
+
 若 research guidance 目前為 `not_needed`，task 首屏 continuity 區塊應直接改用共通 focus summary，至少回答：
 
 - 目前是回來更新，還是持續推進
@@ -693,6 +700,11 @@ Primary action：
 - 來源品質 / freshness 提示
 - 第二層研究區塊也應沿用共用 detail helper，而不是只留下簡短 metadata
 
+若 recommendation 已進入 precedent candidate pool，也應只在 recommendation 卡片附近低噪音提示：
+
+- 這是建議模式候選
+- 為何值得重用
+
 若 research guidance 目前為 `not_needed`，task 第二層 continuity 區塊也應延用共通 detail helper，至少回答：
 
 - 最近 checkpoint / progression 的位置
@@ -743,6 +755,8 @@ Primary action 應隨 continuity mode / status 分流：
 - 目前這份交付物的適用邊界在哪裡
 
 若要在 deliverable surface 補第二層旗艦閱讀，應優先放在較低噪音的 continuity / research / writeback disclosure 中，而不是讓這層與交付摘要主線搶首屏。
+
+若這份交付物已進入 precedent candidate pool，也應優先掛在 adoption feedback 區塊附近，而不是在交付 hero 額外開一條 precedent 主線。
 
 ### 7.7 `/agents`
 
@@ -880,6 +894,21 @@ Primary action：
   - 目前不採用
   - 值得當範本
 - 這層的正式責任是收集 explicit human adoption signal，而不是直接等於 precedent selection
+
+### 9.2.1 Precedent candidate reading
+
+當某份 `deliverable` 或某條 `recommendation` 已因 explicit adoption feedback 進入 precedent candidate pool 時，UI 應維持低噪音顯示：
+
+- 已進入可重用候選池
+- 為什麼值得重用
+- 它是交付物候選，還是建議候選
+
+正式規則：
+
+- `deliverable` 應優先把這層掛在既有 adoption feedback 區塊附近
+- `recommendation` 應優先把這層掛在既有建議卡附近
+- `matter workspace` 只應提供很輕的 candidate summary，不可做成 precedent dashboard hero
+- 這層是在說「這個內容值得被記住」，不是在說「系統已經自動重用它」
 
 ### 9.3 Specialized hardening views
 

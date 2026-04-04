@@ -79,6 +79,17 @@ class AdoptionFeedbackStatus(str, Enum):
     TEMPLATE_CANDIDATE = "template_candidate"
 
 
+class PrecedentCandidateType(str, Enum):
+    DELIVERABLE_PATTERN = "deliverable_pattern"
+    RECOMMENDATION_PATTERN = "recommendation_pattern"
+
+
+class PrecedentCandidateStatus(str, Enum):
+    CANDIDATE = "candidate"
+    PROMOTED = "promoted"
+    DISMISSED = "dismissed"
+
+
 class AuditEventType(str, Enum):
     WRITEBACK_GENERATED = "writeback_generated"
     APPROVAL_RECORDED = "approval_recorded"

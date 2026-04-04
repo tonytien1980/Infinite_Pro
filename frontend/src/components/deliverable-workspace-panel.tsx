@@ -35,6 +35,7 @@ import {
 } from "@/lib/continuation-advisory";
 import { buildContinuationPostureView } from "@/lib/continuity-ux";
 import { buildMaterialReviewPostureView } from "@/lib/material-review-ux";
+import { buildPrecedentCandidateView } from "@/lib/precedent-candidates";
 import { buildResearchDetailView } from "@/lib/research-lane";
 import { truncateText } from "@/lib/text-format";
 import type {
@@ -521,6 +522,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const task = workspace?.task ?? null;
   const deliverable = workspace?.deliverable ?? null;
   const deliverableFeedbackView = buildAdoptionFeedbackView(deliverable?.adoption_feedback);
+  const deliverableCandidateView = buildPrecedentCandidateView(deliverable?.precedent_candidate);
   const continuationSurface = workspace?.continuation_surface ?? null;
   const followUpLane = continuationSurface?.follow_up_lane ?? null;
   const progressionLane = continuationSurface?.progression_lane ?? null;
@@ -1251,6 +1253,12 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                     <p className="success-text" role="status" aria-live="polite">
                       {deliverableFeedbackMessage}
                     </p>
+                  ) : null}
+                  {deliverableCandidateView.shouldShow ? (
+                    <div style={{ marginTop: "12px" }}>
+                      <p className="content-block">{deliverableCandidateView.badgeLabel}</p>
+                      <p className="muted-text">{deliverableCandidateView.summary}</p>
+                    </div>
                   ) : null}
                 </div>
 

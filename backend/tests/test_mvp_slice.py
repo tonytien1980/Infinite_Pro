@@ -3334,6 +3334,104 @@ def test_recommendation_feedback_persists_on_task_aggregate(
     assert recommendation["adoption_feedback"]["note"] == "這類建議可作為範本候選。"
 
 
+def test_deliverable_feedback_creates_precedent_candidate_and_updates_matter_summary(
+    client: TestClient,
+) -> None:
+    payload = create_contract_review_payload("Deliverable precedent candidate")
+    task = client.post("/api/v1/tasks", json=payload).json()
+
+    client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("agreement.txt", b"Termination, liability, and indemnity clauses need review.", "text/plain"))],
+    )
+    run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
+    assert run_response.status_code == 200
+    deliverable_id = run_response.json()["deliverable"]["id"]
+
+    feedback_response = client.post(
+        f"/api/v1/deliverables/{deliverable_id}/feedback",
+        json={"feedback_status": "adopted", "note": "這份交付值得保留成可重用模式。"},
+    )
+
+    assert feedback_response.status_code == 200
+    workspace = feedback_response.json()
+    candidate = workspace["deliverable"]["precedent_candidate"]
+    assert candidate["candidate_type"] == "deliverable_pattern"
+    assert candidate["candidate_status"] == "candidate"
+    assert candidate["source_feedback_status"] == "adopted"
+    assert candidate["source_deliverable_id"] == deliverable_id
+    assert candidate["lane_id"] == "material_review_start"
+    assert workspace["task"]["deliverables"][0]["precedent_candidate"]["id"] == candidate["id"]
+
+    matter_id = workspace["matter_workspace"]["id"]
+    matter_workspace = client.get(f"/api/v1/matters/{matter_id}").json()
+    summary = matter_workspace["summary"]["precedent_candidate_summary"]
+    assert summary["total_candidates"] == 1
+    assert summary["deliverable_candidate_count"] == 1
+    assert summary["recommendation_candidate_count"] == 0
+    assert "可重用候選" in summary["summary"]
+
+
+def test_recommendation_feedback_creates_precedent_candidate_on_task_aggregate(
+    client: TestClient,
+) -> None:
+    payload = create_task_payload("Recommendation precedent candidate")
+    task = client.post("/api/v1/tasks", json=payload).json()
+
+    client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("notes.txt", b"Pricing and channel strategy should be split by segment.", "text/plain"))],
+    )
+    run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
+    assert run_response.status_code == 200
+
+    aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
+    recommendation_id = aggregate["recommendations"][0]["id"]
+
+    feedback_response = client.post(
+        f"/api/v1/tasks/{task['id']}/recommendations/{recommendation_id}/feedback",
+        json={"feedback_status": "template_candidate", "note": "這條建議很適合做成模式候選。"},
+    )
+
+    assert feedback_response.status_code == 200
+    updated = feedback_response.json()
+    recommendation = next(item for item in updated["recommendations"] if item["id"] == recommendation_id)
+    candidate = recommendation["precedent_candidate"]
+    assert candidate["candidate_type"] == "recommendation_pattern"
+    assert candidate["candidate_status"] == "candidate"
+    assert candidate["source_feedback_status"] == "template_candidate"
+    assert candidate["source_recommendation_id"] == recommendation_id
+    assert candidate["title"]
+    assert candidate["pattern_snapshot"]["summary"]
+
+
+def test_not_adopted_feedback_does_not_create_precedent_candidate(
+    client: TestClient,
+) -> None:
+    payload = create_task_payload("Recommendation not adopted candidate")
+    task = client.post("/api/v1/tasks", json=payload).json()
+
+    client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("notes.txt", b"Keep the recommendation flow simple and explicit.", "text/plain"))],
+    )
+    run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
+    assert run_response.status_code == 200
+
+    aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
+    recommendation_id = aggregate["recommendations"][0]["id"]
+
+    feedback_response = client.post(
+        f"/api/v1/tasks/{task['id']}/recommendations/{recommendation_id}/feedback",
+        json={"feedback_status": "not_adopted", "note": "這條建議目前不採用。"},
+    )
+
+    assert feedback_response.status_code == 200
+    updated = feedback_response.json()
+    recommendation = next(item for item in updated["recommendations"] if item["id"] == recommendation_id)
+    assert recommendation["precedent_candidate"] is None
+
+
 def test_specialist_run_returns_explicit_uncertainty_when_model_router_fails(
     client: TestClient,
     monkeypatch: pytest.MonkeyPatch,

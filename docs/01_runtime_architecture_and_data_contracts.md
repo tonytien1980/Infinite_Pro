@@ -542,7 +542,52 @@ deliverable workspace 採：
 - publish / approval / revision 仍屬治理或版本訊號，不等於 explicit human adoption feedback
 - 這層的正式目的，是為未來 precedent / reusable intelligence 提供更可靠的人類採納訊號
 
-### 6.10 Matter-scoped canonicalization and duplicate governance
+### 6.10 Precedent candidate pool
+
+目前 precedent / reusable intelligence 的第一輪正式形態，是 `precedent candidate pool`。
+
+正式規則：
+
+- 這不是新的架構層
+- 它是既有 ontology / runtime contract 上的新 object 與新 read model
+- 第一波候選只來自：
+  - `Deliverable`
+  - `Recommendation`
+- 而且必須先有 explicit adoption feedback，才可建立 candidate
+- 第一波允許建立 candidate 的 feedback status 包括：
+  - `adopted`
+  - `needs_revision`
+  - `template_candidate`
+- `not_adopted` 不可建立 precedent candidate
+- publish / approval / revision 可作為輔助 metadata，但不能單獨建立 candidate
+
+第一波 candidate contract 至少包括：
+
+- `candidate_type`
+- `candidate_status`
+- `source_feedback_status`
+- `source_task_id`
+- `source_deliverable_id` / `source_recommendation_id`
+- `title`
+- `summary`
+- `reusable_reason`
+- `lane_id`
+- `continuity_mode`
+- `deliverable_type`
+- `client_stage`
+- `client_type`
+- `domain_lenses`
+- `selected_pack_ids`
+- `keywords`
+- `pattern_snapshot`
+
+正式規則：
+
+- 第一波預設只建立 `candidate`，不自動升格 `promoted`
+- 候選內容應優先保存 pattern / shape / reusable reason，而不是整份舊案全文
+- future retrieval remains Host-owned；前端不可自行把 candidate 當 prompt snippet 插回主線
+
+### 6.11 Matter-scoped canonicalization and duplicate governance
 
 正式規則：
 

@@ -49,6 +49,7 @@ import {
   buildResearchDetailView,
   buildResearchGuidanceView,
 } from "@/lib/research-lane";
+import { buildPrecedentCandidateView } from "@/lib/precedent-candidates";
 import type {
   ExtensionManagerSnapshot,
   RetrievalProvenance,
@@ -2196,6 +2197,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                   {sortedRecommendations.length > 0 ? (
                     sortedRecommendations.slice(0, 3).map((recommendation, index) => {
                       const feedbackView = buildAdoptionFeedbackView(recommendation.adoption_feedback);
+                      const precedentCandidateView = buildPrecedentCandidateView(
+                        recommendation.precedent_candidate,
+                      );
                       const expectedEffect =
                         recommendationCards[index]?.expectedEffect || "可讓下一輪判斷與執行更具可操作性。";
                       return (
@@ -2210,6 +2214,12 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                           emptyText="目前沒有額外建議說明。"
                         />
                         <p className="muted-text">預期效果：{expectedEffect}</p>
+                        {precedentCandidateView.shouldShow ? (
+                          <div className="section-card" style={{ marginTop: "12px" }}>
+                            <h4>{precedentCandidateView.badgeLabel}</h4>
+                            <p className="muted-text">{precedentCandidateView.summary}</p>
+                          </div>
+                        ) : null}
                         <div className="button-row" style={{ marginTop: "12px" }}>
                           {ADOPTION_FEEDBACK_OPTIONS.map((option) => (
                             <button
