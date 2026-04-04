@@ -54,6 +54,7 @@ import {
   buildPrecedentCandidateActionView,
   buildPrecedentCandidateView,
 } from "@/lib/precedent-candidates";
+import { buildCommonRiskLibraryView } from "@/lib/common-risk-libraries";
 import { buildPrecedentReferenceView } from "@/lib/precedent-reference";
 import { buildReviewLensView } from "@/lib/review-lenses";
 import type {
@@ -596,6 +597,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
     ? buildPrecedentReferenceView(task.precedent_reference_guidance)
     : null;
   const reviewLensView = task ? buildReviewLensView(task.review_lens_guidance) : null;
+  const commonRiskLibraryView = task
+    ? buildCommonRiskLibraryView(task.common_risk_guidance)
+    : null;
   const evidenceWorkspaceLane =
     task ? buildEvidenceWorkspaceLane(task, latestDeliverable, readinessGovernance) : null;
   const deliverableBacklink = task ? buildDeliverableBacklinkView(task, latestDeliverable) : null;
@@ -1331,6 +1335,34 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     ) : null}
                     <p className="muted-text" style={{ marginTop: "12px" }}>
                       {reviewLensView.boundaryNote}
+                    </p>
+                  </div>
+                ) : null}
+                {commonRiskLibraryView?.shouldShow ? (
+                  <div className="detail-item">
+                    <h3>{commonRiskLibraryView.sectionTitle}</h3>
+                    <p className="content-block">{commonRiskLibraryView.summary}</p>
+                    <div className="summary-grid" style={{ marginTop: "16px" }}>
+                      {commonRiskLibraryView.cards.map((card) => (
+                        <div className="section-card" key={`task-common-risk-${card.title}`}>
+                          <h4>{card.title}</h4>
+                          <p className="content-block">{card.summary}</p>
+                          <p className="muted-text">{card.meta}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {commonRiskLibraryView.listItems.length > 0 ? (
+                      <>
+                        <h4 style={{ marginTop: "16px" }}>{commonRiskLibraryView.listTitle}</h4>
+                        <ul className="list-content" style={{ marginTop: "12px" }}>
+                          {commonRiskLibraryView.listItems.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      </>
+                    ) : null}
+                    <p className="muted-text" style={{ marginTop: "12px" }}>
+                      {commonRiskLibraryView.boundaryNote}
                     </p>
                   </div>
                 ) : null}

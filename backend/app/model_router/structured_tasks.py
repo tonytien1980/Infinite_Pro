@@ -119,6 +119,7 @@ def render_request_context(
     evidence: list[dict[str, Any]],
     precedent_context: list[str] | None = None,
     review_lens_context: list[str] | None = None,
+    common_risk_context: list[str] | None = None,
 ) -> str:
     evidence_blocks = []
     for index, item in enumerate(evidence, start=1):
@@ -146,6 +147,8 @@ def render_request_context(
             + ("\n".join(f"- {item}" for item in precedent_context) if precedent_context else "- 目前沒有可安全引用的既有模式。"),
             "這輪先看哪幾點：\n"
             + ("\n".join(f"- {item}" for item in review_lens_context) if review_lens_context else "- 目前沒有額外 review lenses。"),
+            "這類案件常漏哪些風險：\n"
+            + ("\n".join(f"- {item}" for item in common_risk_context) if common_risk_context else "- 目前沒有額外 common risk watchouts。"),
         ]
     )
 
@@ -213,6 +216,7 @@ def build_research_synthesis_spec(
             evidence=request_payload.evidence,
             precedent_context=request_payload.precedent_context,
             review_lens_context=request_payload.review_lens_context,
+            common_risk_context=request_payload.common_risk_context,
         ),
         output_model=ResearchSynthesisOutput,
     )
@@ -298,6 +302,7 @@ def build_core_analysis_spec(
         evidence=request_payload.evidence,
         precedent_context=request_payload.precedent_context,
         review_lens_context=request_payload.review_lens_context,
+        common_risk_context=request_payload.common_risk_context,
     )
     if is_research_investigation:
         research_context_blocks = [
@@ -386,6 +391,7 @@ def build_document_restructuring_spec(
             evidence=request_payload.evidence,
             precedent_context=request_payload.precedent_context,
             review_lens_context=request_payload.review_lens_context,
+            common_risk_context=request_payload.common_risk_context,
         ),
         output_model=DocumentRestructuringOutput,
     )
@@ -438,6 +444,7 @@ def build_contract_review_spec(
             evidence=request_payload.evidence,
             precedent_context=request_payload.precedent_context,
             review_lens_context=request_payload.review_lens_context,
+            common_risk_context=request_payload.common_risk_context,
         ),
         output_model=ContractReviewOutput,
     )

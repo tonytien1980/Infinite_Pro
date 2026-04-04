@@ -8,6 +8,7 @@ from app.agents.base import (
     CoreAnalysisAgent,
     RecommendationDraft,
     RiskDraft,
+    build_payload_common_risk_context,
     build_payload_precedent_context,
     build_payload_review_lens_context,
 )
@@ -49,6 +50,7 @@ class RiskChallengeAgent(CoreAnalysisAgent):
                 ],
                 precedent_context=build_payload_precedent_context(payload),
                 review_lens_context=build_payload_review_lens_context(payload),
+                common_risk_context=build_payload_common_risk_context(payload),
             )
         )
         evidence_refs = [item.id for item in payload.evidence][:3]

@@ -21,6 +21,7 @@ from app.domain.schemas import (
     CaseWorldDraftRead,
     CaseWorldStateRead,
     ClientRead,
+    CommonRiskGuidanceRead,
     ConstraintRead,
     DecisionContextRead,
     EngagementRead,
@@ -83,6 +84,7 @@ class AgentInputPayload(BaseModel):
         default_factory=PrecedentReferenceGuidanceRead
     )
     review_lens_guidance: ReviewLensGuidanceRead = Field(default_factory=ReviewLensGuidanceRead)
+    common_risk_guidance: CommonRiskGuidanceRead = Field(default_factory=CommonRiskGuidanceRead)
     source_materials: list[SourceMaterialRead] = Field(default_factory=list)
     artifacts: list[ArtifactRead] = Field(default_factory=list)
     subjects: list[SubjectRead] = Field(default_factory=list)
@@ -121,6 +123,24 @@ def build_payload_review_lens_context(payload: AgentInputPayload) -> list[str]:
             [
                 f"視角 {index}：{item.title}",
                 f"為什麼現在先看：{item.why_now}",
+                f"來源：{item.source_label or item.source_kind}",
+            ]
+        )
+    lines.append(f"整體邊界：{guidance.boundary_note}")
+    return lines
+
+
+def build_payload_common_risk_context(payload: AgentInputPayload) -> list[str]:
+    guidance = payload.common_risk_guidance
+    if guidance.status == "none" or not guidance.risks:
+        return []
+
+    lines: list[str] = []
+    for index, item in enumerate(guidance.risks[:4], start=1):
+        lines.extend(
+            [
+                f"常漏風險 {index}：{item.title}",
+                f"為什麼要先掃：{item.why_watch}",
                 f"來源：{item.source_label or item.source_kind}",
             ]
         )

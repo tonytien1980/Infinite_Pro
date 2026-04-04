@@ -2628,3 +2628,71 @@ Environment used:
 - precedent / reusable intelligence now has its first true reusable consultant asset, not just candidate governance
 - Host can now carry small, explainable `review_lens_context` into specialist / core analysis requests without copying prior-case prose
 - task / deliverable surfaces can now low-noise read back `這輪先看哪幾點`, keeping the UI simple while moving more judgment strength into the runtime
+
+---
+
+## Entry: 2026-04-04 common risk libraries pass
+
+Scope:
+- first reusable common-risk asset
+- Host-owned `common_risk_guidance`
+- prompt-safe common-risk context through provider boundary
+- low-noise task / deliverable common-risk reading
+
+Environment used:
+- frontend runtime: `http://127.0.0.1:3001`
+- backend runtime: `http://127.0.0.1:8010/api/v1`
+- supplemental browser-hydration backend: `http://127.0.0.1:8000/api/v1`
+- runtime database: local `common-risk-smoke.db`
+- browser evidence: local `playwright-cli` smoke artifacts
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`120 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`24 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Common-risk specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | task aggregate | Read `common_risk_guidance` | Verified | targeted backend test confirms task aggregate now returns `available / fallback / none` guidance with risk rows |
+| Backend | model-router prompt | Render common-risk context block | Verified | targeted backend test confirms contract-review prompt now contains `這類案件常漏哪些風險` block |
+| Backend | precedent snapshot seed | Build precedent-derived risk patterns | Verified | live API smoke confirms promoted precedent now contributes readable risk-pattern titles instead of generic numbered labels |
+| Frontend | common-risk helper | Render consultant-facing risk reading | Verified | frontend helper test confirms section title, card copy, order list, and boundary note stay low-noise |
+| Frontend | `/tasks/[taskId]` | Expand second-layer reading and inspect rendered common risks | Verified | browser snapshot shows `這類案件常漏哪些風險` inside the existing task disclosure |
+| Frontend | `/deliverables/[deliverableId]` | Expand continuity / research disclosure and inspect rendered common risks | Verified | browser snapshot shows the same common-risk reading inside the existing deliverable second-layer surface |
+
+### Live smoke data
+
+- precedent source task id: `e0449f4d-146c-4756-90b3-4292787e32d3`
+- precedent source deliverable id: `ffd58b65-2c88-401c-892b-ca9b3df5ed32`
+- current task id: `ee842d00-c0ee-4772-ada1-4dd3c9f98857`
+- current deliverable id: `8de95e38-8531-4dff-8d35-64b799cb89ca`
+- live API verification returned:
+  - common-risk status: `available`
+  - common-risk count: `4`
+  - first common-risk title: `若終止條款不完整或偏向對方，可能導致對方可任意終止、我方無合理補救期，或終止後付款、退費、移轉、過渡協助與資料處理責任不清。`
+- frontend route smoke:
+  - `/tasks/ee842d00-c0ee-4772-ada1-4dd3c9f98857` returned `200`
+  - `/deliverables/8de95e38-8531-4dff-8d35-64b799cb89ca` returned `200`
+- browser artifacts:
+  - API smoke artifact: `output/playwright/common-risk-libraries/api-smoke.json`
+  - task snapshot: `output/playwright/common-risk-libraries/task.yml`
+  - deliverable snapshot: `output/playwright/common-risk-libraries/deliverable.yml`
+
+### Residual note
+
+- local browser hydration still preferred the repo's `:8000` fallback API base in this session, so a same-DB mirror backend was started on `8000` to capture true browser evidence. The feature itself was also independently verified through `8010` live API smoke plus full automated tests.
+- this round still does not provide deliverable shape hints, template auto-apply, or a reusable risk-management dashboard; common risk libraries only help Host and the consultant avoid missing high-frequency risk patterns.
+
+### Verified outcomes
+
+- precedent / reusable intelligence now has a second reusable consultant asset after review lenses
+- Host can now carry small, explainable `common_risk_context` into specialist / core analysis requests without turning recurring risk patterns into automatic conclusions
+- task / deliverable surfaces can now low-noise read back `這類案件常漏哪些風險`, keeping the UI simple while deepening the runtime's omission guardrails

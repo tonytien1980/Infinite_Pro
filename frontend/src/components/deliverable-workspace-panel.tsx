@@ -40,6 +40,7 @@ import {
   buildPrecedentCandidateActionView,
   buildPrecedentCandidateView,
 } from "@/lib/precedent-candidates";
+import { buildCommonRiskLibraryView } from "@/lib/common-risk-libraries";
 import { buildPrecedentReferenceView } from "@/lib/precedent-reference";
 import { buildResearchDetailView } from "@/lib/research-lane";
 import { buildReviewLensView } from "@/lib/review-lenses";
@@ -546,6 +547,9 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
     ? buildPrecedentReferenceView(task.precedent_reference_guidance)
     : null;
   const reviewLensView = task ? buildReviewLensView(task.review_lens_guidance) : null;
+  const commonRiskLibraryView = task
+    ? buildCommonRiskLibraryView(task.common_risk_guidance)
+    : null;
   const continuityPosture = buildContinuationPostureView(continuationSurface);
   const workspaceView = workspace ? buildDeliverableWorkspaceView(workspace) : null;
   const flagshipLane = task ? buildFlagshipLaneView(task.flagship_lane) : null;
@@ -1629,6 +1633,36 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                   ) : null}
                   <p className="muted-text" style={{ marginTop: "12px" }}>
                     {reviewLensView.boundaryNote}
+                  </p>
+                </div>
+              </div>
+            ) : null}
+            {commonRiskLibraryView?.shouldShow ? (
+              <div className="detail-list" style={{ marginTop: "18px" }}>
+                <div className="detail-item">
+                  <h3>{commonRiskLibraryView.sectionTitle}</h3>
+                  <p className="content-block">{commonRiskLibraryView.summary}</p>
+                  <div className="summary-grid" style={{ marginTop: "16px" }}>
+                    {commonRiskLibraryView.cards.map((card) => (
+                      <div className="section-card" key={`deliverable-common-risk-${card.title}`}>
+                        <h4>{card.title}</h4>
+                        <p className="content-block">{card.summary}</p>
+                        <p className="muted-text">{card.meta}</p>
+                      </div>
+                    ))}
+                  </div>
+                  {commonRiskLibraryView.listItems.length > 0 ? (
+                    <>
+                      <h4 style={{ marginTop: "16px" }}>{commonRiskLibraryView.listTitle}</h4>
+                      <ul className="list-content">
+                        {commonRiskLibraryView.listItems.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    </>
+                  ) : null}
+                  <p className="muted-text" style={{ marginTop: "12px" }}>
+                    {commonRiskLibraryView.boundaryNote}
                   </p>
                 </div>
               </div>

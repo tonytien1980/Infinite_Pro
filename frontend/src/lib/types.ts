@@ -1167,6 +1167,24 @@ export interface ReviewLensGuidance {
   lenses: ReviewLensItem[];
 }
 
+export interface CommonRiskItem {
+  risk_id: string;
+  title: string;
+  summary: string;
+  why_watch: string;
+  source_kind: "precedent_risk_pattern" | "pack_common_risk" | "task_heuristic";
+  source_label: string;
+  priority: "high" | "medium" | "low";
+}
+
+export interface CommonRiskGuidance {
+  status: "available" | "fallback" | "none";
+  label: string;
+  summary: string;
+  boundary_note: string;
+  risks: CommonRiskItem[];
+}
+
 export interface PrecedentCandidateStatusUpdatePayload {
   candidate_status: PrecedentCandidateStatus;
 }
@@ -1566,6 +1584,7 @@ export interface TaskAggregate {
   research_guidance: ResearchGuidance;
   precedent_reference_guidance: PrecedentReferenceGuidance;
   review_lens_guidance: ReviewLensGuidance;
+  common_risk_guidance: CommonRiskGuidance;
   research_runs: ResearchRun[];
   decision_records: DecisionRecord[];
   action_plans: ActionPlan[];

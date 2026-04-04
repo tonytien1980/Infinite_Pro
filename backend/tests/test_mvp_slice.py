@@ -3710,6 +3710,55 @@ def test_task_aggregate_exposes_review_lens_guidance(
     assert all(item["source_label"] for item in guidance["lenses"])
 
 
+def test_task_aggregate_exposes_common_risk_guidance(
+    client: TestClient,
+) -> None:
+    precedent_payload = create_contract_review_payload("Reusable common risk precedent")
+    precedent_task = client.post("/api/v1/tasks", json=precedent_payload).json()
+    client.post(
+        f"/api/v1/tasks/{precedent_task['id']}/uploads",
+        files=[("files", ("agreement.txt", b"Termination and liability clauses need review.", "text/plain"))],
+    )
+    precedent_run = client.post(f"/api/v1/tasks/{precedent_task['id']}/run")
+    precedent_deliverable_id = precedent_run.json()["deliverable"]["id"]
+    client.post(
+        f"/api/v1/deliverables/{precedent_deliverable_id}/feedback",
+        json={"feedback_status": "template_candidate", "note": "這份交付值得保留成可重用模式。"},
+    )
+    client.post(
+        f"/api/v1/deliverables/{precedent_deliverable_id}/precedent-candidate",
+        json={"candidate_status": "promoted"},
+    )
+
+    current_task = client.post(
+        "/api/v1/tasks",
+        json=create_contract_review_payload("Current common risk task"),
+    ).json()
+    client.post(
+        f"/api/v1/tasks/{current_task['id']}/uploads",
+        files=[("files", ("current.txt", b"Current agreement still needs a first-pass review.", "text/plain"))],
+    )
+
+    aggregate_response = client.get(f"/api/v1/tasks/{current_task['id']}")
+
+    assert aggregate_response.status_code == 200
+    payload = aggregate_response.json()
+    guidance = payload["common_risk_guidance"]
+    assert guidance["status"] in {"available", "fallback"}
+    assert guidance["label"] == "這類案件常漏哪些風險"
+    assert guidance["risks"]
+    assert len(guidance["risks"]) <= 4
+    assert guidance["summary"]
+    assert "不代表這案已經發生" in guidance["boundary_note"]
+    assert any(
+        item["source_kind"] in {"precedent_risk_pattern", "pack_common_risk", "task_heuristic"}
+        for item in guidance["risks"]
+    )
+    assert all(item["title"] for item in guidance["risks"])
+    assert all(item["why_watch"] for item in guidance["risks"])
+    assert all(item["source_label"] for item in guidance["risks"])
+
+
 def test_precedent_review_surface_lists_duplicate_groups_and_allows_resolution(
     client: TestClient,
 ) -> None:
@@ -5152,6 +5201,28 @@ def test_contract_review_spec_includes_review_lens_block() -> None:
     assert "這輪先看哪幾點" in spec.user_prompt
     assert "先看終止條款與義務邊界" in spec.user_prompt
     assert "為什麼現在先看" in spec.user_prompt
+
+
+def test_contract_review_spec_includes_common_risk_block() -> None:
+    from app.model_router.base import ContractReviewRequest
+    from app.model_router.structured_tasks import build_contract_review_spec
+
+    spec = build_contract_review_spec(
+        ContractReviewRequest(
+            task_title="Contract common risk test",
+            task_description="Ensure common risk reminders reach the prompt.",
+            background_text="Current agreement review",
+            common_risk_context=[
+                "常漏風險 1：責任不對稱與 indemnity / liability 暴露",
+                "為什麼要先掃：這類案件最容易在條款不完整時低估責任暴露。",
+                "來源：pack common risk",
+            ],
+        )
+    )
+
+    assert "這類案件常漏哪些風險" in spec.user_prompt
+    assert "責任不對稱與 indemnity / liability 暴露" in spec.user_prompt
+    assert "為什麼要先掃" in spec.user_prompt
 
 
 def test_openai_provider_retries_once_after_timeout(

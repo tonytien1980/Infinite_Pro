@@ -10,6 +10,7 @@ from app.agents.base import (
     RecommendationDraft,
     RiskDraft,
     SpecialistAgent,
+    build_payload_common_risk_context,
     build_payload_precedent_context,
     build_payload_review_lens_context,
 )
@@ -132,6 +133,7 @@ class ResearchSynthesisAgent(SpecialistAgent):
                 ],
                 precedent_context=build_payload_precedent_context(payload),
                 review_lens_context=build_payload_review_lens_context(payload),
+                common_risk_context=build_payload_common_risk_context(payload),
             )
         )
 

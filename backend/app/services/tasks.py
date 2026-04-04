@@ -47,6 +47,7 @@ from app.extensions.schemas import (
 )
 from app.services.artifact_storage import load_artifact_content
 from app.services.canonicalization import build_matter_canonicalization_contract
+from app.services.common_risk_intelligence import build_common_risk_guidance
 from app.services.content_revisions import (
     CONTENT_REVISION_SOURCE_MANUAL_EDIT,
     CONTENT_REVISION_SOURCE_ROLLBACK,
@@ -11345,6 +11346,12 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         precedent_reference_guidance=precedent_reference_guidance,
         pack_resolution=pack_resolution,
     )
+    common_risk_guidance = build_common_risk_guidance(
+        db,
+        task_type=task.task_type,
+        precedent_reference_guidance=precedent_reference_guidance,
+        pack_resolution=pack_resolution,
+    )
     canonicalization_summary, canonicalization_candidates = build_matter_canonicalization_contract(
         db,
         matter_workspace_id=matter_workspace.id,
@@ -11428,6 +11435,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         research_guidance=research_guidance,
         precedent_reference_guidance=precedent_reference_guidance,
         review_lens_guidance=review_lens_guidance,
+        common_risk_guidance=common_risk_guidance,
         research_runs=[schemas.ResearchRunRead.model_validate(item) for item in task.research_runs],
         decision_records=[schemas.DecisionRecordRead.model_validate(item) for item in task.decision_records],
         action_plans=[schemas.ActionPlanRead.model_validate(item) for item in task.action_plans],
@@ -11475,6 +11483,31 @@ def _build_precedent_keywords(
     return _unique_preserve_order(
         [lane_id, *(domain_lenses or []), *(selected_pack_ids or []), deliverable_type or ""]
     )[:8]
+
+
+def _label_for_precedent_top_risk(item: models.Risk) -> str:
+    title = _normalize_whitespace(item.title)
+    description = _normalize_whitespace(item.description)
+    if not title:
+        return description
+    lowered = title.lower()
+    if (
+        lowered.startswith("contract review risk ")
+        or lowered.startswith("legal / risk issue ")
+        or lowered.startswith("risk ")
+    ):
+        return description or title
+    return title
+
+
+def _build_precedent_top_risk_list(task: models.Task) -> list[str]:
+    return _unique_preserve_order(
+        [
+            _label_for_precedent_top_risk(item)
+            for item in task.risks
+            if _label_for_precedent_top_risk(item)
+        ]
+    )[:4]
 
 
 def _build_precedent_candidate_seed(
@@ -11542,6 +11575,7 @@ def _build_precedent_candidate_seed(
     normalized_client_type = (
         client.client_type if client and client.client_type != UNSPECIFIED_LABEL else None
     )
+    top_risks = _build_precedent_top_risk_list(task)
 
     if deliverable is not None:
         summary = _resolve_deliverable_summary_text(deliverable)
@@ -11571,6 +11605,7 @@ def _build_precedent_candidate_seed(
                 "lane_label": flagship_lane.label,
                 "current_output_label": flagship_lane.current_output_label,
                 "boundary_note": flagship_lane.boundary_note,
+                "top_risks": top_risks,
             },
         }
 
@@ -11602,6 +11637,7 @@ def _build_precedent_candidate_seed(
             "priority": recommendation.priority if recommendation else "",
             "owner_suggestion": recommendation.owner_suggestion if recommendation else None,
             "lane_label": flagship_lane.label,
+            "top_risks": top_risks,
         },
     }
 

@@ -726,6 +726,70 @@ deliverable workspace 採：
 - task / deliverable surface 目前只應以 second-layer disclosure 低噪音回讀
 - matter / overview 目前不應長出 review lens dashboard hero
 
+### 6.10.3 Common risk libraries
+
+在 reusable review lenses 已成立後，precedent / reusable intelligence 的下一批 reusable asset 應先是：
+
+- `common_risk_guidance`
+
+正式規則：
+
+- common risk libraries 仍是 Host-owned
+- frontend 不可自行從 precedent rows、pack raw fields 或 task result cards 拼出風險庫再回灌主線
+- common risk libraries 的正式角色是回答：
+  - 這類案件常漏哪些風險
+  - 為什麼這些風險值得先掃一遍
+- 它不是：
+  - 已成立的正式風險判定
+  - risk dashboard
+  - auto escalation shell
+  - 舊案風險段落複製
+- 第一波只允許少量 common risks：
+  - 2 到 4 個
+- risk source 第一波至少包括：
+  - `precedent_risk_pattern`
+  - `pack_common_risk`
+  - `task_heuristic`
+- 這層的正式目的，是降低 omission risk，而不是直接替代 task-produced risk cards
+
+第一波 `common_risk_guidance` contract 至少包括：
+
+- `status`
+  - `available`
+  - `fallback`
+  - `none`
+- `label`
+- `summary`
+- `boundary_note`
+- `risks`
+
+每筆 `risk` 至少包括：
+
+- `risk_id`
+- `title`
+- `summary`
+- `why_watch`
+- `source_kind`
+- `source_label`
+- `priority`
+
+正式規則：
+
+- `available` 代表至少已有 precedent-derived risk pattern 或 pack common risk
+- `fallback` 代表目前主要仍靠 task heuristic 補最小可信風險掃描提醒
+- `none` 代表這輪不額外補 common risk libraries
+- common risk 若要進模型上下文，必須經 Host 整理成 prompt-safe `common_risk_context`
+- `common_risk_context` 應與 `precedent_context`、`review_lens_context` 並存，但角色不同：
+  - precedent context：為什麼這個模式和現在相似
+  - review lens context：這輪先看哪幾點
+  - common risk context：這類案件常漏哪些風險
+- 第一波只允許影響：
+  - review / analysis 的風險掃描順序
+  - deliverable shaping 前的 omission guardrail
+- 不可被誤讀成這案已經正式存在這些風險
+- task / deliverable surface 目前只應以 second-layer disclosure 低噪音回讀
+- matter / overview / history 目前不應長出 common-risk dashboard hero
+
 ### 6.11 Matter-scoped canonicalization and duplicate governance
 
 正式規則：

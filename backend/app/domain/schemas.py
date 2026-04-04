@@ -837,6 +837,28 @@ class ReviewLensGuidanceRead(BaseModel):
     lenses: list[ReviewLensItemRead] = Field(default_factory=list)
 
 
+class CommonRiskItemRead(BaseModel):
+    risk_id: str
+    title: str
+    summary: str = ""
+    why_watch: str = ""
+    source_kind: Literal[
+        "precedent_risk_pattern",
+        "pack_common_risk",
+        "task_heuristic",
+    ] = "task_heuristic"
+    source_label: str = ""
+    priority: Literal["high", "medium", "low"] = "medium"
+
+
+class CommonRiskGuidanceRead(BaseModel):
+    status: Literal["available", "fallback", "none"] = "none"
+    label: str = ""
+    summary: str = ""
+    boundary_note: str = ""
+    risks: list[CommonRiskItemRead] = Field(default_factory=list)
+
+
 class PrecedentDuplicateSummaryRead(BaseModel):
     pending_review_count: int = 0
     human_confirmed_count: int = 0
@@ -1651,6 +1673,7 @@ class TaskAggregateResponse(BaseModel):
         default_factory=PrecedentReferenceGuidanceRead
     )
     review_lens_guidance: ReviewLensGuidanceRead = Field(default_factory=ReviewLensGuidanceRead)
+    common_risk_guidance: CommonRiskGuidanceRead = Field(default_factory=CommonRiskGuidanceRead)
     research_runs: list[ResearchRunRead] = Field(default_factory=list)
     decision_records: list[DecisionRecordRead] = Field(default_factory=list)
     action_plans: list[ActionPlanRead] = Field(default_factory=list)

@@ -9,6 +9,7 @@ from app.agents.base import (
     InsightDraft,
     RecommendationDraft,
     RiskDraft,
+    build_payload_common_risk_context,
     build_payload_precedent_context,
     build_payload_review_lens_context,
 )
@@ -50,6 +51,7 @@ class ResearchIntelligenceAgent(CoreAnalysisAgent):
                 ],
                 precedent_context=build_payload_precedent_context(payload),
                 review_lens_context=build_payload_review_lens_context(payload),
+                common_risk_context=build_payload_common_risk_context(payload),
                 research_depth=payload.research_depth,
                 research_sub_questions=payload.research_sub_questions,
                 evidence_gap_focus=payload.research_evidence_gap_focus,

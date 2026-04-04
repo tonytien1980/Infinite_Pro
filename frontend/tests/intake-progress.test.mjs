@@ -34,6 +34,7 @@ import {
   buildPrecedentReviewPriorityView,
   filterPrecedentReviewItems,
 } from "../src/lib/precedent-review.ts";
+import { buildCommonRiskLibraryView } from "../src/lib/common-risk-libraries.ts";
 import { buildPrecedentReferenceView } from "../src/lib/precedent-reference.ts";
 import { buildReviewLensView } from "../src/lib/review-lenses.ts";
 import { buildContinuationPostureView } from "../src/lib/continuity-ux.ts";
@@ -1141,6 +1142,46 @@ test("review lens view stays low-noise and consultant-readable", () => {
   assert.equal(view.listTitle, "這輪先照這個順序展開");
   assert.match(view.listItems[0] ?? "", /先比對這次案件/);
   assert.match(view.boundaryNote, /不是自動結論/);
+});
+
+test("common risk library view stays low-noise and consultant-readable", () => {
+  const view = buildCommonRiskLibraryView({
+    status: "available",
+    label: "這類案件常漏哪些風險",
+    summary: "Host 先整理出 2 個 common risk watchouts，提醒你不要漏看高頻風險。",
+    boundary_note: "這些是 common risk watchouts，不代表這案已經發生；若要成立正式風險，仍須由這案的證據與分析支撐。",
+    risks: [
+      {
+        risk_id: "precedent_risk_pattern:abc",
+        title: "責任不對稱與 indemnity / liability 暴露",
+        summary: "這類案件最容易在條款不完整時低估責任暴露。",
+        why_watch: "相似 precedent 與目前案件都顯示責任條款是最容易先被低估的區塊。",
+        source_kind: "precedent_risk_pattern",
+        source_label: "來源：precedent risk pattern",
+        priority: "high",
+      },
+      {
+        risk_id: "pack_common_risk:def",
+        title: "附件、定義、驗收條件或 termination 邏輯缺漏",
+        summary: "附件未齊時，表面可簽的合約常在執行時失真。",
+        why_watch: "這是目前 selected packs 的高頻 common risk，適合先做漏看掃描。",
+        source_kind: "pack_common_risk",
+        source_label: "來源：pack common risk",
+        priority: "medium",
+      },
+    ],
+  });
+
+  assert.equal(view.shouldShow, true);
+  assert.equal(view.sectionTitle, "這類案件常漏哪些風險");
+  assert.match(view.summary, /common risk watchouts/);
+  assert.equal(view.cards.length, 2);
+  assert.equal(view.cards[0]?.title, "責任不對稱與 indemnity / liability 暴露");
+  assert.match(view.cards[0]?.summary ?? "", /相似 precedent/);
+  assert.match(view.cards[0]?.meta ?? "", /precedent risk pattern/);
+  assert.equal(view.listTitle, "這輪先逐一掃過");
+  assert.match(view.listItems[0] ?? "", /責任不對稱/);
+  assert.match(view.boundaryNote, /不代表這案已經發生/);
 });
 
 test("precedent duplicate governance view stays consultant-readable", () => {
