@@ -575,6 +575,7 @@ Primary action 應隨 continuity mode 分流：
 - 這三個答案應優先由 `continuation_surface` 提供，而不是前端自己拼接
 - `matter workspace` 仍是 retained-advisory 主控面
 - `task / deliverable / evidence` 首屏也應沿用同一條 continuity focus summary，而不是各自重寫 lane 文案
+- 第二層 continuity 區塊也應沿用共用 detail helper，而不是各頁自己重組 checkpoint / progression 細節
 - 可以比 `follow_up` 深，但不可長成厚重 dashboard
 - outcome tracking 與 review rhythm 也應沿用同一條 surface，不另開 calendar / reminder shell
 
@@ -668,6 +669,12 @@ Primary action：
 - 這是系統研究，不是要求顧問自己去查
 - 來源品質 / freshness 提示
 
+若 research guidance 目前為 `not_needed`，task 第二層 continuity 區塊也應延用共通 detail helper，至少回答：
+
+- 最近 checkpoint / progression 的位置
+- 這輪最重要的變化
+- 回看節奏與下一步建議
+
 ### 7.6 `/deliverables/[deliverableId]`
 
 主任務：
@@ -695,6 +702,7 @@ Primary action 應隨 continuity mode / status 分流：
 - `continuous` 才應保留較完整的 progression / outcome 心智
 - `continuous` 版交付物應清楚表達它承接長期推進，而不是單次 checkpoint 更新
 - 交付物右側 rail 的 continuity 區塊應沿用共通 focus summary，而不是只拼 raw lane summary
+- 第二層 continuity 區塊也應沿用共通 detail helper，把推進健康、結果追蹤、回看節奏與下一步建議讀成同一條 retained-advisory 主線
 
 若這份交付物來自 sparse-start / flagship lane，首屏應可回答：
 

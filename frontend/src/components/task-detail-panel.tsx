@@ -38,7 +38,10 @@ import {
   getStructuredStringList,
 } from "@/lib/advisory-workflow";
 import { ADOPTION_FEEDBACK_OPTIONS, buildAdoptionFeedbackView } from "@/lib/adoption-feedback";
-import { buildContinuationFocusSummary } from "@/lib/continuation-advisory";
+import {
+  buildContinuationDetailView,
+  buildContinuationFocusSummary,
+} from "@/lib/continuation-advisory";
 import { buildContinuationPostureView } from "@/lib/continuity-ux";
 import { buildMaterialReviewPostureView } from "@/lib/material-review-ux";
 import { buildResearchGuidanceView } from "@/lib/research-lane";
@@ -508,6 +511,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
   const followUpLane = continuationSurface?.follow_up_lane ?? null;
   const progressionLane = continuationSurface?.progression_lane ?? null;
   const continuationFocusSummary = buildContinuationFocusSummary(continuationSurface);
+  const continuationDetailView = buildContinuationDetailView(continuationSurface);
   const continuityPosture = buildContinuationPostureView(continuationSurface);
   const successCriteria = task ? getGoalSuccessCriteria(task.goals) : [];
   const latestContext = task?.contexts[0];
@@ -1154,70 +1158,27 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     </div>
                   </div>
                 </div>
-                {followUpLane ? (
+                {continuationDetailView.shouldShow ? (
                   <div className="detail-item">
-                    <h3>這筆後續工作和上一輪相比</h3>
+                    <h3>{continuationDetailView.sectionTitle}</h3>
                     <div className="summary-grid">
-                      <div className="section-card">
-                        <h4>最近更新</h4>
-                        <p className="content-block">
-                          {followUpLane.latest_update?.summary || "尚未形成正式檢查點。"}
-                        </p>
-                      </div>
-                      <div className="section-card">
-                        <h4>建議延續</h4>
-                        {followUpLane.recommendation_changes.length > 0 ? (
-                          <ul className="list-content">
-                            {followUpLane.recommendation_changes.slice(0, 3).map((item) => (
-                              <li key={`${item.kind}-${item.title}`}>{item.title}：{item.summary}</li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p className="empty-text">目前沒有額外的建議延續摘要。</p>
-                        )}
-                      </div>
-                      <div className="section-card">
-                        <h4>風險 / action 變化</h4>
-                        {([...followUpLane.risk_changes, ...followUpLane.action_changes]).length > 0 ? (
-                          <ul className="list-content">
-                            {[...followUpLane.risk_changes, ...followUpLane.action_changes]
-                              .slice(0, 4)
-                              .map((item) => (
-                                <li key={`${item.kind}-${item.title}`}>{item.title}：{item.summary}</li>
-                              ))}
-                          </ul>
-                        ) : (
-                          <p className="empty-text">目前沒有額外的後續變化摘要。</p>
-                        )}
-                      </div>
+                      {continuationDetailView.cards.map((card) => (
+                        <div className="section-card" key={`task-continuity-${card.title}`}>
+                          <h4>{card.title}</h4>
+                          <p className="content-block">{card.summary}</p>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 ) : null}
-                {progressionLane ? (
+                {continuationDetailView.listItems.length > 0 ? (
                   <div className="detail-item">
-                    <h3>這筆持續推進工作和上一輪相比</h3>
-                    <div className="summary-grid">
-                      <div className="section-card">
-                        <h4>最新推進狀態</h4>
-                        <p className="content-block">
-                          {progressionLane.latest_progression?.summary || "目前還沒有新的推進更新。"}
-                        </p>
-                      </div>
-                      <div className="section-card">
-                        <h4>行動／結果變化</h4>
-                        <ul className="list-content">
-                          {progressionLane.what_changed.map((item) => (
-                            <li key={item}>{item}</li>
-                          ))}
-                        </ul>
-                      </div>
-                      <div className="section-card">
-                        <h4>下一步最建議做什麼</h4>
-                        <p className="content-block">
-                          {progressionLane.next_progression_actions[0] || "回案件工作面更新推進狀態。"}
-                        </p>
-                      </div>
-                    </div>
+                    <h3>{continuationDetailView.listTitle}</h3>
+                    <ul className="list-content">
+                      {continuationDetailView.listItems.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
                   </div>
                 ) : null}
               </div>

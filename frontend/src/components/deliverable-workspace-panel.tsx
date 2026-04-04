@@ -28,7 +28,10 @@ import {
   buildRiskCards,
 } from "@/lib/advisory-workflow";
 import { ADOPTION_FEEDBACK_OPTIONS, buildAdoptionFeedbackView } from "@/lib/adoption-feedback";
-import { buildContinuationFocusSummary } from "@/lib/continuation-advisory";
+import {
+  buildContinuationDetailView,
+  buildContinuationFocusSummary,
+} from "@/lib/continuation-advisory";
 import { buildContinuationPostureView } from "@/lib/continuity-ux";
 import { buildMaterialReviewPostureView } from "@/lib/material-review-ux";
 import { truncateText } from "@/lib/text-format";
@@ -520,6 +523,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const followUpLane = continuationSurface?.follow_up_lane ?? null;
   const progressionLane = continuationSurface?.progression_lane ?? null;
   const continuationFocusSummary = buildContinuationFocusSummary(continuationSurface);
+  const continuationDetailView = buildContinuationDetailView(continuationSurface);
   const continuityPosture = buildContinuationPostureView(continuationSurface);
   const workspaceView = workspace ? buildDeliverableWorkspaceView(workspace) : null;
   const flagshipLane = task ? buildFlagshipLaneView(task.flagship_lane) : null;
@@ -587,13 +591,6 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const effectiveEvidenceBasis = resolvedSections?.evidence_basis || [];
   const latestContentRevision = workspace?.content_revisions[0] ?? null;
   const latestPublishRecord = workspace?.publish_records[0] ?? null;
-  const followUpChangeHighlights = followUpLane
-    ? [
-        ...followUpLane.recommendation_changes,
-        ...followUpLane.risk_changes,
-        ...followUpLane.action_changes,
-      ].slice(0, 3)
-    : [];
   const hasUnpublishedContentChanges = Boolean(
     latestContentRevision &&
       latestPublishRecord &&
@@ -1445,89 +1442,29 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                 </p>
               </div>
             </div>
-            {followUpLane ? (
+            {continuationDetailView.shouldShow ? (
               <div className="detail-list" style={{ marginTop: "18px" }}>
                 <div className="detail-item">
-                  <h3>這份交付物接在哪個檢查點後面</h3>
-                  <ul className="list-content">
-                    <li>最新檢查點：{followUpLane.latest_update?.summary || "尚未形成正式檢查點。"}</li>
-                    <li>上一個檢查點：{followUpLane.previous_checkpoint?.summary || "目前沒有更早的檢查點可比較。"}</li>
-                    {followUpLane.what_changed.map((item) => (
-                      <li key={`deliverable-follow-up-change-${item}`}>{item}</li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="detail-item">
-                  <h3>建議／風險／行動延續狀態</h3>
-                  {followUpChangeHighlights.length > 0 ? (
-                    <ul className="list-content">
-                      {followUpChangeHighlights.map((item, index) => (
-                        <li key={`${item.kind}-${item.title}-${index}`}>
-                          {item.title}｜{item.summary}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="empty-text">
-                      目前這輪主要是在延續既有檢查點，尚未形成額外的延續變化摘要。
-                    </p>
-                  )}
-                </div>
-              </div>
-            ) : null}
-            {progressionLane ? (
-              <div className="detail-list" style={{ marginTop: "18px" }}>
-                <div className="detail-item">
-                  <h3>這份交付物目前的推進位置</h3>
-                  <ul className="list-content">
-                    <li>最新推進狀態：{progressionLane.latest_progression?.summary || "目前還沒有新的推進更新。"}</li>
-                    <li>上一個推進狀態：{progressionLane.previous_progression?.summary || "目前沒有更早的推進快照。"}</li>
-                    {progressionLane.what_changed.map((item) => (
-                      <li key={`deliverable-progression-change-${item}`}>{item}</li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="detail-item">
-                  <h3>建議採納 / action / outcome</h3>
+                  <h3>{continuationDetailView.sectionTitle}</h3>
                   <div className="summary-grid">
-                    <div className="section-card">
-                      <h4>建議採納</h4>
-                      {progressionLane.recommendation_states.length > 0 ? (
-                        <ul className="list-content">
-                          {progressionLane.recommendation_states.slice(0, 3).map((item, index) => (
-                            <li key={`${item.state}-${item.title}-${index}`}>{item.title}：{item.summary}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="empty-text">目前沒有可顯示的建議採納摘要。</p>
-                      )}
-                    </div>
-                    <div className="section-card">
-                      <h4>行動狀態</h4>
-                      {progressionLane.action_states.length > 0 ? (
-                        <ul className="list-content">
-                          {progressionLane.action_states.slice(0, 3).map((item, index) => (
-                            <li key={`${item.state}-${item.title}-${index}`}>{item.title}：{item.summary}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="empty-text">目前沒有可顯示的行動狀態摘要。</p>
-                      )}
-                    </div>
-                    <div className="section-card">
-                      <h4>結果訊號</h4>
-                      {progressionLane.outcome_signals.length > 0 ? (
-                        <ul className="list-content">
-                          {progressionLane.outcome_signals.slice(0, 3).map((item) => (
-                            <li key={item}>{item}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="empty-text">目前還沒有新的結果訊號摘要。</p>
-                      )}
-                    </div>
+                    {continuationDetailView.cards.map((card) => (
+                      <div className="section-card" key={`deliverable-continuity-${card.title}`}>
+                        <h4>{card.title}</h4>
+                        <p className="content-block">{card.summary}</p>
+                      </div>
+                    ))}
                   </div>
                 </div>
+                {continuationDetailView.listItems.length > 0 ? (
+                  <div className="detail-item">
+                    <h3>{continuationDetailView.listTitle}</h3>
+                    <ul className="list-content">
+                      {continuationDetailView.listItems.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
               </div>
             ) : null}
             <div className="detail-list" style={{ marginTop: "18px" }}>

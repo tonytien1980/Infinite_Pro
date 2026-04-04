@@ -11,7 +11,10 @@ import {
   rollbackMatterContentRevision,
   runTask,
 } from "@/lib/api";
-import { buildContinuationAdvisoryView } from "@/lib/continuation-advisory";
+import {
+  buildContinuationAdvisoryView,
+  buildContinuationDetailView,
+} from "@/lib/continuation-advisory";
 import { describeRuntimeMaterialHandling } from "@/lib/intake";
 import { buildContinuationPostureView } from "@/lib/continuity-ux";
 import { buildResearchGuidanceView } from "@/lib/research-lane";
@@ -526,6 +529,7 @@ export function MatterWorkspacePanel({
   const followUpLane = continuationSurface?.follow_up_lane ?? null;
   const progressionLane = continuationSurface?.progression_lane ?? null;
   const continuationAdvisoryView = buildContinuationAdvisoryView(continuationSurface);
+  const continuationDetailView = buildContinuationDetailView(continuationSurface);
   const continuityPosture = buildContinuationPostureView(continuationSurface);
   const continuityMode = matter?.summary.engagement_continuity_mode ?? null;
   const remediationContext =
@@ -1219,18 +1223,20 @@ export function MatterWorkspacePanel({
                       </p>
                     </div>
                   ) : null}
-                  {followUpLane ? (
+                  {continuationDetailView.shouldShow ? (
                     <div className="detail-item">
-                      <h3>checkpoint 時間線與變化</h3>
-                      <p className="content-block">
-                        {continuationAdvisoryView.healthLabel || "回來更新中"}
-                      </p>
-                      <p className="muted-text">
-                        {continuationAdvisoryView.healthSummary || "目前還沒有額外的 checkpoint 健康摘要。"}
-                      </p>
-                      {continuationAdvisoryView.timelineItems.length > 0 ? (
+                      <h3>{continuationDetailView.sectionTitle}</h3>
+                      <div className="summary-grid">
+                        {continuationDetailView.cards.map((card) => (
+                          <div className="section-card" key={`matter-continuity-${card.title}`}>
+                            <h4>{card.title}</h4>
+                            <p className="content-block">{card.summary}</p>
+                          </div>
+                        ))}
+                      </div>
+                      {continuationDetailView.timelineItems.length > 0 ? (
                         <ul className="list-content" style={{ marginTop: "12px" }}>
-                          {continuationAdvisoryView.timelineItems.map((item) => (
+                          {continuationDetailView.timelineItems.map((item) => (
                             <li key={`${item.kind}-${item.created_at || item.summary}`}>
                               {item.title}：{item.summary}
                               {item.created_at ? `｜${formatDisplayDate(item.created_at)}` : ""}
@@ -1238,63 +1244,38 @@ export function MatterWorkspacePanel({
                           ))}
                         </ul>
                       ) : (
-                        <p className="empty-text">目前還沒有可回看的 checkpoint 時間線。</p>
+                        <p className="empty-text">目前還沒有可回看的 continuity 時間線。</p>
                       )}
-                      {followUpLane.what_changed.length > 0 ? (
+                      {continuationDetailView.listItems.length > 0 ? (
+                        <>
+                          <h4 style={{ marginTop: "16px" }}>{continuationDetailView.listTitle}</h4>
+                          <ul className="list-content" style={{ marginTop: "12px" }}>
+                            {continuationDetailView.listItems.map((item) => (
+                              <li key={item}>{item}</li>
+                            ))}
+                          </ul>
+                        </>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {followUpLane?.what_changed.length ? (
+                    <div className="detail-item">
+                      <h3>這輪補充變化</h3>
                         <ul className="list-content" style={{ marginTop: "12px" }}>
                           {followUpLane.what_changed.map((item) => (
                             <li key={item}>{item}</li>
                           ))}
                         </ul>
-                      ) : null}
-                      {continuationAdvisoryView.reviewRhythmLabel ? (
-                        <p className="muted-text" style={{ marginTop: "12px" }}>
-                          回來更新節奏：{continuationAdvisoryView.reviewRhythmLabel}｜{continuationAdvisoryView.nextReviewPrompt || continuationAdvisoryView.reviewRhythmSummary}
-                        </p>
-                      ) : null}
                     </div>
                   ) : null}
-                  {progressionLane ? (
+                  {progressionLane && continuationAdvisoryView.outcomeTrackingLabel ? (
                     <div className="detail-item">
-                      <h3>推進健康、結果與時間線</h3>
-                      <p className="content-block">
-                        {continuationAdvisoryView.healthLabel || "持續推進中"}
-                      </p>
-                      <p className="muted-text">
-                        {continuationAdvisoryView.healthSummary || "目前還沒有額外的 retained advisory 健康摘要。"}
-                      </p>
-                      {continuationAdvisoryView.outcomeTrackingLabel ? (
-                        <>
-                          <p className="content-block" style={{ marginTop: "12px" }}>
-                            {continuationAdvisoryView.outcomeTrackingLabel}
-                          </p>
-                          <p className="muted-text">
-                            {continuationAdvisoryView.outcomeTrackingSummary}
-                          </p>
-                          {continuationAdvisoryView.latestSignalSummary ? (
-                            <p className="muted-text">
-                              最新結果：{continuationAdvisoryView.latestSignalSummary}
-                            </p>
-                          ) : null}
-                          {continuationAdvisoryView.reviewRhythmLabel ? (
-                            <p className="muted-text">
-                              回看節奏：{continuationAdvisoryView.reviewRhythmLabel}｜{continuationAdvisoryView.reviewRhythmSummary}
-                            </p>
-                          ) : null}
-                        </>
+                      <h3>最近結果訊號</h3>
+                      <p className="content-block">{continuationAdvisoryView.outcomeTrackingLabel}</p>
+                      <p className="muted-text">{continuationAdvisoryView.outcomeTrackingSummary}</p>
+                      {continuationAdvisoryView.latestSignalSummary ? (
+                        <p className="muted-text">最新結果：{continuationAdvisoryView.latestSignalSummary}</p>
                       ) : null}
-                      {continuationAdvisoryView.timelineItems.length > 0 ? (
-                        <ul className="list-content" style={{ marginTop: "12px" }}>
-                          {continuationAdvisoryView.timelineItems.map((item) => (
-                            <li key={`${item.kind}-${item.created_at || item.summary}`}>
-                              {item.title}：{item.summary}
-                              {item.created_at ? `｜${formatDisplayDate(item.created_at)}` : ""}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="empty-text">目前還沒有可回看的推進時間線。</p>
-                      )}
                     </div>
                   ) : null}
                   <div className="detail-item">
@@ -1544,7 +1525,7 @@ export function MatterWorkspacePanel({
                     ) : null}
                     {followUpLane ? (
                       <div className="detail-item">
-                        <h3>建議 / 風險 / action continuity</h3>
+                        <h3>建議 / 風險 / 行動延續</h3>
                         <div className="summary-grid">
                           <div className="section-card">
                             <h4>建議延續</h4>
@@ -1571,7 +1552,7 @@ export function MatterWorkspacePanel({
                             )}
                           </div>
                           <div className="section-card">
-                            <h4>Action continuity</h4>
+                            <h4>行動延續</h4>
                             {followUpLane.action_changes.length > 0 ? (
                               <ul className="list-content">
                                 {followUpLane.action_changes.slice(0, 3).map((item) => (
@@ -1579,7 +1560,7 @@ export function MatterWorkspacePanel({
                                 ))}
                               </ul>
                             ) : (
-                              <p className="empty-text">目前沒有額外的 action continuity 摘要。</p>
+                              <p className="empty-text">目前沒有額外的行動延續摘要。</p>
                             )}
                           </div>
                         </div>
@@ -1587,16 +1568,16 @@ export function MatterWorkspacePanel({
                     ) : null}
                     {progressionLane ? (
                       <div className="detail-item">
-                        <h3>Progression continuity</h3>
+                        <h3>推進延續</h3>
                         <div className="summary-grid">
                           <div className="section-card">
-                            <h4>最近 progression</h4>
+                            <h4>最近推進</h4>
                             <p className="content-block">
-                              {progressionLane.latest_progression?.summary || "目前還沒有 progression update。"}
+                              {progressionLane.latest_progression?.summary || "目前還沒有新的推進更新。"}
                             </p>
                           </div>
                           <div className="section-card">
-                            <h4>Action / outcome 摘要</h4>
+                            <h4>行動 / 結果摘要</h4>
                             <ul className="list-content">
                               {progressionLane.what_changed.map((item) => (
                                 <li key={item}>{item}</li>
@@ -1606,7 +1587,7 @@ export function MatterWorkspacePanel({
                           <div className="section-card">
                             <h4>下一步建議</h4>
                             <p className="content-block">
-                              {progressionLane.next_progression_actions[0] || "回案件工作面補一筆 progression update。"}
+                              {progressionLane.next_progression_actions[0] || "回案件工作面補一筆推進更新。"}
                             </p>
                           </div>
                         </div>

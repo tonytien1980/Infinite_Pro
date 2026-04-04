@@ -15,7 +15,10 @@ import {
   resolveMatterCanonicalizationReview,
   uploadMatterFiles,
 } from "@/lib/api";
-import { buildContinuationFocusSummary } from "@/lib/continuation-advisory";
+import {
+  buildContinuationDetailView,
+  buildContinuationFocusSummary,
+} from "@/lib/continuation-advisory";
 import {
   appendSelectedFiles,
   buildIntakePreviewItems,
@@ -242,6 +245,7 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
   const followUpLane = continuationSurface?.follow_up_lane ?? null;
   const progressionLane = continuationSurface?.progression_lane ?? null;
   const continuationFocusSummary = buildContinuationFocusSummary(continuationSurface);
+  const continuationDetailView = buildContinuationDetailView(continuationSurface);
   const canonicalizationSummary = workspace?.canonicalization_summary ?? null;
   const canonicalizationCandidates = workspace?.canonicalization_candidates ?? [];
   const focusTask = workspace?.related_tasks[0] ?? null;
@@ -1180,84 +1184,56 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                   </div>
                 ) : null}
               </div>
-              {followUpLane ? (
+              {continuationDetailView.shouldShow ? (
                 <div className="summary-grid">
-                  <div className="section-card">
-                    <h4>最新更新</h4>
-                    <p className="content-block">
-                      {followUpLane.latest_update?.summary || "目前還沒有正式的最新更新。"}
-                    </p>
-                  </div>
-                  <div className="section-card">
-                    <h4>上一個檢查點</h4>
-                    <p className="content-block">
-                      {followUpLane.previous_checkpoint?.summary || "目前還沒有更早的檢查點可比較。"}
-                    </p>
-                  </div>
-                  <div className="section-card">
-                    <h4>這次變化</h4>
-                    <p className="content-block">
-                      {followUpLane.what_changed[0] || "這輪主要是在延續既有檢查點，補強判斷基礎。"}
-                    </p>
-                  </div>
-                  <div className="section-card">
-                    <h4>下一步建議</h4>
-                    <p className="content-block">
-                      {followUpLane.next_follow_up_actions[0] || "補完之後回案件工作面更新檢查點。"}
-                    </p>
-                  </div>
-                  <div className="section-card">
-                    <h4>這次補件要補哪個缺口</h4>
-                    <p className="content-block">
-                      {followUpLane.evidence_update_goal || "這次補件主要是為了補強最新後續更新的判斷基礎。"}
-                    </p>
-                  </div>
-                  <div className="section-card">
-                    <h4>目前最顯著的證據缺口</h4>
-                    <p className="content-block">
-                      {workspace.high_impact_gaps[0] || "目前沒有額外高影響缺口，補件可先圍繞最近更新做精修。"}
-                    </p>
-                  </div>
+                  {continuationDetailView.cards.map((card) => (
+                    <div className="section-card" key={`evidence-continuity-${card.title}`}>
+                      <h4>{card.title}</h4>
+                      <p className="content-block">{card.summary}</p>
+                    </div>
+                  ))}
+                  {followUpLane ? (
+                    <>
+                      <div className="section-card">
+                        <h4>這次補件要補哪個缺口</h4>
+                        <p className="content-block">
+                          {followUpLane.evidence_update_goal || "這次補件主要是為了補強最新後續更新的判斷基礎。"}
+                        </p>
+                      </div>
+                      <div className="section-card">
+                        <h4>目前最顯著的證據缺口</h4>
+                        <p className="content-block">
+                          {workspace.high_impact_gaps[0] || "目前沒有額外高影響缺口，補件可先圍繞最近更新做精修。"}
+                        </p>
+                      </div>
+                    </>
+                  ) : null}
+                  {progressionLane ? (
+                    <>
+                      <div className="section-card">
+                        <h4>這次補件要驗證什麼</h4>
+                        <p className="content-block">
+                          {progressionLane.evidence_update_goal || "這次補件主要是為了補強持續推進的下一步判斷基礎。"}
+                        </p>
+                      </div>
+                      <div className="section-card">
+                        <h4>會影響哪個行動 / 結果</h4>
+                        <p className="content-block">
+                          {progressionLane.action_states[0]?.summary || progressionLane.outcome_signals[0] || "目前還沒有可顯示的行動 / 結果影響摘要。"}
+                        </p>
+                      </div>
+                    </>
+                  ) : null}
                 </div>
               ) : null}
-              {progressionLane ? (
-                <div className="summary-grid">
-                  <div className="section-card">
-                    <h4>最新推進狀態</h4>
-                    <p className="content-block">
-                      {progressionLane.latest_progression?.summary || "目前還沒有新的推進更新。"}
-                    </p>
-                  </div>
-                  <div className="section-card">
-                    <h4>上一個推進快照</h4>
-                    <p className="content-block">
-                      {progressionLane.previous_progression?.summary || "目前還沒有更早的推進快照。"}
-                    </p>
-                  </div>
-                  <div className="section-card">
-                    <h4>這次變化</h4>
-                    <p className="content-block">
-                      {progressionLane.what_changed[0] || "這輪主要是在延續既有推進基線。"}
-                    </p>
-                  </div>
-                  <div className="section-card">
-                    <h4>下一步建議（next progression action）</h4>
-                    <p className="content-block">
-                      {progressionLane.next_progression_actions[0] || "回案件工作面更新 progression。"}
-                    </p>
-                  </div>
-                  <div className="section-card">
-                    <h4>這次補件要驗證什麼</h4>
-                    <p className="content-block">
-                      {progressionLane.evidence_update_goal || "這次補件主要是為了補強 continuous progression 的下一步判斷基礎。"}
-                    </p>
-                  </div>
-                  <div className="section-card">
-                    <h4>會影響哪個 action / outcome</h4>
-                    <p className="content-block">
-                      {progressionLane.action_states[0]?.summary || progressionLane.outcome_signals[0] || "目前還沒有可顯示的 action / outcome 影響摘要。"}
-                    </p>
-                  </div>
+              {continuationDetailView.listItems.length > 0 ? (
+                <div className="detail-item">
+                  <h3>{continuationDetailView.listTitle}</h3>
+                  <ul className="list-content">
+                    {continuationDetailView.listItems.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
                 </div>
               ) : null}
 

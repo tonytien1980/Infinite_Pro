@@ -1980,3 +1980,76 @@ Environment used:
 - `follow_up` now stays checkpoint-first across both task and evidence without drifting into `continuous` phrasing
 - `continuous` deliverable now surfaces the same progression / outcome thread with low-noise review cadence and next-step guidance
 - research guidance still wins when it is genuinely needed, but strict follow-up cases now expose the aligned continuity focus instead of leaving those surfaces with older ad-hoc copy
+
+---
+
+## Entry: 2026-04-04 retained-advisory final-mile pass
+
+Scope:
+- align second-layer continuity reading across `matter / task / deliverable / evidence`
+- keep `continuation_surface` as the only continuity contract
+- remove visible continuity copy drift between checkpoint and progression detail blocks
+
+Environment used:
+- frontend runtime: `http://127.0.0.1:3001`
+- backend runtime: `http://127.0.0.1:8010/api/v1`
+- smoke database: `sqlite:////Users/oldtien_base/Desktop/Infinite Pro/retained-final-mile-smoke.db`
+- smoke storage: repo-local `storage/`
+- smoke provider: `MODEL_PROVIDER=mock`
+- code verification: local repo workspace
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`106 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`14 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed for local smoke bundle |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Final-mile continuity verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Frontend | helper tests | Verify shared second-layer checkpoint / progression helper | Verified | node test now covers `buildContinuationDetailView` |
+| Frontend | `/matters/[matterId]` | Open live follow-up matter page after two checkpoints | Verified | overview detail block now shows `checkpoint 時間線與變化`, `最近 checkpoint`, and `回來更新節奏` |
+| Frontend | `/tasks/[taskId]` | Open live strict follow-up task page after two checkpoints | Verified | second-layer continuity block now shows shared checkpoint detail cards |
+| Frontend | `/matters/[matterId]/evidence` | Open live strict follow-up evidence page after two checkpoints | Verified | supplement section now reuses the shared checkpoint detail structure before evidence-specific gap cards |
+| Frontend | `/deliverables/[deliverableId]` | Open live continuous deliverable page after two outcome logs | Verified | second-layer continuity block now shows shared progression detail cards and a shared `建議採納 / 行動 / 結果` list |
+| Frontend | route smoke | Verify live matter / task / evidence / deliverable routes | Verified | all four route checks returned `200` |
+
+### Live smoke data
+
+- final-mile follow-up verification task id: `0724ddfb-c58c-47b9-b728-fef4e0837f15`
+- final-mile follow-up verification matter id: `612a8ec1-e11c-4629-8696-e66a917164bf`
+- final-mile follow-up verification deliverable id: `405b2f66-310a-4a2f-bd83-b06a6f10901e`
+- final-mile continuous verification task id: `bffaddc5-49ca-4285-b891-a4c47ac8214c`
+- final-mile continuous verification matter id: `ddc66a44-3e4f-451a-8b13-beea53099c9d`
+- final-mile continuous verification deliverable id: `d624fc27-7356-4340-931b-db5a692180ae`
+- live API verification returned:
+  - follow-up case: `research_guidance.status=not_needed`
+  - follow-up case: `continuation_surface.timeline_items[0].summary=Checkpoint B：改成優先修正 premium 報價敘事，渠道主線先延續。`
+  - follow-up case: `review_rhythm.label=有新資料就回來更新`
+  - continuous case: `health_signal.label=推進穩定`
+  - continuous case: `outcome_tracking.label=結果已開始站穩`
+  - continuous case: `review_rhythm.label=本週內回看`
+  - continuous case: `next_step_queue[0]=確認是否要刷新最新 deliverable，讓已完成 action 的 outcome 被正式寫回。`
+- frontend route smoke:
+  - `/matters/612a8ec1-e11c-4629-8696-e66a917164bf` returned `200`
+  - `/tasks/0724ddfb-c58c-47b9-b728-fef4e0837f15` returned `200`
+  - `/matters/612a8ec1-e11c-4629-8696-e66a917164bf/evidence` returned `200`
+  - `/deliverables/d624fc27-7356-4340-931b-db5a692180ae` returned `200`
+- browser snapshots:
+  - matter follow-up final-mile snapshot: `output/playwright/retained-final-mile/.playwright-cli/page-2026-04-04T02-06-03-164Z.yml`
+  - task follow-up final-mile snapshot: `output/playwright/retained-final-mile/.playwright-cli/page-2026-04-04T02-06-04-193Z.yml`
+  - evidence follow-up final-mile snapshot: `output/playwright/retained-final-mile/.playwright-cli/page-2026-04-04T02-06-03-899Z.yml`
+  - deliverable continuous final-mile snapshot: `output/playwright/retained-final-mile/.playwright-cli/page-2026-04-04T02-06-03-084Z.yml`
+
+### Verified outcomes
+
+- retained-advisory no longer aligns only at hero level; the second-layer reading order is now materially closer across the four main work surfaces
+- `follow_up` now stays checkpoint-first in both first-screen and deeper reading surfaces
+- `continuous` now keeps the same progression / outcome language in deliverable detail sections instead of dropping back to raw lane lists
+- visible continuity copy drift and leftover English continuity labels were reduced in the affected surfaces
