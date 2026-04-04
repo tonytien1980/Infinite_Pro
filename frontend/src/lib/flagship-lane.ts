@@ -23,6 +23,19 @@ export interface FlagshipLaneView {
   boundaryNote: string;
 }
 
+export interface FlagshipDetailCard {
+  title: string;
+  summary: string;
+}
+
+export interface FlagshipDetailView {
+  shouldShow: boolean;
+  sectionTitle: string;
+  cards: FlagshipDetailCard[];
+  listTitle: string;
+  listItems: string[];
+}
+
 export const CONSULTANT_START_OPTIONS: Array<{
   value: ConsultantStartMode;
   label: string;
@@ -112,5 +125,54 @@ export function buildFlagshipLaneView(
     upgradeRequirements: lane?.upgrade_requirements || [],
     upgradeReady: lane?.upgrade_ready || false,
     boundaryNote: lane?.boundary_note || "這一輪仍有邊界，不應被誤讀成完整定論。",
+  };
+}
+
+export function buildFlagshipDetailView(
+  lane: FlagshipLaneView | null | undefined,
+): FlagshipDetailView {
+  if (!lane) {
+    return {
+      shouldShow: false,
+      sectionTitle: "",
+      cards: [],
+      listTitle: "",
+      listItems: [],
+    };
+  }
+
+  return {
+    shouldShow: true,
+    sectionTitle: "這條旗艦主線現在怎麼讀",
+    cards: [
+      {
+        title: "目前工作姿態",
+        summary: [lane.label, lane.summary].filter(Boolean).join("｜"),
+      },
+      {
+        title: "目前交付等級",
+        summary: [lane.currentOutputLabel, lane.currentOutputSummary].filter(Boolean).join("｜"),
+      },
+      {
+        title: "適用邊界",
+        summary: lane.boundaryNote,
+      },
+      {
+        title: "下一步要升級到哪裡",
+        summary: [lane.upgradeTargetLabel, lane.upgradeNote].filter(Boolean).join("｜"),
+      },
+      {
+        title: "升級前最該補什麼",
+        summary:
+          [lane.upgradeRequirements[0], lane.nextStepSummary]
+            .filter(Boolean)
+            .join("｜") || lane.upgradeNote,
+      },
+    ],
+    listTitle: "升級條件",
+    listItems:
+      lane.upgradeRequirements.length > 0
+        ? lane.upgradeRequirements
+        : [lane.nextStepSummary, lane.boundaryNote].filter(Boolean),
   };
 }

@@ -13,8 +13,14 @@ import type {
   TaskListItem,
   PresenceStateItem,
 } from "@/lib/types";
-export { buildFlagshipLaneView } from "@/lib/flagship-lane";
-export type { FlagshipLaneView } from "@/lib/flagship-lane";
+export {
+  buildFlagshipDetailView,
+  buildFlagshipLaneView,
+} from "@/lib/flagship-lane";
+export type {
+  FlagshipDetailView,
+  FlagshipLaneView,
+} from "@/lib/flagship-lane";
 import {
   extractModeSpecificAppendix,
   getModeSpecificReadinessSignals,

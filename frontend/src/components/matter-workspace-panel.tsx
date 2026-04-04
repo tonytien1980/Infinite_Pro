@@ -4,7 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ReactNode, useEffect, useMemo, useState } from "react";
 
-import { buildFlagshipLaneView, buildTaskListWorkspaceSummary } from "@/lib/advisory-workflow";
+import {
+  buildFlagshipDetailView,
+  buildFlagshipLaneView,
+  buildTaskListWorkspaceSummary,
+} from "@/lib/advisory-workflow";
 import {
   applyMatterContinuationAction,
   getMatterWorkspace,
@@ -563,6 +567,7 @@ export function MatterWorkspacePanel({
   const nextStepNotes = matter ? buildNextStepNotes(matter, evidenceCount) : [];
   const recentTaskSummary = recentTask ? buildTaskListWorkspaceSummary(recentTask) : null;
   const flagshipLane = matter ? buildFlagshipLaneView(matter.summary.flagship_lane) : null;
+  const flagshipDetailView = buildFlagshipDetailView(flagshipLane);
   const materialReviewPosture = buildMaterialReviewPostureView(flagshipLane);
   const researchGuidance = matter ? buildResearchGuidanceView(matter.research_guidance) : null;
   const researchDetailView = matter
@@ -999,12 +1004,27 @@ export function MatterWorkspacePanel({
                         </p>
                       </div>
                     ) : null}
-                    {flagshipLane ? (
+                    {flagshipDetailView.shouldShow ? (
                       <div className="detail-item">
-                        <h3>要升級到下一階段還缺什麼</h3>
-                        <p className="content-block">
-                          {flagshipLane.upgradeRequirements[0] || flagshipLane.upgradeNote}
-                        </p>
+                        <h3>{flagshipDetailView.sectionTitle}</h3>
+                        <div className="summary-grid">
+                          {flagshipDetailView.cards.map((card) => (
+                            <div className="section-card" key={`matter-flagship-${card.title}`}>
+                              <h4>{card.title}</h4>
+                              <p className="content-block">{card.summary}</p>
+                            </div>
+                          ))}
+                        </div>
+                        {flagshipDetailView.listItems.length > 0 ? (
+                          <>
+                            <h4 style={{ marginTop: "16px" }}>{flagshipDetailView.listTitle}</h4>
+                            <ul className="list-content" style={{ marginTop: "12px" }}>
+                              {flagshipDetailView.listItems.map((item) => (
+                                <li key={item}>{item}</li>
+                              ))}
+                            </ul>
+                          </>
+                        ) : null}
                       </div>
                     ) : null}
                     {researchGuidance?.shouldShow ? (

@@ -9,6 +9,7 @@ import {
   summarizeBatchProgress,
 } from "../src/lib/intake.ts";
 import {
+  buildFlagshipDetailView,
   buildFlagshipLaneView,
   CONSULTANT_START_OPTIONS,
   resolveWorkflowValueForConsultingStart,
@@ -783,4 +784,55 @@ test("research detail view keeps guidance-driven and run-driven reading aligned"
   assert.match(runDetail.cards[3]?.summary ?? "", /引用線索|主線收斂/);
   assert.equal(runDetail.listTitle, "研究子題 / 來源線索");
   assert.equal(runDetail.listItems.length, 3);
+});
+
+test("flagship detail view keeps diagnostic and review reading aligned", () => {
+  const diagnosticDetail = buildFlagshipDetailView(
+    buildFlagshipLaneView({
+      lane_id: "diagnostic_start",
+      label: "先快速看清問題與下一步",
+      summary: "目前先以少資訊起手，形成第一輪可回看的顧問判斷。",
+      next_step_summary: "先確認主問題，再補最少但最有用的來源或直接先跑第一版。",
+      upgrade_note: "等補進更多來源與證據後，再把案件升級成更完整的判斷主線。",
+      current_output_label: "探索型簡報",
+      current_output_summary: "目前先形成探索級第一版交付。",
+      upgrade_target_label: "評估 / 審閱備忘",
+      upgrade_requirements: ["至少補 1 份正式來源材料", "補到至少 2 則可用證據"],
+      upgrade_ready: false,
+      boundary_note: "這一輪仍有邊界，不應被誤讀成完整定論。",
+    }),
+  );
+
+  const reviewDetail = buildFlagshipDetailView(
+    buildFlagshipLaneView({
+      lane_id: "material_review_start",
+      label: "先審閱手上已有材料",
+      summary: "目前主要在圍繞核心材料形成 review / assessment 判斷。",
+      next_step_summary: "先把核心材料審完，確認高風險點與缺口。",
+      upgrade_note: "若補進更多背景，再升級成決策收斂。",
+      current_output_label: "評估 / 審閱備忘",
+      current_output_summary: "目前先形成 review memo。",
+      upgrade_target_label: "決策 / 行動交付物",
+      upgrade_requirements: ["至少再補 1 類不同來源背景材料"],
+      upgrade_ready: false,
+      boundary_note: "這份內容目前仍不是最終決策版本。",
+    }),
+  );
+
+  assert.equal(diagnosticDetail.sectionTitle, "這條旗艦主線現在怎麼讀");
+  assert.equal(diagnosticDetail.cards[0]?.title, "目前工作姿態");
+  assert.match(diagnosticDetail.cards[0]?.summary ?? "", /先快速看清問題與下一步/);
+  assert.match(diagnosticDetail.cards[1]?.summary ?? "", /探索型簡報/);
+  assert.match(diagnosticDetail.cards[2]?.summary ?? "", /誤讀|完整定論/);
+  assert.match(diagnosticDetail.cards[3]?.summary ?? "", /評估 \/ 審閱備忘/);
+  assert.equal(diagnosticDetail.listTitle, "升級條件");
+  assert.equal(diagnosticDetail.listItems.length, 2);
+
+  assert.equal(reviewDetail.sectionTitle, "這條旗艦主線現在怎麼讀");
+  assert.match(reviewDetail.cards[0]?.summary ?? "", /先審閱手上已有材料/);
+  assert.match(reviewDetail.cards[1]?.summary ?? "", /評估 \/ 審閱備忘/);
+  assert.match(reviewDetail.cards[2]?.summary ?? "", /最終決策版本/);
+  assert.match(reviewDetail.cards[3]?.summary ?? "", /決策 \/ 行動交付物/);
+  assert.match(reviewDetail.cards[4]?.summary ?? "", /核心材料|更多背景/);
+  assert.equal(reviewDetail.listItems.length, 1);
 });

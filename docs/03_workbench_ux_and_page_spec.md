@@ -283,6 +283,21 @@ deepen 後，首屏還應能回答：
 - 目前不該被誤讀成什麼
 - 若要升級到下一階段，最先要補的是什麼
 
+第二層 flagship reading 也應沿用共用 helper，至少回答：
+
+- 目前工作姿態
+- 目前交付等級
+- 適用邊界
+- 下一步要升級到哪裡
+- 升級前最該補什麼
+- 升級條件
+
+正式規則：
+
+- `matter / evidence` 可直接把這層放在第二層正文
+- `task / deliverable` 可把同一套閱讀放在較低噪音的 detail / disclosure surface
+- 不可每一頁各自重寫 lane detail copy，導致同一案件在不同工作面講成不同意思
+
 ### 3.2.4 Research guidance
 
 當案件需要補 research / investigation 時，工作面也應低噪音回答：
@@ -562,6 +577,8 @@ Primary action 應隨 continuity mode 分流：
 - 這輪為什麼還停在這個姿態
 - 下一步要補件、跑分析，還是回交付物
 
+第二層旗艦區塊應沿用共用 detail helper，而不是每頁重新拼 sparse-start / material-review 的補充文案。
+
 若案件屬於 `continuous`，第一波 retained advisory MVP 應優先回答：
 
 - 現在健康嗎
@@ -629,6 +646,8 @@ Primary action：
 - 這輪是 review / assessment posture，而不是最終決策版本
 - 要升級成 decision convergence，最先還缺哪些背景或來源
 
+第二層旗艦區塊也應沿用共用 detail helper，直接把這條主線的姿態、邊界與升級條件講清楚。
+
 若 research guidance 為 `recommended`，也應補充：
 
 - 先查哪幾題
@@ -662,6 +681,8 @@ Primary action：
 - 執行分析後會往哪個正式交付結果前進
 
 若這筆工作屬於 `material_review_start`，首屏文案應優先像顧問在審文件，而不是 generic analysis runner。
+
+若要在 task surface 補第二層旗艦閱讀，應優先放在較低噪音的世界 / 寫回相關 detail 區塊，例如 `案件世界草稿與寫回策略`，而不是把這層直接塞回 hero。
 
 若 research guidance 被判定為 `recommended` 或 `active`，可在同一個右側引導區補充：
 
@@ -720,6 +741,8 @@ Primary action 應隨 continuity mode / status 分流：
 - 它是 exploratory、assessment，還是 decision-action 等級
 - 若要提高正式性，下一步應補什麼、升級到哪種主線
 - 目前這份交付物的適用邊界在哪裡
+
+若要在 deliverable surface 補第二層旗艦閱讀，應優先放在較低噪音的 continuity / research / writeback disclosure 中，而不是讓這層與交付摘要主線搶首屏。
 
 ### 7.7 `/agents`
 

@@ -21,6 +21,7 @@ import {
   buildEvidenceWorkspaceLane,
   buildExternalDataUsage,
   buildExecutiveSummary,
+  buildFlagshipDetailView,
   buildFlagshipLaneView,
   buildMatterWorkspaceCard,
   buildObjectNavigationStrip,
@@ -546,6 +547,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
   const sparseInputOperatingView =
     task ? buildSparseInputOperatingView(task, latestDeliverable) : null;
   const flagshipLane = task ? buildFlagshipLaneView(task.flagship_lane) : null;
+  const flagshipDetailView = buildFlagshipDetailView(flagshipLane);
   const materialReviewPosture = buildMaterialReviewPostureView(flagshipLane);
   const researchGuidance = task ? buildResearchGuidanceView(task.research_guidance) : null;
   const researchDetailView = task
@@ -1185,6 +1187,29 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                         <li key={item}>{item}</li>
                       ))}
                     </ul>
+                  </div>
+                ) : null}
+                {flagshipDetailView.shouldShow ? (
+                  <div className="detail-item">
+                    <h3>{flagshipDetailView.sectionTitle}</h3>
+                    <div className="summary-grid">
+                      {flagshipDetailView.cards.map((card) => (
+                        <div className="section-card" key={`task-flagship-${card.title}`}>
+                          <h4>{card.title}</h4>
+                          <p className="content-block">{card.summary}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {flagshipDetailView.listItems.length > 0 ? (
+                      <>
+                        <h4 style={{ marginTop: "16px" }}>{flagshipDetailView.listTitle}</h4>
+                        <ul className="list-content" style={{ marginTop: "12px" }}>
+                          {flagshipDetailView.listItems.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      </>
+                    ) : null}
                   </div>
                 ) : null}
                 {researchDetailView?.shouldShow ? (

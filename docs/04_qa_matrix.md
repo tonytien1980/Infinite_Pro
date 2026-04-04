@@ -2120,3 +2120,76 @@ Environment used:
 - research no longer aligns only at hero guidance level; second-layer research reading is now materially closer across matter, task, evidence, and deliverable
 - deliverable research history now reads like a system research handoff instead of a raw runtime trace
 - the product still keeps research Host-owned and low-noise, but makes it much easier to understand what was researched, what uncertainty remains, and how the result should be handed back to the mainline
+
+---
+
+## Entry: 2026-04-04 flagship workflow completeness pass
+
+Scope:
+- second-layer flagship reading alignment
+- shared flagship detail helper across matter / evidence / task / deliverable
+- keep consultant-facing wording aligned without turning every work surface into the same first-screen
+
+Environment used:
+- frontend runtime: `http://127.0.0.1:3001`
+- backend runtime: `http://127.0.0.1:8010/api/v1`
+- runtime database: local `flagship-completeness-smoke.db`
+- browser evidence: local `playwright-cli` smoke artifacts
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`106 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`16 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+| `git diff --check` | Passed |
+
+### Flagship-completeness verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Frontend | `/matters/[matterId]` | Verify loaded matter page shows second-layer flagship reading | Verified | loaded browser snapshot shows shared helper with `目前工作姿態 / 目前交付等級 / 適用邊界 / 升級條件` |
+| Frontend | `/matters/[matterId]/evidence` | Verify evidence page shows second-layer flagship reading | Verified | loaded browser snapshot shows the same shared helper inside the evidence sufficiency section |
+| Frontend | `/tasks/[taskId]` | Expand `案件世界草稿與寫回策略` and inspect second-layer flagship reading | Verified | helper is intentionally disclosure-level, not first-screen hero content |
+| Frontend | `/deliverables/[deliverableId]` | Expand `連續性、研究與寫回紀錄` and inspect second-layer flagship reading | Verified | helper is intentionally disclosure-level, not primary deliverable-summary content |
+| Frontend | loaded routes | Re-run local route smoke on matter / evidence / task / deliverable | Verified | all four checked routes returned `200` on the local runtime |
+| Backend | task aggregate API | Re-check diagnostic flagship lane contract | Verified | API still returns `diagnostic_start` with consultant-facing label |
+| Backend | deliverable workspace API | Re-check material-review flagship lane contract | Verified | deliverable-linked task still returns `material_review_start` with consultant-facing label |
+
+### Live smoke data
+
+- diagnostic verification task id: `b133450f-baf4-4864-8837-538a32dc6e3b`
+- diagnostic verification matter id: `910a37e3-0a04-42c3-b8d3-af9e62004c53`
+- material-review verification task id: `1bffe9c6-cda7-4dcb-81b1-4add76126e6f`
+- material-review verification matter id: `a449ac21-ed32-4cbb-a550-aa7f95695d34`
+- material-review verification deliverable id: `a581f5e5-a319-425e-95b4-65a1cfca008f`
+- live API verification returned:
+  - diagnostic task: `flagship_lane.lane_id=diagnostic_start`
+  - diagnostic task: `flagship_lane.label=先快速看清問題與下一步`
+  - material-review deliverable task: `flagship_lane.lane_id=material_review_start`
+  - material-review deliverable task: `flagship_lane.label=先審閱手上已有材料`
+- frontend route smoke:
+  - `/matters/910a37e3-0a04-42c3-b8d3-af9e62004c53` returned `200`
+  - `/matters/910a37e3-0a04-42c3-b8d3-af9e62004c53/evidence` returned `200`
+  - `/tasks/b133450f-baf4-4864-8837-538a32dc6e3b` returned `200`
+  - `/deliverables/a581f5e5-a319-425e-95b4-65a1cfca008f` returned `200`
+- browser artifacts:
+  - matter diagnostic loaded snapshot: `output/playwright/flagship-completeness-live/matter-diagnostic.txt`
+  - evidence diagnostic loaded snapshot: `output/playwright/flagship-completeness-live/evidence-diagnostic.txt`
+  - task diagnostic expanded snapshot: `output/playwright/flagship-completeness-live/task-diagnostic-expanded.txt`
+  - deliverable material-review loaded snapshot: `output/playwright/flagship-completeness-live/deliverable-review.txt`
+  - deliverable material-review expanded snapshot: `output/playwright/flagship-completeness-live/deliverable-review-expanded.txt`
+
+### Residual note
+
+- 在這次 completeness pass 裡，`matter / evidence` 的第二層旗艦閱讀可直接回讀；`task / deliverable` 則刻意維持在較低噪音的 detail / disclosure surface。這是產品設計選擇，不是漏做。
+
+### Verified outcomes
+
+- flagship workflow 不再只有 first-screen lane summary；現在也開始有可跨工作面重用的 second-layer reading
+- `matter / evidence` 會直接把旗艦流程的姿態、邊界與升級條件講清楚
+- `task / deliverable` 也能沿用同一套旗艦閱讀，但維持在較低噪音的工作面深層，不讓首屏變成資訊牆
+- document-heavy review workflow 現在不只在 hero 口徑上對齊，也能在交付物深層閱讀中穩定說清楚「目前是 review memo / assessment，而不是最終決策版本」

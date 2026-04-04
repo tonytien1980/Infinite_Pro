@@ -296,6 +296,10 @@ Infinite Pro 的長期形態不是單一工具頁面，而是一套 object-aware
   - 這輪主要在審哪份核心材料
   - 目前更像 review memo / assessment，還不是最終決策版本
   - 若要升級成 decision / action deliverable，下一步應補什麼
+- flagship lane 現在也開始有第二層共用閱讀：
+  - `matter / evidence` 可直接用同一套旗艦閱讀 helper 回答「這條主線現在怎麼讀」
+  - `task / deliverable` 則把同一套旗艦閱讀放在較低噪音的 detail / disclosure 區塊
+  - 讓不同工作面不再各自重寫 lane 文案，而是沿用同一條「姿態 / 交付等級 / 邊界 / 升級目標 / 升級條件」閱讀骨架
 
 ---
 
@@ -459,6 +463,13 @@ Infinite Pro 目前沒有也不應硬對齊於：
 
 目前進度補充：
 
+- 旗艦顧問案型產品化已不只停在 first-screen lane summary：
+  - `sparse-intake diagnostic lane`
+  - `document-heavy review lane`
+  - `continuous advisory lane` baseline
+ 目前也已開始補齊第二層 flagship reading：
+  - `matter / evidence` 直接可回讀
+  - `task / deliverable` 在低噪音 detail / disclosure 內也可沿用同一套旗艦閱讀
 - `Research / Investigation` 已進入 first pass 產品化
 - 第一波重點不是新增研究控制台，而是讓 task / matter / evidence 工作面能低噪音回答：
   - 這輪要不要先補研究

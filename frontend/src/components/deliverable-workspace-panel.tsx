@@ -21,6 +21,7 @@ import {
   buildDeliverableBacklinkView,
   buildDeliverableWorkspaceView,
   buildExecutiveSummary,
+  buildFlagshipDetailView,
   buildFlagshipLaneView,
   buildPackSelectionView,
   buildReadinessGovernance,
@@ -529,6 +530,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const continuityPosture = buildContinuationPostureView(continuationSurface);
   const workspaceView = workspace ? buildDeliverableWorkspaceView(workspace) : null;
   const flagshipLane = task ? buildFlagshipLaneView(task.flagship_lane) : null;
+  const flagshipDetailView = buildFlagshipDetailView(flagshipLane);
   const materialReviewPosture = buildMaterialReviewPostureView(flagshipLane);
   const readiness = task ? assessTaskReadiness(task) : null;
   const readinessGovernance =
@@ -1462,6 +1464,31 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                     <h3>{continuationDetailView.listTitle}</h3>
                     <ul className="list-content">
                       {continuationDetailView.listItems.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+            {flagshipDetailView.shouldShow ? (
+              <div className="detail-list" style={{ marginTop: "18px" }}>
+                <div className="detail-item">
+                  <h3>{flagshipDetailView.sectionTitle}</h3>
+                  <div className="summary-grid">
+                    {flagshipDetailView.cards.map((card) => (
+                      <div className="section-card" key={`deliverable-flagship-${card.title}`}>
+                        <h4>{card.title}</h4>
+                        <p className="content-block">{card.summary}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {flagshipDetailView.listItems.length > 0 ? (
+                  <div className="detail-item">
+                    <h3>{flagshipDetailView.listTitle}</h3>
+                    <ul className="list-content">
+                      {flagshipDetailView.listItems.map((item) => (
                         <li key={item}>{item}</li>
                       ))}
                     </ul>

@@ -6,6 +6,7 @@ import { ChangeEvent, FormEvent, ReactNode, useEffect, useRef, useState } from "
 import { IntakeMaterialPreviewList } from "@/components/intake-material-preview-list";
 import {
   buildArtifactEvidenceWorkspaceView,
+  buildFlagshipDetailView,
   buildFlagshipLaneView,
   buildMatterWorkspaceCard,
 } from "@/lib/advisory-workflow";
@@ -449,6 +450,7 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
   const evidenceSurfaceSummary = flagshipLane
     ? `${flagshipLane.currentOutputSummary} ${workspaceView?.summary || evidenceHeroSummary}`
     : workspaceView?.summary || evidenceHeroSummary;
+  const flagshipDetailView = buildFlagshipDetailView(flagshipLane);
   const evidenceLaneSummary = followUpLane
     ? followUpLane.latest_update?.summary || "尚未形成正式檢查點。"
     : progressionLane
@@ -1078,6 +1080,29 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                 />
               </div>
             </div>
+            {flagshipDetailView.shouldShow ? (
+              <div className="detail-item" style={{ marginTop: "18px" }}>
+                <h3>{flagshipDetailView.sectionTitle}</h3>
+                <div className="summary-grid">
+                  {flagshipDetailView.cards.map((card) => (
+                    <div className="section-card" key={`evidence-flagship-${card.title}`}>
+                      <h4>{card.title}</h4>
+                      <p className="content-block">{card.summary}</p>
+                    </div>
+                  ))}
+                </div>
+                {flagshipDetailView.listItems.length > 0 ? (
+                  <>
+                    <h4 style={{ marginTop: "16px" }}>{flagshipDetailView.listTitle}</h4>
+                    <ul className="list-content" style={{ marginTop: "12px" }}>
+                      {flagshipDetailView.listItems.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </>
+                ) : null}
+              </div>
+            ) : null}
             <DisclosurePanel
               title="詳細補件判斷"
               description="當你要深入確認證據期待、限制脈絡或連續性提示時，再展開這層。"
