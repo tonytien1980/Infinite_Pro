@@ -10,6 +10,48 @@ from app.workbench import schemas
 DEFAULT_WORKBENCH_PROFILE = "single_consultant_default"
 DEFAULT_WORKBENCH_PREFERENCES = schemas.WorkbenchPreferenceResponse()
 
+PRECEDENT_REVIEW_PRIORITY_RANK = {
+    "high": 0,
+    "medium": 1,
+    "low": 2,
+}
+
+
+def _classify_precedent_review_priority(
+    row: models.PrecedentCandidate,
+) -> tuple[str, str, int]:
+    if row.candidate_status == "dismissed":
+        return (
+            "low",
+            "這個候選目前已停用，先留作背景；之後若需要，再從這裡恢復即可。",
+            0,
+        )
+
+    if row.candidate_status == "candidate":
+        if row.source_feedback_status == "template_candidate":
+            return (
+                "high",
+                "這個候選來自「值得當範本」的採納訊號，而且目前仍待決，最值得先回看。",
+                0,
+            )
+        if row.source_feedback_status == "adopted":
+            return (
+                "high",
+                "這個候選已被直接採用，而且目前仍待決，值得先決定是否升格成正式模式。",
+                1,
+            )
+        return (
+            "medium",
+            "這個候選仍有參考價值，但來源回饋仍偏向需要改寫，可安排下一輪回看。",
+            0,
+        )
+
+    return (
+        "medium",
+        "這個模式已正式升格，目前比較適合週期性回看，不必搶在待決候選前面。",
+        1,
+    )
+
 
 def _get_or_create_preference_row(db: Session) -> models.WorkbenchPreference:
     row = db.scalars(
@@ -148,11 +190,17 @@ def get_precedent_review_state(db: Session) -> schemas.PrecedentReviewResponse:
         .all()
     )
 
-    items = [
-        schemas.PrecedentReviewItemResponse(
+    ranked_items: list[tuple[int, int, float, float, schemas.PrecedentReviewItemResponse]] = []
+    for row in rows:
+        review_priority, review_priority_reason, nuance_rank = _classify_precedent_review_priority(
+            row
+        )
+        item = schemas.PrecedentReviewItemResponse(
             id=row.id,
             candidate_type=row.candidate_type,  # type: ignore[arg-type]
             candidate_status=row.candidate_status,  # type: ignore[arg-type]
+            review_priority=review_priority,  # type: ignore[arg-type]
+            review_priority_reason=review_priority_reason,
             title=row.title or "",
             summary=row.summary or "",
             reusable_reason=row.reusable_reason or "",
@@ -172,8 +220,18 @@ def get_precedent_review_state(db: Session) -> schemas.PrecedentReviewResponse:
             created_at=row.created_at.isoformat(),
             updated_at=row.updated_at.isoformat(),
         )
-        for row in rows
-    ]
+        ranked_items.append(
+            (
+                PRECEDENT_REVIEW_PRIORITY_RANK[review_priority],
+                nuance_rank,
+                -row.updated_at.timestamp(),
+                -row.created_at.timestamp(),
+                item,
+            )
+        )
+
+    ranked_items.sort(key=lambda entry: entry[:4])
+    items = [entry[4] for entry in ranked_items]
 
     return schemas.PrecedentReviewResponse(
         summary=schemas.PrecedentReviewSummaryResponse(
@@ -181,6 +239,9 @@ def get_precedent_review_state(db: Session) -> schemas.PrecedentReviewResponse:
             candidate_count=sum(1 for item in items if item.candidate_status == "candidate"),
             promoted_count=sum(1 for item in items if item.candidate_status == "promoted"),
             dismissed_count=sum(1 for item in items if item.candidate_status == "dismissed"),
+            high_priority_count=sum(1 for item in items if item.review_priority == "high"),
+            medium_priority_count=sum(1 for item in items if item.review_priority == "medium"),
+            low_priority_count=sum(1 for item in items if item.review_priority == "low"),
         ),
         items=items,
     )

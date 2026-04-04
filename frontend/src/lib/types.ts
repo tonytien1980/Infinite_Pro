@@ -128,6 +128,8 @@ export interface PrecedentReviewItem {
   id: string;
   candidate_type: PrecedentCandidateType;
   candidate_status: PrecedentCandidateStatus;
+  review_priority: "high" | "medium" | "low";
+  review_priority_reason: string;
   title: string;
   summary: string;
   reusable_reason: string;
@@ -153,6 +155,9 @@ export interface PrecedentReviewSummary {
   candidate_count: number;
   promoted_count: number;
   dismissed_count: number;
+  high_priority_count: number;
+  medium_priority_count: number;
+  low_priority_count: number;
 }
 
 export interface PrecedentReviewResponse {

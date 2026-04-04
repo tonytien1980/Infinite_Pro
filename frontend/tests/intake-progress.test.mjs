@@ -26,7 +26,10 @@ import {
   buildPrecedentCandidateSummaryView,
   buildPrecedentCandidateView,
 } from "../src/lib/precedent-candidates.ts";
-import { filterPrecedentReviewItems } from "../src/lib/precedent-review.ts";
+import {
+  buildPrecedentReviewPriorityView,
+  filterPrecedentReviewItems,
+} from "../src/lib/precedent-review.ts";
 import { buildContinuationPostureView } from "../src/lib/continuity-ux.ts";
 import { buildResearchDetailView, buildResearchGuidanceView } from "../src/lib/research-lane.ts";
 
@@ -1023,5 +1026,40 @@ test("precedent review filter keeps status and type filters predictable", () => 
       type: "all",
     })[0]?.id,
     "2",
+  );
+});
+
+test("precedent review priority view stays consultant-readable", () => {
+  assert.deepEqual(
+    buildPrecedentReviewPriorityView({
+      review_priority: "high",
+      review_priority_reason: "來自值得當範本的候選，且目前仍待決。",
+    }),
+    {
+      label: "建議先看",
+      reason: "來自值得當範本的候選，且目前仍待決。",
+    },
+  );
+
+  assert.deepEqual(
+    buildPrecedentReviewPriorityView({
+      review_priority: "medium",
+      review_priority_reason: "這個模式已升格，適合排下一輪回看。",
+    }),
+    {
+      label: "可安排下一輪",
+      reason: "這個模式已升格，適合排下一輪回看。",
+    },
+  );
+
+  assert.deepEqual(
+    buildPrecedentReviewPriorityView({
+      review_priority: "low",
+      review_priority_reason: "這個候選目前已停用，先留作背景。",
+    }),
+    {
+      label: "先放背景",
+      reason: "這個候選目前已停用，先留作背景。",
+    },
   );
 });

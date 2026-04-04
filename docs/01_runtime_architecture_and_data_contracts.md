@@ -594,6 +594,26 @@ deliverable workspace 採：
 - 候選內容應優先保存 pattern / shape / reusable reason，而不是整份舊案全文
 - future retrieval remains Host-owned；前端不可自行把 candidate 當 prompt snippet 插回主線
 
+集中 precedent review read model 目前也可正式補上：
+
+- `review_priority`
+  - `high`
+  - `medium`
+  - `low`
+- `review_priority_reason`
+
+正式規則：
+
+- 這是 review guidance，不是 correctness score
+- 第一波建議順序至少應符合：
+  - `candidate + template_candidate` -> `high`
+  - `candidate + adopted` -> `high`
+  - `candidate + needs_revision` -> `medium`
+  - `promoted` -> `medium`
+  - `dismissed` -> `low`
+- 同一 priority 內應再依最近治理動作排序
+- 這層可幫 precedent review lane 先決定「先看哪一筆」，但不等於 Host 已正式自動 retrieval
+
 ### 6.11 Matter-scoped canonicalization and duplicate governance
 
 正式規則：

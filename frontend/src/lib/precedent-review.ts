@@ -1,5 +1,20 @@
 import type { PrecedentReviewItem } from "@/lib/types";
 
+export function buildPrecedentReviewPriorityView(item: {
+  review_priority: "high" | "medium" | "low";
+  review_priority_reason: string;
+}) {
+  return {
+    label:
+      item.review_priority === "high"
+        ? "建議先看"
+        : item.review_priority === "medium"
+          ? "可安排下一輪"
+          : "先放背景",
+    reason: item.review_priority_reason,
+  };
+}
+
 export function filterPrecedentReviewItems(
   items: PrecedentReviewItem[],
   filters: {

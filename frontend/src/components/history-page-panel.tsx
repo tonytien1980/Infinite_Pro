@@ -14,7 +14,10 @@ import {
   buildPrecedentCandidateActionView,
   buildPrecedentCandidateView,
 } from "@/lib/precedent-candidates";
-import { filterPrecedentReviewItems } from "@/lib/precedent-review";
+import {
+  buildPrecedentReviewPriorityView,
+  filterPrecedentReviewItems,
+} from "@/lib/precedent-review";
 import {
   applyHistoryFallbackState,
   buildHistoryVisibilityFeedback,
@@ -361,6 +364,13 @@ export function HistoryPagePanel() {
                 <p className="content-block">{filteredPrecedentItems.length} 筆</p>
                 <p className="muted-text">可依狀態、類型與關鍵字集中回看。</p>
               </div>
+              <div className="section-card">
+                <h4>建議先回看</h4>
+                <p className="workbench-metric">
+                  {filteredPrecedentItems.filter((item) => item.review_priority === "high").length}
+                </p>
+                <p className="muted-text">目前已按建議順序排列，先處理仍待決且採納訊號較強的候選。</p>
+              </div>
             </div>
 
             <div className="toolbar-grid toolbar-grid-wide">
@@ -413,6 +423,7 @@ export function HistoryPagePanel() {
                 filteredPrecedentItems.map((item) => {
                   const candidateView = buildPrecedentCandidateView(item);
                   const actionView = buildPrecedentCandidateActionView(item);
+                  const priorityView = buildPrecedentReviewPriorityView(item);
                   return (
                     <article className="history-item management-card" key={`precedent-${item.id}`}>
                       <div className="history-item-header">
@@ -423,11 +434,13 @@ export function HistoryPagePanel() {
                           </p>
                         </div>
                         <div className="meta-row">
+                          <span className="pill">{priorityView.label}</span>
                           <span className="pill">{candidateView.statusLabel}</span>
                           <span>{item.candidate_type === "deliverable_pattern" ? "交付物候選" : "建議候選"}</span>
                         </div>
                       </div>
                       <p className="content-block">{candidateView.summary}</p>
+                      <p className="muted-text">{priorityView.reason}</p>
                       <p className="muted-text">
                         {item.lane_id || "未標示 lane"}｜{item.continuity_mode}｜{item.deliverable_type || "未標示交付類型"}
                       </p>

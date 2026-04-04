@@ -241,6 +241,8 @@ class PrecedentReviewItemResponse(BaseModel):
     id: str
     candidate_type: Literal["deliverable_pattern", "recommendation_pattern"]
     candidate_status: Literal["candidate", "promoted", "dismissed"]
+    review_priority: Literal["high", "medium", "low"] = "medium"
+    review_priority_reason: str = ""
     title: str
     summary: str = ""
     reusable_reason: str = ""
@@ -266,6 +268,9 @@ class PrecedentReviewSummaryResponse(BaseModel):
     candidate_count: int = 0
     promoted_count: int = 0
     dismissed_count: int = 0
+    high_priority_count: int = 0
+    medium_priority_count: int = 0
+    low_priority_count: int = 0
 
 
 class PrecedentReviewResponse(BaseModel):

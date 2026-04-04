@@ -2378,3 +2378,61 @@ Environment used:
 - precedent candidates 現在不只可在 source surface 個別管理，也可在既有 `/history` 裡集中回看
 - precedent review 保持在既有 history / management family 內，沒有再長出新的 precedent shell
 - UI 仍維持 consultant-first、low-noise，而不是變成知識庫 dashboard
+
+---
+
+## Entry: 2026-04-04 precedent review priority pass
+
+Scope:
+- lightweight precedent ranking / suggested order inside existing `/history`
+- backend-owned `review_priority` read model
+- consultant-readable priority labels and reasons
+
+Environment used:
+- frontend runtime: `http://127.0.0.1:3001`
+- backend runtime: `http://127.0.0.1:8010/api/v1`
+- runtime database: local `precedent-review-priority-smoke.db`
+- browser evidence: local `playwright-cli` smoke artifacts
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`112 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`20 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Priority-specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | workbench precedent route | Read `review_priority` and `review_priority_reason` | Verified | targeted backend test confirms `high / medium / low` and default order |
+| Frontend | precedent priority helper | Render consultant-facing priority language | Verified | frontend test confirms `建議先看 / 可安排下一輪 / 先放背景` |
+| Frontend | `/history` | Read suggested-order precedent list | Verified | page shows `建議先看 / 可安排下一輪 / 先放背景` in that order without adding a sorting dashboard |
+
+### Live smoke data
+
+- high-priority verification task id: `17cceb25-a0b4-4aac-b691-94379c685233`
+- high-priority verification recommendation id: `a2db0406-5296-41a2-9d43-8e3193b13b65`
+- medium-priority verification task id: `881fef95-fb5d-4494-9925-1564d4e11e5d`
+- medium-priority verification deliverable id: `c2e8c7a8-855e-41b4-8c1f-f3953ec6b282`
+- low-priority verification task id: `1dbf8285-63c0-4320-a1e8-1ad650a4978d`
+- low-priority verification deliverable id: `d27325e1-6f6c-4558-80df-037230d5c75c`
+- live API verification returned:
+  - summary counts: `total=3 / high=1 / medium=1 / low=1`
+  - ordered priorities: `high -> medium -> low`
+- browser artifacts:
+  - history precedent review priority snapshot: `output/playwright/precedent-review-priority/history.txt`
+
+### Residual note
+
+- 這一輪只補 review ordering，不做 auto-apply、Host retrieval 或 precedent quality scoring shell。
+
+### Verified outcomes
+
+- precedent review lane 現在不只可集中回看，也會先把仍待決且採納訊號較強的候選排在前面
+- priority 文案仍維持顧問語言，而不是黑箱分數或模型品質評級
+- 排序邏輯目前仍停留在 review guidance，不代表 precedent 已開始自動套用或自動 retrieval

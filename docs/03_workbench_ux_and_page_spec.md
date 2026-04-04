@@ -822,6 +822,7 @@ Primary action：
 - 可重用候選回看
 - 狀態篩選
 - 類型篩選
+- 輕量建議排序
 - item-level 升格 / 停用 / 恢復
 
 正式規則：
@@ -829,6 +830,11 @@ Primary action：
 - precedent review 應留在 `history / management` family 內，不新增 precedent page family
 - 這條 lane 不可搶走 history hero 的主定位
 - task history list 與 precedent review list 應清楚分隔，但留在同一頁
+- precedence review 的排序語言應保持可理解：
+  - `建議先看`
+  - `可安排下一輪`
+  - `先放背景`
+- 這層只是在幫顧問決定 review 順序，不應讀起來像模型在替候選做品質打分
 
 ### 7.10 `/settings`
 

@@ -3515,7 +3515,7 @@ def test_recommendation_precedent_candidate_can_be_dismissed_and_restored(
 def test_workbench_precedent_review_lists_candidate_states_and_sources(
     client: TestClient,
 ) -> None:
-    payload = create_contract_review_payload("Precedent review list deliverable")
+    payload = create_contract_review_payload("Precedent review list promoted deliverable")
     task = client.post("/api/v1/tasks", json=payload).json()
     client.post(
         f"/api/v1/tasks/{task['id']}/uploads",
@@ -3532,7 +3532,7 @@ def test_workbench_precedent_review_lists_candidate_states_and_sources(
         json={"candidate_status": "promoted"},
     )
 
-    payload_2 = create_task_payload("Precedent review list recommendation")
+    payload_2 = create_task_payload("Precedent review list candidate recommendation")
     task_2 = client.post("/api/v1/tasks", json=payload_2).json()
     client.post(
         f"/api/v1/tasks/{task_2['id']}/uploads",
@@ -3547,6 +3547,23 @@ def test_workbench_precedent_review_lists_candidate_states_and_sources(
     )
     client.post(
         f"/api/v1/tasks/{task_2['id']}/recommendations/{recommendation_id}/precedent-candidate",
+        json={"candidate_status": "candidate"},
+    )
+
+    payload_3 = create_contract_review_payload("Precedent review list dismissed deliverable")
+    task_3 = client.post("/api/v1/tasks", json=payload_3).json()
+    client.post(
+        f"/api/v1/tasks/{task_3['id']}/uploads",
+        files=[("files", ("policy.txt", b"Legacy policy clauses still need review.", "text/plain"))],
+    )
+    run_response_3 = client.post(f"/api/v1/tasks/{task_3['id']}/run")
+    deliverable_id_3 = run_response_3.json()["deliverable"]["id"]
+    client.post(
+        f"/api/v1/deliverables/{deliverable_id_3}/feedback",
+        json={"feedback_status": "needs_revision", "note": "這份內容還有可參考處，但先不要升格。"},
+    )
+    client.post(
+        f"/api/v1/deliverables/{deliverable_id_3}/precedent-candidate",
         json={"candidate_status": "dismissed"},
     )
 
@@ -3554,16 +3571,34 @@ def test_workbench_precedent_review_lists_candidate_states_and_sources(
 
     assert response.status_code == 200
     body = response.json()
-    assert body["summary"]["total_items"] >= 2
-    assert body["summary"]["promoted_count"] >= 1
-    assert body["summary"]["dismissed_count"] >= 1
+    assert body["summary"]["total_items"] == 3
+    assert body["summary"]["candidate_count"] == 1
+    assert body["summary"]["promoted_count"] == 1
+    assert body["summary"]["dismissed_count"] == 1
+    assert body["summary"]["high_priority_count"] == 1
+    assert body["summary"]["medium_priority_count"] == 1
+    assert body["summary"]["low_priority_count"] == 1
+
+    assert body["items"][0]["recommendation_id"] == recommendation_id
+    assert body["items"][0]["review_priority"] == "high"
+    assert body["items"][0]["review_priority_reason"]
+
+    assert body["items"][1]["deliverable_id"] == deliverable_id
+    assert body["items"][1]["review_priority"] == "medium"
+    assert body["items"][1]["review_priority_reason"]
+
+    assert body["items"][2]["deliverable_id"] == deliverable_id_3
+    assert body["items"][2]["review_priority"] == "low"
+    assert body["items"][2]["review_priority_reason"]
+
     deliverable_item = next(item for item in body["items"] if item["deliverable_id"] == deliverable_id)
     assert deliverable_item["candidate_status"] == "promoted"
     assert deliverable_item["matter_title"]
     recommendation_item = next(
         item for item in body["items"] if item["recommendation_id"] == recommendation_id
     )
-    assert recommendation_item["candidate_status"] == "dismissed"
+    assert recommendation_item["candidate_status"] == "candidate"
+    assert recommendation_item["review_priority"] == "high"
     assert recommendation_item["task_title"]
 
 
