@@ -11,14 +11,17 @@ from sqlalchemy import select
 
 from app.agents.host import HostOrchestrator
 from app.core.database import SessionLocal
-from app.domain import models
+from app.domain import models, schemas
+from app.domain.enums import DeliverableClass, InputEntryMode
 from app.ingestion import remote as remote_ingestion
 from app.ingestion.remote import RemoteSourceContent
 from app.model_router.base import PackContractSynthesisRequest
 from app.model_router.structured_tasks import build_pack_contract_synthesis_spec
 from app.services import extension_contract_synthesis
+from app.services.deliverable_shape_intelligence import build_deliverable_shape_guidance
 from app.services.external_search import SearchResult
 from app.services.tasks import get_loaded_task
+from app.services.review_lens_intelligence import build_review_lens_guidance
 from app.workbench import schemas as workbench_schemas
 
 
@@ -3702,12 +3705,30 @@ def test_task_aggregate_exposes_review_lens_guidance(
     assert guidance["summary"]
     assert "排審閱順序" in guidance["boundary_note"]
     assert any(
-        item["source_kind"] in {"precedent_reference", "pack_decision_pattern", "pack_common_risk", "task_heuristic"}
+        item["source_kind"] in {"precedent_reference", "pack_decision_pattern", "task_heuristic"}
         for item in guidance["lenses"]
     )
     assert all(item["title"] for item in guidance["lenses"])
     assert all(item["why_now"] for item in guidance["lenses"])
     assert all(item["source_label"] for item in guidance["lenses"])
+
+
+def test_review_lenses_do_not_reuse_pack_common_risk_rows() -> None:
+    guidance = build_review_lens_guidance(
+        task_type="contract_review",
+        flagship_lane=schemas.FlagshipLaneRead(label="先審閱手上已有材料"),
+        deliverable_class_hint=DeliverableClass.ASSESSMENT_REVIEW_MEMO,
+        input_entry_mode=InputEntryMode.SINGLE_DOCUMENT_INTAKE,
+        precedent_reference_guidance=schemas.PrecedentReferenceGuidanceRead(),
+        pack_resolution=schemas.PackResolutionRead(
+            decision_patterns=["是否接受責任上限與終止條件"],
+            common_risks=["責任不對稱與 indemnity / liability 暴露"],
+        ),
+    )
+
+    assert guidance.lenses
+    assert all(item.source_kind != "pack_common_risk" for item in guidance.lenses)
+    assert any(item.source_kind == "pack_decision_pattern" for item in guidance.lenses)
 
 
 def test_task_aggregate_exposes_common_risk_guidance(
@@ -3807,6 +3828,74 @@ def test_task_aggregate_exposes_deliverable_shape_guidance(
     assert all(item["title"] for item in guidance["hints"])
     assert all(item["why_fit"] for item in guidance["hints"])
     assert all(item["source_label"] for item in guidance["hints"])
+
+
+def test_deliverable_shape_guidance_normalizes_internal_sections_to_consultant_order(
+    client: TestClient,
+) -> None:
+    precedent_payload = create_contract_review_payload("Shape normalization precedent")
+    precedent_task = client.post("/api/v1/tasks", json=precedent_payload).json()
+    client.post(
+        f"/api/v1/tasks/{precedent_task['id']}/uploads",
+        files=[("files", ("agreement.txt", b"Termination and liability clauses need review.", "text/plain"))],
+    )
+    precedent_run = client.post(f"/api/v1/tasks/{precedent_task['id']}/run")
+    precedent_deliverable_id = precedent_run.json()["deliverable"]["id"]
+    client.post(
+        f"/api/v1/deliverables/{precedent_deliverable_id}/feedback",
+        json={"feedback_status": "template_candidate", "note": "這份交付值得保留成可重用模式。"},
+    )
+    client.post(
+        f"/api/v1/deliverables/{precedent_deliverable_id}/precedent-candidate",
+        json={"candidate_status": "promoted"},
+    )
+
+    with SessionLocal() as db:
+        candidate = db.scalar(
+            select(models.PrecedentCandidate).where(
+                models.PrecedentCandidate.source_deliverable_id == precedent_deliverable_id
+            )
+        )
+        assert candidate is not None
+        candidate.pattern_snapshot = {
+            **dict(candidate.pattern_snapshot or {}),
+            "current_output_label": "評估 / 審閱備忘",
+            "shape_sections": ["問題定義", "主要風險", "建議處置", "一句話結論", "待補資料"],
+        }
+        db.commit()
+
+        guidance = build_deliverable_shape_guidance(
+            db,
+            task_type="contract_review",
+            deliverable_class_hint=DeliverableClass.ASSESSMENT_REVIEW_MEMO,
+            precedent_reference_guidance=schemas.PrecedentReferenceGuidanceRead(
+                status="available",
+                matched_items=[
+                    schemas.PrecedentReferenceItemRead(
+                        candidate_id=candidate.id,
+                        candidate_type="deliverable_pattern",
+                        candidate_status="promoted",
+                        title=candidate.title,
+                        summary=candidate.summary,
+                        reusable_reason=candidate.reusable_reason,
+                        match_reason="目前案件和既有審閱 precedent 高度相似。",
+                        safe_use_note="只能當骨架提示，不能直接複製正文。",
+                        source_task_id=candidate.task_id,
+                        source_deliverable_id=candidate.source_deliverable_id,
+                    )
+                ],
+            ),
+            pack_resolution=schemas.PackResolutionRead(),
+        )
+
+    assert guidance.section_hints == [
+        "一句話結論",
+        "主要風險",
+        "建議處置",
+        "待補資料",
+        "背景與問題",
+    ]
+    assert "問題定義" not in guidance.section_hints
 
 
 def test_precedent_review_surface_lists_duplicate_groups_and_allows_resolution(

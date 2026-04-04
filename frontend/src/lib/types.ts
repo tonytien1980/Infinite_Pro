@@ -1150,11 +1150,7 @@ export interface ReviewLensItem {
   title: string;
   summary: string;
   why_now: string;
-  source_kind:
-    | "precedent_reference"
-    | "pack_decision_pattern"
-    | "pack_common_risk"
-    | "task_heuristic";
+  source_kind: "precedent_reference" | "pack_decision_pattern" | "task_heuristic";
   source_label: string;
   priority: "high" | "medium" | "low";
 }

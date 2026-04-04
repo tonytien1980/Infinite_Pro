@@ -37,7 +37,7 @@ export function buildCommonRiskLibraryView(
     shouldShow: true,
     sectionTitle: guidance.label || "這類案件常漏哪些風險",
     summary:
-      guidance.summary || `Host 先整理出 ${guidance.risks.length} 個 common risk watchouts。`,
+      guidance.summary || `Host 先整理出 ${guidance.risks.length} 個漏看提醒。`,
     cards: guidance.risks.map((risk) => ({
       title: risk.title,
       summary: [risk.why_watch, risk.summary].filter(Boolean).join("｜"),
@@ -45,7 +45,7 @@ export function buildCommonRiskLibraryView(
         .filter(Boolean)
         .join("｜"),
     })),
-    listTitle: "這輪先逐一掃過",
+    listTitle: "先掃這些漏看點",
     listItems: guidance.risks.map((risk, index) => `${index + 1}. ${risk.title}`),
     boundaryNote: guidance.boundary_note,
   };

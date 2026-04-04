@@ -38,7 +38,7 @@ export function buildDeliverableShapeHintView(
   return {
     shouldShow: true,
     sectionTitle: guidance.label || "這份交付物通常怎麼收比較穩",
-    summary: guidance.summary || "Host 已先整理這輪較穩的交付骨架。",
+    summary: guidance.summary || "Host 已先整理這輪建議交付骨架。",
     primaryShapeLabel: guidance.primary_shape_label,
     cards: guidance.hints.map((hint) => ({
       title: hint.title,
@@ -47,7 +47,7 @@ export function buildDeliverableShapeHintView(
         .filter(Boolean)
         .join("｜"),
     })),
-    listTitle: "建議先用段落",
+    listTitle: "建議交付骨架",
     listItems: guidance.section_hints,
     boundaryNote: guidance.boundary_note,
   };

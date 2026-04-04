@@ -685,9 +685,9 @@ deliverable workspace 採：
 - lens source 第一波至少包括：
   - `precedent_reference`
   - `pack_decision_pattern`
-  - `pack_common_risk`
   - `task_heuristic`
 - 這層的正式目的，是改善 review / analysis ordering，不是直接複製 prior text
+- review lenses 應優先回答「先從哪幾個角度看」，不應回退成風險掃描提醒
 
 第一波 `review_lens_guidance` contract 至少包括：
 
@@ -722,6 +722,7 @@ deliverable workspace 採：
 - 第一波只允許影響：
   - framing / review ordering
   - deliverable shaping 的閱讀順序
+- common risk 應留在 `common_risk_context`，不可再直接回流進 `review_lens_context`
 - 不可被誤用成 template auto-fill 或自動風險判定
 - task / deliverable surface 目前只應以 second-layer disclosure 低噪音回讀
 - matter / overview 目前不應長出 review lens dashboard hero
@@ -786,6 +787,7 @@ deliverable workspace 採：
 - 第一波只允許影響：
   - review / analysis 的風險掃描順序
   - deliverable shaping 前的 omission guardrail
+- 若某個 signal 已被定義為 common risk watchout，就不應再同時以 review lens 名義重複露出
 - 不可被誤讀成這案已經正式存在這些風險
 - task / deliverable surface 目前只應以 second-layer disclosure 低噪音回讀
 - matter / overview / history 目前不應長出 common-risk dashboard hero
@@ -817,6 +819,7 @@ deliverable workspace 採：
   - `pack_deliverable_preset`
   - `task_heuristic`
 - 這層的正式目的，是改善 deliverable shaping，而不是直接替代 deliverable content authoring
+- precedent snapshot 的 raw section labels 若偏內部語言，正式讀取前應先做 consultant-facing normalization 與排序
 
 第一波 `deliverable_shape_guidance` contract 至少包括：
 
@@ -854,6 +857,13 @@ deliverable workspace 採：
   - deliverable shape context：這份交付物通常怎麼收比較穩
 - 第一波只允許影響：
   - deliverable shaping 的收斂順序與段落組織
+- `section_hints` 正式應優先輸出顧問可直接閱讀的骨架順序，例如：
+  - `一句話結論`
+  - `主要發現`
+  - `主要風險`
+  - `建議處置`
+  - `下一步行動`
+  - `待補資料`
 - 不可被誤讀成 template auto-fill 或 prior deliverable copy
 - task / deliverable surface 目前只應以 second-layer disclosure 低噪音回讀
 - matter / overview / history 目前不應長出 deliverable-shape dashboard hero

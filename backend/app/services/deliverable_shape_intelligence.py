@@ -32,6 +32,39 @@ TASK_HEURISTIC_SHAPES: dict[str, tuple[str, list[str], str]] = {
     ),
 }
 
+SECTION_LABEL_ALIASES = {
+    "問題定義": "背景與問題",
+    "background_summary": "背景與脈絡",
+    "背景摘要": "背景與脈絡",
+    "executive_summary": "一句話結論",
+    "findings": "主要發現",
+    "recommendations": "建議處置",
+    "risks": "主要風險",
+    "action_items": "下一步行動",
+    "missing_information": "待補資料",
+    "clauses_reviewed": "已審範圍",
+    "已審條款": "已審範圍",
+    "obligations_identified": "主要義務",
+    "義務清單": "主要義務",
+    "proposed_outline": "建議結構",
+    "rewrite_guidance": "改寫方向",
+}
+
+SECTION_DISPLAY_ORDER = {
+    "一句話結論": 0,
+    "主要發現": 1,
+    "主要風險": 2,
+    "建議處置": 3,
+    "下一步行動": 4,
+    "待補資料": 5,
+    "背景與問題": 6,
+    "背景與脈絡": 7,
+    "已審範圍": 8,
+    "主要義務": 9,
+    "建議結構": 10,
+    "改寫方向": 11,
+}
+
 
 def _normalize_shape_key(value: str) -> str:
     return " ".join(value.strip().lower().split())
@@ -59,6 +92,29 @@ def _fallback_shape_for_class(deliverable_class_hint: DeliverableClass) -> str:
     if deliverable_class_hint == DeliverableClass.ASSESSMENT_REVIEW_MEMO:
         return "評估 / 審閱備忘"
     return "探索 / 診斷備忘"
+
+
+def _normalize_section_label(value: str) -> str:
+    raw = value.strip()
+    if not raw:
+        return ""
+    return SECTION_LABEL_ALIASES.get(raw, raw)
+
+
+def _normalize_and_sort_sections(items: list[str]) -> list[str]:
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for item in items:
+        label = _normalize_section_label(item)
+        key = _normalize_shape_key(label)
+        if not label or key in seen:
+            continue
+        seen.add(key)
+        normalized.append(label)
+    return sorted(
+        normalized,
+        key=lambda item: (SECTION_DISPLAY_ORDER.get(item, 99), normalized.index(item)),
+    )[:5]
 
 
 def build_deliverable_shape_guidance(
@@ -111,11 +167,11 @@ def build_deliverable_shape_guidance(
             if not section_hints:
                 raw_sections = snapshot.get("shape_sections")
                 if isinstance(raw_sections, list):
-                    section_hints = [
+                    section_hints = _normalize_and_sort_sections([
                         item.strip()
                         for item in raw_sections
                         if isinstance(item, str) and item.strip()
-                    ][:5]
+                    ])
             add_hint(
                 title=f"先用{str(snapshot.get('current_output_label') or '這份交付骨架').strip() or '這份交付骨架'}收斂",
                 summary=matched.summary or matched.reusable_reason or "先沿用相似 precedent 的交付骨架。",
@@ -149,6 +205,8 @@ def build_deliverable_shape_guidance(
         primary_shape_label = heuristic_shape
     if not section_hints:
         section_hints = heuristic_sections[:5]
+    else:
+        section_hints = _normalize_and_sort_sections(section_hints)
     add_hint(
         title=f"先用{heuristic_shape}這種交付骨架",
         summary="目前 precedent / pack 訊號仍偏薄，先用 task heuristic 定最小可信交付形態。",

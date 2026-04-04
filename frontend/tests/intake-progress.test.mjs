@@ -265,6 +265,66 @@ test("flagship lane view exposes current output level and upgrade checklist", ()
   assert.match(lane.boundaryNote, /誤讀|完整決策/);
 });
 
+test("reusable intelligence helpers keep three layers visually distinct", () => {
+  const reviewView = buildReviewLensView({
+    status: "available",
+    label: "這輪先看哪幾點",
+    summary: "Host 先整理出 2 個 review lenses。",
+    boundary_note: "這些視角是幫你排審閱順序。",
+    lenses: [
+      {
+        lens_id: "lens-1",
+        title: "先釐清決策邊界",
+        summary: "先看目前要替誰收斂哪個判斷。",
+        why_now: "這輪最容易先混掉的是決策角色。",
+        source_kind: "pack_decision_pattern",
+        source_label: "來源：pack decision pattern",
+        priority: "high",
+      },
+    ],
+  });
+  const riskView = buildCommonRiskLibraryView({
+    status: "available",
+    label: "這類案件常漏哪些風險",
+    summary: "Host 先整理出 2 個 common risk watchouts。",
+    boundary_note: "這些是 common risk watchouts。",
+    risks: [
+      {
+        risk_id: "risk-1",
+        title: "責任不對稱",
+        summary: "這是常見高頻風險。",
+        why_watch: "這類案件很容易先忽略條款不對稱。",
+        source_kind: "pack_common_risk",
+        source_label: "來源：pack common risk",
+        priority: "high",
+      },
+    ],
+  });
+  const shapeView = buildDeliverableShapeHintView({
+    status: "available",
+    label: "這份交付物通常怎麼收比較穩",
+    summary: "Host 先整理出這輪較穩的交付骨架。",
+    primary_shape_label: "評估 / 審閱備忘",
+    section_hints: ["一句話結論", "主要發現", "主要風險", "建議處置"],
+    boundary_note: "這是在提示交付骨架。",
+    hints: [
+      {
+        hint_id: "shape-1",
+        title: "先用評估 / 審閱備忘這種交付骨架",
+        summary: "目前較適合先收成 review memo。",
+        why_fit: "這輪還不是最終決策版本。",
+        source_kind: "task_heuristic",
+        source_label: "來源：task heuristic",
+        priority: "medium",
+      },
+    ],
+  });
+
+  assert.equal(reviewView.listTitle, "先從這幾個角度看");
+  assert.equal(riskView.listTitle, "先掃這些漏看點");
+  assert.equal(shapeView.listTitle, "建議交付骨架");
+});
+
 test("research guidance view turns backend guidance into low-noise consultant copy", () => {
   const guidance = buildResearchGuidanceView({
     status: "recommended",
@@ -1109,7 +1169,7 @@ test("review lens view stays low-noise and consultant-readable", () => {
   const view = buildReviewLensView({
     status: "available",
     label: "這輪先看哪幾點",
-    summary: "Host 先整理出 2 個 review lenses，幫你把這輪審閱順序排好。",
+    summary: "Host 先整理出 2 個先看角度，幫你把這輪審閱順序排好。",
     boundary_note: "這些視角是幫你排審閱順序，不是自動結論；若與正式證據衝突，仍以這案的正式證據為準。",
     lenses: [
       {
@@ -1122,12 +1182,12 @@ test("review lens view stays low-noise and consultant-readable", () => {
         priority: "high",
       },
       {
-        lens_id: "pack_common_risk:def",
-        title: "先檢查責任限制與賠償風險",
-        summary: "先確認這個高頻風險是否已經在目前材料、判斷或交付骨架中出現。",
-        why_now: "這是目前 selected packs 的常見風險之一，適合先拿來做風險掃描。",
-        source_kind: "pack_common_risk",
-        source_label: "來源：pack common risk",
+        lens_id: "pack_decision_pattern:def",
+        title: "先釐清：是否接受責任上限與終止條件",
+        summary: "先用這個決策模式檢查這輪判斷的取捨與邊界是否清楚。",
+        why_now: "這個 pack 的 decision pattern 已被目前案件正式選用，應先拿來排審閱順序。",
+        source_kind: "pack_decision_pattern",
+        source_label: "來源：pack decision pattern",
         priority: "medium",
       },
     ],
@@ -1140,7 +1200,7 @@ test("review lens view stays low-noise and consultant-readable", () => {
   assert.equal(view.cards[0]?.title, "先比對這次案件與既有合約審閱模式的差異點");
   assert.match(view.cards[0]?.summary ?? "", /先用它校正審閱方向/);
   assert.match(view.cards[0]?.meta ?? "", /precedent reference/);
-  assert.equal(view.listTitle, "這輪先照這個順序展開");
+  assert.equal(view.listTitle, "先從這幾個角度看");
   assert.match(view.listItems[0] ?? "", /先比對這次案件/);
   assert.match(view.boundaryNote, /不是自動結論/);
 });
@@ -1180,7 +1240,7 @@ test("common risk library view stays low-noise and consultant-readable", () => {
   assert.equal(view.cards[0]?.title, "責任不對稱與 indemnity / liability 暴露");
   assert.match(view.cards[0]?.summary ?? "", /相似 precedent/);
   assert.match(view.cards[0]?.meta ?? "", /precedent risk pattern/);
-  assert.equal(view.listTitle, "這輪先逐一掃過");
+  assert.equal(view.listTitle, "先掃這些漏看點");
   assert.match(view.listItems[0] ?? "", /責任不對稱/);
   assert.match(view.boundaryNote, /不代表這案已經發生/);
 });
@@ -1222,7 +1282,7 @@ test("deliverable shape hint view stays low-noise and consultant-readable", () =
   assert.equal(view.cards.length, 2);
   assert.match(view.cards[0]?.summary ?? "", /review memo/);
   assert.match(view.cards[0]?.meta ?? "", /precedent deliverable pattern/);
-  assert.equal(view.listTitle, "建議先用段落");
+  assert.equal(view.listTitle, "建議交付骨架");
   assert.equal(view.listItems[0], "一句話結論");
   assert.match(view.boundaryNote, /不是自動套模板/);
 });

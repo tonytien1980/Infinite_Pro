@@ -989,11 +989,12 @@ Primary action：
   - `why_now`
   - `source_label`
 - 若要補 list，只應輕量回讀：
-  - `這輪先照這個順序展開`
+  - `先從這幾個角度看`
 - boundary copy 應明講：
   - 這是在幫顧問排審閱順序
   - 不是自動結論
   - 若與正式證據衝突，仍以這案的正式證據為準
+- 這層不可再把 common risk 的文案偽裝成 review lens；若內容是在提醒「常漏哪些風險」，就應留在 common-risk layer
 
 ### 9.2.4 Common-risk-library reading
 
@@ -1022,7 +1023,7 @@ Primary action：
   - `why_watch`
   - `source_label`
 - 若要補 list，只應輕量回讀：
-  - `這輪先逐一掃過`
+  - `先掃這些漏看點`
 - boundary copy 應明講：
   - 這些是 common risk watchouts
   - 不代表這案已經發生
@@ -1054,7 +1055,7 @@ Primary action：
   - prior deliverable copy shell
 - 第一波應優先顯示：
   - `建議交付形態`
-  - `建議先用段落`
+  - `建議交付骨架`
   - `supporting hints`
 - supporting hint card 應優先顯示：
   - `title`
@@ -1064,6 +1065,7 @@ Primary action：
   - 這是在提示交付骨架
   - 不是自動套模板
   - 若和這案正式證據衝突，仍以這案當前判斷與證據為準
+- section hints 若來自 precedent raw sections，也應先收斂成顧問可直接閱讀的段落名與順序，不應把 `問題定義` 之類內部骨架直接放在最前面
 
 ### 9.3 Specialized hardening views
 

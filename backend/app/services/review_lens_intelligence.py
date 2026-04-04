@@ -148,16 +148,6 @@ def build_review_lens_guidance(
             priority="high" if len(lenses) == 0 else "medium",
         )
 
-    for risk in pack_resolution.common_risks[:2]:
-        add_lens(
-            title=_coerce_common_risk_title(risk),
-            summary="先確認這個高頻風險是否已經在目前材料、判斷或交付骨架中出現。",
-            why_now="這是目前 selected packs 的常見風險之一，適合先拿來做風險掃描。",
-            source_kind="pack_common_risk",
-            source_label="來源：pack common risk",
-            priority="medium",
-        )
-
     if len(lenses) < 2:
         for title, why_now in TASK_HEURISTIC_LENSES.get(task_type, []):
             add_lens(
@@ -183,7 +173,7 @@ def build_review_lens_guidance(
     return schemas.ReviewLensGuidanceRead(
         status="available" if any(item.source_kind != "task_heuristic" for item in lenses) else "fallback",
         label="這輪先看哪幾點",
-        summary=f"Host 先整理出 {len(lenses)} 個 review lenses，幫你把這輪審閱順序排好。",
+        summary=f"Host 先整理出 {len(lenses)} 個先看角度，幫你把這輪審閱順序排好。",
         boundary_note="這些視角是幫你排審閱順序，不是自動結論；若與正式證據衝突，仍以這案的正式證據為準。",
         lenses=lenses,
     )

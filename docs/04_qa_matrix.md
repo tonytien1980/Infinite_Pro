@@ -2764,3 +2764,41 @@ Environment used:
 - precedent / reusable intelligence now has a third reusable consultant asset after review lenses and common risk libraries
 - Host can now carry small, explainable `deliverable_shape_context` into specialist / core analysis requests without turning shaping guidance into auto-template behavior
 - task / deliverable surfaces can now low-noise read back `這份交付物通常怎麼收比較穩`, keeping the UI simple while making deliverable convergence more intentional
+
+---
+
+## Entry: 2026-04-04 reusable intelligence convergence pass
+
+Scope:
+- three-layer convergence across reusable review lenses / common risk libraries / deliverable shape hints
+- remove review-layer overlap with common-risk layer
+- normalize deliverable-shape sections into consultant-facing reading order
+- low-noise second-layer copy alignment
+
+Environment used:
+- local repo runtime checks only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`124 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`26 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Convergence-specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | review-lens guidance | Verify `pack_common_risk` no longer appears as review-lens source | Verified | targeted backend test confirms review lenses now stay within precedent / decision-pattern / heuristic sources |
+| Backend | deliverable-shape guidance | Normalize precedent raw sections into consultant-facing order | Verified | targeted backend test confirms internal `問題定義` style labels are rewritten and reordered into consultant-facing section hints |
+| Frontend | reusable-intelligence helpers | Verify three layers read differently in second-layer copy | Verified | helper tests confirm `先從這幾個角度看` / `先掃這些漏看點` / `建議交付骨架` now stay distinct |
+
+### Verified outcomes
+
+- `reusable review lenses` now read more clearly as angle / ordering guidance instead of a disguised risk list
+- `common risk libraries` remain the omission-guardrail layer rather than duplicating review-lens language
+- `deliverable shape hints` now read more like consultant deliverable skeletons instead of leaking raw internal section names into the first visible list

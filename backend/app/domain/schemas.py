@@ -822,7 +822,6 @@ class ReviewLensItemRead(BaseModel):
     source_kind: Literal[
         "precedent_reference",
         "pack_decision_pattern",
-        "pack_common_risk",
         "task_heuristic",
     ] = "task_heuristic"
     source_label: str = ""
