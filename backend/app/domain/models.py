@@ -1156,6 +1156,7 @@ class AdoptionFeedback(Base):
     feedback_status: Mapped[str] = mapped_column(String(50), nullable=False)
     reason_codes: Mapped[list[str]] = mapped_column(JSON, default=list)
     note: Mapped[str] = mapped_column(Text, default="")
+    operator_label: Mapped[str] = mapped_column(String(120), default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
@@ -1189,6 +1190,9 @@ class PrecedentCandidate(Base):
     candidate_status: Mapped[str] = mapped_column(String(50), nullable=False, default="candidate")
     source_feedback_status: Mapped[str] = mapped_column(String(50), nullable=False)
     source_feedback_reason_codes: Mapped[list[str]] = mapped_column(JSON, default=list)
+    source_feedback_operator_label: Mapped[str] = mapped_column(String(120), default="")
+    created_by_label: Mapped[str] = mapped_column(String(120), default="")
+    last_status_changed_by_label: Mapped[str] = mapped_column(String(120), default="")
     title: Mapped[str] = mapped_column(String(255), default="")
     summary: Mapped[str] = mapped_column(Text, default="")
     reusable_reason: Mapped[str] = mapped_column(Text, default="")

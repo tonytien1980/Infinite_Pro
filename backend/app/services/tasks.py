@@ -390,6 +390,13 @@ def _normalize_whitespace(value: str | None) -> str:
     return re.sub(r"\s+", " ", (value or "")).strip()
 
 
+def _normalize_operator_label(value: str | None) -> str:
+    normalized = _normalize_whitespace(value)
+    if not normalized:
+        return ""
+    return normalized[:120]
+
+
 def _split_multiline_items(value: str | None) -> list[str]:
     return [item.strip() for item in (value or "").splitlines() if item.strip()]
 
@@ -7495,6 +7502,7 @@ def _serialize_adoption_feedback(item: models.AdoptionFeedback) -> schemas.Adopt
         feedback_status=AdoptionFeedbackStatus(item.feedback_status),
         reason_codes=list(item.reason_codes or []),
         note=item.note or "",
+        operator_label=item.operator_label or "",
         created_at=item.created_at,
         updated_at=item.updated_at,
     )
@@ -7507,6 +7515,9 @@ def _serialize_precedent_candidate(item: models.PrecedentCandidate) -> schemas.P
         candidate_status=PrecedentCandidateStatus(item.candidate_status),
         source_feedback_status=AdoptionFeedbackStatus(item.source_feedback_status),
         source_feedback_reason_codes=list(item.source_feedback_reason_codes or []),
+        source_feedback_operator_label=item.source_feedback_operator_label or "",
+        created_by_label=item.created_by_label or "",
+        last_status_changed_by_label=item.last_status_changed_by_label or "",
         source_task_id=item.task_id,
         source_deliverable_id=item.source_deliverable_id,
         source_recommendation_id=item.source_recommendation_id,
@@ -7630,6 +7641,9 @@ def _build_precedent_reference_guidance_read(
             primary_reason_label=item.primary_reason_label,
             source_feedback_reason_labels=item.source_feedback_reason_labels,
             source_feedback_reason_codes=list(item.candidate.source_feedback_reason_codes or []),
+            source_feedback_operator_label=item.candidate.source_feedback_operator_label or "",
+            created_by_label=item.candidate.created_by_label or "",
+            last_status_changed_by_label=item.candidate.last_status_changed_by_label or "",
             optimization_signal=item.optimization_signal,
             title=item.candidate.title or "",
             summary=item.candidate.summary or "",
@@ -11878,7 +11892,10 @@ def _sync_precedent_candidate_for_feedback(
     candidate.matter_workspace_id = matter_workspace.id if matter_workspace else None
     candidate.source_feedback_status = feedback_status.value
     candidate.source_feedback_reason_codes = list(feedback.reason_codes or [])
+    candidate.source_feedback_operator_label = feedback.operator_label or ""
     candidate.candidate_status = PrecedentCandidateStatus.CANDIDATE.value
+    if existing is None:
+        candidate.created_by_label = feedback.operator_label or ""
     candidate.candidate_type = seed["candidate_type"]
     candidate.title = seed["title"]
     candidate.summary = seed["summary"]
@@ -11900,10 +11917,14 @@ def _update_precedent_candidate_status(
     db: Session,
     candidate: models.PrecedentCandidate | None,
     candidate_status: PrecedentCandidateStatus,
+    *,
+    operator_label: str = "",
 ) -> None:
     if candidate is None:
         raise HTTPException(status_code=404, detail="找不到可管理的可重用候選。")
     candidate.candidate_status = candidate_status.value
+    if operator_label:
+        candidate.last_status_changed_by_label = operator_label
     db.add(candidate)
     db.flush()
 
@@ -11922,7 +11943,12 @@ def update_deliverable_precedent_candidate_status(
             models.PrecedentCandidate.source_deliverable_id == deliverable_id
         )
     ).one_or_none()
-    _update_precedent_candidate_status(db, candidate, payload.candidate_status)
+    _update_precedent_candidate_status(
+        db,
+        candidate,
+        payload.candidate_status,
+        operator_label=_normalize_operator_label(payload.operator_label),
+    )
     db.commit()
     return get_deliverable_workspace(db, deliverable_id)
 
@@ -11943,7 +11969,12 @@ def update_recommendation_precedent_candidate_status(
             models.PrecedentCandidate.source_recommendation_id == recommendation_id
         )
     ).one_or_none()
-    _update_precedent_candidate_status(db, candidate, payload.candidate_status)
+    _update_precedent_candidate_status(
+        db,
+        candidate,
+        payload.candidate_status,
+        operator_label=_normalize_operator_label(payload.operator_label),
+    )
     db.commit()
     refreshed_task = get_loaded_task(db, task_id)
     return serialize_task(refreshed_task)
@@ -11969,6 +12000,11 @@ def apply_deliverable_adoption_feedback(
         payload.reason_codes,
     )
     normalized_note = _normalize_whitespace(payload.note) if payload.note is not None else None
+    normalized_operator_label = (
+        _normalize_operator_label(payload.operator_label)
+        if payload.operator_label is not None
+        else None
+    )
     if feedback is None:
         feedback = models.AdoptionFeedback(
             task_id=task.id,
@@ -11977,6 +12013,7 @@ def apply_deliverable_adoption_feedback(
             feedback_status=payload.feedback_status.value,
             reason_codes=normalized_reason_codes,
             note=normalized_note or "",
+            operator_label=normalized_operator_label or "",
         )
     else:
         previous_status = feedback.feedback_status
@@ -11987,6 +12024,8 @@ def apply_deliverable_adoption_feedback(
             feedback.reason_codes = normalized_reason_codes
         if normalized_note is not None:
             feedback.note = normalized_note
+        if normalized_operator_label is not None:
+            feedback.operator_label = normalized_operator_label
         feedback.task_id = task.id
         feedback.matter_workspace_id = matter_workspace.id if matter_workspace else None
 
@@ -12023,6 +12062,11 @@ def apply_recommendation_adoption_feedback(
         payload.reason_codes,
     )
     normalized_note = _normalize_whitespace(payload.note) if payload.note is not None else None
+    normalized_operator_label = (
+        _normalize_operator_label(payload.operator_label)
+        if payload.operator_label is not None
+        else None
+    )
     if feedback is None:
         feedback = models.AdoptionFeedback(
             task_id=task.id,
@@ -12031,6 +12075,7 @@ def apply_recommendation_adoption_feedback(
             feedback_status=payload.feedback_status.value,
             reason_codes=normalized_reason_codes,
             note=normalized_note or "",
+            operator_label=normalized_operator_label or "",
         )
     else:
         previous_status = feedback.feedback_status
@@ -12041,6 +12086,8 @@ def apply_recommendation_adoption_feedback(
             feedback.reason_codes = normalized_reason_codes
         if normalized_note is not None:
             feedback.note = normalized_note
+        if normalized_operator_label is not None:
+            feedback.operator_label = normalized_operator_label
         feedback.task_id = task.id
         feedback.matter_workspace_id = matter_workspace.id if matter_workspace else None
 

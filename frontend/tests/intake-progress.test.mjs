@@ -1185,11 +1185,14 @@ test("precedent review priority view stays consultant-readable", () => {
         best_for_asset_labels: ["交付骨架", "交付模板"],
         summary: "最能幫助交付模板與交付骨架，參考強度高。",
       },
+      source_feedback_operator_label: "王顧問",
+      last_status_changed_by_label: "林校稿",
     }),
     {
       label: "建議先看",
       reason: "來自值得當範本的候選，而且主要原因是可重用的行動模式。",
       optimizationMeta: "最佳幫助：交付骨架、交付模板｜參考強度：高",
+      attributionMeta: "採納：王顧問｜最近治理：林校稿",
     },
   );
 
@@ -1198,11 +1201,14 @@ test("precedent review priority view stays consultant-readable", () => {
       review_priority: "medium",
       review_priority_reason: "這個模式已升格，適合排下一輪回看。",
       optimization_signal: null,
+      source_feedback_operator_label: "",
+      last_status_changed_by_label: "",
     }),
     {
       label: "可安排下一輪",
       reason: "這個模式已升格，適合排下一輪回看。",
       optimizationMeta: "",
+      attributionMeta: "",
     },
   );
 
@@ -1211,13 +1217,47 @@ test("precedent review priority view stays consultant-readable", () => {
       review_priority: "low",
       review_priority_reason: "這個候選目前已停用，先留作背景。",
       optimization_signal: null,
+      source_feedback_operator_label: "",
+      last_status_changed_by_label: "",
     }),
     {
       label: "先放背景",
       reason: "這個候選目前已停用，先留作背景。",
       optimizationMeta: "",
+      attributionMeta: "",
     },
   );
+});
+
+test("adoption feedback and precedent candidate views expose low-noise operator attribution", () => {
+  const feedbackView = buildAdoptionFeedbackView(
+    {
+      id: "feedback-1",
+      task_id: "task-1",
+      matter_workspace_id: "matter-1",
+      deliverable_id: "deliverable-1",
+      recommendation_id: null,
+      feedback_status: "template_candidate",
+      reason_codes: ["reusable_structure"],
+      note: "這份交付值得保留。",
+      operator_label: "王顧問",
+      created_at: "2026-04-05T12:00:00Z",
+      updated_at: "2026-04-05T12:00:00Z",
+    },
+    "deliverable",
+  );
+  assert.equal(feedbackView.currentAttributionSummary, "由 王顧問 標記");
+
+  const candidateView = buildPrecedentCandidateView({
+    candidate_type: "deliverable_pattern",
+    candidate_status: "promoted",
+    summary: "交付骨架可重用",
+    reusable_reason: "可重用的交付結構",
+    source_feedback_operator_label: "王顧問",
+    created_by_label: "王顧問",
+    last_status_changed_by_label: "林校稿",
+  });
+  assert.equal(candidateView.attributionSummary, "採納：王顧問｜最近治理：林校稿");
 });
 
 test("precedent reference view stays low-noise and consultant-readable", () => {

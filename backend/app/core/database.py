@@ -188,9 +188,13 @@ def _ensure_incremental_schema_updates() -> None:
         },
         "adoption_feedback": {
             "reason_codes": "JSON NOT NULL DEFAULT '[]'",
+            "operator_label": "VARCHAR(120) NOT NULL DEFAULT ''",
         },
         "precedent_candidates": {
             "source_feedback_reason_codes": "JSON NOT NULL DEFAULT '[]'",
+            "source_feedback_operator_label": "VARCHAR(120) NOT NULL DEFAULT ''",
+            "created_by_label": "VARCHAR(120) NOT NULL DEFAULT ''",
+            "last_status_changed_by_label": "VARCHAR(120) NOT NULL DEFAULT ''",
         },
         "object_set_members": {
             "support_evidence_id": "VARCHAR(36)",

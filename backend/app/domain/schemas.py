@@ -218,10 +218,12 @@ class AdoptionFeedbackRequest(BaseModel):
     feedback_status: AdoptionFeedbackStatus
     reason_codes: list[str] | None = None
     note: str | None = None
+    operator_label: str | None = None
 
 
 class PrecedentCandidateStatusUpdateRequest(BaseModel):
     candidate_status: PrecedentCandidateStatus
+    operator_label: str | None = None
 
 
 class TaskContextRead(ORMModel):
@@ -757,6 +759,7 @@ class AdoptionFeedbackRead(ORMModel):
     feedback_status: AdoptionFeedbackStatus
     reason_codes: list[str] = Field(default_factory=list)
     note: str = ""
+    operator_label: str = ""
     created_at: datetime
     updated_at: datetime
 
@@ -767,6 +770,9 @@ class PrecedentCandidateRead(ORMModel):
     candidate_status: PrecedentCandidateStatus
     source_feedback_status: AdoptionFeedbackStatus
     source_feedback_reason_codes: list[str] = Field(default_factory=list)
+    source_feedback_operator_label: str = ""
+    created_by_label: str = ""
+    last_status_changed_by_label: str = ""
     source_task_id: str
     source_deliverable_id: str | None = None
     source_recommendation_id: str | None = None
@@ -809,6 +815,9 @@ class PrecedentReferenceItemRead(BaseModel):
     primary_reason_label: str = ""
     source_feedback_reason_labels: list[str] = Field(default_factory=list)
     source_feedback_reason_codes: list[str] = Field(default_factory=list)
+    source_feedback_operator_label: str = ""
+    created_by_label: str = ""
+    last_status_changed_by_label: str = ""
     optimization_signal: PrecedentOptimizationSignalRead = Field(
         default_factory=PrecedentOptimizationSignalRead
     )

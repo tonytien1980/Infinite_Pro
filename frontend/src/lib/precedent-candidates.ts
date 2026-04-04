@@ -5,9 +5,29 @@ import type {
   PrecedentCandidateType,
 } from "@/lib/types";
 
+function buildOperatorAttributionSummary(input: {
+  sourceFeedbackOperatorLabel?: string | null;
+  lastStatusChangedByLabel?: string | null;
+}) {
+  const parts: string[] = [];
+  if (input.sourceFeedbackOperatorLabel) {
+    parts.push(`採納：${input.sourceFeedbackOperatorLabel}`);
+  }
+  if (input.lastStatusChangedByLabel) {
+    parts.push(`最近治理：${input.lastStatusChangedByLabel}`);
+  }
+  return parts.join("｜");
+}
+
 type PrecedentCandidateLike = Pick<
   PrecedentCandidate,
-  "candidate_type" | "candidate_status" | "summary" | "reusable_reason"
+  | "candidate_type"
+  | "candidate_status"
+  | "summary"
+  | "reusable_reason"
+  | "source_feedback_operator_label"
+  | "created_by_label"
+  | "last_status_changed_by_label"
 >;
 
 function labelForCandidateType(candidateType: PrecedentCandidateType) {
@@ -24,6 +44,7 @@ export function buildPrecedentCandidateView(
   badgeLabel: string;
   summary: string;
   statusLabel: string;
+  attributionSummary: string;
 } {
   if (!candidate) {
     return {
@@ -31,6 +52,7 @@ export function buildPrecedentCandidateView(
       badgeLabel: "",
       summary: "",
       statusLabel: "",
+      attributionSummary: "",
     };
   }
 
@@ -53,6 +75,11 @@ export function buildPrecedentCandidateView(
             : labelForCandidateType(candidate.candidate_type),
     summary: [candidate.summary, candidate.reusable_reason].filter(Boolean).join("｜"),
     statusLabel,
+    attributionSummary: buildOperatorAttributionSummary({
+      sourceFeedbackOperatorLabel:
+        candidate.source_feedback_operator_label || candidate.created_by_label,
+      lastStatusChangedByLabel: candidate.last_status_changed_by_label,
+    }),
   };
 }
 

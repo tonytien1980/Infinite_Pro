@@ -247,6 +247,9 @@ class PrecedentReviewItemResponse(BaseModel):
     review_priority_reason: str = ""
     primary_reason_label: str = ""
     source_feedback_reason_labels: list[str] = Field(default_factory=list)
+    source_feedback_operator_label: str = ""
+    created_by_label: str = ""
+    last_status_changed_by_label: str = ""
     optimization_signal: domain_schemas.PrecedentOptimizationSignalRead = Field(
         default_factory=domain_schemas.PrecedentOptimizationSignalRead
     )

@@ -61,6 +61,7 @@ import { buildDeliverableTemplateView } from "@/lib/deliverable-templates";
 import { buildDeliverableShapeHintView } from "@/lib/deliverable-shape-hints";
 import { buildPrecedentReferenceView } from "@/lib/precedent-reference";
 import { buildReviewLensView } from "@/lib/review-lenses";
+import { normalizeOperatorDisplayName } from "@/lib/operator-identity";
 import type {
   AdoptionFeedbackPayload,
   ExtensionManagerSnapshot,
@@ -108,6 +109,7 @@ import {
   translateStructuredValue,
 } from "@/lib/ui-labels";
 import { WorkspaceSectionGuide } from "@/components/workspace-section-guide";
+import { useOperatorIdentitySettings } from "@/lib/workbench-store";
 
 function buildRunMeta(task: TaskAggregate) {
   if (task.continuation_surface?.workflow_layer === "checkpoint") {
@@ -395,6 +397,7 @@ function WorkspaceMaterialSection({
 }
 
 export function TaskDetailPanel({ taskId }: { taskId: string }) {
+  const [operatorIdentity] = useOperatorIdentitySettings();
   const [task, setTask] = useState<TaskAggregate | null>(null);
   const [extensionManager, setExtensionManager] = useState<ExtensionManagerSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
@@ -496,11 +499,15 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
     recommendationId: string,
     payload: AdoptionFeedbackPayload,
   ) {
+    const operatorLabel = normalizeOperatorDisplayName(operatorIdentity.operatorDisplayName);
     try {
       setFeedbackRecommendationId(recommendationId);
       setRecommendationFeedbackMessage(null);
       setError(null);
-      const response = await applyRecommendationFeedback(taskId, recommendationId, payload);
+      const response = await applyRecommendationFeedback(taskId, recommendationId, {
+        ...payload,
+        operator_label: operatorLabel || undefined,
+      });
       setTask(response);
       const feedbackStatus = payload.feedback_status;
       setRecommendationFeedbackMessage(
@@ -517,6 +524,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
     recommendationId: string,
     candidateStatus: "candidate" | "promoted" | "dismissed",
   ) {
+    const operatorLabel = normalizeOperatorDisplayName(operatorIdentity.operatorDisplayName);
     try {
       setCandidateRecommendationId(recommendationId);
       setRecommendationCandidateMessage(null);
@@ -526,6 +534,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
         recommendationId,
         {
           candidate_status: candidateStatus,
+          operator_label: operatorLabel || undefined,
         },
       );
       setTask(response);
@@ -2529,6 +2538,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                             <h4>{precedentCandidateView.badgeLabel}</h4>
                             <p className="muted-text">目前狀態：{precedentCandidateView.statusLabel}</p>
                             <p className="muted-text">{precedentCandidateView.summary}</p>
+                            {precedentCandidateView.attributionSummary ? (
+                              <p className="muted-text">{precedentCandidateView.attributionSummary}</p>
+                            ) : null}
                             {precedentCandidateActions ? (
                               <div className="button-row" style={{ marginTop: "10px" }}>
                                 {precedentCandidateActions.actions.map((action) => (

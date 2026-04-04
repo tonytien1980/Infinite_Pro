@@ -46,6 +46,7 @@ import { buildDeliverableShapeHintView } from "@/lib/deliverable-shape-hints";
 import { buildPrecedentReferenceView } from "@/lib/precedent-reference";
 import { buildResearchDetailView } from "@/lib/research-lane";
 import { buildReviewLensView } from "@/lib/review-lenses";
+import { normalizeOperatorDisplayName } from "@/lib/operator-identity";
 import { truncateText } from "@/lib/text-format";
 import type {
   AdoptionFeedbackPayload,
@@ -74,7 +75,10 @@ import {
   labelForSourceType,
   labelForWritebackDepth,
 } from "@/lib/ui-labels";
-import { type DeliverableLifecycleStatus } from "@/lib/workbench-store";
+import {
+  type DeliverableLifecycleStatus,
+  useOperatorIdentitySettings,
+} from "@/lib/workbench-store";
 import {
   buildDeliverableSaveFeedback,
   isRetriableWorkspaceError,
@@ -442,6 +446,7 @@ function normalizeFormalDeliverableError(error: unknown, defaultMessage: string)
 }
 
 export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: string }) {
+  const [operatorIdentity] = useOperatorIdentitySettings();
   const [workspace, setWorkspace] = useState<DeliverableWorkspace | null>(null);
   const [draftTitle, setDraftTitle] = useState("");
   const [draftSummary, setDraftSummary] = useState("");
@@ -842,12 +847,16 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
     if (!deliverable) {
       return;
     }
+    const operatorLabel = normalizeOperatorDisplayName(operatorIdentity.operatorDisplayName);
 
     try {
       setIsApplyingDeliverableFeedback(true);
       setDeliverableFeedbackMessage(null);
       setError(null);
-      const response = await applyDeliverableFeedback(deliverable.id, payload);
+      const response = await applyDeliverableFeedback(deliverable.id, {
+        ...payload,
+        operator_label: operatorLabel || undefined,
+      });
       setWorkspace(response);
       const feedbackStatus = payload.feedback_status;
       setDeliverableFeedbackMessage(
@@ -866,6 +875,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
     if (!deliverable) {
       return;
     }
+    const operatorLabel = normalizeOperatorDisplayName(operatorIdentity.operatorDisplayName);
 
     try {
       setActiveDeliverableCandidateStatus(candidateStatus);
@@ -873,6 +883,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
       setError(null);
       const response = await updateDeliverablePrecedentCandidateStatus(deliverable.id, {
         candidate_status: candidateStatus,
+        operator_label: operatorLabel || undefined,
       });
       setWorkspace(response);
       setDeliverableCandidateMessage(
@@ -1293,6 +1304,9 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                       <p className="content-block">{deliverableCandidateView.badgeLabel}</p>
                       <p className="muted-text">目前狀態：{deliverableCandidateView.statusLabel}</p>
                       <p className="muted-text">{deliverableCandidateView.summary}</p>
+                      {deliverableCandidateView.attributionSummary ? (
+                        <p className="muted-text">{deliverableCandidateView.attributionSummary}</p>
+                      ) : null}
                       {deliverableCandidateActions ? (
                         <div className="button-row" style={{ marginTop: "10px" }}>
                           {deliverableCandidateActions.actions.map((action) => (

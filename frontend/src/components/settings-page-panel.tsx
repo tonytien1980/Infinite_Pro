@@ -22,9 +22,12 @@ import type {
 } from "@/lib/types";
 import {
   DEFAULT_WORKBENCH_SETTINGS,
+  DEFAULT_OPERATOR_IDENTITY_SETTINGS,
   type WorkbenchSettings,
+  useOperatorIdentitySettings,
   useWorkbenchSettings,
 } from "@/lib/workbench-store";
+import { normalizeOperatorDisplayName } from "@/lib/operator-identity";
 
 const HISTORY_PAGE_SIZE_OPTIONS = [10, 20, 30, 50];
 const MODEL_LEVEL_OPTIONS: Array<{
@@ -155,7 +158,9 @@ function isEditableProviderId(value: CurrentProviderId): value is ProviderId {
 
 export function SettingsPagePanel() {
   const [settings, setSettings] = useWorkbenchSettings();
+  const [operatorIdentity, setOperatorIdentity] = useOperatorIdentitySettings();
   const [draft, setDraft] = useState<WorkbenchSettings>(settings);
+  const [operatorDraft, setOperatorDraft] = useState(operatorIdentity.operatorDisplayName);
   const [success, setSuccess] = useState<string | null>(null);
   const [saveMode, setSaveMode] = useState<"remote" | "local-fallback" | null>(null);
 
@@ -176,6 +181,10 @@ export function SettingsPagePanel() {
   useEffect(() => {
     setDraft(settings);
   }, [settings]);
+
+  useEffect(() => {
+    setOperatorDraft(operatorIdentity.operatorDisplayName);
+  }, [operatorIdentity.operatorDisplayName]);
 
   useEffect(() => {
     let cancelled = false;
@@ -331,11 +340,13 @@ export function SettingsPagePanel() {
   }
 
   async function handleSave() {
+    const normalizedOperatorDisplayName = normalizeOperatorDisplayName(operatorDraft);
     try {
       const result = await persistWorkbenchPreferences(draft);
       setSettings(result.settings);
+      setOperatorIdentity({ operatorDisplayName: normalizedOperatorDisplayName });
       setSaveMode(result.source);
-      setSuccess(buildWorkbenchPreferenceFeedback(result.source));
+      setSuccess(`${buildWorkbenchPreferenceFeedback(result.source)} 本機顧問署名也已保存。`);
     } catch (saveError) {
       setSaveMode(null);
       setSuccess(saveError instanceof Error ? saveError.message : "保存設定失敗。");
@@ -344,12 +355,16 @@ export function SettingsPagePanel() {
 
   async function handleReset() {
     setDraft(DEFAULT_WORKBENCH_SETTINGS);
+    setOperatorDraft(DEFAULT_OPERATOR_IDENTITY_SETTINGS.operatorDisplayName);
     try {
       const result = await persistWorkbenchPreferences(DEFAULT_WORKBENCH_SETTINGS);
       setSettings(result.settings);
+      setOperatorIdentity(DEFAULT_OPERATOR_IDENTITY_SETTINGS);
       setSaveMode(result.source);
       setSuccess(
-        result.source === "remote" ? "已恢復預設設定，並同步寫入正式工作台偏好。" : "已恢復預設設定，並先保存到目前瀏覽器。",
+        result.source === "remote"
+          ? "已恢復預設設定，並同步寫入正式工作台偏好；本機顧問署名也已清空。"
+          : "已恢復預設設定，並先保存到目前瀏覽器；本機顧問署名也已清空。",
       );
     } catch (saveError) {
       setSaveMode(null);
@@ -1084,6 +1099,36 @@ export function SettingsPagePanel() {
                   <option value="version_desc">版本較新優先</option>
                   <option value="title_asc">標題排序</option>
                 </select>
+              </div>
+            </div>
+          </section>
+
+          <section className="panel">
+            <div className="panel-header">
+              <div>
+                <h2 className="panel-title">本機顧問署名</h2>
+                <p className="panel-copy">這個署名只保存在目前瀏覽器；之後在採納回饋、precedent 升格或停用時，系統會寫回是由誰做了這次判斷。</p>
+              </div>
+            </div>
+
+            <div className="form-grid">
+              <div className="field">
+                <label htmlFor="settings-operator-display-name">顧問署名</label>
+                <input
+                  id="settings-operator-display-name"
+                  value={operatorDraft}
+                  onChange={(event) => setOperatorDraft(event.target.value)}
+                  placeholder="例如：王顧問"
+                  maxLength={120}
+                />
+                <small>先用輕量署名支援小團隊 shared intelligence，不等於正式帳號或權限系統。</small>
+              </div>
+
+              <div className="setting-note-card">
+                <h3>這一輪的邊界</h3>
+                <p className="content-block">
+                  系統目前只會記錄是誰採用、誰建立候選、誰做了最近一次升格或停用；不會引入多使用者登入，也不會把單人使用流程變重。
+                </p>
               </div>
             </div>
           </section>

@@ -595,6 +595,42 @@ deliverable workspace 採：
 - frontend 不可自行把這層擴寫成黑箱品質分數或 correctness score
 - 這層是在回答「這筆 feedback 對未來哪種重用最有幫助」，不是在回答「這筆 precedent 絕對正確」
 
+### 6.9B Team-attributed reusable intelligence governance v1
+
+在 feedback -> optimization loop 的第一刀已成立後，precedent / reusable intelligence 應先補上一層很輕的 attribution：
+
+- `team-attributed governance v1`
+
+正式規則：
+
+- 這不是新的架構層
+- 也不是正式帳號 / auth / RBAC shell
+- 第一波只補：
+  - browser-local operator identity
+  - action-level attribution writeback
+- 這層的正式角色是回答：
+  - 這筆 feedback 是誰標記的
+  - 這筆 candidate 是誰建立的
+  - 最近一次升格 / 停用是誰做的
+
+第一版 contract 至少包括：
+
+- feedback request / record
+  - `operator_label`
+- precedent candidate
+  - `source_feedback_operator_label`
+  - `created_by_label`
+  - `last_status_changed_by_label`
+
+正式規則：
+
+- 第一版 operator identity 不從 backend auth 取得
+- 它只應來自 browser-local setting，再以 action metadata 方式寫回
+- attribution != reason code
+- attribution != optimization signal
+- attribution != formal permission model
+- 這層的目的，是讓小型顧問團隊共享 intelligence 時開始知道「誰做了哪個判斷」，但不把單人工作流變重
+
 ### 6.10 Precedent candidate pool
 
 目前 precedent / reusable intelligence 的第一輪正式形態，是 `precedent candidate pool`。
@@ -620,6 +656,9 @@ deliverable workspace 採：
 - `candidate_status`
 - `source_feedback_status`
 - `source_feedback_reason_codes`
+- `source_feedback_operator_label`
+- `created_by_label`
+- `last_status_changed_by_label`
 - `source_task_id`
 - `source_deliverable_id` / `source_recommendation_id`
 - `title`
@@ -657,6 +696,9 @@ deliverable workspace 採：
 - `review_priority_reason`
 - `primary_reason_label`
 - `source_feedback_reason_labels`
+- `source_feedback_operator_label`
+- `created_by_label`
+- `last_status_changed_by_label`
 - `optimization_signal`
 
 正式規則：
@@ -709,6 +751,9 @@ deliverable workspace 採：
 - `review_priority`
 - `primary_reason_label`
 - `source_feedback_reason_labels`
+- `source_feedback_operator_label`
+- `created_by_label`
+- `last_status_changed_by_label`
 - `optimization_signal`
 - `title`
 - `summary`

@@ -98,6 +98,7 @@ export function buildAdoptionFeedbackView(
   currentReasonLabels: string[];
   currentReasonSummary: string;
   currentNote: string;
+  currentAttributionSummary: string;
   hasFeedback: boolean;
   shouldShowReasonStage: boolean;
   reasonPrompt: string;
@@ -117,6 +118,7 @@ export function buildAdoptionFeedbackView(
     currentReasonLabels,
     currentReasonSummary: currentReasonLabels[0] || "",
     currentNote: feedback?.note || "",
+    currentAttributionSummary: feedback?.operator_label ? `由 ${feedback.operator_label} 標記` : "",
     hasFeedback: Boolean(currentStatus),
     shouldShowReasonStage: Boolean(currentStatus),
     reasonPrompt: "補一個主要原因",

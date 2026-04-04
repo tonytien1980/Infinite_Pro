@@ -8,6 +8,7 @@ import type {
   DeliverableSortPreference,
   HomepageDisplayPreference,
   MatterWorkspaceContentSections,
+  OperatorIdentitySettings,
   PackCatalogEntry,
   ThemePreference,
   WorkbenchSettings,
@@ -17,6 +18,7 @@ export type {
   DensityPreference,
   DeliverableSortPreference,
   HomepageDisplayPreference,
+  OperatorIdentitySettings,
   ThemePreference,
   WorkbenchSettings,
 } from "@/lib/types";
@@ -62,6 +64,7 @@ export interface HistoryManagerState {
 
 const STORAGE_KEYS = {
   settings: "infinite-pro.workbench.settings",
+  operatorIdentity: "infinite-pro.workbench.operator-identity",
   matters: "infinite-pro.workbench.matters",
   agents: "infinite-pro.workbench.agents",
   packs: "infinite-pro.workbench.packs",
@@ -80,6 +83,10 @@ export const DEFAULT_WORKBENCH_SETTINGS: WorkbenchSettings = {
   newTaskDefaultInputMode: "one_line_inquiry",
   density: "standard",
   deliverableSortPreference: "updated_desc",
+};
+
+export const DEFAULT_OPERATOR_IDENTITY_SETTINGS: OperatorIdentitySettings = {
+  operatorDisplayName: "",
 };
 
 const DEFAULT_AGENT_MANAGER_STATE: AgentManagerState = {
@@ -196,6 +203,13 @@ export function useWorkbenchSettings() {
   return usePersistentState<WorkbenchSettings>(
     STORAGE_KEYS.settings,
     DEFAULT_WORKBENCH_SETTINGS,
+  );
+}
+
+export function useOperatorIdentitySettings() {
+  return usePersistentState<OperatorIdentitySettings>(
+    STORAGE_KEYS.operatorIdentity,
+    DEFAULT_OPERATOR_IDENTITY_SETTINGS,
   );
 }
 

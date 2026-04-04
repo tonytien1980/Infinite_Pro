@@ -3689,6 +3689,58 @@ def test_deliverable_precedent_candidate_can_be_promoted_and_demoted(
     assert demote_response.json()["deliverable"]["precedent_candidate"]["candidate_status"] == "candidate"
 
 
+def test_team_attributed_feedback_and_precedent_governance_capture_operator_labels(
+    client: TestClient,
+) -> None:
+    payload = create_contract_review_payload("Team-attributed precedent governance")
+    task = client.post("/api/v1/tasks", json=payload).json()
+
+    client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("agreement.txt", b"Termination and liability clauses need review.", "text/plain"))],
+    )
+    run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
+    assert run_response.status_code == 200
+    deliverable_id = run_response.json()["deliverable"]["id"]
+
+    feedback_response = client.post(
+        f"/api/v1/deliverables/{deliverable_id}/feedback",
+        json={
+            "feedback_status": "template_candidate",
+            "reason_codes": ["reusable_structure"],
+            "operator_label": "王顧問",
+        },
+    )
+    assert feedback_response.status_code == 200
+    workspace = feedback_response.json()
+    feedback = workspace["deliverable"]["adoption_feedback"]
+    candidate = workspace["deliverable"]["precedent_candidate"]
+    assert feedback["operator_label"] == "王顧問"
+    assert candidate["source_feedback_operator_label"] == "王顧問"
+    assert candidate["created_by_label"] == "王顧問"
+    assert candidate["last_status_changed_by_label"] == ""
+
+    promote_response = client.post(
+        f"/api/v1/deliverables/{deliverable_id}/precedent-candidate",
+        json={"candidate_status": "promoted", "operator_label": "林校稿"},
+    )
+    assert promote_response.status_code == 200
+    promoted_candidate = promote_response.json()["deliverable"]["precedent_candidate"]
+    assert promoted_candidate["candidate_status"] == "promoted"
+    assert promoted_candidate["source_feedback_operator_label"] == "王顧問"
+    assert promoted_candidate["created_by_label"] == "王顧問"
+    assert promoted_candidate["last_status_changed_by_label"] == "林校稿"
+
+    precedent_review = client.get("/api/v1/workbench/precedent-candidates")
+    assert precedent_review.status_code == 200
+    review_item = next(
+        item for item in precedent_review.json()["items"] if item["deliverable_id"] == deliverable_id
+    )
+    assert review_item["source_feedback_operator_label"] == "王顧問"
+    assert review_item["created_by_label"] == "王顧問"
+    assert review_item["last_status_changed_by_label"] == "林校稿"
+
+
 def test_recommendation_precedent_candidate_can_be_dismissed_and_restored(
     client: TestClient,
 ) -> None:

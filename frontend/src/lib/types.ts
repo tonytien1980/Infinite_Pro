@@ -124,6 +124,10 @@ export interface WorkbenchSettings {
   deliverableSortPreference: DeliverableSortPreference;
 }
 
+export interface OperatorIdentitySettings {
+  operatorDisplayName: string;
+}
+
 export interface PrecedentReviewItem {
   id: string;
   candidate_type: PrecedentCandidateType;
@@ -132,6 +136,9 @@ export interface PrecedentReviewItem {
   review_priority_reason: string;
   primary_reason_label: string;
   source_feedback_reason_labels: string[];
+  source_feedback_operator_label: string;
+  created_by_label: string;
+  last_status_changed_by_label: string;
   optimization_signal: PrecedentOptimizationSignal;
   title: string;
   summary: string;
@@ -1087,6 +1094,7 @@ export interface AdoptionFeedback {
   feedback_status: AdoptionFeedbackStatus;
   reason_codes: string[];
   note: string;
+  operator_label: string;
   created_at: string;
   updated_at: string;
 }
@@ -1100,6 +1108,9 @@ export interface PrecedentCandidate {
   candidate_status: PrecedentCandidateStatus;
   source_feedback_status: AdoptionFeedbackStatus;
   source_feedback_reason_codes: string[];
+  source_feedback_operator_label: string;
+  created_by_label: string;
+  last_status_changed_by_label: string;
   source_task_id: string;
   source_deliverable_id: string | null;
   source_recommendation_id: string | null;
@@ -1134,6 +1145,9 @@ export interface PrecedentReferenceItem {
   primary_reason_label: string;
   source_feedback_reason_labels: string[];
   source_feedback_reason_codes: string[];
+  source_feedback_operator_label: string;
+  created_by_label: string;
+  last_status_changed_by_label: string;
   optimization_signal: PrecedentOptimizationSignal;
   title: string;
   summary: string;
@@ -1286,6 +1300,7 @@ export interface DeliverableTemplateGuidance {
 
 export interface PrecedentCandidateStatusUpdatePayload {
   candidate_status: PrecedentCandidateStatus;
+  operator_label?: string | null;
 }
 
 export interface TaskRun {
@@ -2173,6 +2188,7 @@ export interface AdoptionFeedbackPayload {
   feedback_status: AdoptionFeedbackStatus;
   reason_codes?: string[] | null;
   note?: string | null;
+  operator_label?: string | null;
 }
 
 export interface MatterContinuationActionPayload {

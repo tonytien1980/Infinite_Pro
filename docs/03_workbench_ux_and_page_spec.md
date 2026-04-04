@@ -850,10 +850,17 @@ Primary action：
 主任務：
 
 - 儲存正式偏好與 system-level provider config
+- 管理 browser-local 顧問署名
 
 Primary action：
 
 - 編輯 / 儲存並套用
+
+正式規則：
+
+- `本機顧問署名` 只保存在目前瀏覽器
+- 它的正式責任，是在採納回饋與 precedent 治理時，低負擔提供 attribution
+- 不可把這一格擴寫成帳號系統、團隊管理表、或權限設定後台
 
 ---
 
@@ -932,6 +939,8 @@ Primary action：
   - 為什麼這次還要改
   - 為什麼這次不採用
   - 為什麼值得保留成可重用模式
+- 若這次動作已有 browser-local 顧問署名，UI 也只可低噪音補：
+  - `由 XXX 標記`
 - 這層的正式責任是收集 explicit human adoption signal，而不是直接等於 precedent selection
 
 ### 9.2.1 Precedent candidate reading
@@ -953,6 +962,9 @@ Primary action：
   - `promoted` 可降回候選或停用
   - `dismissed` 可重新列回候選
 - 這些 action 只應出現在既有 candidate 區塊附近，不可新增 precedent management page
+- 若已知這個 candidate 的採納者或最近治理者，UI 也只可低噪音補：
+  - `採納：XXX`
+  - `最近治理：YYY`
 - 若 precedent review lane 已開始帶 optimization signal，history family 也只可低噪音補：
   - `最佳幫助：...`
   - `參考強度：...`
@@ -978,6 +990,9 @@ Primary action：
 - 若 precedent 已有明確 human reason signal，UI 可低噪音補：
   - `主要原因：...`
   - 讓顧問知道這筆模式為何值得保留
+- 若 precedent 已有 attribution signal，UI 也只可低噪音補：
+  - `採納：XXX`
+  - `最近治理：YYY`
 - `recommended_uses` 若因 human reason signal 變得更精準，也應維持：
   - 一兩句可直接讀懂的用法
   - 不要把內部 reason code 或 asset routing 規則直接露在 UI 上

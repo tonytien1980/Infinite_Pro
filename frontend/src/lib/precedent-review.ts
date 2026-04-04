@@ -1,8 +1,24 @@
 import type { PrecedentReviewItem } from "@/lib/types";
 
+function buildOperatorAttributionSummary(input: {
+  sourceFeedbackOperatorLabel?: string | null;
+  lastStatusChangedByLabel?: string | null;
+}) {
+  const parts: string[] = [];
+  if (input.sourceFeedbackOperatorLabel) {
+    parts.push(`採納：${input.sourceFeedbackOperatorLabel}`);
+  }
+  if (input.lastStatusChangedByLabel) {
+    parts.push(`最近治理：${input.lastStatusChangedByLabel}`);
+  }
+  return parts.join("｜");
+}
+
 export function buildPrecedentReviewPriorityView(item: {
   review_priority: "high" | "medium" | "low";
   review_priority_reason: string;
+  source_feedback_operator_label?: string | null;
+  last_status_changed_by_label?: string | null;
   optimization_signal:
     | {
         strength: "high" | "medium" | "low";
@@ -29,6 +45,10 @@ export function buildPrecedentReviewPriorityView(item: {
                 : "低"
           }`
         : "",
+    attributionMeta: buildOperatorAttributionSummary({
+      sourceFeedbackOperatorLabel: item.source_feedback_operator_label,
+      lastStatusChangedByLabel: item.last_status_changed_by_label,
+    }),
   };
 }
 

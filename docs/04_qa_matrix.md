@@ -2993,6 +2993,45 @@ Environment used:
 
 ---
 
+## Entry: 2026-04-05 team-attributed reusable intelligence governance v1 pass
+
+Scope:
+- browser-local consultant signature
+- feedback / precedent governance attribution
+- low-noise attribution readback on deliverable / recommendation / history
+
+Environment used:
+- local repo runtime checks only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`139 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`30 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Team-attributed governance specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | deliverable feedback | Store operator label | Verified | targeted backend test confirms deliverable adoption feedback now keeps `operator_label` and seeds candidate attribution |
+| Backend | precedent governance | Promote candidate with operator label | Verified | targeted backend test confirms precedent candidate now keeps `source_feedback_operator_label`, `created_by_label`, and `last_status_changed_by_label` |
+| Backend | precedent review | Read attribution | Verified | targeted backend test confirms `/workbench/precedent-candidates` now returns low-noise attribution fields for review surfaces |
+| Frontend | adoption feedback / precedent helpers | Render low-noise attribution copy | Verified | frontend helper tests confirm UI reads as `由 XXX 標記`, `採納：XXX`, and `最近治理：YYY` without turning into a management dashboard |
+| Live runtime | `3001 / 8010` local smoke | Browser verification | Not run | local frontend/backend runtime was not active (`curl` to `127.0.0.1:3001` and `127.0.0.1:8010` both failed with connection refused) |
+
+### Verified outcomes
+
+- Infinite Pro now starts knowing not only why a reusable pattern was kept, but also which consultant made the key retention / governance action
+- the first team-attribution slice stays lightweight: browser-local signature in, structured attribution out, no auth shell added
+- visible UI remains low-noise and consultant-first instead of growing into a team management console
+
+---
+
 ## Entry: 2026-04-05 feedback optimization signals v1 pass
 
 Scope:

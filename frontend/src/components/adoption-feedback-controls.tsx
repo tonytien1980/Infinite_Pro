@@ -40,6 +40,9 @@ export function AdoptionFeedbackControls({
     <>
       <p className="content-block">{feedbackView.currentLabel}</p>
       <p className="muted-text">{description}</p>
+      {feedbackView.currentAttributionSummary ? (
+        <p className="muted-text">{feedbackView.currentAttributionSummary}</p>
+      ) : null}
       {feedbackView.currentReasonSummary ? (
         <p className="muted-text">主要原因：{feedbackView.currentReasonSummary}</p>
       ) : null}

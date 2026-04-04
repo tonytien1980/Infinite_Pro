@@ -23,6 +23,7 @@ import {
   buildPrecedentReviewPriorityView,
   filterPrecedentReviewItems,
 } from "@/lib/precedent-review";
+import { normalizeOperatorDisplayName } from "@/lib/operator-identity";
 import {
   applyHistoryFallbackState,
   buildHistoryVisibilityFeedback,
@@ -44,6 +45,7 @@ import {
 } from "@/lib/ui-labels";
 import {
   useHistoryManagerState,
+  useOperatorIdentitySettings,
   useWorkbenchSettings,
 } from "@/lib/workbench-store";
 
@@ -68,6 +70,7 @@ export function HistoryPagePanel() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const [settings] = useWorkbenchSettings();
+  const [operatorIdentity] = useOperatorIdentitySettings();
   const [historyState, setHistoryState] = useHistoryManagerState();
   const [pageSize, setPageSize] = useState(settings.historyDefaultPageSize);
   const [loading, setLoading] = useState(true);
@@ -244,16 +247,19 @@ export function HistoryPagePanel() {
   }
 
   async function handlePrecedentAction(item: PrecedentReviewItem, nextStatus: "candidate" | "promoted" | "dismissed") {
+    const operatorLabel = normalizeOperatorDisplayName(operatorIdentity.operatorDisplayName);
     try {
       setActivePrecedentId(item.id);
       setPrecedentMessage(null);
       if (item.deliverable_id) {
         await updateDeliverablePrecedentCandidateStatus(item.deliverable_id, {
           candidate_status: nextStatus,
+          operator_label: operatorLabel || undefined,
         });
       } else if (item.recommendation_id) {
         await updateRecommendationPrecedentCandidateStatus(item.task_id, item.recommendation_id, {
           candidate_status: nextStatus,
+          operator_label: operatorLabel || undefined,
         });
       }
       const precedentResponse = await getPrecedentReviewState();
@@ -559,6 +565,9 @@ export function HistoryPagePanel() {
                       <p className="muted-text">{priorityView.reason}</p>
                       {priorityView.optimizationMeta ? (
                         <p className="muted-text">{priorityView.optimizationMeta}</p>
+                      ) : null}
+                      {priorityView.attributionMeta ? (
+                        <p className="muted-text">{priorityView.attributionMeta}</p>
                       ) : null}
                       {item.primary_reason_label ? (
                         <p className="muted-text">主要原因：{item.primary_reason_label}</p>
