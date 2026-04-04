@@ -28,6 +28,7 @@ from app.domain.schemas import (
     EngagementRead,
     EvidenceRead,
     GoalRead,
+    OrganizationMemoryGuidanceRead,
     PackResolutionRead,
     PrecedentReferenceGuidanceRead,
     PresenceStateSummaryRead,
@@ -81,6 +82,9 @@ class AgentInputPayload(BaseModel):
     presence_state_summary: PresenceStateSummaryRead
     pack_resolution: PackResolutionRead = Field(default_factory=PackResolutionRead)
     agent_selection: AgentSelectionRead = Field(default_factory=AgentSelectionRead)
+    organization_memory_guidance: OrganizationMemoryGuidanceRead = Field(
+        default_factory=OrganizationMemoryGuidanceRead
+    )
     precedent_reference_guidance: PrecedentReferenceGuidanceRead = Field(
         default_factory=PrecedentReferenceGuidanceRead
     )
@@ -115,6 +119,24 @@ def build_payload_precedent_context(payload: AgentInputPayload) -> list[str]:
         )
     if guidance.recommended_uses:
         lines.append(f"建議用法：{'；'.join(guidance.recommended_uses[:3])}")
+    lines.append(f"整體邊界：{guidance.boundary_note}")
+    return lines
+
+
+def build_payload_organization_memory_context(payload: AgentInputPayload) -> list[str]:
+    guidance = payload.organization_memory_guidance
+    if guidance.status != "available":
+        return []
+
+    lines: list[str] = []
+    if guidance.organization_label:
+        lines.append(f"組織背景：{guidance.organization_label}")
+    if guidance.stable_context_items:
+        lines.append("穩定背景：" + "；".join(guidance.stable_context_items[:4]))
+    if guidance.known_constraints:
+        lines.append("已知限制：" + "；".join(guidance.known_constraints[:4]))
+    if guidance.continuity_anchor:
+        lines.append(f"延續主線：{guidance.continuity_anchor}")
     lines.append(f"整體邊界：{guidance.boundary_note}")
     return lines
 

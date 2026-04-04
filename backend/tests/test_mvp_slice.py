@@ -10,6 +10,7 @@ from pypdf import PdfWriter
 from sqlalchemy import select
 
 from app.agents.host import HostOrchestrator
+from app.agents.base import AgentInputPayload, build_payload_organization_memory_context
 from app.core.database import SessionLocal
 from app.domain import models, schemas
 from app.domain.enums import DeliverableClass, InputEntryMode
@@ -3503,6 +3504,72 @@ def test_recommendation_feedback_status_change_clears_reason_codes_and_preserves
     assert recommendation["adoption_feedback"]["feedback_status"] == "adopted"
     assert recommendation["adoption_feedback"]["reason_codes"] == []
     assert recommendation["adoption_feedback"]["note"] == "這個模式適合留作後續參考。"
+
+
+def test_task_and_matter_expose_matter_scoped_organization_memory(
+    client: TestClient,
+) -> None:
+    payload = create_contract_review_payload("Organization memory foundation")
+    task = client.post("/api/v1/tasks", json=payload).json()
+    client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("agreement.txt", b"Termination and liability clauses need review.", "text/plain"))],
+    )
+    run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
+    assert run_response.status_code == 200
+
+    aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
+    guidance = aggregate["organization_memory_guidance"]
+    assert guidance["status"] == "available"
+    assert guidance["organization_label"]
+    assert guidance["stable_context_items"]
+    assert guidance["boundary_note"]
+
+    matter_id = aggregate["matter_workspace"]["id"]
+    matter_workspace = client.get(f"/api/v1/matters/{matter_id}").json()
+    matter_guidance = matter_workspace["organization_memory_guidance"]
+    assert matter_guidance["status"] == "available"
+    assert matter_guidance["organization_label"]
+    assert matter_guidance["stable_context_items"]
+
+
+def test_build_payload_organization_memory_context_keeps_prompt_safe_lines() -> None:
+    payload = AgentInputPayload(
+        task_id="task-1",
+        title="Task title",
+        description="Task description",
+        task_type="contract_review",
+        flow_mode="specialist",
+        presence_state_summary=schemas.PresenceStateSummaryRead(
+            client=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="某客戶"),
+            engagement=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="委託"),
+            workstream=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="工作流"),
+            decision_context=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="合約審閱"),
+            artifact=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="artifact"),
+            source_material=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="source"),
+            domain_lens=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="法務"),
+            client_stage=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="制度化階段"),
+            client_type=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="中小企業"),
+        ),
+        organization_memory_guidance=schemas.OrganizationMemoryGuidanceRead(
+            status="available",
+            label="這個客戶 / 組織目前已知的穩定背景",
+            summary="summary",
+            organization_label="某客戶｜制度化階段｜中小企業",
+            stable_context_items=["主要工作焦點：法務、營運", "目前常用模組包：Professional Services Pack"],
+            known_constraints=["Keep the output internal and non-final."],
+            continuity_anchor="這案目前延續合約審閱這條主線。",
+            boundary_note="這是同一案件世界內目前已知的穩定背景。",
+        ),
+    )
+
+    lines = build_payload_organization_memory_context(payload)
+
+    assert lines
+    assert any("組織背景：" in item for item in lines)
+    assert any("穩定背景：" in item for item in lines)
+    assert any("已知限制：" in item for item in lines)
+    assert any("延續主線：" in item for item in lines)
 
 
 def test_deliverable_precedent_candidate_can_be_promoted_and_demoted(

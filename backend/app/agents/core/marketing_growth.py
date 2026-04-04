@@ -11,6 +11,7 @@ from app.agents.base import (
     RiskDraft,
     build_payload_common_risk_context,
     build_payload_deliverable_shape_context,
+    build_payload_organization_memory_context,
     build_payload_precedent_context,
     build_payload_review_lens_context,
 )
@@ -50,6 +51,7 @@ class MarketingGrowthAgent(CoreAnalysisAgent):
                     {"id": evidence.id, "title": evidence.title, "content": evidence.excerpt_or_summary}
                     for evidence in payload.evidence
                 ],
+                organization_memory_context=build_payload_organization_memory_context(payload),
                 precedent_context=build_payload_precedent_context(payload),
                 review_lens_context=build_payload_review_lens_context(payload),
                 common_risk_context=build_payload_common_risk_context(payload),

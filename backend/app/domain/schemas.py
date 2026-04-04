@@ -820,6 +820,17 @@ class PrecedentReferenceGuidanceRead(BaseModel):
     matched_items: list[PrecedentReferenceItemRead] = Field(default_factory=list)
 
 
+class OrganizationMemoryGuidanceRead(BaseModel):
+    status: Literal["available", "none"] = "none"
+    label: str = ""
+    summary: str = ""
+    organization_label: str = ""
+    stable_context_items: list[str] = Field(default_factory=list)
+    known_constraints: list[str] = Field(default_factory=list)
+    continuity_anchor: str = ""
+    boundary_note: str = ""
+
+
 class ReviewLensItemRead(BaseModel):
     lens_id: str
     title: str
@@ -1555,6 +1566,9 @@ class MatterWorkspaceResponse(BaseModel):
     )
     canonicalization_candidates: list[CanonicalizationCandidateRead] = Field(default_factory=list)
     research_guidance: ResearchGuidanceRead = Field(default_factory=ResearchGuidanceRead)
+    organization_memory_guidance: OrganizationMemoryGuidanceRead = Field(
+        default_factory=OrganizationMemoryGuidanceRead
+    )
     readiness_hint: str = ""
     continuity_notes: list[str] = Field(default_factory=list)
     continuation_surface: ContinuationSurfaceRead | None = None
@@ -1698,6 +1712,9 @@ class TaskAggregateResponse(BaseModel):
     world_work_slice_summary: str = ""
     evidence_gaps: list[EvidenceGapRead] = Field(default_factory=list)
     research_guidance: ResearchGuidanceRead = Field(default_factory=ResearchGuidanceRead)
+    organization_memory_guidance: OrganizationMemoryGuidanceRead = Field(
+        default_factory=OrganizationMemoryGuidanceRead
+    )
     precedent_reference_guidance: PrecedentReferenceGuidanceRead = Field(
         default_factory=PrecedentReferenceGuidanceRead
     )

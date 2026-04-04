@@ -50,6 +50,7 @@ import {
   buildResearchDetailView,
   buildResearchGuidanceView,
 } from "@/lib/research-lane";
+import { buildOrganizationMemoryView } from "@/lib/organization-memory";
 import {
   buildPrecedentCandidateActionView,
   buildPrecedentCandidateView,
@@ -590,6 +591,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
   const flagshipDetailView = buildFlagshipDetailView(flagshipLane);
   const materialReviewPosture = buildMaterialReviewPostureView(flagshipLane);
   const researchGuidance = task ? buildResearchGuidanceView(task.research_guidance) : null;
+  const organizationMemoryView = task
+    ? buildOrganizationMemoryView(task.organization_memory_guidance)
+    : null;
   const researchDetailView = task
     ? buildResearchDetailView(researchGuidance, task.research_runs[0] ?? null)
     : null;
@@ -1310,6 +1314,40 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     ) : null}
                     <p className="muted-text" style={{ marginTop: "12px" }}>
                       {precedentReferenceView.boundaryNote}
+                    </p>
+                  </div>
+                ) : null}
+                {organizationMemoryView?.shouldShow ? (
+                  <div className="detail-item">
+                    <h3>{organizationMemoryView.sectionTitle}</h3>
+                    <p className="content-block">{organizationMemoryView.summary}</p>
+                    {organizationMemoryView.organizationLabel ? (
+                      <p className="muted-text">{organizationMemoryView.organizationLabel}</p>
+                    ) : null}
+                    {organizationMemoryView.stableContextItems.length > 0 ? (
+                      <ul className="list-content" style={{ marginTop: "12px" }}>
+                        {organizationMemoryView.stableContextItems.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                    {organizationMemoryView.knownConstraints.length > 0 ? (
+                      <>
+                        <h4 style={{ marginTop: "16px" }}>已知限制</h4>
+                        <ul className="list-content" style={{ marginTop: "12px" }}>
+                          {organizationMemoryView.knownConstraints.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      </>
+                    ) : null}
+                    {organizationMemoryView.continuityAnchor ? (
+                      <p className="muted-text" style={{ marginTop: "12px" }}>
+                        {organizationMemoryView.continuityAnchor}
+                      </p>
+                    ) : null}
+                    <p className="muted-text" style={{ marginTop: "12px" }}>
+                      {organizationMemoryView.boundaryNote}
                     </p>
                   </div>
                 ) : null}

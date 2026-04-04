@@ -1065,6 +1065,22 @@ Primary action：
   - 3 到 5 個 section hints
   - 少量 supporting hints
 - `matter workspace`、`overview`、`history` 目前都不應長出 deliverable-shape hero
+
+### 9.2.6 Matter-scoped organization-memory reading
+
+當 Host 已開始把同一案件世界裡的穩定背景收斂成 organization memory 時，UI 也應維持低噪音回讀：
+
+- 這個客戶 / 組織目前已知的穩定背景
+- 這案已知的限制
+- 這案目前延續哪條主線
+
+正式規則：
+
+- 第一波優先出現在 `matter workspace`
+- `task detail` 只做更輕的 second-layer 回讀
+- 不新增 organization page family
+- 不把這層做成 CRM profile 卡
+- 只應露出少量、已站穩、對當前判斷真的有幫助的背景
 - UI 必須清楚標示這層是在回答：
   - `這份交付物通常怎麼收比較穩`
 - 不可把這層寫成：

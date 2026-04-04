@@ -92,6 +92,7 @@ from app.services.object_sets import (
     relevant_object_sets_for_deliverable,
     serialize_object_sets,
 )
+from app.services.organization_memory_intelligence import build_organization_memory_guidance
 from app.services.deliverable_shape_intelligence import build_deliverable_shape_guidance
 from app.services.precedent_duplicate_governance import (
     collapse_precedent_candidates_for_reference,
@@ -8478,6 +8479,25 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
         ),
         latest_run=latest_research_run,
     )
+    organization_memory_guidance = build_organization_memory_guidance(
+        client_name=summary.client_name,
+        client_stage=summary.client_stage,
+        client_type=summary.client_type,
+        domain_lenses=summary.domain_lenses,
+        selected_pack_names=summary.selected_pack_names,
+        continuity_mode=summary.engagement_continuity_mode,
+        current_decision_context_title=summary.current_decision_context_title,
+        next_best_actions=(
+            list(matter_workspace.case_world_state.next_best_actions or [])
+            if matter_workspace.case_world_state is not None
+            else []
+        ),
+        constraint_descriptions=[
+            constraint.description
+            for task in related_tasks
+            for constraint in task.constraints
+        ],
+    )
 
     return schemas.MatterWorkspaceResponse(
         summary=summary,
@@ -8514,6 +8534,7 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
         canonicalization_summary=canonicalization_summary,
         canonicalization_candidates=canonicalization_candidates[:8],
         research_guidance=research_guidance,
+        organization_memory_guidance=organization_memory_guidance,
         readiness_hint=readiness_hint,
         continuity_notes=continuity_notes,
         continuation_surface=continuation_surface,
@@ -11326,6 +11347,39 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
             else None
         ),
     )
+    organization_memory_guidance = build_organization_memory_guidance(
+        client_name=matter_workspace_summary.client_name if matter_workspace_summary else (world_client.name if world_client else ""),
+        client_stage=(
+            world_decision_context.client_stage
+            if world_decision_context and world_decision_context.client_stage
+            else decision_context.client_stage if decision_context else client.client_stage if client else None
+        ),
+        client_type=(
+            world_decision_context.client_type
+            if world_decision_context and world_decision_context.client_type
+            else decision_context.client_type if decision_context else client.client_type if client else None
+        ),
+        domain_lenses=preferred_domain_lenses,
+        selected_pack_names=(
+            matter_workspace_summary.selected_pack_names
+            if matter_workspace_summary
+            else [*pack_resolution.stack_order[:3]]
+        ),
+        continuity_mode=continuity_mode,
+        current_decision_context_title=(
+            world_decision_context.title
+            if world_decision_context and world_decision_context.title
+            else preferred_decision_context.title if preferred_decision_context else task.title
+        ),
+        next_best_actions=(
+            list(case_world_state_row.next_best_actions)
+            if case_world_state_row is not None
+            else list(case_world_draft_row.next_best_actions)
+            if case_world_draft_row is not None
+            else []
+        ),
+        constraint_descriptions=[constraint.description for related_task in related_tasks_for_lane for constraint in related_task.constraints],
+    )
     precedent_reference_guidance = _build_precedent_reference_guidance_read(
         db,
         task=task,
@@ -11447,6 +11501,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
             for item in sorted(evidence_gap_rows, key=lambda gap: gap.updated_at, reverse=True)
         ],
         research_guidance=research_guidance,
+        organization_memory_guidance=organization_memory_guidance,
         precedent_reference_guidance=precedent_reference_guidance,
         review_lens_guidance=review_lens_guidance,
         common_risk_guidance=common_risk_guidance,

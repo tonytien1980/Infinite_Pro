@@ -44,6 +44,7 @@ import { buildPrecedentReferenceView } from "../src/lib/precedent-reference.ts";
 import { buildReviewLensView } from "../src/lib/review-lenses.ts";
 import { buildContinuationPostureView } from "../src/lib/continuity-ux.ts";
 import { buildResearchDetailView, buildResearchGuidanceView } from "../src/lib/research-lane.ts";
+import { buildOrganizationMemoryView } from "../src/lib/organization-memory.ts";
 
 test("batch progress summary distinguishes done, parsing, failed, blocking, and reference-only items", () => {
   const items = buildIntakePreviewItems({
@@ -447,6 +448,25 @@ test("adoption feedback view exposes lightweight consultant-facing feedback stat
   const reasonOptions = getAdoptionFeedbackReasonOptions("deliverable", "template_candidate");
   assert.equal(reasonOptions[0]?.value, "reusable_structure");
   assert.equal(reasonOptions[0]?.label, "可重用的交付結構");
+});
+
+test("organization memory view stays low-noise and consultant-readable", () => {
+  const view = buildOrganizationMemoryView({
+    status: "available",
+    label: "這個客戶 / 組織目前已知的穩定背景",
+    summary: "Host 先把同一案件世界裡已站穩的組織背景整理出來。",
+    organization_label: "某客戶｜制度化階段｜中小企業",
+    stable_context_items: ["主要工作焦點：法務、營運", "目前常用模組包：Professional Services Pack"],
+    known_constraints: ["Keep the output internal and non-final."],
+    continuity_anchor: "這案目前延續合約審閱這條主線。",
+    boundary_note: "這是同一案件世界內目前已知的穩定背景。",
+  });
+
+  assert.equal(view.shouldShow, true);
+  assert.equal(view.organizationLabel, "某客戶｜制度化階段｜中小企業");
+  assert.equal(view.stableContextItems[0], "主要工作焦點：法務、營運");
+  assert.equal(view.knownConstraints[0], "Keep the output internal and non-final.");
+  assert.match(view.continuityAnchor, /合約審閱/);
 });
 
 test("continuous advisory view exposes health, timeline, and next-step queue in consultant-facing copy", () => {

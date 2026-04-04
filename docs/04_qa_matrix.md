@@ -2914,3 +2914,41 @@ Environment used:
 - reusable assets now read human reason-coded precedent signals instead of only generic precedent similarity
 - Host is better at deciding which precedent should help review order, which should help omission scanning, and which should help deliverable shaping
 - this stronger routing still stays behind the same low-noise UI surfaces
+
+---
+
+## Entry: 2026-04-05 matter-scoped organization memory pass
+
+Scope:
+- first-pass matter-scoped `organization_memory_guidance`
+- Host-safe organization-memory context
+- low-noise matter / task readback
+
+Environment used:
+- local repo runtime checks only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`131 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`27 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Organization-memory specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | task aggregate | Read `organization_memory_guidance` | Verified | targeted backend test confirms task aggregate returns stable context items, known constraints, and boundary note |
+| Backend | matter workspace | Read `organization_memory_guidance` | Verified | targeted backend test confirms matter workspace returns same-matter organization memory |
+| Backend | agent payload | Build prompt-safe organization-memory context | Verified | targeted backend test confirms Host payload lines stay compact and consultant-readable |
+| Frontend | organization-memory helper | Render low-noise organization-memory reading | Verified | frontend helper test confirms the view reads as a compact context block rather than a new profile shell |
+
+### Verified outcomes
+
+- Infinite Pro now remembers some stable client / organization background inside the same matter world instead of re-deriving it from scratch every round
+- Host can carry this matter-scoped background into model context without turning it into a CRM or separate memory platform
+- matter workspace and task detail can read the memory back in a low-noise way

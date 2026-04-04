@@ -33,6 +33,7 @@ Host 正式負責：
 - readiness governance
 - research trigger governance
 - precedent reference governance
+- organization memory governance
 - reusable review-lens governance
 - common-risk-library governance
 - deliverable-shape governance

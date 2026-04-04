@@ -1152,6 +1152,17 @@ export interface PrecedentReferenceGuidance {
   matched_items: PrecedentReferenceItem[];
 }
 
+export interface OrganizationMemoryGuidance {
+  status: "available" | "none";
+  label: string;
+  summary: string;
+  organization_label: string;
+  stable_context_items: string[];
+  known_constraints: string[];
+  continuity_anchor: string;
+  boundary_note: string;
+}
+
 export interface ReviewLensItem {
   lens_id: string;
   title: string;
@@ -1608,6 +1619,7 @@ export interface TaskAggregate {
   world_work_slice_summary: string;
   evidence_gaps: EvidenceGap[];
   research_guidance: ResearchGuidance;
+  organization_memory_guidance: OrganizationMemoryGuidance;
   precedent_reference_guidance: PrecedentReferenceGuidance;
   review_lens_guidance: ReviewLensGuidance;
   common_risk_guidance: CommonRiskGuidance;
@@ -1682,6 +1694,7 @@ export interface MatterWorkspace {
   case_world_drafts: CaseWorldDraft[];
   evidence_gaps: EvidenceGap[];
   research_guidance: ResearchGuidance;
+  organization_memory_guidance: OrganizationMemoryGuidance;
   research_runs: ResearchRun[];
   decision_records: DecisionRecord[];
   action_plans: ActionPlan[];

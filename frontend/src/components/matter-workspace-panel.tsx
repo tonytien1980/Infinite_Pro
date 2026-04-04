@@ -25,6 +25,7 @@ import {
   buildResearchDetailView,
   buildResearchGuidanceView,
 } from "@/lib/research-lane";
+import { buildOrganizationMemoryView } from "@/lib/organization-memory";
 import { buildMaterialReviewPostureView } from "@/lib/material-review-ux";
 import { buildPrecedentCandidateSummaryView } from "@/lib/precedent-candidates";
 import { truncateText } from "@/lib/text-format";
@@ -574,6 +575,9 @@ export function MatterWorkspacePanel({
     ? buildPrecedentCandidateSummaryView(matter.summary.precedent_candidate_summary)
     : null;
   const researchGuidance = matter ? buildResearchGuidanceView(matter.research_guidance) : null;
+  const organizationMemoryView = matter
+    ? buildOrganizationMemoryView(matter.organization_memory_guidance)
+    : null;
   const researchDetailView = matter
     ? buildResearchDetailView(researchGuidance, matter.research_runs[0] ?? null)
     : null;
@@ -1043,6 +1047,27 @@ export function MatterWorkspacePanel({
                         ) : null}
                         {researchGuidance.freshnessSummary ? (
                           <p className="muted-text">{researchGuidance.freshnessSummary}</p>
+                        ) : null}
+                      </div>
+                    ) : null}
+                    {organizationMemoryView?.shouldShow ? (
+                      <div className="detail-item">
+                        <h3>{organizationMemoryView.sectionTitle}</h3>
+                        <p className="content-block">{organizationMemoryView.summary}</p>
+                        {organizationMemoryView.organizationLabel ? (
+                          <p className="muted-text">{organizationMemoryView.organizationLabel}</p>
+                        ) : null}
+                        {organizationMemoryView.stableContextItems.length > 0 ? (
+                          <ul className="list-content" style={{ marginTop: "12px" }}>
+                            {organizationMemoryView.stableContextItems.map((item) => (
+                              <li key={item}>{item}</li>
+                            ))}
+                          </ul>
+                        ) : null}
+                        {organizationMemoryView.continuityAnchor ? (
+                          <p className="muted-text" style={{ marginTop: "12px" }}>
+                            {organizationMemoryView.continuityAnchor}
+                          </p>
                         ) : null}
                       </div>
                     ) : null}

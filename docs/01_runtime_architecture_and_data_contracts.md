@@ -749,6 +749,41 @@ deliverable workspace 採：
 - task / deliverable surface 目前只應以 second-layer disclosure 低噪音回讀
 - matter / overview 目前不應長出 review lens dashboard hero
 
+### 6.10.2A Matter-scoped organization memory
+
+在 precedent / reusable intelligence 已開始知道「哪些模式值得保留」之後，第一版 `client / organization memory` 正式先落在：
+
+- `matter-scoped organization_memory_guidance`
+
+正式規則：
+
+- 第一版只整理同一案件世界內已知的穩定背景
+- 不做跨 matter / 跨 client 自動合併
+- Host 可把這層收斂成 prompt-safe `organization_memory_context`
+- 這層的正式角色是回答：
+  - 這個客戶 / 組織目前已知的穩定背景
+  - 這個案件世界反覆出現的限制
+  - 這案目前延續哪條主線
+
+第一版 contract 至少包括：
+
+- `status`
+- `label`
+- `summary`
+- `organization_label`
+- `stable_context_items`
+- `known_constraints`
+- `continuity_anchor`
+- `boundary_note`
+
+正式規則：
+
+- 這層不是 CRM shell
+- 這層不是跨客戶 profile library
+- `organization_memory_context` 應與 `precedent_context` 並存，但角色不同：
+  - precedent context：以前哪些模式值得參考
+  - organization memory context：這個客戶 / 組織目前有哪些穩定背景不必重問
+
 ### 6.10.3 Common risk libraries
 
 在 reusable review lenses 已成立後，precedent / reusable intelligence 的下一批 reusable asset 應先是：
