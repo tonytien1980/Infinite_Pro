@@ -557,6 +557,9 @@ export function HistoryPagePanel() {
                       </div>
                       <p className="content-block">{candidateView.summary}</p>
                       <p className="muted-text">{priorityView.reason}</p>
+                      {item.primary_reason_label ? (
+                        <p className="muted-text">主要原因：{item.primary_reason_label}</p>
+                      ) : null}
                       <p className="muted-text">
                         {item.lane_id || "未標示 lane"}｜{item.continuity_mode}｜{item.deliverable_type || "未標示交付類型"}
                       </p>

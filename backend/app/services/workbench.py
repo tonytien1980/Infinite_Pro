@@ -12,6 +12,7 @@ from app.services.precedent_duplicate_governance import (
 )
 from app.services.precedent_intelligence import (
     PRECEDENT_REVIEW_PRIORITY_RANK,
+    candidate_reason_labels,
     classify_precedent_review_priority,
 )
 from app.workbench import schemas
@@ -159,9 +160,12 @@ def get_precedent_review_state(db: Session) -> schemas.PrecedentReviewResponse:
 
     ranked_items: list[tuple[int, int, float, float, schemas.PrecedentReviewItemResponse]] = []
     for row in rows:
+        source_feedback_reason_labels = candidate_reason_labels(row)
+        primary_reason_label = source_feedback_reason_labels[0] if source_feedback_reason_labels else ""
         review_priority, review_priority_reason, nuance_rank = classify_precedent_review_priority(
             row.candidate_status,
             row.source_feedback_status,
+            primary_reason_label=primary_reason_label,
         )
         item = schemas.PrecedentReviewItemResponse(
             id=row.id,
@@ -169,6 +173,8 @@ def get_precedent_review_state(db: Session) -> schemas.PrecedentReviewResponse:
             candidate_status=row.candidate_status,  # type: ignore[arg-type]
             review_priority=review_priority,  # type: ignore[arg-type]
             review_priority_reason=review_priority_reason,
+            primary_reason_label=primary_reason_label,
+            source_feedback_reason_labels=source_feedback_reason_labels,
             title=row.title or "",
             summary=row.summary or "",
             reusable_reason=row.reusable_reason or "",

@@ -243,6 +243,8 @@ class PrecedentReviewItemResponse(BaseModel):
     candidate_status: Literal["candidate", "promoted", "dismissed"]
     review_priority: Literal["high", "medium", "low"] = "medium"
     review_priority_reason: str = ""
+    primary_reason_label: str = ""
+    source_feedback_reason_labels: list[str] = Field(default_factory=list)
     title: str
     summary: str = ""
     reusable_reason: str = ""

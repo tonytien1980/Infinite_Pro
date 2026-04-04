@@ -97,6 +97,7 @@ from app.services.precedent_duplicate_governance import (
     collapse_precedent_candidates_for_reference,
 )
 from app.services.precedent_intelligence import (
+    build_reason_aware_precedent_recommended_uses,
     select_precedent_reference_matches,
 )
 from app.services.review_lens_intelligence import build_review_lens_guidance
@@ -7502,6 +7503,7 @@ def _serialize_precedent_candidate(item: models.PrecedentCandidate) -> schemas.P
         candidate_type=PrecedentCandidateType(item.candidate_type),
         candidate_status=PrecedentCandidateStatus(item.candidate_status),
         source_feedback_status=AdoptionFeedbackStatus(item.source_feedback_status),
+        source_feedback_reason_codes=list(item.source_feedback_reason_codes or []),
         source_task_id=item.task_id,
         source_deliverable_id=item.source_deliverable_id,
         source_recommendation_id=item.source_recommendation_id,
@@ -7622,6 +7624,8 @@ def _build_precedent_reference_guidance_read(
             candidate_type=PrecedentCandidateType(item.candidate.candidate_type),
             candidate_status=PrecedentCandidateStatus(item.candidate.candidate_status),
             review_priority=item.review_priority,  # type: ignore[arg-type]
+            primary_reason_label=item.primary_reason_label,
+            source_feedback_reason_labels=item.source_feedback_reason_labels,
             title=item.candidate.title or "",
             summary=item.candidate.summary or "",
             reusable_reason=item.candidate.reusable_reason or "",
@@ -7641,11 +7645,7 @@ def _build_precedent_reference_guidance_read(
             f"Host 目前找到 {len(matched_items)} 個可參考的既有模式，"
             "會先拿來輔助 framing、review lens 與交付骨架。"
         ),
-        recommended_uses=[
-            "先拿來校正 framing 與問題定義，不要把 precedent 當成定案。",
-            "再拿來提醒交付骨架、審閱順序與常漏風險。",
-            "若與這案當前證據衝突，仍以這案的正式證據與限制為準。",
-        ],
+        recommended_uses=build_reason_aware_precedent_recommended_uses(matches),
         boundary_note="這些模式只可拿來參考判斷順序與骨架，不會直接複製舊案正文。",
         matched_items=matched_items,
     )
@@ -11656,6 +11656,7 @@ def _build_precedent_candidate_seed(
                 "summary": summary,
                 "deliverable_title": title,
                 "deliverable_type": deliverable.deliverable_type,
+                "source_feedback_reason_codes": list(feedback_reason_codes or []),
                 "lane_label": flagship_lane.label,
                 "current_output_label": flagship_lane.current_output_label,
                 "boundary_note": flagship_lane.boundary_note,
@@ -11696,6 +11697,7 @@ def _build_precedent_candidate_seed(
             "rationale": recommendation_rationale,
             "priority": recommendation.priority if recommendation else "",
             "owner_suggestion": recommendation.owner_suggestion if recommendation else None,
+            "source_feedback_reason_codes": list(feedback_reason_codes or []),
             "lane_label": flagship_lane.label,
             "top_risks": top_risks,
             "shape_sections": [],
@@ -11746,6 +11748,7 @@ def _sync_precedent_candidate_for_feedback(
     candidate.task_id = task.id
     candidate.matter_workspace_id = matter_workspace.id if matter_workspace else None
     candidate.source_feedback_status = feedback_status.value
+    candidate.source_feedback_reason_codes = list(feedback.reason_codes or [])
     candidate.candidate_status = PrecedentCandidateStatus.CANDIDATE.value
     candidate.candidate_type = seed["candidate_type"]
     candidate.title = seed["title"]

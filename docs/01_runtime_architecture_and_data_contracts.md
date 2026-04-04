@@ -575,6 +575,7 @@ deliverable workspace 採：
 - `candidate_type`
 - `candidate_status`
 - `source_feedback_status`
+- `source_feedback_reason_codes`
 - `source_task_id`
 - `source_deliverable_id` / `source_recommendation_id`
 - `title`
@@ -610,10 +611,13 @@ deliverable workspace 採：
   - `medium`
   - `low`
 - `review_priority_reason`
+- `primary_reason_label`
+- `source_feedback_reason_labels`
 
 正式規則：
 
 - 這是 review guidance，不是 correctness score
+- review lane 應開始利用 `source_feedback_reason_codes` 回答「這筆候選為什麼值得先看」
 - 第一波建議順序至少應符合：
   - `candidate + template_candidate` -> `high`
   - `candidate + adopted` -> `high`
@@ -657,6 +661,8 @@ deliverable workspace 採：
 - `candidate_type`
 - `candidate_status`
 - `review_priority`
+- `primary_reason_label`
+- `source_feedback_reason_labels`
 - `title`
 - `summary`
 - `reusable_reason`
@@ -668,6 +674,9 @@ deliverable workspace 採：
 正式規則：
 
 - 這一層的目的，是讓 Host 開始安全參考 precedent patterns
+- `recommended_uses` 與 `safe_use_note` 可開始利用 reason-coded signal 說明：
+  - 這筆 precedent 現在比較適合拿來參考交付骨架
+  - 或比較適合拿來參考判斷方式 / 行動排序 / 風險掃描
 - 它不等於 playbook library
 - 它也不等於 template auto-apply
 

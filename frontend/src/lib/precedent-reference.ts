@@ -21,7 +21,12 @@ export function buildPrecedentReferenceView(
     cards: guidance.matched_items.map((item) => ({
       title: item.title || "未命名模式",
       summary: item.summary || item.reusable_reason || "目前沒有額外摘要。",
-      meta: item.match_reason || item.safe_use_note,
+      meta: [
+        item.match_reason || "",
+        item.primary_reason_label ? `主要原因：${item.primary_reason_label}` : "",
+      ]
+        .filter(Boolean)
+        .join("｜") || item.safe_use_note,
     })),
     listItems: guidance.recommended_uses,
     boundaryNote: guidance.boundary_note,

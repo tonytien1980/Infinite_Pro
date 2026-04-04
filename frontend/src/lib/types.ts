@@ -130,6 +130,8 @@ export interface PrecedentReviewItem {
   candidate_status: PrecedentCandidateStatus;
   review_priority: "high" | "medium" | "low";
   review_priority_reason: string;
+  primary_reason_label: string;
+  source_feedback_reason_labels: string[];
   title: string;
   summary: string;
   reusable_reason: string;
@@ -1096,6 +1098,7 @@ export interface PrecedentCandidate {
   candidate_type: PrecedentCandidateType;
   candidate_status: PrecedentCandidateStatus;
   source_feedback_status: AdoptionFeedbackStatus;
+  source_feedback_reason_codes: string[];
   source_task_id: string;
   source_deliverable_id: string | null;
   source_recommendation_id: string | null;
@@ -1127,6 +1130,8 @@ export interface PrecedentReferenceItem {
   candidate_type: PrecedentCandidateType;
   candidate_status: PrecedentCandidateStatus;
   review_priority: "high" | "medium" | "low";
+  primary_reason_label: string;
+  source_feedback_reason_labels: string[];
   title: string;
   summary: string;
   reusable_reason: string;

@@ -766,6 +766,7 @@ class PrecedentCandidateRead(ORMModel):
     candidate_type: PrecedentCandidateType
     candidate_status: PrecedentCandidateStatus
     source_feedback_status: AdoptionFeedbackStatus
+    source_feedback_reason_codes: list[str] = Field(default_factory=list)
     source_task_id: str
     source_deliverable_id: str | None = None
     source_recommendation_id: str | None = None
@@ -797,6 +798,8 @@ class PrecedentReferenceItemRead(BaseModel):
     candidate_type: PrecedentCandidateType
     candidate_status: PrecedentCandidateStatus
     review_priority: Literal["high", "medium", "low"] = "medium"
+    primary_reason_label: str = ""
+    source_feedback_reason_labels: list[str] = Field(default_factory=list)
     title: str = ""
     summary: str = ""
     reusable_reason: str = ""

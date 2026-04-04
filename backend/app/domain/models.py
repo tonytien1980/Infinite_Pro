@@ -1188,6 +1188,7 @@ class PrecedentCandidate(Base):
     candidate_type: Mapped[str] = mapped_column(String(50), nullable=False)
     candidate_status: Mapped[str] = mapped_column(String(50), nullable=False, default="candidate")
     source_feedback_status: Mapped[str] = mapped_column(String(50), nullable=False)
+    source_feedback_reason_codes: Mapped[list[str]] = mapped_column(JSON, default=list)
     title: Mapped[str] = mapped_column(String(255), default="")
     summary: Mapped[str] = mapped_column(Text, default="")
     reusable_reason: Mapped[str] = mapped_column(Text, default="")

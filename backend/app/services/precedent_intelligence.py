@@ -8,6 +8,7 @@ from app.domain.enums import (
     PrecedentCandidateStatus,
     PrecedentCandidateType,
 )
+from app.services.adoption_feedback_intelligence import label_for_adoption_feedback_reason
 
 if TYPE_CHECKING:
     from app.domain import models
@@ -25,6 +26,8 @@ class PrecedentReferenceMatch:
     candidate: "models.PrecedentCandidate"
     review_priority: str
     review_priority_reason: str
+    primary_reason_label: str
+    source_feedback_reason_labels: list[str]
     match_reason: str
     safe_use_note: str
     score: int
@@ -33,11 +36,18 @@ class PrecedentReferenceMatch:
 def classify_precedent_review_priority(
     candidate_status: str,
     source_feedback_status: str,
+    *,
+    primary_reason_label: str = "",
 ) -> tuple[str, str, int]:
+    reason_fragment = (
+        f"而且主要原因是「{primary_reason_label}」。"
+        if primary_reason_label
+        else ""
+    )
     if candidate_status == PrecedentCandidateStatus.DISMISSED.value:
         return (
             "low",
-            "這個候選目前已停用，先留作背景；之後若需要，再從這裡恢復即可。",
+            f"這個候選目前已停用，先留作背景；之後若需要，再從這裡恢復即可。{reason_fragment}",
             0,
         )
 
@@ -45,25 +55,25 @@ def classify_precedent_review_priority(
         if source_feedback_status == AdoptionFeedbackStatus.TEMPLATE_CANDIDATE.value:
             return (
                 "high",
-                "這個候選來自「值得當範本」的採納訊號，而且目前仍待決，最值得先回看。",
-                0,
+                f"這個候選來自「值得當範本」的採納訊號，{reason_fragment or '而且目前仍待決，最值得先回看。'}",
+                0 if primary_reason_label else 1,
             )
         if source_feedback_status == AdoptionFeedbackStatus.ADOPTED.value:
             return (
                 "high",
-                "這個候選已被直接採用，而且目前仍待決，值得先決定是否升格成正式模式。",
-                1,
+                f"這個候選已被直接採用，{reason_fragment or '而且目前仍待決，值得先決定是否升格成正式模式。'}",
+                1 if primary_reason_label else 2,
             )
         return (
             "medium",
-            "這個候選仍有參考價值，但來源回饋仍偏向需要改寫，可安排下一輪回看。",
-            0,
+            f"這個候選仍有參考價值，但來源回饋仍偏向需要改寫。{reason_fragment or '可安排下一輪回看。'}",
+            1 if primary_reason_label else 2,
         )
 
     return (
         "medium",
-        "這個模式已正式升格，目前比較適合週期性回看，不必搶在待決候選前面。",
-        1,
+        f"這個模式已正式升格，目前比較適合週期性回看。{reason_fragment or '不必搶在待決候選前面。'}",
+        2 if primary_reason_label else 3,
     )
 
 
@@ -82,10 +92,70 @@ def is_precedent_candidate_reference_eligible(
     }
 
 
-def build_precedent_safe_use_note(candidate_type: str) -> str:
+def _surface_kind_for_candidate_type(candidate_type: str) -> str:
     if candidate_type == PrecedentCandidateType.DELIVERABLE_PATTERN.value:
+        return "deliverable"
+    return "recommendation"
+
+
+def candidate_reason_codes(candidate: "models.PrecedentCandidate") -> list[str]:
+    return list(candidate.source_feedback_reason_codes or [])
+
+
+def candidate_reason_labels(candidate: "models.PrecedentCandidate") -> list[str]:
+    surface_kind = _surface_kind_for_candidate_type(candidate.candidate_type)
+    status = AdoptionFeedbackStatus(candidate.source_feedback_status)
+    labels: list[str] = []
+    for code in candidate_reason_codes(candidate):
+        label = label_for_adoption_feedback_reason(surface_kind, status, code)
+        if label and label not in labels:
+            labels.append(label)
+    return labels
+
+
+def build_precedent_safe_use_note(candidate_type: str, reason_codes: Iterable[str] | None = None) -> str:
+    codes = set(reason_codes or [])
+    if candidate_type == PrecedentCandidateType.DELIVERABLE_PATTERN.value:
+        if {"reusable_structure", "reusable_deliverable_shape"} & codes:
+            return "優先參考交付骨架與段落順序，不要直接複製舊案正文。"
+        if "reusable_reasoning" in codes:
+            return "優先參考判斷收斂方式與段落取捨，不要直接複製舊案正文。"
+        if "reusable_risk_scan" in codes:
+            return "優先參考風險掃描順序，不要把舊案風險直接套到新案。"
         return "可參考交付骨架與判斷順序，不要直接複製舊案正文。"
+    if {"reusable_action_pattern", "reusable_priority_judgment"} & codes:
+        return "優先參考行動排序與優先順序，不要直接照搬建議內容。"
+    if {"reusable_constraint_handling", "reusable_client_framing"} & codes:
+        return "優先參考限制處理與客戶情境 framing，不要直接照搬建議內容。"
     return "可參考建議 framing 與優先順序，不要直接照搬建議內容。"
+
+
+def build_reason_aware_precedent_recommended_uses(
+    matches: Iterable[PrecedentReferenceMatch],
+) -> list[str]:
+    matched = list(matches)
+    codes = {
+        code
+        for item in matched
+        for code in candidate_reason_codes(item.candidate)
+    }
+    uses: list[str] = []
+
+    if {"reusable_structure", "reusable_deliverable_shape"} & codes:
+        uses.append("先拿來校正交付骨架與段落順序，不要把舊案內容直接當成現成答案。")
+    if {"reusable_reasoning", "reusable_priority_judgment", "reusable_client_framing"} & codes:
+        uses.append("再拿來校正 framing、判斷順序與優先級，不要把 precedent 當成定案。")
+    if {"reusable_risk_scan", "reusable_constraint_handling", "reusable_action_pattern"} & codes:
+        uses.append("最後拿來提醒常漏風險、限制條件與下一步排序，但仍要回到這案的正式證據核對。")
+
+    if uses:
+        return uses[:3]
+
+    return [
+        "先拿來校正 framing 與問題定義，不要把 precedent 當成定案。",
+        "再拿來提醒交付骨架、審閱順序與常漏風險。",
+        "若與這案當前證據衝突，仍以這案的正式證據與限制為準。",
+    ]
 
 
 def select_precedent_reference_matches(
@@ -150,9 +220,12 @@ def select_precedent_reference_matches(
         if not reasons:
             continue
 
+        source_feedback_reason_labels = candidate_reason_labels(candidate)
+        primary_reason_label = source_feedback_reason_labels[0] if source_feedback_reason_labels else ""
         review_priority, review_priority_reason, _ = classify_precedent_review_priority(
             candidate.candidate_status,
             candidate.source_feedback_status,
+            primary_reason_label=primary_reason_label,
         )
 
         matches.append(
@@ -160,8 +233,13 @@ def select_precedent_reference_matches(
                 candidate=candidate,
                 review_priority=review_priority,
                 review_priority_reason=review_priority_reason,
+                primary_reason_label=primary_reason_label,
+                source_feedback_reason_labels=source_feedback_reason_labels,
                 match_reason="；".join(reasons[:2]),
-                safe_use_note=build_precedent_safe_use_note(candidate.candidate_type),
+                safe_use_note=build_precedent_safe_use_note(
+                    candidate.candidate_type,
+                    candidate_reason_codes(candidate),
+                ),
                 score=score,
             )
         )

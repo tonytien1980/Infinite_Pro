@@ -189,6 +189,9 @@ def _ensure_incremental_schema_updates() -> None:
         "adoption_feedback": {
             "reason_codes": "JSON NOT NULL DEFAULT '[]'",
         },
+        "precedent_candidates": {
+            "source_feedback_reason_codes": "JSON NOT NULL DEFAULT '[]'",
+        },
         "object_set_members": {
             "support_evidence_id": "VARCHAR(36)",
             "member_metadata": "JSON NOT NULL DEFAULT '{}'",

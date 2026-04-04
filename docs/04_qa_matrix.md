@@ -2841,3 +2841,40 @@ Environment used:
 - adoption feedback is no longer only a coarse status signal; it now has a lightweight structured-reason layer
 - the first tap remains one-click, so the main workbench flow stays fast
 - the second tap now gives Host and precedent governance a cleaner human reason signal without turning the UI into a form-heavy review console
+
+---
+
+## Entry: 2026-04-04 reason-coded precedent governance pass
+
+Scope:
+- connect adoption-feedback `reason_codes` into precedent review lane
+- connect reason-coded signal into Host-safe precedent reference
+- keep all readback low-noise on existing surfaces
+
+Environment used:
+- local repo runtime checks only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`126 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`26 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Reason-coded precedent specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | precedent review state | Read primary reason and reason-aware priority wording | Verified | targeted backend test confirms recommendation candidate now returns `primary_reason_label` and reason-coded `review_priority_reason` |
+| Backend | Host-safe precedent reference | Read reason-aware `recommended_uses` and `safe_use_note` | Verified | targeted backend test confirms deliverable precedent with `reusable_structure` now yields structure-oriented usage guidance |
+| Frontend | precedent reference helper | Render low-noise reason-aware meta and usage | Verified | helper test confirms reference cards stay low-noise while surfacing `主要原因` and more precise uses |
+
+### Verified outcomes
+
+- precedent review lane no longer only says a candidate is high priority; it now also explains the main human reason behind that priority
+- Host-safe precedent reference no longer only says a precedent is similar; it now also says what kind of use it is safest and most useful for
+- the UI remains on existing `history / task / deliverable` surfaces with low-noise copy, not a new precedent dashboard

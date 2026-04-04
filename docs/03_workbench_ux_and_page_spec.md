@@ -836,6 +836,9 @@ Primary action：
   - `可安排下一輪`
   - `先放背景`
 - 這層只是在幫顧問決定 review 順序，不應讀起來像模型在替候選做品質打分
+- 每筆 candidate 可低噪音補一行：
+  - `主要原因：...`
+  - 但不應展開成原因矩陣或治理表格
 - duplicate governance 也應保持低噪音：
   - `確認同一模式`
   - `保留分開`
@@ -968,6 +971,9 @@ Primary action：
 - UI 必須清楚標示：
   - 這是「可參考既有模式」
   - 不是「系統已自動套用」
+- 若 precedent 已有明確 human reason signal，UI 可低噪音補：
+  - `主要原因：...`
+  - 讓顧問知道這筆模式為何值得保留
 - boundary copy 應明講：
   - 可參考 framing / review lens / deliverable shape
   - 不會直接複製舊案正文

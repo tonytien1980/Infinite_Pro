@@ -3616,7 +3616,11 @@ def test_workbench_precedent_review_lists_candidate_states_and_sources(
     recommendation_id = aggregate["recommendations"][0]["id"]
     client.post(
         f"/api/v1/tasks/{task_2['id']}/recommendations/{recommendation_id}/feedback",
-        json={"feedback_status": "template_candidate", "note": "這條建議很適合做成模式候選。"},
+        json={
+            "feedback_status": "template_candidate",
+            "reason_codes": ["reusable_action_pattern"],
+            "note": "這條建議很適合做成模式候選。",
+        },
     )
     client.post(
         f"/api/v1/tasks/{task_2['id']}/recommendations/{recommendation_id}/precedent-candidate",
@@ -3673,6 +3677,8 @@ def test_workbench_precedent_review_lists_candidate_states_and_sources(
     assert recommendation_item["candidate_status"] == "candidate"
     assert recommendation_item["review_priority"] == "high"
     assert recommendation_item["task_title"]
+    assert recommendation_item["primary_reason_label"] == "可重用的行動模式"
+    assert "可重用的行動模式" in recommendation_item["review_priority_reason"]
 
 
 def test_task_aggregate_exposes_host_safe_precedent_reference_guidance(
@@ -3688,7 +3694,11 @@ def test_task_aggregate_exposes_host_safe_precedent_reference_guidance(
     precedent_deliverable_id = precedent_run.json()["deliverable"]["id"]
     client.post(
         f"/api/v1/deliverables/{precedent_deliverable_id}/feedback",
-        json={"feedback_status": "template_candidate", "note": "這份交付值得保留成可重用模式。"},
+        json={
+            "feedback_status": "template_candidate",
+            "reason_codes": ["reusable_structure"],
+            "note": "這份交付值得保留成可重用模式。",
+        },
     )
     client.post(
         f"/api/v1/deliverables/{precedent_deliverable_id}/precedent-candidate",
@@ -3728,7 +3738,9 @@ def test_task_aggregate_exposes_host_safe_precedent_reference_guidance(
     assert guidance["matched_items"]
     assert guidance["matched_items"][0]["source_deliverable_id"] == precedent_deliverable_id
     assert guidance["matched_items"][0]["candidate_status"] == "promoted"
-    assert "不要直接複製舊案正文" in guidance["matched_items"][0]["safe_use_note"]
+    assert guidance["matched_items"][0]["primary_reason_label"] == "可重用的交付結構"
+    assert "交付骨架" in guidance["matched_items"][0]["safe_use_note"]
+    assert any("交付骨架" in item for item in guidance["recommended_uses"])
     assert all(item["source_deliverable_id"] != dismissed_deliverable_id for item in guidance["matched_items"])
     assert all(item["source_task_id"] != current_task["id"] for item in guidance["matched_items"])
     assert "不會直接複製舊案正文" in guidance["boundary_note"]
