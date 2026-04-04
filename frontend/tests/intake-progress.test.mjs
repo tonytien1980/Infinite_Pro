@@ -39,6 +39,7 @@ import {
   filterPrecedentReviewItems,
 } from "../src/lib/precedent-review.ts";
 import { buildCommonRiskLibraryView } from "../src/lib/common-risk-libraries.ts";
+import { buildDomainPlaybookView } from "../src/lib/domain-playbooks.ts";
 import { buildDeliverableShapeHintView } from "../src/lib/deliverable-shape-hints.ts";
 import { buildPrecedentReferenceView } from "../src/lib/precedent-reference.ts";
 import { buildReviewLensView } from "../src/lib/review-lenses.ts";
@@ -467,6 +468,48 @@ test("organization memory view stays low-noise and consultant-readable", () => {
   assert.equal(view.stableContextItems[0], "主要工作焦點：法務、營運");
   assert.equal(view.knownConstraints[0], "Keep the output internal and non-final.");
   assert.match(view.continuityAnchor, /合約審閱/);
+});
+
+test("domain playbook view stays low-noise and consultant-readable", () => {
+  const view = buildDomainPlaybookView({
+    status: "available",
+    label: "這類案子通常怎麼走",
+    summary: "Host 先整理出這類案件較穩的工作主線，幫你知道這輪目前在哪一步。",
+    playbook_label: "合約審閱工作主線",
+    current_stage_label: "先補齊審閱範圍與條款邊界",
+    next_stage_label: "再收斂高風險點與建議處置",
+    boundary_note: "這是在提示工作主線，不是強制 checklist；若和這案正式證據衝突，仍以這案正式判斷為準。",
+    stages: [
+      {
+        stage_id: "task_heuristic:abc",
+        title: "先補齊審閱範圍與條款邊界",
+        summary: "先確認哪些條款、附件與定義真的在本輪審閱範圍內。",
+        why_now: "這類案件若先跳進細節判斷，常會忽略附件與邊界缺口。",
+        source_kind: "task_heuristic",
+        source_label: "來源：task heuristic",
+        priority: "high",
+      },
+      {
+        stage_id: "pack_decision_pattern:def",
+        title: "再收斂高風險點與建議處置",
+        summary: "把責任上限、termination 與附件缺口收斂成可行 judgment。",
+        why_now: "這一輪 pack 已經把決策邊界壓到條款與責任分配。",
+        source_kind: "pack_decision_pattern",
+        source_label: "來源：pack decision pattern",
+        priority: "medium",
+      },
+    ],
+  });
+
+  assert.equal(view.shouldShow, true);
+  assert.equal(view.sectionTitle, "這類案子通常怎麼走");
+  assert.equal(view.playbookLabel, "合約審閱工作主線");
+  assert.equal(view.currentStageLabel, "先補齊審閱範圍與條款邊界");
+  assert.equal(view.nextStageLabel, "再收斂高風險點與建議處置");
+  assert.equal(view.listTitle, "這類案子通常這樣推進");
+  assert.match(view.listItems[0] ?? "", /先補齊審閱範圍/);
+  assert.match(view.cards[0]?.meta ?? "", /task heuristic/);
+  assert.match(view.boundaryNote, /不是強制 checklist/);
 });
 
 test("continuous advisory view exposes health, timeline, and next-step queue in consultant-facing copy", () => {

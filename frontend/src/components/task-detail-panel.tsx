@@ -50,6 +50,7 @@ import {
   buildResearchDetailView,
   buildResearchGuidanceView,
 } from "@/lib/research-lane";
+import { buildDomainPlaybookView } from "@/lib/domain-playbooks";
 import { buildOrganizationMemoryView } from "@/lib/organization-memory";
 import {
   buildPrecedentCandidateActionView,
@@ -593,6 +594,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
   const researchGuidance = task ? buildResearchGuidanceView(task.research_guidance) : null;
   const organizationMemoryView = task
     ? buildOrganizationMemoryView(task.organization_memory_guidance)
+    : null;
+  const domainPlaybookView = task
+    ? buildDomainPlaybookView(task.domain_playbook_guidance)
     : null;
   const researchDetailView = task
     ? buildResearchDetailView(researchGuidance, task.research_runs[0] ?? null)
@@ -1348,6 +1352,47 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     ) : null}
                     <p className="muted-text" style={{ marginTop: "12px" }}>
                       {organizationMemoryView.boundaryNote}
+                    </p>
+                  </div>
+                ) : null}
+                {domainPlaybookView?.shouldShow ? (
+                  <div className="detail-item">
+                    <h3>{domainPlaybookView.sectionTitle}</h3>
+                    <p className="content-block">{domainPlaybookView.summary}</p>
+                    {domainPlaybookView.playbookLabel ? (
+                      <p className="muted-text">{domainPlaybookView.playbookLabel}</p>
+                    ) : null}
+                    {domainPlaybookView.currentStageLabel ? (
+                      <p className="muted-text">
+                        目前這輪：{domainPlaybookView.currentStageLabel}
+                      </p>
+                    ) : null}
+                    {domainPlaybookView.nextStageLabel ? (
+                      <p className="muted-text">
+                        下一步通常接：{domainPlaybookView.nextStageLabel}
+                      </p>
+                    ) : null}
+                    <div className="summary-grid" style={{ marginTop: "16px" }}>
+                      {domainPlaybookView.cards.map((card) => (
+                        <div className="section-card" key={`task-domain-playbook-${card.title}`}>
+                          <h4>{card.title}</h4>
+                          <p className="content-block">{card.summary}</p>
+                          <p className="muted-text">{card.meta}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {domainPlaybookView.listItems.length > 0 ? (
+                      <>
+                        <h4 style={{ marginTop: "16px" }}>{domainPlaybookView.listTitle}</h4>
+                        <ul className="list-content" style={{ marginTop: "12px" }}>
+                          {domainPlaybookView.listItems.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      </>
+                    ) : null}
+                    <p className="muted-text" style={{ marginTop: "12px" }}>
+                      {domainPlaybookView.boundaryNote}
                     </p>
                   </div>
                 ) : null}

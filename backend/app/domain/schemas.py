@@ -831,6 +831,33 @@ class OrganizationMemoryGuidanceRead(BaseModel):
     boundary_note: str = ""
 
 
+class DomainPlaybookStageRead(BaseModel):
+    stage_id: str
+    title: str
+    summary: str = ""
+    why_now: str = ""
+    source_kind: Literal[
+        "precedent_reference",
+        "pack_stage_heuristic",
+        "research_guidance",
+        "continuity_signal",
+        "task_heuristic",
+    ] = "task_heuristic"
+    source_label: str = ""
+    priority: Literal["high", "medium", "low"] = "medium"
+
+
+class DomainPlaybookGuidanceRead(BaseModel):
+    status: Literal["available", "fallback", "none"] = "none"
+    label: str = ""
+    summary: str = ""
+    playbook_label: str = ""
+    current_stage_label: str = ""
+    next_stage_label: str = ""
+    boundary_note: str = ""
+    stages: list[DomainPlaybookStageRead] = Field(default_factory=list)
+
+
 class ReviewLensItemRead(BaseModel):
     lens_id: str
     title: str
@@ -1569,6 +1596,9 @@ class MatterWorkspaceResponse(BaseModel):
     organization_memory_guidance: OrganizationMemoryGuidanceRead = Field(
         default_factory=OrganizationMemoryGuidanceRead
     )
+    domain_playbook_guidance: DomainPlaybookGuidanceRead = Field(
+        default_factory=DomainPlaybookGuidanceRead
+    )
     readiness_hint: str = ""
     continuity_notes: list[str] = Field(default_factory=list)
     continuation_surface: ContinuationSurfaceRead | None = None
@@ -1714,6 +1744,9 @@ class TaskAggregateResponse(BaseModel):
     research_guidance: ResearchGuidanceRead = Field(default_factory=ResearchGuidanceRead)
     organization_memory_guidance: OrganizationMemoryGuidanceRead = Field(
         default_factory=OrganizationMemoryGuidanceRead
+    )
+    domain_playbook_guidance: DomainPlaybookGuidanceRead = Field(
+        default_factory=DomainPlaybookGuidanceRead
     )
     precedent_reference_guidance: PrecedentReferenceGuidanceRead = Field(
         default_factory=PrecedentReferenceGuidanceRead

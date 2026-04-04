@@ -93,6 +93,7 @@ from app.services.object_sets import (
     serialize_object_sets,
 )
 from app.services.organization_memory_intelligence import build_organization_memory_guidance
+from app.services.domain_playbook_intelligence import build_domain_playbook_guidance
 from app.services.deliverable_shape_intelligence import build_deliverable_shape_guidance
 from app.services.precedent_duplicate_governance import (
     collapse_precedent_candidates_for_reference,
@@ -8449,6 +8450,14 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
         if research_runs
         else None
     )
+    matter_pack_resolution = resolve_pack_selection_for_task(
+        latest_task,
+        latest_task_spine[0],
+        latest_task_spine[1],
+        latest_task_spine[2],
+        current_decision_context,
+        latest_task_spine[4],
+    )
     research_guidance = _build_research_guidance_read(
         task=latest_task,
         decision_context=current_decision_context,
@@ -8461,14 +8470,7 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
             latest_task_spine[6],
             _infer_input_entry_mode(latest_task, latest_task_spine[5], latest_task_spine[6]),
         ),
-        pack_resolution=resolve_pack_selection_for_task(
-            latest_task,
-            latest_task_spine[0],
-            latest_task_spine[1],
-            latest_task_spine[2],
-            current_decision_context,
-            latest_task_spine[4],
-        ),
+        pack_resolution=matter_pack_resolution,
         gap_titles=[item.title for item in evidence_gap_records if item.status != "resolved"],
         suggested_research_need=bool(
             matter_workspace.case_world_state.suggested_research_need
@@ -8497,6 +8499,48 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
             for task in related_tasks
             for constraint in task.constraints
         ],
+    )
+    matter_input_entry_mode = _infer_input_entry_mode(
+        latest_task,
+        latest_task_spine[5],
+        latest_task_spine[6],
+    )
+    matter_external_research_heavy_candidate = _is_external_research_heavy_candidate(
+        latest_task,
+        current_decision_context,
+        latest_task_spine[5],
+        latest_task_spine[6],
+        matter_input_entry_mode,
+    )
+    matter_deliverable_class_hint = _resolve_deliverable_class_hint(
+        matter_input_entry_mode,
+        current_decision_context,
+        latest_task_spine[5],
+        latest_task_spine[6],
+        len(_usable_evidence(latest_task)),
+        matter_external_research_heavy_candidate,
+    )
+    matter_precedent_reference_guidance = _build_precedent_reference_guidance_read(
+        db,
+        task=latest_task,
+        flagship_lane_id=summary.flagship_lane.lane_id,
+        deliverable_type=latest_task.task_type,
+        domain_lenses=summary.domain_lenses,
+        selected_pack_ids=matter_pack_resolution.stack_order,
+        continuity_mode=summary.engagement_continuity_mode,
+        client_stage=summary.client_stage,
+        client_type=summary.client_type,
+    )
+    domain_playbook_guidance = build_domain_playbook_guidance(
+        task_type=latest_task.task_type,
+        client_stage=summary.client_stage,
+        deliverable_class_hint=matter_deliverable_class_hint,
+        flagship_lane=summary.flagship_lane,
+        research_guidance=research_guidance,
+        organization_memory_guidance=organization_memory_guidance,
+        continuation_surface=continuation_surface,
+        pack_resolution=matter_pack_resolution,
+        precedent_reference_guidance=matter_precedent_reference_guidance,
     )
 
     return schemas.MatterWorkspaceResponse(
@@ -8535,6 +8579,7 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
         canonicalization_candidates=canonicalization_candidates[:8],
         research_guidance=research_guidance,
         organization_memory_guidance=organization_memory_guidance,
+        domain_playbook_guidance=domain_playbook_guidance,
         readiness_hint=readiness_hint,
         continuity_notes=continuity_notes,
         continuation_surface=continuation_surface,
@@ -11420,6 +11465,21 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         precedent_reference_guidance=precedent_reference_guidance,
         pack_resolution=pack_resolution,
     )
+    domain_playbook_guidance = build_domain_playbook_guidance(
+        task_type=task.task_type,
+        client_stage=(
+            world_decision_context.client_stage
+            if world_decision_context and world_decision_context.client_stage
+            else decision_context.client_stage if decision_context else client.client_stage if client else None
+        ),
+        deliverable_class_hint=deliverable_class_hint,
+        flagship_lane=flagship_lane,
+        research_guidance=research_guidance,
+        organization_memory_guidance=organization_memory_guidance,
+        continuation_surface=continuation_surface,
+        pack_resolution=pack_resolution,
+        precedent_reference_guidance=precedent_reference_guidance,
+    )
     canonicalization_summary, canonicalization_candidates = build_matter_canonicalization_contract(
         db,
         matter_workspace_id=matter_workspace.id,
@@ -11502,6 +11562,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         ],
         research_guidance=research_guidance,
         organization_memory_guidance=organization_memory_guidance,
+        domain_playbook_guidance=domain_playbook_guidance,
         precedent_reference_guidance=precedent_reference_guidance,
         review_lens_guidance=review_lens_guidance,
         common_risk_guidance=common_risk_guidance,

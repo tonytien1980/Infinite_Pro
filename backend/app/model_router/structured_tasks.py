@@ -118,6 +118,7 @@ def render_request_context(
     constraints: list[str],
     evidence: list[dict[str, Any]],
     organization_memory_context: list[str] | None = None,
+    domain_playbook_context: list[str] | None = None,
     precedent_context: list[str] | None = None,
     review_lens_context: list[str] | None = None,
     common_risk_context: list[str] | None = None,
@@ -147,6 +148,8 @@ def render_request_context(
             "證據：\n" + ("\n\n".join(evidence_blocks) if evidence_blocks else "目前未提供上傳證據。"),
             "這個客戶 / 組織目前已知的穩定背景：\n"
             + ("\n".join(f"- {item}" for item in organization_memory_context) if organization_memory_context else "- 目前沒有額外 organization memory。"),
+            "這類案子通常怎麼走：\n"
+            + ("\n".join(f"- {item}" for item in domain_playbook_context) if domain_playbook_context else "- 目前沒有額外 domain playbook。"),
             "可參考 precedent 模式：\n"
             + ("\n".join(f"- {item}" for item in precedent_context) if precedent_context else "- 目前沒有可安全引用的既有模式。"),
             "這輪先看哪幾點：\n"
@@ -221,6 +224,7 @@ def build_research_synthesis_spec(
             constraints=request_payload.constraints,
             evidence=request_payload.evidence,
             organization_memory_context=request_payload.organization_memory_context,
+            domain_playbook_context=request_payload.domain_playbook_context,
             precedent_context=request_payload.precedent_context,
             review_lens_context=request_payload.review_lens_context,
             common_risk_context=request_payload.common_risk_context,
@@ -309,6 +313,7 @@ def build_core_analysis_spec(
         constraints=request_payload.constraints,
         evidence=request_payload.evidence,
         organization_memory_context=request_payload.organization_memory_context,
+        domain_playbook_context=request_payload.domain_playbook_context,
         precedent_context=request_payload.precedent_context,
         review_lens_context=request_payload.review_lens_context,
         common_risk_context=request_payload.common_risk_context,
@@ -400,6 +405,7 @@ def build_document_restructuring_spec(
             constraints=request_payload.constraints,
             evidence=request_payload.evidence,
             organization_memory_context=request_payload.organization_memory_context,
+            domain_playbook_context=request_payload.domain_playbook_context,
             precedent_context=request_payload.precedent_context,
             review_lens_context=request_payload.review_lens_context,
             common_risk_context=request_payload.common_risk_context,
@@ -455,6 +461,7 @@ def build_contract_review_spec(
             constraints=request_payload.constraints,
             evidence=request_payload.evidence,
             organization_memory_context=request_payload.organization_memory_context,
+            domain_playbook_context=request_payload.domain_playbook_context,
             precedent_context=request_payload.precedent_context,
             review_lens_context=request_payload.review_lens_context,
             common_risk_context=request_payload.common_risk_context,

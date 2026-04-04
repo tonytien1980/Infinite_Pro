@@ -1163,6 +1163,32 @@ export interface OrganizationMemoryGuidance {
   boundary_note: string;
 }
 
+export interface DomainPlaybookStage {
+  stage_id: string;
+  title: string;
+  summary: string;
+  why_now: string;
+  source_kind:
+    | "precedent_reference"
+    | "pack_stage_heuristic"
+    | "research_guidance"
+    | "continuity_signal"
+    | "task_heuristic";
+  source_label: string;
+  priority: "high" | "medium" | "low";
+}
+
+export interface DomainPlaybookGuidance {
+  status: "available" | "fallback" | "none";
+  label: string;
+  summary: string;
+  playbook_label: string;
+  current_stage_label: string;
+  next_stage_label: string;
+  boundary_note: string;
+  stages: DomainPlaybookStage[];
+}
+
 export interface ReviewLensItem {
   lens_id: string;
   title: string;
@@ -1620,6 +1646,7 @@ export interface TaskAggregate {
   evidence_gaps: EvidenceGap[];
   research_guidance: ResearchGuidance;
   organization_memory_guidance: OrganizationMemoryGuidance;
+  domain_playbook_guidance: DomainPlaybookGuidance;
   precedent_reference_guidance: PrecedentReferenceGuidance;
   review_lens_guidance: ReviewLensGuidance;
   common_risk_guidance: CommonRiskGuidance;
@@ -1695,6 +1722,7 @@ export interface MatterWorkspace {
   evidence_gaps: EvidenceGap[];
   research_guidance: ResearchGuidance;
   organization_memory_guidance: OrganizationMemoryGuidance;
+  domain_playbook_guidance: DomainPlaybookGuidance;
   research_runs: ResearchRun[];
   decision_records: DecisionRecord[];
   action_plans: ActionPlan[];

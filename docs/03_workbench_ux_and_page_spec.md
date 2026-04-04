@@ -1081,26 +1081,46 @@ Primary action：
 - 不新增 organization page family
 - 不把這層做成 CRM profile 卡
 - 只應露出少量、已站穩、對當前判斷真的有幫助的背景
+- boundary copy 應明講：
+  - 這是在提示穩定背景
+  - 不是 CRM profile 卡
+  - 若和這案正式證據衝突，仍以這案當前判斷與證據為準
+
+### 9.2.7 Domain-playbook reading
+
+當 Host 已開始把同類案件的工作主線收斂成 domain playbooks 時，UI 也應維持低噪音回讀：
+
+- 這類案子通常怎麼走
+- 這輪目前比較像在哪一步
+- 下一步通常接什麼
+
+正式規則：
+
+- 第一波優先出現在 `matter workspace`
+- `task detail` 只做更輕的 second-layer 回讀
+- 不新增 playbook page family
+- 不把這層做成 checklist dashboard
+- 只應露出少量、對這輪 sequencing 真的有幫助的 stages
 - UI 必須清楚標示這層是在回答：
-  - `這份交付物通常怎麼收比較穩`
+  - `這類案子通常怎麼走`
 - 不可把這層寫成：
-  - template chooser
-  - deliverable library
-  - 已完成內容
-  - prior deliverable copy shell
+  - playbook library
+  - SOP 管理頁
+  - checklist shell
+  - 已完成流程圖
 - 第一波應優先顯示：
-  - `建議交付形態`
-  - `建議交付骨架`
-  - `supporting hints`
-- supporting hint card 應優先顯示：
+  - `工作主線`
+  - `目前這輪`
+  - `下一步通常接`
+  - 少量 stage cards
+- stage card 應優先顯示：
   - `title`
-  - `why_fit`
+  - `why_now`
   - `source_label`
 - boundary copy 應明講：
-  - 這是在提示交付骨架
-  - 不是自動套模板
-  - 若和這案正式證據衝突，仍以這案當前判斷與證據為準
-- section hints 若來自 precedent raw sections，也應先收斂成顧問可直接閱讀的段落名與順序，不應把 `問題定義` 之類內部骨架直接放在最前面
+  - 這是在提示工作主線
+  - 不是強制 checklist
+  - 若和這案正式證據衝突，仍以這案正式判斷為準
 
 ### 9.3 Specialized hardening views
 

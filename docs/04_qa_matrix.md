@@ -2952,3 +2952,42 @@ Environment used:
 - Infinite Pro now remembers some stable client / organization background inside the same matter world instead of re-deriving it from scratch every round
 - Host can carry this matter-scoped background into model context without turning it into a CRM or separate memory platform
 - matter workspace and task detail can read the memory back in a low-noise way
+
+---
+
+## Entry: 2026-04-05 domain playbooks v1 pass
+
+Scope:
+- first-pass `domain_playbook_guidance`
+- Host-safe domain-playbook context
+- low-noise matter / task readback
+
+Environment used:
+- local repo runtime checks only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`134 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`28 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Domain-playbook specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | task aggregate | Read `domain_playbook_guidance` | Verified | targeted backend test confirms task aggregate returns playbook label, current stage, next stage, and stage list |
+| Backend | matter workspace | Read `domain_playbook_guidance` | Verified | targeted backend test confirms matter workspace returns the same low-noise playbook guidance |
+| Backend | agent payload | Build prompt-safe domain-playbook context | Verified | targeted backend test confirms Host payload lines include work mainline, current stage, next stage, and compact playbook rows |
+| Backend | contract-review prompt | Include `domain_playbook_context` | Verified | targeted backend test confirms contract-review prompt now includes the playbook block |
+| Frontend | domain-playbook helper | Render low-noise domain-playbook reading | Verified | frontend helper test confirms the view reads as compact stage guidance rather than a checklist dashboard |
+
+### Verified outcomes
+
+- Infinite Pro now starts answering not only what to review and what not to miss, but also how this class of case usually progresses
+- Host can carry a compact, prompt-safe playbook mainline into model context without turning it into a playbook library or checklist shell
+- matter workspace and task detail can read the playbook back in a low-noise way

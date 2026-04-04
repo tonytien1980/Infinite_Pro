@@ -274,6 +274,7 @@ class HostOrchestrator:
             pack_resolution=aggregate.pack_resolution,
             agent_selection=aggregate.agent_selection,
             organization_memory_guidance=aggregate.organization_memory_guidance,
+            domain_playbook_guidance=aggregate.domain_playbook_guidance,
             precedent_reference_guidance=aggregate.precedent_reference_guidance,
             review_lens_guidance=aggregate.review_lens_guidance,
             common_risk_guidance=aggregate.common_risk_guidance,

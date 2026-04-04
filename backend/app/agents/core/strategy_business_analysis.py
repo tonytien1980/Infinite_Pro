@@ -10,6 +10,7 @@ from app.agents.base import (
     RecommendationDraft,
     build_payload_common_risk_context,
     build_payload_deliverable_shape_context,
+    build_payload_domain_playbook_context,
     build_payload_organization_memory_context,
     build_payload_precedent_context,
     build_payload_review_lens_context,
@@ -51,6 +52,7 @@ class StrategyBusinessAnalysisAgent(CoreAnalysisAgent):
                     for evidence in payload.evidence
                 ],
                 organization_memory_context=build_payload_organization_memory_context(payload),
+                domain_playbook_context=build_payload_domain_playbook_context(payload),
                 precedent_context=build_payload_precedent_context(payload),
                 review_lens_context=build_payload_review_lens_context(payload),
                 common_risk_context=build_payload_common_risk_context(payload),

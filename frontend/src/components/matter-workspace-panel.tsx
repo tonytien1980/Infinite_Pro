@@ -25,6 +25,7 @@ import {
   buildResearchDetailView,
   buildResearchGuidanceView,
 } from "@/lib/research-lane";
+import { buildDomainPlaybookView } from "@/lib/domain-playbooks";
 import { buildOrganizationMemoryView } from "@/lib/organization-memory";
 import { buildMaterialReviewPostureView } from "@/lib/material-review-ux";
 import { buildPrecedentCandidateSummaryView } from "@/lib/precedent-candidates";
@@ -578,6 +579,9 @@ export function MatterWorkspacePanel({
   const organizationMemoryView = matter
     ? buildOrganizationMemoryView(matter.organization_memory_guidance)
     : null;
+  const domainPlaybookView = matter
+    ? buildDomainPlaybookView(matter.domain_playbook_guidance)
+    : null;
   const researchDetailView = matter
     ? buildResearchDetailView(researchGuidance, matter.research_runs[0] ?? null)
     : null;
@@ -1068,6 +1072,32 @@ export function MatterWorkspacePanel({
                           <p className="muted-text" style={{ marginTop: "12px" }}>
                             {organizationMemoryView.continuityAnchor}
                           </p>
+                        ) : null}
+                      </div>
+                    ) : null}
+                    {domainPlaybookView?.shouldShow ? (
+                      <div className="detail-item">
+                        <h3>{domainPlaybookView.sectionTitle}</h3>
+                        <p className="content-block">{domainPlaybookView.summary}</p>
+                        {domainPlaybookView.playbookLabel ? (
+                          <p className="muted-text">{domainPlaybookView.playbookLabel}</p>
+                        ) : null}
+                        {domainPlaybookView.currentStageLabel ? (
+                          <p className="muted-text">
+                            目前這輪：{domainPlaybookView.currentStageLabel}
+                          </p>
+                        ) : null}
+                        {domainPlaybookView.nextStageLabel ? (
+                          <p className="muted-text">
+                            下一步通常接：{domainPlaybookView.nextStageLabel}
+                          </p>
+                        ) : null}
+                        {domainPlaybookView.listItems.length > 0 ? (
+                          <ul className="list-content" style={{ marginTop: "12px" }}>
+                            {domainPlaybookView.listItems.map((item) => (
+                              <li key={item}>{item}</li>
+                            ))}
+                          </ul>
                         ) : null}
                       </div>
                     ) : null}

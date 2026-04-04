@@ -784,6 +784,77 @@ deliverable workspace 採：
   - precedent context：以前哪些模式值得參考
   - organization memory context：這個客戶 / 組織目前有哪些穩定背景不必重問
 
+### 6.10.2B Domain playbooks
+
+在 reusable assets 已開始知道 `先看哪幾點 / 常漏哪些風險 / 交付怎麼收` 之後，precedent / reusable intelligence 的下一版可重用資產應先補：
+
+- `domain_playbook_guidance`
+
+正式規則：
+
+- domain playbooks 仍是 Host-owned
+- frontend 不可自行從 precedent rows、pack raw stage heuristics 或 continuity signals 拼出 playbook checklist 再回灌主線
+- domain playbooks 的正式角色是回答：
+  - 這類案子通常怎麼走
+  - 這輪目前在哪一步
+  - 下一步通常接什麼
+- 它不是：
+  - playbook library
+  - checklist dashboard
+  - template auto-apply
+  - prior-case content reuse
+- 第一波只允許少量 playbook stages：
+  - 3 到 4 個
+- playbook source 第一波至少包括：
+  - `research_guidance`
+  - `precedent_reference`
+  - `pack_stage_heuristic`
+  - `continuity_signal`
+  - `task_heuristic`
+
+第一波 `domain_playbook_guidance` contract 至少包括：
+
+- `status`
+  - `available`
+  - `fallback`
+  - `none`
+- `label`
+- `summary`
+- `playbook_label`
+- `current_stage_label`
+- `next_stage_label`
+- `boundary_note`
+- `stages`
+
+每筆 `stage` 至少包括：
+
+- `stage_id`
+- `title`
+- `summary`
+- `why_now`
+- `source_kind`
+- `source_label`
+- `priority`
+
+正式規則：
+
+- `available` 代表至少已有 precedent / pack / research / continuity 等較強來源
+- `fallback` 代表目前主要仍靠 task heuristic 補最小可信工作主線
+- `none` 代表這輪不額外補 domain playbook
+- domain playbook 若要進模型上下文，必須經 Host 整理成 prompt-safe `domain_playbook_context`
+- `domain_playbook_context` 應與 `organization_memory_context`、`precedent_context`、`review_lens_context` 並存，但角色不同：
+  - organization memory context：這個客戶 / 組織有哪些穩定背景
+  - precedent context：以前哪些模式值得參考
+  - review lens context：這輪先看哪幾點
+  - domain playbook context：這類案子通常怎麼走、這輪目前在哪一步
+- 第一波只允許影響：
+  - framing / sequencing
+  - review / convergence ordering
+  - continuity-aware next-step alignment
+- 不可被誤讀成強制 checklist 或 playbook library shell
+- `matter / task` surface 目前只應以 second-layer disclosure 低噪音回讀
+- `overview / history / settings` 目前不應長出 domain-playbook dashboard hero
+
 ### 6.10.3 Common risk libraries
 
 在 reusable review lenses 已成立後，precedent / reusable intelligence 的下一批 reusable asset 應先是：

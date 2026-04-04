@@ -10,7 +10,11 @@ from pypdf import PdfWriter
 from sqlalchemy import select
 
 from app.agents.host import HostOrchestrator
-from app.agents.base import AgentInputPayload, build_payload_organization_memory_context
+from app.agents.base import (
+    AgentInputPayload,
+    build_payload_domain_playbook_context,
+    build_payload_organization_memory_context,
+)
 from app.core.database import SessionLocal
 from app.domain import models, schemas
 from app.domain.enums import DeliverableClass, InputEntryMode
@@ -3572,6 +3576,83 @@ def test_build_payload_organization_memory_context_keeps_prompt_safe_lines() -> 
     assert any("延續主線：" in item for item in lines)
 
 
+def test_task_and_matter_expose_domain_playbook_guidance(
+    client: TestClient,
+) -> None:
+    payload = create_contract_review_payload("Domain playbook foundation")
+    task = client.post("/api/v1/tasks", json=payload).json()
+    client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("agreement.txt", b"Termination and liability clauses need review.", "text/plain"))],
+    )
+    run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
+    assert run_response.status_code == 200
+
+    aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
+    guidance = aggregate["domain_playbook_guidance"]
+    assert guidance["status"] in {"available", "fallback"}
+    assert guidance["playbook_label"]
+    assert guidance["current_stage_label"]
+    assert guidance["next_stage_label"]
+    assert guidance["stages"]
+
+    matter_id = aggregate["matter_workspace"]["id"]
+    matter_workspace = client.get(f"/api/v1/matters/{matter_id}").json()
+    matter_guidance = matter_workspace["domain_playbook_guidance"]
+    assert matter_guidance["status"] in {"available", "fallback"}
+    assert matter_guidance["playbook_label"]
+    assert matter_guidance["stages"]
+
+
+def test_build_payload_domain_playbook_context_keeps_prompt_safe_lines() -> None:
+    payload = AgentInputPayload(
+        task_id="task-1",
+        title="Task title",
+        description="Task description",
+        task_type="contract_review",
+        flow_mode="specialist",
+        presence_state_summary=schemas.PresenceStateSummaryRead(
+            client=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="某客戶"),
+            engagement=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="委託"),
+            workstream=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="工作流"),
+            decision_context=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="合約審閱"),
+            artifact=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="artifact"),
+            source_material=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="source"),
+            domain_lens=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="法務"),
+            client_stage=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="制度化階段"),
+            client_type=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="中小企業"),
+        ),
+        domain_playbook_guidance=schemas.DomainPlaybookGuidanceRead(
+            status="available",
+            label="這類案子通常怎麼走",
+            summary="summary",
+            playbook_label="合約審閱工作主線",
+            current_stage_label="先補齊審閱範圍與條款邊界",
+            next_stage_label="再收斂高風險點與建議處置",
+            boundary_note="這是在提示工作主線，不是強制 checklist。",
+            stages=[
+                schemas.DomainPlaybookStageRead(
+                    stage_id="stage-1",
+                    title="先補齊審閱範圍與條款邊界",
+                    summary="先確認哪些條款、附件與定義真的在本輪審閱範圍內。",
+                    why_now="這類案件若先跳進細節判斷，常會忽略附件與邊界缺口。",
+                    source_kind="task_heuristic",
+                    source_label="來源：task heuristic",
+                    priority="high",
+                ),
+            ],
+        ),
+    )
+
+    lines = build_payload_domain_playbook_context(payload)
+
+    assert lines
+    assert any("工作主線：" in item for item in lines)
+    assert any("目前這輪：" in item for item in lines)
+    assert any("下一步通常接：" in item for item in lines)
+    assert any("playbook 1：" in item for item in lines)
+
+
 def test_deliverable_precedent_candidate_can_be_promoted_and_demoted(
     client: TestClient,
 ) -> None:
@@ -5671,6 +5752,29 @@ def test_contract_review_spec_includes_deliverable_shape_block() -> None:
     assert "這份交付物通常怎麼收比較穩" in spec.user_prompt
     assert "建議交付形態：評估 / 審閱備忘" in spec.user_prompt
     assert "建議先用段落" in spec.user_prompt
+
+
+def test_contract_review_spec_includes_domain_playbook_block() -> None:
+    from app.model_router.base import ContractReviewRequest
+    from app.model_router.structured_tasks import build_contract_review_spec
+
+    spec = build_contract_review_spec(
+        ContractReviewRequest(
+            task_title="Contract domain playbook test",
+            task_description="Ensure domain playbook guidance reaches the prompt.",
+            background_text="Current agreement review",
+            domain_playbook_context=[
+                "工作主線：合約審閱工作主線",
+                "目前這輪：先補齊審閱範圍與條款邊界",
+                "下一步通常接：再收斂高風險點與建議處置",
+                "playbook 1：先補齊審閱範圍與條款邊界",
+            ],
+        )
+    )
+
+    assert "這類案子通常怎麼走" in spec.user_prompt
+    assert "工作主線：合約審閱工作主線" in spec.user_prompt
+    assert "下一步通常接：再收斂高風險點與建議處置" in spec.user_prompt
 
 
 def test_openai_provider_retries_once_after_timeout(

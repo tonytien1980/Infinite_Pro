@@ -25,6 +25,7 @@ from app.domain.schemas import (
     ConstraintRead,
     DecisionContextRead,
     DeliverableShapeGuidanceRead,
+    DomainPlaybookGuidanceRead,
     EngagementRead,
     EvidenceRead,
     GoalRead,
@@ -84,6 +85,9 @@ class AgentInputPayload(BaseModel):
     agent_selection: AgentSelectionRead = Field(default_factory=AgentSelectionRead)
     organization_memory_guidance: OrganizationMemoryGuidanceRead = Field(
         default_factory=OrganizationMemoryGuidanceRead
+    )
+    domain_playbook_guidance: DomainPlaybookGuidanceRead = Field(
+        default_factory=DomainPlaybookGuidanceRead
     )
     precedent_reference_guidance: PrecedentReferenceGuidanceRead = Field(
         default_factory=PrecedentReferenceGuidanceRead
@@ -152,6 +156,30 @@ def build_payload_review_lens_context(payload: AgentInputPayload) -> list[str]:
             [
                 f"視角 {index}：{item.title}",
                 f"為什麼現在先看：{item.why_now}",
+                f"來源：{item.source_label or item.source_kind}",
+            ]
+        )
+    lines.append(f"整體邊界：{guidance.boundary_note}")
+    return lines
+
+
+def build_payload_domain_playbook_context(payload: AgentInputPayload) -> list[str]:
+    guidance = payload.domain_playbook_guidance
+    if guidance.status == "none" or not guidance.stages:
+        return []
+
+    lines: list[str] = []
+    if guidance.playbook_label:
+        lines.append(f"工作主線：{guidance.playbook_label}")
+    if guidance.current_stage_label:
+        lines.append(f"目前這輪：{guidance.current_stage_label}")
+    if guidance.next_stage_label:
+        lines.append(f"下一步通常接：{guidance.next_stage_label}")
+    for index, item in enumerate(guidance.stages[:4], start=1):
+        lines.extend(
+            [
+                f"playbook {index}：{item.title}",
+                f"為什麼現在重要：{item.why_now}",
                 f"來源：{item.source_label or item.source_kind}",
             ]
         )
