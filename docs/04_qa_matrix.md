@@ -2436,3 +2436,66 @@ Environment used:
 - precedent review lane 現在不只可集中回看，也會先把仍待決且採納訊號較強的候選排在前面
 - priority 文案仍維持顧問語言，而不是黑箱分數或模型品質評級
 - 排序邏輯目前仍停留在 review guidance，不代表 precedent 已開始自動套用或自動 retrieval
+
+---
+
+## Entry: 2026-04-04 host-safe precedent reference pass
+
+Scope:
+- Host-safe precedent reference guidance
+- prompt-safe precedent context through provider boundary
+- low-noise task / deliverable precedent reference reading
+
+Environment used:
+- frontend runtime: `http://127.0.0.1:3001`
+- backend runtime: `http://127.0.0.1:8010/api/v1`
+- runtime database: local `precedent-reference-smoke.db`
+- browser evidence: local `playwright-cli` smoke artifacts
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`114 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`21 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Precedent-reference specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | task aggregate | Read `precedent_reference_guidance` | Verified | targeted backend test confirms eligible precedent is returned, dismissed rows are excluded, and self-candidates are excluded |
+| Backend | model-router prompt | Render precedent context block | Verified | targeted backend test confirms contract-review prompt now contains `可參考 precedent 模式` block |
+| Frontend | precedent helper | Render consultant-facing reference reading | Verified | frontend test confirms low-noise section title, card copy, and boundary note |
+| Frontend | browser task / deliverable pages | Hydrate local page against cross-origin API | Limited | local browser smoke hit `Failed to fetch`; feature itself was verified through API smoke plus typed UI helper tests |
+
+### Live smoke data
+
+- precedent source task id: `8eaf50a1-9c85-4e93-aae5-201530020ac9`
+- precedent source deliverable id: `21116141-8ae7-4a1f-9b79-00ca086b48ae`
+- current task id: `1096f0f8-de14-4157-9977-1c9eef09f115`
+- current deliverable id: `606a759b-d50a-43c6-bc5b-dd8e8088d521`
+- live API verification returned:
+  - guidance status: `available`
+  - guidance label: `可參考既有模式`
+  - matched title: `Smoke precedent source - 合約審閱`
+- frontend dev route smoke:
+  - `/tasks/1096f0f8-de14-4157-9977-1c9eef09f115` returned `200`
+  - `/deliverables/606a759b-d50a-43c6-bc5b-dd8e8088d521` returned `200`
+- browser artifacts:
+  - task snapshot: `output/playwright/host-safe-precedent-reference/task.txt`
+  - deliverable snapshot: `output/playwright/host-safe-precedent-reference/deliverable.txt`
+
+### Residual note
+
+- 這一輪已讓 Host 開始安全參考 precedent patterns，但仍不做 auto-apply、template auto-fill 或 playbook library。
+- 本機 browser page smoke 受 cross-origin local fetch 限制，task / deliverable 的 precedent section 未在 hydrated page 中直接讀到；這部分目前以 API smoke、frontend helper tests 與 dev route 200 evidence 作為主要證據。
+
+### Verified outcomes
+
+- Host 現在已能帶少量 precedent pattern context 進 specialist / core analysis request
+- precedent reference 仍維持 pattern-first，而不是舊案正文複製
+- task / deliverable 的 precedent reference 讀法已進入正式 UI contract，但仍保持 second-layer low-noise

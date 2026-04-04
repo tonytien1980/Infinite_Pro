@@ -784,6 +784,30 @@ class PrecedentCandidateSummaryRead(BaseModel):
     summary: str = ""
 
 
+class PrecedentReferenceItemRead(BaseModel):
+    candidate_id: str
+    candidate_type: PrecedentCandidateType
+    candidate_status: PrecedentCandidateStatus
+    review_priority: Literal["high", "medium", "low"] = "medium"
+    title: str = ""
+    summary: str = ""
+    reusable_reason: str = ""
+    match_reason: str = ""
+    safe_use_note: str = ""
+    source_task_id: str
+    source_deliverable_id: str | None = None
+    source_recommendation_id: str | None = None
+
+
+class PrecedentReferenceGuidanceRead(BaseModel):
+    status: Literal["available", "no_match"] = "no_match"
+    label: str = ""
+    summary: str = ""
+    recommended_uses: list[str] = Field(default_factory=list)
+    boundary_note: str = ""
+    matched_items: list[PrecedentReferenceItemRead] = Field(default_factory=list)
+
+
 class ObjectSetMemberRead(ORMModel):
     id: str
     object_set_id: str
@@ -1564,6 +1588,9 @@ class TaskAggregateResponse(BaseModel):
     world_work_slice_summary: str = ""
     evidence_gaps: list[EvidenceGapRead] = Field(default_factory=list)
     research_guidance: ResearchGuidanceRead = Field(default_factory=ResearchGuidanceRead)
+    precedent_reference_guidance: PrecedentReferenceGuidanceRead = Field(
+        default_factory=PrecedentReferenceGuidanceRead
+    )
     research_runs: list[ResearchRunRead] = Field(default_factory=list)
     decision_records: list[DecisionRecordRead] = Field(default_factory=list)
     action_plans: list[ActionPlanRead] = Field(default_factory=list)

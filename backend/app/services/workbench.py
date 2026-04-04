@@ -5,52 +5,14 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.domain import models
+from app.services.precedent_intelligence import (
+    PRECEDENT_REVIEW_PRIORITY_RANK,
+    classify_precedent_review_priority,
+)
 from app.workbench import schemas
 
 DEFAULT_WORKBENCH_PROFILE = "single_consultant_default"
 DEFAULT_WORKBENCH_PREFERENCES = schemas.WorkbenchPreferenceResponse()
-
-PRECEDENT_REVIEW_PRIORITY_RANK = {
-    "high": 0,
-    "medium": 1,
-    "low": 2,
-}
-
-
-def _classify_precedent_review_priority(
-    row: models.PrecedentCandidate,
-) -> tuple[str, str, int]:
-    if row.candidate_status == "dismissed":
-        return (
-            "low",
-            "這個候選目前已停用，先留作背景；之後若需要，再從這裡恢復即可。",
-            0,
-        )
-
-    if row.candidate_status == "candidate":
-        if row.source_feedback_status == "template_candidate":
-            return (
-                "high",
-                "這個候選來自「值得當範本」的採納訊號，而且目前仍待決，最值得先回看。",
-                0,
-            )
-        if row.source_feedback_status == "adopted":
-            return (
-                "high",
-                "這個候選已被直接採用，而且目前仍待決，值得先決定是否升格成正式模式。",
-                1,
-            )
-        return (
-            "medium",
-            "這個候選仍有參考價值，但來源回饋仍偏向需要改寫，可安排下一輪回看。",
-            0,
-        )
-
-    return (
-        "medium",
-        "這個模式已正式升格，目前比較適合週期性回看，不必搶在待決候選前面。",
-        1,
-    )
 
 
 def _get_or_create_preference_row(db: Session) -> models.WorkbenchPreference:
@@ -192,8 +154,9 @@ def get_precedent_review_state(db: Session) -> schemas.PrecedentReviewResponse:
 
     ranked_items: list[tuple[int, int, float, float, schemas.PrecedentReviewItemResponse]] = []
     for row in rows:
-        review_priority, review_priority_reason, nuance_rank = _classify_precedent_review_priority(
-            row
+        review_priority, review_priority_reason, nuance_rank = classify_precedent_review_priority(
+            row.candidate_status,
+            row.source_feedback_status,
         )
         item = schemas.PrecedentReviewItemResponse(
             id=row.id,

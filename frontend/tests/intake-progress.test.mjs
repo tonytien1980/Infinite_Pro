@@ -30,6 +30,7 @@ import {
   buildPrecedentReviewPriorityView,
   filterPrecedentReviewItems,
 } from "../src/lib/precedent-review.ts";
+import { buildPrecedentReferenceView } from "../src/lib/precedent-reference.ts";
 import { buildContinuationPostureView } from "../src/lib/continuity-ux.ts";
 import { buildResearchDetailView, buildResearchGuidanceView } from "../src/lib/research-lane.ts";
 
@@ -1062,4 +1063,37 @@ test("precedent review priority view stays consultant-readable", () => {
       reason: "這個候選目前已停用，先留作背景。",
     },
   );
+});
+
+test("precedent reference view stays low-noise and consultant-readable", () => {
+  const view = buildPrecedentReferenceView({
+    status: "available",
+    label: "可參考既有模式",
+    summary: "Host 目前找到 2 個可參考的既有模式，會先拿來輔助 framing 與交付骨架。",
+    recommended_uses: ["先看 framing", "先看交付骨架"],
+    boundary_note: "這些模式只可拿來參考判斷順序與骨架，不會直接複製舊案正文。",
+    matched_items: [
+      {
+        candidate_id: "candidate-1",
+        candidate_type: "deliverable_pattern",
+        candidate_status: "promoted",
+        review_priority: "medium",
+        title: "合約審閱模式",
+        summary: "contract review memo",
+        reusable_reason: "值得保留",
+        match_reason: "同樣屬於 material review start，且交付型態一致。",
+        safe_use_note: "可參考交付骨架，不要複製舊案正文。",
+        source_task_id: "task-1",
+        source_deliverable_id: "deliverable-1",
+        source_recommendation_id: null,
+      },
+    ],
+  });
+
+  assert.equal(view.shouldShow, true);
+  assert.equal(view.sectionTitle, "可參考既有模式");
+  assert.equal(view.cards[0]?.title, "合約審閱模式");
+  assert.equal(view.cards[0]?.meta, "同樣屬於 material review start，且交付型態一致。");
+  assert.equal(view.listItems[0], "先看 framing");
+  assert.equal(view.boundaryNote, "這些模式只可拿來參考判斷順序與骨架，不會直接複製舊案正文。");
 });

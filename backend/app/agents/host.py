@@ -273,6 +273,7 @@ class HostOrchestrator:
             presence_state_summary=aggregate.presence_state_summary,
             pack_resolution=aggregate.pack_resolution,
             agent_selection=aggregate.agent_selection,
+            precedent_reference_guidance=aggregate.precedent_reference_guidance,
             source_materials=aggregate.source_materials,
             artifacts=aggregate.artifacts,
             subjects=aggregate.subjects,

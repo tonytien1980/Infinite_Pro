@@ -87,6 +87,9 @@ from app.services.object_sets import (
     relevant_object_sets_for_deliverable,
     serialize_object_sets,
 )
+from app.services.precedent_intelligence import (
+    select_precedent_reference_matches,
+)
 from app.services.source_materials import (
     build_source_material_summary,
     ensure_source_chain_participation_links,
@@ -7567,6 +7570,75 @@ def _build_precedent_candidate_summary_from_tasks(
     )
 
 
+def _build_precedent_reference_guidance_read(
+    db: Session,
+    *,
+    task: models.Task,
+    flagship_lane_id: str,
+    deliverable_type: str | None,
+    domain_lenses: list[str],
+    selected_pack_ids: list[str],
+    continuity_mode: EngagementContinuityMode,
+    client_stage: str | None,
+    client_type: str | None,
+) -> schemas.PrecedentReferenceGuidanceRead:
+    candidate_rows = db.scalars(
+        select(models.PrecedentCandidate).order_by(models.PrecedentCandidate.updated_at.desc())
+    ).all()
+    matches = select_precedent_reference_matches(
+        candidates=candidate_rows,
+        current_task_id=task.id,
+        lane_id=flagship_lane_id,
+        deliverable_type=deliverable_type,
+        domain_lenses=domain_lenses,
+        selected_pack_ids=selected_pack_ids,
+        continuity_mode=continuity_mode.value,
+        client_stage=client_stage,
+        client_type=client_type,
+    )
+    if not matches:
+        return schemas.PrecedentReferenceGuidanceRead(
+            status="no_match",
+            label="目前沒有可安全引用的既有模式",
+            summary="這一輪先只依目前證據、研究與模組包判斷，不硬套 precedent。",
+            boundary_note="當前沒有足夠相似且可安全引用的 precedent pattern，因此 Host 先不引用既有模式。",
+        )
+
+    matched_items = [
+        schemas.PrecedentReferenceItemRead(
+            candidate_id=item.candidate.id,
+            candidate_type=PrecedentCandidateType(item.candidate.candidate_type),
+            candidate_status=PrecedentCandidateStatus(item.candidate.candidate_status),
+            review_priority=item.review_priority,  # type: ignore[arg-type]
+            title=item.candidate.title or "",
+            summary=item.candidate.summary or "",
+            reusable_reason=item.candidate.reusable_reason or "",
+            match_reason=item.match_reason,
+            safe_use_note=item.safe_use_note,
+            source_task_id=item.candidate.task_id,
+            source_deliverable_id=item.candidate.source_deliverable_id,
+            source_recommendation_id=item.candidate.source_recommendation_id,
+        )
+        for item in matches
+    ]
+
+    return schemas.PrecedentReferenceGuidanceRead(
+        status="available",
+        label="可參考既有模式",
+        summary=(
+            f"Host 目前找到 {len(matched_items)} 個可參考的既有模式，"
+            "會先拿來輔助 framing、review lens 與交付骨架。"
+        ),
+        recommended_uses=[
+            "先拿來校正 framing 與問題定義，不要把 precedent 當成定案。",
+            "再拿來提醒交付骨架、審閱順序與常漏風險。",
+            "若與這案當前證據衝突，仍以這案的正式證據與限制為準。",
+        ],
+        boundary_note="這些模式只可拿來參考判斷順序與骨架，不會直接複製舊案正文。",
+        matched_items=matched_items,
+    )
+
+
 def get_loaded_task(db: Session, task_id: str) -> models.Task:
     statement = select(models.Task).options(*task_load_options()).where(models.Task.id == task_id)
     task = db.scalars(statement).unique().one_or_none()
@@ -11241,6 +11313,25 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
             else None
         ),
     )
+    precedent_reference_guidance = _build_precedent_reference_guidance_read(
+        db,
+        task=task,
+        flagship_lane_id=flagship_lane.lane_id,
+        deliverable_type=task.task_type,
+        domain_lenses=preferred_domain_lenses,
+        selected_pack_ids=pack_resolution.stack_order,
+        continuity_mode=continuity_mode,
+        client_stage=(
+            world_decision_context.client_stage
+            if world_decision_context and world_decision_context.client_stage
+            else decision_context.client_stage if decision_context else client.client_stage if client else None
+        ),
+        client_type=(
+            world_decision_context.client_type
+            if world_decision_context and world_decision_context.client_type
+            else decision_context.client_type if decision_context else client.client_type if client else None
+        ),
+    )
     canonicalization_summary, canonicalization_candidates = build_matter_canonicalization_contract(
         db,
         matter_workspace_id=matter_workspace.id,
@@ -11322,6 +11413,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
             for item in sorted(evidence_gap_rows, key=lambda gap: gap.updated_at, reverse=True)
         ],
         research_guidance=research_guidance,
+        precedent_reference_guidance=precedent_reference_guidance,
         research_runs=[schemas.ResearchRunRead.model_validate(item) for item in task.research_runs],
         decision_records=[schemas.DecisionRecordRead.model_validate(item) for item in task.decision_records],
         action_plans=[schemas.ActionPlanRead.model_validate(item) for item in task.action_plans],

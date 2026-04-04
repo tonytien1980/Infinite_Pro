@@ -22,6 +22,7 @@ class ResearchSynthesisRequest(BaseModel):
     goals: list[str] = Field(default_factory=list)
     constraints: list[str] = Field(default_factory=list)
     evidence: list[dict[str, Any]] = Field(default_factory=list)
+    precedent_context: list[str] = Field(default_factory=list)
 
 
 class CoreAnalysisRequest(BaseModel):
@@ -33,6 +34,7 @@ class CoreAnalysisRequest(BaseModel):
     goals: list[str] = Field(default_factory=list)
     constraints: list[str] = Field(default_factory=list)
     evidence: list[dict[str, Any]] = Field(default_factory=list)
+    precedent_context: list[str] = Field(default_factory=list)
     research_depth: str = ""
     research_sub_questions: list[str] = Field(default_factory=list)
     evidence_gap_focus: list[str] = Field(default_factory=list)
@@ -46,6 +48,7 @@ class DocumentRestructuringRequest(BaseModel):
     goals: list[str] = Field(default_factory=list)
     constraints: list[str] = Field(default_factory=list)
     evidence: list[dict[str, Any]] = Field(default_factory=list)
+    precedent_context: list[str] = Field(default_factory=list)
 
 
 class ContractReviewRequest(BaseModel):
@@ -56,6 +59,7 @@ class ContractReviewRequest(BaseModel):
     goals: list[str] = Field(default_factory=list)
     constraints: list[str] = Field(default_factory=list)
     evidence: list[dict[str, Any]] = Field(default_factory=list)
+    precedent_context: list[str] = Field(default_factory=list)
 
 
 class SearchResultContext(BaseModel):

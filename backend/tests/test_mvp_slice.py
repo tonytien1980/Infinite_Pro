@@ -3602,6 +3602,65 @@ def test_workbench_precedent_review_lists_candidate_states_and_sources(
     assert recommendation_item["task_title"]
 
 
+def test_task_aggregate_exposes_host_safe_precedent_reference_guidance(
+    client: TestClient,
+) -> None:
+    precedent_payload = create_contract_review_payload("Reusable contract precedent")
+    precedent_task = client.post("/api/v1/tasks", json=precedent_payload).json()
+    client.post(
+        f"/api/v1/tasks/{precedent_task['id']}/uploads",
+        files=[("files", ("agreement.txt", b"Termination and liability clauses need review.", "text/plain"))],
+    )
+    precedent_run = client.post(f"/api/v1/tasks/{precedent_task['id']}/run")
+    precedent_deliverable_id = precedent_run.json()["deliverable"]["id"]
+    client.post(
+        f"/api/v1/deliverables/{precedent_deliverable_id}/feedback",
+        json={"feedback_status": "template_candidate", "note": "這份交付值得保留成可重用模式。"},
+    )
+    client.post(
+        f"/api/v1/deliverables/{precedent_deliverable_id}/precedent-candidate",
+        json={"candidate_status": "promoted"},
+    )
+
+    dismissed_payload = create_contract_review_payload("Dismissed contract precedent")
+    dismissed_task = client.post("/api/v1/tasks", json=dismissed_payload).json()
+    client.post(
+        f"/api/v1/tasks/{dismissed_task['id']}/uploads",
+        files=[("files", ("policy.txt", b"Legacy policy clauses still need review.", "text/plain"))],
+    )
+    dismissed_run = client.post(f"/api/v1/tasks/{dismissed_task['id']}/run")
+    dismissed_deliverable_id = dismissed_run.json()["deliverable"]["id"]
+    client.post(
+        f"/api/v1/deliverables/{dismissed_deliverable_id}/feedback",
+        json={"feedback_status": "adopted", "note": "先當歷史背景。"},
+    )
+    client.post(
+        f"/api/v1/deliverables/{dismissed_deliverable_id}/precedent-candidate",
+        json={"candidate_status": "dismissed"},
+    )
+
+    current_payload = create_contract_review_payload("Current contract review")
+    current_task = client.post("/api/v1/tasks", json=current_payload).json()
+    client.post(
+        f"/api/v1/tasks/{current_task['id']}/uploads",
+        files=[("files", ("current-agreement.txt", b"Current agreement still needs a first-pass review.", "text/plain"))],
+    )
+
+    aggregate_response = client.get(f"/api/v1/tasks/{current_task['id']}")
+
+    assert aggregate_response.status_code == 200
+    payload = aggregate_response.json()
+    guidance = payload["precedent_reference_guidance"]
+    assert guidance["status"] == "available"
+    assert guidance["matched_items"]
+    assert guidance["matched_items"][0]["source_deliverable_id"] == precedent_deliverable_id
+    assert guidance["matched_items"][0]["candidate_status"] == "promoted"
+    assert "不要直接複製舊案正文" in guidance["matched_items"][0]["safe_use_note"]
+    assert all(item["source_deliverable_id"] != dismissed_deliverable_id for item in guidance["matched_items"])
+    assert all(item["source_task_id"] != current_task["id"] for item in guidance["matched_items"])
+    assert "不會直接複製舊案正文" in guidance["boundary_note"]
+
+
 def test_specialist_run_returns_explicit_uncertainty_when_model_router_fails(
     client: TestClient,
     monkeypatch: pytest.MonkeyPatch,
@@ -4833,6 +4892,27 @@ def test_core_analysis_spec_defaults_to_traditional_chinese_output_instruction()
 
     assert "繁體中文" in spec.system_prompt
     assert "避免中英夾雜" in spec.system_prompt
+
+
+def test_contract_review_spec_includes_precedent_context_block() -> None:
+    from app.model_router.base import ContractReviewRequest
+    from app.model_router.structured_tasks import build_contract_review_spec
+
+    spec = build_contract_review_spec(
+        ContractReviewRequest(
+            task_title="Contract precedent context test",
+            task_description="Ensure precedent context reaches the prompt.",
+            background_text="Current agreement review",
+            precedent_context=[
+                "模式 1：同類合約通常先看 termination、liability、indemnity。",
+                "使用邊界：可參考審閱順序，不要直接複製舊案正文。",
+            ],
+        )
+    )
+
+    assert "可參考 precedent 模式" in spec.user_prompt
+    assert "termination、liability、indemnity" in spec.user_prompt
+    assert "不要直接複製舊案正文" in spec.user_prompt
 
 
 def test_openai_provider_retries_once_after_timeout(

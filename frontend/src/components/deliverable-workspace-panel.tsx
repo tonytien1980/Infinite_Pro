@@ -40,6 +40,7 @@ import {
   buildPrecedentCandidateActionView,
   buildPrecedentCandidateView,
 } from "@/lib/precedent-candidates";
+import { buildPrecedentReferenceView } from "@/lib/precedent-reference";
 import { buildResearchDetailView } from "@/lib/research-lane";
 import { truncateText } from "@/lib/text-format";
 import type {
@@ -540,6 +541,9 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const continuationFocusSummary = buildContinuationFocusSummary(continuationSurface);
   const continuationDetailView = buildContinuationDetailView(continuationSurface);
   const researchDetailView = buildResearchDetailView(null, workspace?.research_runs[0] ?? null);
+  const precedentReferenceView = task
+    ? buildPrecedentReferenceView(task.precedent_reference_guidance)
+    : null;
   const continuityPosture = buildContinuationPostureView(continuationSurface);
   const workspaceView = workspace ? buildDeliverableWorkspaceView(workspace) : null;
   const flagshipLane = task ? buildFlagshipLaneView(task.flagship_lane) : null;
@@ -1565,6 +1569,36 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                     </ul>
                   </div>
                 ) : null}
+              </div>
+            ) : null}
+            {precedentReferenceView?.shouldShow ? (
+              <div className="detail-list" style={{ marginTop: "18px" }}>
+                <div className="detail-item">
+                  <h3>{precedentReferenceView.sectionTitle}</h3>
+                  <p className="content-block">{precedentReferenceView.summary}</p>
+                  <div className="summary-grid" style={{ marginTop: "16px" }}>
+                    {precedentReferenceView.cards.map((card) => (
+                      <div className="section-card" key={`deliverable-precedent-reference-${card.title}`}>
+                        <h4>{card.title}</h4>
+                        <p className="content-block">{card.summary}</p>
+                        <p className="muted-text">{card.meta}</p>
+                      </div>
+                    ))}
+                  </div>
+                  {precedentReferenceView.listItems.length > 0 ? (
+                    <>
+                      <h4 style={{ marginTop: "16px" }}>這層怎麼安全使用</h4>
+                      <ul className="list-content">
+                        {precedentReferenceView.listItems.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    </>
+                  ) : null}
+                  <p className="muted-text" style={{ marginTop: "12px" }}>
+                    {precedentReferenceView.boundaryNote}
+                  </p>
+                </div>
               </div>
             ) : null}
             <div className="detail-list" style={{ marginTop: "18px" }}>

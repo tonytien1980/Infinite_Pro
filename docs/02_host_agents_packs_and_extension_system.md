@@ -32,6 +32,7 @@ Host 正式負責：
 - reasoning / specialist routing
 - readiness governance
 - research trigger governance
+- precedent reference governance
 - convergence
 - deliverable shaping
 - continuity / writeback policy control
@@ -42,6 +43,7 @@ Host 正式負責：
 
 - UI-only logic 不得取代 Host 決定核心 workflow
 - direct model call 不得繞過 Host orchestration 與 provider boundary
+- precedent 若要進模型上下文，必須經 Host 選取與縮寫，不可由前端直接回灌 raw candidate content
 - pack contract 可以 influence Host judgment，但不能 replace Host judgment
 - Host 與 extension synthesis 都必須沿用正式語言 guardrail；若無明確例外，模型輸出預設為繁體中文
 

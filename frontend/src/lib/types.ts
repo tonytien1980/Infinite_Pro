@@ -1085,6 +1085,30 @@ export interface PrecedentCandidateSummary {
   summary: string;
 }
 
+export interface PrecedentReferenceItem {
+  candidate_id: string;
+  candidate_type: PrecedentCandidateType;
+  candidate_status: PrecedentCandidateStatus;
+  review_priority: "high" | "medium" | "low";
+  title: string;
+  summary: string;
+  reusable_reason: string;
+  match_reason: string;
+  safe_use_note: string;
+  source_task_id: string;
+  source_deliverable_id: string | null;
+  source_recommendation_id: string | null;
+}
+
+export interface PrecedentReferenceGuidance {
+  status: "available" | "no_match";
+  label: string;
+  summary: string;
+  recommended_uses: string[];
+  boundary_note: string;
+  matched_items: PrecedentReferenceItem[];
+}
+
 export interface PrecedentCandidateStatusUpdatePayload {
   candidate_status: PrecedentCandidateStatus;
 }
@@ -1482,6 +1506,7 @@ export interface TaskAggregate {
   world_work_slice_summary: string;
   evidence_gaps: EvidenceGap[];
   research_guidance: ResearchGuidance;
+  precedent_reference_guidance: PrecedentReferenceGuidance;
   research_runs: ResearchRun[];
   decision_records: DecisionRecord[];
   action_plans: ActionPlan[];

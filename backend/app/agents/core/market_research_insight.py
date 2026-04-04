@@ -8,6 +8,7 @@ from app.agents.base import (
     CoreAnalysisAgent,
     InsightDraft,
     RecommendationDraft,
+    build_payload_precedent_context,
 )
 from app.domain.enums import AgentCategory, AgentStatus, FlowMode
 from app.model_router.base import CoreAnalysisRequest, ModelProvider
@@ -45,6 +46,7 @@ class MarketResearchInsightAgent(CoreAnalysisAgent):
                     {"id": evidence.id, "title": evidence.title, "content": evidence.excerpt_or_summary}
                     for evidence in payload.evidence
                 ],
+                precedent_context=build_payload_precedent_context(payload),
             )
         )
         evidence_refs = [item.id for item in payload.evidence][:3]

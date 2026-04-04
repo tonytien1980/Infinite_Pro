@@ -614,6 +614,54 @@ deliverable workspace 採：
 - 同一 priority 內應再依最近治理動作排序
 - 這層可幫 precedent review lane 先決定「先看哪一筆」，但不等於 Host 已正式自動 retrieval
 
+### 6.10.1 Host-safe precedent reference
+
+在 candidate pool、governance、review surface 與 priority 都已成立後，precedent 的下一步正式形態是：
+
+- `precedent_reference_guidance`
+
+正式規則：
+
+- precedent reference 仍是 Host-owned
+- frontend 不可自行把 precedent rows 拼成 prompt snippet 再塞回主線
+- 第一波只允許引用少量 precedent patterns
+- 第一波只允許：
+  - `promoted`
+  - `candidate` 且 `source_feedback_status` 屬於較強採納訊號
+- `dismissed` 不可進入 Host reference set
+- current task 自己生成的 candidate 不可回灌給自己
+- precedent reference 只可帶 pattern / shape / match reason / safe-use note
+- 不可把舊案全文直接當作 precedent retrieval payload
+
+第一波 `precedent_reference_guidance` contract 至少包括：
+
+- `status`
+- `label`
+- `summary`
+- `recommended_uses`
+- `boundary_note`
+- `matched_items`
+
+每筆 `matched_item` 至少包括：
+
+- `candidate_id`
+- `candidate_type`
+- `candidate_status`
+- `review_priority`
+- `title`
+- `summary`
+- `reusable_reason`
+- `match_reason`
+- `safe_use_note`
+- `source_task_id`
+- `source_deliverable_id` / `source_recommendation_id`
+
+正式規則：
+
+- 這一層的目的，是讓 Host 開始安全參考 precedent patterns
+- 它不等於 playbook library
+- 它也不等於 template auto-apply
+
 ### 6.11 Matter-scoped canonicalization and duplicate governance
 
 正式規則：

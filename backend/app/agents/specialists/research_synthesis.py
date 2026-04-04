@@ -10,6 +10,7 @@ from app.agents.base import (
     RecommendationDraft,
     RiskDraft,
     SpecialistAgent,
+    build_payload_precedent_context,
 )
 from app.domain.enums import AgentCategory, AgentStatus, FlowMode
 from app.model_router.base import ModelProvider, ResearchSynthesisRequest
@@ -128,6 +129,7 @@ class ResearchSynthesisAgent(SpecialistAgent):
                     }
                     for evidence in usable_evidence
                 ],
+                precedent_context=build_payload_precedent_context(payload),
             )
         )
 

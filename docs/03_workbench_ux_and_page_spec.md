@@ -935,6 +935,27 @@ Primary action：
   - `dismissed` 可重新列回候選
 - 這些 action 只應出現在既有 candidate 區塊附近，不可新增 precedent management page
 
+### 9.2.2 Precedent reference reading
+
+當 Host 已開始安全參考 precedent patterns 時，UI 也應維持低噪音回讀：
+
+- 目前是否找到可參考的既有模式
+- 為什麼這些模式和當前案件相似
+- 這些模式可以怎麼用
+- 這些模式不能怎麼用
+
+正式規則：
+
+- 第一波只應出現在 `task detail` 與 `deliverable workspace` 的 second-layer disclosure
+- `matter workspace` 這一輪不應長出 precedent reference hero
+- 每次只應顯示少量 matched patterns，不可變成 precedent list shell
+- UI 必須清楚標示：
+  - 這是「可參考既有模式」
+  - 不是「系統已自動套用」
+- boundary copy 應明講：
+  - 可參考 framing / review lens / deliverable shape
+  - 不會直接複製舊案正文
+
 ### 9.3 Specialized hardening views
 
 以下能力雖已 shipped，但仍應保持低噪音：

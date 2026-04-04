@@ -27,6 +27,7 @@ from app.domain.schemas import (
     EvidenceRead,
     GoalRead,
     PackResolutionRead,
+    PrecedentReferenceGuidanceRead,
     PresenceStateSummaryRead,
     SourceMaterialRead,
     SubjectRead,
@@ -77,12 +78,34 @@ class AgentInputPayload(BaseModel):
     presence_state_summary: PresenceStateSummaryRead
     pack_resolution: PackResolutionRead = Field(default_factory=PackResolutionRead)
     agent_selection: AgentSelectionRead = Field(default_factory=AgentSelectionRead)
+    precedent_reference_guidance: PrecedentReferenceGuidanceRead = Field(
+        default_factory=PrecedentReferenceGuidanceRead
+    )
     source_materials: list[SourceMaterialRead] = Field(default_factory=list)
     artifacts: list[ArtifactRead] = Field(default_factory=list)
     subjects: list[SubjectRead] = Field(default_factory=list)
     goals: list[GoalRead] = Field(default_factory=list)
     constraints: list[ConstraintRead] = Field(default_factory=list)
     evidence: list[EvidenceRead] = Field(default_factory=list)
+
+
+def build_payload_precedent_context(payload: AgentInputPayload) -> list[str]:
+    guidance = payload.precedent_reference_guidance
+    if guidance.status != "available" or not guidance.matched_items:
+        return []
+
+    lines: list[str] = []
+    for index, item in enumerate(guidance.matched_items[:2], start=1):
+        lines.extend(
+            [
+                f"模式 {index}：{item.title or '未命名模式'}",
+                f"為何相似：{item.match_reason or '與目前案件主線相似。'}",
+                f"可參考：{item.safe_use_note or '只可拿來參考模式，不可直接複製舊案內容。'}",
+                f"摘要：{item.summary or item.reusable_reason or '目前沒有額外摘要。'}",
+            ]
+        )
+    lines.append(f"整體邊界：{guidance.boundary_note}")
+    return lines
 
 
 class InsightDraft(BaseModel):
