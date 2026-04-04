@@ -108,10 +108,13 @@ def build_payload_precedent_context(payload: AgentInputPayload) -> list[str]:
             [
                 f"模式 {index}：{item.title or '未命名模式'}",
                 f"為何相似：{item.match_reason or '與目前案件主線相似。'}",
+                *( [f"主要原因：{item.primary_reason_label}"] if item.primary_reason_label else [] ),
                 f"可參考：{item.safe_use_note or '只可拿來參考模式，不可直接複製舊案內容。'}",
                 f"摘要：{item.summary or item.reusable_reason or '目前沒有額外摘要。'}",
             ]
         )
+    if guidance.recommended_uses:
+        lines.append(f"建議用法：{'；'.join(guidance.recommended_uses[:3])}")
     lines.append(f"整體邊界：{guidance.boundary_note}")
     return lines
 

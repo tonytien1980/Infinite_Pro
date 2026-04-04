@@ -4,6 +4,7 @@ from hashlib import sha1
 
 from app.domain import schemas
 from app.domain.enums import DeliverableClass, InputEntryMode
+from app.services.adoption_feedback_intelligence import matches_reusable_asset_reason
 
 
 TASK_HEURISTIC_LENSES: dict[str, list[tuple[str, str]]] = {
@@ -128,15 +129,23 @@ def build_review_lens_guidance(
         )
 
     if precedent_reference_guidance.status == "available" and precedent_reference_guidance.matched_items:
-        top_match = precedent_reference_guidance.matched_items[0]
-        add_lens(
-            title=f"先比對這次案件與「{top_match.title or '既有模式'}」的差異點",
-            summary=top_match.summary or top_match.reusable_reason or "先回看這個既有模式目前代表的審閱骨架。",
-            why_now=top_match.match_reason or "目前找到高度相似的既有模式，先用它校正審閱方向。",
-            source_kind="precedent_reference",
-            source_label="來源：precedent reference",
-            priority="high",
+        top_match = next(
+            (
+                item
+                for item in precedent_reference_guidance.matched_items
+                if matches_reusable_asset_reason(item.source_feedback_reason_codes, "review_lens")
+            ),
+            None,
         )
+        if top_match is not None:
+            add_lens(
+                title=f"先比對這次案件與「{top_match.title or '既有模式'}」的差異點",
+                summary=top_match.summary or top_match.reusable_reason or "先回看這個既有模式目前代表的審閱骨架。",
+                why_now=top_match.match_reason or "目前找到高度相似的既有模式，先用它校正審閱方向。",
+                source_kind="precedent_reference",
+                source_label="來源：precedent reference",
+                priority="high",
+            )
 
     for pattern in pack_resolution.decision_patterns[:2]:
         add_lens(

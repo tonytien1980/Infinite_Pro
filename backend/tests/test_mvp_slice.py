@@ -3980,6 +3980,144 @@ def test_deliverable_shape_guidance_normalizes_internal_sections_to_consultant_o
     assert "問題定義" not in guidance.section_hints
 
 
+def test_reasoning_precedent_routes_to_review_lenses_not_deliverable_shape(
+    client: TestClient,
+) -> None:
+    precedent_payload = create_contract_review_payload("Reasoning precedent")
+    precedent_task = client.post("/api/v1/tasks", json=precedent_payload).json()
+    client.post(
+        f"/api/v1/tasks/{precedent_task['id']}/uploads",
+        files=[("files", ("agreement.txt", b"Termination and liability clauses need review.", "text/plain"))],
+    )
+    precedent_run = client.post(f"/api/v1/tasks/{precedent_task['id']}/run")
+    precedent_deliverable_id = precedent_run.json()["deliverable"]["id"]
+    client.post(
+        f"/api/v1/deliverables/{precedent_deliverable_id}/feedback",
+        json={
+            "feedback_status": "template_candidate",
+            "reason_codes": ["reusable_reasoning"],
+            "note": "這份判斷方式適合保留。",
+        },
+    )
+    client.post(
+        f"/api/v1/deliverables/{precedent_deliverable_id}/precedent-candidate",
+        json={"candidate_status": "promoted"},
+    )
+
+    current_task = client.post(
+        "/api/v1/tasks",
+        json=create_contract_review_payload("Current reasoning-routed task"),
+    ).json()
+    client.post(
+        f"/api/v1/tasks/{current_task['id']}/uploads",
+        files=[("files", ("current.txt", b"Current agreement still needs a first-pass review.", "text/plain"))],
+    )
+
+    aggregate_response = client.get(f"/api/v1/tasks/{current_task['id']}")
+    payload = aggregate_response.json()
+
+    assert any(
+        item["source_kind"] == "precedent_reference"
+        for item in payload["review_lens_guidance"]["lenses"]
+    )
+    assert all(
+        item["source_kind"] != "precedent_deliverable_pattern"
+        for item in payload["deliverable_shape_guidance"]["hints"]
+    )
+
+
+def test_risk_reasoned_precedent_routes_to_common_risk_not_deliverable_shape(
+    client: TestClient,
+) -> None:
+    precedent_payload = create_contract_review_payload("Risk precedent")
+    precedent_task = client.post("/api/v1/tasks", json=precedent_payload).json()
+    client.post(
+        f"/api/v1/tasks/{precedent_task['id']}/uploads",
+        files=[("files", ("agreement.txt", b"Termination and liability clauses need review.", "text/plain"))],
+    )
+    precedent_run = client.post(f"/api/v1/tasks/{precedent_task['id']}/run")
+    precedent_deliverable_id = precedent_run.json()["deliverable"]["id"]
+    client.post(
+        f"/api/v1/deliverables/{precedent_deliverable_id}/feedback",
+        json={
+            "feedback_status": "template_candidate",
+            "reason_codes": ["reusable_risk_scan"],
+            "note": "這份風險掃描方式值得保留。",
+        },
+    )
+    client.post(
+        f"/api/v1/deliverables/{precedent_deliverable_id}/precedent-candidate",
+        json={"candidate_status": "promoted"},
+    )
+
+    current_task = client.post(
+        "/api/v1/tasks",
+        json=create_contract_review_payload("Current risk-routed task"),
+    ).json()
+    client.post(
+        f"/api/v1/tasks/{current_task['id']}/uploads",
+        files=[("files", ("current.txt", b"Current agreement still needs a first-pass review.", "text/plain"))],
+    )
+
+    aggregate_response = client.get(f"/api/v1/tasks/{current_task['id']}")
+    payload = aggregate_response.json()
+
+    assert any(
+        item["source_kind"] == "precedent_risk_pattern"
+        for item in payload["common_risk_guidance"]["risks"]
+    )
+    assert all(
+        item["source_kind"] != "precedent_deliverable_pattern"
+        for item in payload["deliverable_shape_guidance"]["hints"]
+    )
+
+
+def test_shape_reasoned_precedent_routes_to_deliverable_shape_not_review_lenses(
+    client: TestClient,
+) -> None:
+    precedent_payload = create_contract_review_payload("Shape precedent")
+    precedent_task = client.post("/api/v1/tasks", json=precedent_payload).json()
+    client.post(
+        f"/api/v1/tasks/{precedent_task['id']}/uploads",
+        files=[("files", ("agreement.txt", b"Termination and liability clauses need review.", "text/plain"))],
+    )
+    precedent_run = client.post(f"/api/v1/tasks/{precedent_task['id']}/run")
+    precedent_deliverable_id = precedent_run.json()["deliverable"]["id"]
+    client.post(
+        f"/api/v1/deliverables/{precedent_deliverable_id}/feedback",
+        json={
+            "feedback_status": "template_candidate",
+            "reason_codes": ["reusable_structure"],
+            "note": "這份交付結構值得保留。",
+        },
+    )
+    client.post(
+        f"/api/v1/deliverables/{precedent_deliverable_id}/precedent-candidate",
+        json={"candidate_status": "promoted"},
+    )
+
+    current_task = client.post(
+        "/api/v1/tasks",
+        json=create_contract_review_payload("Current shape-routed task"),
+    ).json()
+    client.post(
+        f"/api/v1/tasks/{current_task['id']}/uploads",
+        files=[("files", ("current.txt", b"Current agreement still needs a first-pass review.", "text/plain"))],
+    )
+
+    aggregate_response = client.get(f"/api/v1/tasks/{current_task['id']}")
+    payload = aggregate_response.json()
+
+    assert all(
+        item["source_kind"] != "precedent_reference"
+        for item in payload["review_lens_guidance"]["lenses"]
+    )
+    assert any(
+        item["source_kind"] == "precedent_deliverable_pattern"
+        for item in payload["deliverable_shape_guidance"]["hints"]
+    )
+
+
 def test_precedent_review_surface_lists_duplicate_groups_and_allows_resolution(
     client: TestClient,
 ) -> None:

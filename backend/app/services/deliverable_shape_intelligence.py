@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.domain import models, schemas
 from app.domain.enums import DeliverableClass
+from app.services.adoption_feedback_intelligence import matches_reusable_asset_reason
 
 
 TASK_HEURISTIC_SHAPES: dict[str, tuple[str, list[str], str]] = {
@@ -161,6 +162,11 @@ def build_deliverable_shape_guidance(
     )
     if precedent_reference_guidance.status == "available":
         for matched in precedent_reference_guidance.matched_items[:2]:
+            if not matches_reusable_asset_reason(
+                matched.source_feedback_reason_codes,
+                "deliverable_shape",
+            ):
+                continue
             snapshot = snapshots.get(matched.candidate_id, {})
             if not primary_shape_label:
                 primary_shape_label = str(snapshot.get("current_output_label") or "").strip()

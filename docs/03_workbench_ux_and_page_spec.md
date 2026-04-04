@@ -974,6 +974,9 @@ Primary action：
 - 若 precedent 已有明確 human reason signal，UI 可低噪音補：
   - `主要原因：...`
   - 讓顧問知道這筆模式為何值得保留
+- `recommended_uses` 若因 human reason signal 變得更精準，也應維持：
+  - 一兩句可直接讀懂的用法
+  - 不要把內部 reason code 或 asset routing 規則直接露在 UI 上
 - boundary copy 應明講：
   - 可參考 framing / review lens / deliverable shape
   - 不會直接複製舊案正文

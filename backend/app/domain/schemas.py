@@ -800,6 +800,7 @@ class PrecedentReferenceItemRead(BaseModel):
     review_priority: Literal["high", "medium", "low"] = "medium"
     primary_reason_label: str = ""
     source_feedback_reason_labels: list[str] = Field(default_factory=list)
+    source_feedback_reason_codes: list[str] = Field(default_factory=list)
     title: str = ""
     summary: str = ""
     reusable_reason: str = ""

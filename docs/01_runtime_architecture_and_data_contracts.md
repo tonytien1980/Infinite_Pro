@@ -741,6 +741,10 @@ deliverable workspace 採：
   - framing / review ordering
   - deliverable shaping 的閱讀順序
 - common risk 應留在 `common_risk_context`，不可再直接回流進 `review_lens_context`
+- precedent 若已有 human reason-coded signal，review lenses 只應優先吸收：
+  - 判斷方式
+  - 優先順序判斷
+  - client framing 類原因
 - 不可被誤用成 template auto-fill 或自動風險判定
 - task / deliverable surface 目前只應以 second-layer disclosure 低噪音回讀
 - matter / overview 目前不應長出 review lens dashboard hero
@@ -806,6 +810,9 @@ deliverable workspace 採：
   - review / analysis 的風險掃描順序
   - deliverable shaping 前的 omission guardrail
 - 若某個 signal 已被定義為 common risk watchout，就不應再同時以 review lens 名義重複露出
+- precedent 若已有 human reason-coded signal，common risk layer 只應優先吸收：
+  - risk scan
+  - constraint handling 類原因
 - 不可被誤讀成這案已經正式存在這些風險
 - task / deliverable surface 目前只應以 second-layer disclosure 低噪音回讀
 - matter / overview / history 目前不應長出 common-risk dashboard hero
@@ -882,6 +889,9 @@ deliverable workspace 採：
   - `建議處置`
   - `下一步行動`
   - `待補資料`
+- precedent 若已有 human reason-coded signal，deliverable shape layer 只應優先吸收：
+  - reusable structure
+  - reusable deliverable shape 類原因
 - 不可被誤讀成 template auto-fill 或 prior deliverable copy
 - task / deliverable surface 目前只應以 second-layer disclosure 低噪音回讀
 - matter / overview / history 目前不應長出 deliverable-shape dashboard hero

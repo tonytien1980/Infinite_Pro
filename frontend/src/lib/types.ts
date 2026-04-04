@@ -1132,6 +1132,7 @@ export interface PrecedentReferenceItem {
   review_priority: "high" | "medium" | "low";
   primary_reason_label: string;
   source_feedback_reason_labels: string[];
+  source_feedback_reason_codes: string[];
   title: string;
   summary: string;
   reusable_reason: string;

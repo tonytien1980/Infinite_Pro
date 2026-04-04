@@ -66,6 +66,22 @@ DEFAULT_REUSABLE_REASON_BY_STATUS = {
     AdoptionFeedbackStatus.TEMPLATE_CANDIDATE: "已被標記為值得當範本，適合作為後續可重用模式候選。",
 }
 
+REVIEW_LENS_REASON_CODES = {
+    "reusable_reasoning",
+    "reusable_priority_judgment",
+    "reusable_client_framing",
+}
+
+COMMON_RISK_REASON_CODES = {
+    "reusable_risk_scan",
+    "reusable_constraint_handling",
+}
+
+DELIVERABLE_SHAPE_REASON_CODES = {
+    "reusable_structure",
+    "reusable_deliverable_shape",
+}
+
 
 def get_adoption_feedback_reason_options(
     surface_kind: str,
@@ -126,3 +142,20 @@ def summarize_adoption_feedback_reason(
         feedback_status,
         "已被標記為可重用候選。",
     )
+
+
+def matches_reusable_asset_reason(
+    reason_codes: Iterable[str] | None,
+    asset_kind: str,
+) -> bool:
+    normalized = {str(code).strip() for code in (reason_codes or []) if str(code).strip()}
+    if not normalized:
+        return True
+
+    if asset_kind == "review_lens":
+        return bool(normalized.intersection(REVIEW_LENS_REASON_CODES))
+    if asset_kind == "common_risk":
+        return bool(normalized.intersection(COMMON_RISK_REASON_CODES))
+    if asset_kind == "deliverable_shape":
+        return bool(normalized.intersection(DELIVERABLE_SHAPE_REASON_CODES))
+    return False

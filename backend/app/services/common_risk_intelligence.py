@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.domain import models, schemas
+from app.services.adoption_feedback_intelligence import matches_reusable_asset_reason
 
 
 TASK_HEURISTIC_COMMON_RISKS: dict[str, list[tuple[str, str]]] = {
@@ -144,6 +145,11 @@ def build_common_risk_guidance(
     )
     if precedent_reference_guidance.status == "available":
         for matched in precedent_reference_guidance.matched_items[:2]:
+            if not matches_reusable_asset_reason(
+                matched.source_feedback_reason_codes,
+                "common_risk",
+            ):
+                continue
             for title in precedent_top_risks.get(matched.candidate_id, [])[:2]:
                 add_risk(
                     title=title,

@@ -264,12 +264,14 @@ def build_precedent_context_lines(
     for index, item in enumerate(matched_items, start=1):
         title = getattr(item, "title", "") or "未命名模式"
         match_reason = getattr(item, "match_reason", "") or "與目前案件主線相似。"
+        primary_reason_label = getattr(item, "primary_reason_label", "") or ""
         safe_use_note = getattr(item, "safe_use_note", "") or "只可拿來參考模式，不可直接複製舊案內容。"
         summary = getattr(item, "summary", "") or getattr(item, "reusable_reason", "") or "目前沒有額外摘要。"
         lines.extend(
             [
                 f"模式 {index}：{title}",
                 f"- 為何相似：{match_reason}",
+                *( [f"- 主要原因：{primary_reason_label}"] if primary_reason_label else [] ),
                 f"- 可參考：{safe_use_note}",
                 f"- 摘要：{summary}",
             ]

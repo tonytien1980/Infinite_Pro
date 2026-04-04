@@ -7626,6 +7626,7 @@ def _build_precedent_reference_guidance_read(
             review_priority=item.review_priority,  # type: ignore[arg-type]
             primary_reason_label=item.primary_reason_label,
             source_feedback_reason_labels=item.source_feedback_reason_labels,
+            source_feedback_reason_codes=list(item.candidate.source_feedback_reason_codes or []),
             title=item.candidate.title or "",
             summary=item.candidate.summary or "",
             reusable_reason=item.candidate.reusable_reason or "",

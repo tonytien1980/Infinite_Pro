@@ -2878,3 +2878,39 @@ Environment used:
 - precedent review lane no longer only says a candidate is high priority; it now also explains the main human reason behind that priority
 - Host-safe precedent reference no longer only says a precedent is similar; it now also says what kind of use it is safest and most useful for
 - the UI remains on existing `history / task / deliverable` surfaces with low-noise copy, not a new precedent dashboard
+
+---
+
+## Entry: 2026-04-04 reason-aware reusable-asset routing pass
+
+Scope:
+- let human reason-coded precedent signals route into reusable review lenses / common risk libraries / deliverable shape hints
+- keep routing Host-owned and low-noise
+
+Environment used:
+- local repo runtime checks only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`129 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`26 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Reason-aware routing verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | task aggregate | reasoning-coded precedent routes into review lenses | Verified | targeted backend test confirms `reusable_reasoning` precedent still feeds `precedent_reference` review lens while not leaking into deliverable-shape hint |
+| Backend | task aggregate | risk-coded precedent routes into common risk guidance | Verified | targeted backend test confirms `reusable_risk_scan` precedent feeds `precedent_risk_pattern` while not leaking into deliverable-shape hint |
+| Backend | task aggregate | shape-coded precedent routes into deliverable-shape guidance | Verified | targeted backend test confirms `reusable_structure` precedent feeds `precedent_deliverable_pattern` while not leaking into review-lens precedence |
+
+### Verified outcomes
+
+- reusable assets now read human reason-coded precedent signals instead of only generic precedent similarity
+- Host is better at deciding which precedent should help review order, which should help omission scanning, and which should help deliverable shaping
+- this stronger routing still stays behind the same low-noise UI surfaces
