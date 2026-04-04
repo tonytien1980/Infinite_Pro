@@ -551,6 +551,50 @@ deliverable workspace 採：
 - publish / approval / revision 仍屬治理或版本訊號，不等於 explicit human adoption feedback
 - 這層的正式目的，是為未來 precedent / reusable intelligence 提供更可靠的人類採納訊號
 
+### 6.9A Feedback optimization signals v1
+
+在 minimal adoption-feedback foundation 已成立後，feedback -> optimization loop 的第一刀應先補：
+
+- `precedent optimization signal`
+
+正式規則：
+
+- 這不是新的架構層
+- 也不是新的獨立 page family
+- 它是掛在 precedent review 與 Host-safe precedent reference 上的一層 nested signal
+- 這層的正式角色是回答：
+  - 這筆 precedent 對哪種 reusable asset 最有幫助
+  - 這筆 precedent 的參考強度大概多高
+
+第一版 contract 至少包括：
+
+- `strength`
+  - `high`
+  - `medium`
+  - `low`
+- `strength_reason`
+- `best_for_asset_codes`
+- `best_for_asset_labels`
+- `summary`
+
+第一波 asset codes 只允許：
+
+- `review_lens`
+- `common_risk`
+- `deliverable_shape`
+- `deliverable_template`
+- `domain_playbook`
+
+正式規則：
+
+- 這層不可直接等於 Host 自動調權
+- 第一波只允許影響：
+  - precedent review lane 的排序細化
+  - Host-safe precedent reference 的 explainability
+  - reusable asset routing 的 explainability
+- frontend 不可自行把這層擴寫成黑箱品質分數或 correctness score
+- 這層是在回答「這筆 feedback 對未來哪種重用最有幫助」，不是在回答「這筆 precedent 絕對正確」
+
 ### 6.10 Precedent candidate pool
 
 目前 precedent / reusable intelligence 的第一輪正式形態，是 `precedent candidate pool`。
@@ -613,11 +657,13 @@ deliverable workspace 採：
 - `review_priority_reason`
 - `primary_reason_label`
 - `source_feedback_reason_labels`
+- `optimization_signal`
 
 正式規則：
 
 - 這是 review guidance，不是 correctness score
 - review lane 應開始利用 `source_feedback_reason_codes` 回答「這筆候選為什麼值得先看」
+- review lane 也應開始利用 `optimization_signal` 回答「這筆候選目前最能幫哪種 reusable asset」
 - 第一波建議順序至少應符合：
   - `candidate + template_candidate` -> `high`
   - `candidate + adopted` -> `high`
@@ -663,6 +709,7 @@ deliverable workspace 採：
 - `review_priority`
 - `primary_reason_label`
 - `source_feedback_reason_labels`
+- `optimization_signal`
 - `title`
 - `summary`
 - `reusable_reason`

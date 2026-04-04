@@ -116,11 +116,22 @@ def build_payload_precedent_context(payload: AgentInputPayload) -> list[str]:
 
     lines: list[str] = []
     for index, item in enumerate(guidance.matched_items[:2], start=1):
+        optimization_signal = item.optimization_signal
         lines.extend(
             [
                 f"模式 {index}：{item.title or '未命名模式'}",
                 f"為何相似：{item.match_reason or '與目前案件主線相似。'}",
                 *( [f"主要原因：{item.primary_reason_label}"] if item.primary_reason_label else [] ),
+                *(
+                    [f"最佳幫助：{'、'.join(optimization_signal.best_for_asset_labels[:2])}"]
+                    if optimization_signal.best_for_asset_labels
+                    else []
+                ),
+                *(
+                    [f"參考強度：{'高' if optimization_signal.strength == 'high' else '中' if optimization_signal.strength == 'medium' else '低'}"]
+                    if optimization_signal.strength
+                    else []
+                ),
                 f"可參考：{item.safe_use_note or '只可拿來參考模式，不可直接複製舊案內容。'}",
                 f"摘要：{item.summary or item.reusable_reason or '目前沒有額外摘要。'}",
             ]

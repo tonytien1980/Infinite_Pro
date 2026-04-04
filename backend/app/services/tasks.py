@@ -7630,6 +7630,7 @@ def _build_precedent_reference_guidance_read(
             primary_reason_label=item.primary_reason_label,
             source_feedback_reason_labels=item.source_feedback_reason_labels,
             source_feedback_reason_codes=list(item.candidate.source_feedback_reason_codes or []),
+            optimization_signal=item.optimization_signal,
             title=item.candidate.title or "",
             summary=item.candidate.summary or "",
             reusable_reason=item.candidate.reusable_reason or "",

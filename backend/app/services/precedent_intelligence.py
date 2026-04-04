@@ -3,12 +3,17 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Iterable
 
+from app.domain import schemas
 from app.domain.enums import (
     AdoptionFeedbackStatus,
     PrecedentCandidateStatus,
     PrecedentCandidateType,
 )
 from app.services.adoption_feedback_intelligence import label_for_adoption_feedback_reason
+from app.services.feedback_optimization_intelligence import (
+    STRENGTH_RANK,
+    build_precedent_optimization_signal,
+)
 
 if TYPE_CHECKING:
     from app.domain import models
@@ -28,6 +33,7 @@ class PrecedentReferenceMatch:
     review_priority_reason: str
     primary_reason_label: str
     source_feedback_reason_labels: list[str]
+    optimization_signal: schemas.PrecedentOptimizationSignalRead
     match_reason: str
     safe_use_note: str
     score: int
@@ -134,18 +140,18 @@ def build_reason_aware_precedent_recommended_uses(
     matches: Iterable[PrecedentReferenceMatch],
 ) -> list[str]:
     matched = list(matches)
-    codes = {
+    best_for_codes = {
         code
         for item in matched
-        for code in candidate_reason_codes(item.candidate)
+        for code in item.optimization_signal.best_for_asset_codes
     }
     uses: list[str] = []
 
-    if {"reusable_structure", "reusable_deliverable_shape"} & codes:
+    if {"deliverable_shape", "deliverable_template"} & best_for_codes:
         uses.append("先拿來校正交付骨架與段落順序，不要把舊案內容直接當成現成答案。")
-    if {"reusable_reasoning", "reusable_priority_judgment", "reusable_client_framing"} & codes:
+    if {"review_lens", "domain_playbook"} & best_for_codes:
         uses.append("再拿來校正 framing、判斷順序與優先級，不要把 precedent 當成定案。")
-    if {"reusable_risk_scan", "reusable_constraint_handling", "reusable_action_pattern"} & codes:
+    if {"common_risk"} & best_for_codes:
         uses.append("最後拿來提醒常漏風險、限制條件與下一步排序，但仍要回到這案的正式證據核對。")
 
     if uses:
@@ -227,6 +233,12 @@ def select_precedent_reference_matches(
             candidate.source_feedback_status,
             primary_reason_label=primary_reason_label,
         )
+        optimization_signal = build_precedent_optimization_signal(
+            candidate_status=candidate.candidate_status,
+            source_feedback_status=candidate.source_feedback_status,
+            source_feedback_reason_codes=candidate_reason_codes(candidate),
+            candidate_type=candidate.candidate_type,
+        )
 
         matches.append(
             PrecedentReferenceMatch(
@@ -235,6 +247,7 @@ def select_precedent_reference_matches(
                 review_priority_reason=review_priority_reason,
                 primary_reason_label=primary_reason_label,
                 source_feedback_reason_labels=source_feedback_reason_labels,
+                optimization_signal=optimization_signal,
                 match_reason="；".join(reasons[:2]),
                 safe_use_note=build_precedent_safe_use_note(
                     candidate.candidate_type,
@@ -248,6 +261,7 @@ def select_precedent_reference_matches(
         key=lambda item: (
             -item.score,
             PRECEDENT_REVIEW_PRIORITY_RANK[item.review_priority],
+            STRENGTH_RANK[item.optimization_signal.strength],
             -item.candidate.updated_at.timestamp(),
             -item.candidate.created_at.timestamp(),
         )
@@ -267,11 +281,26 @@ def build_precedent_context_lines(
         primary_reason_label = getattr(item, "primary_reason_label", "") or ""
         safe_use_note = getattr(item, "safe_use_note", "") or "只可拿來參考模式，不可直接複製舊案內容。"
         summary = getattr(item, "summary", "") or getattr(item, "reusable_reason", "") or "目前沒有額外摘要。"
+        optimization_signal = getattr(item, "optimization_signal", None)
+        optimization_summary = getattr(optimization_signal, "summary", "") if optimization_signal else ""
+        optimization_labels = getattr(optimization_signal, "best_for_asset_labels", []) if optimization_signal else []
+        optimization_strength = getattr(optimization_signal, "strength", "") if optimization_signal else ""
         lines.extend(
             [
                 f"模式 {index}：{title}",
                 f"- 為何相似：{match_reason}",
                 *( [f"- 主要原因：{primary_reason_label}"] if primary_reason_label else [] ),
+                *(
+                    [f"- 最佳幫助：{'、'.join(optimization_labels[:2])}"]
+                    if optimization_labels
+                    else []
+                ),
+                *(
+                    [f"- 參考強度：{'高' if optimization_strength == 'high' else '中' if optimization_strength == 'medium' else '低'}"]
+                    if optimization_strength
+                    else []
+                ),
+                *( [f"- 優化摘要：{optimization_summary}"] if optimization_summary else [] ),
                 f"- 可參考：{safe_use_note}",
                 f"- 摘要：{summary}",
             ]

@@ -953,6 +953,10 @@ Primary action：
   - `promoted` 可降回候選或停用
   - `dismissed` 可重新列回候選
 - 這些 action 只應出現在既有 candidate 區塊附近，不可新增 precedent management page
+- 若 precedent review lane 已開始帶 optimization signal，history family 也只可低噪音補：
+  - `最佳幫助：...`
+  - `參考強度：...`
+  - 不可把這層做成新的 precedence scoring 控制台
 
 ### 9.2.2 Precedent reference reading
 
@@ -977,6 +981,10 @@ Primary action：
 - `recommended_uses` 若因 human reason signal 變得更精準，也應維持：
   - 一兩句可直接讀懂的用法
   - 不要把內部 reason code 或 asset routing 規則直接露在 UI 上
+- 若 precedent 已開始帶 optimization signal，UI 只可低噪音補：
+  - `最佳幫助：...`
+  - `參考強度：...`
+  - 不可把這層做成分數面板或權重控制器
 - boundary copy 應明講：
   - 可參考 framing / review lens / deliverable shape
   - 不會直接複製舊案正文

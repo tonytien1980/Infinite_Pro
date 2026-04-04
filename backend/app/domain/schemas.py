@@ -793,6 +793,14 @@ class PrecedentCandidateSummaryRead(BaseModel):
     summary: str = ""
 
 
+class PrecedentOptimizationSignalRead(BaseModel):
+    strength: Literal["high", "medium", "low"] = "medium"
+    strength_reason: str = ""
+    best_for_asset_codes: list[str] = Field(default_factory=list)
+    best_for_asset_labels: list[str] = Field(default_factory=list)
+    summary: str = ""
+
+
 class PrecedentReferenceItemRead(BaseModel):
     candidate_id: str
     candidate_type: PrecedentCandidateType
@@ -801,6 +809,9 @@ class PrecedentReferenceItemRead(BaseModel):
     primary_reason_label: str = ""
     source_feedback_reason_labels: list[str] = Field(default_factory=list)
     source_feedback_reason_codes: list[str] = Field(default_factory=list)
+    optimization_signal: PrecedentOptimizationSignalRead = Field(
+        default_factory=PrecedentOptimizationSignalRead
+    )
     title: str = ""
     summary: str = ""
     reusable_reason: str = ""

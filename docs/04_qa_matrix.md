@@ -2993,6 +2993,44 @@ Environment used:
 
 ---
 
+## Entry: 2026-04-05 feedback optimization signals v1 pass
+
+Scope:
+- first-pass precedent optimization signal
+- low-noise optimization readback on precedent review / reference
+- Host-safe precedent context includes optimization hints
+
+Environment used:
+- local repo runtime checks only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`137 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`29 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Feedback-optimization specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | precedent review | Read optimization signal | Verified | targeted backend test confirms precedent review items now expose optimization strength and best-for asset labels |
+| Backend | precedent reference | Read optimization signal | Verified | targeted backend test confirms Host-safe precedent reference now exposes optimization signal on matched items |
+| Backend | agent payload | Build prompt-safe precedent context with optimization hints | Verified | targeted backend test confirms precedent payload now includes best-for and strength lines |
+| Frontend | precedent review / reference helpers | Render low-noise optimization copy | Verified | frontend helper tests confirm UI reads as `最佳幫助 / 參考強度`, not a scoring dashboard |
+
+### Verified outcomes
+
+- Infinite Pro now starts turning human adoption feedback into a reusable optimization signal, not just a stored reason label
+- Host-safe precedent reference can read not only why a precedent was kept, but also what kind of reusable asset it helps most
+- the UI stays low-noise and does not turn optimization into a visible scoring console
+
+---
+
 ## Entry: 2026-04-05 domain playbooks v1 pass
 
 Scope:

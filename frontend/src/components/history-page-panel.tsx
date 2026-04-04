@@ -557,6 +557,9 @@ export function HistoryPagePanel() {
                       </div>
                       <p className="content-block">{candidateView.summary}</p>
                       <p className="muted-text">{priorityView.reason}</p>
+                      {priorityView.optimizationMeta ? (
+                        <p className="muted-text">{priorityView.optimizationMeta}</p>
+                      ) : null}
                       {item.primary_reason_label ? (
                         <p className="muted-text">主要原因：{item.primary_reason_label}</p>
                       ) : null}

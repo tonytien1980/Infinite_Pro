@@ -3,6 +3,13 @@ import type { PrecedentReviewItem } from "@/lib/types";
 export function buildPrecedentReviewPriorityView(item: {
   review_priority: "high" | "medium" | "low";
   review_priority_reason: string;
+  optimization_signal:
+    | {
+        strength: "high" | "medium" | "low";
+        best_for_asset_labels: string[];
+      }
+    | null
+    | undefined;
 }) {
   return {
     label:
@@ -12,6 +19,16 @@ export function buildPrecedentReviewPriorityView(item: {
           ? "可安排下一輪"
           : "先放背景",
     reason: item.review_priority_reason,
+    optimizationMeta:
+      item.optimization_signal && item.optimization_signal.best_for_asset_labels.length > 0
+        ? `最佳幫助：${item.optimization_signal.best_for_asset_labels.join("、")}｜參考強度：${
+            item.optimization_signal.strength === "high"
+              ? "高"
+              : item.optimization_signal.strength === "medium"
+                ? "中"
+                : "低"
+          }`
+        : "",
   };
 }
 

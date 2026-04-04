@@ -132,6 +132,7 @@ export interface PrecedentReviewItem {
   review_priority_reason: string;
   primary_reason_label: string;
   source_feedback_reason_labels: string[];
+  optimization_signal: PrecedentOptimizationSignal;
   title: string;
   summary: string;
   reusable_reason: string;
@@ -1133,6 +1134,7 @@ export interface PrecedentReferenceItem {
   primary_reason_label: string;
   source_feedback_reason_labels: string[];
   source_feedback_reason_codes: string[];
+  optimization_signal: PrecedentOptimizationSignal;
   title: string;
   summary: string;
   reusable_reason: string;
@@ -1150,6 +1152,14 @@ export interface PrecedentReferenceGuidance {
   recommended_uses: string[];
   boundary_note: string;
   matched_items: PrecedentReferenceItem[];
+}
+
+export interface PrecedentOptimizationSignal {
+  strength: "high" | "medium" | "low";
+  strength_reason: string;
+  best_for_asset_codes: string[];
+  best_for_asset_labels: string[];
+  summary: string;
 }
 
 export interface OrganizationMemoryGuidance {

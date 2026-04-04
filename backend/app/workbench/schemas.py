@@ -4,6 +4,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from app.domain import schemas as domain_schemas
+
 ProviderModelLevel = Literal["high_quality", "balanced", "low_cost"]
 ProviderValidationStatus = Literal[
     "success",
@@ -245,6 +247,9 @@ class PrecedentReviewItemResponse(BaseModel):
     review_priority_reason: str = ""
     primary_reason_label: str = ""
     source_feedback_reason_labels: list[str] = Field(default_factory=list)
+    optimization_signal: domain_schemas.PrecedentOptimizationSignalRead = Field(
+        default_factory=domain_schemas.PrecedentOptimizationSignalRead
+    )
     title: str
     summary: str = ""
     reusable_reason: str = ""

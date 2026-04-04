@@ -15,6 +15,10 @@ from app.services.precedent_intelligence import (
     candidate_reason_labels,
     classify_precedent_review_priority,
 )
+from app.services.feedback_optimization_intelligence import (
+    STRENGTH_RANK,
+    build_precedent_optimization_signal,
+)
 from app.workbench import schemas
 
 DEFAULT_WORKBENCH_PROFILE = "single_consultant_default"
@@ -167,6 +171,12 @@ def get_precedent_review_state(db: Session) -> schemas.PrecedentReviewResponse:
             row.source_feedback_status,
             primary_reason_label=primary_reason_label,
         )
+        optimization_signal = build_precedent_optimization_signal(
+            candidate_status=row.candidate_status,
+            source_feedback_status=row.source_feedback_status,
+            source_feedback_reason_codes=list(row.source_feedback_reason_codes or []),
+            candidate_type=row.candidate_type,
+        )
         item = schemas.PrecedentReviewItemResponse(
             id=row.id,
             candidate_type=row.candidate_type,  # type: ignore[arg-type]
@@ -175,6 +185,7 @@ def get_precedent_review_state(db: Session) -> schemas.PrecedentReviewResponse:
             review_priority_reason=review_priority_reason,
             primary_reason_label=primary_reason_label,
             source_feedback_reason_labels=source_feedback_reason_labels,
+            optimization_signal=optimization_signal,
             title=row.title or "",
             summary=row.summary or "",
             reusable_reason=row.reusable_reason or "",
@@ -198,14 +209,15 @@ def get_precedent_review_state(db: Session) -> schemas.PrecedentReviewResponse:
             (
                 PRECEDENT_REVIEW_PRIORITY_RANK[review_priority],
                 nuance_rank,
+                STRENGTH_RANK[optimization_signal.strength],
                 -row.updated_at.timestamp(),
                 -row.created_at.timestamp(),
                 item,
             )
         )
 
-    ranked_items.sort(key=lambda entry: entry[:4])
-    items = [entry[4] for entry in ranked_items]
+    ranked_items.sort(key=lambda entry: entry[:5])
+    items = [entry[5] for entry in ranked_items]
     duplicate_summary, duplicate_candidates = build_precedent_duplicate_contract(
         db,
         candidate_rows=rows,

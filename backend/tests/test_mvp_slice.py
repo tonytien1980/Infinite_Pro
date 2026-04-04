@@ -15,6 +15,7 @@ from app.agents.base import (
     build_payload_deliverable_template_context,
     build_payload_domain_playbook_context,
     build_payload_organization_memory_context,
+    build_payload_precedent_context,
 )
 from app.core.database import SessionLocal
 from app.domain import models, schemas
@@ -3828,6 +3829,9 @@ def test_workbench_precedent_review_lists_candidate_states_and_sources(
     assert recommendation_item["task_title"]
     assert recommendation_item["primary_reason_label"] == "可重用的行動模式"
     assert "可重用的行動模式" in recommendation_item["review_priority_reason"]
+    assert recommendation_item["optimization_signal"]["strength"] == "high"
+    assert "domain_playbook" in recommendation_item["optimization_signal"]["best_for_asset_codes"]
+    assert recommendation_item["optimization_signal"]["best_for_asset_labels"]
 
 
 def test_task_aggregate_exposes_host_safe_precedent_reference_guidance(
@@ -3889,10 +3893,70 @@ def test_task_aggregate_exposes_host_safe_precedent_reference_guidance(
     assert guidance["matched_items"][0]["candidate_status"] == "promoted"
     assert guidance["matched_items"][0]["primary_reason_label"] == "可重用的交付結構"
     assert "交付骨架" in guidance["matched_items"][0]["safe_use_note"]
+    assert guidance["matched_items"][0]["optimization_signal"]["strength"] == "high"
+    assert "deliverable_template" in guidance["matched_items"][0]["optimization_signal"]["best_for_asset_codes"]
     assert any("交付骨架" in item for item in guidance["recommended_uses"])
     assert all(item["source_deliverable_id"] != dismissed_deliverable_id for item in guidance["matched_items"])
     assert all(item["source_task_id"] != current_task["id"] for item in guidance["matched_items"])
     assert "不會直接複製舊案正文" in guidance["boundary_note"]
+
+
+def test_build_payload_precedent_context_includes_optimization_signal_lines() -> None:
+    payload = AgentInputPayload(
+        task_id="task-1",
+        title="Task title",
+        description="Task description",
+        task_type="contract_review",
+        flow_mode="specialist",
+        presence_state_summary=schemas.PresenceStateSummaryRead(
+            client=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="某客戶"),
+            engagement=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="委託"),
+            workstream=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="工作流"),
+            decision_context=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="合約審閱"),
+            artifact=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="artifact"),
+            source_material=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="source"),
+            domain_lens=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="法務"),
+            client_stage=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="制度化階段"),
+            client_type=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="中小企業"),
+        ),
+        precedent_reference_guidance=schemas.PrecedentReferenceGuidanceRead(
+            status="available",
+            label="可參考既有模式",
+            summary="summary",
+            recommended_uses=["先拿來校正交付模板與骨架。"],
+            boundary_note="這些模式只可拿來參考，不可直接複製舊案正文。",
+            matched_items=[
+                schemas.PrecedentReferenceItemRead(
+                    candidate_id="candidate-1",
+                    candidate_type="deliverable_pattern",
+                    candidate_status="promoted",
+                    review_priority="high",
+                    primary_reason_label="可重用的交付結構",
+                    source_feedback_reason_labels=["可重用的交付結構"],
+                    source_feedback_reason_codes=["reusable_structure"],
+                    title="合約審閱模式",
+                    summary="review memo pattern",
+                    reusable_reason="值得保留",
+                    match_reason="同樣屬於 material review start。",
+                    safe_use_note="優先參考交付模板與骨架，不要直接複製舊案正文。",
+                    source_task_id="task-2",
+                    source_deliverable_id="deliverable-1",
+                    optimization_signal=schemas.PrecedentOptimizationSignalRead(
+                        strength="high",
+                        strength_reason="這筆 precedent 既已被保留，又能明確幫助交付模板與交付骨架。",
+                        best_for_asset_codes=["deliverable_shape", "deliverable_template"],
+                        best_for_asset_labels=["交付骨架", "交付模板"],
+                        summary="最能幫助交付模板與交付骨架，參考強度高。",
+                    ),
+                )
+            ],
+        ),
+    )
+
+    lines = build_payload_precedent_context(payload)
+
+    assert any("最佳幫助：" in item for item in lines)
+    assert any("參考強度：" in item for item in lines)
 
 
 def test_task_aggregate_exposes_review_lens_guidance(

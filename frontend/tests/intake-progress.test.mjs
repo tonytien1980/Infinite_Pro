@@ -1178,10 +1178,18 @@ test("precedent review priority view stays consultant-readable", () => {
     buildPrecedentReviewPriorityView({
       review_priority: "high",
       review_priority_reason: "來自值得當範本的候選，而且主要原因是可重用的行動模式。",
+      optimization_signal: {
+        strength: "high",
+        strength_reason: "這筆 precedent 對交付模板與交付骨架的幫助最明確。",
+        best_for_asset_codes: ["deliverable_shape", "deliverable_template"],
+        best_for_asset_labels: ["交付骨架", "交付模板"],
+        summary: "最能幫助交付模板與交付骨架，參考強度高。",
+      },
     }),
     {
       label: "建議先看",
       reason: "來自值得當範本的候選，而且主要原因是可重用的行動模式。",
+      optimizationMeta: "最佳幫助：交付骨架、交付模板｜參考強度：高",
     },
   );
 
@@ -1189,10 +1197,12 @@ test("precedent review priority view stays consultant-readable", () => {
     buildPrecedentReviewPriorityView({
       review_priority: "medium",
       review_priority_reason: "這個模式已升格，適合排下一輪回看。",
+      optimization_signal: null,
     }),
     {
       label: "可安排下一輪",
       reason: "這個模式已升格，適合排下一輪回看。",
+      optimizationMeta: "",
     },
   );
 
@@ -1200,10 +1210,12 @@ test("precedent review priority view stays consultant-readable", () => {
     buildPrecedentReviewPriorityView({
       review_priority: "low",
       review_priority_reason: "這個候選目前已停用，先留作背景。",
+      optimization_signal: null,
     }),
     {
       label: "先放背景",
       reason: "這個候選目前已停用，先留作背景。",
+      optimizationMeta: "",
     },
   );
 });
@@ -1226,6 +1238,13 @@ test("precedent reference view stays low-noise and consultant-readable", () => {
         reusable_reason: "值得保留",
         primary_reason_label: "可重用的交付結構",
         source_feedback_reason_labels: ["可重用的交付結構"],
+        optimization_signal: {
+          strength: "high",
+          strength_reason: "這筆 precedent 對交付模板與交付骨架的幫助最明確。",
+          best_for_asset_codes: ["deliverable_shape", "deliverable_template"],
+          best_for_asset_labels: ["交付骨架", "交付模板"],
+          summary: "最能幫助交付模板與交付骨架，參考強度高。",
+        },
         match_reason: "同樣屬於 material review start，且交付型態一致。",
         safe_use_note: "優先參考交付骨架與段落順序，不要直接複製舊案正文。",
         source_task_id: "task-1",
@@ -1239,6 +1258,7 @@ test("precedent reference view stays low-noise and consultant-readable", () => {
   assert.equal(view.sectionTitle, "可參考既有模式");
   assert.equal(view.cards[0]?.title, "合約審閱模式");
   assert.match(view.cards[0]?.meta ?? "", /可重用的交付結構/);
+  assert.match(view.cards[0]?.meta ?? "", /交付模板/);
   assert.equal(view.listItems[0], "先拿來校正交付骨架與段落順序");
   assert.equal(view.boundaryNote, "這些模式只可拿來參考判斷順序與骨架，不會直接複製舊案正文。");
 });
