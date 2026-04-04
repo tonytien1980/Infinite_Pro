@@ -311,6 +311,11 @@ class MatterWorkspace(Base):
         cascade="all, delete-orphan",
         order_by="MatterCanonicalizationReview.updated_at.desc()",
     )
+    precedent_duplicate_reviews: Mapped[list["MatterPrecedentDuplicateReview"]] = relationship(
+        back_populates="matter_workspace",
+        cascade="all, delete-orphan",
+        order_by="MatterPrecedentDuplicateReview.updated_at.desc()",
+    )
     object_sets: Mapped[list["ObjectSet"]] = relationship(
         back_populates="matter_workspace",
         order_by="ObjectSet.updated_at.desc()",
@@ -408,6 +413,42 @@ class MatterCanonicalizationReview(Base):
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     matter_workspace: Mapped["MatterWorkspace"] = relationship(back_populates="canonicalization_reviews")
+
+
+class MatterPrecedentDuplicateReview(Base):
+    __tablename__ = "matter_precedent_duplicate_reviews"
+    __table_args__ = (
+        UniqueConstraint(
+            "matter_workspace_id",
+            "review_key",
+            name="uq_matter_precedent_duplicate_review",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    matter_workspace_id: Mapped[str] = mapped_column(
+        ForeignKey("matter_workspaces.id"),
+        nullable=False,
+    )
+    object_family: Mapped[str] = mapped_column(String(50), default="precedent")
+    match_basis: Mapped[str] = mapped_column(String(50), default="pattern_signature_match")
+    review_key: Mapped[str] = mapped_column(String(120), nullable=False)
+    review_status: Mapped[str] = mapped_column(String(50), default="pending_review")
+    confidence_level: Mapped[str] = mapped_column(String(30), default="medium")
+    consultant_summary: Mapped[str] = mapped_column(Text, default="")
+    resolution_note: Mapped[str] = mapped_column(Text, default="")
+    resolved_by: Mapped[str] = mapped_column(String(100), default="consultant_manual")
+    canonical_candidate_id: Mapped[str | None] = mapped_column(
+        ForeignKey("precedent_candidates.id"),
+        nullable=True,
+    )
+    candidate_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
+    task_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    matter_workspace: Mapped["MatterWorkspace"] = relationship(back_populates="precedent_duplicate_reviews")
 
 
 class TaskObjectParticipationLink(Base):

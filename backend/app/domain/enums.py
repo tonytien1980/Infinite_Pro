@@ -98,12 +98,14 @@ class AuditEventType(str, Enum):
 
 class CanonicalizationObjectFamily(str, Enum):
     SOURCE_CHAIN = "source_chain"
+    PRECEDENT = "precedent"
 
 
 class CanonicalizationMatchBasis(str, Enum):
     CONTENT_DIGEST_MATCH = "content_digest_match"
     SOURCE_REF_MATCH = "source_ref_match"
     DISPLAY_NAME_MATCH = "display_name_match"
+    PATTERN_SIGNATURE_MATCH = "pattern_signature_match"
 
 
 class CanonicalizationReviewStatus(str, Enum):

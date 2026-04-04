@@ -823,6 +823,7 @@ Primary action：
 - 狀態篩選
 - 類型篩選
 - 輕量建議排序
+- 同案重複候選整理
 - item-level 升格 / 停用 / 恢復
 
 正式規則：
@@ -835,6 +836,11 @@ Primary action：
   - `可安排下一輪`
   - `先放背景`
 - 這層只是在幫顧問決定 review 順序，不應讀起來像模型在替候選做品質打分
+- duplicate governance 也應保持低噪音：
+  - `確認同一模式`
+  - `保留分開`
+  - `拆成不同模式`
+- 這層是在整理「怎麼參考」，不是在刪 raw precedent rows
 
 ### 7.10 `/settings`
 
@@ -955,6 +961,7 @@ Primary action：
 - boundary copy 應明講：
   - 可參考 framing / review lens / deliverable shape
   - 不會直接複製舊案正文
+- 若同案 duplicate governance 尚未處理，UI 不需要把這種內部去重邏輯放上首屏，但 history family 應能回看這些 duplicate groups
 
 ### 9.3 Specialized hardening views
 

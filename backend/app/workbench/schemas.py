@@ -273,8 +273,46 @@ class PrecedentReviewSummaryResponse(BaseModel):
     low_priority_count: int = 0
 
 
+class PrecedentDuplicateReviewRequest(BaseModel):
+    review_key: str
+    resolution: Literal["human_confirmed_canonical_row", "keep_separate", "split"]
+    note: str = ""
+
+
+class PrecedentDuplicateSummaryResponse(BaseModel):
+    pending_review_count: int = 0
+    human_confirmed_count: int = 0
+    kept_separate_count: int = 0
+    split_count: int = 0
+    summary: str = ""
+
+
+class PrecedentDuplicateCandidateResponse(BaseModel):
+    review_key: str
+    review_status: Literal["pending_review", "human_confirmed_canonical_row", "keep_separate", "split"] = "pending_review"
+    suggested_action: Literal["merge_candidate"] | None = None
+    confidence_level: str = "medium"
+    consultant_summary: str = ""
+    canonical_candidate_id: str | None = None
+    canonical_title: str = ""
+    matter_workspace_id: str
+    matter_title: str = ""
+    candidate_type: Literal["deliverable_pattern", "recommendation_pattern"]
+    candidate_ids: list[str] = Field(default_factory=list)
+    candidate_titles: list[str] = Field(default_factory=list)
+    task_ids: list[str] = Field(default_factory=list)
+    task_titles: list[str] = Field(default_factory=list)
+    candidate_count: int = 0
+    resolution_note: str = ""
+    resolved_at: str | None = None
+
+
 class PrecedentReviewResponse(BaseModel):
     summary: PrecedentReviewSummaryResponse = Field(
         default_factory=PrecedentReviewSummaryResponse
     )
     items: list[PrecedentReviewItemResponse] = Field(default_factory=list)
+    duplicate_summary: PrecedentDuplicateSummaryResponse = Field(
+        default_factory=PrecedentDuplicateSummaryResponse
+    )
+    duplicate_candidates: list[PrecedentDuplicateCandidateResponse] = Field(default_factory=list)

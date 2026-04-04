@@ -2499,3 +2499,63 @@ Environment used:
 - Host 現在已能帶少量 precedent pattern context 進 specialist / core analysis request
 - precedent reference 仍維持 pattern-first，而不是舊案正文複製
 - task / deliverable 的 precedent reference 讀法已進入正式 UI contract，但仍保持 second-layer low-noise
+
+---
+
+## Entry: 2026-04-04 matter-scoped precedent duplicate governance pass
+
+Scope:
+- same-matter duplicate precedent detection
+- low-noise duplicate review actions inside existing `/history`
+- Host reference default dedupe for unresolved duplicate groups
+
+Environment used:
+- frontend runtime: `http://127.0.0.1:3002`
+- backend runtime: `http://127.0.0.1:8010/api/v1`
+- runtime database: local `precedent-duplicate-smoke.db`
+- browser evidence: local `playwright-cli` smoke artifacts
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`116 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`22 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Duplicate-governance specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | workbench precedent route | Read duplicate summary / duplicate candidates | Verified | automated tests and live API both confirm pending duplicate group is surfaced |
+| Backend | workbench duplicate review route | Apply `keep_separate` | Verified | live API confirms group moves from `pending_review` to `keep_separate` |
+| Backend | Host-safe reference | Collapse unresolved duplicate group | Verified | automated backend test confirms unresolved duplicate group collapses to one match and `keep_separate` preserves all |
+| Frontend | `/history` | Duplicate helper copy | Verified | frontend helper tests confirm consultant-readable summary and action labels |
+| Frontend | `/history` | Route availability | Verified | local dev route smoke returned `200` |
+| Frontend | browser hydrated duplicate section | Read rendered duplicate section in browser | Limited | local browser hydration remained fetch-sensitive in this environment, so browser artifact is retained only as troubleshooting evidence |
+
+### Live smoke data
+
+- duplicate matter id: `385571ff-7d26-4d4d-846f-6b0b03706aea`
+- duplicate review key: `precedent:95e865475a96feb6dd6eeb36`
+- current duplicate-aware task id: `147b28fd-ba48-48a1-b9d5-290b076195e5`
+- live API verification returned:
+  - duplicate summary before review: `pending=1 / human_confirmed=0 / kept_separate=0 / split=0`
+  - duplicate status after review: `keep_separate`
+  - duplicate summary after review: `pending=0 / kept_separate=1`
+- frontend route smoke:
+  - `/history` returned `200`
+
+### Residual note
+
+- browser hydration in this local environment still shows intermittent fetch sensitivity for task / deliverable detail pages, so duplicate UI evidence is primarily API-driven plus frontend helper tests.
+- this round still does not merge or delete raw precedent rows; it only governs how duplicate groups are read and referenced.
+
+### Verified outcomes
+
+- same-matter duplicate precedent groups can now be surfaced and manually marked as merged conceptually, kept separate, or split
+- Host-safe precedent reference no longer needs to carry unresolved duplicate groups into model context by default
+- `/history` remains the single precedent management family; no new canonicalization or precedent dashboard was added

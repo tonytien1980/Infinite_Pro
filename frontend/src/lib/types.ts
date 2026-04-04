@@ -160,9 +160,45 @@ export interface PrecedentReviewSummary {
   low_priority_count: number;
 }
 
+export interface PrecedentDuplicateSummary {
+  pending_review_count: number;
+  human_confirmed_count: number;
+  kept_separate_count: number;
+  split_count: number;
+  summary: string;
+}
+
+export interface PrecedentDuplicateCandidate {
+  review_key: string;
+  review_status: "pending_review" | "human_confirmed_canonical_row" | "keep_separate" | "split";
+  suggested_action: "merge_candidate" | null;
+  confidence_level: string;
+  consultant_summary: string;
+  canonical_candidate_id: string | null;
+  canonical_title: string;
+  matter_workspace_id: string;
+  matter_title: string;
+  candidate_type: PrecedentCandidateType;
+  candidate_ids: string[];
+  candidate_titles: string[];
+  task_ids: string[];
+  task_titles: string[];
+  candidate_count: number;
+  resolution_note: string;
+  resolved_at: string | null;
+}
+
+export interface PrecedentDuplicateReviewPayload {
+  review_key: string;
+  resolution: "human_confirmed_canonical_row" | "keep_separate" | "split";
+  note: string;
+}
+
 export interface PrecedentReviewResponse {
   summary: PrecedentReviewSummary;
   items: PrecedentReviewItem[];
+  duplicate_summary: PrecedentDuplicateSummary;
+  duplicate_candidates: PrecedentDuplicateCandidate[];
 }
 
 export interface ProviderPreset {

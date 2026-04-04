@@ -27,6 +27,10 @@ import {
   buildPrecedentCandidateView,
 } from "../src/lib/precedent-candidates.ts";
 import {
+  buildPrecedentDuplicateActionView,
+  buildPrecedentDuplicateSummaryView,
+} from "../src/lib/precedent-duplicates.ts";
+import {
   buildPrecedentReviewPriorityView,
   filterPrecedentReviewItems,
 } from "../src/lib/precedent-review.ts";
@@ -1096,4 +1100,41 @@ test("precedent reference view stays low-noise and consultant-readable", () => {
   assert.equal(view.cards[0]?.meta, "同樣屬於 material review start，且交付型態一致。");
   assert.equal(view.listItems[0], "先看 framing");
   assert.equal(view.boundaryNote, "這些模式只可拿來參考判斷順序與骨架，不會直接複製舊案正文。");
+});
+
+test("precedent duplicate governance view stays consultant-readable", () => {
+  const summaryView = buildPrecedentDuplicateSummaryView({
+    pending_review_count: 1,
+    human_confirmed_count: 0,
+    kept_separate_count: 0,
+    split_count: 0,
+    summary: "目前有 1 組同案重複候選待確認。",
+  });
+  const actionView = buildPrecedentDuplicateActionView({
+    review_key: "review-1",
+    review_status: "pending_review",
+    suggested_action: "merge_candidate",
+    confidence_level: "high",
+    consultant_summary: "這案目前有 2 個很像的模式候選，建議先確認是否其實是同一種模式。",
+    canonical_candidate_id: "candidate-1",
+    canonical_title: "合約審閱模式",
+    matter_workspace_id: "matter-1",
+    matter_title: "法務審閱案",
+    candidate_type: "deliverable_pattern",
+    candidate_ids: ["candidate-1", "candidate-2"],
+    candidate_titles: ["合約審閱模式", "合約審閱模式"],
+    task_ids: ["task-1", "task-2"],
+    task_titles: ["合約審閱一", "合約審閱二"],
+    candidate_count: 2,
+    resolution_note: "",
+    resolved_at: null,
+  });
+
+  assert.equal(summaryView.shouldShow, true);
+  assert.equal(summaryView.title, "同案重複候選整理");
+  assert.equal(summaryView.meta, "待確認 1 / 已確認同一模式 0 / 保留分開 0 / 已拆分 0");
+  assert.equal(actionView.statusLabel, "待確認");
+  assert.equal(actionView.actions[0]?.label, "確認同一模式");
+  assert.equal(actionView.actions[1]?.label, "保留分開");
+  assert.equal(actionView.actions[2]?.label, "拆成不同模式");
 });

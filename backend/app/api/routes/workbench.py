@@ -8,6 +8,7 @@ from app.services.workbench import (
     get_history_visibility_state,
     get_precedent_review_state,
     get_workbench_preferences,
+    update_precedent_duplicate_review_state,
     update_history_visibility_state,
     update_workbench_preferences,
 )
@@ -98,3 +99,19 @@ def get_precedent_review_route(
     db: Session = Depends(get_db),
 ) -> schemas.PrecedentReviewResponse:
     return get_precedent_review_state(db)
+
+
+@router.post(
+    "/matters/{matter_workspace_id}/precedent-duplicate-review",
+    response_model=schemas.PrecedentReviewResponse,
+)
+def update_precedent_duplicate_review_route(
+    matter_workspace_id: str,
+    payload: schemas.PrecedentDuplicateReviewRequest,
+    db: Session = Depends(get_db),
+) -> schemas.PrecedentReviewResponse:
+    return update_precedent_duplicate_review_state(
+        db,
+        matter_workspace_id=matter_workspace_id,
+        payload=payload,
+    )

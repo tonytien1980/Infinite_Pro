@@ -5,6 +5,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.domain import models
+from app.domain import schemas as domain_schemas
+from app.services.precedent_duplicate_governance import (
+    apply_matter_precedent_duplicate_review,
+    build_precedent_duplicate_contract,
+)
 from app.services.precedent_intelligence import (
     PRECEDENT_REVIEW_PRIORITY_RANK,
     classify_precedent_review_priority,
@@ -195,6 +200,10 @@ def get_precedent_review_state(db: Session) -> schemas.PrecedentReviewResponse:
 
     ranked_items.sort(key=lambda entry: entry[:4])
     items = [entry[4] for entry in ranked_items]
+    duplicate_summary, duplicate_candidates = build_precedent_duplicate_contract(
+        db,
+        candidate_rows=rows,
+    )
 
     return schemas.PrecedentReviewResponse(
         summary=schemas.PrecedentReviewSummaryResponse(
@@ -207,4 +216,51 @@ def get_precedent_review_state(db: Session) -> schemas.PrecedentReviewResponse:
             low_priority_count=sum(1 for item in items if item.review_priority == "low"),
         ),
         items=items,
+        duplicate_summary=schemas.PrecedentDuplicateSummaryResponse(
+            pending_review_count=duplicate_summary.pending_review_count,
+            human_confirmed_count=duplicate_summary.human_confirmed_count,
+            kept_separate_count=duplicate_summary.kept_separate_count,
+            split_count=duplicate_summary.split_count,
+            summary=duplicate_summary.summary,
+        ),
+        duplicate_candidates=[
+            schemas.PrecedentDuplicateCandidateResponse(
+                review_key=item.review_key,
+                review_status=item.review_status.value,  # type: ignore[arg-type]
+                suggested_action=item.suggested_action,
+                confidence_level=item.confidence_level,
+                consultant_summary=item.consultant_summary,
+                canonical_candidate_id=item.canonical_candidate_id,
+                canonical_title=item.canonical_title,
+                matter_workspace_id=item.matter_workspace_id,
+                matter_title=item.matter_title,
+                candidate_type=item.candidate_type.value,  # type: ignore[arg-type]
+                candidate_ids=item.candidate_ids,
+                candidate_titles=item.candidate_titles,
+                task_ids=item.task_ids,
+                task_titles=item.task_titles,
+                candidate_count=item.candidate_count,
+                resolution_note=item.resolution_note,
+                resolved_at=item.resolved_at.isoformat() if item.resolved_at else None,
+            )
+            for item in duplicate_candidates
+        ],
     )
+
+
+def update_precedent_duplicate_review_state(
+    db: Session,
+    *,
+    matter_workspace_id: str,
+    payload: schemas.PrecedentDuplicateReviewRequest,
+) -> schemas.PrecedentReviewResponse:
+    apply_matter_precedent_duplicate_review(
+        db,
+        matter_workspace_id=matter_workspace_id,
+        payload=domain_schemas.MatterPrecedentDuplicateReviewRequest(
+            review_key=payload.review_key,
+            resolution=payload.resolution,
+            note=payload.note,
+        ),
+    )
+    return get_precedent_review_state(db)

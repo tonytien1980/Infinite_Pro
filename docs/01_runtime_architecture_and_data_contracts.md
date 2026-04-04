@@ -666,15 +666,38 @@ deliverable workspace 採：
 
 正式規則：
 
-- canonicalization 第一波只處理同一 matter 內的 duplicate candidate
+- 第一波只處理同一 matter 內的 duplicate precedent candidate
 - 系統至少需能正式區分：
   - `merge_candidate`
   - `keep_separate`
   - `split`
   - `human_confirmed_canonical_row`
-- human-confirmed canonical row 只應回寫 matter-scoped participation mapping
-- raw rows 不得因第一波 canonicalization 被靜默刪除
+- raw precedent rows 不得因這一輪 duplicate governance 被靜默刪除
 - 不可提前跨案件世界做 aggressive merge
+
+第一波 duplicate governance 至少應包括：
+
+- `precedent_duplicate_summary`
+- `precedent_duplicate_candidates`
+- `matter_precedent_duplicate_review`
+
+正式規則：
+
+- duplicate grouping 第一波只抓高信心同案重複：
+  - same `matter_workspace_id`
+  - same `candidate_type`
+  - same normalized pattern signature
+  - same `lane_id`
+  - same `deliverable_type`
+- 若 duplicate group 尚未人工處理：
+  - Host reference 預設只取 1 筆代表 candidate
+- 若顧問標記：
+  - `keep_separate`
+  - `split`
+  則 Host reference 可保留全數 candidates
+- 若顧問標記：
+  - `human_confirmed_canonical_row`
+  則 Host reference 只取 canonical candidate
 
 ---
 

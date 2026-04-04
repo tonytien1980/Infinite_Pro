@@ -3661,6 +3661,174 @@ def test_task_aggregate_exposes_host_safe_precedent_reference_guidance(
     assert "不會直接複製舊案正文" in guidance["boundary_note"]
 
 
+def test_precedent_review_surface_lists_duplicate_groups_and_allows_resolution(
+    client: TestClient,
+) -> None:
+    payload = create_contract_review_payload("Duplicate precedent one")
+    task_one = client.post("/api/v1/tasks", json=payload).json()
+    client.post(
+        f"/api/v1/tasks/{task_one['id']}/uploads",
+        files=[("files", ("agreement-a.txt", b"Termination and liability clauses need review.", "text/plain"))],
+    )
+    run_one = client.post(f"/api/v1/tasks/{task_one['id']}/run")
+    deliverable_one = run_one.json()["deliverable"]["id"]
+    client.post(
+        f"/api/v1/deliverables/{deliverable_one}/feedback",
+        json={"feedback_status": "template_candidate", "note": "值得保留成模式。"},
+    )
+    client.post(
+        f"/api/v1/deliverables/{deliverable_one}/precedent-candidate",
+        json={"candidate_status": "promoted"},
+    )
+
+    payload_two = create_contract_review_payload("Duplicate precedent two")
+    task_two = client.post("/api/v1/tasks", json=payload_two).json()
+    client.post(
+        f"/api/v1/tasks/{task_two['id']}/uploads",
+        files=[("files", ("agreement-b.txt", b"Termination and liability clauses need review.", "text/plain"))],
+    )
+    run_two = client.post(f"/api/v1/tasks/{task_two['id']}/run")
+    deliverable_two = run_two.json()["deliverable"]["id"]
+    client.post(
+        f"/api/v1/deliverables/{deliverable_two}/feedback",
+        json={"feedback_status": "adopted", "note": "同樣可採用。"},
+    )
+    client.post(
+        f"/api/v1/deliverables/{deliverable_two}/precedent-candidate",
+        json={"candidate_status": "promoted"},
+    )
+
+    with SessionLocal() as db:
+        first = db.scalars(
+            select(models.PrecedentCandidate).where(
+                models.PrecedentCandidate.source_deliverable_id == deliverable_one
+            )
+        ).one()
+        second = db.scalars(
+            select(models.PrecedentCandidate).where(
+                models.PrecedentCandidate.source_deliverable_id == deliverable_two
+            )
+        ).one()
+        second.matter_workspace_id = first.matter_workspace_id
+        second.title = first.title
+        second.summary = first.summary
+        second.lane_id = first.lane_id
+        second.deliverable_type = first.deliverable_type
+        second.pattern_snapshot = dict(first.pattern_snapshot)
+        db.add(second)
+        db.commit()
+        matter_workspace_id = first.matter_workspace_id
+
+    review_response = client.get("/api/v1/workbench/precedent-candidates")
+
+    assert review_response.status_code == 200
+    review_body = review_response.json()
+    assert review_body["duplicate_summary"]["pending_review_count"] == 1
+    assert review_body["duplicate_candidates"][0]["suggested_action"] == "merge_candidate"
+    review_key = review_body["duplicate_candidates"][0]["review_key"]
+
+    resolved_response = client.post(
+        f"/api/v1/workbench/matters/{matter_workspace_id}/precedent-duplicate-review",
+        json={
+            "review_key": review_key,
+            "resolution": "keep_separate",
+            "note": "這兩個模式先保留分開。",
+        },
+    )
+
+    assert resolved_response.status_code == 200
+    resolved_body = resolved_response.json()
+    assert resolved_body["duplicate_summary"]["pending_review_count"] == 0
+    assert resolved_body["duplicate_summary"]["kept_separate_count"] == 1
+    duplicate_item = next(
+        item for item in resolved_body["duplicate_candidates"] if item["review_key"] == review_key
+    )
+    assert duplicate_item["review_status"] == "keep_separate"
+
+
+def test_host_precedent_reference_collapses_unreviewed_duplicates_until_keep_separate(
+    client: TestClient,
+) -> None:
+    payload = create_contract_review_payload("Host duplicate precedent one")
+    task_one = client.post("/api/v1/tasks", json=payload).json()
+    client.post(
+        f"/api/v1/tasks/{task_one['id']}/uploads",
+        files=[("files", ("precedent-a.txt", b"Termination and liability clauses need review.", "text/plain"))],
+    )
+    run_one = client.post(f"/api/v1/tasks/{task_one['id']}/run")
+    deliverable_one = run_one.json()["deliverable"]["id"]
+    client.post(
+        f"/api/v1/deliverables/{deliverable_one}/feedback",
+        json={"feedback_status": "template_candidate", "note": "值得保留成模式。"},
+    )
+    client.post(
+        f"/api/v1/deliverables/{deliverable_one}/precedent-candidate",
+        json={"candidate_status": "promoted"},
+    )
+
+    payload_two = create_contract_review_payload("Host duplicate precedent two")
+    task_two = client.post("/api/v1/tasks", json=payload_two).json()
+    client.post(
+        f"/api/v1/tasks/{task_two['id']}/uploads",
+        files=[("files", ("precedent-b.txt", b"Termination and liability clauses need review.", "text/plain"))],
+    )
+    run_two = client.post(f"/api/v1/tasks/{task_two['id']}/run")
+    deliverable_two = run_two.json()["deliverable"]["id"]
+    client.post(
+        f"/api/v1/deliverables/{deliverable_two}/feedback",
+        json={"feedback_status": "adopted", "note": "同樣可採用。"},
+    )
+    client.post(
+        f"/api/v1/deliverables/{deliverable_two}/precedent-candidate",
+        json={"candidate_status": "promoted"},
+    )
+
+    with SessionLocal() as db:
+        first = db.scalars(
+            select(models.PrecedentCandidate).where(
+                models.PrecedentCandidate.source_deliverable_id == deliverable_one
+            )
+        ).one()
+        second = db.scalars(
+            select(models.PrecedentCandidate).where(
+                models.PrecedentCandidate.source_deliverable_id == deliverable_two
+            )
+        ).one()
+        second.matter_workspace_id = first.matter_workspace_id
+        second.title = first.title
+        second.summary = first.summary
+        second.lane_id = first.lane_id
+        second.deliverable_type = first.deliverable_type
+        second.pattern_snapshot = dict(first.pattern_snapshot)
+        db.add(second)
+        db.commit()
+        matter_workspace_id = first.matter_workspace_id
+
+    current_task = client.post("/api/v1/tasks", json=create_contract_review_payload("Current duplicate-aware review")).json()
+    client.post(
+        f"/api/v1/tasks/{current_task['id']}/uploads",
+        files=[("files", ("current.txt", b"Current agreement still needs a first-pass review.", "text/plain"))],
+    )
+
+    unresolved = client.get(f"/api/v1/tasks/{current_task['id']}").json()
+    assert unresolved["precedent_reference_guidance"]["status"] == "available"
+    assert len(unresolved["precedent_reference_guidance"]["matched_items"]) == 1
+
+    review_key = client.get("/api/v1/workbench/precedent-candidates").json()["duplicate_candidates"][0]["review_key"]
+    client.post(
+        f"/api/v1/workbench/matters/{matter_workspace_id}/precedent-duplicate-review",
+        json={
+            "review_key": review_key,
+            "resolution": "keep_separate",
+            "note": "先保留兩個模式分開。",
+        },
+    )
+
+    resolved = client.get(f"/api/v1/tasks/{current_task['id']}").json()
+    assert resolved["precedent_reference_guidance"]["status"] == "available"
+    assert len(resolved["precedent_reference_guidance"]["matched_items"]) == 2
+
+
 def test_specialist_run_returns_explicit_uncertainty_when_model_router_fails(
     client: TestClient,
     monkeypatch: pytest.MonkeyPatch,

@@ -87,6 +87,9 @@ from app.services.object_sets import (
     relevant_object_sets_for_deliverable,
     serialize_object_sets,
 )
+from app.services.precedent_duplicate_governance import (
+    collapse_precedent_candidates_for_reference,
+)
 from app.services.precedent_intelligence import (
     select_precedent_reference_matches,
 )
@@ -7582,9 +7585,10 @@ def _build_precedent_reference_guidance_read(
     client_stage: str | None,
     client_type: str | None,
 ) -> schemas.PrecedentReferenceGuidanceRead:
-    candidate_rows = db.scalars(
+    raw_candidate_rows = db.scalars(
         select(models.PrecedentCandidate).order_by(models.PrecedentCandidate.updated_at.desc())
     ).all()
+    candidate_rows = collapse_precedent_candidates_for_reference(db, raw_candidate_rows)
     matches = select_precedent_reference_matches(
         candidates=candidate_rows,
         current_task_id=task.id,

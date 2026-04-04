@@ -168,6 +168,12 @@ class MatterCanonicalizationReviewRequest(BaseModel):
     note: str = ""
 
 
+class MatterPrecedentDuplicateReviewRequest(BaseModel):
+    review_key: str
+    resolution: Literal["human_confirmed_canonical_row", "keep_separate", "split"]
+    note: str = ""
+
+
 class DeliverableMetadataUpdateRequest(BaseModel):
     title: str = Field(min_length=1, max_length=255)
     summary: str = ""
@@ -806,6 +812,36 @@ class PrecedentReferenceGuidanceRead(BaseModel):
     recommended_uses: list[str] = Field(default_factory=list)
     boundary_note: str = ""
     matched_items: list[PrecedentReferenceItemRead] = Field(default_factory=list)
+
+
+class PrecedentDuplicateSummaryRead(BaseModel):
+    pending_review_count: int = 0
+    human_confirmed_count: int = 0
+    kept_separate_count: int = 0
+    split_count: int = 0
+    summary: str = ""
+
+
+class PrecedentDuplicateCandidateRead(BaseModel):
+    review_key: str
+    object_family: CanonicalizationObjectFamily = CanonicalizationObjectFamily.PRECEDENT
+    review_status: CanonicalizationReviewStatus = CanonicalizationReviewStatus.PENDING_REVIEW
+    match_basis: CanonicalizationMatchBasis = CanonicalizationMatchBasis.PATTERN_SIGNATURE_MATCH
+    suggested_action: Literal["merge_candidate"] | None = None
+    confidence_level: str = "medium"
+    consultant_summary: str = ""
+    canonical_candidate_id: str | None = None
+    canonical_title: str = ""
+    matter_workspace_id: str
+    matter_title: str = ""
+    candidate_type: PrecedentCandidateType
+    candidate_ids: list[str] = Field(default_factory=list)
+    candidate_titles: list[str] = Field(default_factory=list)
+    task_ids: list[str] = Field(default_factory=list)
+    task_titles: list[str] = Field(default_factory=list)
+    candidate_count: int = 0
+    resolution_note: str = ""
+    resolved_at: datetime | None = None
 
 
 class ObjectSetMemberRead(ORMModel):

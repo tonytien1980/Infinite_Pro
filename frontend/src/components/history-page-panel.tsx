@@ -7,6 +7,7 @@ import { buildTaskListWorkspaceSummary } from "@/lib/advisory-workflow";
 import {
   getPrecedentReviewState,
   listTasks,
+  updatePrecedentDuplicateReview,
   updateDeliverablePrecedentCandidateStatus,
   updateRecommendationPrecedentCandidateStatus,
 } from "@/lib/api";
@@ -14,6 +15,10 @@ import {
   buildPrecedentCandidateActionView,
   buildPrecedentCandidateView,
 } from "@/lib/precedent-candidates";
+import {
+  buildPrecedentDuplicateActionView,
+  buildPrecedentDuplicateSummaryView,
+} from "@/lib/precedent-duplicates";
 import {
   buildPrecedentReviewPriorityView,
   filterPrecedentReviewItems,
@@ -26,7 +31,12 @@ import {
   syncHistoryStateFromRemote,
 } from "@/lib/workbench-persistence";
 import { truncateText } from "@/lib/text-format";
-import type { PrecedentReviewItem, TaskListItem } from "@/lib/types";
+import type {
+  PrecedentDuplicateCandidate,
+  PrecedentDuplicateSummary,
+  PrecedentReviewItem,
+  TaskListItem,
+} from "@/lib/types";
 import {
   formatDisplayDate,
   labelForTaskStatus,
@@ -42,6 +52,11 @@ const PAGE_SIZE_OPTIONS = [10, 20, 30, 50];
 export function HistoryPagePanel() {
   const [tasks, setTasks] = useState<TaskListItem[]>([]);
   const [precedentItems, setPrecedentItems] = useState<PrecedentReviewItem[]>([]);
+  const [precedentDuplicateSummary, setPrecedentDuplicateSummary] =
+    useState<PrecedentDuplicateSummary | null>(null);
+  const [precedentDuplicateCandidates, setPrecedentDuplicateCandidates] = useState<
+    PrecedentDuplicateCandidate[]
+  >([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [matterFilter, setMatterFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -60,6 +75,7 @@ export function HistoryPagePanel() {
   const [historyMessage, setHistoryMessage] = useState<string | null>(null);
   const [precedentMessage, setPrecedentMessage] = useState<string | null>(null);
   const [activePrecedentId, setActivePrecedentId] = useState<string | null>(null);
+  const [activeDuplicateReviewKey, setActiveDuplicateReviewKey] = useState<string | null>(null);
 
   useEffect(() => {
     setPageSize(settings.historyDefaultPageSize);
@@ -76,6 +92,8 @@ export function HistoryPagePanel() {
       ]);
       setTasks(taskResponse);
       setPrecedentItems(precedentResponse.items);
+      setPrecedentDuplicateSummary(precedentResponse.duplicate_summary);
+      setPrecedentDuplicateCandidates(precedentResponse.duplicate_candidates);
       if (visibilityResponse.source === "remote") {
         setHistoryState((current) => syncHistoryStateFromRemote(current, visibilityResponse.state));
       }
@@ -240,6 +258,8 @@ export function HistoryPagePanel() {
       }
       const precedentResponse = await getPrecedentReviewState();
       setPrecedentItems(precedentResponse.items);
+      setPrecedentDuplicateSummary(precedentResponse.duplicate_summary);
+      setPrecedentDuplicateCandidates(precedentResponse.duplicate_candidates);
       setPrecedentMessage(
         nextStatus === "promoted"
           ? "這個可重用候選已升格成正式可重用模式。"
@@ -253,6 +273,37 @@ export function HistoryPagePanel() {
       );
     } finally {
       setActivePrecedentId(null);
+    }
+  }
+
+  async function handlePrecedentDuplicateReview(
+    candidate: PrecedentDuplicateCandidate,
+    resolution: "human_confirmed_canonical_row" | "keep_separate" | "split",
+  ) {
+    try {
+      setActiveDuplicateReviewKey(candidate.review_key);
+      setPrecedentMessage(null);
+      const response = await updatePrecedentDuplicateReview(candidate.matter_workspace_id, {
+        review_key: candidate.review_key,
+        resolution,
+        note: "",
+      });
+      setPrecedentItems(response.items);
+      setPrecedentDuplicateSummary(response.duplicate_summary);
+      setPrecedentDuplicateCandidates(response.duplicate_candidates);
+      setPrecedentMessage(
+        resolution === "human_confirmed_canonical_row"
+          ? "這組重複候選已確認先合併看。"
+          : resolution === "keep_separate"
+            ? "這組重複候選已標記為保留分開。"
+            : "這組重複候選已標記為拆成不同模式。"
+      );
+    } catch (duplicateError) {
+      setPrecedentMessage(
+        duplicateError instanceof Error ? duplicateError.message : "更新重複候選整理狀態失敗。"
+      );
+    } finally {
+      setActiveDuplicateReviewKey(null);
     }
   }
 
@@ -371,6 +422,17 @@ export function HistoryPagePanel() {
                 </p>
                 <p className="muted-text">目前已按建議順序排列，先處理仍待決且採納訊號較強的候選。</p>
               </div>
+              {buildPrecedentDuplicateSummaryView(precedentDuplicateSummary).shouldShow ? (
+                <div className="section-card">
+                  <h4>{buildPrecedentDuplicateSummaryView(precedentDuplicateSummary).title}</h4>
+                  <p className="content-block">
+                    {buildPrecedentDuplicateSummaryView(precedentDuplicateSummary).summary}
+                  </p>
+                  <p className="muted-text">
+                    {buildPrecedentDuplicateSummaryView(precedentDuplicateSummary).meta}
+                  </p>
+                </div>
+              ) : null}
             </div>
 
             <div className="toolbar-grid toolbar-grid-wide">
@@ -419,6 +481,60 @@ export function HistoryPagePanel() {
             ) : null}
 
             <div className="history-list" style={{ marginTop: "18px" }}>
+              {precedentDuplicateCandidates.length > 0 ? (
+                <div className="detail-item" style={{ marginBottom: "18px" }}>
+                  <h3>同案重複候選整理</h3>
+                  <p className="muted-text">
+                    這裡只整理同一案件世界裡很像的 precedent 候選，幫你決定要先合併看，還是保留分開。
+                  </p>
+                  <div className="history-list" style={{ marginTop: "12px" }}>
+                    {precedentDuplicateCandidates.map((candidate) => {
+                      const actionView = buildPrecedentDuplicateActionView(candidate);
+                      return (
+                        <article
+                          className="history-item management-card"
+                          key={`precedent-duplicate-${candidate.review_key}`}
+                        >
+                          <div className="history-item-header">
+                            <div>
+                              <h3>{candidate.canonical_title || "未命名模式"}</h3>
+                              <p className="muted-text">
+                                {candidate.matter_title}｜{candidate.candidate_count} 個候選｜{candidate.task_titles.join("、")}
+                              </p>
+                            </div>
+                            <div className="meta-row">
+                              <span className="pill">{actionView.statusLabel}</span>
+                              <span>{candidate.candidate_type === "deliverable_pattern" ? "交付物候選" : "建議候選"}</span>
+                            </div>
+                          </div>
+                          <p className="content-block">{candidate.consultant_summary}</p>
+                          <p className="muted-text">目前代表模式：{candidate.canonical_title}</p>
+                          {candidate.resolution_note ? (
+                            <p className="muted-text">備註：{candidate.resolution_note}</p>
+                          ) : null}
+                          <div className="button-row" style={{ marginTop: "12px" }}>
+                            {actionView.actions.map((action) => (
+                              <button
+                                key={`${candidate.review_key}-${action.nextResolution}`}
+                                className="button-secondary"
+                                type="button"
+                                disabled={activeDuplicateReviewKey === candidate.review_key}
+                                onClick={() =>
+                                  void handlePrecedentDuplicateReview(candidate, action.nextResolution)
+                                }
+                              >
+                                {activeDuplicateReviewKey === candidate.review_key
+                                  ? "處理中..."
+                                  : action.label}
+                              </button>
+                            ))}
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
               {filteredPrecedentItems.length > 0 ? (
                 filteredPrecedentItems.map((item) => {
                   const candidateView = buildPrecedentCandidateView(item);
