@@ -1122,6 +1122,42 @@ Primary action：
   - 不是強制 checklist
   - 若和這案正式證據衝突，仍以這案正式判斷為準
 
+### 9.2.8 Deliverable-template reading
+
+當 Host 已開始把 precedent / pack / shape / playbook / heuristic signals 收斂成 deliverable templates 時，UI 也應維持低噪音回讀：
+
+- 這份交付比較適合沿用哪種模板主線
+- 哪些區塊應視為 core sections
+- 哪些區塊屬於 optional sections
+
+正式規則：
+
+- 第一波只應出現在 `task detail` 與 `deliverable workspace` 的 second-layer disclosure
+- 不新增 template page family
+- 不把這層做成 template picker
+- 不把這層做成 template library
+- UI 必須清楚標示這層是在回答：
+  - `這份交付比較適合沿用哪種模板主線`
+- 不可把這層寫成：
+  - 自動套模板
+  - 模板後台
+  - 已完成內容
+  - 舊案交付全文複製
+- 第一波應優先顯示：
+  - `模板主線`
+  - `這輪適合`
+  - `核心區塊`
+  - `可選區塊`
+  - 少量 template blocks
+- template block 應優先顯示：
+  - `title`
+  - `why_fit`
+  - `source_label`
+- boundary copy 應明講：
+  - 這是在提示模板主線
+  - 不是自動套模板
+  - 若和這案正式證據衝突，仍以這案當前判斷與證據為準
+
 ### 9.3 Specialized hardening views
 
 以下能力雖已 shipped，但仍應保持低噪音：

@@ -1248,6 +1248,32 @@ export interface DeliverableShapeGuidance {
   hints: DeliverableShapeHint[];
 }
 
+export interface DeliverableTemplateBlock {
+  block_id: string;
+  title: string;
+  summary: string;
+  why_fit: string;
+  source_kind:
+    | "precedent_deliverable_template"
+    | "pack_deliverable_preset"
+    | "domain_playbook"
+    | "task_heuristic";
+  source_label: string;
+  priority: "high" | "medium" | "low";
+}
+
+export interface DeliverableTemplateGuidance {
+  status: "available" | "fallback" | "none";
+  label: string;
+  summary: string;
+  template_label: string;
+  template_fit_summary: string;
+  core_sections: string[];
+  optional_sections: string[];
+  boundary_note: string;
+  blocks: DeliverableTemplateBlock[];
+}
+
 export interface PrecedentCandidateStatusUpdatePayload {
   candidate_status: PrecedentCandidateStatus;
 }
@@ -1651,6 +1677,7 @@ export interface TaskAggregate {
   review_lens_guidance: ReviewLensGuidance;
   common_risk_guidance: CommonRiskGuidance;
   deliverable_shape_guidance: DeliverableShapeGuidance;
+  deliverable_template_guidance: DeliverableTemplateGuidance;
   research_runs: ResearchRun[];
   decision_records: DecisionRecord[];
   action_plans: ActionPlan[];

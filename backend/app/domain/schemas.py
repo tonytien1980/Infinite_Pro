@@ -926,6 +926,33 @@ class DeliverableShapeGuidanceRead(BaseModel):
     hints: list[DeliverableShapeHintRead] = Field(default_factory=list)
 
 
+class DeliverableTemplateBlockRead(BaseModel):
+    block_id: str
+    title: str
+    summary: str = ""
+    why_fit: str = ""
+    source_kind: Literal[
+        "precedent_deliverable_template",
+        "pack_deliverable_preset",
+        "domain_playbook",
+        "task_heuristic",
+    ] = "task_heuristic"
+    source_label: str = ""
+    priority: Literal["high", "medium", "low"] = "medium"
+
+
+class DeliverableTemplateGuidanceRead(BaseModel):
+    status: Literal["available", "fallback", "none"] = "none"
+    label: str = ""
+    summary: str = ""
+    template_label: str = ""
+    template_fit_summary: str = ""
+    core_sections: list[str] = Field(default_factory=list)
+    optional_sections: list[str] = Field(default_factory=list)
+    boundary_note: str = ""
+    blocks: list[DeliverableTemplateBlockRead] = Field(default_factory=list)
+
+
 class PrecedentDuplicateSummaryRead(BaseModel):
     pending_review_count: int = 0
     human_confirmed_count: int = 0
@@ -1755,6 +1782,9 @@ class TaskAggregateResponse(BaseModel):
     common_risk_guidance: CommonRiskGuidanceRead = Field(default_factory=CommonRiskGuidanceRead)
     deliverable_shape_guidance: DeliverableShapeGuidanceRead = Field(
         default_factory=DeliverableShapeGuidanceRead
+    )
+    deliverable_template_guidance: DeliverableTemplateGuidanceRead = Field(
+        default_factory=DeliverableTemplateGuidanceRead
     )
     research_runs: list[ResearchRunRead] = Field(default_factory=list)
     decision_records: list[DecisionRecordRead] = Field(default_factory=list)

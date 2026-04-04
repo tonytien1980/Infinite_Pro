@@ -2955,6 +2955,44 @@ Environment used:
 
 ---
 
+## Entry: 2026-04-05 deliverable templates v1 pass
+
+Scope:
+- first-pass `deliverable_template_guidance`
+- Host-safe deliverable-template context
+- low-noise task / deliverable readback
+
+Environment used:
+- local repo runtime checks only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`137 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`29 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Deliverable-template specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | task aggregate | Read `deliverable_template_guidance` | Verified | targeted backend test confirms task aggregate returns template label, fit summary, core sections, optional sections, and template blocks |
+| Backend | agent payload | Build prompt-safe deliverable-template context | Verified | targeted backend test confirms Host payload lines include template mainline, fit summary, core sections, and optional sections |
+| Backend | contract-review prompt | Include `deliverable_template_context` | Verified | targeted backend test confirms contract-review prompt now includes the deliverable-template block |
+| Frontend | deliverable-template helper | Render low-noise deliverable-template reading | Verified | frontend helper test confirms the view reads as compact template guidance rather than a template picker |
+
+### Verified outcomes
+
+- Infinite Pro now starts answering not only how to order a deliverable, but also which template mainline best fits this deliverable
+- Host can carry a compact, prompt-safe deliverable-template context into model context without turning it into a template library or auto-apply shell
+- task detail and deliverable workspace can read the template guidance back in a low-noise way
+
+---
+
 ## Entry: 2026-04-05 domain playbooks v1 pass
 
 Scope:

@@ -39,6 +39,7 @@ import {
   filterPrecedentReviewItems,
 } from "../src/lib/precedent-review.ts";
 import { buildCommonRiskLibraryView } from "../src/lib/common-risk-libraries.ts";
+import { buildDeliverableTemplateView } from "../src/lib/deliverable-templates.ts";
 import { buildDomainPlaybookView } from "../src/lib/domain-playbooks.ts";
 import { buildDeliverableShapeHintView } from "../src/lib/deliverable-shape-hints.ts";
 import { buildPrecedentReferenceView } from "../src/lib/precedent-reference.ts";
@@ -1361,6 +1362,50 @@ test("deliverable shape hint view stays low-noise and consultant-readable", () =
   assert.match(view.cards[0]?.meta ?? "", /precedent deliverable pattern/);
   assert.equal(view.listTitle, "建議交付骨架");
   assert.equal(view.listItems[0], "一句話結論");
+  assert.match(view.boundaryNote, /不是自動套模板/);
+});
+
+test("deliverable template view stays low-noise and consultant-readable", () => {
+  const view = buildDeliverableTemplateView({
+    status: "available",
+    label: "這份交付比較適合沿用哪種模板主線",
+    summary: "Host 先整理出較穩的模板主線，幫你知道這份交付更像哪一型正式模板。",
+    template_label: "合約審閱備忘模板",
+    template_fit_summary: "這輪仍屬 review / assessment 主線，先站穩審閱備忘模板會更可靠。",
+    core_sections: ["一句話結論", "主要發現", "主要風險", "建議處置"],
+    optional_sections: ["待補資料", "已審範圍"],
+    boundary_note: "這是在提示模板主線，不是自動套模板；若和這案正式證據衝突，仍以這案當前判斷與證據為準。",
+    blocks: [
+      {
+        block_id: "precedent_deliverable_template:abc",
+        title: "先用合約審閱備忘模板收斂",
+        summary: "相似 precedent 目前也是先用 review memo 型模板站穩 judgment。",
+        why_fit: "這輪還不是 final decision template。",
+        source_kind: "precedent_deliverable_template",
+        source_label: "來源：precedent deliverable template",
+        priority: "high",
+      },
+      {
+        block_id: "domain_playbook:def",
+        title: "把模板主線對齊到審閱 -> 高風險 -> 建議處置",
+        summary: "目前 playbook 的工作順序是先站穩 review judgment，再補 action。",
+        why_fit: "這樣比較不會太早假裝已完成最終決策版本。",
+        source_kind: "domain_playbook",
+        source_label: "來源：domain playbook",
+        priority: "medium",
+      },
+    ],
+  });
+
+  assert.equal(view.shouldShow, true);
+  assert.equal(view.sectionTitle, "這份交付比較適合沿用哪種模板主線");
+  assert.equal(view.templateLabel, "合約審閱備忘模板");
+  assert.match(view.templateFitSummary, /review \/ assessment/);
+  assert.equal(view.coreListTitle, "先守住這些核心區塊");
+  assert.equal(view.coreSections[0], "一句話結論");
+  assert.equal(view.optionalListTitle, "這些區塊視案件補");
+  assert.equal(view.optionalSections[0], "待補資料");
+  assert.match(view.cards[0]?.meta ?? "", /precedent deliverable template/);
   assert.match(view.boundaryNote, /不是自動套模板/);
 });
 

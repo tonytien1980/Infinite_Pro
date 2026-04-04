@@ -25,6 +25,7 @@ from app.domain.schemas import (
     ConstraintRead,
     DecisionContextRead,
     DeliverableShapeGuidanceRead,
+    DeliverableTemplateGuidanceRead,
     DomainPlaybookGuidanceRead,
     EngagementRead,
     EvidenceRead,
@@ -96,6 +97,9 @@ class AgentInputPayload(BaseModel):
     common_risk_guidance: CommonRiskGuidanceRead = Field(default_factory=CommonRiskGuidanceRead)
     deliverable_shape_guidance: DeliverableShapeGuidanceRead = Field(
         default_factory=DeliverableShapeGuidanceRead
+    )
+    deliverable_template_guidance: DeliverableTemplateGuidanceRead = Field(
+        default_factory=DeliverableTemplateGuidanceRead
     )
     source_materials: list[SourceMaterialRead] = Field(default_factory=list)
     artifacts: list[ArtifactRead] = Field(default_factory=list)
@@ -220,6 +224,32 @@ def build_payload_deliverable_shape_context(payload: AgentInputPayload) -> list[
             [
                 f"交付提示：{item.title}",
                 f"為什麼這樣收：{item.why_fit}",
+                f"來源：{item.source_label or item.source_kind}",
+            ]
+        )
+    lines.append(f"整體邊界：{guidance.boundary_note}")
+    return lines
+
+
+def build_payload_deliverable_template_context(payload: AgentInputPayload) -> list[str]:
+    guidance = payload.deliverable_template_guidance
+    if guidance.status == "none":
+        return []
+
+    lines: list[str] = []
+    if guidance.template_label:
+        lines.append(f"模板主線：{guidance.template_label}")
+    if guidance.template_fit_summary:
+        lines.append(f"這輪適合：{guidance.template_fit_summary}")
+    if guidance.core_sections:
+        lines.append("核心區塊：" + "、".join(guidance.core_sections))
+    if guidance.optional_sections:
+        lines.append("可選區塊：" + "、".join(guidance.optional_sections))
+    for item in guidance.blocks[:3]:
+        lines.extend(
+            [
+                f"模板提示：{item.title}",
+                f"為什麼適合：{item.why_fit}",
                 f"來源：{item.source_label or item.source_kind}",
             ]
         )

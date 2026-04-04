@@ -95,6 +95,7 @@ from app.services.object_sets import (
 from app.services.organization_memory_intelligence import build_organization_memory_guidance
 from app.services.domain_playbook_intelligence import build_domain_playbook_guidance
 from app.services.deliverable_shape_intelligence import build_deliverable_shape_guidance
+from app.services.deliverable_template_intelligence import build_deliverable_template_guidance
 from app.services.precedent_duplicate_governance import (
     collapse_precedent_candidates_for_reference,
 )
@@ -11480,6 +11481,15 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         pack_resolution=pack_resolution,
         precedent_reference_guidance=precedent_reference_guidance,
     )
+    deliverable_template_guidance = build_deliverable_template_guidance(
+        db,
+        task_type=task.task_type,
+        deliverable_class_hint=deliverable_class_hint,
+        precedent_reference_guidance=precedent_reference_guidance,
+        pack_resolution=pack_resolution,
+        domain_playbook_guidance=domain_playbook_guidance,
+        deliverable_shape_guidance=deliverable_shape_guidance,
+    )
     canonicalization_summary, canonicalization_candidates = build_matter_canonicalization_contract(
         db,
         matter_workspace_id=matter_workspace.id,
@@ -11567,6 +11577,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         review_lens_guidance=review_lens_guidance,
         common_risk_guidance=common_risk_guidance,
         deliverable_shape_guidance=deliverable_shape_guidance,
+        deliverable_template_guidance=deliverable_template_guidance,
         research_runs=[schemas.ResearchRunRead.model_validate(item) for item in task.research_runs],
         decision_records=[schemas.DecisionRecordRead.model_validate(item) for item in task.decision_records],
         action_plans=[schemas.ActionPlanRead.model_validate(item) for item in task.action_plans],

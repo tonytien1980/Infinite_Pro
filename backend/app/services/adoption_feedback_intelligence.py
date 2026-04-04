@@ -82,6 +82,11 @@ DELIVERABLE_SHAPE_REASON_CODES = {
     "reusable_deliverable_shape",
 }
 
+DELIVERABLE_TEMPLATE_REASON_CODES = {
+    "reusable_structure",
+    "reusable_deliverable_shape",
+}
+
 DOMAIN_PLAYBOOK_REASON_CODES = {
     "reusable_reasoning",
     "reusable_action_pattern",
@@ -166,6 +171,8 @@ def matches_reusable_asset_reason(
         return bool(normalized.intersection(COMMON_RISK_REASON_CODES))
     if asset_kind == "deliverable_shape":
         return bool(normalized.intersection(DELIVERABLE_SHAPE_REASON_CODES))
+    if asset_kind == "deliverable_template":
+        return bool(normalized.intersection(DELIVERABLE_TEMPLATE_REASON_CODES))
     if asset_kind == "domain_playbook":
         return bool(normalized.intersection(DOMAIN_PLAYBOOK_REASON_CODES))
     return False

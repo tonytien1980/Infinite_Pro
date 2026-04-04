@@ -12,6 +12,7 @@ from sqlalchemy import select
 from app.agents.host import HostOrchestrator
 from app.agents.base import (
     AgentInputPayload,
+    build_payload_deliverable_template_context,
     build_payload_domain_playbook_context,
     build_payload_organization_memory_context,
 )
@@ -4060,6 +4061,106 @@ def test_task_aggregate_exposes_deliverable_shape_guidance(
     assert all(item["source_label"] for item in guidance["hints"])
 
 
+def test_task_aggregate_exposes_deliverable_template_guidance(
+    client: TestClient,
+) -> None:
+    precedent_payload = create_contract_review_payload("Reusable deliverable template precedent")
+    precedent_task = client.post("/api/v1/tasks", json=precedent_payload).json()
+    client.post(
+        f"/api/v1/tasks/{precedent_task['id']}/uploads",
+        files=[("files", ("agreement.txt", b"Termination and liability clauses need review.", "text/plain"))],
+    )
+    precedent_run = client.post(f"/api/v1/tasks/{precedent_task['id']}/run")
+    precedent_deliverable_id = precedent_run.json()["deliverable"]["id"]
+    client.post(
+        f"/api/v1/deliverables/{precedent_deliverable_id}/feedback",
+        json={"feedback_status": "template_candidate", "reason_codes": ["reusable_structure"]},
+    )
+    client.post(
+        f"/api/v1/deliverables/{precedent_deliverable_id}/precedent-candidate",
+        json={"candidate_status": "promoted"},
+    )
+
+    current_task = client.post(
+        "/api/v1/tasks",
+        json=create_contract_review_payload("Current deliverable template task"),
+    ).json()
+    client.post(
+        f"/api/v1/tasks/{current_task['id']}/uploads",
+        files=[("files", ("current.txt", b"Current agreement still needs a first-pass review.", "text/plain"))],
+    )
+
+    aggregate_response = client.get(f"/api/v1/tasks/{current_task['id']}")
+
+    assert aggregate_response.status_code == 200
+    payload = aggregate_response.json()
+    guidance = payload["deliverable_template_guidance"]
+    assert guidance["status"] in {"available", "fallback"}
+    assert guidance["label"] == "這份交付比較適合沿用哪種模板主線"
+    assert guidance["template_label"]
+    assert guidance["template_fit_summary"]
+    assert guidance["core_sections"]
+    assert guidance["summary"]
+    assert "不是自動套模板" in guidance["boundary_note"]
+    assert any(
+        item["source_kind"] in {"precedent_deliverable_template", "pack_deliverable_preset", "domain_playbook", "task_heuristic"}
+        for item in guidance["blocks"]
+    )
+    assert all(item["title"] for item in guidance["blocks"])
+    assert all(item["why_fit"] for item in guidance["blocks"])
+    assert all(item["source_label"] for item in guidance["blocks"])
+
+
+def test_build_payload_deliverable_template_context_keeps_prompt_safe_lines() -> None:
+    payload = AgentInputPayload(
+        task_id="task-1",
+        title="Task title",
+        description="Task description",
+        task_type="contract_review",
+        flow_mode="specialist",
+        presence_state_summary=schemas.PresenceStateSummaryRead(
+            client=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="某客戶"),
+            engagement=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="委託"),
+            workstream=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="工作流"),
+            decision_context=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="合約審閱"),
+            artifact=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="artifact"),
+            source_material=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="source"),
+            domain_lens=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="法務"),
+            client_stage=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="制度化階段"),
+            client_type=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="中小企業"),
+        ),
+        deliverable_template_guidance=schemas.DeliverableTemplateGuidanceRead(
+            status="available",
+            label="這份交付比較適合沿用哪種模板主線",
+            summary="summary",
+            template_label="合約審閱備忘模板",
+            template_fit_summary="這輪仍屬 review / assessment 主線，先站穩審閱備忘模板會更可靠。",
+            core_sections=["一句話結論", "主要發現", "主要風險", "建議處置"],
+            optional_sections=["待補資料", "已審範圍"],
+            boundary_note="這是在提示模板主線，不是自動套模板。",
+            blocks=[
+                schemas.DeliverableTemplateBlockRead(
+                    block_id="block-1",
+                    title="先用合約審閱備忘模板收斂",
+                    summary="先用 review memo 型模板站穩主要 judgment。",
+                    why_fit="這輪還不是最終決策模板。",
+                    source_kind="task_heuristic",
+                    source_label="來源：task heuristic",
+                    priority="high",
+                )
+            ],
+        ),
+    )
+
+    lines = build_payload_deliverable_template_context(payload)
+
+    assert lines
+    assert any("模板主線：" in item for item in lines)
+    assert any("這輪適合：" in item for item in lines)
+    assert any("核心區塊：" in item for item in lines)
+    assert any("可選區塊：" in item for item in lines)
+
+
 def test_deliverable_shape_guidance_normalizes_internal_sections_to_consultant_order(
     client: TestClient,
 ) -> None:
@@ -5752,6 +5853,29 @@ def test_contract_review_spec_includes_deliverable_shape_block() -> None:
     assert "這份交付物通常怎麼收比較穩" in spec.user_prompt
     assert "建議交付形態：評估 / 審閱備忘" in spec.user_prompt
     assert "建議先用段落" in spec.user_prompt
+
+
+def test_contract_review_spec_includes_deliverable_template_block() -> None:
+    from app.model_router.base import ContractReviewRequest
+    from app.model_router.structured_tasks import build_contract_review_spec
+
+    spec = build_contract_review_spec(
+        ContractReviewRequest(
+            task_title="Contract deliverable template test",
+            task_description="Ensure deliverable template guidance reaches the prompt.",
+            background_text="Current agreement review",
+            deliverable_template_context=[
+                "模板主線：合約審閱備忘模板",
+                "這輪適合：先用 review memo 模板站穩主要 judgment。",
+                "核心區塊：一句話結論、主要發現、主要風險、建議處置",
+                "可選區塊：待補資料、已審範圍",
+            ],
+        )
+    )
+
+    assert "這份交付比較適合沿用哪種模板主線" in spec.user_prompt
+    assert "模板主線：合約審閱備忘模板" in spec.user_prompt
+    assert "核心區塊：一句話結論、主要發現、主要風險、建議處置" in spec.user_prompt
 
 
 def test_contract_review_spec_includes_domain_playbook_block() -> None:

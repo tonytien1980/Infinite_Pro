@@ -38,6 +38,7 @@ Host 正式負責：
 - reusable review-lens governance
 - common-risk-library governance
 - deliverable-shape governance
+- deliverable-template governance
 - convergence
 - deliverable shaping
 - continuity / writeback policy control
@@ -52,11 +53,13 @@ Host 正式負責：
 - reusable review lenses 若要進模型上下文，必須經 Host 收斂成 prompt-safe guidance，不可由前端或單一 agent 自行擴寫成 checklist shell
 - common risk libraries 若要進模型上下文，必須經 Host 收斂成 prompt-safe guidance，不可由前端或單一 agent 自行把 common risks 擴寫成正式風險結論
 - deliverable shape hints 若要進模型上下文，必須經 Host 收斂成 prompt-safe guidance，不可由前端或單一 agent 自行把交付提示擴寫成 template auto-fill
+- deliverable templates 若要進模型上下文，必須經 Host 收斂成 prompt-safe guidance，不可由前端或單一 agent 自行把模板提示擴寫成 template picker / auto-fill shell
 - domain playbooks 若要進模型上下文，必須經 Host 收斂成 prompt-safe guidance，不可由前端或單一 agent 自行把工作主線擴寫成 checklist shell
-- reusable review lenses、common risk libraries、deliverable shape hints、domain playbooks 之間的角色必須保持分離：
+- reusable review lenses、common risk libraries、deliverable shape hints、deliverable templates、domain playbooks 之間的角色必須保持分離：
   - review lenses = 先看角度
   - common risks = 漏看提醒
   - deliverable shape = 交付骨架
+  - deliverable template = 模板主線
   - domain playbook = 工作主線
 - pack contract 可以 influence Host judgment，但不能 replace Host judgment
 - Host 與 extension synthesis 都必須沿用正式語言 guardrail；若無明確例外，模型輸出預設為繁體中文

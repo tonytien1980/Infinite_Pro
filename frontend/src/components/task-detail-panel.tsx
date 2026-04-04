@@ -57,6 +57,7 @@ import {
   buildPrecedentCandidateView,
 } from "@/lib/precedent-candidates";
 import { buildCommonRiskLibraryView } from "@/lib/common-risk-libraries";
+import { buildDeliverableTemplateView } from "@/lib/deliverable-templates";
 import { buildDeliverableShapeHintView } from "@/lib/deliverable-shape-hints";
 import { buildPrecedentReferenceView } from "@/lib/precedent-reference";
 import { buildReviewLensView } from "@/lib/review-lenses";
@@ -610,6 +611,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
     : null;
   const deliverableShapeHintView = task
     ? buildDeliverableShapeHintView(task.deliverable_shape_guidance)
+    : null;
+  const deliverableTemplateView = task
+    ? buildDeliverableTemplateView(task.deliverable_template_guidance)
     : null;
   const evidenceWorkspaceLane =
     task ? buildEvidenceWorkspaceLane(task, latestDeliverable, readinessGovernance) : null;
@@ -1449,6 +1453,50 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     ) : null}
                     <p className="muted-text" style={{ marginTop: "12px" }}>
                       {commonRiskLibraryView.boundaryNote}
+                    </p>
+                  </div>
+                ) : null}
+                {deliverableTemplateView?.shouldShow ? (
+                  <div className="detail-item">
+                    <h3>{deliverableTemplateView.sectionTitle}</h3>
+                    <p className="content-block">{deliverableTemplateView.summary}</p>
+                    {deliverableTemplateView.templateLabel ? (
+                      <p className="muted-text">{deliverableTemplateView.templateLabel}</p>
+                    ) : null}
+                    {deliverableTemplateView.templateFitSummary ? (
+                      <p className="muted-text">{deliverableTemplateView.templateFitSummary}</p>
+                    ) : null}
+                    <div className="summary-grid" style={{ marginTop: "16px" }}>
+                      {deliverableTemplateView.cards.map((card) => (
+                        <div className="section-card" key={`task-deliverable-template-${card.title}`}>
+                          <h4>{card.title}</h4>
+                          <p className="content-block">{card.summary}</p>
+                          <p className="muted-text">{card.meta}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {deliverableTemplateView.coreSections.length > 0 ? (
+                      <>
+                        <h4 style={{ marginTop: "16px" }}>{deliverableTemplateView.coreListTitle}</h4>
+                        <ul className="list-content" style={{ marginTop: "12px" }}>
+                          {deliverableTemplateView.coreSections.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      </>
+                    ) : null}
+                    {deliverableTemplateView.optionalSections.length > 0 ? (
+                      <>
+                        <h4 style={{ marginTop: "16px" }}>{deliverableTemplateView.optionalListTitle}</h4>
+                        <ul className="list-content" style={{ marginTop: "12px" }}>
+                          {deliverableTemplateView.optionalSections.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      </>
+                    ) : null}
+                    <p className="muted-text" style={{ marginTop: "12px" }}>
+                      {deliverableTemplateView.boundaryNote}
                     </p>
                   </div>
                 ) : null}

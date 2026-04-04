@@ -11,6 +11,7 @@ from app.agents.base import (
     SpecialistAgent,
     build_payload_common_risk_context,
     build_payload_deliverable_shape_context,
+    build_payload_deliverable_template_context,
     build_payload_domain_playbook_context,
     build_payload_organization_memory_context,
     build_payload_precedent_context,
@@ -140,6 +141,7 @@ class DocumentRestructuringAgent(SpecialistAgent):
                 review_lens_context=build_payload_review_lens_context(payload),
                 common_risk_context=build_payload_common_risk_context(payload),
                 deliverable_shape_context=build_payload_deliverable_shape_context(payload),
+                deliverable_template_context=build_payload_deliverable_template_context(payload),
             )
         )
 

@@ -28,6 +28,7 @@ class ResearchSynthesisRequest(BaseModel):
     review_lens_context: list[str] = Field(default_factory=list)
     common_risk_context: list[str] = Field(default_factory=list)
     deliverable_shape_context: list[str] = Field(default_factory=list)
+    deliverable_template_context: list[str] = Field(default_factory=list)
 
 
 class CoreAnalysisRequest(BaseModel):
@@ -45,6 +46,7 @@ class CoreAnalysisRequest(BaseModel):
     review_lens_context: list[str] = Field(default_factory=list)
     common_risk_context: list[str] = Field(default_factory=list)
     deliverable_shape_context: list[str] = Field(default_factory=list)
+    deliverable_template_context: list[str] = Field(default_factory=list)
     research_depth: str = ""
     research_sub_questions: list[str] = Field(default_factory=list)
     evidence_gap_focus: list[str] = Field(default_factory=list)
@@ -64,6 +66,7 @@ class DocumentRestructuringRequest(BaseModel):
     review_lens_context: list[str] = Field(default_factory=list)
     common_risk_context: list[str] = Field(default_factory=list)
     deliverable_shape_context: list[str] = Field(default_factory=list)
+    deliverable_template_context: list[str] = Field(default_factory=list)
 
 
 class ContractReviewRequest(BaseModel):
@@ -80,6 +83,7 @@ class ContractReviewRequest(BaseModel):
     review_lens_context: list[str] = Field(default_factory=list)
     common_risk_context: list[str] = Field(default_factory=list)
     deliverable_shape_context: list[str] = Field(default_factory=list)
+    deliverable_template_context: list[str] = Field(default_factory=list)
 
 
 class SearchResultContext(BaseModel):

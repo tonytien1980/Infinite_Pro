@@ -123,6 +123,7 @@ def render_request_context(
     review_lens_context: list[str] | None = None,
     common_risk_context: list[str] | None = None,
     deliverable_shape_context: list[str] | None = None,
+    deliverable_template_context: list[str] | None = None,
 ) -> str:
     evidence_blocks = []
     for index, item in enumerate(evidence, start=1):
@@ -158,6 +159,8 @@ def render_request_context(
             + ("\n".join(f"- {item}" for item in common_risk_context) if common_risk_context else "- 目前沒有額外 common risk watchouts。"),
             "這份交付物通常怎麼收比較穩：\n"
             + ("\n".join(f"- {item}" for item in deliverable_shape_context) if deliverable_shape_context else "- 目前沒有額外 deliverable shape hints。"),
+            "這份交付比較適合沿用哪種模板主線：\n"
+            + ("\n".join(f"- {item}" for item in deliverable_template_context) if deliverable_template_context else "- 目前沒有額外 deliverable templates。"),
         ]
     )
 
@@ -229,6 +232,7 @@ def build_research_synthesis_spec(
             review_lens_context=request_payload.review_lens_context,
             common_risk_context=request_payload.common_risk_context,
             deliverable_shape_context=request_payload.deliverable_shape_context,
+            deliverable_template_context=request_payload.deliverable_template_context,
         ),
         output_model=ResearchSynthesisOutput,
     )
@@ -318,6 +322,7 @@ def build_core_analysis_spec(
         review_lens_context=request_payload.review_lens_context,
         common_risk_context=request_payload.common_risk_context,
         deliverable_shape_context=request_payload.deliverable_shape_context,
+        deliverable_template_context=request_payload.deliverable_template_context,
     )
     if is_research_investigation:
         research_context_blocks = [
@@ -410,6 +415,7 @@ def build_document_restructuring_spec(
             review_lens_context=request_payload.review_lens_context,
             common_risk_context=request_payload.common_risk_context,
             deliverable_shape_context=request_payload.deliverable_shape_context,
+            deliverable_template_context=request_payload.deliverable_template_context,
         ),
         output_model=DocumentRestructuringOutput,
     )
@@ -466,6 +472,7 @@ def build_contract_review_spec(
             review_lens_context=request_payload.review_lens_context,
             common_risk_context=request_payload.common_risk_context,
             deliverable_shape_context=request_payload.deliverable_shape_context,
+            deliverable_template_context=request_payload.deliverable_template_context,
         ),
         output_model=ContractReviewOutput,
     )

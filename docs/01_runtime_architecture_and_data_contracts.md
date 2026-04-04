@@ -1002,6 +1002,76 @@ deliverable workspace 採：
 - task / deliverable surface 目前只應以 second-layer disclosure 低噪音回讀
 - matter / overview / history 目前不應長出 deliverable-shape dashboard hero
 
+### 6.10.5 Deliverable templates
+
+在 deliverable shape hints 已開始回答「交付骨架怎麼收」之後，precedent / reusable intelligence 的下一批 reusable asset 應先補：
+
+- `deliverable_template_guidance`
+
+正式規則：
+
+- deliverable templates 仍是 Host-owned
+- frontend 不可自行從 precedent rows、pack deliverable presets、deliverable shape rows 或 playbook rows 拼出 template library 再回灌主線
+- deliverable templates 的正式角色是回答：
+  - 這份交付比較適合沿用哪種模板主線
+  - 哪些區塊應視為 core sections
+  - 哪些區塊屬於 optional sections
+- 它不是：
+  - template library
+  - template picker
+  - auto-apply
+  - prior-case content reuse
+- 第一波只允許少量 template guidance：
+  - 1 個 template label
+  - 3 到 4 個 core sections
+  - 少量 optional sections
+  - 2 到 4 個 template blocks
+- template source 第一波至少包括：
+  - `precedent_deliverable_template`
+  - `pack_deliverable_preset`
+  - `domain_playbook`
+  - `task_heuristic`
+
+第一波 `deliverable_template_guidance` contract 至少包括：
+
+- `status`
+  - `available`
+  - `fallback`
+  - `none`
+- `label`
+- `summary`
+- `template_label`
+- `template_fit_summary`
+- `core_sections`
+- `optional_sections`
+- `boundary_note`
+- `blocks`
+
+每筆 `block` 至少包括：
+
+- `block_id`
+- `title`
+- `summary`
+- `why_fit`
+- `source_kind`
+- `source_label`
+- `priority`
+
+正式規則：
+
+- `available` 代表至少已有 precedent / pack / playbook 等較強來源
+- `fallback` 代表目前主要仍靠 task heuristic 補最小可信模板主線
+- `none` 代表這輪不額外補 deliverable template guidance
+- deliverable template 若要進模型上下文，必須經 Host 整理成 prompt-safe `deliverable_template_context`
+- `deliverable_template_context` 應與 `deliverable_shape_context` 並存，但角色不同：
+  - deliverable shape context：這份交付物通常怎麼收比較穩
+  - deliverable template context：這份交付比較適合沿用哪種模板主線
+- 第一波只允許影響：
+  - deliverable shaping 的模板主線與 section grouping
+- 不可被誤讀成 template picker 或 auto-apply
+- `task / deliverable` surface 目前只應以 second-layer disclosure 低噪音回讀
+- `matter / overview / history` 目前不應長出 deliverable-template dashboard hero
+
 ### 6.11 Matter-scoped canonicalization and duplicate governance
 
 正式規則：
