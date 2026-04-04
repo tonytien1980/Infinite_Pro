@@ -24,6 +24,7 @@ from app.domain.schemas import (
     CommonRiskGuidanceRead,
     ConstraintRead,
     DecisionContextRead,
+    DeliverableShapeGuidanceRead,
     EngagementRead,
     EvidenceRead,
     GoalRead,
@@ -85,6 +86,9 @@ class AgentInputPayload(BaseModel):
     )
     review_lens_guidance: ReviewLensGuidanceRead = Field(default_factory=ReviewLensGuidanceRead)
     common_risk_guidance: CommonRiskGuidanceRead = Field(default_factory=CommonRiskGuidanceRead)
+    deliverable_shape_guidance: DeliverableShapeGuidanceRead = Field(
+        default_factory=DeliverableShapeGuidanceRead
+    )
     source_materials: list[SourceMaterialRead] = Field(default_factory=list)
     artifacts: list[ArtifactRead] = Field(default_factory=list)
     subjects: list[SubjectRead] = Field(default_factory=list)
@@ -141,6 +145,28 @@ def build_payload_common_risk_context(payload: AgentInputPayload) -> list[str]:
             [
                 f"常漏風險 {index}：{item.title}",
                 f"為什麼要先掃：{item.why_watch}",
+                f"來源：{item.source_label or item.source_kind}",
+            ]
+        )
+    lines.append(f"整體邊界：{guidance.boundary_note}")
+    return lines
+
+
+def build_payload_deliverable_shape_context(payload: AgentInputPayload) -> list[str]:
+    guidance = payload.deliverable_shape_guidance
+    if guidance.status == "none":
+        return []
+
+    lines: list[str] = []
+    if guidance.primary_shape_label:
+        lines.append(f"建議交付形態：{guidance.primary_shape_label}")
+    if guidance.section_hints:
+        lines.append("建議先用段落：" + "、".join(guidance.section_hints))
+    for item in guidance.hints[:3]:
+        lines.extend(
+            [
+                f"交付提示：{item.title}",
+                f"為什麼這樣收：{item.why_fit}",
                 f"來源：{item.source_label or item.source_kind}",
             ]
         )

@@ -1028,6 +1028,43 @@ Primary action：
   - 不代表這案已經發生
   - 若要成立正式風險，仍須由這案的證據與分析支撐
 
+### 9.2.5 Deliverable-shape-hint reading
+
+當 Host 已開始把 precedent deliverable pattern、pack deliverable presets 與 heuristic signals 收斂成 deliverable shape hints 時，UI 也應維持低噪音回讀：
+
+- 這份交付物通常怎麼收比較穩
+- 建議交付形態是什麼
+- 建議先有哪些段落
+- 這層只是在提示交付骨架，不是在自動套模板
+
+正式規則：
+
+- 第一波只應出現在 `task detail` 與 `deliverable workspace` 的 second-layer disclosure
+- 每次只應顯示：
+  - 1 個 primary shape
+  - 3 到 5 個 section hints
+  - 少量 supporting hints
+- `matter workspace`、`overview`、`history` 目前都不應長出 deliverable-shape hero
+- UI 必須清楚標示這層是在回答：
+  - `這份交付物通常怎麼收比較穩`
+- 不可把這層寫成：
+  - template chooser
+  - deliverable library
+  - 已完成內容
+  - prior deliverable copy shell
+- 第一波應優先顯示：
+  - `建議交付形態`
+  - `建議先用段落`
+  - `supporting hints`
+- supporting hint card 應優先顯示：
+  - `title`
+  - `why_fit`
+  - `source_label`
+- boundary copy 應明講：
+  - 這是在提示交付骨架
+  - 不是自動套模板
+  - 若和這案正式證據衝突，仍以這案當前判斷與證據為準
+
 ### 9.3 Specialized hardening views
 
 以下能力雖已 shipped，但仍應保持低噪音：

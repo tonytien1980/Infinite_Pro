@@ -35,6 +35,7 @@ import {
   filterPrecedentReviewItems,
 } from "../src/lib/precedent-review.ts";
 import { buildCommonRiskLibraryView } from "../src/lib/common-risk-libraries.ts";
+import { buildDeliverableShapeHintView } from "../src/lib/deliverable-shape-hints.ts";
 import { buildPrecedentReferenceView } from "../src/lib/precedent-reference.ts";
 import { buildReviewLensView } from "../src/lib/review-lenses.ts";
 import { buildContinuationPostureView } from "../src/lib/continuity-ux.ts";
@@ -1182,6 +1183,48 @@ test("common risk library view stays low-noise and consultant-readable", () => {
   assert.equal(view.listTitle, "這輪先逐一掃過");
   assert.match(view.listItems[0] ?? "", /責任不對稱/);
   assert.match(view.boundaryNote, /不代表這案已經發生/);
+});
+
+test("deliverable shape hint view stays low-noise and consultant-readable", () => {
+  const view = buildDeliverableShapeHintView({
+    status: "available",
+    label: "這份交付物通常怎麼收比較穩",
+    summary: "Host 先整理出這輪較穩的交付骨架，幫你把最後收斂方式定清楚。",
+    primary_shape_label: "評估 / 審閱備忘",
+    section_hints: ["一句話結論", "主要發現", "主要風險", "建議處置", "待補資料"],
+    boundary_note: "這是在提示交付骨架，不是自動套模板；若和這案正式證據衝突，仍以這案當前判斷與證據為準。",
+    hints: [
+      {
+        hint_id: "precedent_deliverable_pattern:abc",
+        title: "先用評估 / 審閱備忘收斂",
+        summary: "相似 precedent 目前也是先用 review memo 姿態收斂，而不是直接假裝成 final decision memo。",
+        why_fit: "這輪仍屬材料審閱主線，先把 review / assessment 站穩會比直接拉成最終決策版本更可靠。",
+        source_kind: "precedent_deliverable_pattern",
+        source_label: "來源：precedent deliverable pattern",
+        priority: "high",
+      },
+      {
+        hint_id: "pack_deliverable_preset:def",
+        title: "段落先用主要發現、主要風險、建議處置",
+        summary: "selected packs 期待這類案件先用顧問 memo 骨架收斂。",
+        why_fit: "這種段落順序最能先把核心 judgment 與限制講清楚。",
+        source_kind: "pack_deliverable_preset",
+        source_label: "來源：pack deliverable preset",
+        priority: "medium",
+      },
+    ],
+  });
+
+  assert.equal(view.shouldShow, true);
+  assert.equal(view.sectionTitle, "這份交付物通常怎麼收比較穩");
+  assert.equal(view.primaryShapeLabel, "評估 / 審閱備忘");
+  assert.match(view.summary, /交付骨架/);
+  assert.equal(view.cards.length, 2);
+  assert.match(view.cards[0]?.summary ?? "", /review memo/);
+  assert.match(view.cards[0]?.meta ?? "", /precedent deliverable pattern/);
+  assert.equal(view.listTitle, "建議先用段落");
+  assert.equal(view.listItems[0], "一句話結論");
+  assert.match(view.boundaryNote, /不是自動套模板/);
 });
 
 test("precedent duplicate governance view stays consultant-readable", () => {

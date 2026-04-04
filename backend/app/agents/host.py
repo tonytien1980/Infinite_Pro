@@ -276,6 +276,7 @@ class HostOrchestrator:
             precedent_reference_guidance=aggregate.precedent_reference_guidance,
             review_lens_guidance=aggregate.review_lens_guidance,
             common_risk_guidance=aggregate.common_risk_guidance,
+            deliverable_shape_guidance=aggregate.deliverable_shape_guidance,
             source_materials=aggregate.source_materials,
             artifacts=aggregate.artifacts,
             subjects=aggregate.subjects,

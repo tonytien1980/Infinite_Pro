@@ -35,6 +35,7 @@ Host 正式負責：
 - precedent reference governance
 - reusable review-lens governance
 - common-risk-library governance
+- deliverable-shape governance
 - convergence
 - deliverable shaping
 - continuity / writeback policy control
@@ -48,6 +49,7 @@ Host 正式負責：
 - precedent 若要進模型上下文，必須經 Host 選取與縮寫，不可由前端直接回灌 raw candidate content
 - reusable review lenses 若要進模型上下文，必須經 Host 收斂成 prompt-safe guidance，不可由前端或單一 agent 自行擴寫成 checklist shell
 - common risk libraries 若要進模型上下文，必須經 Host 收斂成 prompt-safe guidance，不可由前端或單一 agent 自行把 common risks 擴寫成正式風險結論
+- deliverable shape hints 若要進模型上下文，必須經 Host 收斂成 prompt-safe guidance，不可由前端或單一 agent 自行把交付提示擴寫成 template auto-fill
 - pack contract 可以 influence Host judgment，但不能 replace Host judgment
 - Host 與 extension synthesis 都必須沿用正式語言 guardrail；若無明確例外，模型輸出預設為繁體中文
 

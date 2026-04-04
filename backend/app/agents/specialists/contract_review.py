@@ -10,6 +10,7 @@ from app.agents.base import (
     RiskDraft,
     SpecialistAgent,
     build_payload_common_risk_context,
+    build_payload_deliverable_shape_context,
     build_payload_precedent_context,
     build_payload_review_lens_context,
 )
@@ -134,6 +135,7 @@ class ContractReviewAgent(SpecialistAgent):
                 precedent_context=build_payload_precedent_context(payload),
                 review_lens_context=build_payload_review_lens_context(payload),
                 common_risk_context=build_payload_common_risk_context(payload),
+                deliverable_shape_context=build_payload_deliverable_shape_context(payload),
             )
         )
 

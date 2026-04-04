@@ -3759,6 +3759,56 @@ def test_task_aggregate_exposes_common_risk_guidance(
     assert all(item["source_label"] for item in guidance["risks"])
 
 
+def test_task_aggregate_exposes_deliverable_shape_guidance(
+    client: TestClient,
+) -> None:
+    precedent_payload = create_contract_review_payload("Reusable deliverable shape precedent")
+    precedent_task = client.post("/api/v1/tasks", json=precedent_payload).json()
+    client.post(
+        f"/api/v1/tasks/{precedent_task['id']}/uploads",
+        files=[("files", ("agreement.txt", b"Termination and liability clauses need review.", "text/plain"))],
+    )
+    precedent_run = client.post(f"/api/v1/tasks/{precedent_task['id']}/run")
+    precedent_deliverable_id = precedent_run.json()["deliverable"]["id"]
+    client.post(
+        f"/api/v1/deliverables/{precedent_deliverable_id}/feedback",
+        json={"feedback_status": "template_candidate", "note": "這份交付值得保留成可重用模式。"},
+    )
+    client.post(
+        f"/api/v1/deliverables/{precedent_deliverable_id}/precedent-candidate",
+        json={"candidate_status": "promoted"},
+    )
+
+    current_task = client.post(
+        "/api/v1/tasks",
+        json=create_contract_review_payload("Current deliverable shape task"),
+    ).json()
+    client.post(
+        f"/api/v1/tasks/{current_task['id']}/uploads",
+        files=[("files", ("current.txt", b"Current agreement still needs a first-pass review.", "text/plain"))],
+    )
+
+    aggregate_response = client.get(f"/api/v1/tasks/{current_task['id']}")
+
+    assert aggregate_response.status_code == 200
+    payload = aggregate_response.json()
+    guidance = payload["deliverable_shape_guidance"]
+    assert guidance["status"] in {"available", "fallback"}
+    assert guidance["label"] == "這份交付物通常怎麼收比較穩"
+    assert guidance["primary_shape_label"]
+    assert guidance["section_hints"]
+    assert 3 <= len(guidance["section_hints"]) <= 5
+    assert guidance["summary"]
+    assert "不是自動套模板" in guidance["boundary_note"]
+    assert any(
+        item["source_kind"] in {"precedent_deliverable_pattern", "pack_deliverable_preset", "task_heuristic"}
+        for item in guidance["hints"]
+    )
+    assert all(item["title"] for item in guidance["hints"])
+    assert all(item["why_fit"] for item in guidance["hints"])
+    assert all(item["source_label"] for item in guidance["hints"])
+
+
 def test_precedent_review_surface_lists_duplicate_groups_and_allows_resolution(
     client: TestClient,
 ) -> None:
@@ -5223,6 +5273,28 @@ def test_contract_review_spec_includes_common_risk_block() -> None:
     assert "這類案件常漏哪些風險" in spec.user_prompt
     assert "責任不對稱與 indemnity / liability 暴露" in spec.user_prompt
     assert "為什麼要先掃" in spec.user_prompt
+
+
+def test_contract_review_spec_includes_deliverable_shape_block() -> None:
+    from app.model_router.base import ContractReviewRequest
+    from app.model_router.structured_tasks import build_contract_review_spec
+
+    spec = build_contract_review_spec(
+        ContractReviewRequest(
+            task_title="Contract deliverable shape test",
+            task_description="Ensure deliverable shape hints reach the prompt.",
+            background_text="Current agreement review",
+            deliverable_shape_context=[
+                "建議交付形態：評估 / 審閱備忘",
+                "建議先用段落：一句話結論、主要發現、主要風險、建議處置、待補資料",
+                "為什麼這樣收：這輪仍屬 review memo 姿態，不適合假裝已完成 final decision memo。",
+            ],
+        )
+    )
+
+    assert "這份交付物通常怎麼收比較穩" in spec.user_prompt
+    assert "建議交付形態：評估 / 審閱備忘" in spec.user_prompt
+    assert "建議先用段落" in spec.user_prompt
 
 
 def test_openai_provider_retries_once_after_timeout(

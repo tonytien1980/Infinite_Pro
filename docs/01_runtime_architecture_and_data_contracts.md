@@ -790,6 +790,74 @@ deliverable workspace 採：
 - task / deliverable surface 目前只應以 second-layer disclosure 低噪音回讀
 - matter / overview / history 目前不應長出 common-risk dashboard hero
 
+### 6.10.4 Deliverable shape hints
+
+在 common risk libraries 已成立後，precedent / reusable intelligence 的下一批 reusable asset 應先是：
+
+- `deliverable_shape_guidance`
+
+正式規則：
+
+- deliverable shape hints 仍是 Host-owned
+- frontend 不可自行從 precedent rows、pack deliverable presets 或 deliverable UI sections 拼出 shape template 再回灌主線
+- deliverable shape hints 的正式角色是回答：
+  - 這份交付物通常怎麼收比較穩
+  - 建議先有哪些段落
+- 它不是：
+  - 自動套模板
+  - deliverable library
+  - prior-case content reuse
+  - 最終結論本身
+- 第一波只允許：
+  - 1 個 primary shape
+  - 3 到 5 個 section hints
+  - 少量 supporting hints
+- shape source 第一波至少包括：
+  - `precedent_deliverable_pattern`
+  - `pack_deliverable_preset`
+  - `task_heuristic`
+- 這層的正式目的，是改善 deliverable shaping，而不是直接替代 deliverable content authoring
+
+第一波 `deliverable_shape_guidance` contract 至少包括：
+
+- `status`
+  - `available`
+  - `fallback`
+  - `none`
+- `label`
+- `summary`
+- `primary_shape_label`
+- `section_hints`
+- `boundary_note`
+- `hints`
+
+每筆 `hint` 至少包括：
+
+- `hint_id`
+- `title`
+- `summary`
+- `why_fit`
+- `source_kind`
+- `source_label`
+- `priority`
+
+正式規則：
+
+- `available` 代表至少已有 precedent deliverable pattern 或 pack deliverable preset
+- `fallback` 代表目前主要仍靠 task heuristic 補最小可信交付骨架
+- `none` 代表這輪不額外補 deliverable shape hints
+- deliverable shape 若要進模型上下文，必須經 Host 整理成 prompt-safe `deliverable_shape_context`
+- `deliverable_shape_context` 應與 `precedent_context`、`review_lens_context`、`common_risk_context` 並存，但角色不同：
+  - precedent context：為什麼這個模式和現在相似
+  - review lens context：這輪先看哪幾點
+  - common risk context：這類案件常漏哪些風險
+  - deliverable shape context：這份交付物通常怎麼收比較穩
+- 第一波只允許影響：
+  - deliverable shaping 的收斂順序與段落組織
+- 不可被誤讀成 template auto-fill 或 prior deliverable copy
+- task / deliverable surface 目前只應以 second-layer disclosure 低噪音回讀
+- matter / overview / history 目前不應長出 deliverable-shape dashboard hero
+
 ### 6.11 Matter-scoped canonicalization and duplicate governance
 
 正式規則：

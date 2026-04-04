@@ -1185,6 +1185,29 @@ export interface CommonRiskGuidance {
   risks: CommonRiskItem[];
 }
 
+export interface DeliverableShapeHint {
+  hint_id: string;
+  title: string;
+  summary: string;
+  why_fit: string;
+  source_kind:
+    | "precedent_deliverable_pattern"
+    | "pack_deliverable_preset"
+    | "task_heuristic";
+  source_label: string;
+  priority: "high" | "medium" | "low";
+}
+
+export interface DeliverableShapeGuidance {
+  status: "available" | "fallback" | "none";
+  label: string;
+  summary: string;
+  primary_shape_label: string;
+  section_hints: string[];
+  boundary_note: string;
+  hints: DeliverableShapeHint[];
+}
+
 export interface PrecedentCandidateStatusUpdatePayload {
   candidate_status: PrecedentCandidateStatus;
 }
@@ -1585,6 +1608,7 @@ export interface TaskAggregate {
   precedent_reference_guidance: PrecedentReferenceGuidance;
   review_lens_guidance: ReviewLensGuidance;
   common_risk_guidance: CommonRiskGuidance;
+  deliverable_shape_guidance: DeliverableShapeGuidance;
   research_runs: ResearchRun[];
   decision_records: DecisionRecord[];
   action_plans: ActionPlan[];

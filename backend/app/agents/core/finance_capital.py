@@ -10,6 +10,7 @@ from app.agents.base import (
     RecommendationDraft,
     RiskDraft,
     build_payload_common_risk_context,
+    build_payload_deliverable_shape_context,
     build_payload_precedent_context,
     build_payload_review_lens_context,
 )
@@ -52,6 +53,7 @@ class FinanceCapitalAgent(CoreAnalysisAgent):
                 precedent_context=build_payload_precedent_context(payload),
                 review_lens_context=build_payload_review_lens_context(payload),
                 common_risk_context=build_payload_common_risk_context(payload),
+                deliverable_shape_context=build_payload_deliverable_shape_context(payload),
             )
         )
         evidence_refs = [item.id for item in payload.evidence][:3]

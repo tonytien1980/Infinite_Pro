@@ -2696,3 +2696,71 @@ Environment used:
 - precedent / reusable intelligence now has a second reusable consultant asset after review lenses
 - Host can now carry small, explainable `common_risk_context` into specialist / core analysis requests without turning recurring risk patterns into automatic conclusions
 - task / deliverable surfaces can now low-noise read back `這類案件常漏哪些風險`, keeping the UI simple while deepening the runtime's omission guardrails
+
+---
+
+## Entry: 2026-04-04 deliverable shape hints pass
+
+Scope:
+- first reusable deliverable-shape asset
+- Host-owned `deliverable_shape_guidance`
+- prompt-safe deliverable-shape context through provider boundary
+- low-noise task / deliverable deliverable-shape reading
+
+Environment used:
+- frontend runtime: `http://127.0.0.1:3001`
+- backend runtime: `http://127.0.0.1:8010/api/v1`
+- supplemental browser-hydration backend: `http://127.0.0.1:8000/api/v1`
+- runtime database: local `deliverable-shape-smoke.db`
+- browser evidence: local `playwright-cli` smoke artifacts
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`122 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`25 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Deliverable-shape specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | task aggregate | Read `deliverable_shape_guidance` | Verified | targeted backend test confirms task aggregate now returns primary shape, section hints, and supporting hints |
+| Backend | model-router prompt | Render deliverable-shape context block | Verified | targeted backend test confirms contract-review prompt now contains `這份交付物通常怎麼收比較穩` block |
+| Backend | precedent snapshot seed | Build precedent-derived shape sections | Verified | live API smoke confirms promoted precedent now contributes `shape_sections` and `current_output_label` for shape reuse |
+| Frontend | deliverable-shape helper | Render consultant-facing shape reading | Verified | frontend helper test confirms primary shape, section hints, supporting cards, and boundary note stay low-noise |
+| Frontend | `/tasks/[taskId]` | Expand second-layer reading and inspect rendered deliverable shape hints | Verified | browser snapshot shows `這份交付物通常怎麼收比較穩` inside the existing task disclosure |
+| Frontend | `/deliverables/[deliverableId]` | Expand continuity / research disclosure and inspect rendered deliverable shape hints | Verified | browser snapshot shows the same deliverable-shape reading inside the existing deliverable second-layer surface |
+
+### Live smoke data
+
+- precedent source task id: `d3583428-ff1d-4fc8-a22b-e904f2d56a4b`
+- precedent source deliverable id: `9b6a01d3-09d5-4563-a87e-488835b31327`
+- current task id: `49d07b7c-dcf8-4d9d-85fb-c01720c8458a`
+- current deliverable id: `d95f8982-f076-4933-b72d-6c08bfc3a6e1`
+- live API verification returned:
+  - deliverable-shape status: `available`
+  - primary shape: `評估 / 審閱備忘`
+  - first section hint: `問題定義`
+- frontend route smoke:
+  - `/tasks/49d07b7c-dcf8-4d9d-85fb-c01720c8458a` returned `200`
+  - `/deliverables/d95f8982-f076-4933-b72d-6c08bfc3a6e1` returned `200`
+- browser artifacts:
+  - API smoke artifact: `output/playwright/deliverable-shape-hints/api-smoke.json`
+  - task snapshot: `output/playwright/deliverable-shape-hints/task.yml`
+  - deliverable snapshot: `output/playwright/deliverable-shape-hints/deliverable.yml`
+
+### Residual note
+
+- local browser hydration still preferred the repo's `:8000` fallback API base in this session, so a same-DB mirror backend was started on `8000` to capture true browser evidence. The feature itself was also independently verified through `8010` live API smoke plus full automated tests.
+- this round still does not provide template auto-apply, deliverable library management, or prior-deliverable copy / reuse; deliverable shape hints only help Host and the consultant choose a steadier deliverable structure.
+
+### Verified outcomes
+
+- precedent / reusable intelligence now has a third reusable consultant asset after review lenses and common risk libraries
+- Host can now carry small, explainable `deliverable_shape_context` into specialist / core analysis requests without turning shaping guidance into auto-template behavior
+- task / deliverable surfaces can now low-noise read back `這份交付物通常怎麼收比較穩`, keeping the UI simple while making deliverable convergence more intentional

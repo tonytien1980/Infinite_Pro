@@ -55,6 +55,7 @@ import {
   buildPrecedentCandidateView,
 } from "@/lib/precedent-candidates";
 import { buildCommonRiskLibraryView } from "@/lib/common-risk-libraries";
+import { buildDeliverableShapeHintView } from "@/lib/deliverable-shape-hints";
 import { buildPrecedentReferenceView } from "@/lib/precedent-reference";
 import { buildReviewLensView } from "@/lib/review-lenses";
 import type {
@@ -599,6 +600,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
   const reviewLensView = task ? buildReviewLensView(task.review_lens_guidance) : null;
   const commonRiskLibraryView = task
     ? buildCommonRiskLibraryView(task.common_risk_guidance)
+    : null;
+  const deliverableShapeHintView = task
+    ? buildDeliverableShapeHintView(task.deliverable_shape_guidance)
     : null;
   const evidenceWorkspaceLane =
     task ? buildEvidenceWorkspaceLane(task, latestDeliverable, readinessGovernance) : null;
@@ -1363,6 +1367,39 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     ) : null}
                     <p className="muted-text" style={{ marginTop: "12px" }}>
                       {commonRiskLibraryView.boundaryNote}
+                    </p>
+                  </div>
+                ) : null}
+                {deliverableShapeHintView?.shouldShow ? (
+                  <div className="detail-item">
+                    <h3>{deliverableShapeHintView.sectionTitle}</h3>
+                    <p className="content-block">{deliverableShapeHintView.summary}</p>
+                    {deliverableShapeHintView.primaryShapeLabel ? (
+                      <p className="content-block" style={{ marginTop: "12px" }}>
+                        建議交付形態：{deliverableShapeHintView.primaryShapeLabel}
+                      </p>
+                    ) : null}
+                    <div className="summary-grid" style={{ marginTop: "16px" }}>
+                      {deliverableShapeHintView.cards.map((card) => (
+                        <div className="section-card" key={`task-deliverable-shape-${card.title}`}>
+                          <h4>{card.title}</h4>
+                          <p className="content-block">{card.summary}</p>
+                          <p className="muted-text">{card.meta}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {deliverableShapeHintView.listItems.length > 0 ? (
+                      <>
+                        <h4 style={{ marginTop: "16px" }}>{deliverableShapeHintView.listTitle}</h4>
+                        <ul className="list-content" style={{ marginTop: "12px" }}>
+                          {deliverableShapeHintView.listItems.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      </>
+                    ) : null}
+                    <p className="muted-text" style={{ marginTop: "12px" }}>
+                      {deliverableShapeHintView.boundaryNote}
                     </p>
                   </div>
                 ) : null}

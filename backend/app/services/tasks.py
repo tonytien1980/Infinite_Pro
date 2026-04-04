@@ -88,6 +88,7 @@ from app.services.object_sets import (
     relevant_object_sets_for_deliverable,
     serialize_object_sets,
 )
+from app.services.deliverable_shape_intelligence import build_deliverable_shape_guidance
 from app.services.precedent_duplicate_governance import (
     collapse_precedent_candidates_for_reference,
 )
@@ -11352,6 +11353,13 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         precedent_reference_guidance=precedent_reference_guidance,
         pack_resolution=pack_resolution,
     )
+    deliverable_shape_guidance = build_deliverable_shape_guidance(
+        db,
+        task_type=task.task_type,
+        deliverable_class_hint=deliverable_class_hint,
+        precedent_reference_guidance=precedent_reference_guidance,
+        pack_resolution=pack_resolution,
+    )
     canonicalization_summary, canonicalization_candidates = build_matter_canonicalization_contract(
         db,
         matter_workspace_id=matter_workspace.id,
@@ -11436,6 +11444,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         precedent_reference_guidance=precedent_reference_guidance,
         review_lens_guidance=review_lens_guidance,
         common_risk_guidance=common_risk_guidance,
+        deliverable_shape_guidance=deliverable_shape_guidance,
         research_runs=[schemas.ResearchRunRead.model_validate(item) for item in task.research_runs],
         decision_records=[schemas.DecisionRecordRead.model_validate(item) for item in task.decision_records],
         action_plans=[schemas.ActionPlanRead.model_validate(item) for item in task.action_plans],
@@ -11510,6 +11519,38 @@ def _build_precedent_top_risk_list(task: models.Task) -> list[str]:
     )[:4]
 
 
+DELIVERABLE_SHAPE_SECTION_LABELS = {
+    "problem_definition": "問題定義",
+    "background_summary": "背景摘要",
+    "executive_summary": "一句話結論",
+    "findings": "主要發現",
+    "recommendations": "建議處置",
+    "risks": "主要風險",
+    "action_items": "下一步行動",
+    "missing_information": "待補資料",
+    "clauses_reviewed": "已審條款",
+    "obligations_identified": "義務清單",
+    "proposed_outline": "建議結構",
+    "rewrite_guidance": "改寫方向",
+}
+
+
+def _label_for_deliverable_shape_section(key: str) -> str:
+    return DELIVERABLE_SHAPE_SECTION_LABELS.get(key, key.replace("_", " ").strip())
+
+
+def _build_precedent_shape_sections(deliverable: models.Deliverable | None) -> list[str]:
+    if deliverable is None or not isinstance(deliverable.content_structure, dict):
+        return []
+    return _unique_preserve_order(
+        [
+            _label_for_deliverable_shape_section(key)
+            for key in deliverable.content_structure.keys()
+            if key in DELIVERABLE_SHAPE_SECTION_LABELS
+        ]
+    )[:5]
+
+
 def _build_precedent_candidate_seed(
     task: models.Task,
     matter_workspace: models.MatterWorkspace | None,
@@ -11576,6 +11617,7 @@ def _build_precedent_candidate_seed(
         client.client_type if client and client.client_type != UNSPECIFIED_LABEL else None
     )
     top_risks = _build_precedent_top_risk_list(task)
+    shape_sections = _build_precedent_shape_sections(deliverable)
 
     if deliverable is not None:
         summary = _resolve_deliverable_summary_text(deliverable)
@@ -11606,6 +11648,7 @@ def _build_precedent_candidate_seed(
                 "current_output_label": flagship_lane.current_output_label,
                 "boundary_note": flagship_lane.boundary_note,
                 "top_risks": top_risks,
+                "shape_sections": shape_sections,
             },
         }
 
@@ -11638,6 +11681,7 @@ def _build_precedent_candidate_seed(
             "owner_suggestion": recommendation.owner_suggestion if recommendation else None,
             "lane_label": flagship_lane.label,
             "top_risks": top_risks,
+            "shape_sections": [],
         },
     }
 
