@@ -684,12 +684,20 @@ Infinite Pro 目前沒有也不應硬對齊於：
 - 不應再開 `P0-I`
 - 下一輪工作不應從 further baseline extension 啟動，而應從新的 decision phase 啟動
 - 旗艦顧問案型、`Research / Investigation` lane、retained advisory loop 這三條主線，現在都已有可用 baseline / MVP，不應再被描述成只停在初始方向
-- 下一個 decision phase 的正式主線仍是 `precedent / reusable intelligence`
-- 但這一階段目前仍屬進行中，而不是已完工
-- 真正要補的重點，是把多位顧問各自辦案後留下的 precedent / feedback / memory，逐步沉澱成 shared intelligence
+- 第 4 階段 `precedent / reusable intelligence` 已透過 closure review、asset audit、sign-off / handoff 正式收口
+- 因此目前正式狀態已不是「仍在 phase 4 主線施工中」，而是：
+  - `post-phase-4`
+  - `pre-phase-5 implementation`
+- 下一個 decision phase 的正式方向已定為：
+  - `Phase 5: Single-Firm Cloud Foundation`
+- 第 5 階段要解的正式問題是：
+  - 讓一間顧問公司可在雲端正式登入使用 Infinite Pro
+  - 讓多位顧問各自辦案時，有正式 identity / membership / role / access foundation
+  - 讓 shared intelligence 在 single-firm 的 operating posture 下繼續累積
 - 因此此刻不應先把重心轉成：
-  - explicit 多人共案 collaboration shell
+  - multi-tenant SaaS shell
   - enterprise governance shell
+  - 多人共編同一案件的 collaboration shell
 
 ---
 
@@ -697,24 +705,28 @@ Infinite Pro 目前沒有也不應硬對齊於：
 
 下一階段的正式施工順序應理解為：
 
-1. 先把 `precedent / reusable intelligence` 做到更成熟
-2. 之後才評估較輕的 `team-native collaboration`
+1. 先進入 `Phase 5: Single-Firm Cloud Foundation`
+2. 在 single-firm cloud foundation 站穩後，再評估較輕的 firm operating surfaces
 3. `trust / governance for larger clients` 放更後面
 
-若只看現在最該優先的，正式答案仍是：
+若只看現在最該優先的，正式答案是：
 
-- precedent / reusable intelligence
+- `Single-Firm Cloud Foundation`
 
 而且它此刻的真正施工重點應理解為：
 
-1. `feedback -> optimization loop` 持續做深
-2. `shared intelligence evolution / weighting / promotion / retirement` 補成熟
-3. `organization memory / domain playbook / deliverable template` 往更成熟的 shared-intelligence 層推進
+1. `Google Login + owner invite`
+2. `User / Firm / Membership / Invite` 的正式資料模型
+3. `owner / consultant / demo` 的最小角色與 server-side permission gate
+4. `Members` 管理頁
+5. `Firm Settings` 與 `Personal Provider Settings` 的正式分層
+6. `demo workspace` 與正式 workspace 的隔離
 
 不是：
 
-- 先做 explicit 多人共案 collaboration shell
-- 先做 enterprise governance shell
+- 先做 multi-tenant SaaS shell
+- 先做 enterprise RBAC matrix
+- 先做多人共編同一案件 collaboration shell
 
 目前進度補充：
 
@@ -738,6 +750,9 @@ Infinite Pro 目前沒有也不應硬對齊於：
   - 讓好做法能被記住
   - 讓下一案能重用過去的顧問判斷資產
   - 讓不同顧問各自辦案後留下的經驗，逐步沉澱成共享 intelligence
+- 第 4 階段的這層 shared intelligence foundation 現在已足以支撐下一步往 cloud identity / access foundation 前進
+- 因此第 5 階段不是在推翻 single-user-first 的產品定義，而是在正式啟動：
+  - `multi-user later` 的 single-firm 第一版落地
   - 再之後才讓大型客戶與明確團隊化有更穩的治理底座
 
 ---
