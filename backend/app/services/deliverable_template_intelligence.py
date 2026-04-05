@@ -126,6 +126,7 @@ def build_deliverable_template_guidance(
     source_kinds_used: list[str] = []
     template_label = ""
     template_fit_summary = ""
+    source_lifecycle_summary = ""
     core_sections: list[str] = []
     optional_sections: list[str] = []
 
@@ -161,22 +162,26 @@ def build_deliverable_template_guidance(
         asset_code="deliverable_template",
         limit=2,
     )
+    stable_precedent_matches = [
+        item for item in weighted_matches if item.shared_intelligence_signal.stability == "stable"
+    ]
     snapshots = _candidate_rows(
         db,
         [item.candidate_id for item in weighted_matches],
     )
     if weighted_matches:
         for matched in weighted_matches:
+            precedent_is_background_only = matched.shared_intelligence_signal.stability != "stable"
             snapshot = snapshots.get(matched.candidate_id, {})
             candidate_label = _coerce_template_label(
                 str(snapshot.get("template_label") or snapshot.get("current_output_label") or "")
             )
-            if candidate_label and not template_label:
+            if candidate_label and not template_label and not precedent_is_background_only:
                 template_label = candidate_label
-            if not template_fit_summary:
+            if not template_fit_summary and not precedent_is_background_only:
                 template_fit_summary = matched.match_reason or matched.summary or matched.reusable_reason
             raw_sections = snapshot.get("shape_sections")
-            if isinstance(raw_sections, list) and not core_sections:
+            if isinstance(raw_sections, list) and not core_sections and not precedent_is_background_only:
                 normalized = _dedupe_sections(
                     [item for item in raw_sections if isinstance(item, str)]
                 )
@@ -185,15 +190,28 @@ def build_deliverable_template_guidance(
             add_block(
                 title=f"先用{candidate_label or '這份模板'}站穩主線",
                 summary=matched.summary or matched.reusable_reason or "先沿用相似 precedent 的模板主線。",
-                why_fit=matched.match_reason or "目前已有相似 precedent，可先用它校正模板選型。",
+                why_fit=(
+                    "這筆 precedent 目前仍偏觀察 / 恢復期，先拿來校正模板，不讓它單獨主導模板主線。"
+                    if precedent_is_background_only
+                    else matched.match_reason or "目前已有相似 precedent，可先用它校正模板選型。"
+                ),
                 source_kind="precedent_deliverable_template",
                 source_label=(
-                    "來源：precedent deliverable template（共享模式優先）"
-                    if matched.shared_intelligence_signal.weight_action == "upweight"
-                    else "來源：precedent deliverable template"
+                    "來源：precedent deliverable template（先留背景）"
+                    if precedent_is_background_only
+                    else (
+                        "來源：precedent deliverable template（共享模式優先）"
+                        if matched.shared_intelligence_signal.weight_action == "upweight"
+                        else "來源：precedent deliverable template"
+                    )
                 ),
-                priority="high",
+                priority="medium" if precedent_is_background_only else "high",
             )
+        source_lifecycle_summary = (
+            "shared sources 目前仍偏背景校正，precedent 先拿來校正模板，不讓它單獨主導模板主線。"
+            if not stable_precedent_matches
+            else "shared sources 目前以穩定來源為主，可直接拿來校正模板主線。"
+        )
 
     if not template_label and pack_resolution.deliverable_presets:
         template_label = _coerce_template_label(pack_resolution.deliverable_presets[0])
@@ -268,6 +286,7 @@ def build_deliverable_template_guidance(
             summary="這一輪先依現有證據與主問題推進，不額外補模板主線提示。",
             fit_summary="",
             source_mix_summary="",
+            source_lifecycle_summary="",
             boundary_note="這是在提示模板主線，不是自動套模板。",
         )
 
@@ -294,6 +313,8 @@ def build_deliverable_template_guidance(
     source_mix_summary = "收斂依據：" + "、".join(
         source_label_map[item] for item in source_kinds_used if item in source_label_map
     )
+    if not source_lifecycle_summary:
+        source_lifecycle_summary = "目前仍以 pack / shape / task heuristic 為主，shared source 還不夠厚。"
 
     return schemas.DeliverableTemplateGuidanceRead(
         status="available" if any(item.source_kind != "task_heuristic" for item in blocks) else "fallback",
@@ -303,6 +324,7 @@ def build_deliverable_template_guidance(
         template_fit_summary=template_fit_summary or fallback_fit,
         fit_summary=fit_summary,
         source_mix_summary=source_mix_summary,
+        source_lifecycle_summary=source_lifecycle_summary,
         core_sections=core_sections,
         optional_sections=optional_sections,
         boundary_note="這是在提示模板主線，不是自動套模板；若和這案正式證據衝突，仍以這案當前判斷與證據為準。",

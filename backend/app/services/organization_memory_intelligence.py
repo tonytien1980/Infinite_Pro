@@ -178,8 +178,16 @@ def build_organization_memory_guidance(
             status="none",
             label="目前還沒有足夠穩定的組織背景",
             summary="這一輪先依當前案件資料推進，不額外補 organization memory。",
+            source_lifecycle_summary="",
             boundary_note="organization memory 只整理同一案件世界裡已站穩的背景，不替代當前案件證據。",
         )
+
+    if len(cross_matter_items) >= 2:
+        source_lifecycle_summary = "跨案件背景目前可直接當穩定背景，不必每次從零重建。"
+    elif len(cross_matter_items) == 1:
+        source_lifecycle_summary = "跨案件背景目前先留作背景參考，先不要讓它主導這輪判斷。"
+    else:
+        source_lifecycle_summary = "目前仍以同案穩定背景為主，跨案件背景還不夠厚。"
 
     return schemas.OrganizationMemoryGuidanceRead(
         status="available",
@@ -189,6 +197,7 @@ def build_organization_memory_guidance(
             "若已有高度相近的同客戶案件，也只低風險補少量跨案件摘要，避免這輪又從零重問一次。"
         ),
         organization_label=organization_label,
+        source_lifecycle_summary=source_lifecycle_summary,
         stable_context_items=stable_context_items,
         known_constraints=known_constraints,
         continuity_anchor=continuity_anchor,

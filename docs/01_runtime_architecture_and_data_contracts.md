@@ -1055,6 +1055,7 @@ deliverable workspace 採：
 - `label`
 - `summary`
 - `organization_label`
+- `source_lifecycle_summary`
 - `stable_context_items`
 - `known_constraints`
 - `continuity_anchor`
@@ -1101,6 +1102,9 @@ deliverable workspace 採：
 
 - `organization_memory_context` 仍應優先以本案穩定背景為主
 - 跨案件摘要只可作為少量補充，不可壓過這案當前證據
+- 第一波也可補一個低噪音 `source_lifecycle_summary`，用來回答：
+  - 這批跨案件背景目前可直接當穩定背景
+  - 或仍只適合先留作背景參考
 - 這層不是 precedent retrieval，也不是 playbook library
 - boundary copy 應明講：
   - 這是在提示同客戶跨案件背景
@@ -1157,6 +1161,7 @@ deliverable workspace 採：
 - `next_stage_label`
 - `fit_summary`
 - `source_mix_summary`
+- `source_lifecycle_summary`
 - `boundary_note`
 - `stages`
 
@@ -1179,6 +1184,9 @@ deliverable workspace 採：
   - 這輪為什麼適合這條主線
 - `source_mix_summary` 應回答：
   - 這條主線主要由哪些來源組合收斂出來
+- `source_lifecycle_summary` 應回答：
+  - 這輪 shared source 目前比較像穩定來源
+  - 或仍偏背景校正，不宜過度主導整條工作主線
 - domain playbook 若要進模型上下文，必須經 Host 整理成 prompt-safe `domain_playbook_context`
 - `domain_playbook_context` 應與 `organization_memory_context`、`precedent_context`、`review_lens_context` 並存，但角色不同：
   - organization memory context：這個客戶 / 組織有哪些穩定背景
@@ -1186,6 +1194,7 @@ deliverable workspace 採：
   - review lens context：這輪先看哪幾點
   - domain playbook context：這類案子通常怎麼走、這輪目前在哪一步
 - 當多筆 precedent 都可作為 domain-playbook source 時，第一波可優先使用 shared-intelligence 較成熟、且非 `downweight` 的 precedent
+- 若 precedent / organization memory source 仍偏 recovering / background-only，第一波可先把它們留在背景校正層，不讓較弱 shared source 過早抬成主線
 - 第一波只允許影響：
   - framing / sequencing
   - review / convergence ordering
@@ -1395,6 +1404,7 @@ deliverable workspace 採：
 - `template_fit_summary`
 - `fit_summary`
 - `source_mix_summary`
+- `source_lifecycle_summary`
 - `core_sections`
 - `optional_sections`
 - `boundary_note`
@@ -1419,11 +1429,15 @@ deliverable workspace 採：
   - 這輪為什麼適合這個模板主線
 - `source_mix_summary` 應回答：
   - 這個模板主線主要由哪些來源組合收斂出來
+- `source_lifecycle_summary` 應回答：
+  - 目前哪些 shared source 已足夠穩定，可直接拿來校正模板主線
+  - 哪些 shared source 仍只適合作為背景校正
 - deliverable template 若要進模型上下文，必須經 Host 整理成 prompt-safe `deliverable_template_context`
 - `deliverable_template_context` 應與 `deliverable_shape_context` 並存，但角色不同：
   - deliverable shape context：這份交付物通常怎麼收比較穩
   - deliverable template context：這份交付比較適合沿用哪種模板主線
 - 當多筆 precedent 都可作為 deliverable-template source 時，第一波可優先使用 shared-intelligence 較成熟、且非 `downweight` 的 precedent
+- 若 precedent deliverable template 仍偏 recovering / background-only，第一波可先保留它的背景校正價值，但不應直接覆蓋較穩的 pack / shape / heuristic 模板主線
 - v2 可吸收 deliverable shape 與 richer domain playbook signal，但仍不可把：
   - 交付骨架 = 模板主線
   - playbook = template library

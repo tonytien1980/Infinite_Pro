@@ -1144,6 +1144,7 @@ Primary action：
 - `另有 N 個同客戶案件可回看其穩定背景`
 - 少量跨案件摘要卡
 - 為什麼這些案件和現在相近
+- `來源狀態：...`
 
 正式規則：
 
@@ -1161,6 +1162,8 @@ Primary action：
   - 舊案全文
   - 大量歷史清單
   - 原始 precedent rows
+- 若跨案件背景目前仍偏薄，UI 也只可低噪音讀成：
+  - `來源狀態：先留作背景參考`
 
 ### 9.2.7 Domain-playbook reading
 
@@ -1190,6 +1193,7 @@ Primary action：
   - `工作主線`
   - `這輪為何適用`
   - `收斂依據`
+  - `來源狀態`
   - `目前這輪`
   - `下一步通常接`
   - 少量 stage cards
@@ -1200,6 +1204,8 @@ Primary action：
 - 即使已吸收 cross-matter organization memory，UI 也只可把它讀成：
   - 這輪主線為何更站得住
   - 不可把它讀成 CRM 卡或歷史案件總表
+- 若 precedent / organization memory 目前仍偏背景校正，UI 也只可低噪音補：
+  - `來源狀態：shared source 目前仍偏背景校正`
 - boundary copy 應明講：
   - 這是在提示工作主線
   - 不是強制 checklist
@@ -1233,6 +1239,7 @@ Primary action：
   - `這輪適合`
   - `這輪為何適用`
   - `收斂依據`
+  - `來源狀態`
   - `核心區塊`
   - `可選區塊`
   - 少量 template blocks
@@ -1247,6 +1254,8 @@ Primary action：
 - 即使已吸收 deliverable shape 與 domain playbook v2，UI 也只可把它讀成：
   - 模板主線為何更站得住
   - 不可把它讀成 template picker / template library
+- 若 precedent template 目前仍偏 recovering / background-only，UI 也只可低噪音補：
+  - `來源狀態：precedent 先拿來校正模板，不讓它單獨主導模板主線`
 
 ### 9.3 Specialized hardening views
 

@@ -1684,6 +1684,12 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                   {deliverableTemplateView.sourceMixSummary ? (
                     <p className="muted-text">{deliverableTemplateView.sourceMixSummary}</p>
                   ) : null}
+                  {deliverableTemplateView.sourceLifecycleSummary ? (
+                    <p className="muted-text">{deliverableTemplateView.sourceLifecycleSummary}</p>
+                  ) : null}
+                  {deliverableTemplateView.sourceLifecycleSummary ? (
+                    <p className="muted-text">{deliverableTemplateView.sourceLifecycleSummary}</p>
+                  ) : null}
                   <div className="summary-grid" style={{ marginTop: "16px" }}>
                     {deliverableTemplateView.cards.map((card) => (
                       <div className="section-card" key={`deliverable-template-${card.title}`}>

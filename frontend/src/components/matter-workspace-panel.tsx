@@ -1061,6 +1061,12 @@ export function MatterWorkspacePanel({
                         {organizationMemoryView.organizationLabel ? (
                           <p className="muted-text">{organizationMemoryView.organizationLabel}</p>
                         ) : null}
+                        {organizationMemoryView.sourceLifecycleSummary ? (
+                          <p className="muted-text">{organizationMemoryView.sourceLifecycleSummary}</p>
+                        ) : null}
+                        {organizationMemoryView.sourceLifecycleSummary ? (
+                          <p className="muted-text">{organizationMemoryView.sourceLifecycleSummary}</p>
+                        ) : null}
                         {organizationMemoryView.stableContextItems.length > 0 ? (
                           <ul className="list-content" style={{ marginTop: "12px" }}>
                             {organizationMemoryView.stableContextItems.map((item) => (
@@ -1116,6 +1122,12 @@ export function MatterWorkspacePanel({
                         ) : null}
                         {domainPlaybookView.sourceMixSummary ? (
                           <p className="muted-text">{domainPlaybookView.sourceMixSummary}</p>
+                        ) : null}
+                        {domainPlaybookView.sourceLifecycleSummary ? (
+                          <p className="muted-text">{domainPlaybookView.sourceLifecycleSummary}</p>
+                        ) : null}
+                        {domainPlaybookView.sourceLifecycleSummary ? (
+                          <p className="muted-text">{domainPlaybookView.sourceLifecycleSummary}</p>
                         ) : null}
                         {domainPlaybookView.currentStageLabel ? (
                           <p className="muted-text">

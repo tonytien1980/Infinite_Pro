@@ -886,6 +886,7 @@ class OrganizationMemoryGuidanceRead(BaseModel):
     label: str = ""
     summary: str = ""
     organization_label: str = ""
+    source_lifecycle_summary: str = ""
     stable_context_items: list[str] = Field(default_factory=list)
     known_constraints: list[str] = Field(default_factory=list)
     continuity_anchor: str = ""
@@ -920,6 +921,7 @@ class DomainPlaybookGuidanceRead(BaseModel):
     next_stage_label: str = ""
     fit_summary: str = ""
     source_mix_summary: str = ""
+    source_lifecycle_summary: str = ""
     boundary_note: str = ""
     stages: list[DomainPlaybookStageRead] = Field(default_factory=list)
 
@@ -1016,6 +1018,7 @@ class DeliverableTemplateGuidanceRead(BaseModel):
     template_fit_summary: str = ""
     fit_summary: str = ""
     source_mix_summary: str = ""
+    source_lifecycle_summary: str = ""
     core_sections: list[str] = Field(default_factory=list)
     optional_sections: list[str] = Field(default_factory=list)
     boundary_note: str = ""

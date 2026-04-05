@@ -3492,3 +3492,42 @@ Environment used:
 - Infinite Pro now distinguishes not only how mature a shared pattern is, but also how stable it currently looks in the shared-intelligence lifecycle
 - Host can now treat `stable` precedent as the preferred reusable-intelligence source when other weighting signals are otherwise similar
 - UI remains low-noise and consultant-first: stability is shown as one extra reading hint, not a ranking system or control panel
+
+---
+
+## Entry: 2026-04-05 shared source lifecycle filtering v1 pass
+
+Scope:
+- first-pass source lifecycle reading for organization memory / domain playbook / deliverable template
+- conservative filtering so weaker shared sources stay in background-calibration role
+- low-noise `來源狀態` reading on existing work surfaces and prompt contexts
+
+Environment used:
+- local repo runtime checks only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`162 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`30 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Shared-source lifecycle filtering specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | organization memory | Single cross-matter reference becomes background-only | Verified | targeted backend test confirms `organization_memory_guidance` now exposes `source_lifecycle_summary` that reads as background reference when only a thin cross-matter signal exists |
+| Backend | domain playbook | Recovering precedent stays in background-calibration role | Verified | targeted backend test confirms `domain_playbook_guidance` now marks weaker shared sources as background and keeps them from over-leading the workstream |
+| Backend | deliverable template | Recovering precedent does not override stronger pack template | Verified | targeted backend test confirms a background-only precedent template no longer overwrites the more stable pack-driven template mainline |
+| Backend | prompt context | Source lifecycle lines reach model-safe payloads | Verified | targeted backend tests confirm organization-memory / playbook / template prompt contexts now include `來源狀態：...` |
+| Frontend | workbench helper views | Read low-noise `來源狀態` | Verified | helper tests confirm organization memory, domain playbook, and deliverable template views stay consultant-readable while adding source lifecycle reading |
+
+### Verified outcomes
+
+- Infinite Pro now distinguishes between shared sources that are strong enough to guide the mainline and sources that should remain background calibration only
+- organization memory, domain playbook, and deliverable template surfaces now read this distinction back in low-noise consultant language instead of flattening every source into the same tier
+- Host can now avoid letting a recovering or thin shared source prematurely dominate playbook or template guidance

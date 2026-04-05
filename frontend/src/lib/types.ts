@@ -1214,6 +1214,7 @@ export interface OrganizationMemoryGuidance {
   label: string;
   summary: string;
   organization_label: string;
+  source_lifecycle_summary: string;
   stable_context_items: string[];
   known_constraints: string[];
   continuity_anchor: string;
@@ -1254,6 +1255,7 @@ export interface DomainPlaybookGuidance {
   next_stage_label: string;
   fit_summary: string;
   source_mix_summary: string;
+  source_lifecycle_summary: string;
   boundary_note: string;
   stages: DomainPlaybookStage[];
 }
@@ -1340,6 +1342,7 @@ export interface DeliverableTemplateGuidance {
   template_fit_summary: string;
   fit_summary: string;
   source_mix_summary: string;
+  source_lifecycle_summary: string;
   core_sections: string[];
   optional_sections: string[];
   boundary_note: string;

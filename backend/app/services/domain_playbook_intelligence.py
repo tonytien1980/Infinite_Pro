@@ -134,6 +134,7 @@ def build_domain_playbook_guidance(
     stages: list[schemas.DomainPlaybookStageRead] = []
     seen_keys: set[str] = set()
     source_kinds_used: list[str] = []
+    source_lifecycle_summary = ""
 
     def add_stage(
         *,
@@ -167,13 +168,29 @@ def build_domain_playbook_guidance(
         and organization_memory_guidance.cross_matter_items
     ):
         top_related = organization_memory_guidance.cross_matter_items[0]
+        organization_memory_is_background_only = (
+            len(organization_memory_guidance.cross_matter_items) == 1
+        )
         add_stage(
             title="先對照同客戶既有案件的限制與推進節奏",
             summary=top_related.summary or "同客戶既有案件已留下可回看的穩定背景。",
-            why_now=top_related.relation_reason or organization_memory_guidance.cross_matter_summary,
+            why_now=(
+                "同客戶跨案件背景目前仍偏背景參考，先拿來校正，不要讓它單獨主導整條工作主線。"
+                if organization_memory_is_background_only
+                else top_related.relation_reason or organization_memory_guidance.cross_matter_summary
+            ),
             source_kind="organization_memory",
-            source_label="來源：cross-matter organization memory",
-            priority="high" if not stages else "medium",
+            source_label=(
+                "來源：cross-matter organization memory（先留背景）"
+                if organization_memory_is_background_only
+                else "來源：cross-matter organization memory（穩定背景）"
+            ),
+            priority="medium" if organization_memory_is_background_only else ("high" if not stages else "medium"),
+        )
+        source_lifecycle_summary = (
+            "shared sources 目前仍偏背景校正，先不要讓單一 precedent 或跨案件背景主導整條工作主線。"
+            if organization_memory_is_background_only
+            else "shared sources 目前已有較穩定來源，可直接拿來校正工作主線。"
         )
 
     if research_guidance.status in {"recommended", "active"}:
@@ -194,18 +211,33 @@ def build_domain_playbook_guidance(
         )
         top_match = weighted_matches[0] if weighted_matches else None
         if top_match is not None:
+            precedent_is_background_only = top_match.shared_intelligence_signal.stability != "stable"
             add_stage(
                 title=f"對照「{top_match.title or '既有模式'}」校正本輪推進順序",
                 summary=top_match.summary or top_match.reusable_reason or "先沿用相似 precedent 的工作主線校正這輪順序。",
-                why_now=top_match.match_reason or "目前已有相似 precedent，可先用它確認這輪不要走偏。",
+                why_now=(
+                    "這筆 precedent 目前仍偏觀察 / 恢復期，先拿來校正順序，不要讓它單獨主導整條工作主線。"
+                    if precedent_is_background_only
+                    else top_match.match_reason or "目前已有相似 precedent，可先用它確認這輪不要走偏。"
+                ),
                 source_kind="precedent_reference",
                 source_label=(
-                    "來源：precedent reference（共享模式優先）"
-                    if top_match.shared_intelligence_signal.weight_action == "upweight"
-                    else "來源：precedent reference"
+                    "來源：precedent reference（先留背景）"
+                    if precedent_is_background_only
+                    else (
+                        "來源：precedent reference（共享模式優先）"
+                        if top_match.shared_intelligence_signal.weight_action == "upweight"
+                        else "來源：precedent reference"
+                    )
                 ),
-                priority="high" if not stages else "medium",
+                priority="medium" if precedent_is_background_only else ("high" if not stages else "medium"),
             )
+            if not source_lifecycle_summary:
+                source_lifecycle_summary = (
+                    "shared sources 目前仍偏背景校正，先不要讓單一 precedent 或跨案件背景主導整條工作主線。"
+                    if precedent_is_background_only
+                    else "shared sources 目前已有較穩定來源，可直接拿來校正工作主線。"
+                )
 
     pack_stage_added = False
     for pack in [*pack_resolution.selected_domain_packs, *pack_resolution.selected_industry_packs]:
@@ -273,6 +305,7 @@ def build_domain_playbook_guidance(
             summary="這一輪先依現有證據與主問題推進，不額外補工作主線提示。",
             fit_summary="",
             source_mix_summary="",
+            source_lifecycle_summary="",
             boundary_note="domain playbook 是在提示這類案子通常怎麼走，不是強制 checklist。",
         )
 
@@ -319,6 +352,8 @@ def build_domain_playbook_guidance(
     source_mix_summary = "收斂依據：" + "、".join(
         source_label_map[item] for item in source_kinds_used if item in source_label_map
     )
+    if not source_lifecycle_summary:
+        source_lifecycle_summary = "目前仍以 pack / task heuristic 為主，shared source 還不夠厚。"
 
     return schemas.DomainPlaybookGuidanceRead(
         status="available" if any(item.source_kind != "task_heuristic" for item in stages) else "fallback",
@@ -329,6 +364,7 @@ def build_domain_playbook_guidance(
         next_stage_label=next_stage_label,
         fit_summary=fit_summary,
         source_mix_summary=source_mix_summary,
+        source_lifecycle_summary=source_lifecycle_summary,
         boundary_note="這是在提示工作主線，不是強制 checklist；若和這案正式證據衝突，仍以這案正式判斷為準。",
         stages=stages,
     )

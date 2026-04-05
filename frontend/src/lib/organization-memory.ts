@@ -7,6 +7,7 @@ export function buildOrganizationMemoryView(
   sectionTitle: string;
   summary: string;
   organizationLabel: string;
+  sourceLifecycleSummary: string;
   stableContextItems: string[];
   knownConstraints: string[];
   continuityAnchor: string;
@@ -20,6 +21,7 @@ export function buildOrganizationMemoryView(
       sectionTitle: "",
       summary: "",
       organizationLabel: "",
+      sourceLifecycleSummary: "",
       stableContextItems: [],
       knownConstraints: [],
       continuityAnchor: "",
@@ -34,6 +36,7 @@ export function buildOrganizationMemoryView(
     sectionTitle: guidance.label || "這個客戶 / 組織目前已知的穩定背景",
     summary: guidance.summary,
     organizationLabel: guidance.organization_label,
+    sourceLifecycleSummary: guidance.source_lifecycle_summary,
     stableContextItems: guidance.stable_context_items,
     knownConstraints: guidance.known_constraints,
     continuityAnchor: guidance.continuity_anchor,

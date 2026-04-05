@@ -458,6 +458,7 @@ test("organization memory view stays low-noise and consultant-readable", () => {
     label: "這個客戶 / 組織目前已知的穩定背景",
     summary: "Host 先把同一案件世界裡已站穩的組織背景整理出來。",
     organization_label: "某客戶｜制度化階段｜中小企業",
+    source_lifecycle_summary: "跨案件背景目前先留作背景參考，先不要讓它主導這輪判斷。",
     stable_context_items: ["主要工作焦點：法務、營運", "目前常用模組包：Professional Services Pack"],
     known_constraints: ["Keep the output internal and non-final."],
     continuity_anchor: "這案目前延續合約審閱這條主線。",
@@ -475,6 +476,7 @@ test("organization memory view stays low-noise and consultant-readable", () => {
 
   assert.equal(view.shouldShow, true);
   assert.equal(view.organizationLabel, "某客戶｜制度化階段｜中小企業");
+  assert.match(view.sourceLifecycleSummary, /先留作背景參考/);
   assert.equal(view.stableContextItems[0], "主要工作焦點：法務、營運");
   assert.equal(view.knownConstraints[0], "Keep the output internal and non-final.");
   assert.match(view.continuityAnchor, /合約審閱/);
@@ -493,6 +495,7 @@ test("domain playbook view stays low-noise and consultant-readable", () => {
     next_stage_label: "再收斂高風險點與建議處置",
     fit_summary: "這輪同時有 precedent、pack 與同客戶跨案件背景，所以工作主線不需要只靠 heuristic。",
     source_mix_summary: "收斂依據：precedent reference、pack stage heuristic、cross-matter organization memory",
+    source_lifecycle_summary: "shared sources 目前仍偏背景校正，先不要讓單一 precedent 或跨案件背景主導整條工作主線。",
     boundary_note: "這是在提示工作主線，不是強制 checklist；若和這案正式證據衝突，仍以這案正式判斷為準。",
     stages: [
       {
@@ -532,6 +535,7 @@ test("domain playbook view stays low-noise and consultant-readable", () => {
   assert.equal(view.nextStageLabel, "再收斂高風險點與建議處置");
   assert.match(view.fitSummary, /同客戶跨案件背景/);
   assert.match(view.sourceMixSummary, /cross-matter organization memory/);
+  assert.match(view.sourceLifecycleSummary, /背景校正/);
   assert.equal(view.listTitle, "這類案子通常這樣推進");
   assert.match(view.listItems[0] ?? "", /先補齊審閱範圍/);
   assert.match(view.cards[0]?.meta ?? "", /task heuristic/);
@@ -1519,6 +1523,7 @@ test("deliverable template view stays low-noise and consultant-readable", () => 
     template_fit_summary: "這輪仍屬 review / assessment 主線，先站穩審閱備忘模板會更可靠。",
     fit_summary: "這輪同時有 precedent、shape 與 playbook 主線，所以不需要只靠 heuristic 定模板。",
     source_mix_summary: "收斂依據：precedent deliverable template、deliverable shape、domain playbook",
+    source_lifecycle_summary: "shared sources 目前仍偏背景校正，precedent 先拿來校正模板，不讓它單獨主導模板主線。",
     core_sections: ["一句話結論", "主要發現", "主要風險", "建議處置"],
     optional_sections: ["待補資料", "已審範圍"],
     boundary_note: "這是在提示模板主線，不是自動套模板；若和這案正式證據衝突，仍以這案當前判斷與證據為準。",
@@ -1559,6 +1564,7 @@ test("deliverable template view stays low-noise and consultant-readable", () => 
   assert.match(view.templateFitSummary, /review \/ assessment/);
   assert.match(view.fitSummary, /shape 與 playbook 主線/);
   assert.match(view.sourceMixSummary, /deliverable shape/);
+  assert.match(view.sourceLifecycleSummary, /背景校正/);
   assert.equal(view.coreListTitle, "先守住這些核心區塊");
   assert.equal(view.coreSections[0], "一句話結論");
   assert.equal(view.optionalListTitle, "這些區塊視案件補");

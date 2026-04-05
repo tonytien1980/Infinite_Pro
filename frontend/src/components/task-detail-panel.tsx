@@ -1341,6 +1341,12 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     {organizationMemoryView.organizationLabel ? (
                       <p className="muted-text">{organizationMemoryView.organizationLabel}</p>
                     ) : null}
+                    {organizationMemoryView.sourceLifecycleSummary ? (
+                      <p className="muted-text">{organizationMemoryView.sourceLifecycleSummary}</p>
+                    ) : null}
+                    {organizationMemoryView.sourceLifecycleSummary ? (
+                      <p className="muted-text">{organizationMemoryView.sourceLifecycleSummary}</p>
+                    ) : null}
                     {organizationMemoryView.stableContextItems.length > 0 ? (
                       <ul className="list-content" style={{ marginTop: "12px" }}>
                         {organizationMemoryView.stableContextItems.map((item) => (
@@ -1399,6 +1405,12 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     ) : null}
                     {domainPlaybookView.sourceMixSummary ? (
                       <p className="muted-text">{domainPlaybookView.sourceMixSummary}</p>
+                    ) : null}
+                    {domainPlaybookView.sourceLifecycleSummary ? (
+                      <p className="muted-text">{domainPlaybookView.sourceLifecycleSummary}</p>
+                    ) : null}
+                    {domainPlaybookView.sourceLifecycleSummary ? (
+                      <p className="muted-text">{domainPlaybookView.sourceLifecycleSummary}</p>
                     ) : null}
                     {domainPlaybookView.currentStageLabel ? (
                       <p className="muted-text">
@@ -1505,6 +1517,12 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     ) : null}
                     {deliverableTemplateView.sourceMixSummary ? (
                       <p className="muted-text">{deliverableTemplateView.sourceMixSummary}</p>
+                    ) : null}
+                    {deliverableTemplateView.sourceLifecycleSummary ? (
+                      <p className="muted-text">{deliverableTemplateView.sourceLifecycleSummary}</p>
+                    ) : null}
+                    {deliverableTemplateView.sourceLifecycleSummary ? (
+                      <p className="muted-text">{deliverableTemplateView.sourceLifecycleSummary}</p>
                     ) : null}
                     <div className="summary-grid" style={{ marginTop: "16px" }}>
                       {deliverableTemplateView.cards.map((card) => (

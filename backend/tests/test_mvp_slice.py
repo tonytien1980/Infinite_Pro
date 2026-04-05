@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from io import BytesIO
 import json
 
@@ -3797,6 +3798,7 @@ def test_build_payload_organization_memory_context_keeps_prompt_safe_lines() -> 
             label="這個客戶 / 組織目前已知的穩定背景",
             summary="summary",
             organization_label="某客戶｜制度化階段｜中小企業",
+            source_lifecycle_summary="跨案件背景目前先留作背景參考，先不要讓它主導這輪判斷。",
             stable_context_items=["主要工作焦點：法務、營運", "目前常用模組包：Professional Services Pack"],
             known_constraints=["Keep the output internal and non-final."],
             continuity_anchor="這案目前延續合約審閱這條主線。",
@@ -3821,6 +3823,7 @@ def test_build_payload_organization_memory_context_keeps_prompt_safe_lines() -> 
     assert any("已知限制：" in item for item in lines)
     assert any("延續主線：" in item for item in lines)
     assert any("跨案件背景：" in item for item in lines)
+    assert any("來源狀態：" in item for item in lines)
     assert any("跨案件參考 1：" in item for item in lines)
 
 
@@ -3920,6 +3923,7 @@ def test_build_payload_domain_playbook_context_keeps_prompt_safe_lines() -> None
             next_stage_label="再收斂高風險點與建議處置",
             fit_summary="這輪同時有 research、precedent 與同客戶跨案件背景，所以工作主線不需要只靠 heuristic。",
             source_mix_summary="收斂依據：research guidance、precedent reference、cross-matter organization memory",
+            source_lifecycle_summary="shared sources 目前仍偏背景校正，先不要讓單一 precedent 或跨案件背景主導整條工作主線。",
             boundary_note="這是在提示工作主線，不是強制 checklist。",
             stages=[
                 schemas.DomainPlaybookStageRead(
@@ -3952,7 +3956,97 @@ def test_build_payload_domain_playbook_context_keeps_prompt_safe_lines() -> None
     assert any("下一步通常接：" in item for item in lines)
     assert any("這輪為何適用：" in item for item in lines)
     assert any("收斂依據：" in item for item in lines)
+    assert any("來源狀態：" in item for item in lines)
     assert any("playbook 1：" in item for item in lines)
+
+
+def test_organization_memory_guidance_marks_single_cross_matter_reference_as_background_only() -> None:
+    from app.services.organization_memory_intelligence import build_organization_memory_guidance
+
+    guidance = build_organization_memory_guidance(
+        current_matter_workspace_id="matter-current",
+        client_name="Acme Corp",
+        client_stage="制度化階段",
+        client_type="中小企業",
+        domain_lenses=["法務"],
+        selected_pack_names=["Legal Pack"],
+        continuity_mode=schemas.EngagementContinuityMode.ONE_OFF,
+        current_decision_context_title="合約審閱",
+        next_best_actions=["先把附件與責任條款補齊"],
+        constraint_descriptions=["Keep the output internal."],
+        cross_matter_summaries=[
+            schemas.MatterWorkspaceSummaryRead(
+                id="matter-related",
+                title="年度法務盤點",
+                workspace_summary="先前案件主要聚焦附件、責任與終止條件。",
+                object_path="Acme Corp / 年度法務盤點 / 合約風險整理",
+                client_name="Acme Corp",
+                engagement_name="年度法務盤點",
+                workstream_name="合約風險整理",
+                client_stage="制度化階段",
+                client_type="中小企業",
+                domain_lenses=["法務"],
+                latest_updated_at=datetime.now(timezone.utc),
+            )
+        ],
+    )
+
+    assert guidance.status == "available"
+    assert "先留作背景參考" in guidance.source_lifecycle_summary
+
+
+def test_domain_playbook_guidance_marks_recovering_sources_as_background_only() -> None:
+    from app.services.domain_playbook_intelligence import build_domain_playbook_guidance
+
+    guidance = build_domain_playbook_guidance(
+        task_type="contract_review",
+        client_stage="制度化階段",
+        deliverable_class_hint=DeliverableClass.ASSESSMENT_REVIEW_MEMO,
+        flagship_lane=schemas.FlagshipLaneRead(label="先審閱手上已有材料"),
+        research_guidance=schemas.ResearchGuidanceRead(),
+        organization_memory_guidance=schemas.OrganizationMemoryGuidanceRead(
+            status="available",
+            label="這個客戶 / 組織目前已知的穩定背景",
+            summary="summary",
+            organization_label="Acme Corp｜制度化階段｜中小企業",
+            source_lifecycle_summary="跨案件背景目前先留作背景參考，先不要讓它主導這輪判斷。",
+            cross_matter_summary="另有 1 個同客戶案件可回看其穩定背景。",
+            cross_matter_items=[
+                schemas.CrossMatterOrganizationMemoryItemRead(
+                    matter_workspace_id="matter-1",
+                    matter_title="年度法務盤點",
+                    summary="先前案件主要聚焦附件、責任與終止條件。",
+                    relation_reason="同一客戶｜同樣偏法務風險主線",
+                )
+            ],
+        ),
+        continuation_surface=None,
+        pack_resolution=schemas.PackResolutionRead(),
+        precedent_reference_guidance=schemas.PrecedentReferenceGuidanceRead(
+            status="available",
+            matched_items=[
+                _test_precedent_reference_item(
+                    candidate_id="candidate-recovering",
+                    title="恢復觀察中的工作主線",
+                    reason_codes=["reusable_action_pattern"],
+                    shared_signal=_test_shared_signal(
+                        maturity="shared",
+                        maturity_label="已接近共享模式",
+                        weight_action="upweight",
+                        weight_action_label="提高參考",
+                        stability="recovering",
+                        stability_label="剛恢復觀察",
+                    ),
+                    optimization_asset_codes=["domain_playbook"],
+                    optimization_asset_labels=["工作主線"],
+                )
+            ],
+        ),
+    )
+
+    assert "背景校正" in guidance.source_lifecycle_summary
+    assert any("先留背景" in item.source_label for item in guidance.stages if item.source_kind == "precedent_reference")
+
 
 
 def test_deliverable_precedent_candidate_can_be_promoted_and_demoted(
@@ -4432,9 +4526,25 @@ def _test_shared_signal(
     maturity_label: str,
     weight_action: str,
     weight_action_label: str,
-    stability: str = "watch",
-    stability_label: str = "仍在共享觀察期",
+    stability: str | None = None,
+    stability_label: str | None = None,
 ) -> schemas.SharedIntelligenceSignalRead:
+    if stability is None:
+        if maturity == "shared" and weight_action == "upweight":
+            stability = "stable"
+        elif weight_action == "downweight":
+            stability = "retired"
+        else:
+            stability = "watch"
+    if stability_label is None:
+        if stability == "stable":
+            stability_label = "已站穩共享模式"
+        elif stability == "recovering":
+            stability_label = "剛恢復觀察"
+        elif stability == "retired":
+            stability_label = "目前已退到背景"
+        else:
+            stability_label = "仍在共享觀察期"
     return schemas.SharedIntelligenceSignalRead(
         maturity=maturity,  # type: ignore[arg-type]
         maturity_reason=f"{maturity_label}。",
@@ -5289,6 +5399,7 @@ def test_build_payload_deliverable_template_context_keeps_prompt_safe_lines() ->
             summary="summary",
             template_label="合約審閱備忘模板",
             template_fit_summary="這輪仍屬 review / assessment 主線，先站穩審閱備忘模板會更可靠。",
+            source_lifecycle_summary="shared sources 目前以穩定來源為主，可直接拿來校正模板主線。",
             core_sections=["一句話結論", "主要發現", "主要風險", "建議處置"],
             optional_sections=["待補資料", "已審範圍"],
             boundary_note="這是在提示模板主線，不是自動套模板。",
@@ -5311,8 +5422,75 @@ def test_build_payload_deliverable_template_context_keeps_prompt_safe_lines() ->
     assert lines
     assert any("模板主線：" in item for item in lines)
     assert any("這輪適合：" in item for item in lines)
+    assert any("來源狀態：" in item for item in lines)
     assert any("核心區塊：" in item for item in lines)
     assert any("可選區塊：" in item for item in lines)
+
+
+def test_deliverable_template_guidance_uses_pack_template_when_precedent_is_background_only(
+    client: TestClient,
+) -> None:
+    from app.services.deliverable_template_intelligence import build_deliverable_template_guidance
+
+    precedent_payload = create_contract_review_payload("Background-only template precedent")
+    task = client.post("/api/v1/tasks", json=precedent_payload).json()
+    client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("agreement.txt", b"Termination and liability clauses need review.", "text/plain"))],
+    )
+    deliverable_id = client.post(f"/api/v1/tasks/{task['id']}/run").json()["deliverable"]["id"]
+    client.post(
+        f"/api/v1/deliverables/{deliverable_id}/feedback",
+        json={"feedback_status": "template_candidate", "reason_codes": ["reusable_structure"]},
+    )
+
+    with SessionLocal() as db:
+        candidate = db.scalar(
+            select(models.PrecedentCandidate).where(
+                models.PrecedentCandidate.source_deliverable_id == deliverable_id
+            )
+        )
+        assert candidate is not None
+        candidate.title = "恢復觀察中的模板"
+        candidate.pattern_snapshot = {
+            **dict(candidate.pattern_snapshot or {}),
+            "template_label": "恢復觀察中的模板",
+            "shape_sections": ["恢復區塊一", "恢復區塊二", "恢復區塊三", "恢復區塊四"],
+        }
+        db.commit()
+
+        guidance = build_deliverable_template_guidance(
+            db,
+            task_type="contract_review",
+            deliverable_class_hint=DeliverableClass.ASSESSMENT_REVIEW_MEMO,
+            precedent_reference_guidance=schemas.PrecedentReferenceGuidanceRead(
+                status="available",
+                matched_items=[
+                    _test_precedent_reference_item(
+                        candidate_id=candidate.id,
+                        title="恢復觀察中的模板",
+                        reason_codes=["reusable_structure"],
+                        shared_signal=_test_shared_signal(
+                            maturity="shared",
+                            maturity_label="已接近共享模式",
+                            weight_action="upweight",
+                            weight_action_label="提高參考",
+                            stability="recovering",
+                            stability_label="剛恢復觀察",
+                        ),
+                        optimization_asset_codes=["deliverable_template"],
+                        optimization_asset_labels=["交付模板"],
+                    )
+                ],
+            ),
+            pack_resolution=schemas.PackResolutionRead(deliverable_presets=["合約審閱備忘"]),
+            domain_playbook_guidance=schemas.DomainPlaybookGuidanceRead(),
+            deliverable_shape_guidance=schemas.DeliverableShapeGuidanceRead(),
+        )
+
+        assert guidance.template_label == "合約審閱備忘模板"
+        assert "背景校正" in guidance.source_lifecycle_summary
+        assert any("先留背景" in item.source_label for item in guidance.blocks if item.source_kind == "precedent_deliverable_template")
 
 
 def test_deliverable_shape_guidance_normalizes_internal_sections_to_consultant_order(

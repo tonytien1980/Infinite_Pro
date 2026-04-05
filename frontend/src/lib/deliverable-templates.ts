@@ -20,6 +20,7 @@ export function buildDeliverableTemplateView(
   templateFitSummary: string;
   fitSummary: string;
   sourceMixSummary: string;
+  sourceLifecycleSummary: string;
   cards: Array<{ title: string; summary: string; meta: string }>;
   coreListTitle: string;
   coreSections: string[];
@@ -36,6 +37,7 @@ export function buildDeliverableTemplateView(
       templateFitSummary: "",
       fitSummary: "",
       sourceMixSummary: "",
+      sourceLifecycleSummary: "",
       cards: [],
       coreListTitle: "",
       coreSections: [],
@@ -53,6 +55,7 @@ export function buildDeliverableTemplateView(
     templateFitSummary: guidance.template_fit_summary,
     fitSummary: guidance.fit_summary,
     sourceMixSummary: guidance.source_mix_summary,
+    sourceLifecycleSummary: guidance.source_lifecycle_summary,
     cards: guidance.blocks.map((block) => ({
       title: block.title,
       summary: [block.why_fit, block.summary].filter(Boolean).join("｜"),
