@@ -3971,6 +3971,57 @@ def test_build_payload_domain_playbook_context_keeps_prompt_safe_lines() -> None
     assert any("playbook 1：" in item for item in lines)
 
 
+def test_build_payload_organization_memory_context_emits_lifecycle_posture() -> None:
+    payload = AgentInputPayload(
+        task_id="task-1",
+        title="Task title",
+        description="Task description",
+        task_type="contract_review",
+        flow_mode="specialist",
+        presence_state_summary=schemas.PresenceStateSummaryRead(
+            client=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="某客戶"),
+            engagement=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="委託"),
+            workstream=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="工作流"),
+            decision_context=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="合約審閱"),
+            artifact=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="artifact"),
+            source_material=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="source"),
+            domain_lens=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="法務"),
+            client_stage=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="制度化階段"),
+            client_type=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="中小企業"),
+        ),
+        organization_memory_guidance=schemas.OrganizationMemoryGuidanceRead(
+            status="available",
+            label="這個客戶 / 組織目前已知的穩定背景",
+            summary="summary",
+            organization_label="某客戶｜制度化階段｜中小企業",
+            source_lifecycle_summary="較新的跨案件背景已回來，可重新拉回前景；偏舊背景留在背景參考。",
+            lifecycle_posture="balanced",
+            lifecycle_posture_label="來源平衡期",
+            freshness_summary="跨案件背景目前新舊並存，較新的背景可重新站前面。",
+            reactivation_summary="較新的同客戶背景已回來，這輪可重新拉回前景；偏舊背景仍留作背景參考。",
+            stable_context_items=["主要工作焦點：法務"],
+            known_constraints=["Keep the output internal."],
+            continuity_anchor="這案目前延續「合約審閱」這條主線。",
+            cross_matter_summary="另有 2 個同客戶案件可回看其穩定背景。",
+            cross_matter_items=[
+                schemas.CrossMatterOrganizationMemoryItemRead(
+                    matter_workspace_id="matter-1",
+                    matter_title="最新續約盤點",
+                    summary="最近一次案件已更新續約與責任條款的風險邊界。",
+                    relation_reason="同一客戶｜同階段",
+                    freshness_label="最近更新",
+                )
+            ],
+            boundary_note="這是在提示同案穩定背景與少量同客戶跨案件摘要。",
+        ),
+    )
+
+    lines = build_payload_organization_memory_context(payload)
+
+    assert any("來源姿態：" in item for item in lines)
+    assert any("來源回前景：" in item for item in lines)
+
+
 def test_organization_memory_guidance_marks_single_cross_matter_reference_as_background_only() -> None:
     from app.services.organization_memory_intelligence import build_organization_memory_guidance
 
@@ -4003,6 +4054,8 @@ def test_organization_memory_guidance_marks_single_cross_matter_reference_as_bac
     )
 
     assert guidance.status == "available"
+    assert guidance.lifecycle_posture == "background"
+    assert guidance.lifecycle_posture_label == "來源在背景"
     assert "先留作背景參考" in guidance.source_lifecycle_summary
 
 
@@ -4038,6 +4091,7 @@ def test_organization_memory_guidance_marks_stale_cross_matter_background_as_old
     )
 
     assert guidance.status == "available"
+    assert guidance.lifecycle_posture == "background"
     assert "偏舊" in guidance.freshness_summary
     assert guidance.cross_matter_items[0].freshness_label == "較舊背景"
 
@@ -4087,8 +4141,33 @@ def test_organization_memory_guidance_marks_recent_cross_matter_background_as_re
     )
 
     assert guidance.status == "available"
+    assert guidance.lifecycle_posture == "balanced"
+    assert guidance.lifecycle_posture_label == "來源平衡期"
     assert "新舊並存" in guidance.freshness_summary
     assert "重新拉回前景" in guidance.reactivation_summary
+
+
+def test_organization_memory_guidance_marks_same_matter_memory_without_cross_matter_as_thin() -> None:
+    from app.services.organization_memory_intelligence import build_organization_memory_guidance
+
+    guidance = build_organization_memory_guidance(
+        current_matter_workspace_id="matter-current",
+        client_name="Acme Corp",
+        client_stage="制度化階段",
+        client_type="中小企業",
+        domain_lenses=["法務"],
+        selected_pack_names=["Legal Pack"],
+        continuity_mode=schemas.EngagementContinuityMode.FOLLOW_UP,
+        current_decision_context_title="合約審閱",
+        next_best_actions=["先把附件與責任條款補齊"],
+        constraint_descriptions=["Keep the output internal."],
+        cross_matter_summaries=[],
+    )
+
+    assert guidance.status == "available"
+    assert guidance.lifecycle_posture == "thin"
+    assert guidance.lifecycle_posture_label == "來源仍偏薄"
+    assert "跨案件背景還不夠厚" in guidance.source_lifecycle_summary
 
 
 def test_domain_playbook_guidance_marks_recovering_sources_as_background_only() -> None:

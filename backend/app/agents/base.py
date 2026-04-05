@@ -163,6 +163,8 @@ def build_payload_organization_memory_context(payload: AgentInputPayload) -> lis
         lines.append(f"組織背景：{guidance.organization_label}")
     if guidance.source_lifecycle_summary:
         lines.append(f"來源狀態：{guidance.source_lifecycle_summary}")
+    if guidance.lifecycle_posture_label:
+        lines.append(f"來源姿態：{guidance.lifecycle_posture_label}")
     if guidance.freshness_summary:
         lines.append(f"背景新鮮度：{guidance.freshness_summary}")
     if guidance.reactivation_summary:

@@ -459,6 +459,8 @@ test("organization memory view stays low-noise and consultant-readable", () => {
     summary: "Host 先把同一案件世界裡已站穩的組織背景整理出來。",
     organization_label: "某客戶｜制度化階段｜中小企業",
     source_lifecycle_summary: "跨案件背景目前先留作背景參考，先不要讓它主導這輪判斷。",
+    lifecycle_posture: "background",
+    lifecycle_posture_label: "來源在背景",
     freshness_summary: "跨案件背景目前偏舊，先留作背景參考。",
     reactivation_summary: "較新的同客戶背景已回來，這輪可重新拉回前景；偏舊背景仍留作背景參考。",
     stable_context_items: ["主要工作焦點：法務、營運", "目前常用模組包：Professional Services Pack"],
@@ -480,6 +482,7 @@ test("organization memory view stays low-noise and consultant-readable", () => {
   assert.equal(view.shouldShow, true);
   assert.equal(view.organizationLabel, "某客戶｜制度化階段｜中小企業");
   assert.match(view.sourceLifecycleSummary, /先留作背景參考/);
+  assert.equal(view.lifecyclePostureLabel, "來源在背景");
   assert.match(view.freshnessSummary, /偏舊/);
   assert.match(view.reactivationSummary, /重新拉回前景/);
   assert.equal(view.stableContextItems[0], "主要工作焦點：法務、營運");

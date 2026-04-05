@@ -8,6 +8,8 @@ export function buildOrganizationMemoryView(
   summary: string;
   organizationLabel: string;
   sourceLifecycleSummary: string;
+  lifecyclePosture: string;
+  lifecyclePostureLabel: string;
   freshnessSummary: string;
   reactivationSummary: string;
   stableContextItems: string[];
@@ -24,6 +26,8 @@ export function buildOrganizationMemoryView(
       summary: "",
       organizationLabel: "",
       sourceLifecycleSummary: "",
+      lifecyclePosture: "",
+      lifecyclePostureLabel: "",
       freshnessSummary: "",
       reactivationSummary: "",
       stableContextItems: [],
@@ -41,6 +45,8 @@ export function buildOrganizationMemoryView(
     summary: guidance.summary,
     organizationLabel: guidance.organization_label,
     sourceLifecycleSummary: guidance.source_lifecycle_summary,
+    lifecyclePosture: guidance.lifecycle_posture,
+    lifecyclePostureLabel: guidance.lifecycle_posture_label,
     freshnessSummary: guidance.freshness_summary,
     reactivationSummary: guidance.reactivation_summary,
     stableContextItems: guidance.stable_context_items,

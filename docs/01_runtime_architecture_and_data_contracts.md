@@ -1107,10 +1107,14 @@ deliverable workspace 採：
 - 第一波也可補一個低噪音 `source_lifecycle_summary`，用來回答：
   - 這批跨案件背景目前可直接當穩定背景
   - 或仍只適合先留作背景參考
+- 第一波也可補一個正式 `lifecycle_posture` / `lifecycle_posture_label`，用來回答：
+  - 這批跨案件背景目前更接近 `前景 / 平衡 / 背景 / 偏薄` 哪一種姿態
 - 第一波也可補一個低噪音 `freshness_summary`，用來回答：
   - 這批跨案件背景目前是最近更新
   - 或只是近期可參考
   - 或已偏舊，應先留在背景層
+- 若 organization memory 已開始提供這層 posture，`organization_memory_context` 也可低噪音補：
+  - `來源姿態：...`
 - 這層不是 precedent retrieval，也不是 playbook library
 - boundary copy 應明講：
   - 這是在提示同客戶跨案件背景

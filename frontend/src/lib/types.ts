@@ -1216,6 +1216,8 @@ export interface OrganizationMemoryGuidance {
   summary: string;
   organization_label: string;
   source_lifecycle_summary: string;
+  lifecycle_posture: "foreground" | "balanced" | "background" | "thin";
+  lifecycle_posture_label: string;
   freshness_summary: string;
   reactivation_summary: string;
   stable_context_items: string[];

@@ -1344,6 +1344,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     {organizationMemoryView.sourceLifecycleSummary ? (
                       <p className="muted-text">{organizationMemoryView.sourceLifecycleSummary}</p>
                     ) : null}
+                    {organizationMemoryView.lifecyclePostureLabel ? (
+                      <p className="muted-text">來源姿態：{organizationMemoryView.lifecyclePostureLabel}</p>
+                    ) : null}
                     {organizationMemoryView.freshnessSummary ? (
                       <p className="muted-text">{organizationMemoryView.freshnessSummary}</p>
                     ) : null}

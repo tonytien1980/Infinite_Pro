@@ -3910,3 +3910,42 @@ Environment used:
 - Infinite Pro now has a single shared-source lifecycle posture contract instead of letting playbook and template evolve separate lifecycle dialects
 - Host, prompt payloads, and existing second-layer surfaces can now reason over the same `前景 / 平衡 / 背景 / 偏薄` posture
 - this pass is a completion-oriented normalization step inside phase 4, not a new capability family
+
+---
+
+## Entry: 2026-04-05 organization-memory lifecycle posture v1 pass
+
+Scope:
+- extend the normalized shared-source lifecycle posture contract into organization memory
+- add `lifecycle_posture` and `lifecycle_posture_label` to `organization_memory_guidance`
+- prompt-safe `來源姿態` for organization-memory context
+
+Environment used:
+- local repo runtime checks only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`179 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`30 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Organization-memory posture specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | organization memory | Read single cross-matter memory as background posture | Verified | targeted backend test confirms one thin same-client memory now exposes `background` posture instead of over-reading it as foreground |
+| Backend | organization memory | Read mixed recent / stale client history as balanced posture | Verified | targeted backend test confirms recent-plus-old cross-matter memory now exposes `balanced` posture alongside existing reactivation wording |
+| Backend | organization memory | Read same-matter-only memory as thin posture | Verified | targeted backend test confirms guidance can stay `available` while still honestly saying cross-matter memory remains thin |
+| Prompt contract | organization memory context | Emit `來源姿態：...` | Verified | payload tests confirm organization-memory prompt context now carries the same low-noise posture line used by other shared-source surfaces |
+| Frontend | helper views | Keep organization-memory posture low-noise and consultant-readable | Verified | node tests confirm organization-memory helper now exposes `lifecyclePostureLabel` without changing page families |
+
+### Verified outcomes
+
+- Infinite Pro now uses the same `前景 / 平衡 / 背景 / 偏薄` posture vocabulary for organization memory as it already uses for playbook and template guidance
+- cross-matter organization memory no longer has to rely on freeform wording alone to express whether it is strong enough to stand near the front
+- this pass further tightens phase-4 shared-intelligence consistency instead of opening a new capability family

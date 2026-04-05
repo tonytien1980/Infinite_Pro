@@ -889,6 +889,8 @@ class OrganizationMemoryGuidanceRead(BaseModel):
     summary: str = ""
     organization_label: str = ""
     source_lifecycle_summary: str = ""
+    lifecycle_posture: Literal["foreground", "balanced", "background", "thin"] = "thin"
+    lifecycle_posture_label: str = ""
     freshness_summary: str = ""
     reactivation_summary: str = ""
     stable_context_items: list[str] = Field(default_factory=list)
