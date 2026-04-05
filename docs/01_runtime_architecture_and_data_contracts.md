@@ -677,6 +677,23 @@ deliverable workspace 採：
   - precedent context explainability
 - 這層是在回答「這筆模式目前開始累積到什麼程度」，不是在回答「這筆 precedent 絕對正確」
 
+在 `shared_intelligence_signal` 已成立後，下一刀可先補：
+
+- `shared-intelligence weighting v1`
+
+正式規則：
+
+- 這不是新的架構層
+- 它是在回答：當多筆 precedent 都可幫同一種 reusable asset 時，Host 該先信哪一筆
+- 第一波只允許根據：
+  - `shared_intelligence_signal.weight_action`
+  - `shared_intelligence_signal.maturity`
+  - `optimization_signal.strength`
+  - `review_priority`
+ 來做 precedence 排序
+- 若同類 asset 已有非 `downweight` precedent，第一波可先不使用 `downweight` precedent
+- 這層不是全域自動 routing 引擎，也不是手動調權後台
+
 ### 6.10 Precedent candidate pool
 
 目前 precedent / reusable intelligence 的第一輪正式形態，是 `precedent candidate pool`。
@@ -883,6 +900,7 @@ deliverable workspace 採：
 - `review_lens_context` 應與 `precedent_context` 並存，但角色不同：
   - precedent context：為什麼這個模式和現在相似
   - review lens context：這輪先看哪幾點
+- 當多筆 precedent 都可作為 review-lens source 時，第一波可優先使用 shared-intelligence 較成熟、且非 `downweight` 的 precedent
 - 第一波只允許影響：
   - framing / review ordering
   - deliverable shaping 的閱讀順序
@@ -1047,6 +1065,7 @@ deliverable workspace 採：
   - precedent context：以前哪些模式值得參考
   - review lens context：這輪先看哪幾點
   - domain playbook context：這類案子通常怎麼走、這輪目前在哪一步
+- 當多筆 precedent 都可作為 domain-playbook source 時，第一波可優先使用 shared-intelligence 較成熟、且非 `downweight` 的 precedent
 - 第一波只允許影響：
   - framing / sequencing
   - review / convergence ordering
@@ -1115,6 +1134,7 @@ deliverable workspace 採：
   - precedent context：為什麼這個模式和現在相似
   - review lens context：這輪先看哪幾點
   - common risk context：這類案件常漏哪些風險
+- 當多筆 precedent 都可作為 common-risk source 時，第一波可優先使用 shared-intelligence 較成熟、且非 `downweight` 的 precedent risk patterns
 - 第一波只允許影響：
   - review / analysis 的風險掃描順序
   - deliverable shaping 前的 omission guardrail
@@ -1283,6 +1303,7 @@ deliverable workspace 採：
 - `deliverable_template_context` 應與 `deliverable_shape_context` 並存，但角色不同：
   - deliverable shape context：這份交付物通常怎麼收比較穩
   - deliverable template context：這份交付比較適合沿用哪種模板主線
+- 當多筆 precedent 都可作為 deliverable-template source 時，第一波可優先使用 shared-intelligence 較成熟、且非 `downweight` 的 precedent
 - v2 可吸收 deliverable shape 與 richer domain playbook signal，但仍不可把：
   - 交付骨架 = 模板主線
   - playbook = template library

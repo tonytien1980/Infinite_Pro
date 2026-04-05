@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.domain import models, schemas
-from app.services.adoption_feedback_intelligence import matches_reusable_asset_reason
+from app.services.precedent_intelligence import select_weighted_precedent_reference_items
 
 
 TASK_HEURISTIC_COMMON_RISKS: dict[str, list[tuple[str, str]]] = {
@@ -139,24 +139,28 @@ def build_common_risk_guidance(
             )
         )
 
+    weighted_matches = select_weighted_precedent_reference_items(
+        precedent_reference_guidance,
+        asset_code="common_risk",
+        limit=2,
+    )
     precedent_top_risks = _candidate_top_risks(
         db,
-        [item.candidate_id for item in precedent_reference_guidance.matched_items[:2]],
+        [item.candidate_id for item in weighted_matches],
     )
-    if precedent_reference_guidance.status == "available":
-        for matched in precedent_reference_guidance.matched_items[:2]:
-            if not matches_reusable_asset_reason(
-                matched.source_feedback_reason_codes,
-                "common_risk",
-            ):
-                continue
+    if weighted_matches:
+        for matched in weighted_matches:
             for title in precedent_top_risks.get(matched.candidate_id, [])[:2]:
                 add_risk(
                     title=title,
                     summary="這是相似 precedent 已留下的高頻風險模式，適合先做漏看掃描。",
                     why_watch=matched.match_reason or "目前已有相似 precedent，可先拿這類風險做對照。",
                     source_kind="precedent_risk_pattern",
-                    source_label="來源：precedent risk pattern",
+                    source_label=(
+                        "來源：precedent risk pattern（共享模式優先）"
+                        if matched.shared_intelligence_signal.weight_action == "upweight"
+                        else "來源：precedent risk pattern"
+                    ),
                     priority="high",
                 )
 

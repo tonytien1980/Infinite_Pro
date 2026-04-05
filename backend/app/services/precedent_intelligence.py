@@ -9,7 +9,10 @@ from app.domain.enums import (
     PrecedentCandidateStatus,
     PrecedentCandidateType,
 )
-from app.services.adoption_feedback_intelligence import label_for_adoption_feedback_reason
+from app.services.adoption_feedback_intelligence import (
+    label_for_adoption_feedback_reason,
+    matches_reusable_asset_reason,
+)
 from app.services.feedback_optimization_intelligence import (
     STRENGTH_RANK,
     build_precedent_optimization_signal,
@@ -278,6 +281,43 @@ def build_shared_intelligence_signal(
         dismissed_candidate_count=dismissed_candidate_count,
         summary=f"{maturity_label}，{weight_action_label}。",
     )
+
+
+def select_weighted_precedent_reference_items(
+    guidance: schemas.PrecedentReferenceGuidanceRead,
+    *,
+    asset_code: str,
+    limit: int = 2,
+) -> list[schemas.PrecedentReferenceItemRead]:
+    if guidance.status != "available" or not guidance.matched_items:
+        return []
+
+    matches = [
+        item
+        for item in guidance.matched_items
+        if matches_reusable_asset_reason(item.source_feedback_reason_codes, asset_code)
+    ]
+    if not matches:
+        return []
+
+    preferred_matches = [
+        item
+        for item in matches
+        if item.shared_intelligence_signal.weight_action != "downweight"
+    ]
+    if preferred_matches:
+        matches = preferred_matches
+
+    matches.sort(
+        key=lambda item: (
+            SHARED_INTELLIGENCE_WEIGHT_RANK[item.shared_intelligence_signal.weight_action],
+            SHARED_INTELLIGENCE_MATURITY_RANK[item.shared_intelligence_signal.maturity],
+            STRENGTH_RANK[item.optimization_signal.strength],
+            PRECEDENT_REVIEW_PRIORITY_RANK[item.review_priority],
+            item.title or "",
+        )
+    )
+    return matches[:limit]
 
 
 def build_precedent_safe_use_note(candidate_type: str, reason_codes: Iterable[str] | None = None) -> str:

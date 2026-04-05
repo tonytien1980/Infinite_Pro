@@ -1012,6 +1012,8 @@ Primary action：
   - `共享成熟度：...`
   - `權重趨勢：...`
   - 不可把這層做成 consultant ranking、資歷分級或共享權重控制器
+- 若 reusable assets 已開始吃 shared-intelligence weighting，前台也不應新增新的 weighting page 或控制列；最多只允許在既有 source label 上低噪音暗示：
+  - `共享模式優先`
 - boundary copy 應明講：
   - 可參考 framing / review lens / deliverable shape
   - 不會直接複製舊案正文

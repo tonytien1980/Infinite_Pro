@@ -3260,3 +3260,42 @@ Environment used:
 - Infinite Pro now starts distinguishing between patterns that still look like local experience and patterns that are beginning to accumulate into shared intelligence
 - Host-safe precedent reference can carry not only best-for asset hints, but also a low-risk weight trend for future reuse
 - the visible UI remains low-noise and does not expose consultant seniority labels or a manual weighting console
+
+---
+
+## Entry: 2026-04-05 shared intelligence weighting v1 pass
+
+Scope:
+- first-pass shared-intelligence weighting for reusable assets
+- weighted precedent selection for review lenses / common risks / domain playbooks / deliverable templates
+- no new page family or weighting console
+
+Environment used:
+- local repo runtime checks only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`149 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`30 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Shared-weighting specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | weighted helper | Prefer non-`downweight` shared precedent | Verified | targeted backend test confirms shared / upweight precedent wins over downweighted precedent |
+| Backend | review lenses | Prefer weighted precedent source | Verified | direct backend test confirms review-lens guidance now picks the stronger shared precedent first |
+| Backend | common risks | Prefer weighted precedent risk patterns | Verified | direct backend test confirms common-risk guidance now prefers non-downweighted precedent risk patterns |
+| Backend | domain playbooks | Prefer weighted precedent source | Verified | direct backend test confirms playbook guidance now picks the stronger shared precedent first |
+| Backend | deliverable templates | Prefer weighted precedent source | Verified | direct backend test confirms template guidance now prefers the stronger shared precedent snapshot |
+
+### Verified outcomes
+
+- Infinite Pro now uses shared-intelligence maturity not only for explainability, but also for reusable-asset source ordering
+- if a stronger non-downweighted precedent already exists, Host can stop letting weaker precedent rows shape the next asset by default
+- the visible UI remains low-noise: no consultant ranking, no weighting dashboard, no new page family

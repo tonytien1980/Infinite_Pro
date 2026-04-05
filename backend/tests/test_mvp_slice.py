@@ -4231,6 +4231,411 @@ def test_precedent_review_and_reference_expose_shared_intelligence_signal(
     assert matched_item["shared_intelligence_signal"]["distinct_operator_count"] == 2
 
 
+def _test_shared_signal(
+    *,
+    maturity: str,
+    maturity_label: str,
+    weight_action: str,
+    weight_action_label: str,
+) -> schemas.SharedIntelligenceSignalRead:
+    return schemas.SharedIntelligenceSignalRead(
+        maturity=maturity,  # type: ignore[arg-type]
+        maturity_reason=f"{maturity_label}。",
+        maturity_label=maturity_label,
+        weight_action=weight_action,  # type: ignore[arg-type]
+        weight_action_label=weight_action_label,
+        supporting_candidate_count=2 if maturity != "personal" else 1,
+        distinct_operator_count=2 if maturity != "personal" else 1,
+        promoted_candidate_count=1 if weight_action != "downweight" else 0,
+        dismissed_candidate_count=0 if weight_action != "downweight" else 1,
+        summary=f"{maturity_label}，{weight_action_label}。",
+    )
+
+
+def _test_precedent_reference_item(
+    *,
+    candidate_id: str,
+    title: str,
+    reason_codes: list[str],
+    shared_signal: schemas.SharedIntelligenceSignalRead,
+    optimization_asset_codes: list[str],
+    optimization_asset_labels: list[str],
+    source_deliverable_id: str | None = None,
+) -> schemas.PrecedentReferenceItemRead:
+    return schemas.PrecedentReferenceItemRead(
+        candidate_id=candidate_id,
+        candidate_type="deliverable_pattern",
+        candidate_status="promoted",
+        review_priority="high",
+        primary_reason_label="可重用模式",
+        source_feedback_reason_labels=["可重用模式"],
+        source_feedback_reason_codes=reason_codes,
+        source_feedback_operator_label="王顧問",
+        created_by_label="王顧問",
+        last_status_changed_by_label="林校稿",
+        optimization_signal=schemas.PrecedentOptimizationSignalRead(
+            strength="high" if shared_signal.weight_action == "upweight" else "medium",
+            strength_reason="這筆 precedent 可作為 reusable asset 參考。",
+            best_for_asset_codes=optimization_asset_codes,
+            best_for_asset_labels=optimization_asset_labels,
+            summary="先作為 reusable asset 參考。",
+        ),
+        shared_intelligence_signal=shared_signal,
+        title=title,
+        summary=f"{title} summary",
+        reusable_reason=f"{title} reusable reason",
+        match_reason=f"{title} 和這輪主線高度相似。",
+        safe_use_note="只可拿來參考模式，不可直接複製舊案內容。",
+        source_task_id="task-precedent",
+        source_deliverable_id=source_deliverable_id,
+    )
+
+
+def test_weighted_precedent_selection_prefers_upweighted_shared_matches() -> None:
+    from app.services.precedent_intelligence import select_weighted_precedent_reference_items
+
+    low = _test_precedent_reference_item(
+        candidate_id="candidate-low",
+        title="低權重模式",
+        reason_codes=["reusable_reasoning"],
+        shared_signal=_test_shared_signal(
+            maturity="personal",
+            maturity_label="仍偏個別經驗",
+            weight_action="downweight",
+            weight_action_label="降低參考",
+        ),
+        optimization_asset_codes=["review_lens"],
+        optimization_asset_labels=["審閱視角"],
+    )
+    high = _test_precedent_reference_item(
+        candidate_id="candidate-high",
+        title="共享模式",
+        reason_codes=["reusable_reasoning"],
+        shared_signal=_test_shared_signal(
+            maturity="shared",
+            maturity_label="已接近共享模式",
+            weight_action="upweight",
+            weight_action_label="提高參考",
+        ),
+        optimization_asset_codes=["review_lens"],
+        optimization_asset_labels=["審閱視角"],
+    )
+
+    selected = select_weighted_precedent_reference_items(
+        schemas.PrecedentReferenceGuidanceRead(
+            status="available",
+            matched_items=[low, high],
+        ),
+        asset_code="review_lens",
+    )
+
+    assert [item.candidate_id for item in selected] == ["candidate-high"]
+
+
+def test_review_lens_guidance_prefers_weighted_shared_precedent() -> None:
+    guidance = build_review_lens_guidance(
+        task_type="contract_review",
+        flagship_lane=schemas.FlagshipLaneRead(label="先審閱手上已有材料"),
+        deliverable_class_hint=DeliverableClass.ASSESSMENT_REVIEW_MEMO,
+        input_entry_mode=InputEntryMode.SINGLE_DOCUMENT_INTAKE,
+        precedent_reference_guidance=schemas.PrecedentReferenceGuidanceRead(
+            status="available",
+            matched_items=[
+                _test_precedent_reference_item(
+                    candidate_id="candidate-low",
+                    title="低權重模式",
+                    reason_codes=["reusable_reasoning"],
+                    shared_signal=_test_shared_signal(
+                        maturity="personal",
+                        maturity_label="仍偏個別經驗",
+                        weight_action="downweight",
+                        weight_action_label="降低參考",
+                    ),
+                    optimization_asset_codes=["review_lens"],
+                    optimization_asset_labels=["審閱視角"],
+                ),
+                _test_precedent_reference_item(
+                    candidate_id="candidate-high",
+                    title="共享模式",
+                    reason_codes=["reusable_reasoning"],
+                    shared_signal=_test_shared_signal(
+                        maturity="shared",
+                        maturity_label="已接近共享模式",
+                        weight_action="upweight",
+                        weight_action_label="提高參考",
+                    ),
+                    optimization_asset_codes=["review_lens"],
+                    optimization_asset_labels=["審閱視角"],
+                ),
+            ],
+        ),
+        pack_resolution=schemas.PackResolutionRead(),
+    )
+
+    assert guidance.lenses
+    assert "共享模式" in guidance.lenses[0].title
+
+
+def test_domain_playbook_guidance_prefers_weighted_shared_precedent() -> None:
+    from app.services.domain_playbook_intelligence import build_domain_playbook_guidance
+
+    guidance = build_domain_playbook_guidance(
+        task_type="contract_review",
+        client_stage="制度化階段",
+        deliverable_class_hint=DeliverableClass.ASSESSMENT_REVIEW_MEMO,
+        flagship_lane=schemas.FlagshipLaneRead(label="先審閱手上已有材料"),
+        research_guidance=schemas.ResearchGuidanceRead(),
+        organization_memory_guidance=schemas.OrganizationMemoryGuidanceRead(),
+        continuation_surface=None,
+        pack_resolution=schemas.PackResolutionRead(),
+        precedent_reference_guidance=schemas.PrecedentReferenceGuidanceRead(
+            status="available",
+            matched_items=[
+                _test_precedent_reference_item(
+                    candidate_id="candidate-low",
+                    title="低權重工作主線",
+                    reason_codes=["reusable_action_pattern"],
+                    shared_signal=_test_shared_signal(
+                        maturity="personal",
+                        maturity_label="仍偏個別經驗",
+                        weight_action="downweight",
+                        weight_action_label="降低參考",
+                    ),
+                    optimization_asset_codes=["domain_playbook"],
+                    optimization_asset_labels=["工作主線"],
+                ),
+                _test_precedent_reference_item(
+                    candidate_id="candidate-high",
+                    title="共享工作主線",
+                    reason_codes=["reusable_action_pattern"],
+                    shared_signal=_test_shared_signal(
+                        maturity="emerging",
+                        maturity_label="開始形成共享模式",
+                        weight_action="hold",
+                        weight_action_label="先持平觀察",
+                    ),
+                    optimization_asset_codes=["domain_playbook"],
+                    optimization_asset_labels=["工作主線"],
+                ),
+            ],
+        ),
+    )
+
+    assert guidance.stages
+    assert "共享工作主線" in guidance.stages[0].title
+
+
+def test_common_risk_guidance_prefers_non_downweighted_precedent_patterns(
+    client: TestClient,
+) -> None:
+    from app.services.common_risk_intelligence import build_common_risk_guidance
+
+    precedent_payload = create_contract_review_payload("Weighted common risk precedent A")
+    task_a = client.post("/api/v1/tasks", json=precedent_payload).json()
+    client.post(
+        f"/api/v1/tasks/{task_a['id']}/uploads",
+        files=[("files", ("agreement-a.txt", b"Termination and liability clauses need review.", "text/plain"))],
+    )
+    deliverable_a = client.post(f"/api/v1/tasks/{task_a['id']}/run").json()["deliverable"]["id"]
+    client.post(
+        f"/api/v1/deliverables/{deliverable_a}/feedback",
+        json={"feedback_status": "template_candidate", "reason_codes": ["reusable_risk_scan"]},
+    )
+    client.post(
+        f"/api/v1/deliverables/{deliverable_a}/precedent-candidate",
+        json={"candidate_status": "promoted"},
+    )
+
+    precedent_payload_b = create_contract_review_payload("Weighted common risk precedent B")
+    task_b = client.post("/api/v1/tasks", json=precedent_payload_b).json()
+    client.post(
+        f"/api/v1/tasks/{task_b['id']}/uploads",
+        files=[("files", ("agreement-b.txt", b"Legacy wording still needs review.", "text/plain"))],
+    )
+    deliverable_b = client.post(f"/api/v1/tasks/{task_b['id']}/run").json()["deliverable"]["id"]
+    client.post(
+        f"/api/v1/deliverables/{deliverable_b}/feedback",
+        json={"feedback_status": "template_candidate", "reason_codes": ["reusable_risk_scan"]},
+    )
+    client.post(
+        f"/api/v1/deliverables/{deliverable_b}/precedent-candidate",
+        json={"candidate_status": "candidate"},
+    )
+
+    with SessionLocal() as db:
+        candidate_a = db.scalar(
+            select(models.PrecedentCandidate).where(
+                models.PrecedentCandidate.source_deliverable_id == deliverable_a
+            )
+        )
+        candidate_b = db.scalar(
+            select(models.PrecedentCandidate).where(
+                models.PrecedentCandidate.source_deliverable_id == deliverable_b
+            )
+        )
+        assert candidate_a is not None
+        assert candidate_b is not None
+        candidate_a.pattern_snapshot = {
+            **dict(candidate_a.pattern_snapshot or {}),
+            "top_risks": ["共享 precedent 風險", "次要風險"],
+        }
+        candidate_b.pattern_snapshot = {
+            **dict(candidate_b.pattern_snapshot or {}),
+            "top_risks": ["低權重 precedent 風險", "背景風險"],
+        }
+        db.commit()
+
+        guidance = build_common_risk_guidance(
+            db,
+            task_type="contract_review",
+            precedent_reference_guidance=schemas.PrecedentReferenceGuidanceRead(
+                status="available",
+                matched_items=[
+                    _test_precedent_reference_item(
+                        candidate_id=candidate_b.id,
+                        title="低權重風險模式",
+                        reason_codes=["reusable_risk_scan"],
+                        shared_signal=_test_shared_signal(
+                            maturity="personal",
+                            maturity_label="仍偏個別經驗",
+                            weight_action="downweight",
+                            weight_action_label="降低參考",
+                        ),
+                        optimization_asset_codes=["common_risk"],
+                        optimization_asset_labels=["漏看風險"],
+                        source_deliverable_id=deliverable_b,
+                    ),
+                    _test_precedent_reference_item(
+                        candidate_id=candidate_a.id,
+                        title="共享風險模式",
+                        reason_codes=["reusable_risk_scan"],
+                        shared_signal=_test_shared_signal(
+                            maturity="shared",
+                            maturity_label="已接近共享模式",
+                            weight_action="upweight",
+                            weight_action_label="提高參考",
+                        ),
+                        optimization_asset_codes=["common_risk"],
+                        optimization_asset_labels=["漏看風險"],
+                        source_deliverable_id=deliverable_a,
+                    ),
+                ],
+            ),
+            pack_resolution=schemas.PackResolutionRead(),
+        )
+
+        assert guidance.risks
+        assert guidance.risks[0].title == "共享 precedent 風險"
+
+
+def test_deliverable_template_guidance_prefers_weighted_shared_precedent(
+    client: TestClient,
+) -> None:
+    from app.services.deliverable_template_intelligence import build_deliverable_template_guidance
+
+    precedent_payload_low = create_contract_review_payload("Weighted template precedent low")
+    task_low = client.post("/api/v1/tasks", json=precedent_payload_low).json()
+    client.post(
+        f"/api/v1/tasks/{task_low['id']}/uploads",
+        files=[("files", ("agreement-low.txt", b"Termination and liability clauses need review.", "text/plain"))],
+    )
+    deliverable_low = client.post(f"/api/v1/tasks/{task_low['id']}/run").json()["deliverable"]["id"]
+    client.post(
+        f"/api/v1/deliverables/{deliverable_low}/feedback",
+        json={"feedback_status": "template_candidate", "reason_codes": ["reusable_structure"]},
+    )
+    client.post(
+        f"/api/v1/deliverables/{deliverable_low}/precedent-candidate",
+        json={"candidate_status": "promoted"},
+    )
+
+    precedent_payload_high = create_contract_review_payload("Weighted template precedent high")
+    task_high = client.post("/api/v1/tasks", json=precedent_payload_high).json()
+    client.post(
+        f"/api/v1/tasks/{task_high['id']}/uploads",
+        files=[("files", ("agreement-high.txt", b"Legacy wording still needs review.", "text/plain"))],
+    )
+    deliverable_high = client.post(f"/api/v1/tasks/{task_high['id']}/run").json()["deliverable"]["id"]
+    client.post(
+        f"/api/v1/deliverables/{deliverable_high}/feedback",
+        json={"feedback_status": "template_candidate", "reason_codes": ["reusable_structure"]},
+    )
+    client.post(
+        f"/api/v1/deliverables/{deliverable_high}/precedent-candidate",
+        json={"candidate_status": "promoted"},
+    )
+
+    with SessionLocal() as db:
+        candidate_low = db.scalar(
+            select(models.PrecedentCandidate).where(
+                models.PrecedentCandidate.source_deliverable_id == deliverable_low
+            )
+        )
+        candidate_high = db.scalar(
+            select(models.PrecedentCandidate).where(
+                models.PrecedentCandidate.source_deliverable_id == deliverable_high
+            )
+        )
+        assert candidate_low is not None
+        assert candidate_high is not None
+        candidate_low.title = "低權重模板"
+        candidate_high.title = "共享模板"
+        candidate_low.pattern_snapshot = {
+            **dict(candidate_low.pattern_snapshot or {}),
+            "template_label": "低權重模板",
+            "shape_sections": ["低權重區塊一", "低權重區塊二", "低權重區塊三", "低權重區塊四"],
+        }
+        candidate_high.pattern_snapshot = {
+            **dict(candidate_high.pattern_snapshot or {}),
+            "template_label": "共享模板",
+            "shape_sections": ["共享區塊一", "共享區塊二", "共享區塊三", "共享區塊四"],
+        }
+        db.commit()
+
+        guidance = build_deliverable_template_guidance(
+            db,
+            task_type="contract_review",
+            deliverable_class_hint=DeliverableClass.ASSESSMENT_REVIEW_MEMO,
+            precedent_reference_guidance=schemas.PrecedentReferenceGuidanceRead(
+                status="available",
+                matched_items=[
+                    _test_precedent_reference_item(
+                        candidate_id=candidate_low.id,
+                        title="低權重模板",
+                        reason_codes=["reusable_structure"],
+                        shared_signal=_test_shared_signal(
+                            maturity="personal",
+                            maturity_label="仍偏個別經驗",
+                            weight_action="downweight",
+                            weight_action_label="降低參考",
+                        ),
+                        optimization_asset_codes=["deliverable_template"],
+                        optimization_asset_labels=["交付模板"],
+                    ),
+                    _test_precedent_reference_item(
+                        candidate_id=candidate_high.id,
+                        title="共享模板",
+                        reason_codes=["reusable_structure"],
+                        shared_signal=_test_shared_signal(
+                            maturity="shared",
+                            maturity_label="已接近共享模式",
+                            weight_action="upweight",
+                            weight_action_label="提高參考",
+                        ),
+                        optimization_asset_codes=["deliverable_template"],
+                        optimization_asset_labels=["交付模板"],
+                    ),
+                ],
+            ),
+            pack_resolution=schemas.PackResolutionRead(),
+            domain_playbook_guidance=schemas.DomainPlaybookGuidanceRead(),
+            deliverable_shape_guidance=schemas.DeliverableShapeGuidanceRead(),
+        )
+
+        assert guidance.template_label == "共享模板"
+        assert guidance.core_sections[:2] == ["共享區塊一", "共享區塊二"]
+
+
 def test_task_aggregate_exposes_review_lens_guidance(
     client: TestClient,
 ) -> None:

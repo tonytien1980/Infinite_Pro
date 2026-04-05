@@ -60,6 +60,7 @@ Host 正式負責：
 - domain playbooks 若要進模型上下文，必須經 Host 收斂成 prompt-safe guidance，不可由前端或單一 agent 自行把工作主線擴寫成 checklist shell
 - domain playbooks 在 v2 可開始吸收 cross-matter organization memory，但只能由 Host 轉成為何適用 / 收斂依據 / stage hints；不可把 related matters 自動展開成 playbook library 或 CRM shell
 - 若 precedent 已開始帶 shared-intelligence evolution signal，Host 只可把它當成 safe weighting hint 與 explainability 來源，不可把它變成顧問排名、資歷分級或黑箱 correctness score
+- 若 precedent 已開始帶 shared-intelligence weighting，Host 只可把它用在 reusable assets 的 source ordering；不可把它擴寫成全域 orchestration 自動化或 manual weighting console
 - reusable review lenses、common risk libraries、deliverable shape hints、deliverable templates、domain playbooks 之間的角色必須保持分離：
   - review lenses = 先看角度
   - common risks = 漏看提醒

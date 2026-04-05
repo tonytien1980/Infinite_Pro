@@ -4,7 +4,7 @@ from hashlib import sha1
 
 from app.domain import schemas
 from app.domain.enums import DeliverableClass, EngagementContinuityMode
-from app.services.adoption_feedback_intelligence import matches_reusable_asset_reason
+from app.services.precedent_intelligence import select_weighted_precedent_reference_items
 
 
 TASK_HEURISTIC_PLAYBOOKS: dict[str, dict[str, object]] = {
@@ -187,21 +187,23 @@ def build_domain_playbook_guidance(
         )
 
     if precedent_reference_guidance.status == "available":
-        top_match = next(
-            (
-                item
-                for item in precedent_reference_guidance.matched_items
-                if matches_reusable_asset_reason(item.source_feedback_reason_codes, "domain_playbook")
-            ),
-            None,
+        weighted_matches = select_weighted_precedent_reference_items(
+            precedent_reference_guidance,
+            asset_code="domain_playbook",
+            limit=1,
         )
+        top_match = weighted_matches[0] if weighted_matches else None
         if top_match is not None:
             add_stage(
                 title=f"對照「{top_match.title or '既有模式'}」校正本輪推進順序",
                 summary=top_match.summary or top_match.reusable_reason or "先沿用相似 precedent 的工作主線校正這輪順序。",
                 why_now=top_match.match_reason or "目前已有相似 precedent，可先用它確認這輪不要走偏。",
                 source_kind="precedent_reference",
-                source_label="來源：precedent reference",
+                source_label=(
+                    "來源：precedent reference（共享模式優先）"
+                    if top_match.shared_intelligence_signal.weight_action == "upweight"
+                    else "來源：precedent reference"
+                ),
                 priority="high" if not stages else "medium",
             )
 

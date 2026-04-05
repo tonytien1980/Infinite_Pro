@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.domain import models, schemas
 from app.domain.enums import DeliverableClass
-from app.services.adoption_feedback_intelligence import matches_reusable_asset_reason
+from app.services.precedent_intelligence import select_weighted_precedent_reference_items
 
 
 TASK_HEURISTIC_TEMPLATES: dict[str, dict[str, object]] = {
@@ -156,17 +156,17 @@ def build_deliverable_template_guidance(
             )
         )
 
+    weighted_matches = select_weighted_precedent_reference_items(
+        precedent_reference_guidance,
+        asset_code="deliverable_template",
+        limit=2,
+    )
     snapshots = _candidate_rows(
         db,
-        [item.candidate_id for item in precedent_reference_guidance.matched_items[:2]],
+        [item.candidate_id for item in weighted_matches],
     )
-    if precedent_reference_guidance.status == "available":
-        for matched in precedent_reference_guidance.matched_items[:2]:
-            if not matches_reusable_asset_reason(
-                matched.source_feedback_reason_codes,
-                "deliverable_template",
-            ):
-                continue
+    if weighted_matches:
+        for matched in weighted_matches:
             snapshot = snapshots.get(matched.candidate_id, {})
             candidate_label = _coerce_template_label(
                 str(snapshot.get("template_label") or snapshot.get("current_output_label") or "")
@@ -187,7 +187,11 @@ def build_deliverable_template_guidance(
                 summary=matched.summary or matched.reusable_reason or "先沿用相似 precedent 的模板主線。",
                 why_fit=matched.match_reason or "目前已有相似 precedent，可先用它校正模板選型。",
                 source_kind="precedent_deliverable_template",
-                source_label="來源：precedent deliverable template",
+                source_label=(
+                    "來源：precedent deliverable template（共享模式優先）"
+                    if matched.shared_intelligence_signal.weight_action == "upweight"
+                    else "來源：precedent deliverable template"
+                ),
                 priority="high",
             )
 

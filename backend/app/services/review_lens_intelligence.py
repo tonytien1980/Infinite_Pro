@@ -4,7 +4,7 @@ from hashlib import sha1
 
 from app.domain import schemas
 from app.domain.enums import DeliverableClass, InputEntryMode
-from app.services.adoption_feedback_intelligence import matches_reusable_asset_reason
+from app.services.precedent_intelligence import select_weighted_precedent_reference_items
 
 
 TASK_HEURISTIC_LENSES: dict[str, list[tuple[str, str]]] = {
@@ -129,21 +129,23 @@ def build_review_lens_guidance(
         )
 
     if precedent_reference_guidance.status == "available" and precedent_reference_guidance.matched_items:
-        top_match = next(
-            (
-                item
-                for item in precedent_reference_guidance.matched_items
-                if matches_reusable_asset_reason(item.source_feedback_reason_codes, "review_lens")
-            ),
-            None,
+        weighted_matches = select_weighted_precedent_reference_items(
+            precedent_reference_guidance,
+            asset_code="review_lens",
+            limit=1,
         )
+        top_match = weighted_matches[0] if weighted_matches else None
         if top_match is not None:
             add_lens(
                 title=f"先比對這次案件與「{top_match.title or '既有模式'}」的差異點",
                 summary=top_match.summary or top_match.reusable_reason or "先回看這個既有模式目前代表的審閱骨架。",
                 why_now=top_match.match_reason or "目前找到高度相似的既有模式，先用它校正審閱方向。",
                 source_kind="precedent_reference",
-                source_label="來源：precedent reference",
+                source_label=(
+                    "來源：precedent reference（共享模式優先）"
+                    if top_match.shared_intelligence_signal.weight_action == "upweight"
+                    else "來源：precedent reference"
+                ),
                 priority="high",
             )
 
