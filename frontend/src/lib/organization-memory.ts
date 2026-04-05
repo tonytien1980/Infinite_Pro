@@ -9,6 +9,7 @@ export function buildOrganizationMemoryView(
   organizationLabel: string;
   sourceLifecycleSummary: string;
   freshnessSummary: string;
+  reactivationSummary: string;
   stableContextItems: string[];
   knownConstraints: string[];
   continuityAnchor: string;
@@ -24,6 +25,7 @@ export function buildOrganizationMemoryView(
       organizationLabel: "",
       sourceLifecycleSummary: "",
       freshnessSummary: "",
+      reactivationSummary: "",
       stableContextItems: [],
       knownConstraints: [],
       continuityAnchor: "",
@@ -40,6 +42,7 @@ export function buildOrganizationMemoryView(
     organizationLabel: guidance.organization_label,
     sourceLifecycleSummary: guidance.source_lifecycle_summary,
     freshnessSummary: guidance.freshness_summary,
+    reactivationSummary: guidance.reactivation_summary,
     stableContextItems: guidance.stable_context_items,
     knownConstraints: guidance.known_constraints,
     continuityAnchor: guidance.continuity_anchor,

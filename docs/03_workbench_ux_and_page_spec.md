@@ -1167,6 +1167,8 @@ Primary action：
   - `來源狀態：先留作背景參考`
 - 若跨案件背景已偏舊，UI 也只可低噪音讀成：
   - `背景新鮮度：偏舊背景`
+- 若較新的同客戶背景已回來，UI 也只可低噪音補：
+  - `來源回前景：較新的同客戶背景已回來`
 
 ### 9.2.7 Domain-playbook reading
 
@@ -1198,6 +1200,7 @@ Primary action：
   - `收斂依據`
   - `來源狀態`
   - `來源新鮮度`
+  - `來源回前景`
   - `目前這輪`
   - `下一步通常接`
   - 少量 stage cards
@@ -1213,6 +1216,8 @@ Primary action：
 - 若 shared source 已偏舊或仍在恢復，UI 也只可低噪音補：
   - `來源新鮮度：shared source 目前偏舊或仍在恢復`
   - `來源狀態：較舊或恢復中的 shared source 先退到背景`
+- 若較新的 shared source 已回來，UI 也只可低噪音補：
+  - `來源回前景：較新的 shared source 已回來`
 - boundary copy 應明講：
   - 這是在提示工作主線
   - 不是強制 checklist
@@ -1248,6 +1253,7 @@ Primary action：
   - `收斂依據`
   - `來源狀態`
   - `來源新鮮度`
+  - `來源回前景`
   - `核心區塊`
   - `可選區塊`
   - 少量 template blocks
@@ -1267,6 +1273,8 @@ Primary action：
 - 若 shared source 已偏舊或仍在恢復，UI 也只可低噪音補：
   - `來源新鮮度：shared source 目前偏舊或仍在恢復`
   - `來源狀態：較舊或恢復中的 shared source 先退到背景`
+- 若較新的 shared source 已回來，UI 也只可低噪音補：
+  - `來源回前景：較新的 shared source 已回來`
 
 ### 9.3 Specialized hardening views
 

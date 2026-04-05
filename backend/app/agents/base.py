@@ -165,6 +165,8 @@ def build_payload_organization_memory_context(payload: AgentInputPayload) -> lis
         lines.append(f"來源狀態：{guidance.source_lifecycle_summary}")
     if guidance.freshness_summary:
         lines.append(f"背景新鮮度：{guidance.freshness_summary}")
+    if guidance.reactivation_summary:
+        lines.append(f"來源回前景：{guidance.reactivation_summary}")
     if guidance.stable_context_items:
         lines.append("穩定背景：" + "；".join(guidance.stable_context_items[:4]))
     if guidance.known_constraints:
@@ -228,6 +230,8 @@ def build_payload_domain_playbook_context(payload: AgentInputPayload) -> list[st
         lines.append(f"來源狀態：{guidance.source_lifecycle_summary}")
     if guidance.freshness_summary:
         lines.append(f"來源新鮮度：{guidance.freshness_summary}")
+    if guidance.reactivation_summary:
+        lines.append(f"來源回前景：{guidance.reactivation_summary}")
     for index, item in enumerate(guidance.stages[:4], start=1):
         lines.extend(
             [
@@ -306,6 +310,8 @@ def build_payload_deliverable_template_context(payload: AgentInputPayload) -> li
         lines.append(f"來源狀態：{guidance.source_lifecycle_summary}")
     if guidance.freshness_summary:
         lines.append(f"來源新鮮度：{guidance.freshness_summary}")
+    if guidance.reactivation_summary:
+        lines.append(f"來源回前景：{guidance.reactivation_summary}")
     if guidance.core_sections:
         lines.append("核心區塊：" + "、".join(guidance.core_sections))
     if guidance.optional_sections:

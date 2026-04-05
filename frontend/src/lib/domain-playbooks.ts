@@ -13,6 +13,7 @@ export function buildDomainPlaybookView(
   sourceMixSummary: string;
   sourceLifecycleSummary: string;
   freshnessSummary: string;
+  reactivationSummary: string;
   cards: Array<{ title: string; summary: string; meta: string }>;
   listTitle: string;
   listItems: string[];
@@ -30,6 +31,7 @@ export function buildDomainPlaybookView(
       sourceMixSummary: "",
       sourceLifecycleSummary: "",
       freshnessSummary: "",
+      reactivationSummary: "",
       cards: [],
       listTitle: "",
       listItems: [],
@@ -48,6 +50,7 @@ export function buildDomainPlaybookView(
     sourceMixSummary: guidance.source_mix_summary,
     sourceLifecycleSummary: guidance.source_lifecycle_summary,
     freshnessSummary: guidance.freshness_summary,
+    reactivationSummary: guidance.reactivation_summary,
     cards: guidance.stages.slice(0, 3).map((item) => ({
       title: item.title,
       summary: item.why_now || item.summary,

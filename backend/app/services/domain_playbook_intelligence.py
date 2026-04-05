@@ -136,6 +136,7 @@ def build_domain_playbook_guidance(
     source_kinds_used: list[str] = []
     source_lifecycle_summary = ""
     freshness_summary = ""
+    reactivation_summary = ""
     has_authoritative_source = False
     has_fresh_shared_source = False
     has_stale_shared_source = False
@@ -196,6 +197,9 @@ def build_domain_playbook_guidance(
             has_authoritative_source = True
             has_fresh_shared_source = True
         else:
+            has_stale_shared_source = True
+        if organization_memory_guidance.reactivation_summary:
+            has_fresh_shared_source = True
             has_stale_shared_source = True
         source_lifecycle_summary = (
             "shared sources 目前仍偏背景校正，先不要讓單一 precedent 或跨案件背景主導整條工作主線。"
@@ -372,6 +376,7 @@ def build_domain_playbook_guidance(
     )
     if has_fresh_shared_source and has_stale_shared_source:
         freshness_summary = "shared sources 目前新舊並存，先讓近期來源站前面，偏舊來源仍留背景校正。"
+        reactivation_summary = "較新的 shared source 已回來，這輪可重新讓 shared guidance 站前面；偏舊來源仍留背景校正。"
     elif has_fresh_shared_source:
         freshness_summary = "shared sources 近期仍可直接參考，可繼續拿來校正工作主線。"
     elif has_stale_shared_source:
@@ -392,6 +397,7 @@ def build_domain_playbook_guidance(
         source_mix_summary=source_mix_summary,
         source_lifecycle_summary=source_lifecycle_summary,
         freshness_summary=freshness_summary,
+        reactivation_summary=reactivation_summary,
         boundary_note="這是在提示工作主線，不是強制 checklist；若和這案正式證據衝突，仍以這案正式判斷為準。",
         stages=stages,
     )

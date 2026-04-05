@@ -1067,8 +1067,8 @@ export function MatterWorkspacePanel({
                         {organizationMemoryView.freshnessSummary ? (
                           <p className="muted-text">{organizationMemoryView.freshnessSummary}</p>
                         ) : null}
-                        {organizationMemoryView.sourceLifecycleSummary ? (
-                          <p className="muted-text">{organizationMemoryView.sourceLifecycleSummary}</p>
+                        {organizationMemoryView.reactivationSummary ? (
+                          <p className="muted-text">{organizationMemoryView.reactivationSummary}</p>
                         ) : null}
                         {organizationMemoryView.stableContextItems.length > 0 ? (
                           <ul className="list-content" style={{ marginTop: "12px" }}>
@@ -1131,6 +1131,9 @@ export function MatterWorkspacePanel({
                         ) : null}
                         {domainPlaybookView.freshnessSummary ? (
                           <p className="muted-text">{domainPlaybookView.freshnessSummary}</p>
+                        ) : null}
+                        {domainPlaybookView.reactivationSummary ? (
+                          <p className="muted-text">{domainPlaybookView.reactivationSummary}</p>
                         ) : null}
                         {domainPlaybookView.currentStageLabel ? (
                           <p className="muted-text">

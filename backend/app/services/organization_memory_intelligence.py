@@ -74,10 +74,10 @@ def build_cross_matter_organization_memory_items(
     client_type: str | None,
     domain_lenses: list[str],
     matter_summaries: list[schemas.MatterWorkspaceSummaryRead],
-) -> tuple[str, str, list[schemas.CrossMatterOrganizationMemoryItemRead]]:
+) -> tuple[str, str, str, list[schemas.CrossMatterOrganizationMemoryItemRead]]:
     normalized_client_name = _normalize_key(client_name)
     if not normalized_client_name or normalized_client_name == _normalize_key(DEFAULT_ORGANIZATION_LABEL):
-        return "", "", []
+        return "", "", "", []
 
     ranked: list[tuple[int, float, schemas.CrossMatterOrganizationMemoryItemRead]] = []
     current_lenses = {_normalize_key(item) for item in domain_lenses if _normalize_key(item)}
@@ -125,17 +125,21 @@ def build_cross_matter_organization_memory_items(
     ranked.sort(key=lambda entry: (-entry[0], -entry[1], entry[2].matter_title))
     items = [entry[2] for entry in ranked[:3]]
     if not items:
-        return "", "", []
+        return "", "", "", []
 
     summary = f"另有 {len(items)} 個同客戶案件可回看其穩定背景。"
     freshness_labels = {item.freshness_label for item in items if item.freshness_label}
+    reactivation_summary = ""
     if freshness_labels == {"最近更新"}:
         freshness_summary = "跨案件背景最近仍有更新，可直接當穩定背景。"
+    elif "最近更新" in freshness_labels and len(freshness_labels) > 1:
+        freshness_summary = "跨案件背景目前新舊並存，較新的背景可重新站前面。"
+        reactivation_summary = "較新的同客戶背景已回來，這輪可重新拉回前景；偏舊背景仍留作背景參考。"
     elif "較舊背景" in freshness_labels and len(freshness_labels) == 1:
         freshness_summary = "跨案件背景目前偏舊，先留作背景參考。"
     else:
         freshness_summary = "跨案件背景目前可參考，但仍建議先當背景校正。"
-    return summary, freshness_summary, items
+    return summary, freshness_summary, reactivation_summary, items
 
 
 def build_organization_memory_guidance(
@@ -177,7 +181,7 @@ def build_organization_memory_guidance(
     )[:4]
 
     known_constraints = _unique(constraint_descriptions)[:4]
-    cross_matter_summary, freshness_summary, cross_matter_items = build_cross_matter_organization_memory_items(
+    cross_matter_summary, freshness_summary, reactivation_summary, cross_matter_items = build_cross_matter_organization_memory_items(
         current_matter_workspace_id=current_matter_workspace_id,
         client_name=client_name,
         client_stage=client_stage,
@@ -208,10 +212,13 @@ def build_organization_memory_guidance(
             summary="這一輪先依當前案件資料推進，不額外補 organization memory。",
             source_lifecycle_summary="",
             freshness_summary="",
+            reactivation_summary="",
             boundary_note="organization memory 只整理同一案件世界裡已站穩的背景，不替代當前案件證據。",
         )
 
-    if len(cross_matter_items) >= 2:
+    if reactivation_summary:
+        source_lifecycle_summary = "較新的跨案件背景已回來，可重新拉回前景；偏舊背景留在背景參考。"
+    elif len(cross_matter_items) >= 2:
         source_lifecycle_summary = "跨案件背景目前可直接當穩定背景，不必每次從零重建。"
     elif len(cross_matter_items) == 1:
         source_lifecycle_summary = "跨案件背景目前先留作背景參考，先不要讓它主導這輪判斷。"
@@ -228,6 +235,7 @@ def build_organization_memory_guidance(
         organization_label=organization_label,
         source_lifecycle_summary=source_lifecycle_summary,
         freshness_summary=freshness_summary,
+        reactivation_summary=reactivation_summary,
         stable_context_items=stable_context_items,
         known_constraints=known_constraints,
         continuity_anchor=continuity_anchor,

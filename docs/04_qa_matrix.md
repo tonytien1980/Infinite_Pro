@@ -3684,3 +3684,42 @@ Environment used:
 - Infinite Pro now distinguishes not only whether a shared source is authoritative enough, but also whether it is still fresh enough to stand near the front of the current workstream
 - stale or recovering shared sources are still preserved as calibration context, but now read more honestly as stepping back into the background instead of silently behaving like current mainline sources
 - the new freshness signal stays inside existing prompt contexts and second-layer surfaces; no new dashboard, management shell, or background worker was introduced
+
+---
+
+## Entry: 2026-04-05 shared-source refresh / reactivation v1 pass
+
+Scope:
+- first-pass reactivation reading for organization memory / domain playbook / deliverable template
+- prompt-safe `來源回前景`
+- existing second-layer surfaces read back when newer shared sources can return to the foreground
+
+Environment used:
+- local repo runtime checks only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`171 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`30 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Reactivation-specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | organization memory | Read recent + stale cross-matter memory as reactivated | Verified | targeted backend test confirms mixed recent / old client history now exposes `reactivation_summary` instead of flattening everything into one freshness tier |
+| Backend | domain playbook | Read fresher shared guidance as foreground-worthy again | Verified | targeted backend test confirms playbook guidance now exposes `reactivation_summary` when newer shared sources return while older ones remain background calibration |
+| Backend | deliverable template | Read fresher shared template source as foreground-worthy again | Verified | targeted backend test confirms template guidance now exposes `reactivation_summary` when stable and recovering shared sources coexist |
+| Backend | agent payload | Emit `來源回前景：...` | Verified | targeted backend tests confirm organization-memory / playbook / template prompt contexts now carry reactivation lines |
+| Frontend | existing second-layer helper views | Render reactivation as a separate low-noise line | Verified | helper tests confirm organization memory, playbook, and template views all expose reactivation without adding new page families |
+
+### Verified outcomes
+
+- Infinite Pro now distinguishes not only which shared sources should fade to the background, but also when newer shared sources have come back strongly enough to return to the foreground
+- reactivation remains low-noise: it is read as one extra consultant-facing sentence rather than a new ranking panel or lifecycle dashboard
+- this pass still stays inside existing work surfaces, prompt contexts, and reusable-intelligence contracts

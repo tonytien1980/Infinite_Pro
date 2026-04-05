@@ -128,6 +128,7 @@ def build_deliverable_template_guidance(
     template_fit_summary = ""
     source_lifecycle_summary = ""
     freshness_summary = ""
+    reactivation_summary = ""
     has_authoritative_source = False
     has_fresh_shared_source = False
     has_stale_shared_source = False
@@ -267,6 +268,9 @@ def build_deliverable_template_guidance(
                 has_fresh_shared_source = True
             else:
                 has_stale_shared_source = True
+        if domain_playbook_guidance.reactivation_summary:
+            has_fresh_shared_source = True
+            has_stale_shared_source = True
 
     fallback_label, fallback_core, fallback_optional, fallback_fit = _fallback_template(
         task_type,
@@ -333,6 +337,7 @@ def build_deliverable_template_guidance(
     )
     if has_fresh_shared_source and has_stale_shared_source:
         freshness_summary = "shared sources 目前新舊並存，先讓近期來源站前面，偏舊來源仍留背景校正。"
+        reactivation_summary = "較新的 shared source 已回來，這輪可重新讓模板主線站前面；偏舊來源仍留背景校正。"
     elif has_fresh_shared_source:
         freshness_summary = "shared sources 近期仍可直接參考，模板主線可以繼續沿用。"
     elif has_stale_shared_source:
@@ -352,6 +357,7 @@ def build_deliverable_template_guidance(
         source_mix_summary=source_mix_summary,
         source_lifecycle_summary=source_lifecycle_summary,
         freshness_summary=freshness_summary,
+        reactivation_summary=reactivation_summary,
         core_sections=core_sections,
         optional_sections=optional_sections,
         boundary_note="這是在提示模板主線，不是自動套模板；若和這案正式證據衝突，仍以這案當前判斷與證據為準。",

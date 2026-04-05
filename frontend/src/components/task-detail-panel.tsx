@@ -1347,8 +1347,8 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     {organizationMemoryView.freshnessSummary ? (
                       <p className="muted-text">{organizationMemoryView.freshnessSummary}</p>
                     ) : null}
-                    {organizationMemoryView.sourceLifecycleSummary ? (
-                      <p className="muted-text">{organizationMemoryView.sourceLifecycleSummary}</p>
+                    {organizationMemoryView.reactivationSummary ? (
+                      <p className="muted-text">{organizationMemoryView.reactivationSummary}</p>
                     ) : null}
                     {organizationMemoryView.stableContextItems.length > 0 ? (
                       <ul className="list-content" style={{ marginTop: "12px" }}>
@@ -1414,6 +1414,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     ) : null}
                     {domainPlaybookView.freshnessSummary ? (
                       <p className="muted-text">{domainPlaybookView.freshnessSummary}</p>
+                    ) : null}
+                    {domainPlaybookView.reactivationSummary ? (
+                      <p className="muted-text">{domainPlaybookView.reactivationSummary}</p>
                     ) : null}
                     {domainPlaybookView.currentStageLabel ? (
                       <p className="muted-text">
@@ -1526,6 +1529,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     ) : null}
                     {deliverableTemplateView.freshnessSummary ? (
                       <p className="muted-text">{deliverableTemplateView.freshnessSummary}</p>
+                    ) : null}
+                    {deliverableTemplateView.reactivationSummary ? (
+                      <p className="muted-text">{deliverableTemplateView.reactivationSummary}</p>
                     ) : null}
                     <div className="summary-grid" style={{ marginTop: "16px" }}>
                       {deliverableTemplateView.cards.map((card) => (

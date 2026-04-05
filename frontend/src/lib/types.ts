@@ -1216,6 +1216,7 @@ export interface OrganizationMemoryGuidance {
   organization_label: string;
   source_lifecycle_summary: string;
   freshness_summary: string;
+  reactivation_summary: string;
   stable_context_items: string[];
   known_constraints: string[];
   continuity_anchor: string;
@@ -1259,6 +1260,7 @@ export interface DomainPlaybookGuidance {
   source_mix_summary: string;
   source_lifecycle_summary: string;
   freshness_summary: string;
+  reactivation_summary: string;
   boundary_note: string;
   stages: DomainPlaybookStage[];
 }
@@ -1347,6 +1349,7 @@ export interface DeliverableTemplateGuidance {
   source_mix_summary: string;
   source_lifecycle_summary: string;
   freshness_summary: string;
+  reactivation_summary: string;
   core_sections: string[];
   optional_sections: string[];
   boundary_note: string;
