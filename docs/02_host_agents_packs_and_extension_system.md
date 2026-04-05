@@ -120,6 +120,27 @@ Agent 正式分為：
 - Pack 不是 Agent
 - Domain Pack 不是 Industry Pack
 
+### 3.5 AI, Host, Agent, and Pack roles
+
+Infinite Pro 裡的 AI 不是整套系統本身，而是推理與生成引擎。
+
+正式角色分工應理解為：
+
+- `AI model / API`
+  - provider boundary 後面的 inference / generation engine
+- `Host`
+  - 整套系統唯一的 orchestration brain
+- `Agents`
+  - capability modules，負責執行分析、收斂與生成
+- `Packs`
+  - structured context modules，提供較穩定的背景、heuristics、risk patterns 與 deliverable presets
+
+正式規則：
+
+- 系統層的「顧問 AI 大腦」不是單一模型人格
+- 它是 Host + reusable intelligence + feedback / writeback loop 一起長出的 shared brain
+- 不可把 model provider 升格成產品主腦，也不可把 Host / Agent / Pack 邊界混成同一層
+
 ### 3.4 Execution modes
 
 Execution mode 是 Host 的 orchestration 選擇，不是產品主分類。

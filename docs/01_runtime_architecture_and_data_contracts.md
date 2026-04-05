@@ -45,6 +45,16 @@ Infinite Pro 目前的正式 runtime 主鏈應理解為：
 - `Task` 不是 consultant world 的唯一主容器
 - follow-up 與 supplements 應先更新既有 world，再決定 task / evidence / deliverable 的變化
 
+正式理解也應區分兩個層次：
+
+- 這條 object chain 形成的是 `案件 Digital Twin`
+- precedent / memory / playbook / template 與 feedback / writeback loop 逐步形成的是 `顧問判斷力的 system-level Digital Twin`
+
+正式規則：
+
+- 前者是案件世界本身
+- 後者不是新的 architecture layer，而是建立在既有六層之上的 shared intelligence 演化
+
 ### 2.1 Ontology design rules
 
 Ontology 在 Infinite Pro 中是：
