@@ -1690,6 +1690,9 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                   {deliverableTemplateView.freshnessSummary ? (
                     <p className="muted-text">{deliverableTemplateView.freshnessSummary}</p>
                   ) : null}
+                  {deliverableTemplateView.recoveryBalanceSummary ? (
+                    <p className="muted-text">{deliverableTemplateView.recoveryBalanceSummary}</p>
+                  ) : null}
                   {deliverableTemplateView.reactivationSummary ? (
                     <p className="muted-text">{deliverableTemplateView.reactivationSummary}</p>
                   ) : null}

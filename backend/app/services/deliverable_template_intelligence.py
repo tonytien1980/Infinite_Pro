@@ -131,6 +131,19 @@ def _feedback_linked_decay_summary(
     return ""
 
 
+def _recovery_balance_summary(
+    *,
+    reactivation_summary: str,
+    decay_summary: str,
+) -> str:
+    if not reactivation_summary or not decay_summary:
+        return ""
+    return (
+        "雖然新的正向回饋已把部分模板主線拉回前景，但近期仍有需要改寫或暫不採用的來源退到背景；"
+        "這輪先讓較穩的新來源帶主線，其餘留背景觀察。"
+    )
+
+
 def build_deliverable_template_guidance(
     db: Session,
     *,
@@ -151,6 +164,7 @@ def build_deliverable_template_guidance(
     reactivation_summary = ""
     feedback_reactivation_summary = ""
     decay_summary = ""
+    recovery_balance_summary = ""
     has_authoritative_source = False
     has_fresh_shared_source = False
     has_stale_shared_source = False
@@ -380,6 +394,14 @@ def build_deliverable_template_guidance(
         source_lifecycle_summary = "目前仍以 pack / shape / task heuristic 為主，shared source 還不夠厚。"
     elif has_stale_shared_source and not has_fresh_shared_source:
         source_lifecycle_summary = "shared sources 目前仍偏背景校正，較舊或恢復中的 shared source 先退到背景，不要主導模板主線。"
+    recovery_balance_summary = _recovery_balance_summary(
+        reactivation_summary=reactivation_summary,
+        decay_summary=decay_summary,
+    )
+    if recovery_balance_summary:
+        source_lifecycle_summary = (
+            "shared sources 目前進入平衡期，先讓較穩的新來源帶模板主線，其餘仍留背景觀察。"
+        )
 
     return schemas.DeliverableTemplateGuidanceRead(
         status="available" if has_authoritative_source else "fallback",
@@ -393,6 +415,7 @@ def build_deliverable_template_guidance(
         freshness_summary=freshness_summary,
         reactivation_summary=reactivation_summary,
         decay_summary=decay_summary,
+        recovery_balance_summary=recovery_balance_summary,
         core_sections=core_sections,
         optional_sections=optional_sections,
         boundary_note="這是在提示模板主線，不是自動套模板；若和這案正式證據衝突，仍以這案當前判斷與證據為準。",

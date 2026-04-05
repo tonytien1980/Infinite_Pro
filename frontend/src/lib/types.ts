@@ -1263,6 +1263,7 @@ export interface DomainPlaybookGuidance {
   freshness_summary: string;
   reactivation_summary: string;
   decay_summary: string;
+  recovery_balance_summary: string;
   boundary_note: string;
   stages: DomainPlaybookStage[];
 }
@@ -1353,6 +1354,7 @@ export interface DeliverableTemplateGuidance {
   freshness_summary: string;
   reactivation_summary: string;
   decay_summary: string;
+  recovery_balance_summary: string;
   core_sections: string[];
   optional_sections: string[];
   boundary_note: string;

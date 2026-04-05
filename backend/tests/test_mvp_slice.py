@@ -4447,6 +4447,63 @@ def test_domain_playbook_guidance_uses_needs_revision_feedback_to_decay_shared_s
     assert "需要改寫" in guidance.decay_summary
 
 
+def test_domain_playbook_guidance_balances_feedback_linked_recovery_and_decay() -> None:
+    from app.services.domain_playbook_intelligence import build_domain_playbook_guidance
+
+    guidance = build_domain_playbook_guidance(
+        task_type="contract_review",
+        client_stage="制度化階段",
+        deliverable_class_hint=DeliverableClass.ASSESSMENT_REVIEW_MEMO,
+        flagship_lane=schemas.FlagshipLaneRead(label="先審閱手上已有材料"),
+        research_guidance=schemas.ResearchGuidanceRead(),
+        organization_memory_guidance=schemas.OrganizationMemoryGuidanceRead(),
+        continuation_surface=None,
+        pack_resolution=schemas.PackResolutionRead(),
+        precedent_reference_guidance=schemas.PrecedentReferenceGuidanceRead(
+            status="available",
+            matched_items=[
+                _test_precedent_reference_item(
+                    candidate_id="candidate-adopted",
+                    title="最近被採納的工作主線",
+                    reason_codes=["reusable_action_pattern"],
+                    source_feedback_status=AdoptionFeedbackStatus.ADOPTED,
+                    shared_signal=_test_shared_signal(
+                        maturity="shared",
+                        maturity_label="已接近共享模式",
+                        weight_action="upweight",
+                        weight_action_label="提高參考",
+                        stability="stable",
+                        stability_label="已站穩共享模式",
+                    ),
+                    optimization_asset_codes=["domain_playbook"],
+                    optimization_asset_labels=["工作主線"],
+                ),
+                _test_precedent_reference_item(
+                    candidate_id="candidate-needs-revision",
+                    title="最近需要改寫的工作主線",
+                    reason_codes=["reusable_action_pattern"],
+                    source_feedback_status=AdoptionFeedbackStatus.NEEDS_REVISION,
+                    shared_signal=_test_shared_signal(
+                        maturity="shared",
+                        maturity_label="已接近共享模式",
+                        weight_action="hold",
+                        weight_action_label="先持平觀察",
+                        stability="stable",
+                        stability_label="已站穩共享模式",
+                    ),
+                    optimization_asset_codes=["domain_playbook"],
+                    optimization_asset_labels=["工作主線"],
+                ),
+            ],
+        ),
+    )
+
+    assert guidance.status == "available"
+    assert "採納回饋" in guidance.reactivation_summary
+    assert "需要改寫" in guidance.decay_summary
+    assert "較穩的新來源帶主線" in guidance.recovery_balance_summary
+
+
 
 def test_deliverable_precedent_candidate_can_be_promoted_and_demoted(
     client: TestClient,
@@ -5835,6 +5892,60 @@ def test_build_payload_deliverable_template_context_keeps_prompt_safe_lines() ->
     assert any("可選區塊：" in item for item in lines)
 
 
+def test_build_payload_domain_playbook_context_prefers_balance_line_when_recovery_conflicts() -> None:
+    payload = AgentInputPayload(
+        task_id="task-1",
+        title="Task title",
+        description="Task description",
+        task_type="contract_review",
+        flow_mode="specialist",
+        presence_state_summary=schemas.PresenceStateSummaryRead(
+            client=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="某客戶"),
+            engagement=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="委託"),
+            workstream=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="工作流"),
+            decision_context=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="合約審閱"),
+            artifact=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="artifact"),
+            source_material=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="source"),
+            domain_lens=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="法務"),
+            client_stage=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="制度化階段"),
+            client_type=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="中小企業"),
+        ),
+        domain_playbook_guidance=schemas.DomainPlaybookGuidanceRead(
+            status="available",
+            label="這類案子通常怎麼走",
+            summary="summary",
+            playbook_label="合約審閱工作主線",
+            current_stage_label="先補齊審閱範圍與條款邊界",
+            next_stage_label="再收斂高風險點與談判邊界",
+            fit_summary="這輪為何適用：已有可參考的既有模式。",
+            source_mix_summary="收斂依據：precedent reference、task heuristic",
+            source_lifecycle_summary="shared sources 目前進入平衡期，先讓較穩的新來源帶主線，其餘仍留背景觀察。",
+            freshness_summary="shared sources 目前新舊並存，先讓近期來源站前面，偏舊來源仍留背景校正。",
+            reactivation_summary="新的採納回饋已把這類 shared guidance 拉回前景；偏舊來源仍留背景校正。",
+            decay_summary="最新回饋仍是需要改寫，這類 shared guidance 先退到背景觀察。",
+            recovery_balance_summary="雖然新的採納回饋已把部分 shared guidance 拉回前景，但近期仍有需要改寫的來源退到背景；這輪先讓較穩的新來源帶主線，其餘留背景觀察。",
+            boundary_note="這是在提示工作主線，不是強制 checklist。",
+            stages=[
+                schemas.DomainPlaybookStageRead(
+                    stage_id="stage-1",
+                    title="先補齊審閱範圍與條款邊界",
+                    summary="summary",
+                    why_now="why",
+                    source_kind="precedent_reference",
+                    source_label="來源：precedent reference（共享模式優先）",
+                    priority="high",
+                )
+            ],
+        ),
+    )
+
+    lines = build_payload_domain_playbook_context(payload)
+
+    assert any("來源平衡：" in item for item in lines)
+    assert not any("來源回前景：" in item for item in lines)
+    assert not any("來源退背景：" in item for item in lines)
+
+
 def test_deliverable_template_guidance_uses_pack_template_when_precedent_is_background_only(
     client: TestClient,
 ) -> None:
@@ -6138,6 +6249,119 @@ def test_deliverable_template_guidance_uses_needs_revision_feedback_to_decay_sha
         assert guidance.status == "fallback"
         assert "先退到背景" in guidance.source_lifecycle_summary
         assert "需要改寫" in guidance.decay_summary
+
+
+def test_deliverable_template_guidance_balances_feedback_linked_recovery_and_decay(
+    client: TestClient,
+) -> None:
+    from app.services.deliverable_template_intelligence import build_deliverable_template_guidance
+
+    with SessionLocal() as db:
+        guidance = build_deliverable_template_guidance(
+            db,
+            task_type="contract_review",
+            deliverable_class_hint=DeliverableClass.ASSESSMENT_REVIEW_MEMO,
+            precedent_reference_guidance=schemas.PrecedentReferenceGuidanceRead(
+                status="available",
+                matched_items=[
+                    _test_precedent_reference_item(
+                        candidate_id="candidate-template",
+                        title="最近被標成範本的模板",
+                        reason_codes=["reusable_structure"],
+                        source_feedback_status=AdoptionFeedbackStatus.TEMPLATE_CANDIDATE,
+                        shared_signal=_test_shared_signal(
+                            maturity="shared",
+                            maturity_label="已接近共享模式",
+                            weight_action="upweight",
+                            weight_action_label="提高參考",
+                            stability="stable",
+                            stability_label="已站穩共享模式",
+                        ),
+                        optimization_asset_codes=["deliverable_template"],
+                        optimization_asset_labels=["交付模板"],
+                    ),
+                    _test_precedent_reference_item(
+                        candidate_id="candidate-needs-revision",
+                        title="最近需要改寫的模板",
+                        reason_codes=["reusable_structure"],
+                        source_feedback_status=AdoptionFeedbackStatus.NEEDS_REVISION,
+                        shared_signal=_test_shared_signal(
+                            maturity="shared",
+                            maturity_label="已接近共享模式",
+                            weight_action="hold",
+                            weight_action_label="先持平觀察",
+                            stability="stable",
+                            stability_label="已站穩共享模式",
+                        ),
+                        optimization_asset_codes=["deliverable_template"],
+                        optimization_asset_labels=["交付模板"],
+                    ),
+                ],
+            ),
+            pack_resolution=schemas.PackResolutionRead(),
+            domain_playbook_guidance=schemas.DomainPlaybookGuidanceRead(),
+            deliverable_shape_guidance=schemas.DeliverableShapeGuidanceRead(),
+        )
+
+        assert guidance.status == "available"
+        assert "範本候選" in guidance.reactivation_summary
+        assert "需要改寫" in guidance.decay_summary
+        assert "較穩的新來源帶主線" in guidance.recovery_balance_summary
+
+
+def test_build_payload_deliverable_template_context_prefers_balance_line_when_recovery_conflicts() -> None:
+    payload = AgentInputPayload(
+        task_id="task-1",
+        title="Task title",
+        description="Task description",
+        task_type="contract_review",
+        flow_mode="specialist",
+        presence_state_summary=schemas.PresenceStateSummaryRead(
+            client=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="某客戶"),
+            engagement=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="委託"),
+            workstream=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="工作流"),
+            decision_context=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="合約審閱"),
+            artifact=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="artifact"),
+            source_material=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="source"),
+            domain_lens=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="法務"),
+            client_stage=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="制度化階段"),
+            client_type=schemas.PresenceStateItemRead(state="explicit", reason="", display_value="中小企業"),
+        ),
+        deliverable_template_guidance=schemas.DeliverableTemplateGuidanceRead(
+            status="available",
+            label="這份交付比較適合沿用哪種模板主線",
+            summary="summary",
+            template_label="合約審閱備忘模板",
+            template_fit_summary="這輪仍屬 review / assessment 主線，先站穩審閱備忘模板會更可靠。",
+            fit_summary="這輪為何適用：已有可參考的 precedent 模板主線。",
+            source_mix_summary="收斂依據：precedent deliverable template、task heuristic",
+            source_lifecycle_summary="shared sources 目前進入平衡期，先讓較穩的新來源帶模板主線，其餘仍留背景觀察。",
+            freshness_summary="shared sources 目前新舊並存，先讓近期來源站前面，偏舊來源仍留背景校正。",
+            reactivation_summary="新的範本候選回饋已把這類模板主線拉回前景；偏舊來源仍留背景校正。",
+            decay_summary="最新回饋仍是需要改寫，這類模板主線先退到背景觀察。",
+            recovery_balance_summary="雖然新的範本候選回饋已把部分模板主線拉回前景，但近期仍有需要改寫的來源退到背景；這輪先讓較穩的新來源帶主線，其餘留背景觀察。",
+            core_sections=["一句話結論", "主要發現", "主要風險", "建議處置"],
+            optional_sections=["待補資料", "已審範圍"],
+            boundary_note="這是在提示模板主線，不是自動套模板。",
+            blocks=[
+                schemas.DeliverableTemplateBlockRead(
+                    block_id="block-1",
+                    title="先用合約審閱備忘模板收斂",
+                    summary="先用 review memo 型模板站穩主要 judgment。",
+                    why_fit="這輪還不是最終決策模板。",
+                    source_kind="task_heuristic",
+                    source_label="來源：task heuristic",
+                    priority="high",
+                )
+            ],
+        ),
+    )
+
+    lines = build_payload_deliverable_template_context(payload)
+
+    assert any("來源平衡：" in item for item in lines)
+    assert not any("來源回前景：" in item for item in lines)
+    assert not any("來源退背景：" in item for item in lines)
 
 
 def test_deliverable_shape_guidance_normalizes_internal_sections_to_consultant_order(

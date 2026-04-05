@@ -3834,3 +3834,41 @@ Environment used:
 - Infinite Pro can now explain not only why a shared source returned to the foreground, but also why it should step back into the background when fresh human feedback turns negative
 - precedent-backed playbook and template guidance now treat `needs_revision` as an explicit decay signal instead of leaving the source unrealistically near the front
 - this pass still stays within existing reusable-intelligence contracts and second-layer reading; no new dashboard or background job was introduced
+
+---
+
+## Entry: 2026-04-05 feedback-linked shared-source recovery balancing v1 pass
+
+Scope:
+- balance feedback-linked reactivation and decay into a single low-noise lifecycle reading
+- add `recovery_balance_summary` for precedent-backed playbook / template guidance
+- prompt-safe `來源平衡` so Host sees the overall balance before separate lifecycle details
+
+Environment used:
+- local repo runtime checks only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`179 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`30 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Recovery-balancing specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | domain playbook | Balance positive and negative precedent feedback in one lifecycle read | Verified | targeted backend test confirms playbook guidance now emits `recovery_balance_summary` when adopted and needs-revision precedent signals coexist |
+| Backend | deliverable template | Balance positive and negative precedent feedback in one lifecycle read | Verified | targeted backend test confirms template guidance now emits `recovery_balance_summary` when template-candidate and needs-revision precedent signals coexist |
+| Prompt contract | playbook / template context | Prefer `來源平衡：...` over separate conflicting lines | Verified | payload tests confirm prompt-safe contexts now emit one balance line instead of stacking `來源回前景` and `來源退背景` in the same slice |
+| Frontend | existing second-layer helper views | Prefer one low-noise balance sentence when lifecycle signals conflict | Verified | helper / build / typecheck verification confirms playbook and template views now surface a single balance line without creating a new dashboard shell |
+
+### Verified outcomes
+
+- Infinite Pro now handles mixed positive and negative shared-source feedback more honestly: the system first says how to balance the source, rather than simply listing two conflicting lifecycle sentences
+- playbook and template guidance stay low-noise while becoming more faithful to real shared-intelligence evolution
+- this pass still stays inside existing work surfaces, payload boundaries, and reusable-intelligence contracts

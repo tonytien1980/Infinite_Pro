@@ -1132,6 +1132,9 @@ export function MatterWorkspacePanel({
                         {domainPlaybookView.freshnessSummary ? (
                           <p className="muted-text">{domainPlaybookView.freshnessSummary}</p>
                         ) : null}
+                        {domainPlaybookView.recoveryBalanceSummary ? (
+                          <p className="muted-text">{domainPlaybookView.recoveryBalanceSummary}</p>
+                        ) : null}
                         {domainPlaybookView.reactivationSummary ? (
                           <p className="muted-text">{domainPlaybookView.reactivationSummary}</p>
                         ) : null}

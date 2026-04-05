@@ -1415,6 +1415,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     {domainPlaybookView.freshnessSummary ? (
                       <p className="muted-text">{domainPlaybookView.freshnessSummary}</p>
                     ) : null}
+                    {domainPlaybookView.recoveryBalanceSummary ? (
+                      <p className="muted-text">{domainPlaybookView.recoveryBalanceSummary}</p>
+                    ) : null}
                     {domainPlaybookView.reactivationSummary ? (
                       <p className="muted-text">{domainPlaybookView.reactivationSummary}</p>
                     ) : null}
@@ -1532,6 +1535,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     ) : null}
                     {deliverableTemplateView.freshnessSummary ? (
                       <p className="muted-text">{deliverableTemplateView.freshnessSummary}</p>
+                    ) : null}
+                    {deliverableTemplateView.recoveryBalanceSummary ? (
+                      <p className="muted-text">{deliverableTemplateView.recoveryBalanceSummary}</p>
                     ) : null}
                     {deliverableTemplateView.reactivationSummary ? (
                       <p className="muted-text">{deliverableTemplateView.reactivationSummary}</p>

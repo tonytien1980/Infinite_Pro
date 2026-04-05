@@ -22,6 +22,7 @@ export function buildDeliverableTemplateView(
   sourceMixSummary: string;
   sourceLifecycleSummary: string;
   freshnessSummary: string;
+  recoveryBalanceSummary: string;
   reactivationSummary: string;
   decaySummary: string;
   cards: Array<{ title: string; summary: string; meta: string }>;
@@ -42,6 +43,7 @@ export function buildDeliverableTemplateView(
       sourceMixSummary: "",
       sourceLifecycleSummary: "",
       freshnessSummary: "",
+      recoveryBalanceSummary: "",
       reactivationSummary: "",
       decaySummary: "",
       cards: [],
@@ -63,8 +65,9 @@ export function buildDeliverableTemplateView(
     sourceMixSummary: guidance.source_mix_summary,
     sourceLifecycleSummary: guidance.source_lifecycle_summary,
     freshnessSummary: guidance.freshness_summary,
-    reactivationSummary: guidance.reactivation_summary,
-    decaySummary: guidance.decay_summary,
+    recoveryBalanceSummary: guidance.recovery_balance_summary,
+    reactivationSummary: guidance.recovery_balance_summary ? "" : guidance.reactivation_summary,
+    decaySummary: guidance.recovery_balance_summary ? "" : guidance.decay_summary,
     cards: guidance.blocks.map((block) => ({
       title: block.title,
       summary: [block.why_fit, block.summary].filter(Boolean).join("｜"),
