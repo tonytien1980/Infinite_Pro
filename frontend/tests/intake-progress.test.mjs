@@ -1090,27 +1090,45 @@ test("precedent candidate action view keeps governance states low-noise", () => 
   const candidateActions = buildPrecedentCandidateActionView({
     candidate_status: "candidate",
     candidate_type: "deliverable_pattern",
+    governance_recommendation: {
+      action: "promote",
+      target_status: "promoted",
+      action_label: "可考慮升格",
+      summary: "這筆模式已開始形成共享模式，可考慮升格成正式可重用模式。",
+      rationale: "已有較強共享訊號。",
+    },
   });
   const promotedActions = buildPrecedentCandidateActionView({
     candidate_status: "promoted",
     candidate_type: "recommendation_pattern",
+    governance_recommendation: {
+      action: "dismiss",
+      target_status: "dismissed",
+      action_label: "可考慮退場",
+      summary: "這筆模式目前較像局部經驗，可考慮先退場。",
+      rationale: "共享成熟度下降。",
+    },
   });
   const dismissedActions = buildPrecedentCandidateActionView({
     candidate_status: "dismissed",
     candidate_type: "recommendation_pattern",
+    governance_recommendation: null,
   });
 
   assert.equal(candidateActions.statusLabel, "候選中");
+  assert.match(candidateActions.governanceSummary, /可考慮升格/);
   assert.equal(candidateActions.actions.length, 2);
   assert.equal(candidateActions.actions[0]?.label, "升格成正式可重用模式");
   assert.equal(candidateActions.actions[1]?.label, "先停用這個候選");
 
   assert.equal(promotedActions.statusLabel, "正式可重用模式");
+  assert.match(promotedActions.governanceSummary, /可考慮退場/);
   assert.equal(promotedActions.actions.length, 2);
-  assert.equal(promotedActions.actions[0]?.label, "降回候選");
-  assert.equal(promotedActions.actions[1]?.label, "停用這個模式");
+  assert.equal(promotedActions.actions[0]?.label, "停用這個模式");
+  assert.equal(promotedActions.actions[1]?.label, "降回候選");
 
   assert.equal(dismissedActions.statusLabel, "已停用");
+  assert.equal(dismissedActions.governanceSummary, "");
   assert.equal(dismissedActions.actions.length, 1);
   assert.equal(dismissedActions.actions[0]?.label, "重新列回候選");
 });

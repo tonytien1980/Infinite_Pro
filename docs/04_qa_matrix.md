@@ -3299,3 +3299,41 @@ Environment used:
 - Infinite Pro now uses shared-intelligence maturity not only for explainability, but also for reusable-asset source ordering
 - if a stronger non-downweighted precedent already exists, Host can stop letting weaker precedent rows shape the next asset by default
 - the visible UI remains low-noise: no consultant ranking, no weighting dashboard, no new page family
+
+---
+
+## Entry: 2026-04-05 shared-intelligence governance recommendation v1 pass
+
+Scope:
+- first-pass governance recommendation on precedent review items
+- low-noise governance summary and suggested action ordering
+- no auto-mutation of candidate status
+
+Environment used:
+- local repo runtime checks only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`152 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`30 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Governance-recommendation specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | governance helper | Build recommendation from shared-intelligence signal | Verified | targeted backend tests confirm candidate / promoted states now map to promote / keep / dismiss style recommendations |
+| Backend | precedent review | Read `governance_recommendation` on review item | Verified | direct API test confirms review lane JSON now exposes action, target status, and summary |
+| Frontend | candidate action helper | Reorder actions so the recommended one appears first | Verified | helper test confirms promoted item now surfaces dismiss first when retirement is recommended |
+| Frontend | history precedent lane | Read low-noise governance summary | Verified | helper tests confirm summary stays compact and consultant-readable, not a governance console |
+
+### Verified outcomes
+
+- Infinite Pro now tells the consultant not only how strong a precedent is, but also what the next governance move likely is
+- precedence governance remains human-triggered: the system suggests promote / keep / dismiss, but does not auto-mutate state
+- the visible UI remains low-noise and does not become a management dashboard

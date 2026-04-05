@@ -256,6 +256,9 @@ class PrecedentReviewItemResponse(BaseModel):
     shared_intelligence_signal: domain_schemas.SharedIntelligenceSignalRead = Field(
         default_factory=domain_schemas.SharedIntelligenceSignalRead
     )
+    governance_recommendation: domain_schemas.PrecedentGovernanceRecommendationRead = Field(
+        default_factory=domain_schemas.PrecedentGovernanceRecommendationRead
+    )
     title: str
     summary: str = ""
     reusable_reason: str = ""

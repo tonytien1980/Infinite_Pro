@@ -141,6 +141,7 @@ export interface PrecedentReviewItem {
   last_status_changed_by_label: string;
   optimization_signal: PrecedentOptimizationSignal;
   shared_intelligence_signal: SharedIntelligenceSignal;
+  governance_recommendation: PrecedentGovernanceRecommendation;
   title: string;
   summary: string;
   reusable_reason: string;
@@ -1189,6 +1190,20 @@ export interface SharedIntelligenceSignal {
   promoted_candidate_count: number;
   dismissed_candidate_count: number;
   summary: string;
+}
+
+export interface PrecedentGovernanceRecommendation {
+  action:
+    | "promote"
+    | "keep_candidate"
+    | "demote"
+    | "keep_promoted"
+    | "dismiss"
+    | "keep_dismissed";
+  target_status: "candidate" | "promoted" | "dismissed";
+  action_label: string;
+  summary: string;
+  rationale: string;
 }
 
 export interface OrganizationMemoryGuidance {

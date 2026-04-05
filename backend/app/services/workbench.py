@@ -11,9 +11,11 @@ from app.services.precedent_duplicate_governance import (
     build_precedent_duplicate_contract,
 )
 from app.services.precedent_intelligence import (
+    GOVERNANCE_ACTION_RANK,
     PRECEDENT_REVIEW_PRIORITY_RANK,
     SHARED_INTELLIGENCE_MATURITY_RANK,
     SHARED_INTELLIGENCE_WEIGHT_RANK,
+    build_precedent_governance_recommendation,
     build_shared_intelligence_signal,
     candidate_reason_labels,
     classify_precedent_review_priority,
@@ -166,7 +168,7 @@ def get_precedent_review_state(db: Session) -> schemas.PrecedentReviewResponse:
     )
 
     ranked_items: list[
-        tuple[int, int, int, int, int, float, float, schemas.PrecedentReviewItemResponse]
+        tuple[int, int, int, int, int, int, float, float, schemas.PrecedentReviewItemResponse]
     ] = []
     for row in rows:
         source_feedback_reason_labels = candidate_reason_labels(row)
@@ -186,6 +188,10 @@ def get_precedent_review_state(db: Session) -> schemas.PrecedentReviewResponse:
             candidate=row,
             candidates=rows,
         )
+        governance_recommendation = build_precedent_governance_recommendation(
+            candidate_status=row.candidate_status,
+            shared_intelligence_signal=shared_intelligence_signal,
+        )
         item = schemas.PrecedentReviewItemResponse(
             id=row.id,
             candidate_type=row.candidate_type,  # type: ignore[arg-type]
@@ -199,6 +205,7 @@ def get_precedent_review_state(db: Session) -> schemas.PrecedentReviewResponse:
             last_status_changed_by_label=row.last_status_changed_by_label or "",
             optimization_signal=optimization_signal,
             shared_intelligence_signal=shared_intelligence_signal,
+            governance_recommendation=governance_recommendation,
             title=row.title or "",
             summary=row.summary or "",
             reusable_reason=row.reusable_reason or "",
@@ -225,14 +232,15 @@ def get_precedent_review_state(db: Session) -> schemas.PrecedentReviewResponse:
                 STRENGTH_RANK[optimization_signal.strength],
                 SHARED_INTELLIGENCE_WEIGHT_RANK[shared_intelligence_signal.weight_action],
                 SHARED_INTELLIGENCE_MATURITY_RANK[shared_intelligence_signal.maturity],
+                GOVERNANCE_ACTION_RANK[governance_recommendation.action],
                 -row.updated_at.timestamp(),
                 -row.created_at.timestamp(),
                 item,
             )
         )
 
-    ranked_items.sort(key=lambda entry: entry[:7])
-    items = [entry[7] for entry in ranked_items]
+    ranked_items.sort(key=lambda entry: entry[:8])
+    items = [entry[8] for entry in ranked_items]
     duplicate_summary, duplicate_candidates = build_precedent_duplicate_contract(
         db,
         candidate_rows=rows,

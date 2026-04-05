@@ -572,6 +572,9 @@ export function HistoryPagePanel() {
                       {priorityView.attributionMeta ? (
                         <p className="muted-text">{priorityView.attributionMeta}</p>
                       ) : null}
+                      {actionView.governanceSummary ? (
+                        <p className="muted-text">{actionView.governanceSummary}</p>
+                      ) : null}
                       {item.primary_reason_label ? (
                         <p className="muted-text">主要原因：{item.primary_reason_label}</p>
                       ) : null}

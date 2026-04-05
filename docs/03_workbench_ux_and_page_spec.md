@@ -843,6 +843,10 @@ Primary action：
   - `共享成熟度：...`
   - `權重趨勢：...`
   - 不可把這層做成 consultant ranking、資歷標籤或權重控制台
+- 若 precedent review lane 已開始帶 governance recommendation，也只可低噪音補：
+  - `治理建議：...`
+  - action buttons 可把建議動作排在前面
+  - 不可把這層做成治理後台或批次操作面板
 - duplicate governance 也應保持低噪音：
   - `確認同一模式`
   - `保留分開`

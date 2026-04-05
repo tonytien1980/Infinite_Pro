@@ -40,6 +40,15 @@ SHARED_INTELLIGENCE_WEIGHT_RANK = {
     "downweight": 2,
 }
 
+GOVERNANCE_ACTION_RANK = {
+    "promote": 0,
+    "keep_candidate": 1,
+    "keep_promoted": 1,
+    "demote": 2,
+    "dismiss": 3,
+    "keep_dismissed": 4,
+}
+
 
 @dataclass(frozen=True)
 class PrecedentReferenceMatch:
@@ -280,6 +289,70 @@ def build_shared_intelligence_signal(
         promoted_candidate_count=promoted_candidate_count,
         dismissed_candidate_count=dismissed_candidate_count,
         summary=f"{maturity_label}，{weight_action_label}。",
+    )
+
+
+def build_precedent_governance_recommendation(
+    *,
+    candidate_status: str,
+    shared_intelligence_signal: schemas.SharedIntelligenceSignalRead,
+) -> schemas.PrecedentGovernanceRecommendationRead:
+    if candidate_status == PrecedentCandidateStatus.CANDIDATE.value:
+        if shared_intelligence_signal.weight_action == "upweight":
+            return schemas.PrecedentGovernanceRecommendationRead(
+                action="promote",
+                target_status="promoted",
+                action_label="可考慮升格",
+                summary="這筆模式已開始形成共享模式，可考慮升格成正式可重用模式。",
+                rationale=shared_intelligence_signal.maturity_reason,
+            )
+        if shared_intelligence_signal.weight_action == "downweight":
+            return schemas.PrecedentGovernanceRecommendationRead(
+                action="dismiss",
+                target_status="dismissed",
+                action_label="可考慮退場",
+                summary="這筆模式目前較像局部經驗，可考慮先停用，避免持續影響後續重用。",
+                rationale=shared_intelligence_signal.maturity_reason,
+            )
+        return schemas.PrecedentGovernanceRecommendationRead(
+            action="keep_candidate",
+            target_status="candidate",
+            action_label="先留在候選",
+            summary="這筆模式仍在累積共享訊號，先留在候選觀察即可。",
+            rationale=shared_intelligence_signal.maturity_reason,
+        )
+
+    if candidate_status == PrecedentCandidateStatus.PROMOTED.value:
+        if shared_intelligence_signal.weight_action == "downweight":
+            return schemas.PrecedentGovernanceRecommendationRead(
+                action="dismiss",
+                target_status="dismissed",
+                action_label="可考慮退場",
+                summary="這筆正式模式目前共享成熟度偏低，可考慮先退場。",
+                rationale=shared_intelligence_signal.maturity_reason,
+            )
+        if shared_intelligence_signal.weight_action == "hold" and shared_intelligence_signal.maturity == "personal":
+            return schemas.PrecedentGovernanceRecommendationRead(
+                action="demote",
+                target_status="candidate",
+                action_label="可考慮降回候選",
+                summary="這筆模式仍有參考價值，但目前更適合先降回候選觀察。",
+                rationale=shared_intelligence_signal.maturity_reason,
+            )
+        return schemas.PrecedentGovernanceRecommendationRead(
+            action="keep_promoted",
+            target_status="promoted",
+            action_label="維持正式模式",
+            summary="這筆模式目前仍適合維持正式可重用模式。",
+            rationale=shared_intelligence_signal.maturity_reason,
+        )
+
+    return schemas.PrecedentGovernanceRecommendationRead(
+        action="keep_dismissed",
+        target_status="dismissed",
+        action_label="維持停用",
+        summary="這筆模式目前仍適合留在停用狀態，先作為背景即可。",
+        rationale=shared_intelligence_signal.maturity_reason,
     )
 
 

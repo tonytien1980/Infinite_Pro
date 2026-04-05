@@ -4332,6 +4332,42 @@ def test_weighted_precedent_selection_prefers_upweighted_shared_matches() -> Non
     assert [item.candidate_id for item in selected] == ["candidate-high"]
 
 
+def test_governance_recommendation_promotes_shared_upweighted_candidate() -> None:
+    from app.services.precedent_intelligence import build_precedent_governance_recommendation
+
+    recommendation = build_precedent_governance_recommendation(
+        candidate_status="candidate",
+        shared_intelligence_signal=_test_shared_signal(
+            maturity="shared",
+            maturity_label="已接近共享模式",
+            weight_action="upweight",
+            weight_action_label="提高參考",
+        ),
+    )
+
+    assert recommendation.action == "promote"
+    assert recommendation.target_status == "promoted"
+    assert "升格" in recommendation.summary
+
+
+def test_governance_recommendation_retires_downweighted_promoted_candidate() -> None:
+    from app.services.precedent_intelligence import build_precedent_governance_recommendation
+
+    recommendation = build_precedent_governance_recommendation(
+        candidate_status="promoted",
+        shared_intelligence_signal=_test_shared_signal(
+            maturity="personal",
+            maturity_label="仍偏個別經驗",
+            weight_action="downweight",
+            weight_action_label="降低參考",
+        ),
+    )
+
+    assert recommendation.action == "dismiss"
+    assert recommendation.target_status == "dismissed"
+    assert "退場" in recommendation.summary or "停用" in recommendation.summary
+
+
 def test_review_lens_guidance_prefers_weighted_shared_precedent() -> None:
     guidance = build_review_lens_guidance(
         task_type="contract_review",
@@ -4374,6 +4410,31 @@ def test_review_lens_guidance_prefers_weighted_shared_precedent() -> None:
 
     assert guidance.lenses
     assert "共享模式" in guidance.lenses[0].title
+
+
+def test_precedent_review_exposes_governance_recommendation(
+    client: TestClient,
+) -> None:
+    payload = create_contract_review_payload("Governance recommendation precedent")
+    task = client.post("/api/v1/tasks", json=payload).json()
+    client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("agreement.txt", b"Termination and liability clauses need review.", "text/plain"))],
+    )
+    deliverable_id = client.post(f"/api/v1/tasks/{task['id']}/run").json()["deliverable"]["id"]
+    client.post(
+        f"/api/v1/deliverables/{deliverable_id}/feedback",
+        json={"feedback_status": "template_candidate", "reason_codes": ["reusable_structure"]},
+    )
+
+    review_response = client.get("/api/v1/workbench/precedent-candidates")
+    assert review_response.status_code == 200
+    item = next(
+        row for row in review_response.json()["items"] if row["deliverable_id"] == deliverable_id
+    )
+    assert item["governance_recommendation"]["action"] in {"promote", "keep_candidate", "dismiss"}
+    assert item["governance_recommendation"]["target_status"] in {"candidate", "promoted", "dismissed"}
+    assert item["governance_recommendation"]["summary"]
 
 
 def test_domain_playbook_guidance_prefers_weighted_shared_precedent() -> None:

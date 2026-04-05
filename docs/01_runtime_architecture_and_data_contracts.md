@@ -704,6 +704,34 @@ deliverable workspace 採：
 - 若同類 asset 已有非 `downweight` precedent，第一波可先不使用 `downweight` precedent
 - 這層不是全域自動 routing 引擎，也不是手動調權後台
 
+在 shared-intelligence weighting v1 已成立後，precedent governance 的下一刀可先補：
+
+- `shared-intelligence governance recommendation v1`
+
+正式規則：
+
+- 這不是新的架構層
+- 也不是 candidate 狀態的自動 mutation engine
+- 這層是在回答：依目前 shared-intelligence 訊號，這筆候選比較適合升格、持平、降回候選，還是退場
+- 第一波只允許影響：
+  - precedent review lane 的低噪音治理建議
+  - precedent candidate action 的排序
+- 這層不可直接自動改 candidate status；最終治理動作仍由顧問明確觸發
+
+第一版 contract 至少包括：
+
+- `action`
+  - `promote`
+  - `keep_candidate`
+  - `demote`
+  - `keep_promoted`
+  - `dismiss`
+  - `keep_dismissed`
+- `target_status`
+- `action_label`
+- `summary`
+- `rationale`
+
 ### 6.10 Precedent candidate pool
 
 目前 precedent / reusable intelligence 的第一輪正式形態，是 `precedent candidate pool`。
@@ -774,6 +802,7 @@ deliverable workspace 採：
 - `last_status_changed_by_label`
 - `optimization_signal`
 - `shared_intelligence_signal`
+- `governance_recommendation`
 
 正式規則：
 
@@ -783,6 +812,10 @@ deliverable workspace 採：
 - review lane 也應開始利用 `shared_intelligence_signal` 回答：
   - 這筆候選目前仍偏個別經驗，還是開始形成共享模式
   - 目前應提高參考、先持平觀察，還是降低參考
+- review lane 也可開始利用 `governance_recommendation` 回答：
+  - 這筆候選目前比較像可考慮升格
+  - 先留在候選觀察
+  - 可考慮降回候選或退場
 - 第一波建議順序至少應符合：
   - `candidate + template_candidate` -> `high`
   - `candidate + adopted` -> `high`

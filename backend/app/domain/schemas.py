@@ -820,6 +820,21 @@ class SharedIntelligenceSignalRead(BaseModel):
     summary: str = ""
 
 
+class PrecedentGovernanceRecommendationRead(BaseModel):
+    action: Literal[
+        "promote",
+        "keep_candidate",
+        "demote",
+        "keep_promoted",
+        "dismiss",
+        "keep_dismissed",
+    ] = "keep_candidate"
+    target_status: Literal["candidate", "promoted", "dismissed"] = "candidate"
+    action_label: str = ""
+    summary: str = ""
+    rationale: str = ""
+
+
 class PrecedentReferenceItemRead(BaseModel):
     candidate_id: str
     candidate_type: PrecedentCandidateType

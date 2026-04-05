@@ -1,5 +1,6 @@
 import type {
   PrecedentCandidate,
+  PrecedentGovernanceRecommendation,
   PrecedentCandidateSummary,
   PrecedentCandidateStatus,
   PrecedentCandidateType,
@@ -86,31 +87,52 @@ export function buildPrecedentCandidateView(
 export function buildPrecedentCandidateActionView(candidate: {
   candidate_status: PrecedentCandidateStatus;
   candidate_type: PrecedentCandidateType;
+  governance_recommendation?: PrecedentGovernanceRecommendation | null;
 }): {
   statusLabel: string;
+  governanceSummary: string;
   actions: Array<{ nextStatus: PrecedentCandidateStatus; label: string }>;
 } {
+  const reorderActions = (
+    actions: Array<{ nextStatus: PrecedentCandidateStatus; label: string }>,
+  ) => {
+    const targetStatus = candidate.governance_recommendation?.target_status;
+    if (!targetStatus) {
+      return actions;
+    }
+    return [...actions].sort((left, right) => {
+      const leftPreferred = left.nextStatus === targetStatus ? 0 : 1;
+      const rightPreferred = right.nextStatus === targetStatus ? 0 : 1;
+      return leftPreferred - rightPreferred;
+    });
+  };
+  const governanceSummary = candidate.governance_recommendation
+    ? `${candidate.governance_recommendation.action_label}｜${candidate.governance_recommendation.summary}`
+    : "";
   if (candidate.candidate_status === "promoted") {
     return {
       statusLabel: "正式可重用模式",
-      actions: [
+      governanceSummary,
+      actions: reorderActions([
         { nextStatus: "candidate", label: "降回候選" },
         { nextStatus: "dismissed", label: "停用這個模式" },
-      ],
+      ]),
     };
   }
   if (candidate.candidate_status === "dismissed") {
     return {
       statusLabel: "已停用",
-      actions: [{ nextStatus: "candidate", label: "重新列回候選" }],
+      governanceSummary,
+      actions: reorderActions([{ nextStatus: "candidate", label: "重新列回候選" }]),
     };
   }
   return {
     statusLabel: "候選中",
-    actions: [
+    governanceSummary,
+    actions: reorderActions([
       { nextStatus: "promoted", label: "升格成正式可重用模式" },
       { nextStatus: "dismissed", label: "先停用這個候選" },
-    ],
+    ]),
   };
 }
 
