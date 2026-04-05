@@ -30,6 +30,13 @@ DEFAULT_WORKBENCH_PROFILE = "single_consultant_default"
 DEFAULT_WORKBENCH_PREFERENCES = schemas.WorkbenchPreferenceResponse()
 
 
+def _normalize_operator_label(value: str | None) -> str:
+    normalized = " ".join((value or "").strip().split())
+    if not normalized:
+        return ""
+    return normalized[:120]
+
+
 def _get_or_create_preference_row(db: Session) -> models.WorkbenchPreference:
     row = db.scalars(
         select(models.WorkbenchPreference).where(
@@ -304,4 +311,50 @@ def update_precedent_duplicate_review_state(
             note=payload.note,
         ),
     )
+    return get_precedent_review_state(db)
+
+
+def apply_precedent_governance_recommendation(
+    db: Session,
+    *,
+    candidate_id: str,
+    payload: schemas.PrecedentGovernanceApplyRequest,
+) -> schemas.PrecedentReviewResponse:
+    candidate = db.scalar(
+        select(models.PrecedentCandidate).where(models.PrecedentCandidate.id == candidate_id)
+    )
+    if candidate is None:
+        raise HTTPException(status_code=404, detail="找不到指定可重用候選。")
+
+    rows = (
+        db.scalars(
+            select(models.PrecedentCandidate)
+            .options(
+                selectinload(models.PrecedentCandidate.task),
+                selectinload(models.PrecedentCandidate.matter_workspace),
+                selectinload(models.PrecedentCandidate.deliverable),
+                selectinload(models.PrecedentCandidate.recommendation),
+            )
+            .order_by(models.PrecedentCandidate.updated_at.desc())
+        )
+        .unique()
+        .all()
+    )
+    shared_intelligence_signal = build_shared_intelligence_signal(
+        candidate=candidate,
+        candidates=rows,
+    )
+    recommendation = build_precedent_governance_recommendation(
+        candidate_status=candidate.candidate_status,
+        shared_intelligence_signal=shared_intelligence_signal,
+    )
+
+    if recommendation.target_status != candidate.candidate_status:
+        candidate.candidate_status = recommendation.target_status
+        operator_label = _normalize_operator_label(payload.operator_label)
+        if operator_label:
+            candidate.last_status_changed_by_label = operator_label
+        db.add(candidate)
+        db.commit()
+
     return get_precedent_review_state(db)

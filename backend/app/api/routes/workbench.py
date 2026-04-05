@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.services.workbench import (
+    apply_precedent_governance_recommendation,
     get_history_visibility_state,
     get_precedent_review_state,
     get_workbench_preferences,
@@ -99,6 +100,22 @@ def get_precedent_review_route(
     db: Session = Depends(get_db),
 ) -> schemas.PrecedentReviewResponse:
     return get_precedent_review_state(db)
+
+
+@router.post(
+    "/precedent-candidates/{candidate_id}/apply-governance-recommendation",
+    response_model=schemas.PrecedentReviewResponse,
+)
+def apply_precedent_governance_recommendation_route(
+    candidate_id: str,
+    payload: schemas.PrecedentGovernanceApplyRequest,
+    db: Session = Depends(get_db),
+) -> schemas.PrecedentReviewResponse:
+    return apply_precedent_governance_recommendation(
+        db,
+        candidate_id=candidate_id,
+        payload=payload,
+    )
 
 
 @router.post(

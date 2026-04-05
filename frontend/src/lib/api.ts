@@ -16,6 +16,7 @@ import {
   MatterContinuationActionPayload,
   MatterCanonicalizationReviewPayload,
   PrecedentDuplicateReviewPayload,
+  PrecedentGovernanceApplyPayload,
   PrecedentReviewResponse,
   MatterWorkspaceMetadataUpdatePayload,
   MatterWorkspaceSummary,
@@ -94,6 +95,23 @@ export async function updatePrecedentDuplicateReview(
 ): Promise<PrecedentReviewResponse> {
   const response = await fetch(
     `${getApiBaseUrl()}/workbench/matters/${matterWorkspaceId}/precedent-duplicate-review`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+  );
+  return parseResponse<PrecedentReviewResponse>(response);
+}
+
+export async function applyPrecedentGovernanceRecommendation(
+  candidateId: string,
+  payload: PrecedentGovernanceApplyPayload,
+): Promise<PrecedentReviewResponse> {
+  const response = await fetch(
+    `${getApiBaseUrl()}/workbench/precedent-candidates/${candidateId}/apply-governance-recommendation`,
     {
       method: "POST",
       headers: {

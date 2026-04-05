@@ -1348,6 +1348,10 @@ export interface PrecedentCandidateStatusUpdatePayload {
   operator_label?: string | null;
 }
 
+export interface PrecedentGovernanceApplyPayload {
+  operator_label?: string | null;
+}
+
 export interface TaskRun {
   id: string;
   task_id: string;

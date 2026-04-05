@@ -718,6 +718,25 @@ deliverable workspace 採：
   - precedent candidate action 的排序
 - 這層不可直接自動改 candidate status；最終治理動作仍由顧問明確觸發
 
+在 `shared-intelligence governance recommendation v1` 已成立後，下一刀可先補：
+
+- `shared-intelligence promotion / decay application v1`
+
+正式規則：
+
+- 這不是新的架構層
+- 第一波只允許：
+  - 顧問在 precedent review lane 上明確按下「套用建議」
+  - 系統再把當下 recommendation 的 `target_status` 寫回 candidate status
+- 若 governance recommendation 屬於：
+  - `keep_candidate`
+  - `keep_promoted`
+  - `keep_dismissed`
+  則第一波不應做 no-op mutation button
+- 第一波不可做 background auto-promotion 或 background auto-dismiss
+- 這層的正式目的，是把 governance recommendation 從純讀取提示推進成可人工套用的治理捷徑
+- 這層目前也應維持在 workbench / review family 內，不新增 governance page family
+
 第一版 contract 至少包括：
 
 - `action`

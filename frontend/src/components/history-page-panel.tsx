@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { buildTaskListWorkspaceSummary } from "@/lib/advisory-workflow";
 import {
+  applyPrecedentGovernanceRecommendation,
   getPrecedentReviewState,
   listTasks,
   updatePrecedentDuplicateReview,
@@ -276,6 +277,31 @@ export function HistoryPagePanel() {
     } catch (precedentError) {
       setPrecedentMessage(
         precedentError instanceof Error ? precedentError.message : "更新可重用候選狀態失敗。"
+      );
+    } finally {
+      setActivePrecedentId(null);
+    }
+  }
+
+  async function handleApplyGovernanceRecommendation(item: PrecedentReviewItem) {
+    const operatorLabel = normalizeOperatorDisplayName(operatorIdentity.operatorDisplayName);
+    try {
+      setActivePrecedentId(item.id);
+      setPrecedentMessage(null);
+      const precedentResponse = await applyPrecedentGovernanceRecommendation(item.id, {
+        operator_label: operatorLabel || undefined,
+      });
+      setPrecedentItems(precedentResponse.items);
+      setPrecedentDuplicateSummary(precedentResponse.duplicate_summary);
+      setPrecedentDuplicateCandidates(precedentResponse.duplicate_candidates);
+      setPrecedentMessage(
+        item.governance_recommendation.action_label
+          ? `已套用建議：${item.governance_recommendation.action_label}`
+          : "已套用目前治理建議。"
+      );
+    } catch (precedentError) {
+      setPrecedentMessage(
+        precedentError instanceof Error ? precedentError.message : "套用治理建議失敗。"
       );
     } finally {
       setActivePrecedentId(null);
@@ -582,6 +608,18 @@ export function HistoryPagePanel() {
                         {item.lane_id || "未標示 lane"}｜{item.continuity_mode}｜{item.deliverable_type || "未標示交付類型"}
                       </p>
                       <div className="button-row" style={{ marginTop: "12px" }}>
+                        {actionView.recommendedAction ? (
+                          <button
+                            className="button-secondary"
+                            type="button"
+                            disabled={activePrecedentId === item.id}
+                            onClick={() => void handleApplyGovernanceRecommendation(item)}
+                          >
+                            {activePrecedentId === item.id
+                              ? "處理中..."
+                              : actionView.recommendedAction.label}
+                          </button>
+                        ) : null}
                         {item.deliverable_id ? (
                           <Link className="button-secondary" href={`/deliverables/${item.deliverable_id}`}>
                             打開交付物

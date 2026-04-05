@@ -91,6 +91,7 @@ export function buildPrecedentCandidateActionView(candidate: {
 }): {
   statusLabel: string;
   governanceSummary: string;
+  recommendedAction: { nextStatus: PrecedentCandidateStatus; label: string } | null;
   actions: Array<{ nextStatus: PrecedentCandidateStatus; label: string }>;
 } {
   const reorderActions = (
@@ -109,30 +110,52 @@ export function buildPrecedentCandidateActionView(candidate: {
   const governanceSummary = candidate.governance_recommendation
     ? `${candidate.governance_recommendation.action_label}｜${candidate.governance_recommendation.summary}`
     : "";
+  const buildRecommendedAction = (
+    actions: Array<{ nextStatus: PrecedentCandidateStatus; label: string }>,
+  ) => {
+    const targetStatus = candidate.governance_recommendation?.target_status;
+    if (!targetStatus || targetStatus === candidate.candidate_status) {
+      return null;
+    }
+    const match = actions.find((action) => action.nextStatus === targetStatus);
+    if (!match) {
+      return null;
+    }
+    return {
+      nextStatus: match.nextStatus,
+      label: `套用建議：${match.label}`,
+    };
+  };
   if (candidate.candidate_status === "promoted") {
+    const actions = reorderActions([
+      { nextStatus: "candidate", label: "降回候選" },
+      { nextStatus: "dismissed", label: "停用這個模式" },
+    ]);
     return {
       statusLabel: "正式可重用模式",
       governanceSummary,
-      actions: reorderActions([
-        { nextStatus: "candidate", label: "降回候選" },
-        { nextStatus: "dismissed", label: "停用這個模式" },
-      ]),
+      recommendedAction: buildRecommendedAction(actions),
+      actions,
     };
   }
   if (candidate.candidate_status === "dismissed") {
+    const actions = reorderActions([{ nextStatus: "candidate", label: "重新列回候選" }]);
     return {
       statusLabel: "已停用",
       governanceSummary,
-      actions: reorderActions([{ nextStatus: "candidate", label: "重新列回候選" }]),
+      recommendedAction: buildRecommendedAction(actions),
+      actions,
     };
   }
+  const actions = reorderActions([
+    { nextStatus: "promoted", label: "升格成正式可重用模式" },
+    { nextStatus: "dismissed", label: "先停用這個候選" },
+  ]);
   return {
     statusLabel: "候選中",
     governanceSummary,
-    actions: reorderActions([
-      { nextStatus: "promoted", label: "升格成正式可重用模式" },
-      { nextStatus: "dismissed", label: "先停用這個候選" },
-    ]),
+    recommendedAction: buildRecommendedAction(actions),
+    actions,
   };
 }
 

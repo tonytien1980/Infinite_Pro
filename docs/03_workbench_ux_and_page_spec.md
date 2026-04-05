@@ -847,6 +847,11 @@ Primary action：
   - `治理建議：...`
   - action buttons 可把建議動作排在前面
   - 不可把這層做成治理後台或批次操作面板
+- 若 precedent review lane 已開始支援 promotion / decay application，第一波也只可低噪音補：
+  - `套用建議：...`
+  - 而且只在 recommendation 屬於可執行動作時出現
+  - 不可做成自動套用或背景批次治理
+  - 套用後應直接 refresh 同一條 precedent review lane，不需要把使用者跳到其他治理頁面
 - duplicate governance 也應保持低噪音：
   - `確認同一模式`
   - `保留分開`

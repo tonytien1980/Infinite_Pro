@@ -239,6 +239,10 @@ class HistoryVisibilityUpdateRequest(BaseModel):
     visibility_state: Literal["visible", "hidden"] = "hidden"
 
 
+class PrecedentGovernanceApplyRequest(BaseModel):
+    operator_label: str | None = None
+
+
 class PrecedentReviewItemResponse(BaseModel):
     id: str
     candidate_type: Literal["deliverable_pattern", "recommendation_pattern"]

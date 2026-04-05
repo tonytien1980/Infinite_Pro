@@ -3337,3 +3337,41 @@ Environment used:
 - Infinite Pro now tells the consultant not only how strong a precedent is, but also what the next governance move likely is
 - precedence governance remains human-triggered: the system suggests promote / keep / dismiss, but does not auto-mutate state
 - the visible UI remains low-noise and does not become a management dashboard
+
+---
+
+## Entry: 2026-04-05 shared-intelligence promotion / decay application v1 pass
+
+Scope:
+- first-pass one-click apply for governance recommendations
+- history precedent lane can apply promote / demote / dismiss recommendations
+- still no background auto-mutation
+
+Environment used:
+- local repo runtime checks only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`153 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`30 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Promotion/decay-application specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | workbench route | Apply governance recommendation | Verified | targeted backend test confirms candidate can be promoted via `apply-governance-recommendation` route |
+| Backend | governance boundaries | Keep-only recommendations remain read-only | Verified | route logic only mutates when recommendation maps to `promote / demote / dismiss` |
+| Frontend | candidate action helper | Expose low-noise `recommendedAction` | Verified | helper test confirms candidate / promoted items now expose `套用建議：...` only when action is executable |
+| Frontend | history precedent lane | Apply suggestion in-place | Verified | implementation refreshes the same review lane instead of navigating to a separate governance page |
+
+### Verified outcomes
+
+- Infinite Pro can now turn governance recommendations into a one-click apply flow without introducing auto-governance
+- the consultant still explicitly confirms the action; the system does not mutate candidate status in the background
+- the visible UI remains low-noise and stays inside the existing history review surface

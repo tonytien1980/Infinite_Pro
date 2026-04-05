@@ -4437,6 +4437,63 @@ def test_precedent_review_exposes_governance_recommendation(
     assert item["governance_recommendation"]["summary"]
 
 
+def test_apply_governance_recommendation_promotes_candidate(
+    client: TestClient,
+) -> None:
+    first = client.post(
+        "/api/v1/tasks",
+        json=create_contract_review_payload("Promotion application precedent A"),
+    ).json()
+    client.post(
+        f"/api/v1/tasks/{first['id']}/uploads",
+        files=[("files", ("agreement-a.txt", b"Termination and liability clauses need review.", "text/plain"))],
+    )
+    deliverable_a = client.post(f"/api/v1/tasks/{first['id']}/run").json()["deliverable"]["id"]
+    client.post(
+        f"/api/v1/deliverables/{deliverable_a}/feedback",
+        json={
+            "feedback_status": "template_candidate",
+            "reason_codes": ["reusable_structure"],
+            "operator_label": "王顧問",
+        },
+    )
+
+    second = client.post(
+        "/api/v1/tasks",
+        json=create_contract_review_payload("Promotion application precedent B"),
+    ).json()
+    client.post(
+        f"/api/v1/tasks/{second['id']}/uploads",
+        files=[("files", ("agreement-b.txt", b"Indemnity and termination still need review.", "text/plain"))],
+    )
+    deliverable_b = client.post(f"/api/v1/tasks/{second['id']}/run").json()["deliverable"]["id"]
+    client.post(
+        f"/api/v1/deliverables/{deliverable_b}/feedback",
+        json={
+            "feedback_status": "adopted",
+            "reason_codes": ["reusable_structure"],
+            "operator_label": "林顧問",
+        },
+    )
+
+    review_response = client.get("/api/v1/workbench/precedent-candidates")
+    candidate = next(
+        item for item in review_response.json()["items"] if item["deliverable_id"] == deliverable_a
+    )
+    assert candidate["governance_recommendation"]["action"] == "promote"
+
+    apply_response = client.post(
+        f"/api/v1/workbench/precedent-candidates/{candidate['id']}/apply-governance-recommendation",
+        json={"operator_label": "林校稿"},
+    )
+    assert apply_response.status_code == 200
+    refreshed = next(
+        item for item in apply_response.json()["items"] if item["deliverable_id"] == deliverable_a
+    )
+    assert refreshed["candidate_status"] == "promoted"
+    assert refreshed["last_status_changed_by_label"] == "林校稿"
+
+
 def test_domain_playbook_guidance_prefers_weighted_shared_precedent() -> None:
     from app.services.domain_playbook_intelligence import build_domain_playbook_guidance
 
