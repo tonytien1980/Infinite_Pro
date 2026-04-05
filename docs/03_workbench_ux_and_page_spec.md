@@ -975,6 +975,11 @@ Primary action：
   - `promoted` 可降回候選或停用
   - `dismissed` 可重新列回候選
 - 這些 action 只應出現在既有 candidate 區塊附近，不可新增 precedent management page
+- 若 source feedback 更新已觸發 lifecycle preservation / decay，既有 candidate 區塊應直接反映新的狀態：
+  - `candidate` 在 `not_adopted` 後可顯示為 `已停用`
+  - `promoted` 在 `not_adopted` 後可顯示為 `候選中`
+  - `dismissed` 在新的正向回饋後可顯示為 `候選中`
+- 這層是狀態延續，不是 candidate 區塊突然整塊消失
 - 若已知這個 candidate 的採納者或最近治理者，UI 也只可低噪音補：
   - `採納：XXX`
   - `最近治理：YYY`

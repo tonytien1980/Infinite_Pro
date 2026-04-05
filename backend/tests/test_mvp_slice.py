@@ -3472,6 +3472,192 @@ def test_not_adopted_feedback_does_not_create_precedent_candidate(
     assert recommendation["precedent_candidate"] is None
 
 
+def test_candidate_is_dismissed_instead_of_deleted_when_feedback_becomes_not_adopted(
+    client: TestClient,
+) -> None:
+    payload = create_task_payload("Recommendation candidate lifecycle preservation")
+    task = client.post("/api/v1/tasks", json=payload).json()
+
+    client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("notes.txt", b"Pricing and channel strategy should stay explicit.", "text/plain"))],
+    )
+    run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
+    assert run_response.status_code == 200
+
+    aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
+    recommendation_id = aggregate["recommendations"][0]["id"]
+
+    first_feedback = client.post(
+        f"/api/v1/tasks/{task['id']}/recommendations/{recommendation_id}/feedback",
+        json={
+            "feedback_status": "template_candidate",
+            "operator_label": "王顧問",
+        },
+    )
+    assert first_feedback.status_code == 200
+    first_recommendation = next(
+        item for item in first_feedback.json()["recommendations"] if item["id"] == recommendation_id
+    )
+    candidate_id = first_recommendation["precedent_candidate"]["id"]
+
+    second_feedback = client.post(
+        f"/api/v1/tasks/{task['id']}/recommendations/{recommendation_id}/feedback",
+        json={
+            "feedback_status": "not_adopted",
+            "operator_label": "陳顧問",
+        },
+    )
+    assert second_feedback.status_code == 200
+    updated = second_feedback.json()
+    recommendation = next(item for item in updated["recommendations"] if item["id"] == recommendation_id)
+    candidate = recommendation["precedent_candidate"]
+    assert candidate["id"] == candidate_id
+    assert candidate["candidate_status"] == "dismissed"
+    assert candidate["source_feedback_status"] == "not_adopted"
+    assert candidate["last_status_changed_by_label"] == "陳顧問"
+
+
+def test_promoted_precedent_decays_to_candidate_when_feedback_becomes_not_adopted(
+    client: TestClient,
+) -> None:
+    payload = create_contract_review_payload("Promoted precedent decay")
+    task = client.post("/api/v1/tasks", json=payload).json()
+
+    client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("agreement.txt", b"Termination and indemnity clauses need review.", "text/plain"))],
+    )
+    run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
+    assert run_response.status_code == 200
+    deliverable_id = run_response.json()["deliverable"]["id"]
+
+    first_feedback = client.post(
+        f"/api/v1/deliverables/{deliverable_id}/feedback",
+        json={
+            "feedback_status": "template_candidate",
+            "operator_label": "王顧問",
+        },
+    )
+    assert first_feedback.status_code == 200
+    candidate_id = first_feedback.json()["deliverable"]["precedent_candidate"]["id"]
+
+    promote_response = client.post(
+        f"/api/v1/deliverables/{deliverable_id}/precedent-candidate",
+        json={"candidate_status": "promoted", "operator_label": "林校稿"},
+    )
+    assert promote_response.status_code == 200
+
+    second_feedback = client.post(
+        f"/api/v1/deliverables/{deliverable_id}/feedback",
+        json={
+            "feedback_status": "not_adopted",
+            "operator_label": "陳顧問",
+        },
+    )
+    assert second_feedback.status_code == 200
+    candidate = second_feedback.json()["deliverable"]["precedent_candidate"]
+    assert candidate["id"] == candidate_id
+    assert candidate["candidate_status"] == "candidate"
+    assert candidate["source_feedback_status"] == "not_adopted"
+    assert candidate["last_status_changed_by_label"] == "陳顧問"
+
+
+def test_dismissed_precedent_restores_to_candidate_when_positive_feedback_returns(
+    client: TestClient,
+) -> None:
+    payload = create_task_payload("Dismissed precedent restore by feedback")
+    task = client.post("/api/v1/tasks", json=payload).json()
+
+    client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("notes.txt", b"Channel and pricing recommendation needs a clean structure.", "text/plain"))],
+    )
+    run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
+    assert run_response.status_code == 200
+
+    aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
+    recommendation_id = aggregate["recommendations"][0]["id"]
+
+    first_feedback = client.post(
+        f"/api/v1/tasks/{task['id']}/recommendations/{recommendation_id}/feedback",
+        json={
+            "feedback_status": "template_candidate",
+            "operator_label": "王顧問",
+        },
+    )
+    assert first_feedback.status_code == 200
+    candidate_id = next(
+        item for item in first_feedback.json()["recommendations"] if item["id"] == recommendation_id
+    )["precedent_candidate"]["id"]
+
+    dismiss_response = client.post(
+        f"/api/v1/tasks/{task['id']}/recommendations/{recommendation_id}/precedent-candidate",
+        json={"candidate_status": "dismissed", "operator_label": "林校稿"},
+    )
+    assert dismiss_response.status_code == 200
+
+    second_feedback = client.post(
+        f"/api/v1/tasks/{task['id']}/recommendations/{recommendation_id}/feedback",
+        json={
+            "feedback_status": "adopted",
+            "operator_label": "陳顧問",
+        },
+    )
+    assert second_feedback.status_code == 200
+    recommendation = next(item for item in second_feedback.json()["recommendations"] if item["id"] == recommendation_id)
+    candidate = recommendation["precedent_candidate"]
+    assert candidate["id"] == candidate_id
+    assert candidate["candidate_status"] == "candidate"
+    assert candidate["source_feedback_status"] == "adopted"
+    assert candidate["last_status_changed_by_label"] == "陳顧問"
+
+
+def test_promoted_precedent_keeps_status_when_feedback_stays_positive(
+    client: TestClient,
+) -> None:
+    payload = create_contract_review_payload("Promoted precedent stays promoted")
+    task = client.post("/api/v1/tasks", json=payload).json()
+
+    client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("agreement.txt", b"Termination and liability clauses need review.", "text/plain"))],
+    )
+    run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
+    assert run_response.status_code == 200
+    deliverable_id = run_response.json()["deliverable"]["id"]
+
+    first_feedback = client.post(
+        f"/api/v1/deliverables/{deliverable_id}/feedback",
+        json={
+            "feedback_status": "template_candidate",
+            "operator_label": "王顧問",
+        },
+    )
+    assert first_feedback.status_code == 200
+    candidate_id = first_feedback.json()["deliverable"]["precedent_candidate"]["id"]
+
+    promote_response = client.post(
+        f"/api/v1/deliverables/{deliverable_id}/precedent-candidate",
+        json={"candidate_status": "promoted", "operator_label": "林校稿"},
+    )
+    assert promote_response.status_code == 200
+
+    second_feedback = client.post(
+        f"/api/v1/deliverables/{deliverable_id}/feedback",
+        json={
+            "feedback_status": "adopted",
+            "operator_label": "陳顧問",
+        },
+    )
+    assert second_feedback.status_code == 200
+    candidate = second_feedback.json()["deliverable"]["precedent_candidate"]
+    assert candidate["id"] == candidate_id
+    assert candidate["candidate_status"] == "promoted"
+    assert candidate["source_feedback_status"] == "adopted"
+    assert candidate["last_status_changed_by_label"] == "林校稿"
+
+
 def test_recommendation_feedback_status_change_clears_reason_codes_and_preserves_note(
     client: TestClient,
 ) -> None:

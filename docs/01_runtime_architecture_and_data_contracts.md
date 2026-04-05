@@ -751,6 +751,28 @@ deliverable workspace 採：
 - `summary`
 - `rationale`
 
+在 `shared-intelligence promotion / decay application v1` 已成立後，下一刀可先補：
+
+- `shared-intelligence promotion / decay rules v2`
+
+正式規則：
+
+- 這不是新的架構層
+- 也不是背景 auto-promotion / auto-dismiss job
+- 這層的正式角色，是在 explicit adoption feedback 更新時保留 precedent lifecycle，而不是把既有 candidate row 粗暴刪除或重設
+- 若 source 尚未建立 precedent candidate，`not_adopted` 仍不應新建 candidate row
+- 但若 source 已有 precedent candidate row，第一波正式行為應為：
+  - `candidate` + `not_adopted` -> `dismissed`
+  - `promoted` + `not_adopted` -> `candidate`
+  - `dismissed` + 新的 qualifying feedback -> `candidate`
+  - `promoted` + 新的 qualifying feedback -> 維持 `promoted`
+- 這層的正式目的是：
+  - 保留 precedent row identity
+  - 保留 candidate 已有的治理與共享訊號
+  - 讓 decay 先走一步，而不是直接硬刪
+- 若 feedback 更新實際造成 candidate status 改變，且 request 帶有 `operator_label`，第一波可把這次 feedback operator 寫回 `last_status_changed_by_label`
+- 這層仍屬 feedback-driven lifecycle handling，不等於整體 shared-intelligence lifecycle 已完成成熟化
+
 ### 6.10 Precedent candidate pool
 
 目前 precedent / reusable intelligence 的第一輪正式形態，是 `precedent candidate pool`。
@@ -768,6 +790,7 @@ deliverable workspace 採：
   - `needs_revision`
   - `template_candidate`
 - `not_adopted` 不可建立 precedent candidate
+- 若 precedent candidate 已存在，`not_adopted` 第一波不應直接刪除 row，而應交由 lifecycle preservation / decay rules 處理
 - publish / approval / revision 可作為輔助 metadata，但不能單獨建立 candidate
 
 第一波 candidate contract 至少包括：

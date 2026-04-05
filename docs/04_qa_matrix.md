@@ -3375,3 +3375,42 @@ Environment used:
 - Infinite Pro can now turn governance recommendations into a one-click apply flow without introducing auto-governance
 - the consultant still explicitly confirms the action; the system does not mutate candidate status in the background
 - the visible UI remains low-noise and stays inside the existing history review surface
+
+---
+
+## Entry: 2026-04-05 shared-intelligence promotion / decay rules v2 pass
+
+Scope:
+- feedback-linked lifecycle preservation for precedent candidates
+- preserve candidate row identity across feedback updates
+- decay / restore rules without background auto-governance
+
+Environment used:
+- local repo runtime checks only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`157 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`30 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Lifecycle-rules-v2 specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | recommendation feedback | Existing `candidate` receives `not_adopted` | Verified | targeted backend test confirms candidate row is preserved and decays to `dismissed`, instead of being deleted |
+| Backend | deliverable feedback | Existing `promoted` precedent receives `not_adopted` | Verified | targeted backend test confirms promoted row decays to `candidate`, preserving row identity |
+| Backend | recommendation feedback | Existing `dismissed` precedent receives renewed positive feedback | Verified | targeted backend test confirms dismissed row restores to `candidate` instead of recreating a fresh row |
+| Backend | deliverable feedback | Existing `promoted` precedent receives renewed positive feedback | Verified | targeted backend test confirms promoted status is preserved and no longer resets to `candidate` |
+
+### Verified outcomes
+
+- Infinite Pro now preserves precedent lifecycle across feedback updates instead of hard-deleting or blindly resetting existing candidate rows
+- decay now happens in smaller, more honest steps: promoted precedent can fall back to candidate before leaving the shared-intelligence surface entirely
+- renewed positive feedback can restore a dismissed precedent back into observation without losing its prior identity and history
+- verification in this pass stayed repo-level only; no browser smoke was run

@@ -11875,6 +11875,26 @@ def _build_precedent_candidate_seed(
     }
 
 
+def _next_precedent_candidate_status_for_feedback(
+    existing_status: str | None,
+    feedback_status: AdoptionFeedbackStatus,
+) -> PrecedentCandidateStatus | None:
+    if existing_status is None:
+        if _feedback_status_creates_precedent_candidate(feedback_status):
+            return PrecedentCandidateStatus.CANDIDATE
+        return None
+
+    current_status = PrecedentCandidateStatus(existing_status)
+    if _feedback_status_creates_precedent_candidate(feedback_status):
+        if current_status == PrecedentCandidateStatus.DISMISSED:
+            return PrecedentCandidateStatus.CANDIDATE
+        return current_status
+
+    if current_status == PrecedentCandidateStatus.PROMOTED:
+        return PrecedentCandidateStatus.CANDIDATE
+    return PrecedentCandidateStatus.DISMISSED
+
+
 def _sync_precedent_candidate_for_feedback(
     db: Session,
     task: models.Task,
@@ -11894,10 +11914,11 @@ def _sync_precedent_candidate_for_feedback(
     existing = db.scalars(statement).one_or_none()
 
     feedback_status = AdoptionFeedbackStatus(feedback.feedback_status)
-    if not _feedback_status_creates_precedent_candidate(feedback_status):
-        if existing is not None:
-            db.delete(existing)
-            db.flush()
+    next_status = _next_precedent_candidate_status_for_feedback(
+        existing.candidate_status if existing is not None else None,
+        feedback_status,
+    )
+    if next_status is None:
         return
 
     seed = _build_precedent_candidate_seed(
@@ -11915,14 +11936,17 @@ def _sync_precedent_candidate_for_feedback(
         source_deliverable_id=deliverable.id if deliverable else None,
         source_recommendation_id=recommendation.id if recommendation else None,
     )
+    previous_status = candidate.candidate_status if existing is not None else None
     candidate.task_id = task.id
     candidate.matter_workspace_id = matter_workspace.id if matter_workspace else None
     candidate.source_feedback_status = feedback_status.value
     candidate.source_feedback_reason_codes = list(feedback.reason_codes or [])
     candidate.source_feedback_operator_label = feedback.operator_label or ""
-    candidate.candidate_status = PrecedentCandidateStatus.CANDIDATE.value
+    candidate.candidate_status = next_status.value
     if existing is None:
         candidate.created_by_label = feedback.operator_label or ""
+    elif previous_status != next_status.value and feedback.operator_label:
+        candidate.last_status_changed_by_label = feedback.operator_label
     candidate.candidate_type = seed["candidate_type"]
     candidate.title = seed["title"]
     candidate.summary = seed["summary"]
