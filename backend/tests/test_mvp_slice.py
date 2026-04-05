@@ -3799,6 +3799,7 @@ def test_build_payload_organization_memory_context_keeps_prompt_safe_lines() -> 
             summary="summary",
             organization_label="某客戶｜制度化階段｜中小企業",
             source_lifecycle_summary="跨案件背景目前先留作背景參考，先不要讓它主導這輪判斷。",
+            freshness_summary="跨案件背景目前偏舊，先留作背景參考。",
             stable_context_items=["主要工作焦點：法務、營運", "目前常用模組包：Professional Services Pack"],
             known_constraints=["Keep the output internal and non-final."],
             continuity_anchor="這案目前延續合約審閱這條主線。",
@@ -3809,6 +3810,7 @@ def test_build_payload_organization_memory_context_keeps_prompt_safe_lines() -> 
                     matter_title="年度法務盤點｜合約風險整理",
                     summary="先前案件主要聚焦 termination、liability 與附件邊界。",
                     relation_reason="同一客戶｜同樣偏法務風險主線",
+                    freshness_label="較舊背景",
                 )
             ],
             boundary_note="這是同一案件世界內目前已知的穩定背景。",
@@ -3824,6 +3826,7 @@ def test_build_payload_organization_memory_context_keeps_prompt_safe_lines() -> 
     assert any("延續主線：" in item for item in lines)
     assert any("跨案件背景：" in item for item in lines)
     assert any("來源狀態：" in item for item in lines)
+    assert any("背景新鮮度：" in item for item in lines)
     assert any("跨案件參考 1：" in item for item in lines)
 
 
@@ -3995,6 +3998,42 @@ def test_organization_memory_guidance_marks_single_cross_matter_reference_as_bac
     assert "先留作背景參考" in guidance.source_lifecycle_summary
 
 
+def test_organization_memory_guidance_marks_stale_cross_matter_background_as_old() -> None:
+    from app.services.organization_memory_intelligence import build_organization_memory_guidance
+
+    guidance = build_organization_memory_guidance(
+        current_matter_workspace_id="matter-current",
+        client_name="Acme Corp",
+        client_stage="制度化階段",
+        client_type="中小企業",
+        domain_lenses=["法務"],
+        selected_pack_names=["Legal Pack"],
+        continuity_mode=schemas.EngagementContinuityMode.ONE_OFF,
+        current_decision_context_title="合約審閱",
+        next_best_actions=["先把附件與責任條款補齊"],
+        constraint_descriptions=["Keep the output internal."],
+        cross_matter_summaries=[
+            schemas.MatterWorkspaceSummaryRead(
+                id="matter-related",
+                title="年度法務盤點",
+                workspace_summary="先前案件主要聚焦附件、責任與終止條件。",
+                object_path="Acme Corp / 年度法務盤點 / 合約風險整理",
+                client_name="Acme Corp",
+                engagement_name="年度法務盤點",
+                workstream_name="合約風險整理",
+                client_stage="制度化階段",
+                client_type="中小企業",
+                domain_lenses=["法務"],
+                latest_updated_at=datetime(2025, 1, 1, tzinfo=timezone.utc),
+            )
+        ],
+    )
+
+    assert guidance.status == "available"
+    assert "偏舊" in guidance.freshness_summary
+    assert guidance.cross_matter_items[0].freshness_label == "較舊背景"
+
+
 def test_domain_playbook_guidance_marks_recovering_sources_as_background_only() -> None:
     from app.services.domain_playbook_intelligence import build_domain_playbook_guidance
 
@@ -4046,6 +4085,49 @@ def test_domain_playbook_guidance_marks_recovering_sources_as_background_only() 
 
     assert "背景校正" in guidance.source_lifecycle_summary
     assert any("先留背景" in item.source_label for item in guidance.stages if item.source_kind == "precedent_reference")
+
+
+def test_domain_playbook_guidance_treats_stale_cross_matter_memory_as_background_only() -> None:
+    from app.services.domain_playbook_intelligence import build_domain_playbook_guidance
+
+    guidance = build_domain_playbook_guidance(
+        task_type="contract_review",
+        client_stage="制度化階段",
+        deliverable_class_hint=DeliverableClass.ASSESSMENT_REVIEW_MEMO,
+        flagship_lane=schemas.FlagshipLaneRead(label="先審閱手上已有材料"),
+        research_guidance=schemas.ResearchGuidanceRead(),
+        organization_memory_guidance=schemas.OrganizationMemoryGuidanceRead(
+            status="available",
+            label="這個客戶 / 組織目前已知的穩定背景",
+            summary="summary",
+            organization_label="Acme Corp｜制度化階段｜中小企業",
+            source_lifecycle_summary="跨案件背景目前先留作背景參考，先不要讓它主導這輪判斷。",
+            freshness_summary="跨案件背景目前偏舊，先留作背景參考。",
+            cross_matter_summary="另有 2 個同客戶案件可回看其穩定背景。",
+            cross_matter_items=[
+                schemas.CrossMatterOrganizationMemoryItemRead(
+                    matter_workspace_id="matter-1",
+                    matter_title="年度法務盤點",
+                    summary="先前案件主要聚焦附件、責任與終止條件。",
+                    relation_reason="同一客戶｜同樣偏法務風險主線",
+                    freshness_label="較舊背景",
+                ),
+                schemas.CrossMatterOrganizationMemoryItemRead(
+                    matter_workspace_id="matter-2",
+                    matter_title="商務條件盤點",
+                    summary="先前案件主要聚焦續約與責任條款。",
+                    relation_reason="同一客戶｜同樣偏法務風險主線",
+                    freshness_label="較舊背景",
+                ),
+            ],
+        ),
+        continuation_surface=None,
+        pack_resolution=schemas.PackResolutionRead(),
+        precedent_reference_guidance=schemas.PrecedentReferenceGuidanceRead(),
+    )
+
+    assert "背景校正" in guidance.source_lifecycle_summary
+    assert any("先留背景" in item.source_label for item in guidance.stages if item.source_kind == "organization_memory")
 
 
 

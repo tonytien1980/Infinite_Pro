@@ -3531,3 +3531,80 @@ Environment used:
 - Infinite Pro now distinguishes between shared sources that are strong enough to guide the mainline and sources that should remain background calibration only
 - organization memory, domain playbook, and deliverable template surfaces now read this distinction back in low-noise consultant language instead of flattening every source into the same tier
 - Host can now avoid letting a recovering or thin shared source prematurely dominate playbook or template guidance
+
+---
+
+## Entry: 2026-04-05 shared source lifecycle filtering v1 completion pass
+
+Scope:
+- finalize source lifecycle summaries on organization memory / domain playbook / deliverable template
+- low-noise `來源狀態` reading on prompt context and existing consultant surfaces
+- conservative Host filtering so weaker shared sources remain background calibration only
+
+Environment used:
+- local repo runtime checks only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`162 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`30 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Shared-source lifecycle completion verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | organization memory | Read background-only cross-matter source lifecycle | Verified | targeted backend test confirms a thin cross-matter signal now yields `source_lifecycle_summary` that reads as background-only |
+| Backend | domain playbook | Keep recovering precedent in background-calibration role | Verified | targeted backend test confirms weaker shared precedent is still visible to Host but no longer over-leads the whole workstream |
+| Backend | deliverable template | Prevent recovering precedent from overriding stronger template mainline | Verified | targeted backend test confirms pack-driven template mainline survives when precedent is only background-only |
+| Backend | agent payload | Prompt contexts expose `來源狀態：...` | Verified | targeted backend tests confirm organization-memory / playbook / template prompt contexts now include lifecycle-safe source state lines |
+| Frontend | matter / task / deliverable helper views | Render low-noise `來源狀態` | Verified | helper tests confirm the new source lifecycle reading stays compact and consultant-readable |
+
+### Verified outcomes
+
+- Infinite Pro now treats thin or recovering shared sources as background calibration instead of letting them prematurely steer playbook or template guidance
+- organization memory, domain playbook, and deliverable template now all expose a low-noise `來源狀態` readback so consultants can tell how strongly the system is leaning on shared sources
+- this pass stays inside existing work surfaces and prompt contexts; no new page family, dashboard, or background lifecycle job was introduced
+
+---
+
+## Entry: 2026-04-05 cross-matter organization memory freshness v1 pass
+
+Scope:
+- first-pass freshness reading for cross-matter organization memory
+- low-noise `背景新鮮度` on prompt context and existing organization-memory surfaces
+- stale cross-matter background stays in background-calibration role for domain playbook
+
+Environment used:
+- local repo runtime checks only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`162 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`30 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Freshness-v1 specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | organization memory | Mark stale cross-matter background as old | Verified | targeted backend test confirms `organization_memory_guidance` now exposes `freshness_summary` and per-item `freshness_label` |
+| Backend | agent payload | Emit `背景新鮮度：...` in prompt-safe organization-memory context | Verified | targeted backend test confirms prompt context now reads freshness without exposing raw timestamps |
+| Backend | domain playbook | Keep stale cross-matter background in background-only role | Verified | targeted backend test confirms stale organization-memory source no longer over-leads the workstream |
+| Frontend | organization-memory helper | Read freshness summary and per-item freshness label | Verified | helper test confirms organization-memory cards now show freshness in low-noise consultant language |
+
+### Verified outcomes
+
+- Infinite Pro now distinguishes between cross-matter background that is still fresh enough to support the mainline and background that has become old enough to keep in calibration-only mode
+- prompt context and consultant-facing surfaces now read that distinction back as `背景新鮮度` instead of silently flattening all cross-matter memory into one tier
+- stale cross-matter background remains useful, but no longer overstates its authority in domain-playbook guidance

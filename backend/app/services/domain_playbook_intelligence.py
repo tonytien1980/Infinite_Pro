@@ -170,6 +170,7 @@ def build_domain_playbook_guidance(
         top_related = organization_memory_guidance.cross_matter_items[0]
         organization_memory_is_background_only = (
             len(organization_memory_guidance.cross_matter_items) == 1
+            or top_related.freshness_label == "較舊背景"
         )
         add_stage(
             title="先對照同客戶既有案件的限制與推進節奏",

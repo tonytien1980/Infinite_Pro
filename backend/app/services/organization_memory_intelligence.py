@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from difflib import SequenceMatcher
+from datetime import datetime, timezone
 
 from app.domain import schemas
 from app.domain.enums import EngagementContinuityMode
 
 DEFAULT_ORGANIZATION_LABEL = "尚未明確標示客戶"
+RECENT_CROSS_MATTER_DAYS = 45
+STALE_CROSS_MATTER_DAYS = 120
 
 
 def _unique(items: list[str]) -> list[str]:
@@ -46,6 +49,16 @@ def _summarize_related_matter(summary: schemas.MatterWorkspaceSummaryRead) -> st
     )
 
 
+def _cross_matter_freshness_label(latest_updated_at: datetime) -> str:
+    now = datetime.now(timezone.utc)
+    age_days = max(0, int((now - latest_updated_at).total_seconds() // 86400))
+    if age_days <= RECENT_CROSS_MATTER_DAYS:
+        return "最近更新"
+    if age_days <= STALE_CROSS_MATTER_DAYS:
+        return "近期可參考"
+    return "較舊背景"
+
+
 def build_cross_matter_organization_memory_items(
     *,
     current_matter_workspace_id: str | None,
@@ -54,10 +67,10 @@ def build_cross_matter_organization_memory_items(
     client_type: str | None,
     domain_lenses: list[str],
     matter_summaries: list[schemas.MatterWorkspaceSummaryRead],
-) -> tuple[str, list[schemas.CrossMatterOrganizationMemoryItemRead]]:
+) -> tuple[str, str, list[schemas.CrossMatterOrganizationMemoryItemRead]]:
     normalized_client_name = _normalize_key(client_name)
     if not normalized_client_name or normalized_client_name == _normalize_key(DEFAULT_ORGANIZATION_LABEL):
-        return "", []
+        return "", "", []
 
     ranked: list[tuple[int, float, schemas.CrossMatterOrganizationMemoryItemRead]] = []
     current_lenses = {_normalize_key(item) for item in domain_lenses if _normalize_key(item)}
@@ -92,6 +105,7 @@ def build_cross_matter_organization_memory_items(
             matter_title=summary.title,
             summary=_summarize_related_matter(summary),
             relation_reason="｜".join(relation_bits),
+            freshness_label=_cross_matter_freshness_label(summary.latest_updated_at),
         )
         ranked.append(
             (
@@ -104,10 +118,17 @@ def build_cross_matter_organization_memory_items(
     ranked.sort(key=lambda entry: (-entry[0], -entry[1], entry[2].matter_title))
     items = [entry[2] for entry in ranked[:3]]
     if not items:
-        return "", []
+        return "", "", []
 
     summary = f"另有 {len(items)} 個同客戶案件可回看其穩定背景。"
-    return summary, items
+    freshness_labels = {item.freshness_label for item in items if item.freshness_label}
+    if freshness_labels == {"最近更新"}:
+        freshness_summary = "跨案件背景最近仍有更新，可直接當穩定背景。"
+    elif "較舊背景" in freshness_labels and len(freshness_labels) == 1:
+        freshness_summary = "跨案件背景目前偏舊，先留作背景參考。"
+    else:
+        freshness_summary = "跨案件背景目前可參考，但仍建議先當背景校正。"
+    return summary, freshness_summary, items
 
 
 def build_organization_memory_guidance(
@@ -149,7 +170,7 @@ def build_organization_memory_guidance(
     )[:4]
 
     known_constraints = _unique(constraint_descriptions)[:4]
-    cross_matter_summary, cross_matter_items = build_cross_matter_organization_memory_items(
+    cross_matter_summary, freshness_summary, cross_matter_items = build_cross_matter_organization_memory_items(
         current_matter_workspace_id=current_matter_workspace_id,
         client_name=client_name,
         client_stage=client_stage,
@@ -179,6 +200,7 @@ def build_organization_memory_guidance(
             label="目前還沒有足夠穩定的組織背景",
             summary="這一輪先依當前案件資料推進，不額外補 organization memory。",
             source_lifecycle_summary="",
+            freshness_summary="",
             boundary_note="organization memory 只整理同一案件世界裡已站穩的背景，不替代當前案件證據。",
         )
 
@@ -198,6 +220,7 @@ def build_organization_memory_guidance(
         ),
         organization_label=organization_label,
         source_lifecycle_summary=source_lifecycle_summary,
+        freshness_summary=freshness_summary,
         stable_context_items=stable_context_items,
         known_constraints=known_constraints,
         continuity_anchor=continuity_anchor,

@@ -1215,6 +1215,7 @@ export interface OrganizationMemoryGuidance {
   summary: string;
   organization_label: string;
   source_lifecycle_summary: string;
+  freshness_summary: string;
   stable_context_items: string[];
   known_constraints: string[];
   continuity_anchor: string;
@@ -1228,6 +1229,7 @@ export interface CrossMatterOrganizationMemoryItem {
   matter_title: string;
   summary: string;
   relation_reason: string;
+  freshness_label: string;
 }
 
 export interface DomainPlaybookStage {

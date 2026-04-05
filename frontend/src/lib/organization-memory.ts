@@ -8,6 +8,7 @@ export function buildOrganizationMemoryView(
   summary: string;
   organizationLabel: string;
   sourceLifecycleSummary: string;
+  freshnessSummary: string;
   stableContextItems: string[];
   knownConstraints: string[];
   continuityAnchor: string;
@@ -22,6 +23,7 @@ export function buildOrganizationMemoryView(
       summary: "",
       organizationLabel: "",
       sourceLifecycleSummary: "",
+      freshnessSummary: "",
       stableContextItems: [],
       knownConstraints: [],
       continuityAnchor: "",
@@ -37,6 +39,7 @@ export function buildOrganizationMemoryView(
     summary: guidance.summary,
     organizationLabel: guidance.organization_label,
     sourceLifecycleSummary: guidance.source_lifecycle_summary,
+    freshnessSummary: guidance.freshness_summary,
     stableContextItems: guidance.stable_context_items,
     knownConstraints: guidance.known_constraints,
     continuityAnchor: guidance.continuity_anchor,
@@ -44,7 +47,7 @@ export function buildOrganizationMemoryView(
     crossMatterItems: (guidance.cross_matter_items || []).map((item) => ({
       title: item.matter_title,
       summary: item.summary,
-      meta: item.relation_reason,
+      meta: [item.relation_reason, item.freshness_label].filter(Boolean).join("｜"),
       matterWorkspaceId: item.matter_workspace_id,
     })),
     boundaryNote: guidance.boundary_note,

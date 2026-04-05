@@ -1089,6 +1089,7 @@ deliverable workspace 採：
 第二版 contract 至少包括：
 
 - `cross_matter_summary`
+- `freshness_summary`
 - `cross_matter_items`
 
 每筆 `cross_matter_item` 至少包括：
@@ -1097,6 +1098,7 @@ deliverable workspace 採：
 - `matter_title`
 - `summary`
 - `relation_reason`
+- `freshness_label`
 
 正式規則：
 
@@ -1105,11 +1107,16 @@ deliverable workspace 採：
 - 第一波也可補一個低噪音 `source_lifecycle_summary`，用來回答：
   - 這批跨案件背景目前可直接當穩定背景
   - 或仍只適合先留作背景參考
+- 第一波也可補一個低噪音 `freshness_summary`，用來回答：
+  - 這批跨案件背景目前是最近更新
+  - 或只是近期可參考
+  - 或已偏舊，應先留在背景層
 - 這層不是 precedent retrieval，也不是 playbook library
 - boundary copy 應明講：
   - 這是在提示同客戶跨案件背景
   - 不是 CRM profile
   - 若與這案正式證據衝突，仍以這案當前證據為準
+- 若 cross-matter background 已偏舊，第一波可先把它留在背景參考，不應過早抬成主要工作主線
 
 ### 6.10.2B Domain playbooks
 

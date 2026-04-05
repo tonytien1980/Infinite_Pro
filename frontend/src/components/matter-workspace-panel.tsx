@@ -1064,6 +1064,9 @@ export function MatterWorkspacePanel({
                         {organizationMemoryView.sourceLifecycleSummary ? (
                           <p className="muted-text">{organizationMemoryView.sourceLifecycleSummary}</p>
                         ) : null}
+                        {organizationMemoryView.freshnessSummary ? (
+                          <p className="muted-text">{organizationMemoryView.freshnessSummary}</p>
+                        ) : null}
                         {organizationMemoryView.sourceLifecycleSummary ? (
                           <p className="muted-text">{organizationMemoryView.sourceLifecycleSummary}</p>
                         ) : null}

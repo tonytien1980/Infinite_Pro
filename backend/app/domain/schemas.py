@@ -879,6 +879,7 @@ class CrossMatterOrganizationMemoryItemRead(BaseModel):
     matter_title: str
     summary: str = ""
     relation_reason: str = ""
+    freshness_label: str = ""
 
 
 class OrganizationMemoryGuidanceRead(BaseModel):
@@ -887,6 +888,7 @@ class OrganizationMemoryGuidanceRead(BaseModel):
     summary: str = ""
     organization_label: str = ""
     source_lifecycle_summary: str = ""
+    freshness_summary: str = ""
     stable_context_items: list[str] = Field(default_factory=list)
     known_constraints: list[str] = Field(default_factory=list)
     continuity_anchor: str = ""
