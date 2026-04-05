@@ -1129,8 +1129,8 @@ export function MatterWorkspacePanel({
                         {domainPlaybookView.sourceLifecycleSummary ? (
                           <p className="muted-text">{domainPlaybookView.sourceLifecycleSummary}</p>
                         ) : null}
-                        {domainPlaybookView.sourceLifecycleSummary ? (
-                          <p className="muted-text">{domainPlaybookView.sourceLifecycleSummary}</p>
+                        {domainPlaybookView.freshnessSummary ? (
+                          <p className="muted-text">{domainPlaybookView.freshnessSummary}</p>
                         ) : null}
                         {domainPlaybookView.currentStageLabel ? (
                           <p className="muted-text">

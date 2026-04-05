@@ -1412,8 +1412,8 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     {domainPlaybookView.sourceLifecycleSummary ? (
                       <p className="muted-text">{domainPlaybookView.sourceLifecycleSummary}</p>
                     ) : null}
-                    {domainPlaybookView.sourceLifecycleSummary ? (
-                      <p className="muted-text">{domainPlaybookView.sourceLifecycleSummary}</p>
+                    {domainPlaybookView.freshnessSummary ? (
+                      <p className="muted-text">{domainPlaybookView.freshnessSummary}</p>
                     ) : null}
                     {domainPlaybookView.currentStageLabel ? (
                       <p className="muted-text">
@@ -1524,8 +1524,8 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     {deliverableTemplateView.sourceLifecycleSummary ? (
                       <p className="muted-text">{deliverableTemplateView.sourceLifecycleSummary}</p>
                     ) : null}
-                    {deliverableTemplateView.sourceLifecycleSummary ? (
-                      <p className="muted-text">{deliverableTemplateView.sourceLifecycleSummary}</p>
+                    {deliverableTemplateView.freshnessSummary ? (
+                      <p className="muted-text">{deliverableTemplateView.freshnessSummary}</p>
                     ) : null}
                     <div className="summary-grid" style={{ marginTop: "16px" }}>
                       {deliverableTemplateView.cards.map((card) => (

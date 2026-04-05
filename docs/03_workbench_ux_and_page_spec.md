@@ -1197,6 +1197,7 @@ Primary action：
   - `這輪為何適用`
   - `收斂依據`
   - `來源狀態`
+  - `來源新鮮度`
   - `目前這輪`
   - `下一步通常接`
   - 少量 stage cards
@@ -1209,6 +1210,9 @@ Primary action：
   - 不可把它讀成 CRM 卡或歷史案件總表
 - 若 precedent / organization memory 目前仍偏背景校正，UI 也只可低噪音補：
   - `來源狀態：shared source 目前仍偏背景校正`
+- 若 shared source 已偏舊或仍在恢復，UI 也只可低噪音補：
+  - `來源新鮮度：shared source 目前偏舊或仍在恢復`
+  - `來源狀態：較舊或恢復中的 shared source 先退到背景`
 - boundary copy 應明講：
   - 這是在提示工作主線
   - 不是強制 checklist
@@ -1243,6 +1247,7 @@ Primary action：
   - `這輪為何適用`
   - `收斂依據`
   - `來源狀態`
+  - `來源新鮮度`
   - `核心區塊`
   - `可選區塊`
   - 少量 template blocks
@@ -1259,6 +1264,9 @@ Primary action：
   - 不可把它讀成 template picker / template library
 - 若 precedent template 目前仍偏 recovering / background-only，UI 也只可低噪音補：
   - `來源狀態：precedent 先拿來校正模板，不讓它單獨主導模板主線`
+- 若 shared source 已偏舊或仍在恢復，UI 也只可低噪音補：
+  - `來源新鮮度：shared source 目前偏舊或仍在恢復`
+  - `來源狀態：較舊或恢復中的 shared source 先退到背景`
 
 ### 9.3 Specialized hardening views
 

@@ -21,6 +21,7 @@ export function buildDeliverableTemplateView(
   fitSummary: string;
   sourceMixSummary: string;
   sourceLifecycleSummary: string;
+  freshnessSummary: string;
   cards: Array<{ title: string; summary: string; meta: string }>;
   coreListTitle: string;
   coreSections: string[];
@@ -38,6 +39,7 @@ export function buildDeliverableTemplateView(
       fitSummary: "",
       sourceMixSummary: "",
       sourceLifecycleSummary: "",
+      freshnessSummary: "",
       cards: [],
       coreListTitle: "",
       coreSections: [],
@@ -56,6 +58,7 @@ export function buildDeliverableTemplateView(
     fitSummary: guidance.fit_summary,
     sourceMixSummary: guidance.source_mix_summary,
     sourceLifecycleSummary: guidance.source_lifecycle_summary,
+    freshnessSummary: guidance.freshness_summary,
     cards: guidance.blocks.map((block) => ({
       title: block.title,
       summary: [block.why_fit, block.summary].filter(Boolean).join("｜"),

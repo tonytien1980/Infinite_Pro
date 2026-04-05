@@ -1194,6 +1194,9 @@ deliverable workspace 採：
 - `source_lifecycle_summary` 應回答：
   - 這輪 shared source 目前比較像穩定來源
   - 或仍偏背景校正，不宜過度主導整條工作主線
+- `freshness_summary` 應回答：
+  - 這輪 shared source 目前仍屬近期可直接參考
+  - 或已偏舊 / 仍在恢復，應先讓較新的 pack / research / task heuristic 站在前面
 - domain playbook 若要進模型上下文，必須經 Host 整理成 prompt-safe `domain_playbook_context`
 - `domain_playbook_context` 應與 `organization_memory_context`、`precedent_context`、`review_lens_context` 並存，但角色不同：
   - organization memory context：這個客戶 / 組織有哪些穩定背景
@@ -1203,6 +1206,7 @@ deliverable workspace 採：
 - 當多筆 precedent 都可作為 domain-playbook source 時，第一波可優先使用 shared-intelligence 較成熟、且非 `downweight` 的 precedent
 - 若 precedent / organization memory source 仍偏 recovering / background-only，第一波可先把它們留在背景校正層，不讓較弱 shared source 過早抬成主線
 - 若這輪只剩背景校正等級的 shared source，第一波可更誠實地維持 `fallback`，不把薄 shared source 誤寫成 `available`
+- 若這輪 shared source 已偏舊或仍在恢復，第一波可把它們先退到背景，不讓它們繼續站在工作主線最前面
 - 第一波只允許影響：
   - framing / sequencing
   - review / convergence ordering
@@ -1440,6 +1444,9 @@ deliverable workspace 採：
 - `source_lifecycle_summary` 應回答：
   - 目前哪些 shared source 已足夠穩定，可直接拿來校正模板主線
   - 哪些 shared source 仍只適合作為背景校正
+- `freshness_summary` 應回答：
+  - 目前 shared source 是否仍屬近期可直接沿用
+  - 或已偏舊 / 仍在恢復，應先讓較新的 pack / shape / task heuristic 站在前面
 - deliverable template 若要進模型上下文，必須經 Host 整理成 prompt-safe `deliverable_template_context`
 - `deliverable_template_context` 應與 `deliverable_shape_context` 並存，但角色不同：
   - deliverable shape context：這份交付物通常怎麼收比較穩
@@ -1447,6 +1454,7 @@ deliverable workspace 採：
 - 當多筆 precedent 都可作為 deliverable-template source 時，第一波可優先使用 shared-intelligence 較成熟、且非 `downweight` 的 precedent
 - 若 precedent deliverable template 仍偏 recovering / background-only，第一波可先保留它的背景校正價值，但不應直接覆蓋較穩的 pack / shape / heuristic 模板主線
 - 若這輪模板只剩 background-only precedent，第一波可更誠實地維持 `fallback`，而不是把薄 precedent 誤寫成足夠主導模板主線的 `available`
+- 若這輪模板 shared source 已偏舊或仍在恢復，第一波可把它們先退到背景，不讓它們繼續站在模板主線最前面
 - v2 可吸收 deliverable shape 與 richer domain playbook signal，但仍不可把：
   - 交付骨架 = 模板主線
   - playbook = template library

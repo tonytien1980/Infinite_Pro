@@ -3646,3 +3646,41 @@ Environment used:
 - Infinite Pro now distinguishes between shared sources that are helpful background calibration and shared sources that are strong enough to mark playbook / template guidance as truly `available`
 - background-only precedent or stale cross-matter memory still remain visible to Host, but no longer overstate their authority in reusable-intelligence surfaces
 - cross-matter organization-memory freshness is now runtime-safe even when SQLite-backed summaries surface naive datetimes during task serialization
+
+---
+
+## Entry: 2026-04-05 shared-source freshness / retirement v1 pass
+
+Scope:
+- first-pass shared-source freshness reading for `domain playbook` and `deliverable template`
+- clearer retirement wording so stale / recovering shared sources step back into background-calibration role
+- prompt-safe `來源新鮮度` plus existing second-layer readback on matter / task / deliverable surfaces
+
+Environment used:
+- local repo runtime checks only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`168 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`30 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Freshness / retirement specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | domain playbook | Read stale / recovering shared sources as background retirement | Verified | targeted backend tests confirm playbook guidance now exposes `freshness_summary` and uses retirement wording when only stale / recovering shared sources remain |
+| Backend | deliverable template | Read stale / recovering shared sources as background retirement | Verified | targeted backend tests confirm template guidance now exposes `freshness_summary` and keeps stale / recovering shared sources behind newer pack / shape / heuristic signals |
+| Backend | agent payload | Emit `來源新鮮度：...` for playbook / template contexts | Verified | targeted backend tests confirm prompt-safe payloads now carry freshness lines alongside lifecycle lines |
+| Frontend | matter / task / deliverable second-layer readback | Show freshness as a separate low-noise line | Verified | helper tests confirm playbook / template views now expose freshness separately instead of duplicating lifecycle text |
+
+### Verified outcomes
+
+- Infinite Pro now distinguishes not only whether a shared source is authoritative enough, but also whether it is still fresh enough to stand near the front of the current workstream
+- stale or recovering shared sources are still preserved as calibration context, but now read more honestly as stepping back into the background instead of silently behaving like current mainline sources
+- the new freshness signal stays inside existing prompt contexts and second-layer surfaces; no new dashboard, management shell, or background worker was introduced

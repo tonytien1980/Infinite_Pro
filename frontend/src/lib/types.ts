@@ -1258,6 +1258,7 @@ export interface DomainPlaybookGuidance {
   fit_summary: string;
   source_mix_summary: string;
   source_lifecycle_summary: string;
+  freshness_summary: string;
   boundary_note: string;
   stages: DomainPlaybookStage[];
 }
@@ -1345,6 +1346,7 @@ export interface DeliverableTemplateGuidance {
   fit_summary: string;
   source_mix_summary: string;
   source_lifecycle_summary: string;
+  freshness_summary: string;
   core_sections: string[];
   optional_sections: string[];
   boundary_note: string;

@@ -1687,8 +1687,8 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                   {deliverableTemplateView.sourceLifecycleSummary ? (
                     <p className="muted-text">{deliverableTemplateView.sourceLifecycleSummary}</p>
                   ) : null}
-                  {deliverableTemplateView.sourceLifecycleSummary ? (
-                    <p className="muted-text">{deliverableTemplateView.sourceLifecycleSummary}</p>
+                  {deliverableTemplateView.freshnessSummary ? (
+                    <p className="muted-text">{deliverableTemplateView.freshnessSummary}</p>
                   ) : null}
                   <div className="summary-grid" style={{ marginTop: "16px" }}>
                     {deliverableTemplateView.cards.map((card) => (

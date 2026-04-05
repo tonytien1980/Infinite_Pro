@@ -127,7 +127,10 @@ def build_deliverable_template_guidance(
     template_label = ""
     template_fit_summary = ""
     source_lifecycle_summary = ""
+    freshness_summary = ""
     has_authoritative_source = False
+    has_fresh_shared_source = False
+    has_stale_shared_source = False
     core_sections: list[str] = []
     optional_sections: list[str] = []
 
@@ -210,6 +213,9 @@ def build_deliverable_template_guidance(
             )
             if not precedent_is_background_only:
                 has_authoritative_source = True
+                has_fresh_shared_source = True
+            else:
+                has_stale_shared_source = True
         source_lifecycle_summary = (
             "shared sources 目前仍偏背景校正，precedent 先拿來校正模板，不讓它單獨主導模板主線。"
             if not stable_precedent_matches
@@ -256,6 +262,11 @@ def build_deliverable_template_guidance(
         )
         if domain_playbook_guidance.status == "available":
             has_authoritative_source = True
+        if domain_playbook_guidance.freshness_summary:
+            if "近期仍可直接參考" in domain_playbook_guidance.freshness_summary or "新舊並存" in domain_playbook_guidance.freshness_summary:
+                has_fresh_shared_source = True
+            else:
+                has_stale_shared_source = True
 
     fallback_label, fallback_core, fallback_optional, fallback_fit = _fallback_template(
         task_type,
@@ -320,8 +331,16 @@ def build_deliverable_template_guidance(
     source_mix_summary = "收斂依據：" + "、".join(
         source_label_map[item] for item in source_kinds_used if item in source_label_map
     )
+    if has_fresh_shared_source and has_stale_shared_source:
+        freshness_summary = "shared sources 目前新舊並存，先讓近期來源站前面，偏舊來源仍留背景校正。"
+    elif has_fresh_shared_source:
+        freshness_summary = "shared sources 近期仍可直接參考，模板主線可以繼續沿用。"
+    elif has_stale_shared_source:
+        freshness_summary = "shared sources 目前偏舊或仍在恢復，先讓較新的 pack / shape / task heuristic 站在前面。"
     if not source_lifecycle_summary:
         source_lifecycle_summary = "目前仍以 pack / shape / task heuristic 為主，shared source 還不夠厚。"
+    elif has_stale_shared_source and not has_fresh_shared_source:
+        source_lifecycle_summary = "shared sources 目前仍偏背景校正，較舊或恢復中的 shared source 先退到背景，不要主導模板主線。"
 
     return schemas.DeliverableTemplateGuidanceRead(
         status="available" if has_authoritative_source else "fallback",
@@ -332,6 +351,7 @@ def build_deliverable_template_guidance(
         fit_summary=fit_summary,
         source_mix_summary=source_mix_summary,
         source_lifecycle_summary=source_lifecycle_summary,
+        freshness_summary=freshness_summary,
         core_sections=core_sections,
         optional_sections=optional_sections,
         boundary_note="這是在提示模板主線，不是自動套模板；若和這案正式證據衝突，仍以這案當前判斷與證據為準。",

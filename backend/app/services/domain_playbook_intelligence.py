@@ -135,7 +135,10 @@ def build_domain_playbook_guidance(
     seen_keys: set[str] = set()
     source_kinds_used: list[str] = []
     source_lifecycle_summary = ""
+    freshness_summary = ""
     has_authoritative_source = False
+    has_fresh_shared_source = False
+    has_stale_shared_source = False
 
     def add_stage(
         *,
@@ -191,6 +194,9 @@ def build_domain_playbook_guidance(
         )
         if not organization_memory_is_background_only:
             has_authoritative_source = True
+            has_fresh_shared_source = True
+        else:
+            has_stale_shared_source = True
         source_lifecycle_summary = (
             "shared sources 目前仍偏背景校正，先不要讓單一 precedent 或跨案件背景主導整條工作主線。"
             if organization_memory_is_background_only
@@ -239,6 +245,9 @@ def build_domain_playbook_guidance(
             )
             if not precedent_is_background_only:
                 has_authoritative_source = True
+                has_fresh_shared_source = True
+            else:
+                has_stale_shared_source = True
             if not source_lifecycle_summary:
                 source_lifecycle_summary = (
                     "shared sources 目前仍偏背景校正，先不要讓單一 precedent 或跨案件背景主導整條工作主線。"
@@ -361,8 +370,16 @@ def build_domain_playbook_guidance(
     source_mix_summary = "收斂依據：" + "、".join(
         source_label_map[item] for item in source_kinds_used if item in source_label_map
     )
+    if has_fresh_shared_source and has_stale_shared_source:
+        freshness_summary = "shared sources 目前新舊並存，先讓近期來源站前面，偏舊來源仍留背景校正。"
+    elif has_fresh_shared_source:
+        freshness_summary = "shared sources 近期仍可直接參考，可繼續拿來校正工作主線。"
+    elif has_stale_shared_source:
+        freshness_summary = "shared sources 目前偏舊或仍在恢復，先讓較新的 pack / research / task heuristic 站在前面。"
     if not source_lifecycle_summary:
         source_lifecycle_summary = "目前仍以 pack / task heuristic 為主，shared source 還不夠厚。"
+    elif has_stale_shared_source and not has_fresh_shared_source:
+        source_lifecycle_summary = "shared sources 目前仍偏背景校正，較舊或恢復中的 shared source 先退到背景，不要主導整條工作主線。"
 
     return schemas.DomainPlaybookGuidanceRead(
         status="available" if has_authoritative_source else "fallback",
@@ -374,6 +391,7 @@ def build_domain_playbook_guidance(
         fit_summary=fit_summary,
         source_mix_summary=source_mix_summary,
         source_lifecycle_summary=source_lifecycle_summary,
+        freshness_summary=freshness_summary,
         boundary_note="這是在提示工作主線，不是強制 checklist；若和這案正式證據衝突，仍以這案正式判斷為準。",
         stages=stages,
     )

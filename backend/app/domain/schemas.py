@@ -924,6 +924,7 @@ class DomainPlaybookGuidanceRead(BaseModel):
     fit_summary: str = ""
     source_mix_summary: str = ""
     source_lifecycle_summary: str = ""
+    freshness_summary: str = ""
     boundary_note: str = ""
     stages: list[DomainPlaybookStageRead] = Field(default_factory=list)
 
@@ -1021,6 +1022,7 @@ class DeliverableTemplateGuidanceRead(BaseModel):
     fit_summary: str = ""
     source_mix_summary: str = ""
     source_lifecycle_summary: str = ""
+    freshness_summary: str = ""
     core_sections: list[str] = Field(default_factory=list)
     optional_sections: list[str] = Field(default_factory=list)
     boundary_note: str = ""
