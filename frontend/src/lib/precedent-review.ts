@@ -30,6 +30,7 @@ export function buildPrecedentReviewPriorityView(item: {
     | {
         maturity_label: string;
         weight_action_label: string;
+        stability_label?: string;
       }
     | null
     | undefined;
@@ -54,7 +55,15 @@ export function buildPrecedentReviewPriorityView(item: {
         : "",
     sharedMeta:
       item.shared_intelligence_signal?.maturity_label && item.shared_intelligence_signal?.weight_action_label
-        ? `共享成熟度：${item.shared_intelligence_signal.maturity_label}｜權重趨勢：${item.shared_intelligence_signal.weight_action_label}`
+        ? [
+            `共享成熟度：${item.shared_intelligence_signal.maturity_label}`,
+            `權重趨勢：${item.shared_intelligence_signal.weight_action_label}`,
+            item.shared_intelligence_signal?.stability_label
+              ? `共享穩定度：${item.shared_intelligence_signal.stability_label}`
+              : "",
+          ]
+            .filter(Boolean)
+            .join("｜")
         : "",
     attributionMeta: buildOperatorAttributionSummary({
       sourceFeedbackOperatorLabel: item.source_feedback_operator_label,

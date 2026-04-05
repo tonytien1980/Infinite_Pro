@@ -19,7 +19,13 @@ from app.agents.base import (
 )
 from app.core.database import SessionLocal
 from app.domain import models, schemas
-from app.domain.enums import DeliverableClass, InputEntryMode
+from app.domain.enums import (
+    AdoptionFeedbackStatus,
+    DeliverableClass,
+    InputEntryMode,
+    PrecedentCandidateStatus,
+    PrecedentCandidateType,
+)
 from app.ingestion import remote as remote_ingestion
 from app.ingestion.remote import RemoteSourceContent
 from app.model_router.base import PackContractSynthesisRequest
@@ -4403,6 +4409,8 @@ def test_precedent_review_and_reference_expose_shared_intelligence_signal(
     assert review_item["shared_intelligence_signal"]["supporting_candidate_count"] == 2
     assert review_item["shared_intelligence_signal"]["distinct_operator_count"] == 2
     assert review_item["shared_intelligence_signal"]["dismissed_candidate_count"] == 1
+    assert review_item["shared_intelligence_signal"]["stability"] == "watch"
+    assert review_item["shared_intelligence_signal"]["stability_label"]
     assert "共享模式" in review_item["shared_intelligence_signal"]["summary"]
 
     aggregate = client.get(f"/api/v1/tasks/{current_task['id']}")
@@ -4415,6 +4423,7 @@ def test_precedent_review_and_reference_expose_shared_intelligence_signal(
     assert matched_item["shared_intelligence_signal"]["maturity"] == "emerging"
     assert matched_item["shared_intelligence_signal"]["weight_action"] == "hold"
     assert matched_item["shared_intelligence_signal"]["distinct_operator_count"] == 2
+    assert matched_item["shared_intelligence_signal"]["stability"] == "watch"
 
 
 def _test_shared_signal(
@@ -4423,6 +4432,8 @@ def _test_shared_signal(
     maturity_label: str,
     weight_action: str,
     weight_action_label: str,
+    stability: str = "watch",
+    stability_label: str = "仍在共享觀察期",
 ) -> schemas.SharedIntelligenceSignalRead:
     return schemas.SharedIntelligenceSignalRead(
         maturity=maturity,  # type: ignore[arg-type]
@@ -4434,6 +4445,9 @@ def _test_shared_signal(
         distinct_operator_count=2 if maturity != "personal" else 1,
         promoted_candidate_count=1 if weight_action != "downweight" else 0,
         dismissed_candidate_count=0 if weight_action != "downweight" else 1,
+        stability=stability,  # type: ignore[arg-type]
+        stability_reason=f"{stability_label}。",
+        stability_label=stability_label,
         summary=f"{maturity_label}，{weight_action_label}。",
     )
 
@@ -4516,6 +4530,101 @@ def test_weighted_precedent_selection_prefers_upweighted_shared_matches() -> Non
     )
 
     assert [item.candidate_id for item in selected] == ["candidate-high"]
+
+
+def test_weighted_precedent_selection_prefers_stable_matches_over_recovering_matches() -> None:
+    from app.services.precedent_intelligence import select_weighted_precedent_reference_items
+
+    recovering = _test_precedent_reference_item(
+        candidate_id="candidate-recovering",
+        title="恢復觀察中的模式",
+        reason_codes=["reusable_structure"],
+        shared_signal=_test_shared_signal(
+            maturity="shared",
+            maturity_label="已接近共享模式",
+            weight_action="upweight",
+            weight_action_label="提高參考",
+            stability="recovering",
+            stability_label="剛恢復觀察",
+        ),
+        optimization_asset_codes=["deliverable_template"],
+        optimization_asset_labels=["交付模板"],
+    )
+    stable = _test_precedent_reference_item(
+        candidate_id="candidate-stable",
+        title="穩定共享模式",
+        reason_codes=["reusable_structure"],
+        shared_signal=_test_shared_signal(
+            maturity="shared",
+            maturity_label="已接近共享模式",
+            weight_action="upweight",
+            weight_action_label="提高參考",
+            stability="stable",
+            stability_label="已站穩共享模式",
+        ),
+        optimization_asset_codes=["deliverable_template"],
+        optimization_asset_labels=["交付模板"],
+    )
+
+    selected = select_weighted_precedent_reference_items(
+        schemas.PrecedentReferenceGuidanceRead(
+            status="available",
+            matched_items=[recovering, stable],
+        ),
+        asset_code="deliverable_template",
+    )
+
+    assert [item.candidate_id for item in selected][:2] == [
+        "candidate-stable",
+        "candidate-recovering",
+    ]
+
+
+def test_shared_intelligence_signal_marks_promoted_shared_candidate_as_stable() -> None:
+    from app.services.precedent_intelligence import build_shared_intelligence_signal
+
+    candidate = models.PrecedentCandidate(
+        id="candidate-stable",
+        task_id="task-a",
+        candidate_type=PrecedentCandidateType.DELIVERABLE_PATTERN.value,
+        candidate_status=PrecedentCandidateStatus.PROMOTED.value,
+        source_feedback_status=AdoptionFeedbackStatus.TEMPLATE_CANDIDATE.value,
+        source_feedback_reason_codes=["reusable_structure"],
+        source_feedback_operator_label="王顧問",
+        created_by_label="王顧問",
+        lane_id="material_review_start",
+        deliverable_type="contract_review",
+        client_stage="制度化階段",
+        client_type="中小企業",
+        domain_lenses=["法務"],
+        selected_pack_ids=["legal_pack"],
+    )
+    supporting = models.PrecedentCandidate(
+        id="candidate-supporting",
+        task_id="task-b",
+        candidate_type=PrecedentCandidateType.DELIVERABLE_PATTERN.value,
+        candidate_status=PrecedentCandidateStatus.PROMOTED.value,
+        source_feedback_status=AdoptionFeedbackStatus.ADOPTED.value,
+        source_feedback_reason_codes=["reusable_structure"],
+        source_feedback_operator_label="林顧問",
+        created_by_label="林顧問",
+        lane_id="material_review_start",
+        deliverable_type="contract_review",
+        client_stage="制度化階段",
+        client_type="中小企業",
+        domain_lenses=["法務"],
+        selected_pack_ids=["legal_pack"],
+    )
+
+    signal = build_shared_intelligence_signal(
+        candidate=candidate,
+        candidates=[candidate, supporting],
+    )
+
+    assert signal.maturity == "shared"
+    assert signal.weight_action == "upweight"
+    assert signal.stability == "stable"
+    assert signal.stability_label == "已站穩共享模式"
 
 
 def test_governance_recommendation_promotes_shared_upweighted_candidate() -> None:

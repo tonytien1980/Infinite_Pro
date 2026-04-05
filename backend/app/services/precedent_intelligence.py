@@ -40,6 +40,13 @@ SHARED_INTELLIGENCE_WEIGHT_RANK = {
     "downweight": 2,
 }
 
+SHARED_INTELLIGENCE_STABILITY_RANK = {
+    "stable": 0,
+    "watch": 1,
+    "recovering": 2,
+    "retired": 3,
+}
+
 GOVERNANCE_ACTION_RANK = {
     "promote": 0,
     "keep_candidate": 1,
@@ -278,17 +285,50 @@ def build_shared_intelligence_signal(
             "這筆候選目前已停用；即使相關模式仍有參考價值，這筆個體也先降低參考權重。"
         )
 
+    if candidate.candidate_status == PrecedentCandidateStatus.DISMISSED.value:
+        stability = "retired"
+        stability_label = "目前已退到背景"
+        stability_reason = "這筆模式目前已停用，先留在背景，不宜再主動放大影響。"
+    elif (
+        candidate.candidate_status == PrecedentCandidateStatus.PROMOTED.value
+        and maturity == "shared"
+        and weight_action == "upweight"
+    ):
+        stability = "stable"
+        stability_label = "已站穩共享模式"
+        stability_reason = "這筆模式已正式升格，而且共享成熟度與權重趨勢都相對穩定。"
+    elif (
+        candidate.candidate_status == PrecedentCandidateStatus.CANDIDATE.value
+        and candidate.source_feedback_status
+        in {
+            AdoptionFeedbackStatus.ADOPTED.value,
+            AdoptionFeedbackStatus.NEEDS_REVISION.value,
+            AdoptionFeedbackStatus.TEMPLATE_CANDIDATE.value,
+        }
+        and dismissed_candidate_count > 0
+    ):
+        stability = "recovering"
+        stability_label = "剛恢復觀察"
+        stability_reason = "這類模式雖已重新進入觀察，但同 family 仍帶停用痕跡，先不要過早放大。"
+    else:
+        stability = "watch"
+        stability_label = "仍在共享觀察期"
+        stability_reason = "這類模式已有共享訊號，但目前仍適合先觀察，不急著視為穩定共享模式。"
+
     return schemas.SharedIntelligenceSignalRead(
         maturity=maturity,
         maturity_reason=maturity_reason,
         maturity_label=maturity_label,
         weight_action=weight_action,
         weight_action_label=weight_action_label,
+        stability=stability,
+        stability_reason=stability_reason,
+        stability_label=stability_label,
         supporting_candidate_count=supporting_candidate_count,
         distinct_operator_count=distinct_operator_count,
         promoted_candidate_count=promoted_candidate_count,
         dismissed_candidate_count=dismissed_candidate_count,
-        summary=f"{maturity_label}，{weight_action_label}。",
+        summary=f"{maturity_label}，{weight_action_label}，{stability_label}。",
     )
 
 
@@ -385,6 +425,7 @@ def select_weighted_precedent_reference_items(
         key=lambda item: (
             SHARED_INTELLIGENCE_WEIGHT_RANK[item.shared_intelligence_signal.weight_action],
             SHARED_INTELLIGENCE_MATURITY_RANK[item.shared_intelligence_signal.maturity],
+            SHARED_INTELLIGENCE_STABILITY_RANK[item.shared_intelligence_signal.stability],
             STRENGTH_RANK[item.optimization_signal.strength],
             PRECEDENT_REVIEW_PRIORITY_RANK[item.review_priority],
             item.title or "",
@@ -544,6 +585,7 @@ def select_precedent_reference_matches(
             STRENGTH_RANK[item.optimization_signal.strength],
             SHARED_INTELLIGENCE_WEIGHT_RANK[item.shared_intelligence_signal.weight_action],
             SHARED_INTELLIGENCE_MATURITY_RANK[item.shared_intelligence_signal.maturity],
+            SHARED_INTELLIGENCE_STABILITY_RANK[item.shared_intelligence_signal.stability],
             -item.candidate.updated_at.timestamp(),
             -item.candidate.created_at.timestamp(),
         )
@@ -574,6 +616,9 @@ def build_precedent_context_lines(
         shared_weight_label = (
             getattr(shared_intelligence_signal, "weight_action_label", "") if shared_intelligence_signal else ""
         )
+        shared_stability_label = (
+            getattr(shared_intelligence_signal, "stability_label", "") if shared_intelligence_signal else ""
+        )
         lines.extend(
             [
                 f"模式 {index}：{title}",
@@ -591,6 +636,7 @@ def build_precedent_context_lines(
                 ),
                 *( [f"- 共享成熟度：{shared_maturity_label}"] if shared_maturity_label else [] ),
                 *( [f"- 權重趨勢：{shared_weight_label}"] if shared_weight_label else [] ),
+                *( [f"- 共享穩定度：{shared_stability_label}"] if shared_stability_label else [] ),
                 *( [f"- 優化摘要：{optimization_summary}"] if optimization_summary else [] ),
                 f"- 可參考：{safe_use_note}",
                 f"- 摘要：{summary}",

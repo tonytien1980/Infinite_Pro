@@ -36,6 +36,9 @@ export function buildPrecedentReferenceView(
         item.shared_intelligence_signal?.weight_action_label
           ? `權重趨勢：${item.shared_intelligence_signal.weight_action_label}`
           : "",
+        item.shared_intelligence_signal?.stability_label
+          ? `共享穩定度：${item.shared_intelligence_signal.stability_label}`
+          : "",
       ]
         .filter(Boolean)
         .join("｜") || item.safe_use_note,

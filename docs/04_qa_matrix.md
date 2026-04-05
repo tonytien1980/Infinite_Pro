@@ -3414,3 +3414,42 @@ Environment used:
 - decay now happens in smaller, more honest steps: promoted precedent can fall back to candidate before leaving the shared-intelligence surface entirely
 - renewed positive feedback can restore a dismissed precedent back into observation without losing its prior identity and history
 - verification in this pass stayed repo-level only; no browser smoke was run
+
+---
+
+## Entry: 2026-04-05 shared-intelligence stability weighting v1 pass
+
+Scope:
+- first-pass shared-intelligence stability signal
+- stability-aware ordering for precedent review / reference and reusable assets
+- low-noise `共享穩定度` reading on existing surfaces only
+
+Environment used:
+- local repo runtime checks only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`159 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`30 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Stability-weighting specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | shared-intelligence signal | Build stability for promoted shared precedent | Verified | targeted backend test confirms promoted + shared + upweight precedent now reads as `stable` |
+| Backend | precedent reference weighting | Prefer `stable` over `recovering` | Verified | targeted backend test confirms weighted selection now orders stable precedent before recovering precedent |
+| Backend | API read model | Expose `stability` on precedent review / reference | Verified | targeted API test confirms review lane and Host-safe reference now serialize `stability` / `stability_label` |
+| Frontend | precedent review helper | Render low-noise stability reading | Verified | helper test confirms shared meta now includes `共享穩定度` without becoming a dashboard |
+| Frontend | precedent reference helper | Render low-noise stability reading | Verified | helper test confirms precedent reference card meta now includes `共享穩定度` alongside maturity and weight trend |
+
+### Verified outcomes
+
+- Infinite Pro now distinguishes between precedent that has already stood up as a stable shared pattern and precedent that is still being watched or has only recently recovered
+- Host can now prefer stable shared patterns when assembling reusable intelligence, instead of flattening stable and recovering precedent into the same priority tier
+- the visible UI remains low-noise and stays inside existing review / reference surfaces; no stability dashboard or consultant ranking was introduced

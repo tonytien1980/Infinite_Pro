@@ -990,6 +990,7 @@ Primary action：
 - 若 precedent review lane 已開始帶 shared intelligence evolution signal，history family 也只可低噪音補：
   - `共享成熟度：...`
   - `權重趨勢：...`
+  - `共享穩定度：...`
   - 不可把這層做成 consultant ranking、專家分級或手動調權後台
 
 ### 9.2.2 Precedent reference reading
@@ -1025,6 +1026,7 @@ Primary action：
 - 若 precedent 已開始帶 shared intelligence evolution signal，UI 也只可低噪音補：
   - `共享成熟度：...`
   - `權重趨勢：...`
+  - `共享穩定度：...`
   - 不可把這層做成 consultant ranking、資歷分級或共享權重控制器
 - 若 reusable assets 已開始吃 shared-intelligence weighting，前台也不應新增新的 weighting page 或控制列；最多只允許在既有 source label 上低噪音暗示：
   - `共享模式優先`

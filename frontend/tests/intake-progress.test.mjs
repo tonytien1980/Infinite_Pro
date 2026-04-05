@@ -1242,6 +1242,9 @@ test("precedent review priority view stays consultant-readable", () => {
         distinct_operator_count: 2,
         promoted_candidate_count: 1,
         dismissed_candidate_count: 1,
+        stability: "watch",
+        stability_reason: "仍在共享觀察期。",
+        stability_label: "仍在共享觀察期",
         summary: "開始形成共享模式，先持平觀察。",
       },
       source_feedback_operator_label: "王顧問",
@@ -1251,7 +1254,7 @@ test("precedent review priority view stays consultant-readable", () => {
       label: "建議先看",
       reason: "來自值得當範本的候選，而且主要原因是可重用的行動模式。",
       optimizationMeta: "最佳幫助：交付骨架、交付模板｜參考強度：高",
-      sharedMeta: "共享成熟度：開始形成共享模式｜權重趨勢：先持平觀察",
+      sharedMeta: "共享成熟度：開始形成共享模式｜權重趨勢：先持平觀察｜共享穩定度：仍在共享觀察期",
       attributionMeta: "採納：王顧問｜最近治理：林校稿",
     },
   );
@@ -1359,6 +1362,9 @@ test("precedent reference view stays low-noise and consultant-readable", () => {
           distinct_operator_count: 2,
           promoted_candidate_count: 1,
           dismissed_candidate_count: 1,
+          stability: "watch",
+          stability_reason: "仍在共享觀察期。",
+          stability_label: "仍在共享觀察期",
           summary: "開始形成共享模式，先持平觀察。",
         },
         match_reason: "同樣屬於 material review start，且交付型態一致。",
@@ -1375,6 +1381,7 @@ test("precedent reference view stays low-noise and consultant-readable", () => {
   assert.equal(view.cards[0]?.title, "合約審閱模式");
   assert.match(view.cards[0]?.meta || "", /共享成熟度：開始形成共享模式/);
   assert.match(view.cards[0]?.meta || "", /權重趨勢：先持平觀察/);
+  assert.match(view.cards[0]?.meta || "", /共享穩定度：仍在共享觀察期/);
   assert.match(view.cards[0]?.meta ?? "", /可重用的交付結構/);
   assert.match(view.cards[0]?.meta ?? "", /交付模板/);
   assert.equal(view.listItems[0], "先拿來校正交付骨架與段落順序");

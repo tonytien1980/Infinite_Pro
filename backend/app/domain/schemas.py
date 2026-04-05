@@ -813,6 +813,9 @@ class SharedIntelligenceSignalRead(BaseModel):
     maturity_label: str = ""
     weight_action: Literal["upweight", "hold", "downweight"] = "hold"
     weight_action_label: str = ""
+    stability: Literal["stable", "watch", "recovering", "retired"] = "watch"
+    stability_reason: str = ""
+    stability_label: str = ""
     supporting_candidate_count: int = 0
     distinct_operator_count: int = 0
     promoted_candidate_count: int = 0

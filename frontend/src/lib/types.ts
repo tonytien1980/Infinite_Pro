@@ -1185,6 +1185,9 @@ export interface SharedIntelligenceSignal {
   maturity_label: string;
   weight_action: "upweight" | "hold" | "downweight";
   weight_action_label: string;
+  stability: "stable" | "watch" | "recovering" | "retired";
+  stability_reason: string;
+  stability_label: string;
   supporting_candidate_count: number;
   distinct_operator_count: number;
   promoted_candidate_count: number;

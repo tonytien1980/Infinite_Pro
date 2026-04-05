@@ -671,6 +671,13 @@ deliverable workspace 採：
   - `hold`
   - `downweight`
 - `weight_action_label`
+- `stability`
+  - `stable`
+  - `watch`
+  - `recovering`
+  - `retired`
+- `stability_reason`
+- `stability_label`
 - `supporting_candidate_count`
 - `distinct_operator_count`
 - `promoted_candidate_count`
@@ -687,6 +694,33 @@ deliverable workspace 採：
   - precedent context explainability
 - 這層是在回答「這筆模式目前開始累積到什麼程度」，不是在回答「這筆 precedent 絕對正確」
 
+在 shared intelligence evolution rules v1 已成立後，feedback -> optimization loop 的下一刀可先補：
+
+- `shared-intelligence stability weighting v1`
+
+正式規則：
+
+- 這不是新的架構層
+- 它是在回答：當兩筆 precedent 都有共享訊號時，哪一筆比較像已站穩的共享模式，哪一筆仍只是觀察中或剛恢復觀察
+- 第一波只允許根據：
+  - `candidate_status`
+  - `source_feedback_status`
+  - `shared_intelligence_signal.maturity`
+  - `shared_intelligence_signal.weight_action`
+  - family-level `dismissed_candidate_count`
+  來衍生 `stability`
+- 第一波的 stability baseline 可分成：
+  - `stable`
+  - `watch`
+  - `recovering`
+  - `retired`
+- 第一波只允許影響：
+  - precedent review lane 的排序細化
+  - Host-safe precedent reference 的排序細化
+  - reusable asset source ordering
+- 這層不可做成背景 freshness job，也不可做成 consultant ranking / credibility score
+- 這層是在回答「這筆模式目前有多穩」，不是在回答「這筆 precedent 是否絕對正確」
+
 在 `shared_intelligence_signal` 已成立後，下一刀可先補：
 
 - `shared-intelligence weighting v1`
@@ -698,9 +732,10 @@ deliverable workspace 採：
 - 第一波只允許根據：
   - `shared_intelligence_signal.weight_action`
   - `shared_intelligence_signal.maturity`
+  - `shared_intelligence_signal.stability`
   - `optimization_signal.strength`
   - `review_priority`
- 來做 precedence 排序
+來做 precedence 排序
 - 若同類 asset 已有非 `downweight` precedent，第一波可先不使用 `downweight` precedent
 - 這層不是全域自動 routing 引擎，也不是手動調權後台
 
