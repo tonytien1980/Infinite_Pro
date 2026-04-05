@@ -3453,3 +3453,42 @@ Environment used:
 - Infinite Pro now distinguishes between precedent that has already stood up as a stable shared pattern and precedent that is still being watched or has only recently recovered
 - Host can now prefer stable shared patterns when assembling reusable intelligence, instead of flattening stable and recovering precedent into the same priority tier
 - the visible UI remains low-noise and stays inside existing review / reference surfaces; no stability dashboard or consultant ranking was introduced
+
+---
+
+## Entry: 2026-04-05 shared-intelligence stability weighting v1 completion pass
+
+Scope:
+- finalize shared-intelligence stability signal on precedent review / reference
+- stability-aware ordering for reusable asset source selection
+- low-noise `共享穩定度` reading on existing consultant surfaces
+
+Environment used:
+- local repo runtime checks only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`159 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`30 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Stability-completion specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | shared-intelligence signal | Mark promoted shared precedent as `stable` | Verified | targeted backend test confirms promoted + shared + upweight precedent now exposes `stability=stable` |
+| Backend | precedent review / reference | Serialize `stability` on review item and matched reference item | Verified | direct API test confirms `shared_intelligence_signal` now includes `stability` / `stability_label` on both surfaces |
+| Backend | weighted reference selection | Order `stable` ahead of `recovering` when other signals are equal | Verified | targeted backend test confirms weighted selection now places stable precedent first |
+| Frontend | precedent review helper | Read low-noise `共享穩定度` | Verified | helper test confirms review meta stays consultant-readable and simply appends stability |
+| Frontend | precedent reference helper | Read low-noise `共享穩定度` | Verified | helper test confirms reference card meta includes stability without turning into a dashboard |
+
+### Verified outcomes
+
+- Infinite Pro now distinguishes not only how mature a shared pattern is, but also how stable it currently looks in the shared-intelligence lifecycle
+- Host can now treat `stable` precedent as the preferred reusable-intelligence source when other weighting signals are otherwise similar
+- UI remains low-noise and consultant-first: stability is shown as one extra reading hint, not a ranking system or control panel
