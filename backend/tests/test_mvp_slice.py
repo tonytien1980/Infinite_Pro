@@ -3931,6 +3931,7 @@ def test_build_payload_domain_playbook_context_keeps_prompt_safe_lines() -> None
             source_lifecycle_summary="shared sources 目前仍偏背景校正，先不要讓單一 precedent 或跨案件背景主導整條工作主線。",
             freshness_summary="shared sources 目前偏舊或仍在恢復，先讓較新的 pack / task heuristic 站在前面。",
             reactivation_summary="較新的 shared source 已回來，這輪可重新讓 shared guidance 站前面；偏舊來源仍留背景校正。",
+            decay_summary="最新回饋仍是需要改寫，這類 shared guidance 先退到背景觀察。",
             boundary_note="這是在提示工作主線，不是強制 checklist。",
             stages=[
                 schemas.DomainPlaybookStageRead(
@@ -3966,6 +3967,7 @@ def test_build_payload_domain_playbook_context_keeps_prompt_safe_lines() -> None
     assert any("來源狀態：" in item for item in lines)
     assert any("來源新鮮度：" in item for item in lines)
     assert any("來源回前景：" in item for item in lines)
+    assert any("來源退背景：" in item for item in lines)
     assert any("playbook 1：" in item for item in lines)
 
 
@@ -4403,6 +4405,46 @@ def test_domain_playbook_guidance_uses_adopted_feedback_to_reactivate_shared_sou
 
     assert guidance.status == "available"
     assert "採納回饋" in guidance.reactivation_summary
+
+
+def test_domain_playbook_guidance_uses_needs_revision_feedback_to_decay_shared_source() -> None:
+    from app.services.domain_playbook_intelligence import build_domain_playbook_guidance
+
+    guidance = build_domain_playbook_guidance(
+        task_type="contract_review",
+        client_stage="制度化階段",
+        deliverable_class_hint=DeliverableClass.ASSESSMENT_REVIEW_MEMO,
+        flagship_lane=schemas.FlagshipLaneRead(label="先審閱手上已有材料"),
+        research_guidance=schemas.ResearchGuidanceRead(),
+        organization_memory_guidance=schemas.OrganizationMemoryGuidanceRead(),
+        continuation_surface=None,
+        pack_resolution=schemas.PackResolutionRead(),
+        precedent_reference_guidance=schemas.PrecedentReferenceGuidanceRead(
+            status="available",
+            matched_items=[
+                _test_precedent_reference_item(
+                    candidate_id="candidate-needs-revision",
+                    title="需要改寫的工作主線",
+                    reason_codes=["reusable_action_pattern"],
+                    source_feedback_status=AdoptionFeedbackStatus.NEEDS_REVISION,
+                    shared_signal=_test_shared_signal(
+                        maturity="shared",
+                        maturity_label="已接近共享模式",
+                        weight_action="hold",
+                        weight_action_label="先持平觀察",
+                        stability="stable",
+                        stability_label="已站穩共享模式",
+                    ),
+                    optimization_asset_codes=["domain_playbook"],
+                    optimization_asset_labels=["工作主線"],
+                )
+            ],
+        ),
+    )
+
+    assert guidance.status == "fallback"
+    assert "先退到背景" in guidance.source_lifecycle_summary
+    assert "需要改寫" in guidance.decay_summary
 
 
 
@@ -5762,6 +5804,7 @@ def test_build_payload_deliverable_template_context_keeps_prompt_safe_lines() ->
             source_lifecycle_summary="shared sources 目前以穩定來源為主，可直接拿來校正模板主線。",
             freshness_summary="shared sources 近期仍可直接參考，模板主線可以繼續沿用。",
             reactivation_summary="較新的 shared source 已回來，這輪可重新讓模板主線站前面；偏舊來源仍留背景校正。",
+            decay_summary="最新回饋仍是需要改寫，這類模板主線先退到背景觀察。",
             core_sections=["一句話結論", "主要發現", "主要風險", "建議處置"],
             optional_sections=["待補資料", "已審範圍"],
             boundary_note="這是在提示模板主線，不是自動套模板。",
@@ -5787,6 +5830,7 @@ def test_build_payload_deliverable_template_context_keeps_prompt_safe_lines() ->
     assert any("來源狀態：" in item for item in lines)
     assert any("來源新鮮度：" in item for item in lines)
     assert any("來源回前景：" in item for item in lines)
+    assert any("來源退背景：" in item for item in lines)
     assert any("核心區塊：" in item for item in lines)
     assert any("可選區塊：" in item for item in lines)
 
@@ -6053,6 +6097,47 @@ def test_deliverable_template_guidance_uses_template_candidate_feedback_to_react
 
         assert guidance.status == "available"
         assert "範本候選" in guidance.reactivation_summary
+
+
+def test_deliverable_template_guidance_uses_needs_revision_feedback_to_decay_shared_source(
+    client: TestClient,
+) -> None:
+    from app.services.deliverable_template_intelligence import build_deliverable_template_guidance
+
+    with SessionLocal() as db:
+        guidance = build_deliverable_template_guidance(
+            db,
+            task_type="contract_review",
+            deliverable_class_hint=DeliverableClass.ASSESSMENT_REVIEW_MEMO,
+            precedent_reference_guidance=schemas.PrecedentReferenceGuidanceRead(
+                status="available",
+                matched_items=[
+                    _test_precedent_reference_item(
+                        candidate_id="candidate-needs-revision",
+                        title="需要改寫的模板",
+                        reason_codes=["reusable_structure"],
+                        source_feedback_status=AdoptionFeedbackStatus.NEEDS_REVISION,
+                        shared_signal=_test_shared_signal(
+                            maturity="shared",
+                            maturity_label="已接近共享模式",
+                            weight_action="hold",
+                            weight_action_label="先持平觀察",
+                            stability="stable",
+                            stability_label="已站穩共享模式",
+                        ),
+                        optimization_asset_codes=["deliverable_template"],
+                        optimization_asset_labels=["交付模板"],
+                    )
+                ],
+            ),
+            pack_resolution=schemas.PackResolutionRead(),
+            domain_playbook_guidance=schemas.DomainPlaybookGuidanceRead(),
+            deliverable_shape_guidance=schemas.DeliverableShapeGuidanceRead(),
+        )
+
+        assert guidance.status == "fallback"
+        assert "先退到背景" in guidance.source_lifecycle_summary
+        assert "需要改寫" in guidance.decay_summary
 
 
 def test_deliverable_shape_guidance_normalizes_internal_sections_to_consultant_order(

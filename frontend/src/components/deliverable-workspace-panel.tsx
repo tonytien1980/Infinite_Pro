@@ -1693,6 +1693,9 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                   {deliverableTemplateView.reactivationSummary ? (
                     <p className="muted-text">{deliverableTemplateView.reactivationSummary}</p>
                   ) : null}
+                  {deliverableTemplateView.decaySummary ? (
+                    <p className="muted-text">{deliverableTemplateView.decaySummary}</p>
+                  ) : null}
                   <div className="summary-grid" style={{ marginTop: "16px" }}>
                     {deliverableTemplateView.cards.map((card) => (
                       <div className="section-card" key={`deliverable-template-${card.title}`}>

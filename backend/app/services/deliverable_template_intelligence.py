@@ -121,6 +121,16 @@ def _feedback_linked_reactivation_summary(
     return ""
 
 
+def _feedback_linked_decay_summary(
+    status: AdoptionFeedbackStatus,
+) -> str:
+    if status == AdoptionFeedbackStatus.NEEDS_REVISION:
+        return "最新回饋仍是需要改寫，這類模板主線先退到背景觀察。"
+    if status == AdoptionFeedbackStatus.NOT_ADOPTED:
+        return "最新回饋目前不採用，這類模板主線先退到背景觀察。"
+    return ""
+
+
 def build_deliverable_template_guidance(
     db: Session,
     *,
@@ -140,6 +150,7 @@ def build_deliverable_template_guidance(
     freshness_summary = ""
     reactivation_summary = ""
     feedback_reactivation_summary = ""
+    decay_summary = ""
     has_authoritative_source = False
     has_fresh_shared_source = False
     has_stale_shared_source = False
@@ -187,7 +198,12 @@ def build_deliverable_template_guidance(
     )
     if weighted_matches:
         for matched in weighted_matches:
-            precedent_is_background_only = matched.shared_intelligence_signal.stability != "stable"
+            feedback_decay_summary = _feedback_linked_decay_summary(matched.source_feedback_status)
+            precedent_is_background_only = (
+                matched.shared_intelligence_signal.stability != "stable"
+                or bool(feedback_decay_summary)
+                or matched.shared_intelligence_signal.weight_action == "downweight"
+            )
             snapshot = snapshots.get(matched.candidate_id, {})
             candidate_label = _coerce_template_label(
                 str(snapshot.get("template_label") or snapshot.get("current_output_label") or "")
@@ -231,6 +247,7 @@ def build_deliverable_template_guidance(
                 )
             else:
                 has_stale_shared_source = True
+                decay_summary = feedback_decay_summary
         source_lifecycle_summary = (
             "shared sources 目前仍偏背景校正，precedent 先拿來校正模板，不讓它單獨主導模板主線。"
             if not stable_precedent_matches
@@ -375,6 +392,7 @@ def build_deliverable_template_guidance(
         source_lifecycle_summary=source_lifecycle_summary,
         freshness_summary=freshness_summary,
         reactivation_summary=reactivation_summary,
+        decay_summary=decay_summary,
         core_sections=core_sections,
         optional_sections=optional_sections,
         boundary_note="這是在提示模板主線，不是自動套模板；若和這案正式證據衝突，仍以這案當前判斷與證據為準。",

@@ -3761,3 +3761,76 @@ Environment used:
 - Infinite Pro now distinguishes between generic “a newer source came back” reactivation and reactivation specifically driven by fresh human adoption signals
 - precedent-backed playbook / template guidance can now tell the consultant that a source returned to the foreground because it was newly adopted or newly marked as a reusable template candidate
 - this pass still stays within existing contracts and second-layer reading; no new UI family or automation job was introduced
+
+---
+
+## Entry: 2026-04-05 feedback-linked shared-source reactivation v1 completion pass
+
+Scope:
+- feedback-linked reactivation wording completion for precedent-backed playbook / template guidance
+- precedent reference contract keeps enough feedback state for downstream decay / reactivation wording
+- system now reads fresh positive human signals as part of why a shared source returns to the foreground
+
+Environment used:
+- local repo runtime checks only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`173 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`30 passed`) |
+
+### Feedback-linked reactivation completion verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | precedent reference contract | Serialize `source_feedback_status` on reference items | Verified | full backend suite confirms reference items now carry enough source feedback state for downstream lifecycle wording |
+| Backend | domain playbook | Use fresh adopted feedback in foreground / background wording | Verified | targeted backend test confirms playbook guidance now reads foreground return as adoption-feedback-linked instead of generic freshness only |
+| Backend | deliverable template | Use fresh template-candidate feedback in foreground / background wording | Verified | targeted backend test confirms template guidance now reads foreground return as template-candidate-feedback-linked instead of generic freshness only |
+| Prompt contract | playbook / template context | Keep `來源回前景` stable while making cause more explicit | Verified | payload tests confirm the field still exists but now carries more honest feedback-linked cause wording |
+
+### Verified outcomes
+
+- Infinite Pro now links shared-source reactivation wording more directly to human feedback instead of treating every foreground return as a generic freshness change
+- precedent-backed playbook and template guidance can now tell the consultant when a source stayed or returned near the front specifically because of fresh positive feedback signals
+- this pass still stays inside existing reusable-intelligence contracts and does not introduce a new dashboard, job, or governance shell
+
+---
+
+## Entry: 2026-04-05 feedback-linked shared-source decay v1 pass
+
+Scope:
+- feedback-linked negative-signal readback for precedent-backed playbook / template guidance
+- `decay_summary` plus prompt-safe `來源退背景`
+- needs-revision precedent now pushes shared guidance back into background-calibration posture
+
+Environment used:
+- local repo runtime checks only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`175 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`30 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && mkdir -p .next/types && npx next typegen && npm run typecheck` | Passed |
+
+### Feedback-linked decay specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | domain playbook | Needs-revision precedent decays shared guidance | Verified | targeted backend test confirms a needs-revision precedent now keeps playbook guidance in fallback/background posture and emits `decay_summary` |
+| Backend | deliverable template | Needs-revision precedent decays template mainline | Verified | targeted backend test confirms a needs-revision precedent now keeps template guidance in fallback/background posture and emits `decay_summary` |
+| Prompt contract | playbook / template context | Emit `來源退背景：...` | Verified | payload tests confirm the new decay line appears alongside lifecycle / freshness / reactivation lines |
+| Frontend | helper views | Read `decaySummary` as low-noise consultant copy | Verified | helper tests confirm playbook / template views can surface decay without introducing a new management shell |
+
+### Verified outcomes
+
+- Infinite Pro can now explain not only why a shared source returned to the foreground, but also why it should step back into the background when fresh human feedback turns negative
+- precedent-backed playbook and template guidance now treat `needs_revision` as an explicit decay signal instead of leaving the source unrealistically near the front
+- this pass still stays within existing reusable-intelligence contracts and second-layer reading; no new dashboard or background job was introduced

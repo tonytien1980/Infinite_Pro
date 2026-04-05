@@ -129,6 +129,16 @@ def _feedback_linked_reactivation_summary(
     return ""
 
 
+def _feedback_linked_decay_summary(
+    status: AdoptionFeedbackStatus,
+) -> str:
+    if status == AdoptionFeedbackStatus.NEEDS_REVISION:
+        return "最新回饋仍是需要改寫，這類 shared guidance 先退到背景觀察。"
+    if status == AdoptionFeedbackStatus.NOT_ADOPTED:
+        return "最新回饋目前不採用，這類 shared guidance 先退到背景觀察。"
+    return ""
+
+
 def build_domain_playbook_guidance(
     *,
     task_type: str,
@@ -148,6 +158,7 @@ def build_domain_playbook_guidance(
     freshness_summary = ""
     reactivation_summary = ""
     feedback_reactivation_summary = ""
+    decay_summary = ""
     has_authoritative_source = False
     has_fresh_shared_source = False
     has_stale_shared_source = False
@@ -237,7 +248,12 @@ def build_domain_playbook_guidance(
         )
         top_match = weighted_matches[0] if weighted_matches else None
         if top_match is not None:
-            precedent_is_background_only = top_match.shared_intelligence_signal.stability != "stable"
+            feedback_decay_summary = _feedback_linked_decay_summary(top_match.source_feedback_status)
+            precedent_is_background_only = (
+                top_match.shared_intelligence_signal.stability != "stable"
+                or bool(feedback_decay_summary)
+                or top_match.shared_intelligence_signal.weight_action == "downweight"
+            )
             add_stage(
                 title=f"對照「{top_match.title or '既有模式'}」校正本輪推進順序",
                 summary=top_match.summary or top_match.reusable_reason or "先沿用相似 precedent 的工作主線校正這輪順序。",
@@ -266,6 +282,7 @@ def build_domain_playbook_guidance(
                 )
             else:
                 has_stale_shared_source = True
+                decay_summary = feedback_decay_summary
             if not source_lifecycle_summary:
                 source_lifecycle_summary = (
                     "shared sources 目前仍偏背景校正，先不要讓單一 precedent 或跨案件背景主導整條工作主線。"
@@ -415,6 +432,7 @@ def build_domain_playbook_guidance(
         source_lifecycle_summary=source_lifecycle_summary,
         freshness_summary=freshness_summary,
         reactivation_summary=reactivation_summary,
+        decay_summary=decay_summary,
         boundary_note="這是在提示工作主線，不是強制 checklist；若和這案正式證據衝突，仍以這案正式判斷為準。",
         stages=stages,
     )

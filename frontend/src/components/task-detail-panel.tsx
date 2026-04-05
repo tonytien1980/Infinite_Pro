@@ -1418,6 +1418,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     {domainPlaybookView.reactivationSummary ? (
                       <p className="muted-text">{domainPlaybookView.reactivationSummary}</p>
                     ) : null}
+                    {domainPlaybookView.decaySummary ? (
+                      <p className="muted-text">{domainPlaybookView.decaySummary}</p>
+                    ) : null}
                     {domainPlaybookView.currentStageLabel ? (
                       <p className="muted-text">
                         目前這輪：{domainPlaybookView.currentStageLabel}
@@ -1532,6 +1535,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     ) : null}
                     {deliverableTemplateView.reactivationSummary ? (
                       <p className="muted-text">{deliverableTemplateView.reactivationSummary}</p>
+                    ) : null}
+                    {deliverableTemplateView.decaySummary ? (
+                      <p className="muted-text">{deliverableTemplateView.decaySummary}</p>
                     ) : null}
                     <div className="summary-grid" style={{ marginTop: "16px" }}>
                       {deliverableTemplateView.cards.map((card) => (

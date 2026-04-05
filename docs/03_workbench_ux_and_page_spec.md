@@ -1201,6 +1201,7 @@ Primary action：
   - `來源狀態`
   - `來源新鮮度`
   - `來源回前景`
+  - `來源退背景`
   - `目前這輪`
   - `下一步通常接`
   - 少量 stage cards
@@ -1220,6 +1221,8 @@ Primary action：
   - `來源回前景：較新的 shared source 已回來`
   - 若是由新的 precedent 採納回饋觸發，也可誠實讀成：
     - `來源回前景：新的採納回饋已把這類 shared guidance 拉回前景`
+- 若最新 precedent feedback 仍是需要改寫，也只可低噪音補：
+  - `來源退背景：最新回饋仍是需要改寫，這類 shared guidance 先退到背景觀察`
 - boundary copy 應明講：
   - 這是在提示工作主線
   - 不是強制 checklist
@@ -1256,6 +1259,7 @@ Primary action：
   - `來源狀態`
   - `來源新鮮度`
   - `來源回前景`
+  - `來源退背景`
   - `核心區塊`
   - `可選區塊`
   - 少量 template blocks
@@ -1279,6 +1283,8 @@ Primary action：
   - `來源回前景：較新的 shared source 已回來`
   - 若是由新的 precedent 採納回饋或範本候選訊號觸發，也可誠實讀成：
     - `來源回前景：新的採納回饋已把這類模板主線拉回前景`
+- 若最新 precedent feedback 仍是需要改寫，也只可低噪音補：
+  - `來源退背景：最新回饋仍是需要改寫，這類模板主線先退到背景觀察`
 
 ### 9.3 Specialized hardening views
 

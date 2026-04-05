@@ -14,6 +14,7 @@ export function buildDomainPlaybookView(
   sourceLifecycleSummary: string;
   freshnessSummary: string;
   reactivationSummary: string;
+  decaySummary: string;
   cards: Array<{ title: string; summary: string; meta: string }>;
   listTitle: string;
   listItems: string[];
@@ -32,6 +33,7 @@ export function buildDomainPlaybookView(
       sourceLifecycleSummary: "",
       freshnessSummary: "",
       reactivationSummary: "",
+      decaySummary: "",
       cards: [],
       listTitle: "",
       listItems: [],
@@ -51,6 +53,7 @@ export function buildDomainPlaybookView(
     sourceLifecycleSummary: guidance.source_lifecycle_summary,
     freshnessSummary: guidance.freshness_summary,
     reactivationSummary: guidance.reactivation_summary,
+    decaySummary: guidance.decay_summary,
     cards: guidance.stages.slice(0, 3).map((item) => ({
       title: item.title,
       summary: item.why_now || item.summary,

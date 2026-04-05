@@ -1135,6 +1135,9 @@ export function MatterWorkspacePanel({
                         {domainPlaybookView.reactivationSummary ? (
                           <p className="muted-text">{domainPlaybookView.reactivationSummary}</p>
                         ) : null}
+                        {domainPlaybookView.decaySummary ? (
+                          <p className="muted-text">{domainPlaybookView.decaySummary}</p>
+                        ) : null}
                         {domainPlaybookView.currentStageLabel ? (
                           <p className="muted-text">
                             目前這輪：{domainPlaybookView.currentStageLabel}
