@@ -1700,3 +1700,33 @@ test("shared intelligence closure view stays low-noise and consultant-readable",
   assert.equal(view.remainingItems.length, 1);
   assert.match(view.recommendedNextStep, /phase 4 sign-off/);
 });
+
+test("shared intelligence closure view surfaces sign-off handoff low-noise", () => {
+  const view = buildSharedIntelligenceClosureView({
+    phase_label: "precedent / reusable intelligence",
+    closure_status: "signed_off",
+    closure_status_label: "已正式收口",
+    summary: "phase 4 已正式收口，下一階段 handoff 已整理。",
+    candidate_snapshot: "目前共有 18 筆候選，其中 6 筆已升格成正式可重用模式。",
+    completed_count: 7,
+    remaining_count: 0,
+    completed_items: ["precedent governance / lifecycle 已成立"],
+    asset_audits: [],
+    remaining_items: [],
+    recommended_next_step: "下一階段先做 phase-5 decision framing。",
+    signed_off_at: "2026-04-05T14:40:00+08:00",
+    signed_off_by_label: "王顧問",
+    next_phase_label: "下一階段：phase-5 decision framing",
+    handoff_summary: "先確認 phase 5 要從小型顧問團隊 operating layer 開始，而不是直接跳去 enterprise governance shell。",
+    handoff_items: [
+      "先確認下一階段主線",
+      "不要先開 enterprise governance shell",
+    ],
+  });
+
+  assert.equal(view.statusLabel, "已正式收口");
+  assert.equal(view.signedOffByLabel, "王顧問");
+  assert.match(view.nextPhaseLabel, /phase-5/);
+  assert.match(view.handoffSummary, /小型顧問團隊/);
+  assert.equal(view.handoffItems.length, 2);
+});

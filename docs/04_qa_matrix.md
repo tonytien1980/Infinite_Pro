@@ -4023,3 +4023,41 @@ Environment used:
 - Infinite Pro now treats the last major phase-4 reusable asset audits as a real shipped contract instead of a conversation-only TODO
 - closure review can now distinguish between completed base contracts and audited asset families
 - this pass moves phase 4 materially closer to sign-off without opening a new governance shell
+
+---
+
+## Entry: 2026-04-05 phase-4 sign-off / next-phase handoff v1 pass
+
+Scope:
+- allow explicit phase-4 sign-off from the existing history precedent family
+- persist sign-off state
+- return next-phase handoff details after sign-off
+
+Environment used:
+- local repo runtime checks only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`181 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`32 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Sign-off specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | closure review route | Sign off phase 4 when closure review is ready | Verified | targeted backend test confirms duplicate resolution can move closure status to `ready_to_close`, then explicit sign-off upgrades it to `signed_off` |
+| Backend | sign-off state | Persist signed-off metadata and handoff | Verified | response now includes `signed_off_by_label`, `next_phase_label`, `handoff_summary`, and `handoff_items` |
+| Frontend | closure helper | Read signed-off state and next-phase handoff low-noise | Verified | node tests confirm closure helper now exposes sign-off / handoff fields without creating a new dashboard shell |
+| Frontend | history precedent family | Render sign-off CTA only when ready and render handoff after sign-off | Verified | build / typecheck verification confirms sign-off stays inside the existing history closure section |
+
+### Verified outcomes
+
+- phase 4 can now be formally signed off inside the existing shared-intelligence closure surface
+- the next-phase handoff is now a shipped contract instead of a conversation-only recommendation
+- this pass formally closes phase 4 without creating a new governance shell

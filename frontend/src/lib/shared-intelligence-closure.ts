@@ -13,6 +13,12 @@ export function buildSharedIntelligenceClosureView(
   assetAudits: Array<{ title: string; auditStatusLabel: string; summary: string; nextStep: string }>;
   remainingItems: string[];
   recommendedNextStep: string;
+  signedOffAt: string;
+  signedOffByLabel: string;
+  nextPhaseLabel: string;
+  handoffSummary: string;
+  handoffItems: string[];
+  canSignOff: boolean;
 } {
   if (!review) {
     return {
@@ -26,6 +32,12 @@ export function buildSharedIntelligenceClosureView(
       assetAudits: [],
       remainingItems: [],
       recommendedNextStep: "",
+      signedOffAt: "",
+      signedOffByLabel: "",
+      nextPhaseLabel: "",
+      handoffSummary: "",
+      handoffItems: [],
+      canSignOff: false,
     };
   }
 
@@ -45,5 +57,11 @@ export function buildSharedIntelligenceClosureView(
     })),
     remainingItems: review.remaining_items,
     recommendedNextStep: review.recommended_next_step,
+    signedOffAt: review.signed_off_at || "",
+    signedOffByLabel: review.signed_off_by_label,
+    nextPhaseLabel: review.next_phase_label,
+    handoffSummary: review.handoff_summary,
+    handoffItems: review.handoff_items,
+    canSignOff: review.closure_status === "ready_to_close",
   };
 }

@@ -6756,12 +6756,28 @@ def test_precedent_review_surface_lists_duplicate_groups_and_allows_resolution(
 
     assert resolved_response.status_code == 200
     resolved_body = resolved_response.json()
+    assert resolved_body["closure_review"]["closure_status"] == "ready_to_close"
     assert resolved_body["duplicate_summary"]["pending_review_count"] == 0
     assert resolved_body["duplicate_summary"]["kept_separate_count"] == 1
     duplicate_item = next(
         item for item in resolved_body["duplicate_candidates"] if item["review_key"] == review_key
     )
     assert duplicate_item["review_status"] == "keep_separate"
+
+    sign_off_response = client.post(
+        "/api/v1/workbench/shared-intelligence/phase-4-sign-off",
+        json={"operator_label": "王顧問"},
+    )
+
+    assert sign_off_response.status_code == 200
+    sign_off_body = sign_off_response.json()
+    assert sign_off_body["closure_review"]["closure_status"] == "signed_off"
+    assert sign_off_body["closure_review"]["closure_status_label"] == "已正式收口"
+    assert sign_off_body["closure_review"]["remaining_count"] == 0
+    assert sign_off_body["closure_review"]["signed_off_by_label"] == "王顧問"
+    assert sign_off_body["closure_review"]["next_phase_label"]
+    assert sign_off_body["closure_review"]["handoff_summary"]
+    assert sign_off_body["closure_review"]["handoff_items"]
 
 
 def test_host_precedent_reference_collapses_unreviewed_duplicates_until_keep_separate(

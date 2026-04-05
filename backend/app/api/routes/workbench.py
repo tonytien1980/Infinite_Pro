@@ -9,6 +9,7 @@ from app.services.workbench import (
     get_history_visibility_state,
     get_precedent_review_state,
     get_workbench_preferences,
+    sign_off_shared_intelligence_phase,
     update_precedent_duplicate_review_state,
     update_history_visibility_state,
     update_workbench_preferences,
@@ -116,6 +117,17 @@ def apply_precedent_governance_recommendation_route(
         candidate_id=candidate_id,
         payload=payload,
     )
+
+
+@router.post(
+    "/shared-intelligence/phase-4-sign-off",
+    response_model=schemas.PrecedentReviewResponse,
+)
+def sign_off_shared_intelligence_phase_route(
+    payload: schemas.SharedIntelligenceSignOffRequest,
+    db: Session = Depends(get_db),
+) -> schemas.PrecedentReviewResponse:
+    return sign_off_shared_intelligence_phase(db, payload=payload)
 
 
 @router.post(

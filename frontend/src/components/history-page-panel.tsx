@@ -8,6 +8,7 @@ import {
   applyPrecedentGovernanceRecommendation,
   getPrecedentReviewState,
   listTasks,
+  signOffSharedIntelligencePhase,
   updatePrecedentDuplicateReview,
   updateDeliverablePrecedentCandidateStatus,
   updateRecommendationPrecedentCandidateStatus,
@@ -82,6 +83,7 @@ export function HistoryPagePanel() {
   const [precedentMessage, setPrecedentMessage] = useState<string | null>(null);
   const [activePrecedentId, setActivePrecedentId] = useState<string | null>(null);
   const [activeDuplicateReviewKey, setActiveDuplicateReviewKey] = useState<string | null>(null);
+  const [activePhaseSignOff, setActivePhaseSignOff] = useState(false);
 
   useEffect(() => {
     setPageSize(settings.historyDefaultPageSize);
@@ -345,6 +347,26 @@ export function HistoryPagePanel() {
     }
   }
 
+  async function handlePhase4SignOff() {
+    const operatorLabel = normalizeOperatorDisplayName(operatorIdentity.operatorDisplayName);
+    try {
+      setActivePhaseSignOff(true);
+      setPrecedentMessage(null);
+      const response = await signOffSharedIntelligencePhase({
+        operator_label: operatorLabel || undefined,
+      });
+      setPrecedentItems(response.items);
+      setClosureReview(response.closure_review);
+      setPrecedentDuplicateSummary(response.duplicate_summary);
+      setPrecedentDuplicateCandidates(response.duplicate_candidates);
+      setPrecedentMessage("phase 4 已正式收口，下一階段 handoff 已整理。");
+    } catch (error) {
+      setPrecedentMessage(error instanceof Error ? error.message : "phase 4 收口失敗。");
+    } finally {
+      setActivePhaseSignOff(false);
+    }
+  }
+
   return (
     <main className="page-shell history-page-shell">
       <section className="hero-card history-hero">
@@ -532,6 +554,18 @@ export function HistoryPagePanel() {
                 <h3>{buildSharedIntelligenceClosureView(closureReview).title}</h3>
                 <p className="muted-text">{buildSharedIntelligenceClosureView(closureReview).statusLabel}</p>
                 <p className="content-block">{buildSharedIntelligenceClosureView(closureReview).recommendedNextStep}</p>
+                {buildSharedIntelligenceClosureView(closureReview).canSignOff ? (
+                  <div className="button-row" style={{ marginTop: "12px" }}>
+                    <button
+                      className="button-secondary"
+                      type="button"
+                      disabled={activePhaseSignOff}
+                      onClick={() => void handlePhase4SignOff()}
+                    >
+                      {activePhaseSignOff ? "收口中..." : "正式收口 phase 4"}
+                    </button>
+                  </div>
+                ) : null}
                 <div className="summary-grid" style={{ marginTop: "12px" }}>
                   <div className="section-card">
                     <h4>已站穩的 contract</h4>
@@ -560,6 +594,27 @@ export function HistoryPagePanel() {
                     </ul>
                   </div>
                 </div>
+                {buildSharedIntelligenceClosureView(closureReview).nextPhaseLabel ? (
+                  <div className="section-card" style={{ marginTop: "12px" }}>
+                    <h4>{buildSharedIntelligenceClosureView(closureReview).nextPhaseLabel}</h4>
+                    <p className="content-block">{buildSharedIntelligenceClosureView(closureReview).handoffSummary}</p>
+                    {buildSharedIntelligenceClosureView(closureReview).signedOffByLabel ? (
+                      <p className="muted-text">
+                        由 {buildSharedIntelligenceClosureView(closureReview).signedOffByLabel} 正式收口
+                        {buildSharedIntelligenceClosureView(closureReview).signedOffAt
+                          ? `｜${buildSharedIntelligenceClosureView(closureReview).signedOffAt}`
+                          : ""}
+                      </p>
+                    ) : null}
+                    {buildSharedIntelligenceClosureView(closureReview).handoffItems.length > 0 ? (
+                      <ul className="list-content">
+                        {buildSharedIntelligenceClosureView(closureReview).handoffItems.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             ) : null}
 

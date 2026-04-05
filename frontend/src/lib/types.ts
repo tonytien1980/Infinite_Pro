@@ -203,7 +203,7 @@ export interface PrecedentDuplicateCandidate {
 export interface SharedIntelligenceClosureReview {
   phase_id: "phase_4";
   phase_label: string;
-  closure_status: "completion_pass" | "ready_to_close";
+  closure_status: "completion_pass" | "ready_to_close" | "signed_off";
   closure_status_label: string;
   summary: string;
   candidate_snapshot: string;
@@ -213,6 +213,15 @@ export interface SharedIntelligenceClosureReview {
   asset_audits: SharedIntelligenceAssetAuditItem[];
   remaining_items: string[];
   recommended_next_step: string;
+  signed_off_at: string | null;
+  signed_off_by_label: string;
+  next_phase_label: string;
+  handoff_summary: string;
+  handoff_items: string[];
+}
+
+export interface SharedIntelligenceSignOffPayload {
+  operator_label?: string | null;
 }
 
 export interface SharedIntelligenceAssetAuditItem {

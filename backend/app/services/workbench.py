@@ -32,6 +32,8 @@ from app.workbench import schemas
 
 DEFAULT_WORKBENCH_PROFILE = "single_consultant_default"
 DEFAULT_WORKBENCH_PREFERENCES = schemas.WorkbenchPreferenceResponse()
+PHASE_REVIEW_EXTENSION_KIND = "phase_review"
+PHASE_4_SHARED_INTELLIGENCE_ID = "phase_4_shared_intelligence"
 
 
 def _normalize_operator_label(value: str | None) -> str:
@@ -39,6 +41,19 @@ def _normalize_operator_label(value: str | None) -> str:
     if not normalized:
         return ""
     return normalized[:120]
+
+
+def _get_phase_review_row(
+    db: Session,
+    *,
+    extension_id: str,
+) -> models.WorkbenchExtensionState | None:
+    return db.scalar(
+        select(models.WorkbenchExtensionState)
+        .where(models.WorkbenchExtensionState.profile_key == DEFAULT_WORKBENCH_PROFILE)
+        .where(models.WorkbenchExtensionState.extension_kind == PHASE_REVIEW_EXTENSION_KIND)
+        .where(models.WorkbenchExtensionState.extension_id == extension_id)
+    )
 
 
 def _get_or_create_preference_row(db: Session) -> models.WorkbenchPreference:
@@ -270,6 +285,11 @@ def get_precedent_review_state(db: Session) -> schemas.PrecedentReviewResponse:
         total_candidates=review_summary.total_items,
         promoted_count=review_summary.promoted_count,
         pending_duplicate_count=duplicate_summary.pending_review_count,
+        sign_off_state=(
+            _get_phase_review_row(db, extension_id=PHASE_4_SHARED_INTELLIGENCE_ID).payload
+            if _get_phase_review_row(db, extension_id=PHASE_4_SHARED_INTELLIGENCE_ID)
+            else None
+        ),
     )
 
     return schemas.PrecedentReviewResponse(
@@ -369,4 +389,32 @@ def apply_precedent_governance_recommendation(
         db.add(candidate)
         db.commit()
 
+    return get_precedent_review_state(db)
+
+
+def sign_off_shared_intelligence_phase(
+    db: Session,
+    *,
+    payload: schemas.SharedIntelligenceSignOffRequest,
+) -> schemas.PrecedentReviewResponse:
+    current = get_precedent_review_state(db)
+    if current.closure_review.closure_status != "ready_to_close":
+        raise HTTPException(status_code=409, detail="目前還不能正式收口 phase 4。")
+
+    row = _get_phase_review_row(db, extension_id=PHASE_4_SHARED_INTELLIGENCE_ID)
+    if row is None:
+        row = models.WorkbenchExtensionState(
+            profile_key=DEFAULT_WORKBENCH_PROFILE,
+            extension_kind=PHASE_REVIEW_EXTENSION_KIND,
+            extension_id=PHASE_4_SHARED_INTELLIGENCE_ID,
+            is_custom=False,
+        )
+    operator_label = _normalize_operator_label(payload.operator_label)
+    row.payload = {
+        "signed_off": True,
+        "signed_off_at": models.utc_now().isoformat(),
+        "signed_off_by_label": operator_label,
+    }
+    db.add(row)
+    db.commit()
     return get_precedent_review_state(db)

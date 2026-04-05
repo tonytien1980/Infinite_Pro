@@ -18,6 +18,7 @@ import {
   PrecedentDuplicateReviewPayload,
   PrecedentGovernanceApplyPayload,
   PrecedentReviewResponse,
+  SharedIntelligenceSignOffPayload,
   MatterWorkspaceMetadataUpdatePayload,
   MatterWorkspaceSummary,
   PackContractDraftPayload,
@@ -112,6 +113,22 @@ export async function applyPrecedentGovernanceRecommendation(
 ): Promise<PrecedentReviewResponse> {
   const response = await fetch(
     `${getApiBaseUrl()}/workbench/precedent-candidates/${candidateId}/apply-governance-recommendation`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+  );
+  return parseResponse<PrecedentReviewResponse>(response);
+}
+
+export async function signOffSharedIntelligencePhase(
+  payload: SharedIntelligenceSignOffPayload,
+): Promise<PrecedentReviewResponse> {
+  const response = await fetch(
+    `${getApiBaseUrl()}/workbench/shared-intelligence/phase-4-sign-off`,
     {
       method: "POST",
       headers: {

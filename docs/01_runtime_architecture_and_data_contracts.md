@@ -1173,6 +1173,25 @@ deliverable workspace 採：
 - 這層是在回答 remaining asset families 是否已完成 closure audit
 - 不可長成新的治理 page 或 manual scoring shell
 
+在 closure review 與 asset-audit 都已成立後，也可先補：
+
+- `phase-4 sign-off / next-phase handoff v1`
+
+第一版 contract 至少包括：
+
+- `closure_status = signed_off`
+- `signed_off_at`
+- `signed_off_by_label`
+- `next_phase_label`
+- `handoff_summary`
+- `handoff_items`
+
+正式規則：
+
+- sign-off 必須是顧問明確觸發，不可背景自動收口
+- 第一波只允許在 `closure_status == ready_to_close` 時執行 sign-off
+- sign-off 仍只可出現在既有 `/history` precedent family，不新增 phase dashboard
+
 ### 6.10.2B Domain playbooks
 
 在 reusable assets 已開始知道 `先看哪幾點 / 常漏哪些風險 / 交付怎麼收` 之後，precedent / reusable intelligence 的下一版可重用資產應先補：

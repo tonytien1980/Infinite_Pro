@@ -1248,6 +1248,11 @@ Primary action：
 - 若 closure review 已開始帶 asset audit，UI 也只可低噪音補：
   - `已完成的 asset audit`
   - `剩餘收尾缺口`
+- 若 phase 4 已進入 `ready_to_close`，UI 也只可低噪音補：
+  - `正式收口 phase 4`
+- 若 phase 4 已正式收口，UI 也只可低噪音補：
+  - `下一階段：...`
+  - `handoff 摘要`
 - boundary copy 應明講：
   - 這是在提示工作主線
   - 不是強制 checklist
