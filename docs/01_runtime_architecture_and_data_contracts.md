@@ -631,6 +631,52 @@ deliverable workspace 採：
 - attribution != formal permission model
 - 這層的目的，是讓小型顧問團隊共享 intelligence 時開始知道「誰做了哪個判斷」，但不把單人工作流變重
 
+### 6.9C Shared intelligence evolution rules v1
+
+在 feedback optimization signal 與 team-attributed governance v1 都已成立後，feedback -> optimization loop 的下一刀應先補：
+
+- `shared_intelligence_signal`
+
+正式規則：
+
+- 這不是新的架構層
+- 也不是正式 team collaboration shell
+- 它是掛在 precedent review 與 Host-safe precedent reference 上的一層 nested signal
+- 這層的正式角色是回答：
+  - 這筆模式目前仍偏個別經驗，還是已開始形成共享模式
+  - 這筆模式目前應提高參考、先持平觀察，還是降低參考
+- 這層只可根據既有 precedent rows、reason-coded signal、candidate status 與 attribution 收斂
+- 第一波不可把顧問顯性分成初階 / 中階 / 高階，也不可把 operator label 直接轉成 visible skill score
+
+第一版 contract 至少包括：
+
+- `maturity`
+  - `personal`
+  - `emerging`
+  - `shared`
+- `maturity_reason`
+- `maturity_label`
+- `weight_action`
+  - `upweight`
+  - `hold`
+  - `downweight`
+- `weight_action_label`
+- `supporting_candidate_count`
+- `distinct_operator_count`
+- `promoted_candidate_count`
+- `dismissed_candidate_count`
+- `summary`
+
+正式規則：
+
+- 這層不是 correctness score
+- 這層不是 consultant seniority score
+- 第一波只允許影響：
+  - precedent review lane 的排序細化
+  - Host-safe precedent reference 的排序細化
+  - precedent context explainability
+- 這層是在回答「這筆模式目前開始累積到什麼程度」，不是在回答「這筆 precedent 絕對正確」
+
 ### 6.10 Precedent candidate pool
 
 目前 precedent / reusable intelligence 的第一輪正式形態，是 `precedent candidate pool`。
@@ -700,12 +746,16 @@ deliverable workspace 採：
 - `created_by_label`
 - `last_status_changed_by_label`
 - `optimization_signal`
+- `shared_intelligence_signal`
 
 正式規則：
 
 - 這是 review guidance，不是 correctness score
 - review lane 應開始利用 `source_feedback_reason_codes` 回答「這筆候選為什麼值得先看」
 - review lane 也應開始利用 `optimization_signal` 回答「這筆候選目前最能幫哪種 reusable asset」
+- review lane 也應開始利用 `shared_intelligence_signal` 回答：
+  - 這筆候選目前仍偏個別經驗，還是開始形成共享模式
+  - 目前應提高參考、先持平觀察，還是降低參考
 - 第一波建議順序至少應符合：
   - `candidate + template_candidate` -> `high`
   - `candidate + adopted` -> `high`
@@ -755,6 +805,7 @@ deliverable workspace 採：
 - `created_by_label`
 - `last_status_changed_by_label`
 - `optimization_signal`
+- `shared_intelligence_signal`
 - `title`
 - `summary`
 - `reusable_reason`
@@ -769,6 +820,9 @@ deliverable workspace 採：
 - `recommended_uses` 與 `safe_use_note` 可開始利用 reason-coded signal 說明：
   - 這筆 precedent 現在比較適合拿來參考交付骨架
   - 或比較適合拿來參考判斷方式 / 行動排序 / 風險掃描
+- `shared_intelligence_signal` 可開始回答：
+  - 這筆 precedent 目前仍偏個別經驗，還是已開始形成共享模式
+  - Host 目前應提高參考、先持平觀察，還是降低參考
 - 它不等於 playbook library
 - 它也不等於 template auto-apply
 

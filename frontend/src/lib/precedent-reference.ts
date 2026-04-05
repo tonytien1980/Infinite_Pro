@@ -30,6 +30,12 @@ export function buildPrecedentReferenceView(
         item.optimization_signal?.strength
           ? `參考強度：${item.optimization_signal.strength === "high" ? "高" : item.optimization_signal.strength === "medium" ? "中" : "低"}`
           : "",
+        item.shared_intelligence_signal?.maturity_label
+          ? `共享成熟度：${item.shared_intelligence_signal.maturity_label}`
+          : "",
+        item.shared_intelligence_signal?.weight_action_label
+          ? `權重趨勢：${item.shared_intelligence_signal.weight_action_label}`
+          : "",
       ]
         .filter(Boolean)
         .join("｜") || item.safe_use_note,

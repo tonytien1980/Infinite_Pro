@@ -25,6 +25,18 @@ PRECEDENT_REVIEW_PRIORITY_RANK = {
     "low": 2,
 }
 
+SHARED_INTELLIGENCE_MATURITY_RANK = {
+    "shared": 0,
+    "emerging": 1,
+    "personal": 2,
+}
+
+SHARED_INTELLIGENCE_WEIGHT_RANK = {
+    "upweight": 0,
+    "hold": 1,
+    "downweight": 2,
+}
+
 
 @dataclass(frozen=True)
 class PrecedentReferenceMatch:
@@ -34,6 +46,7 @@ class PrecedentReferenceMatch:
     primary_reason_label: str
     source_feedback_reason_labels: list[str]
     optimization_signal: schemas.PrecedentOptimizationSignalRead
+    shared_intelligence_signal: schemas.SharedIntelligenceSignalRead
     match_reason: str
     safe_use_note: str
     score: int
@@ -119,6 +132,154 @@ def candidate_reason_labels(candidate: "models.PrecedentCandidate") -> list[str]
     return labels
 
 
+def _candidate_primary_asset_code(candidate: "models.PrecedentCandidate") -> str:
+    optimization_signal = build_precedent_optimization_signal(
+        candidate_status=candidate.candidate_status,
+        source_feedback_status=candidate.source_feedback_status,
+        source_feedback_reason_codes=candidate_reason_codes(candidate),
+        candidate_type=candidate.candidate_type,
+    )
+    return optimization_signal.best_for_asset_codes[0] if optimization_signal.best_for_asset_codes else ""
+
+
+def _candidate_operator_labels(candidate: "models.PrecedentCandidate") -> set[str]:
+    labels = {
+        label.strip()
+        for label in (
+            candidate.source_feedback_operator_label or "",
+            candidate.created_by_label or "",
+        )
+        if label and label.strip()
+    }
+    if not labels and candidate.last_status_changed_by_label:
+        labels.add(candidate.last_status_changed_by_label.strip())
+    return {label for label in labels if label}
+
+
+def _candidates_share_intelligence_family(
+    anchor: "models.PrecedentCandidate",
+    other: "models.PrecedentCandidate",
+) -> bool:
+    if anchor.candidate_type != other.candidate_type:
+        return False
+
+    anchor_asset = _candidate_primary_asset_code(anchor)
+    other_asset = _candidate_primary_asset_code(other)
+    if anchor_asset and other_asset and anchor_asset != other_asset:
+        return False
+
+    if anchor.lane_id and other.lane_id and anchor.lane_id != other.lane_id:
+        return False
+    if anchor.deliverable_type and other.deliverable_type and anchor.deliverable_type != other.deliverable_type:
+        return False
+    if anchor.client_stage and other.client_stage and anchor.client_stage != other.client_stage:
+        return False
+    if anchor.client_type and other.client_type and anchor.client_type != other.client_type:
+        return False
+
+    anchor_lenses = set(anchor.domain_lenses or [])
+    other_lenses = set(other.domain_lenses or [])
+    if anchor_lenses and other_lenses and not anchor_lenses.intersection(other_lenses):
+        return False
+
+    return True
+
+
+def build_shared_intelligence_signal(
+    *,
+    candidate: "models.PrecedentCandidate",
+    candidates: Iterable["models.PrecedentCandidate"],
+) -> schemas.SharedIntelligenceSignalRead:
+    family_candidates = [
+        item
+        for item in candidates
+        if _candidates_share_intelligence_family(candidate, item)
+    ]
+    supporting_candidates = [
+        item
+        for item in family_candidates
+        if item.candidate_status != PrecedentCandidateStatus.DISMISSED.value
+    ]
+    dismissed_candidates = [
+        item
+        for item in family_candidates
+        if item.candidate_status == PrecedentCandidateStatus.DISMISSED.value
+    ]
+    distinct_operator_count = len(
+        {
+            label
+            for item in supporting_candidates
+            for label in _candidate_operator_labels(item)
+        }
+    )
+    promoted_candidate_count = sum(
+        1
+        for item in supporting_candidates
+        if item.candidate_status == PrecedentCandidateStatus.PROMOTED.value
+    )
+    supporting_candidate_count = len(supporting_candidates)
+    dismissed_candidate_count = len(dismissed_candidates)
+
+    if (
+        distinct_operator_count >= 2
+        and promoted_candidate_count >= 2
+        and dismissed_candidate_count == 0
+    ) or (
+        distinct_operator_count >= 2
+        and supporting_candidate_count >= 3
+        and promoted_candidate_count >= 1
+        and dismissed_candidate_count == 0
+    ):
+        maturity = "shared"
+        maturity_label = "已接近共享模式"
+        maturity_reason = "這類模式已在多筆案件被不同顧問反覆保留，而且已有正式升格。"
+        weight_action = "upweight"
+        weight_action_label = "提高參考"
+    elif distinct_operator_count >= 2 and supporting_candidate_count >= 2:
+        maturity = "emerging"
+        maturity_label = "開始形成共享模式"
+        if dismissed_candidate_count > 0:
+            maturity_reason = "這類模式已開始在不同案件被多位顧問保留，但仍有停用訊號，先持平觀察。"
+            weight_action = "hold"
+            weight_action_label = "先持平觀察"
+        else:
+            maturity_reason = "這類模式已開始在不同案件被多位顧問重複保留，可提高後續參考權重。"
+            weight_action = "upweight"
+            weight_action_label = "提高參考"
+    elif dismissed_candidate_count > 0 and supporting_candidate_count <= 1:
+        maturity = "personal"
+        maturity_label = "仍偏個別經驗"
+        maturity_reason = "目前仍偏單次或個別經驗，而且已有停用訊號，先降低參考權重。"
+        weight_action = "downweight"
+        weight_action_label = "降低參考"
+    else:
+        maturity = "personal"
+        maturity_label = "仍偏個別經驗"
+        maturity_reason = "目前仍偏單次或個別經驗，先持平觀察，不急著放大影響。"
+        weight_action = "hold"
+        weight_action_label = "先持平觀察"
+
+    if candidate.candidate_status == PrecedentCandidateStatus.DISMISSED.value:
+        weight_action = "downweight"
+        weight_action_label = "降低參考"
+        maturity_reason = (
+            "這筆候選目前已停用；即使相關模式仍有參考價值，這筆個體也先降低參考權重。"
+        )
+
+    return schemas.SharedIntelligenceSignalRead(
+        maturity=maturity,
+        maturity_reason=maturity_reason,
+        maturity_label=maturity_label,
+        weight_action=weight_action,
+        weight_action_label=weight_action_label,
+        supporting_candidate_count=supporting_candidate_count,
+        distinct_operator_count=distinct_operator_count,
+        promoted_candidate_count=promoted_candidate_count,
+        dismissed_candidate_count=dismissed_candidate_count,
+        summary=f"{maturity_label}，{weight_action_label}。",
+    )
+
+
 def build_precedent_safe_use_note(candidate_type: str, reason_codes: Iterable[str] | None = None) -> str:
     codes = set(reason_codes or [])
     if candidate_type == PrecedentCandidateType.DELIVERABLE_PATTERN.value:
@@ -177,11 +338,12 @@ def select_precedent_reference_matches(
     client_type: str | None,
     limit: int = 2,
 ) -> list[PrecedentReferenceMatch]:
+    candidate_rows = list(candidates)
     normalized_domain_lenses = {item.strip() for item in domain_lenses if item.strip()}
     normalized_pack_ids = {item.strip() for item in selected_pack_ids if item.strip()}
     matches: list[PrecedentReferenceMatch] = []
 
-    for candidate in candidates:
+    for candidate in candidate_rows:
         if candidate.task_id == current_task_id:
             continue
         if not is_precedent_candidate_reference_eligible(
@@ -239,6 +401,10 @@ def select_precedent_reference_matches(
             source_feedback_reason_codes=candidate_reason_codes(candidate),
             candidate_type=candidate.candidate_type,
         )
+        shared_intelligence_signal = build_shared_intelligence_signal(
+            candidate=candidate,
+            candidates=candidate_rows,
+        )
 
         matches.append(
             PrecedentReferenceMatch(
@@ -248,6 +414,7 @@ def select_precedent_reference_matches(
                 primary_reason_label=primary_reason_label,
                 source_feedback_reason_labels=source_feedback_reason_labels,
                 optimization_signal=optimization_signal,
+                shared_intelligence_signal=shared_intelligence_signal,
                 match_reason="；".join(reasons[:2]),
                 safe_use_note=build_precedent_safe_use_note(
                     candidate.candidate_type,
@@ -262,6 +429,8 @@ def select_precedent_reference_matches(
             -item.score,
             PRECEDENT_REVIEW_PRIORITY_RANK[item.review_priority],
             STRENGTH_RANK[item.optimization_signal.strength],
+            SHARED_INTELLIGENCE_WEIGHT_RANK[item.shared_intelligence_signal.weight_action],
+            SHARED_INTELLIGENCE_MATURITY_RANK[item.shared_intelligence_signal.maturity],
             -item.candidate.updated_at.timestamp(),
             -item.candidate.created_at.timestamp(),
         )
@@ -285,6 +454,13 @@ def build_precedent_context_lines(
         optimization_summary = getattr(optimization_signal, "summary", "") if optimization_signal else ""
         optimization_labels = getattr(optimization_signal, "best_for_asset_labels", []) if optimization_signal else []
         optimization_strength = getattr(optimization_signal, "strength", "") if optimization_signal else ""
+        shared_intelligence_signal = getattr(item, "shared_intelligence_signal", None)
+        shared_maturity_label = (
+            getattr(shared_intelligence_signal, "maturity_label", "") if shared_intelligence_signal else ""
+        )
+        shared_weight_label = (
+            getattr(shared_intelligence_signal, "weight_action_label", "") if shared_intelligence_signal else ""
+        )
         lines.extend(
             [
                 f"模式 {index}：{title}",
@@ -300,6 +476,8 @@ def build_precedent_context_lines(
                     if optimization_strength
                     else []
                 ),
+                *( [f"- 共享成熟度：{shared_maturity_label}"] if shared_maturity_label else [] ),
+                *( [f"- 權重趨勢：{shared_weight_label}"] if shared_weight_label else [] ),
                 *( [f"- 優化摘要：{optimization_summary}"] if optimization_summary else [] ),
                 f"- 可參考：{safe_use_note}",
                 f"- 摘要：{summary}",

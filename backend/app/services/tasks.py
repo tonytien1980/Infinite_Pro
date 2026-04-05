@@ -7661,6 +7661,7 @@ def _build_precedent_reference_guidance_read(
             created_by_label=item.candidate.created_by_label or "",
             last_status_changed_by_label=item.candidate.last_status_changed_by_label or "",
             optimization_signal=item.optimization_signal,
+            shared_intelligence_signal=item.shared_intelligence_signal,
             title=item.candidate.title or "",
             summary=item.candidate.summary or "",
             reusable_reason=item.candidate.reusable_reason or "",

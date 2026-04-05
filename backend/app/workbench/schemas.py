@@ -253,6 +253,9 @@ class PrecedentReviewItemResponse(BaseModel):
     optimization_signal: domain_schemas.PrecedentOptimizationSignalRead = Field(
         default_factory=domain_schemas.PrecedentOptimizationSignalRead
     )
+    shared_intelligence_signal: domain_schemas.SharedIntelligenceSignalRead = Field(
+        default_factory=domain_schemas.SharedIntelligenceSignalRead
+    )
     title: str
     summary: str = ""
     reusable_reason: str = ""

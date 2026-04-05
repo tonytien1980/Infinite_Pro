@@ -26,6 +26,13 @@ export function buildPrecedentReviewPriorityView(item: {
       }
     | null
     | undefined;
+  shared_intelligence_signal:
+    | {
+        maturity_label: string;
+        weight_action_label: string;
+      }
+    | null
+    | undefined;
 }) {
   return {
     label:
@@ -44,6 +51,10 @@ export function buildPrecedentReviewPriorityView(item: {
                 ? "中"
                 : "低"
           }`
+        : "",
+    sharedMeta:
+      item.shared_intelligence_signal?.maturity_label && item.shared_intelligence_signal?.weight_action_label
+        ? `共享成熟度：${item.shared_intelligence_signal.maturity_label}｜權重趨勢：${item.shared_intelligence_signal.weight_action_label}`
         : "",
     attributionMeta: buildOperatorAttributionSummary({
       sourceFeedbackOperatorLabel: item.source_feedback_operator_label,

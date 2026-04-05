@@ -807,6 +807,19 @@ class PrecedentOptimizationSignalRead(BaseModel):
     summary: str = ""
 
 
+class SharedIntelligenceSignalRead(BaseModel):
+    maturity: Literal["personal", "emerging", "shared"] = "personal"
+    maturity_reason: str = ""
+    maturity_label: str = ""
+    weight_action: Literal["upweight", "hold", "downweight"] = "hold"
+    weight_action_label: str = ""
+    supporting_candidate_count: int = 0
+    distinct_operator_count: int = 0
+    promoted_candidate_count: int = 0
+    dismissed_candidate_count: int = 0
+    summary: str = ""
+
+
 class PrecedentReferenceItemRead(BaseModel):
     candidate_id: str
     candidate_type: PrecedentCandidateType
@@ -820,6 +833,9 @@ class PrecedentReferenceItemRead(BaseModel):
     last_status_changed_by_label: str = ""
     optimization_signal: PrecedentOptimizationSignalRead = Field(
         default_factory=PrecedentOptimizationSignalRead
+    )
+    shared_intelligence_signal: SharedIntelligenceSignalRead = Field(
+        default_factory=SharedIntelligenceSignalRead
     )
     title: str = ""
     summary: str = ""

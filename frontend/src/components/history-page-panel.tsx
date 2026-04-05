@@ -566,6 +566,9 @@ export function HistoryPagePanel() {
                       {priorityView.optimizationMeta ? (
                         <p className="muted-text">{priorityView.optimizationMeta}</p>
                       ) : null}
+                      {priorityView.sharedMeta ? (
+                        <p className="muted-text">{priorityView.sharedMeta}</p>
+                      ) : null}
                       {priorityView.attributionMeta ? (
                         <p className="muted-text">{priorityView.attributionMeta}</p>
                       ) : null}

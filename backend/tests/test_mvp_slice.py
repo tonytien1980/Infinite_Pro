@@ -4055,6 +4055,8 @@ def test_task_aggregate_exposes_host_safe_precedent_reference_guidance(
     assert "交付骨架" in guidance["matched_items"][0]["safe_use_note"]
     assert guidance["matched_items"][0]["optimization_signal"]["strength"] == "high"
     assert "deliverable_template" in guidance["matched_items"][0]["optimization_signal"]["best_for_asset_codes"]
+    assert guidance["matched_items"][0]["shared_intelligence_signal"]["maturity"] == "personal"
+    assert guidance["matched_items"][0]["shared_intelligence_signal"]["weight_action"] == "downweight"
     assert any("交付骨架" in item for item in guidance["recommended_uses"])
     assert all(item["source_deliverable_id"] != dismissed_deliverable_id for item in guidance["matched_items"])
     assert all(item["source_task_id"] != current_task["id"] for item in guidance["matched_items"])
@@ -4108,6 +4110,18 @@ def test_build_payload_precedent_context_includes_optimization_signal_lines() ->
                         best_for_asset_labels=["交付骨架", "交付模板"],
                         summary="最能幫助交付模板與交付骨架，參考強度高。",
                     ),
+                    shared_intelligence_signal=schemas.SharedIntelligenceSignalRead(
+                        maturity="emerging",
+                        maturity_reason="這類模式已開始形成共享模式，但仍有少量待觀察訊號。",
+                        maturity_label="開始形成共享模式",
+                        weight_action="hold",
+                        weight_action_label="先持平觀察",
+                        supporting_candidate_count=2,
+                        distinct_operator_count=2,
+                        promoted_candidate_count=1,
+                        dismissed_candidate_count=1,
+                        summary="開始形成共享模式，先持平觀察。",
+                    ),
                 )
             ],
         ),
@@ -4117,6 +4131,104 @@ def test_build_payload_precedent_context_includes_optimization_signal_lines() ->
 
     assert any("最佳幫助：" in item for item in lines)
     assert any("參考強度：" in item for item in lines)
+    assert any("共享成熟度：" in item for item in lines)
+    assert any("權重趨勢：" in item for item in lines)
+
+
+def test_precedent_review_and_reference_expose_shared_intelligence_signal(
+    client: TestClient,
+) -> None:
+    base_payload = create_contract_review_payload("Shared intelligence precedent A")
+    task_a = client.post("/api/v1/tasks", json=base_payload).json()
+    client.post(
+        f"/api/v1/tasks/{task_a['id']}/uploads",
+        files=[("files", ("agreement-a.txt", b"Termination and liability clauses need review.", "text/plain"))],
+    )
+    deliverable_a = client.post(f"/api/v1/tasks/{task_a['id']}/run").json()["deliverable"]["id"]
+    client.post(
+        f"/api/v1/deliverables/{deliverable_a}/feedback",
+        json={
+            "feedback_status": "template_candidate",
+            "reason_codes": ["reusable_structure"],
+            "operator_label": "王顧問",
+        },
+    )
+    client.post(
+        f"/api/v1/deliverables/{deliverable_a}/precedent-candidate",
+        json={"candidate_status": "promoted", "operator_label": "王顧問"},
+    )
+
+    task_b = client.post(
+        "/api/v1/tasks",
+        json=create_contract_review_payload("Shared intelligence precedent B"),
+    ).json()
+    client.post(
+        f"/api/v1/tasks/{task_b['id']}/uploads",
+        files=[("files", ("agreement-b.txt", b"Indemnity and termination still need review.", "text/plain"))],
+    )
+    deliverable_b = client.post(f"/api/v1/tasks/{task_b['id']}/run").json()["deliverable"]["id"]
+    client.post(
+        f"/api/v1/deliverables/{deliverable_b}/feedback",
+        json={
+            "feedback_status": "adopted",
+            "reason_codes": ["reusable_structure"],
+            "operator_label": "林顧問",
+        },
+    )
+
+    task_c = client.post(
+        "/api/v1/tasks",
+        json=create_contract_review_payload("Shared intelligence precedent C"),
+    ).json()
+    client.post(
+        f"/api/v1/tasks/{task_c['id']}/uploads",
+        files=[("files", ("agreement-c.txt", b"Legacy liability wording still needs review.", "text/plain"))],
+    )
+    deliverable_c = client.post(f"/api/v1/tasks/{task_c['id']}/run").json()["deliverable"]["id"]
+    client.post(
+        f"/api/v1/deliverables/{deliverable_c}/feedback",
+        json={
+            "feedback_status": "needs_revision",
+            "reason_codes": ["reusable_structure"],
+            "operator_label": "陳顧問",
+        },
+    )
+    client.post(
+        f"/api/v1/deliverables/{deliverable_c}/precedent-candidate",
+        json={"candidate_status": "dismissed", "operator_label": "陳顧問"},
+    )
+
+    current_task = client.post(
+        "/api/v1/tasks",
+        json=create_contract_review_payload("Current shared intelligence contract review"),
+    ).json()
+    client.post(
+        f"/api/v1/tasks/{current_task['id']}/uploads",
+        files=[("files", ("agreement-current.txt", b"Current agreement still needs a first-pass review.", "text/plain"))],
+    )
+
+    review_response = client.get("/api/v1/workbench/precedent-candidates")
+    assert review_response.status_code == 200
+    review_item = next(
+        item for item in review_response.json()["items"] if item["deliverable_id"] == deliverable_a
+    )
+    assert review_item["shared_intelligence_signal"]["maturity"] == "emerging"
+    assert review_item["shared_intelligence_signal"]["weight_action"] == "hold"
+    assert review_item["shared_intelligence_signal"]["supporting_candidate_count"] == 2
+    assert review_item["shared_intelligence_signal"]["distinct_operator_count"] == 2
+    assert review_item["shared_intelligence_signal"]["dismissed_candidate_count"] == 1
+    assert "共享模式" in review_item["shared_intelligence_signal"]["summary"]
+
+    aggregate = client.get(f"/api/v1/tasks/{current_task['id']}")
+    assert aggregate.status_code == 200
+    matched_item = next(
+        item
+        for item in aggregate.json()["precedent_reference_guidance"]["matched_items"]
+        if item["source_deliverable_id"] == deliverable_a
+    )
+    assert matched_item["shared_intelligence_signal"]["maturity"] == "emerging"
+    assert matched_item["shared_intelligence_signal"]["weight_action"] == "hold"
+    assert matched_item["shared_intelligence_signal"]["distinct_operator_count"] == 2
 
 
 def test_task_aggregate_exposes_review_lens_guidance(

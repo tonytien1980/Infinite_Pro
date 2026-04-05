@@ -140,6 +140,7 @@ export interface PrecedentReviewItem {
   created_by_label: string;
   last_status_changed_by_label: string;
   optimization_signal: PrecedentOptimizationSignal;
+  shared_intelligence_signal: SharedIntelligenceSignal;
   title: string;
   summary: string;
   reusable_reason: string;
@@ -1149,6 +1150,7 @@ export interface PrecedentReferenceItem {
   created_by_label: string;
   last_status_changed_by_label: string;
   optimization_signal: PrecedentOptimizationSignal;
+  shared_intelligence_signal: SharedIntelligenceSignal;
   title: string;
   summary: string;
   reusable_reason: string;
@@ -1173,6 +1175,19 @@ export interface PrecedentOptimizationSignal {
   strength_reason: string;
   best_for_asset_codes: string[];
   best_for_asset_labels: string[];
+  summary: string;
+}
+
+export interface SharedIntelligenceSignal {
+  maturity: "personal" | "emerging" | "shared";
+  maturity_reason: string;
+  maturity_label: string;
+  weight_action: "upweight" | "hold" | "downweight";
+  weight_action_label: string;
+  supporting_candidate_count: number;
+  distinct_operator_count: number;
+  promoted_candidate_count: number;
+  dismissed_candidate_count: number;
   summary: string;
 }
 

@@ -839,6 +839,10 @@ Primary action：
 - 每筆 candidate 可低噪音補一行：
   - `主要原因：...`
   - 但不應展開成原因矩陣或治理表格
+- 若 precedent review lane 已開始帶 shared intelligence evolution signal，也只可低噪音補：
+  - `共享成熟度：...`
+  - `權重趨勢：...`
+  - 不可把這層做成 consultant ranking、資歷標籤或權重控制台
 - duplicate governance 也應保持低噪音：
   - `確認同一模式`
   - `保留分開`
@@ -969,6 +973,10 @@ Primary action：
   - `最佳幫助：...`
   - `參考強度：...`
   - 不可把這層做成新的 precedence scoring 控制台
+- 若 precedent review lane 已開始帶 shared intelligence evolution signal，history family 也只可低噪音補：
+  - `共享成熟度：...`
+  - `權重趨勢：...`
+  - 不可把這層做成 consultant ranking、專家分級或手動調權後台
 
 ### 9.2.2 Precedent reference reading
 
@@ -1000,6 +1008,10 @@ Primary action：
   - `最佳幫助：...`
   - `參考強度：...`
   - 不可把這層做成分數面板或權重控制器
+- 若 precedent 已開始帶 shared intelligence evolution signal，UI 也只可低噪音補：
+  - `共享成熟度：...`
+  - `權重趨勢：...`
+  - 不可把這層做成 consultant ranking、資歷分級或共享權重控制器
 - boundary copy 應明講：
   - 可參考 framing / review lens / deliverable shape
   - 不會直接複製舊案正文

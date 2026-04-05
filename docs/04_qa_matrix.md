@@ -3222,3 +3222,41 @@ Environment used:
 - Infinite Pro now starts answering not only what to review and what not to miss, but also how this class of case usually progresses
 - Host can carry a compact, prompt-safe playbook mainline into model context without turning it into a playbook library or checklist shell
 - matter workspace and task detail can read the playbook back in a low-noise way
+
+---
+
+## Entry: 2026-04-05 shared intelligence evolution rules v1 pass
+
+Scope:
+- first-pass shared-intelligence evolution rules
+- low-noise `shared_intelligence_signal` readback on precedent review / reference
+- Host-safe precedent context includes shared-maturity and weight-trend hints
+
+Environment used:
+- local repo runtime checks only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`144 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`30 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Shared-intelligence specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | precedent review | Read `shared_intelligence_signal` | Verified | full backend suite covers shared maturity / weight-action signal on precedent review items |
+| Backend | precedent reference | Read `shared_intelligence_signal` | Verified | backend tests confirm Host-safe precedent reference now exposes shared-intelligence signal on matched items |
+| Backend | agent payload | Build prompt-safe precedent context with shared-intelligence hints | Verified | targeted backend test confirms precedent context now includes `共享成熟度 / 權重趨勢` lines |
+| Frontend | precedent review / reference helpers | Render low-noise shared-intelligence copy | Verified | frontend helper tests confirm UI reads as `共享成熟度 / 權重趨勢`, not consultant ranking or weight dashboard |
+
+### Verified outcomes
+
+- Infinite Pro now starts distinguishing between patterns that still look like local experience and patterns that are beginning to accumulate into shared intelligence
+- Host-safe precedent reference can carry not only best-for asset hints, but also a low-risk weight trend for future reuse
+- the visible UI remains low-noise and does not expose consultant seniority labels or a manual weighting console

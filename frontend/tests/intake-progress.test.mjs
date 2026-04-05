@@ -1211,6 +1211,18 @@ test("precedent review priority view stays consultant-readable", () => {
         best_for_asset_labels: ["交付骨架", "交付模板"],
         summary: "最能幫助交付模板與交付骨架，參考強度高。",
       },
+      shared_intelligence_signal: {
+        maturity: "emerging",
+        maturity_reason: "這類模式已開始形成共享模式，但仍有少量待觀察訊號。",
+        maturity_label: "開始形成共享模式",
+        weight_action: "hold",
+        weight_action_label: "先持平觀察",
+        supporting_candidate_count: 2,
+        distinct_operator_count: 2,
+        promoted_candidate_count: 1,
+        dismissed_candidate_count: 1,
+        summary: "開始形成共享模式，先持平觀察。",
+      },
       source_feedback_operator_label: "王顧問",
       last_status_changed_by_label: "林校稿",
     }),
@@ -1218,6 +1230,7 @@ test("precedent review priority view stays consultant-readable", () => {
       label: "建議先看",
       reason: "來自值得當範本的候選，而且主要原因是可重用的行動模式。",
       optimizationMeta: "最佳幫助：交付骨架、交付模板｜參考強度：高",
+      sharedMeta: "共享成熟度：開始形成共享模式｜權重趨勢：先持平觀察",
       attributionMeta: "採納：王顧問｜最近治理：林校稿",
     },
   );
@@ -1227,6 +1240,7 @@ test("precedent review priority view stays consultant-readable", () => {
       review_priority: "medium",
       review_priority_reason: "這個模式已升格，適合排下一輪回看。",
       optimization_signal: null,
+      shared_intelligence_signal: null,
       source_feedback_operator_label: "",
       last_status_changed_by_label: "",
     }),
@@ -1234,6 +1248,7 @@ test("precedent review priority view stays consultant-readable", () => {
       label: "可安排下一輪",
       reason: "這個模式已升格，適合排下一輪回看。",
       optimizationMeta: "",
+      sharedMeta: "",
       attributionMeta: "",
     },
   );
@@ -1243,6 +1258,7 @@ test("precedent review priority view stays consultant-readable", () => {
       review_priority: "low",
       review_priority_reason: "這個候選目前已停用，先留作背景。",
       optimization_signal: null,
+      shared_intelligence_signal: null,
       source_feedback_operator_label: "",
       last_status_changed_by_label: "",
     }),
@@ -1250,6 +1266,7 @@ test("precedent review priority view stays consultant-readable", () => {
       label: "先放背景",
       reason: "這個候選目前已停用，先留作背景。",
       optimizationMeta: "",
+      sharedMeta: "",
       attributionMeta: "",
     },
   );
@@ -1311,6 +1328,18 @@ test("precedent reference view stays low-noise and consultant-readable", () => {
           best_for_asset_labels: ["交付骨架", "交付模板"],
           summary: "最能幫助交付模板與交付骨架，參考強度高。",
         },
+        shared_intelligence_signal: {
+          maturity: "emerging",
+          maturity_reason: "這類模式已開始形成共享模式，但仍有少量待觀察訊號。",
+          maturity_label: "開始形成共享模式",
+          weight_action: "hold",
+          weight_action_label: "先持平觀察",
+          supporting_candidate_count: 2,
+          distinct_operator_count: 2,
+          promoted_candidate_count: 1,
+          dismissed_candidate_count: 1,
+          summary: "開始形成共享模式，先持平觀察。",
+        },
         match_reason: "同樣屬於 material review start，且交付型態一致。",
         safe_use_note: "優先參考交付骨架與段落順序，不要直接複製舊案正文。",
         source_task_id: "task-1",
@@ -1323,6 +1352,8 @@ test("precedent reference view stays low-noise and consultant-readable", () => {
   assert.equal(view.shouldShow, true);
   assert.equal(view.sectionTitle, "可參考既有模式");
   assert.equal(view.cards[0]?.title, "合約審閱模式");
+  assert.match(view.cards[0]?.meta || "", /共享成熟度：開始形成共享模式/);
+  assert.match(view.cards[0]?.meta || "", /權重趨勢：先持平觀察/);
   assert.match(view.cards[0]?.meta ?? "", /可重用的交付結構/);
   assert.match(view.cards[0]?.meta ?? "", /交付模板/);
   assert.equal(view.listItems[0], "先拿來校正交付骨架與段落順序");
