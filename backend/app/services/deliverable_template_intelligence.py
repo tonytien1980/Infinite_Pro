@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.domain import models, schemas
-from app.domain.enums import DeliverableClass
+from app.domain.enums import AdoptionFeedbackStatus, DeliverableClass
 from app.services.precedent_intelligence import select_weighted_precedent_reference_items
 
 
@@ -111,6 +111,16 @@ def _fallback_template(
     )
 
 
+def _feedback_linked_reactivation_summary(
+    status: AdoptionFeedbackStatus,
+) -> str:
+    if status == AdoptionFeedbackStatus.ADOPTED:
+        return "新的採納回饋已把這類模板主線拉回前景；偏舊來源仍留背景校正。"
+    if status == AdoptionFeedbackStatus.TEMPLATE_CANDIDATE:
+        return "新的範本候選回饋已把這類模板主線拉回前景；偏舊來源仍留背景校正。"
+    return ""
+
+
 def build_deliverable_template_guidance(
     db: Session,
     *,
@@ -129,6 +139,7 @@ def build_deliverable_template_guidance(
     source_lifecycle_summary = ""
     freshness_summary = ""
     reactivation_summary = ""
+    feedback_reactivation_summary = ""
     has_authoritative_source = False
     has_fresh_shared_source = False
     has_stale_shared_source = False
@@ -215,6 +226,9 @@ def build_deliverable_template_guidance(
             if not precedent_is_background_only:
                 has_authoritative_source = True
                 has_fresh_shared_source = True
+                feedback_reactivation_summary = _feedback_linked_reactivation_summary(
+                    matched.source_feedback_status
+                )
             else:
                 has_stale_shared_source = True
         source_lifecycle_summary = (
@@ -337,7 +351,10 @@ def build_deliverable_template_guidance(
     )
     if has_fresh_shared_source and has_stale_shared_source:
         freshness_summary = "shared sources 目前新舊並存，先讓近期來源站前面，偏舊來源仍留背景校正。"
-        reactivation_summary = "較新的 shared source 已回來，這輪可重新讓模板主線站前面；偏舊來源仍留背景校正。"
+        reactivation_summary = (
+            feedback_reactivation_summary
+            or "較新的 shared source 已回來，這輪可重新讓模板主線站前面；偏舊來源仍留背景校正。"
+        )
     elif has_fresh_shared_source:
         freshness_summary = "shared sources 近期仍可直接參考，模板主線可以繼續沿用。"
     elif has_stale_shared_source:

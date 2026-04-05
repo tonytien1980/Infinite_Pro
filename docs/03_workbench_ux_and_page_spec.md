@@ -1218,6 +1218,8 @@ Primary action：
   - `來源狀態：較舊或恢復中的 shared source 先退到背景`
 - 若較新的 shared source 已回來，UI 也只可低噪音補：
   - `來源回前景：較新的 shared source 已回來`
+  - 若是由新的 precedent 採納回饋觸發，也可誠實讀成：
+    - `來源回前景：新的採納回饋已把這類 shared guidance 拉回前景`
 - boundary copy 應明講：
   - 這是在提示工作主線
   - 不是強制 checklist
@@ -1275,6 +1277,8 @@ Primary action：
   - `來源狀態：較舊或恢復中的 shared source 先退到背景`
 - 若較新的 shared source 已回來，UI 也只可低噪音補：
   - `來源回前景：較新的 shared source 已回來`
+  - 若是由新的 precedent 採納回饋或範本候選訊號觸發，也可誠實讀成：
+    - `來源回前景：新的採納回饋已把這類模板主線拉回前景`
 
 ### 9.3 Specialized hardening views
 

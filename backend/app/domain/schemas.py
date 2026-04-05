@@ -842,6 +842,7 @@ class PrecedentReferenceItemRead(BaseModel):
     candidate_id: str
     candidate_type: PrecedentCandidateType
     candidate_status: PrecedentCandidateStatus
+    source_feedback_status: AdoptionFeedbackStatus
     review_priority: Literal["high", "medium", "low"] = "medium"
     primary_reason_label: str = ""
     source_feedback_reason_labels: list[str] = Field(default_factory=list)

@@ -7653,6 +7653,7 @@ def _build_precedent_reference_guidance_read(
             candidate_id=item.candidate.id,
             candidate_type=PrecedentCandidateType(item.candidate.candidate_type),
             candidate_status=PrecedentCandidateStatus(item.candidate.candidate_status),
+            source_feedback_status=AdoptionFeedbackStatus(item.candidate.source_feedback_status),
             review_priority=item.review_priority,  # type: ignore[arg-type]
             primary_reason_label=item.primary_reason_label,
             source_feedback_reason_labels=item.source_feedback_reason_labels,

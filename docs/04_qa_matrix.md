@@ -3723,3 +3723,41 @@ Environment used:
 - Infinite Pro now distinguishes not only which shared sources should fade to the background, but also when newer shared sources have come back strongly enough to return to the foreground
 - reactivation remains low-noise: it is read as one extra consultant-facing sentence rather than a new ranking panel or lifecycle dashboard
 - this pass still stays inside existing work surfaces, prompt contexts, and reusable-intelligence contracts
+
+---
+
+## Entry: 2026-04-05 feedback-linked shared-source reactivation v1 pass
+
+Scope:
+- feedback-linked reactivation wording for precedent-backed playbook / template guidance
+- `PrecedentReferenceItem` now carries `source_feedback_status`
+- reactivation summaries can now explicitly say when new adoption feedback or template-candidate feedback pulled a shared source back to the foreground
+
+Environment used:
+- local repo runtime checks only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`173 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`30 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Feedback-linked reactivation verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | precedent reference contract | Serialize `source_feedback_status` on reference items | Verified | backend tests now cover the contract directly and playbook / template guidance can branch on real feedback status instead of only freshness posture |
+| Backend | domain playbook | Adopted precedent can explicitly trigger reactivation wording | Verified | targeted backend test confirms playbook guidance now reads reactivation as feedback-linked when a new adopted precedent pulls the shared guidance back forward |
+| Backend | deliverable template | Template-candidate precedent can explicitly trigger reactivation wording | Verified | targeted backend test confirms template guidance now reads reactivation as feedback-linked when a new template-candidate precedent pulls the template mainline back forward |
+| Backend | agent payload | Existing `來源回前景` line now carries feedback-linked wording | Verified | prompt-safe contexts continue to expose the same low-noise field, but now with more honest cause-of-reactivation wording |
+
+### Verified outcomes
+
+- Infinite Pro now distinguishes between generic “a newer source came back” reactivation and reactivation specifically driven by fresh human adoption signals
+- precedent-backed playbook / template guidance can now tell the consultant that a source returned to the foreground because it was newly adopted or newly marked as a reusable template candidate
+- this pass still stays within existing contracts and second-layer reading; no new UI family or automation job was introduced

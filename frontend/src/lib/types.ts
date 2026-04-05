@@ -1143,6 +1143,7 @@ export interface PrecedentReferenceItem {
   candidate_id: string;
   candidate_type: PrecedentCandidateType;
   candidate_status: PrecedentCandidateStatus;
+  source_feedback_status: AdoptionFeedbackStatus;
   review_priority: "high" | "medium" | "low";
   primary_reason_label: string;
   source_feedback_reason_labels: string[];

@@ -3,7 +3,7 @@ from __future__ import annotations
 from hashlib import sha1
 
 from app.domain import schemas
-from app.domain.enums import DeliverableClass, EngagementContinuityMode
+from app.domain.enums import AdoptionFeedbackStatus, DeliverableClass, EngagementContinuityMode
 from app.services.precedent_intelligence import select_weighted_precedent_reference_items
 
 
@@ -119,6 +119,16 @@ def _playbook_label(task_type: str, deliverable_class_hint: DeliverableClass) ->
     return "探索 / 診斷工作主線"
 
 
+def _feedback_linked_reactivation_summary(
+    status: AdoptionFeedbackStatus,
+) -> str:
+    if status == AdoptionFeedbackStatus.ADOPTED:
+        return "新的採納回饋已把這類 shared guidance 拉回前景；偏舊來源仍留背景校正。"
+    if status == AdoptionFeedbackStatus.TEMPLATE_CANDIDATE:
+        return "新的範本候選回饋已把這類 shared guidance 拉回前景；偏舊來源仍留背景校正。"
+    return ""
+
+
 def build_domain_playbook_guidance(
     *,
     task_type: str,
@@ -137,6 +147,7 @@ def build_domain_playbook_guidance(
     source_lifecycle_summary = ""
     freshness_summary = ""
     reactivation_summary = ""
+    feedback_reactivation_summary = ""
     has_authoritative_source = False
     has_fresh_shared_source = False
     has_stale_shared_source = False
@@ -250,6 +261,9 @@ def build_domain_playbook_guidance(
             if not precedent_is_background_only:
                 has_authoritative_source = True
                 has_fresh_shared_source = True
+                feedback_reactivation_summary = _feedback_linked_reactivation_summary(
+                    top_match.source_feedback_status
+                )
             else:
                 has_stale_shared_source = True
             if not source_lifecycle_summary:
@@ -376,7 +390,10 @@ def build_domain_playbook_guidance(
     )
     if has_fresh_shared_source and has_stale_shared_source:
         freshness_summary = "shared sources 目前新舊並存，先讓近期來源站前面，偏舊來源仍留背景校正。"
-        reactivation_summary = "較新的 shared source 已回來，這輪可重新讓 shared guidance 站前面；偏舊來源仍留背景校正。"
+        reactivation_summary = (
+            feedback_reactivation_summary
+            or "較新的 shared source 已回來，這輪可重新讓 shared guidance 站前面；偏舊來源仍留背景校正。"
+        )
     elif has_fresh_shared_source:
         freshness_summary = "shared sources 近期仍可直接參考，可繼續拿來校正工作主線。"
     elif has_stale_shared_source:

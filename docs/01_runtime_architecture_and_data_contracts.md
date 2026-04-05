@@ -1200,6 +1200,7 @@ deliverable workspace 採：
 - `reactivation_summary` 應回答：
   - 若較新的 shared source 已回來，這輪是否可重新讓 shared guidance 站前面
   - 偏舊來源是否仍保留在背景校正層
+  - 若回前景主要是由新的 precedent 採納回饋觸發，也應誠實讀出這層 feedback link
 - domain playbook 若要進模型上下文，必須經 Host 整理成 prompt-safe `domain_playbook_context`
 - `domain_playbook_context` 應與 `organization_memory_context`、`precedent_context`、`review_lens_context` 並存，但角色不同：
   - organization memory context：這個客戶 / 組織有哪些穩定背景
@@ -1211,6 +1212,7 @@ deliverable workspace 採：
 - 若這輪只剩背景校正等級的 shared source，第一波可更誠實地維持 `fallback`，不把薄 shared source 誤寫成 `available`
 - 若這輪 shared source 已偏舊或仍在恢復，第一波可把它們先退到背景，不讓它們繼續站在工作主線最前面
 - 若較新的 shared source 已回來，第一波可更明確讀成可重新拉回前景，但仍不可把偏舊來源誤讀成同一層 authority
+- 若回前景主要來自新的 `adopted` / `template_candidate` precedent feedback，第一波可明確把這層讀成 feedback-linked reactivation，而不是只剩抽象 freshness wording
 - 第一波只允許影響：
   - framing / sequencing
   - review / convergence ordering
@@ -1454,6 +1456,7 @@ deliverable workspace 採：
 - `reactivation_summary` 應回答：
   - 若較新的 shared source 已回來，這輪是否可重新讓模板主線站前面
   - 偏舊來源是否仍保留在背景校正層
+  - 若回前景主要是由新的 precedent 採納回饋或範本候選訊號觸發，也應誠實讀出這層 feedback link
 - deliverable template 若要進模型上下文，必須經 Host 整理成 prompt-safe `deliverable_template_context`
 - `deliverable_template_context` 應與 `deliverable_shape_context` 並存，但角色不同：
   - deliverable shape context：這份交付物通常怎麼收比較穩
@@ -1463,6 +1466,7 @@ deliverable workspace 採：
 - 若這輪模板只剩 background-only precedent，第一波可更誠實地維持 `fallback`，而不是把薄 precedent 誤寫成足夠主導模板主線的 `available`
 - 若這輪模板 shared source 已偏舊或仍在恢復，第一波可把它們先退到背景，不讓它們繼續站在模板主線最前面
 - 若較新的模板 shared source 已回來，第一波可更明確讀成可重新拉回前景，但仍不可把偏舊來源誤讀成同一層 authority
+- 若回前景主要來自新的 `adopted` / `template_candidate` precedent feedback，第一波可明確把這層讀成 feedback-linked reactivation，而不是只剩抽象 freshness wording
 - v2 可吸收 deliverable shape 與 richer domain playbook signal，但仍不可把：
   - 交付骨架 = 模板主線
   - playbook = template library
