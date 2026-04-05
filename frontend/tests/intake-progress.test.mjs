@@ -1642,34 +1642,61 @@ test("precedent duplicate governance view stays consultant-readable", () => {
 test("shared intelligence closure view stays low-noise and consultant-readable", () => {
   const view = buildSharedIntelligenceClosureView({
     phase_label: "precedent / reusable intelligence",
-    closure_status: "completion_pass",
-    closure_status_label: "接近可收口",
+    closure_status: "ready_to_close",
+    closure_status_label: "可準備 sign-off",
     summary:
-      "precedent governance、organization memory、playbook、template 的 shared-source lifecycle contract 已大致站穩，現在主要剩 closure audit 與 sign-off。",
+      "precedent governance、organization memory、playbook、template 的 shared-source lifecycle contract 已大致站穩，review lens / common risk / deliverable shape 的 closure audit 也已完成，現在主要剩 sign-off。",
     candidate_snapshot: "目前共有 18 筆候選，其中 6 筆已升格成正式可重用模式。",
-    completed_count: 4,
-    remaining_count: 2,
+    completed_count: 7,
+    remaining_count: 1,
     completed_items: [
       "precedent governance / lifecycle 已成立",
       "organization memory 已有 lifecycle posture",
       "domain playbook 已有 shared-source lifecycle posture",
       "deliverable template 已有 shared-source lifecycle posture",
     ],
+    asset_audits: [
+      {
+        asset_code: "review_lens",
+        asset_label: "review lens",
+        audit_status: "audited",
+        audit_status_label: "已完成 audit",
+        summary: "review lens 的 contract、prompt 與 second-layer surface 已站穩。",
+        next_step: "",
+      },
+      {
+        asset_code: "common_risk",
+        asset_label: "common risk",
+        audit_status: "audited",
+        audit_status_label: "已完成 audit",
+        summary: "common risk 的 contract、prompt 與 second-layer surface 已站穩。",
+        next_step: "",
+      },
+      {
+        asset_code: "deliverable_shape",
+        asset_label: "deliverable shape",
+        audit_status: "audited",
+        audit_status_label: "已完成 audit",
+        summary: "deliverable shape 的 contract、prompt 與 second-layer surface 已站穩。",
+        next_step: "",
+      },
+    ],
     remaining_items: [
-      "review lens / common risk / deliverable shape 的 closure audit",
       "phase 4 sign-off 與下一階段 handoff",
     ],
-    recommended_next_step: "先做 shared-intelligence final gap audit，再決定是否正式關閉 phase 4。",
+    recommended_next_step: "若沒有新的 regression，就可準備做 phase 4 sign-off 與下一階段 handoff。",
   });
 
   assert.equal(view.shouldShow, true);
   assert.equal(view.title, "第 4 階段收尾狀態");
-  assert.equal(view.statusLabel, "接近可收口");
-  assert.match(view.summary, /shared-source lifecycle contract/);
-  assert.match(view.meta, /已補 4 項/);
-  assert.match(view.meta, /剩 2 項/);
+  assert.equal(view.statusLabel, "可準備 sign-off");
+  assert.match(view.summary, /closure audit 也已完成/);
+  assert.match(view.meta, /已補 7 項/);
+  assert.match(view.meta, /剩 1 項/);
   assert.match(view.snapshot, /18 筆候選/);
   assert.equal(view.completedItems.length, 4);
-  assert.equal(view.remainingItems.length, 2);
-  assert.match(view.recommendedNextStep, /final gap audit/);
+  assert.equal(view.assetAudits.length, 3);
+  assert.equal(view.assetAudits[0]?.auditStatusLabel, "已完成 audit");
+  assert.equal(view.remainingItems.length, 1);
+  assert.match(view.recommendedNextStep, /phase 4 sign-off/);
 });

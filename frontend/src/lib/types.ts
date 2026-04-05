@@ -210,8 +210,18 @@ export interface SharedIntelligenceClosureReview {
   completed_count: number;
   remaining_count: number;
   completed_items: string[];
+  asset_audits: SharedIntelligenceAssetAuditItem[];
   remaining_items: string[];
   recommended_next_step: string;
+}
+
+export interface SharedIntelligenceAssetAuditItem {
+  asset_code: "review_lens" | "common_risk" | "deliverable_shape";
+  asset_label: string;
+  audit_status: "audited" | "needs_followup";
+  audit_status_label: string;
+  summary: string;
+  next_step: string;
 }
 
 export interface PrecedentDuplicateReviewPayload {

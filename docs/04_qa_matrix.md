@@ -3986,3 +3986,40 @@ Environment used:
 - Infinite Pro can now tell the user, inside the existing history / precedent surface, which phase-4 shared-intelligence contracts are already standing and what remains before formal closure
 - this pass turns phase-4 completion from a conversation-only state into a real shipped read model
 - the closure review remains low-noise and does not create a new management shell
+
+---
+
+## Entry: 2026-04-05 shared-intelligence asset closure audit v1 pass
+
+Scope:
+- extend closure review with structured asset-audit items
+- mark `review_lens / common_risk / deliverable_shape` as formally audited inside the existing phase-4 closure read model
+- keep the result inside `/history` without creating a new dashboard shell
+
+Environment used:
+- local repo runtime checks only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`181 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`31 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Asset-audit specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | closure review contract | Return audited asset items for review lens / common risk / deliverable shape | Verified | targeted backend test confirms closure review now includes three structured asset-audit rows instead of only a generic remaining-gap string |
+| Frontend | closure helper view | Read structured asset audits as low-noise history content | Verified | node tests confirm the closure helper now exposes asset-audit rows while staying consultant-readable |
+| Frontend | history precedent family | Render asset audits inside existing closure review section | Verified | build / typecheck verification confirms audited asset rows appear inside the same history surface rather than a new dashboard family |
+
+### Verified outcomes
+
+- Infinite Pro now treats the last major phase-4 reusable asset audits as a real shipped contract instead of a conversation-only TODO
+- closure review can now distinguish between completed base contracts and audited asset families
+- this pass moves phase 4 materially closer to sign-off without opening a new governance shell

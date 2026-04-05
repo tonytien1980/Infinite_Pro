@@ -1245,6 +1245,9 @@ Primary action：
 - 第一波只應出現在 `history` 的 precedent family
 - 不新增 phase dashboard page family
 - 這層只是在幫團隊知道 shared-intelligence 主線現在做到哪，不是新增治理操作殼
+- 若 closure review 已開始帶 asset audit，UI 也只可低噪音補：
+  - `已完成的 asset audit`
+  - `剩餘收尾缺口`
 - boundary copy 應明講：
   - 這是在提示工作主線
   - 不是強制 checklist

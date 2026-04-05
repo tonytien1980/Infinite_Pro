@@ -542,6 +542,16 @@ export function HistoryPagePanel() {
                     </ul>
                   </div>
                   <div className="section-card">
+                    <h4>已完成的 asset audit</h4>
+                    <ul className="list-content">
+                      {buildSharedIntelligenceClosureView(closureReview).assetAudits.map((item) => (
+                        <li key={item.title}>
+                          {item.title}｜{item.auditStatusLabel}｜{item.summary}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="section-card">
                     <h4>剩餘收尾缺口</h4>
                     <ul className="list-content">
                       {buildSharedIntelligenceClosureView(closureReview).remainingItems.map((item) => (

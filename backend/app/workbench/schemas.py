@@ -327,6 +327,15 @@ class PrecedentDuplicateCandidateResponse(BaseModel):
     resolved_at: str | None = None
 
 
+class SharedIntelligenceAssetAuditItemResponse(BaseModel):
+    asset_code: Literal["review_lens", "common_risk", "deliverable_shape"]
+    asset_label: str = ""
+    audit_status: Literal["audited", "needs_followup"] = "audited"
+    audit_status_label: str = ""
+    summary: str = ""
+    next_step: str = ""
+
+
 class SharedIntelligenceClosureReviewResponse(BaseModel):
     phase_id: Literal["phase_4"] = "phase_4"
     phase_label: str = ""
@@ -337,6 +346,7 @@ class SharedIntelligenceClosureReviewResponse(BaseModel):
     completed_count: int = 0
     remaining_count: int = 0
     completed_items: list[str] = Field(default_factory=list)
+    asset_audits: list[SharedIntelligenceAssetAuditItemResponse] = Field(default_factory=list)
     remaining_items: list[str] = Field(default_factory=list)
     recommended_next_step: str = ""
 

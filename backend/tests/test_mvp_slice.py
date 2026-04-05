@@ -6736,6 +6736,11 @@ def test_precedent_review_surface_lists_duplicate_groups_and_allows_resolution(
     assert review_body["closure_review"]["remaining_count"] >= 1
     assert review_body["closure_review"]["completed_items"]
     assert review_body["closure_review"]["remaining_items"]
+    assert len(review_body["closure_review"]["asset_audits"]) == 3
+    assert all(
+        item["audit_status"] == "audited"
+        for item in review_body["closure_review"]["asset_audits"]
+    )
     assert review_body["duplicate_summary"]["pending_review_count"] == 1
     assert review_body["duplicate_candidates"][0]["suggested_action"] == "merge_candidate"
     review_key = review_body["duplicate_candidates"][0]["review_key"]

@@ -1149,6 +1149,30 @@ deliverable workspace 採：
   - 下一個最合理的 closure slice 是什麼
 - 它不可長成 phase dashboard、PM 控制台或 consultant ranking shell
 
+在 `shared_intelligence_closure_review` 已成立後，completion pass 也可先補：
+
+- `asset_audits`
+
+第一版 contract 至少包括：
+
+- `asset_code`
+- `asset_label`
+- `audit_status`
+- `audit_status_label`
+- `summary`
+- `next_step`
+
+第一波 asset codes 只允許：
+
+- `review_lens`
+- `common_risk`
+- `deliverable_shape`
+
+正式規則：
+
+- 這層是在回答 remaining asset families 是否已完成 closure audit
+- 不可長成新的治理 page 或 manual scoring shell
+
 ### 6.10.2B Domain playbooks
 
 在 reusable assets 已開始知道 `先看哪幾點 / 常漏哪些風險 / 交付怎麼收` 之後，precedent / reusable intelligence 的下一版可重用資產應先補：
