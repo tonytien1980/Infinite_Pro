@@ -49,9 +49,16 @@ def _summarize_related_matter(summary: schemas.MatterWorkspaceSummaryRead) -> st
     )
 
 
+def _coerce_utc_datetime(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
 def _cross_matter_freshness_label(latest_updated_at: datetime) -> str:
     now = datetime.now(timezone.utc)
-    age_days = max(0, int((now - latest_updated_at).total_seconds() // 86400))
+    normalized_updated_at = _coerce_utc_datetime(latest_updated_at)
+    age_days = max(0, int((now - normalized_updated_at).total_seconds() // 86400))
     if age_days <= RECENT_CROSS_MATTER_DAYS:
         return "最近更新"
     if age_days <= STALE_CROSS_MATTER_DAYS:
@@ -110,7 +117,7 @@ def build_cross_matter_organization_memory_items(
         ranked.append(
             (
                 score,
-                summary.latest_updated_at.timestamp(),
+                _coerce_utc_datetime(summary.latest_updated_at).timestamp(),
                 item,
             )
         )

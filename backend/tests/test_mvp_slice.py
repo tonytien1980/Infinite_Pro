@@ -4130,6 +4130,61 @@ def test_domain_playbook_guidance_treats_stale_cross_matter_memory_as_background
     assert any("先留背景" in item.source_label for item in guidance.stages if item.source_kind == "organization_memory")
 
 
+def test_domain_playbook_guidance_falls_back_when_only_background_sources_exist() -> None:
+    from app.services.domain_playbook_intelligence import build_domain_playbook_guidance
+
+    guidance = build_domain_playbook_guidance(
+        task_type="contract_review",
+        client_stage="制度化階段",
+        deliverable_class_hint=DeliverableClass.ASSESSMENT_REVIEW_MEMO,
+        flagship_lane=schemas.FlagshipLaneRead(label="先審閱手上已有材料"),
+        research_guidance=schemas.ResearchGuidanceRead(),
+        organization_memory_guidance=schemas.OrganizationMemoryGuidanceRead(
+            status="available",
+            label="這個客戶 / 組織目前已知的穩定背景",
+            summary="summary",
+            organization_label="Acme Corp｜制度化階段｜中小企業",
+            source_lifecycle_summary="跨案件背景目前先留作背景參考，先不要讓它主導這輪判斷。",
+            freshness_summary="跨案件背景目前偏舊，先留作背景參考。",
+            cross_matter_summary="另有 1 個同客戶案件可回看其穩定背景。",
+            cross_matter_items=[
+                schemas.CrossMatterOrganizationMemoryItemRead(
+                    matter_workspace_id="matter-1",
+                    matter_title="年度法務盤點",
+                    summary="先前案件主要聚焦附件、責任與終止條件。",
+                    relation_reason="同一客戶｜同樣偏法務風險主線",
+                    freshness_label="較舊背景",
+                )
+            ],
+        ),
+        continuation_surface=None,
+        pack_resolution=schemas.PackResolutionRead(),
+        precedent_reference_guidance=schemas.PrecedentReferenceGuidanceRead(
+            status="available",
+            matched_items=[
+                _test_precedent_reference_item(
+                    candidate_id="candidate-recovering",
+                    title="恢復觀察中的工作主線",
+                    reason_codes=["reusable_action_pattern"],
+                    shared_signal=_test_shared_signal(
+                        maturity="shared",
+                        maturity_label="已接近共享模式",
+                        weight_action="upweight",
+                        weight_action_label="提高參考",
+                        stability="recovering",
+                        stability_label="剛恢復觀察",
+                    ),
+                    optimization_asset_codes=["domain_playbook"],
+                    optimization_asset_labels=["工作主線"],
+                )
+            ],
+        ),
+    )
+
+    assert guidance.status == "fallback"
+    assert "背景校正" in guidance.source_lifecycle_summary
+
+
 
 def test_deliverable_precedent_candidate_can_be_promoted_and_demoted(
     client: TestClient,
@@ -5573,6 +5628,46 @@ def test_deliverable_template_guidance_uses_pack_template_when_precedent_is_back
         assert guidance.template_label == "合約審閱備忘模板"
         assert "背景校正" in guidance.source_lifecycle_summary
         assert any("先留背景" in item.source_label for item in guidance.blocks if item.source_kind == "precedent_deliverable_template")
+
+
+def test_deliverable_template_guidance_falls_back_when_only_background_precedent_exists(
+    client: TestClient,
+) -> None:
+    from app.services.deliverable_template_intelligence import build_deliverable_template_guidance
+
+    with SessionLocal() as db:
+        guidance = build_deliverable_template_guidance(
+            db,
+            task_type="contract_review",
+            deliverable_class_hint=DeliverableClass.ASSESSMENT_REVIEW_MEMO,
+            precedent_reference_guidance=schemas.PrecedentReferenceGuidanceRead(
+                status="available",
+                matched_items=[
+                    _test_precedent_reference_item(
+                        candidate_id="candidate-recovering",
+                        title="恢復觀察中的模板",
+                        reason_codes=["reusable_structure"],
+                        shared_signal=_test_shared_signal(
+                            maturity="shared",
+                            maturity_label="已接近共享模式",
+                            weight_action="upweight",
+                            weight_action_label="提高參考",
+                            stability="recovering",
+                            stability_label="剛恢復觀察",
+                        ),
+                        optimization_asset_codes=["deliverable_template"],
+                        optimization_asset_labels=["交付模板"],
+                    )
+                ],
+            ),
+            pack_resolution=schemas.PackResolutionRead(),
+            domain_playbook_guidance=schemas.DomainPlaybookGuidanceRead(),
+            deliverable_shape_guidance=schemas.DeliverableShapeGuidanceRead(),
+        )
+
+        assert guidance.status == "fallback"
+        assert guidance.template_label == "合約審閱備忘模板"
+        assert "背景校正" in guidance.source_lifecycle_summary
 
 
 def test_deliverable_shape_guidance_normalizes_internal_sections_to_consultant_order(

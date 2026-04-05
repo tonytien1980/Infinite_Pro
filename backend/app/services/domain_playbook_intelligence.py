@@ -135,6 +135,7 @@ def build_domain_playbook_guidance(
     seen_keys: set[str] = set()
     source_kinds_used: list[str] = []
     source_lifecycle_summary = ""
+    has_authoritative_source = False
 
     def add_stage(
         *,
@@ -188,6 +189,8 @@ def build_domain_playbook_guidance(
             ),
             priority="medium" if organization_memory_is_background_only else ("high" if not stages else "medium"),
         )
+        if not organization_memory_is_background_only:
+            has_authoritative_source = True
         source_lifecycle_summary = (
             "shared sources 目前仍偏背景校正，先不要讓單一 precedent 或跨案件背景主導整條工作主線。"
             if organization_memory_is_background_only
@@ -203,6 +206,7 @@ def build_domain_playbook_guidance(
             source_label="來源：research guidance",
             priority="high",
         )
+        has_authoritative_source = True
 
     if precedent_reference_guidance.status == "available":
         weighted_matches = select_weighted_precedent_reference_items(
@@ -233,6 +237,8 @@ def build_domain_playbook_guidance(
                 ),
                 priority="medium" if precedent_is_background_only else ("high" if not stages else "medium"),
             )
+            if not precedent_is_background_only:
+                has_authoritative_source = True
             if not source_lifecycle_summary:
                 source_lifecycle_summary = (
                     "shared sources 目前仍偏背景校正，先不要讓單一 precedent 或跨案件背景主導整條工作主線。"
@@ -257,6 +263,7 @@ def build_domain_playbook_guidance(
                 source_label="來源：pack stage heuristic",
                 priority="high" if not stages else "medium",
             )
+            has_authoritative_source = True
             pack_stage_added = True
             break
         if pack_stage_added:
@@ -298,6 +305,7 @@ def build_domain_playbook_guidance(
             source_label="來源：continuation surface",
             priority="medium",
         )
+        has_authoritative_source = True
 
     if not stages:
         return schemas.DomainPlaybookGuidanceRead(
@@ -357,7 +365,7 @@ def build_domain_playbook_guidance(
         source_lifecycle_summary = "目前仍以 pack / task heuristic 為主，shared source 還不夠厚。"
 
     return schemas.DomainPlaybookGuidanceRead(
-        status="available" if any(item.source_kind != "task_heuristic" for item in stages) else "fallback",
+        status="available" if has_authoritative_source else "fallback",
         label="這類案子通常怎麼走",
         summary=summary,
         playbook_label=playbook_label,

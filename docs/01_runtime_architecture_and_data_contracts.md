@@ -1202,6 +1202,7 @@ deliverable workspace 採：
   - domain playbook context：這類案子通常怎麼走、這輪目前在哪一步
 - 當多筆 precedent 都可作為 domain-playbook source 時，第一波可優先使用 shared-intelligence 較成熟、且非 `downweight` 的 precedent
 - 若 precedent / organization memory source 仍偏 recovering / background-only，第一波可先把它們留在背景校正層，不讓較弱 shared source 過早抬成主線
+- 若這輪只剩背景校正等級的 shared source，第一波可更誠實地維持 `fallback`，不把薄 shared source 誤寫成 `available`
 - 第一波只允許影響：
   - framing / sequencing
   - review / convergence ordering
@@ -1445,6 +1446,7 @@ deliverable workspace 採：
   - deliverable template context：這份交付比較適合沿用哪種模板主線
 - 當多筆 precedent 都可作為 deliverable-template source 時，第一波可優先使用 shared-intelligence 較成熟、且非 `downweight` 的 precedent
 - 若 precedent deliverable template 仍偏 recovering / background-only，第一波可先保留它的背景校正價值，但不應直接覆蓋較穩的 pack / shape / heuristic 模板主線
+- 若這輪模板只剩 background-only precedent，第一波可更誠實地維持 `fallback`，而不是把薄 precedent 誤寫成足夠主導模板主線的 `available`
 - v2 可吸收 deliverable shape 與 richer domain playbook signal，但仍不可把：
   - 交付骨架 = 模板主線
   - playbook = template library

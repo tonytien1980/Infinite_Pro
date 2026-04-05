@@ -127,6 +127,7 @@ def build_deliverable_template_guidance(
     template_label = ""
     template_fit_summary = ""
     source_lifecycle_summary = ""
+    has_authoritative_source = False
     core_sections: list[str] = []
     optional_sections: list[str] = []
 
@@ -207,6 +208,8 @@ def build_deliverable_template_guidance(
                 ),
                 priority="medium" if precedent_is_background_only else "high",
             )
+            if not precedent_is_background_only:
+                has_authoritative_source = True
         source_lifecycle_summary = (
             "shared sources 目前仍偏背景校正，precedent 先拿來校正模板，不讓它單獨主導模板主線。"
             if not stable_precedent_matches
@@ -224,6 +227,7 @@ def build_deliverable_template_guidance(
             source_label="來源：pack deliverable preset",
             priority="medium",
         )
+        has_authoritative_source = True
 
     if deliverable_shape_guidance.status != "none":
         shape_title = deliverable_shape_guidance.primary_shape_label or "目前交付骨架"
@@ -235,6 +239,7 @@ def build_deliverable_template_guidance(
             source_label="來源：deliverable shape",
             priority="medium",
         )
+        has_authoritative_source = True
 
     if domain_playbook_guidance.status != "none":
         add_block(
@@ -249,6 +254,8 @@ def build_deliverable_template_guidance(
             source_label="來源：domain playbook",
             priority="medium",
         )
+        if domain_playbook_guidance.status == "available":
+            has_authoritative_source = True
 
     fallback_label, fallback_core, fallback_optional, fallback_fit = _fallback_template(
         task_type,
@@ -317,7 +324,7 @@ def build_deliverable_template_guidance(
         source_lifecycle_summary = "目前仍以 pack / shape / task heuristic 為主，shared source 還不夠厚。"
 
     return schemas.DeliverableTemplateGuidanceRead(
-        status="available" if any(item.source_kind != "task_heuristic" for item in blocks) else "fallback",
+        status="available" if has_authoritative_source else "fallback",
         label="這份交付比較適合沿用哪種模板主線",
         summary="Host 先整理出較穩的模板主線，幫你知道這份交付更像哪一型正式模板。",
         template_label=template_label,

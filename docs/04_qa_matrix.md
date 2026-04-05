@@ -3608,3 +3608,41 @@ Environment used:
 - Infinite Pro now distinguishes between cross-matter background that is still fresh enough to support the mainline and background that has become old enough to keep in calibration-only mode
 - prompt context and consultant-facing surfaces now read that distinction back as `背景新鮮度` instead of silently flattening all cross-matter memory into one tier
 - stale cross-matter background remains useful, but no longer overstates its authority in domain-playbook guidance
+
+---
+
+## Entry: 2026-04-05 shared source authority gating v1 pass
+
+Scope:
+- honest authority gating for `domain_playbook_guidance` and `deliverable_template_guidance`
+- background-only shared sources stay useful for calibration, but no longer upgrade guidance to `available`
+- cross-matter organization-memory freshness helper normalized to tolerate runtime naive datetimes during task serialization
+
+Environment used:
+- local repo runtime checks only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`166 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`30 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Authority-gating specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | domain playbook | Only background-only shared sources remain `fallback` | Verified | targeted backend test confirms stale cross-matter memory plus recovering precedent no longer upgrades playbook guidance to `available` |
+| Backend | deliverable template | Only background-only precedent remains `fallback` | Verified | targeted backend test confirms template guidance now keeps recovering precedent in calibration role instead of overstating authority |
+| Backend | organization memory | Serialize cross-matter freshness from naive DB datetimes | Verified | full backend suite confirms task creation / matter serialization no longer fails on naive-vs-aware datetime subtraction |
+| Backend | full task runtime | Cross-matter memory, playbook v2, and template v2 continue to serialize together | Verified | previously failing cross-matter task / playbook / template tests all pass inside the full `test_mvp_slice` suite |
+
+### Verified outcomes
+
+- Infinite Pro now distinguishes between shared sources that are helpful background calibration and shared sources that are strong enough to mark playbook / template guidance as truly `available`
+- background-only precedent or stale cross-matter memory still remain visible to Host, but no longer overstate their authority in reusable-intelligence surfaces
+- cross-matter organization-memory freshness is now runtime-safe even when SQLite-backed summaries surface naive datetimes during task serialization
