@@ -3872,3 +3872,41 @@ Environment used:
 - Infinite Pro now handles mixed positive and negative shared-source feedback more honestly: the system first says how to balance the source, rather than simply listing two conflicting lifecycle sentences
 - playbook and template guidance stay low-noise while becoming more faithful to real shared-intelligence evolution
 - this pass still stays inside existing work surfaces, payload boundaries, and reusable-intelligence contracts
+
+---
+
+## Entry: 2026-04-05 shared-source lifecycle posture v1 pass
+
+Scope:
+- normalize playbook / template shared-source lifecycle into one formal posture contract
+- add `lifecycle_posture` and `lifecycle_posture_label`
+- prompt-safe `來源姿態`
+
+Environment used:
+- local repo runtime checks only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`179 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`30 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Lifecycle-posture specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | domain playbook | Emit normalized lifecycle posture | Verified | targeted backend tests confirm playbook guidance now exposes `foreground / balanced / background` posture in step with recovery / decay logic |
+| Backend | deliverable template | Emit normalized lifecycle posture | Verified | targeted backend tests confirm template guidance now exposes the same posture contract instead of ad hoc wording only |
+| Prompt contract | playbook / template context | Emit `來源姿態：...` | Verified | payload tests confirm Host contexts now receive one normalized posture line before finer lifecycle wording |
+| Frontend | helper views | Keep lifecycle posture low-noise and consultant-readable | Verified | node tests confirm playbook / template helper views now expose `lifecyclePostureLabel` without introducing a new page family |
+
+### Verified outcomes
+
+- Infinite Pro now has a single shared-source lifecycle posture contract instead of letting playbook and template evolve separate lifecycle dialects
+- Host, prompt payloads, and existing second-layer surfaces can now reason over the same `前景 / 平衡 / 背景 / 偏薄` posture
+- this pass is a completion-oriented normalization step inside phase 4, not a new capability family

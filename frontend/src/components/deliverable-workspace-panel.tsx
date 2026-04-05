@@ -1687,6 +1687,9 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                   {deliverableTemplateView.sourceLifecycleSummary ? (
                     <p className="muted-text">{deliverableTemplateView.sourceLifecycleSummary}</p>
                   ) : null}
+                  {deliverableTemplateView.lifecyclePostureLabel ? (
+                    <p className="muted-text">來源姿態：{deliverableTemplateView.lifecyclePostureLabel}</p>
+                  ) : null}
                   {deliverableTemplateView.freshnessSummary ? (
                     <p className="muted-text">{deliverableTemplateView.freshnessSummary}</p>
                   ) : null}

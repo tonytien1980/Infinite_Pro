@@ -8,6 +8,12 @@ from sqlalchemy.orm import Session
 from app.domain import models, schemas
 from app.domain.enums import AdoptionFeedbackStatus, DeliverableClass
 from app.services.precedent_intelligence import select_weighted_precedent_reference_items
+from app.services.shared_source_lifecycle_intelligence import (
+    build_feedback_linked_decay_summary,
+    build_feedback_linked_reactivation_summary,
+    build_recovery_balance_summary,
+    resolve_shared_source_lifecycle_state,
+)
 
 
 TASK_HEURISTIC_TEMPLATES: dict[str, dict[str, object]] = {
@@ -110,40 +116,6 @@ def _fallback_template(
         "目前仍適合先用探索 / 診斷模板，而不是太早切成正式決策模板。",
     )
 
-
-def _feedback_linked_reactivation_summary(
-    status: AdoptionFeedbackStatus,
-) -> str:
-    if status == AdoptionFeedbackStatus.ADOPTED:
-        return "新的採納回饋已把這類模板主線拉回前景；偏舊來源仍留背景校正。"
-    if status == AdoptionFeedbackStatus.TEMPLATE_CANDIDATE:
-        return "新的範本候選回饋已把這類模板主線拉回前景；偏舊來源仍留背景校正。"
-    return ""
-
-
-def _feedback_linked_decay_summary(
-    status: AdoptionFeedbackStatus,
-) -> str:
-    if status == AdoptionFeedbackStatus.NEEDS_REVISION:
-        return "最新回饋仍是需要改寫，這類模板主線先退到背景觀察。"
-    if status == AdoptionFeedbackStatus.NOT_ADOPTED:
-        return "最新回饋目前不採用，這類模板主線先退到背景觀察。"
-    return ""
-
-
-def _recovery_balance_summary(
-    *,
-    reactivation_summary: str,
-    decay_summary: str,
-) -> str:
-    if not reactivation_summary or not decay_summary:
-        return ""
-    return (
-        "雖然新的正向回饋已把部分模板主線拉回前景，但近期仍有需要改寫或暫不採用的來源退到背景；"
-        "這輪先讓較穩的新來源帶主線，其餘留背景觀察。"
-    )
-
-
 def build_deliverable_template_guidance(
     db: Session,
     *,
@@ -159,12 +131,10 @@ def build_deliverable_template_guidance(
     source_kinds_used: list[str] = []
     template_label = ""
     template_fit_summary = ""
-    source_lifecycle_summary = ""
     freshness_summary = ""
     reactivation_summary = ""
     feedback_reactivation_summary = ""
     decay_summary = ""
-    recovery_balance_summary = ""
     has_authoritative_source = False
     has_fresh_shared_source = False
     has_stale_shared_source = False
@@ -212,7 +182,10 @@ def build_deliverable_template_guidance(
     )
     if weighted_matches:
         for matched in weighted_matches:
-            feedback_decay_summary = _feedback_linked_decay_summary(matched.source_feedback_status)
+            feedback_decay_summary = build_feedback_linked_decay_summary(
+                matched.source_feedback_status,
+                subject_label="模板主線",
+            )
             precedent_is_background_only = (
                 matched.shared_intelligence_signal.stability != "stable"
                 or bool(feedback_decay_summary)
@@ -256,17 +229,16 @@ def build_deliverable_template_guidance(
             if not precedent_is_background_only:
                 has_authoritative_source = True
                 has_fresh_shared_source = True
-                feedback_reactivation_summary = _feedback_linked_reactivation_summary(
-                    matched.source_feedback_status
-                )
+                if not feedback_reactivation_summary:
+                    feedback_reactivation_summary = build_feedback_linked_reactivation_summary(
+                        matched.source_feedback_status,
+                        subject_label="模板主線",
+                    )
+                
             else:
                 has_stale_shared_source = True
-                decay_summary = feedback_decay_summary
-        source_lifecycle_summary = (
-            "shared sources 目前仍偏背景校正，precedent 先拿來校正模板，不讓它單獨主導模板主線。"
-            if not stable_precedent_matches
-            else "shared sources 目前以穩定來源為主，可直接拿來校正模板主線。"
-        )
+                if feedback_decay_summary and not decay_summary:
+                    decay_summary = feedback_decay_summary
 
     if not template_label and pack_resolution.deliverable_presets:
         template_label = _coerce_template_label(pack_resolution.deliverable_presets[0])
@@ -390,18 +362,21 @@ def build_deliverable_template_guidance(
         freshness_summary = "shared sources 近期仍可直接參考，模板主線可以繼續沿用。"
     elif has_stale_shared_source:
         freshness_summary = "shared sources 目前偏舊或仍在恢復，先讓較新的 pack / shape / task heuristic 站在前面。"
-    if not source_lifecycle_summary:
-        source_lifecycle_summary = "目前仍以 pack / shape / task heuristic 為主，shared source 還不夠厚。"
-    elif has_stale_shared_source and not has_fresh_shared_source:
-        source_lifecycle_summary = "shared sources 目前仍偏背景校正，較舊或恢復中的 shared source 先退到背景，不要主導模板主線。"
-    recovery_balance_summary = _recovery_balance_summary(
+    recovery_balance_summary = build_recovery_balance_summary(
         reactivation_summary=reactivation_summary,
         decay_summary=decay_summary,
+        subject_label="模板主線",
     )
-    if recovery_balance_summary:
-        source_lifecycle_summary = (
-            "shared sources 目前進入平衡期，先讓較穩的新來源帶模板主線，其餘仍留背景觀察。"
-        )
+    lifecycle_state = resolve_shared_source_lifecycle_state(
+        has_fresh_shared_source=has_fresh_shared_source,
+        has_stale_shared_source=has_stale_shared_source,
+        has_authoritative_source=has_authoritative_source,
+        recovery_balance_summary=recovery_balance_summary,
+        balanced_summary="shared sources 目前進入平衡期，先讓較穩的新來源帶模板主線，其餘仍留背景觀察。",
+        foreground_summary="shared sources 目前以穩定來源為主，可直接拿來校正模板主線。",
+        background_summary="shared sources 目前仍偏背景校正，較舊或恢復中的 shared source 先退到背景，不要主導模板主線。",
+        thin_summary="目前仍以 pack / shape / task heuristic 為主，shared source 還不夠厚。",
+    )
 
     return schemas.DeliverableTemplateGuidanceRead(
         status="available" if has_authoritative_source else "fallback",
@@ -411,11 +386,13 @@ def build_deliverable_template_guidance(
         template_fit_summary=template_fit_summary or fallback_fit,
         fit_summary=fit_summary,
         source_mix_summary=source_mix_summary,
-        source_lifecycle_summary=source_lifecycle_summary,
+        source_lifecycle_summary=lifecycle_state.source_lifecycle_summary,
+        lifecycle_posture=lifecycle_state.lifecycle_posture,
+        lifecycle_posture_label=lifecycle_state.lifecycle_posture_label,
         freshness_summary=freshness_summary,
         reactivation_summary=reactivation_summary,
         decay_summary=decay_summary,
-        recovery_balance_summary=recovery_balance_summary,
+        recovery_balance_summary=lifecycle_state.recovery_balance_summary,
         core_sections=core_sections,
         optional_sections=optional_sections,
         boundary_note="這是在提示模板主線，不是自動套模板；若和這案正式證據衝突，仍以這案當前判斷與證據為準。",

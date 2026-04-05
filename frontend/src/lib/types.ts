@@ -1260,6 +1260,8 @@ export interface DomainPlaybookGuidance {
   fit_summary: string;
   source_mix_summary: string;
   source_lifecycle_summary: string;
+  lifecycle_posture: "foreground" | "balanced" | "background" | "thin";
+  lifecycle_posture_label: string;
   freshness_summary: string;
   reactivation_summary: string;
   decay_summary: string;
@@ -1351,6 +1353,8 @@ export interface DeliverableTemplateGuidance {
   fit_summary: string;
   source_mix_summary: string;
   source_lifecycle_summary: string;
+  lifecycle_posture: "foreground" | "balanced" | "background" | "thin";
+  lifecycle_posture_label: string;
   freshness_summary: string;
   reactivation_summary: string;
   decay_summary: string;

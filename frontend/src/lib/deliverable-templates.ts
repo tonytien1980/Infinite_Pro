@@ -21,6 +21,8 @@ export function buildDeliverableTemplateView(
   fitSummary: string;
   sourceMixSummary: string;
   sourceLifecycleSummary: string;
+  lifecyclePosture: string;
+  lifecyclePostureLabel: string;
   freshnessSummary: string;
   recoveryBalanceSummary: string;
   reactivationSummary: string;
@@ -42,6 +44,8 @@ export function buildDeliverableTemplateView(
       fitSummary: "",
       sourceMixSummary: "",
       sourceLifecycleSummary: "",
+      lifecyclePosture: "",
+      lifecyclePostureLabel: "",
       freshnessSummary: "",
       recoveryBalanceSummary: "",
       reactivationSummary: "",
@@ -64,6 +68,8 @@ export function buildDeliverableTemplateView(
     fitSummary: guidance.fit_summary,
     sourceMixSummary: guidance.source_mix_summary,
     sourceLifecycleSummary: guidance.source_lifecycle_summary,
+    lifecyclePosture: guidance.lifecycle_posture,
+    lifecyclePostureLabel: guidance.lifecycle_posture_label,
     freshnessSummary: guidance.freshness_summary,
     recoveryBalanceSummary: guidance.recovery_balance_summary,
     reactivationSummary: guidance.recovery_balance_summary ? "" : guidance.reactivation_summary,

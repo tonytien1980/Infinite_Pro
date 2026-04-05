@@ -502,6 +502,8 @@ test("domain playbook view stays low-noise and consultant-readable", () => {
     fit_summary: "這輪同時有 precedent、pack 與同客戶跨案件背景，所以工作主線不需要只靠 heuristic。",
     source_mix_summary: "收斂依據：precedent reference、pack stage heuristic、cross-matter organization memory",
     source_lifecycle_summary: "shared sources 目前仍偏背景校正，先不要讓單一 precedent 或跨案件背景主導整條工作主線。",
+    lifecycle_posture: "balanced",
+    lifecycle_posture_label: "來源平衡期",
     freshness_summary: "shared sources 目前偏舊或仍在恢復，先讓較新的 pack / task heuristic 站在前面。",
     reactivation_summary: "較新的 shared source 已回來，這輪可重新讓 shared guidance 站前面；偏舊來源仍留背景校正。",
     decay_summary: "最新回饋仍是需要改寫，這類 shared guidance 先退到背景觀察。",
@@ -544,6 +546,7 @@ test("domain playbook view stays low-noise and consultant-readable", () => {
   assert.equal(view.nextStageLabel, "再收斂高風險點與建議處置");
   assert.match(view.fitSummary, /同客戶跨案件背景/);
   assert.match(view.sourceMixSummary, /cross-matter organization memory/);
+  assert.equal(view.lifecyclePostureLabel, "來源平衡期");
   assert.match(view.sourceLifecycleSummary, /背景校正/);
   assert.match(view.freshnessSummary, /偏舊/);
   assert.match(view.reactivationSummary, /重新讓 shared guidance 站前面/);
@@ -1536,6 +1539,8 @@ test("deliverable template view stays low-noise and consultant-readable", () => 
     fit_summary: "這輪同時有 precedent、shape 與 playbook 主線，所以不需要只靠 heuristic 定模板。",
     source_mix_summary: "收斂依據：precedent deliverable template、deliverable shape、domain playbook",
     source_lifecycle_summary: "shared sources 目前仍偏背景校正，precedent 先拿來校正模板，不讓它單獨主導模板主線。",
+    lifecycle_posture: "balanced",
+    lifecycle_posture_label: "來源平衡期",
     freshness_summary: "shared sources 目前偏舊或仍在恢復，先讓較新的 pack / shape / task heuristic 站在前面。",
     reactivation_summary: "較新的 shared source 已回來，這輪可重新讓模板主線站前面；偏舊來源仍留背景校正。",
     decay_summary: "最新回饋仍是需要改寫，這類模板主線先退到背景觀察。",
@@ -1579,6 +1584,7 @@ test("deliverable template view stays low-noise and consultant-readable", () => 
   assert.match(view.templateFitSummary, /review \/ assessment/);
   assert.match(view.fitSummary, /shape 與 playbook 主線/);
   assert.match(view.sourceMixSummary, /deliverable shape/);
+  assert.equal(view.lifecyclePostureLabel, "來源平衡期");
   assert.match(view.sourceLifecycleSummary, /背景校正/);
   assert.match(view.freshnessSummary, /偏舊/);
   assert.match(view.reactivationSummary, /重新讓模板主線站前面/);

@@ -4404,6 +4404,8 @@ def test_domain_playbook_guidance_uses_adopted_feedback_to_reactivate_shared_sou
     )
 
     assert guidance.status == "available"
+    assert guidance.lifecycle_posture == "foreground"
+    assert guidance.lifecycle_posture_label == "來源在前景"
     assert "採納回饋" in guidance.reactivation_summary
 
 
@@ -4443,6 +4445,8 @@ def test_domain_playbook_guidance_uses_needs_revision_feedback_to_decay_shared_s
     )
 
     assert guidance.status == "fallback"
+    assert guidance.lifecycle_posture == "background"
+    assert guidance.lifecycle_posture_label == "來源在背景"
     assert "先退到背景" in guidance.source_lifecycle_summary
     assert "需要改寫" in guidance.decay_summary
 
@@ -4499,6 +4503,8 @@ def test_domain_playbook_guidance_balances_feedback_linked_recovery_and_decay() 
     )
 
     assert guidance.status == "available"
+    assert guidance.lifecycle_posture == "balanced"
+    assert guidance.lifecycle_posture_label == "來源平衡期"
     assert "採納回饋" in guidance.reactivation_summary
     assert "需要改寫" in guidance.decay_summary
     assert "較穩的新來源帶主線" in guidance.recovery_balance_summary
@@ -5920,6 +5926,8 @@ def test_build_payload_domain_playbook_context_prefers_balance_line_when_recover
             fit_summary="這輪為何適用：已有可參考的既有模式。",
             source_mix_summary="收斂依據：precedent reference、task heuristic",
             source_lifecycle_summary="shared sources 目前進入平衡期，先讓較穩的新來源帶主線，其餘仍留背景觀察。",
+            lifecycle_posture="balanced",
+            lifecycle_posture_label="來源平衡期",
             freshness_summary="shared sources 目前新舊並存，先讓近期來源站前面，偏舊來源仍留背景校正。",
             reactivation_summary="新的採納回饋已把這類 shared guidance 拉回前景；偏舊來源仍留背景校正。",
             decay_summary="最新回饋仍是需要改寫，這類 shared guidance 先退到背景觀察。",
@@ -5941,6 +5949,7 @@ def test_build_payload_domain_playbook_context_prefers_balance_line_when_recover
 
     lines = build_payload_domain_playbook_context(payload)
 
+    assert any("來源姿態：" in item for item in lines)
     assert any("來源平衡：" in item for item in lines)
     assert not any("來源回前景：" in item for item in lines)
     assert not any("來源退背景：" in item for item in lines)
@@ -6207,6 +6216,8 @@ def test_deliverable_template_guidance_uses_template_candidate_feedback_to_react
         )
 
         assert guidance.status == "available"
+        assert guidance.lifecycle_posture == "balanced"
+        assert guidance.lifecycle_posture_label == "來源平衡期"
         assert "範本候選" in guidance.reactivation_summary
 
 
@@ -6247,6 +6258,8 @@ def test_deliverable_template_guidance_uses_needs_revision_feedback_to_decay_sha
         )
 
         assert guidance.status == "fallback"
+        assert guidance.lifecycle_posture == "background"
+        assert guidance.lifecycle_posture_label == "來源在背景"
         assert "先退到背景" in guidance.source_lifecycle_summary
         assert "需要改寫" in guidance.decay_summary
 
@@ -6304,6 +6317,8 @@ def test_deliverable_template_guidance_balances_feedback_linked_recovery_and_dec
         )
 
         assert guidance.status == "available"
+        assert guidance.lifecycle_posture == "balanced"
+        assert guidance.lifecycle_posture_label == "來源平衡期"
         assert "範本候選" in guidance.reactivation_summary
         assert "需要改寫" in guidance.decay_summary
         assert "較穩的新來源帶主線" in guidance.recovery_balance_summary
@@ -6336,6 +6351,8 @@ def test_build_payload_deliverable_template_context_prefers_balance_line_when_re
             fit_summary="這輪為何適用：已有可參考的 precedent 模板主線。",
             source_mix_summary="收斂依據：precedent deliverable template、task heuristic",
             source_lifecycle_summary="shared sources 目前進入平衡期，先讓較穩的新來源帶模板主線，其餘仍留背景觀察。",
+            lifecycle_posture="balanced",
+            lifecycle_posture_label="來源平衡期",
             freshness_summary="shared sources 目前新舊並存，先讓近期來源站前面，偏舊來源仍留背景校正。",
             reactivation_summary="新的範本候選回饋已把這類模板主線拉回前景；偏舊來源仍留背景校正。",
             decay_summary="最新回饋仍是需要改寫，這類模板主線先退到背景觀察。",
@@ -6359,6 +6376,7 @@ def test_build_payload_deliverable_template_context_prefers_balance_line_when_re
 
     lines = build_payload_deliverable_template_context(payload)
 
+    assert any("來源姿態：" in item for item in lines)
     assert any("來源平衡：" in item for item in lines)
     assert not any("來源回前景：" in item for item in lines)
     assert not any("來源退背景：" in item for item in lines)

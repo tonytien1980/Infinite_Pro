@@ -1194,6 +1194,8 @@ deliverable workspace 採：
 - `source_lifecycle_summary` 應回答：
   - 這輪 shared source 目前比較像穩定來源
   - 或仍偏背景校正，不宜過度主導整條工作主線
+- `lifecycle_posture` / `lifecycle_posture_label` 應回答：
+  - 這輪 shared source 整體更接近 `前景 / 平衡 / 背景 / 偏薄` 的哪一種正式姿態
 - `freshness_summary` 應回答：
   - 這輪 shared source 目前仍屬近期可直接參考
   - 或已偏舊 / 仍在恢復，應先讓較新的 pack / research / task heuristic 站在前面
@@ -1221,6 +1223,7 @@ deliverable workspace 採：
 - 若回前景主要來自新的 `adopted` / `template_candidate` precedent feedback，第一波可明確把這層讀成 feedback-linked reactivation，而不是只剩抽象 freshness wording
 - 若最新 precedent feedback 仍是 `needs_revision` 或 shared signal 已明顯 `downweight`，第一波可明確把這層讀成 feedback-linked decay，讓 shared guidance 先退到背景觀察
 - 若同一輪同時已有 feedback-linked reactivation 與 feedback-linked decay，第一波可優先收成 `recovery_balance_summary`，讓 prompt / UI 先看到整體平衡判斷，再決定是否展開個別 lifecycle 細節
+- 第一波也可正式把這層再收成 `lifecycle_posture`，讓 Host / prompt / UI 共享同一套姿態 contract，而不是各自猜測這輪 shared source 到底算前景、平衡、還是背景
 - 第一波只允許影響：
   - framing / sequencing
   - review / convergence ordering
@@ -1458,6 +1461,8 @@ deliverable workspace 採：
 - `source_lifecycle_summary` 應回答：
   - 目前哪些 shared source 已足夠穩定，可直接拿來校正模板主線
   - 哪些 shared source 仍只適合作為背景校正
+- `lifecycle_posture` / `lifecycle_posture_label` 應回答：
+  - 這輪模板 shared source 整體更接近 `前景 / 平衡 / 背景 / 偏薄` 的哪一種正式姿態
 - `freshness_summary` 應回答：
   - 目前 shared source 是否仍屬近期可直接沿用
   - 或已偏舊 / 仍在恢復，應先讓較新的 pack / shape / task heuristic 站在前面
@@ -1483,6 +1488,7 @@ deliverable workspace 採：
 - 若回前景主要來自新的 `adopted` / `template_candidate` precedent feedback，第一波可明確把這層讀成 feedback-linked reactivation，而不是只剩抽象 freshness wording
 - 若最新 precedent feedback 仍是 `needs_revision` 或 shared signal 已明顯 `downweight`，第一波可明確把這層讀成 feedback-linked decay，讓模板主線先退到背景觀察
 - 若同一輪同時已有 feedback-linked reactivation 與 feedback-linked decay，第一波可優先收成 `recovery_balance_summary`，讓 prompt / UI 先看到整體平衡判斷，再決定是否展開個別 lifecycle 細節
+- 第一波也可正式把這層再收成 `lifecycle_posture`，讓 Host / prompt / UI 共享同一套姿態 contract，而不是各自猜測這輪模板 shared source 到底算前景、平衡、還是背景
 - v2 可吸收 deliverable shape 與 richer domain playbook signal，但仍不可把：
   - 交付骨架 = 模板主線
   - playbook = template library

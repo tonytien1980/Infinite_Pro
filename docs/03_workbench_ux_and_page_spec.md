@@ -1226,6 +1226,8 @@ Primary action：
 - 若同一輪同時已有 `來源回前景` 與 `來源退背景`，UI 第一波應優先收成：
   - `來源平衡：...`
   - 不應把兩句互相打架的 lifecycle 訊號直接並排放在同一層
+- 若 backend 已開始正式提供 shared-source posture，UI 也只可低噪音補：
+  - `來源姿態：來源在前景 / 來源平衡期 / 來源在背景 / 來源仍偏薄`
 - boundary copy 應明講：
   - 這是在提示工作主線
   - 不是強制 checklist
@@ -1291,6 +1293,8 @@ Primary action：
 - 若同一輪同時已有 `來源回前景` 與 `來源退背景`，UI 第一波應優先收成：
   - `來源平衡：...`
   - 不應把兩句互相打架的 lifecycle 訊號直接並排放在同一層
+- 若 backend 已開始正式提供 shared-source posture，UI 也只可低噪音補：
+  - `來源姿態：來源在前景 / 來源平衡期 / 來源在背景 / 來源仍偏薄`
 
 ### 9.3 Specialized hardening views
 

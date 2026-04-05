@@ -1412,6 +1412,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     {domainPlaybookView.sourceLifecycleSummary ? (
                       <p className="muted-text">{domainPlaybookView.sourceLifecycleSummary}</p>
                     ) : null}
+                    {domainPlaybookView.lifecyclePostureLabel ? (
+                      <p className="muted-text">來源姿態：{domainPlaybookView.lifecyclePostureLabel}</p>
+                    ) : null}
                     {domainPlaybookView.freshnessSummary ? (
                       <p className="muted-text">{domainPlaybookView.freshnessSummary}</p>
                     ) : null}
@@ -1532,6 +1535,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     ) : null}
                     {deliverableTemplateView.sourceLifecycleSummary ? (
                       <p className="muted-text">{deliverableTemplateView.sourceLifecycleSummary}</p>
+                    ) : null}
+                    {deliverableTemplateView.lifecyclePostureLabel ? (
+                      <p className="muted-text">來源姿態：{deliverableTemplateView.lifecyclePostureLabel}</p>
                     ) : null}
                     {deliverableTemplateView.freshnessSummary ? (
                       <p className="muted-text">{deliverableTemplateView.freshnessSummary}</p>

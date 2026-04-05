@@ -5,6 +5,12 @@ from hashlib import sha1
 from app.domain import schemas
 from app.domain.enums import AdoptionFeedbackStatus, DeliverableClass, EngagementContinuityMode
 from app.services.precedent_intelligence import select_weighted_precedent_reference_items
+from app.services.shared_source_lifecycle_intelligence import (
+    build_feedback_linked_decay_summary,
+    build_feedback_linked_reactivation_summary,
+    build_recovery_balance_summary,
+    resolve_shared_source_lifecycle_state,
+)
 
 
 TASK_HEURISTIC_PLAYBOOKS: dict[str, dict[str, object]] = {
@@ -118,40 +124,6 @@ def _playbook_label(task_type: str, deliverable_class_hint: DeliverableClass) ->
         return "審閱 / 評估工作主線"
     return "探索 / 診斷工作主線"
 
-
-def _feedback_linked_reactivation_summary(
-    status: AdoptionFeedbackStatus,
-) -> str:
-    if status == AdoptionFeedbackStatus.ADOPTED:
-        return "新的採納回饋已把這類 shared guidance 拉回前景；偏舊來源仍留背景校正。"
-    if status == AdoptionFeedbackStatus.TEMPLATE_CANDIDATE:
-        return "新的範本候選回饋已把這類 shared guidance 拉回前景；偏舊來源仍留背景校正。"
-    return ""
-
-
-def _feedback_linked_decay_summary(
-    status: AdoptionFeedbackStatus,
-) -> str:
-    if status == AdoptionFeedbackStatus.NEEDS_REVISION:
-        return "最新回饋仍是需要改寫，這類 shared guidance 先退到背景觀察。"
-    if status == AdoptionFeedbackStatus.NOT_ADOPTED:
-        return "最新回饋目前不採用，這類 shared guidance 先退到背景觀察。"
-    return ""
-
-
-def _recovery_balance_summary(
-    *,
-    reactivation_summary: str,
-    decay_summary: str,
-) -> str:
-    if not reactivation_summary or not decay_summary:
-        return ""
-    return (
-        "雖然新的正向回饋已把部分 shared guidance 拉回前景，但近期仍有需要改寫或暫不採用的來源退到背景；"
-        "這輪先讓較穩的新來源帶主線，其餘留背景觀察。"
-    )
-
-
 def build_domain_playbook_guidance(
     *,
     task_type: str,
@@ -167,12 +139,10 @@ def build_domain_playbook_guidance(
     stages: list[schemas.DomainPlaybookStageRead] = []
     seen_keys: set[str] = set()
     source_kinds_used: list[str] = []
-    source_lifecycle_summary = ""
     freshness_summary = ""
     reactivation_summary = ""
     feedback_reactivation_summary = ""
     decay_summary = ""
-    recovery_balance_summary = ""
     has_authoritative_source = False
     has_fresh_shared_source = False
     has_stale_shared_source = False
@@ -237,11 +207,6 @@ def build_domain_playbook_guidance(
         if organization_memory_guidance.reactivation_summary:
             has_fresh_shared_source = True
             has_stale_shared_source = True
-        source_lifecycle_summary = (
-            "shared sources 目前仍偏背景校正，先不要讓單一 precedent 或跨案件背景主導整條工作主線。"
-            if organization_memory_is_background_only
-            else "shared sources 目前已有較穩定來源，可直接拿來校正工作主線。"
-        )
 
     if research_guidance.status in {"recommended", "active"}:
         add_stage(
@@ -265,7 +230,10 @@ def build_domain_playbook_guidance(
         ]
         precedent_stage_added = False
         for top_match in weighted_matches:
-            feedback_decay_summary = _feedback_linked_decay_summary(top_match.source_feedback_status)
+            feedback_decay_summary = build_feedback_linked_decay_summary(
+                top_match.source_feedback_status,
+                subject_label="shared guidance",
+            )
             precedent_is_background_only = (
                 top_match.shared_intelligence_signal.stability != "stable"
                 or bool(feedback_decay_summary)
@@ -297,25 +265,14 @@ def build_domain_playbook_guidance(
                 has_authoritative_source = True
                 has_fresh_shared_source = True
                 if not feedback_reactivation_summary:
-                    feedback_reactivation_summary = _feedback_linked_reactivation_summary(
-                        top_match.source_feedback_status
+                    feedback_reactivation_summary = build_feedback_linked_reactivation_summary(
+                        top_match.source_feedback_status,
+                        subject_label="shared guidance",
                     )
             else:
                 has_stale_shared_source = True
                 if feedback_decay_summary and not decay_summary:
                     decay_summary = feedback_decay_summary
-            if not source_lifecycle_summary:
-                source_lifecycle_summary = (
-                    "shared sources 目前仍偏背景校正，先不要讓單一 precedent 或跨案件背景主導整條工作主線。"
-                    if precedent_is_background_only
-                    else "shared sources 目前已有較穩定來源，可直接拿來校正工作主線。"
-                )
-        if weighted_matches and not source_lifecycle_summary:
-            source_lifecycle_summary = (
-                "shared sources 目前仍偏背景校正，先不要讓單一 precedent 或跨案件背景主導整條工作主線。"
-                if not stable_matches
-                else "shared sources 目前已有較穩定來源，可直接拿來校正工作主線。"
-            )
 
     pack_stage_added = False
     for pack in [*pack_resolution.selected_domain_packs, *pack_resolution.selected_industry_packs]:
@@ -442,18 +399,21 @@ def build_domain_playbook_guidance(
         freshness_summary = "shared sources 近期仍可直接參考，可繼續拿來校正工作主線。"
     elif has_stale_shared_source:
         freshness_summary = "shared sources 目前偏舊或仍在恢復，先讓較新的 pack / research / task heuristic 站在前面。"
-    if not source_lifecycle_summary:
-        source_lifecycle_summary = "目前仍以 pack / task heuristic 為主，shared source 還不夠厚。"
-    elif has_stale_shared_source and not has_fresh_shared_source:
-        source_lifecycle_summary = "shared sources 目前仍偏背景校正，較舊或恢復中的 shared source 先退到背景，不要主導整條工作主線。"
-    recovery_balance_summary = _recovery_balance_summary(
+    recovery_balance_summary = build_recovery_balance_summary(
         reactivation_summary=reactivation_summary,
         decay_summary=decay_summary,
+        subject_label="shared guidance",
     )
-    if recovery_balance_summary:
-        source_lifecycle_summary = (
-            "shared sources 目前進入平衡期，先讓較穩的新來源帶主線，其餘仍留背景觀察。"
-        )
+    lifecycle_state = resolve_shared_source_lifecycle_state(
+        has_fresh_shared_source=has_fresh_shared_source,
+        has_stale_shared_source=has_stale_shared_source,
+        has_authoritative_source=has_authoritative_source,
+        recovery_balance_summary=recovery_balance_summary,
+        balanced_summary="shared sources 目前進入平衡期，先讓較穩的新來源帶主線，其餘仍留背景觀察。",
+        foreground_summary="shared sources 目前已有較穩定來源，可直接拿來校正工作主線。",
+        background_summary="shared sources 目前仍偏背景校正，較舊或恢復中的 shared source 先退到背景，不要主導整條工作主線。",
+        thin_summary="目前仍以 pack / task heuristic 為主，shared source 還不夠厚。",
+    )
 
     return schemas.DomainPlaybookGuidanceRead(
         status="available" if has_authoritative_source else "fallback",
@@ -464,11 +424,13 @@ def build_domain_playbook_guidance(
         next_stage_label=next_stage_label,
         fit_summary=fit_summary,
         source_mix_summary=source_mix_summary,
-        source_lifecycle_summary=source_lifecycle_summary,
+        source_lifecycle_summary=lifecycle_state.source_lifecycle_summary,
+        lifecycle_posture=lifecycle_state.lifecycle_posture,
+        lifecycle_posture_label=lifecycle_state.lifecycle_posture_label,
         freshness_summary=freshness_summary,
         reactivation_summary=reactivation_summary,
         decay_summary=decay_summary,
-        recovery_balance_summary=recovery_balance_summary,
+        recovery_balance_summary=lifecycle_state.recovery_balance_summary,
         boundary_note="這是在提示工作主線，不是強制 checklist；若和這案正式證據衝突，仍以這案正式判斷為準。",
         stages=stages,
     )
