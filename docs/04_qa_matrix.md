@@ -3949,3 +3949,40 @@ Environment used:
 - Infinite Pro now uses the same `前景 / 平衡 / 背景 / 偏薄` posture vocabulary for organization memory as it already uses for playbook and template guidance
 - cross-matter organization memory no longer has to rely on freeform wording alone to express whether it is strong enough to stand near the front
 - this pass further tightens phase-4 shared-intelligence consistency instead of opening a new capability family
+
+---
+
+## Entry: 2026-04-05 shared-intelligence closure review v1 pass
+
+Scope:
+- add a low-noise completion-pass read model for phase 4
+- expose `shared_intelligence_closure_review` through history precedent review response
+- render closure status, completed contracts, remaining gaps, and next step without creating a new dashboard shell
+
+Environment used:
+- local repo runtime checks only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`181 passed`) |
+| `cd frontend && node --test tests/intake-progress.test.mjs` | Passed (`31 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Closure-review specific verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | workbench precedent review | Return `shared_intelligence_closure_review` | Verified | targeted backend test confirms `/workbench/precedent-candidates` now includes a closure review block with completed/remaining counts and next step |
+| Frontend | helper view | Read closure review as low-noise history summary | Verified | node helper tests confirm closure review stays consultant-readable and does not require a new page family |
+| Frontend | history precedent family | Keep closure review inside existing candidate review surface | Verified | build / typecheck verification confirms closure review is rendered inside the existing history management area rather than a new dashboard shell |
+
+### Verified outcomes
+
+- Infinite Pro can now tell the user, inside the existing history / precedent surface, which phase-4 shared-intelligence contracts are already standing and what remains before formal closure
+- this pass turns phase-4 completion from a conversation-only state into a real shipped read model
+- the closure review remains low-noise and does not create a new management shell

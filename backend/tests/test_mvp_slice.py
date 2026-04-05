@@ -6730,6 +6730,12 @@ def test_precedent_review_surface_lists_duplicate_groups_and_allows_resolution(
 
     assert review_response.status_code == 200
     review_body = review_response.json()
+    assert review_body["closure_review"]["phase_label"] == "precedent / reusable intelligence"
+    assert review_body["closure_review"]["closure_status"] == "completion_pass"
+    assert review_body["closure_review"]["completed_count"] >= 4
+    assert review_body["closure_review"]["remaining_count"] >= 1
+    assert review_body["closure_review"]["completed_items"]
+    assert review_body["closure_review"]["remaining_items"]
     assert review_body["duplicate_summary"]["pending_review_count"] == 1
     assert review_body["duplicate_candidates"][0]["suggested_action"] == "merge_candidate"
     review_key = review_body["duplicate_candidates"][0]["review_key"]

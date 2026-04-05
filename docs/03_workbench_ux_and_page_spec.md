@@ -1230,6 +1230,21 @@ Primary action：
   - 不應把兩句互相打架的 lifecycle 訊號直接並排放在同一層
 - 若 backend 已開始正式提供 shared-source posture，UI 也只可低噪音補：
   - `來源姿態：來源在前景 / 來源平衡期 / 來源在背景 / 來源仍偏薄`
+
+### 9.2.9 Shared-intelligence closure reading
+
+當第 4 階段進入 completion pass 時，history family 可低噪音回讀：
+
+- 目前第 4 階段接近哪種收尾狀態
+- 哪些 shared-intelligence contract 已站穩
+- 還剩哪些 completion-pass gap
+- 下一個最合理的 closure slice 是什麼
+
+正式規則：
+
+- 第一波只應出現在 `history` 的 precedent family
+- 不新增 phase dashboard page family
+- 這層只是在幫團隊知道 shared-intelligence 主線現在做到哪，不是新增治理操作殼
 - boundary copy 應明講：
   - 這是在提示工作主線
   - 不是強制 checklist

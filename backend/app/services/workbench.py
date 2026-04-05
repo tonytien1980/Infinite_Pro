@@ -25,6 +25,9 @@ from app.services.feedback_optimization_intelligence import (
     STRENGTH_RANK,
     build_precedent_optimization_signal,
 )
+from app.services.shared_intelligence_closure_review import (
+    build_shared_intelligence_closure_review,
+)
 from app.workbench import schemas
 
 DEFAULT_WORKBENCH_PROFILE = "single_consultant_default"
@@ -254,18 +257,25 @@ def get_precedent_review_state(db: Session) -> schemas.PrecedentReviewResponse:
         db,
         candidate_rows=rows,
     )
+    review_summary = schemas.PrecedentReviewSummaryResponse(
+        total_items=len(items),
+        candidate_count=sum(1 for item in items if item.candidate_status == "candidate"),
+        promoted_count=sum(1 for item in items if item.candidate_status == "promoted"),
+        dismissed_count=sum(1 for item in items if item.candidate_status == "dismissed"),
+        high_priority_count=sum(1 for item in items if item.review_priority == "high"),
+        medium_priority_count=sum(1 for item in items if item.review_priority == "medium"),
+        low_priority_count=sum(1 for item in items if item.review_priority == "low"),
+    )
+    closure_review = build_shared_intelligence_closure_review(
+        total_candidates=review_summary.total_items,
+        promoted_count=review_summary.promoted_count,
+        pending_duplicate_count=duplicate_summary.pending_review_count,
+    )
 
     return schemas.PrecedentReviewResponse(
-        summary=schemas.PrecedentReviewSummaryResponse(
-            total_items=len(items),
-            candidate_count=sum(1 for item in items if item.candidate_status == "candidate"),
-            promoted_count=sum(1 for item in items if item.candidate_status == "promoted"),
-            dismissed_count=sum(1 for item in items if item.candidate_status == "dismissed"),
-            high_priority_count=sum(1 for item in items if item.review_priority == "high"),
-            medium_priority_count=sum(1 for item in items if item.review_priority == "medium"),
-            low_priority_count=sum(1 for item in items if item.review_priority == "low"),
-        ),
+        summary=review_summary,
         items=items,
+        closure_review=closure_review,
         duplicate_summary=schemas.PrecedentDuplicateSummaryResponse(
             pending_review_count=duplicate_summary.pending_review_count,
             human_confirmed_count=duplicate_summary.human_confirmed_count,

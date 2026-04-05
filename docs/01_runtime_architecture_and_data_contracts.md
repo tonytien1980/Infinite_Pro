@@ -1122,6 +1122,33 @@ deliverable workspace 採：
   - 若與這案正式證據衝突，仍以這案當前證據為準
 - 若 cross-matter background 已偏舊，第一波可先把它留在背景參考，不應過早抬成主要工作主線
 
+在第 4 階段進入 completion pass 後，history family 也可先補：
+
+- `shared_intelligence_closure_review`
+
+第一版 contract 至少包括：
+
+- `phase_id`
+- `phase_label`
+- `closure_status`
+- `closure_status_label`
+- `summary`
+- `candidate_snapshot`
+- `completed_count`
+- `remaining_count`
+- `completed_items`
+- `remaining_items`
+- `recommended_next_step`
+
+正式規則：
+
+- 這層是 shared-intelligence closure read model，不是新的 architecture layer
+- 它只可低噪音回答：
+  - 第 4 階段哪些 contract 已站穩
+  - 目前還剩哪些 completion-pass gap
+  - 下一個最合理的 closure slice 是什麼
+- 它不可長成 phase dashboard、PM 控制台或 consultant ranking shell
+
 ### 6.10.2B Domain playbooks
 
 在 reusable assets 已開始知道 `先看哪幾點 / 常漏哪些風險 / 交付怎麼收` 之後，precedent / reusable intelligence 的下一版可重用資產應先補：

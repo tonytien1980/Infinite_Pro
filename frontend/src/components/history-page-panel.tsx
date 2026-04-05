@@ -24,6 +24,7 @@ import {
   buildPrecedentReviewPriorityView,
   filterPrecedentReviewItems,
 } from "@/lib/precedent-review";
+import { buildSharedIntelligenceClosureView } from "@/lib/shared-intelligence-closure";
 import { normalizeOperatorDisplayName } from "@/lib/operator-identity";
 import {
   applyHistoryFallbackState,
@@ -55,6 +56,7 @@ const PAGE_SIZE_OPTIONS = [10, 20, 30, 50];
 export function HistoryPagePanel() {
   const [tasks, setTasks] = useState<TaskListItem[]>([]);
   const [precedentItems, setPrecedentItems] = useState<PrecedentReviewItem[]>([]);
+  const [closureReview, setClosureReview] = useState<import("@/lib/types").SharedIntelligenceClosureReview | null>(null);
   const [precedentDuplicateSummary, setPrecedentDuplicateSummary] =
     useState<PrecedentDuplicateSummary | null>(null);
   const [precedentDuplicateCandidates, setPrecedentDuplicateCandidates] = useState<
@@ -96,6 +98,7 @@ export function HistoryPagePanel() {
       ]);
       setTasks(taskResponse);
       setPrecedentItems(precedentResponse.items);
+      setClosureReview(precedentResponse.closure_review);
       setPrecedentDuplicateSummary(precedentResponse.duplicate_summary);
       setPrecedentDuplicateCandidates(precedentResponse.duplicate_candidates);
       if (visibilityResponse.source === "remote") {
@@ -265,6 +268,7 @@ export function HistoryPagePanel() {
       }
       const precedentResponse = await getPrecedentReviewState();
       setPrecedentItems(precedentResponse.items);
+      setClosureReview(precedentResponse.closure_review);
       setPrecedentDuplicateSummary(precedentResponse.duplicate_summary);
       setPrecedentDuplicateCandidates(precedentResponse.duplicate_candidates);
       setPrecedentMessage(
@@ -292,6 +296,7 @@ export function HistoryPagePanel() {
         operator_label: operatorLabel || undefined,
       });
       setPrecedentItems(precedentResponse.items);
+      setClosureReview(precedentResponse.closure_review);
       setPrecedentDuplicateSummary(precedentResponse.duplicate_summary);
       setPrecedentDuplicateCandidates(precedentResponse.duplicate_candidates);
       setPrecedentMessage(
@@ -321,6 +326,7 @@ export function HistoryPagePanel() {
         note: "",
       });
       setPrecedentItems(response.items);
+      setClosureReview(response.closure_review);
       setPrecedentDuplicateSummary(response.duplicate_summary);
       setPrecedentDuplicateCandidates(response.duplicate_candidates);
       setPrecedentMessage(
@@ -454,6 +460,16 @@ export function HistoryPagePanel() {
                 </p>
                 <p className="muted-text">目前已按建議順序排列，先處理仍待決且採納訊號較強的候選。</p>
               </div>
+              {buildSharedIntelligenceClosureView(closureReview).shouldShow ? (
+                <div className="section-card">
+                  <h4>{buildSharedIntelligenceClosureView(closureReview).title}</h4>
+                  <p className="content-block">
+                    {buildSharedIntelligenceClosureView(closureReview).summary}
+                  </p>
+                  <p className="muted-text">{buildSharedIntelligenceClosureView(closureReview).meta}</p>
+                  <p className="muted-text">{buildSharedIntelligenceClosureView(closureReview).snapshot}</p>
+                </div>
+              ) : null}
               {buildPrecedentDuplicateSummaryView(precedentDuplicateSummary).shouldShow ? (
                 <div className="section-card">
                   <h4>{buildPrecedentDuplicateSummaryView(precedentDuplicateSummary).title}</h4>
@@ -510,6 +526,31 @@ export function HistoryPagePanel() {
               <p className="success-text" role="status" aria-live="polite">
                 {precedentMessage}
               </p>
+            ) : null}
+            {buildSharedIntelligenceClosureView(closureReview).shouldShow ? (
+              <div className="detail-item" style={{ marginTop: "18px" }}>
+                <h3>{buildSharedIntelligenceClosureView(closureReview).title}</h3>
+                <p className="muted-text">{buildSharedIntelligenceClosureView(closureReview).statusLabel}</p>
+                <p className="content-block">{buildSharedIntelligenceClosureView(closureReview).recommendedNextStep}</p>
+                <div className="summary-grid" style={{ marginTop: "12px" }}>
+                  <div className="section-card">
+                    <h4>已站穩的 contract</h4>
+                    <ul className="list-content">
+                      {buildSharedIntelligenceClosureView(closureReview).completedItems.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="section-card">
+                    <h4>剩餘收尾缺口</h4>
+                    <ul className="list-content">
+                      {buildSharedIntelligenceClosureView(closureReview).remainingItems.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
             ) : null}
 
             <div className="history-list" style={{ marginTop: "18px" }}>

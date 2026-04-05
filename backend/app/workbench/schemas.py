@@ -327,11 +327,28 @@ class PrecedentDuplicateCandidateResponse(BaseModel):
     resolved_at: str | None = None
 
 
+class SharedIntelligenceClosureReviewResponse(BaseModel):
+    phase_id: Literal["phase_4"] = "phase_4"
+    phase_label: str = ""
+    closure_status: Literal["completion_pass", "ready_to_close"] = "completion_pass"
+    closure_status_label: str = ""
+    summary: str = ""
+    candidate_snapshot: str = ""
+    completed_count: int = 0
+    remaining_count: int = 0
+    completed_items: list[str] = Field(default_factory=list)
+    remaining_items: list[str] = Field(default_factory=list)
+    recommended_next_step: str = ""
+
+
 class PrecedentReviewResponse(BaseModel):
     summary: PrecedentReviewSummaryResponse = Field(
         default_factory=PrecedentReviewSummaryResponse
     )
     items: list[PrecedentReviewItemResponse] = Field(default_factory=list)
+    closure_review: SharedIntelligenceClosureReviewResponse = Field(
+        default_factory=SharedIntelligenceClosureReviewResponse
+    )
     duplicate_summary: PrecedentDuplicateSummaryResponse = Field(
         default_factory=PrecedentDuplicateSummaryResponse
     )

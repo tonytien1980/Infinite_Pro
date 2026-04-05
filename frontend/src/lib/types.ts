@@ -200,6 +200,20 @@ export interface PrecedentDuplicateCandidate {
   resolved_at: string | null;
 }
 
+export interface SharedIntelligenceClosureReview {
+  phase_id: "phase_4";
+  phase_label: string;
+  closure_status: "completion_pass" | "ready_to_close";
+  closure_status_label: string;
+  summary: string;
+  candidate_snapshot: string;
+  completed_count: number;
+  remaining_count: number;
+  completed_items: string[];
+  remaining_items: string[];
+  recommended_next_step: string;
+}
+
 export interface PrecedentDuplicateReviewPayload {
   review_key: string;
   resolution: "human_confirmed_canonical_row" | "keep_separate" | "split";
@@ -209,6 +223,7 @@ export interface PrecedentDuplicateReviewPayload {
 export interface PrecedentReviewResponse {
   summary: PrecedentReviewSummary;
   items: PrecedentReviewItem[];
+  closure_review: SharedIntelligenceClosureReview;
   duplicate_summary: PrecedentDuplicateSummary;
   duplicate_candidates: PrecedentDuplicateCandidate[];
 }

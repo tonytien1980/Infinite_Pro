@@ -44,6 +44,7 @@ import { buildDomainPlaybookView } from "../src/lib/domain-playbooks.ts";
 import { buildDeliverableShapeHintView } from "../src/lib/deliverable-shape-hints.ts";
 import { buildPrecedentReferenceView } from "../src/lib/precedent-reference.ts";
 import { buildReviewLensView } from "../src/lib/review-lenses.ts";
+import { buildSharedIntelligenceClosureView } from "../src/lib/shared-intelligence-closure.ts";
 import { buildContinuationPostureView } from "../src/lib/continuity-ux.ts";
 import { buildResearchDetailView, buildResearchGuidanceView } from "../src/lib/research-lane.ts";
 import { buildOrganizationMemoryView } from "../src/lib/organization-memory.ts";
@@ -1636,4 +1637,39 @@ test("precedent duplicate governance view stays consultant-readable", () => {
   assert.equal(actionView.actions[0]?.label, "確認同一模式");
   assert.equal(actionView.actions[1]?.label, "保留分開");
   assert.equal(actionView.actions[2]?.label, "拆成不同模式");
+});
+
+test("shared intelligence closure view stays low-noise and consultant-readable", () => {
+  const view = buildSharedIntelligenceClosureView({
+    phase_label: "precedent / reusable intelligence",
+    closure_status: "completion_pass",
+    closure_status_label: "接近可收口",
+    summary:
+      "precedent governance、organization memory、playbook、template 的 shared-source lifecycle contract 已大致站穩，現在主要剩 closure audit 與 sign-off。",
+    candidate_snapshot: "目前共有 18 筆候選，其中 6 筆已升格成正式可重用模式。",
+    completed_count: 4,
+    remaining_count: 2,
+    completed_items: [
+      "precedent governance / lifecycle 已成立",
+      "organization memory 已有 lifecycle posture",
+      "domain playbook 已有 shared-source lifecycle posture",
+      "deliverable template 已有 shared-source lifecycle posture",
+    ],
+    remaining_items: [
+      "review lens / common risk / deliverable shape 的 closure audit",
+      "phase 4 sign-off 與下一階段 handoff",
+    ],
+    recommended_next_step: "先做 shared-intelligence final gap audit，再決定是否正式關閉 phase 4。",
+  });
+
+  assert.equal(view.shouldShow, true);
+  assert.equal(view.title, "第 4 階段收尾狀態");
+  assert.equal(view.statusLabel, "接近可收口");
+  assert.match(view.summary, /shared-source lifecycle contract/);
+  assert.match(view.meta, /已補 4 項/);
+  assert.match(view.meta, /剩 2 項/);
+  assert.match(view.snapshot, /18 筆候選/);
+  assert.equal(view.completedItems.length, 4);
+  assert.equal(view.remainingItems.length, 2);
+  assert.match(view.recommendedNextStep, /final gap audit/);
 });
