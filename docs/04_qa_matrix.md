@@ -4419,3 +4419,42 @@ Environment used:
 - browser smoke
 - phase-5 sign-off action
 - next-phase handoff persistence
+
+---
+
+## Entry: 2026-04-06 phase-5 sign-off / next-phase handoff pass
+
+Scope:
+- `POST /workbench/phase-5-sign-off`
+- homepage owner-only sign-off action
+- signed-off next-phase handoff readout
+
+Environment used:
+- local backend and frontend verification only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`210 passed`) |
+| `cd frontend && node --test tests/auth-foundation.test.mjs tests/provider-settings-foundation.test.mjs tests/demo-workspace-isolation.test.mjs tests/intake-progress.test.mjs` | Passed (`50 passed`) |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && mkdir -p .next/types && npx next typegen && npm run typecheck` | Passed after rerun |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+
+### Phase-5 sign-off verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | `/workbench/phase-5-sign-off` owner path | Owner signs off phase 5 | Verified | targeted backend tests confirm signed-off state, signer label, next phase label, and handoff payload now persist |
+| Backend | `/workbench/phase-5-sign-off` consultant path | Consultant attempts sign-off | Verified | targeted backend tests confirm consultant still receives `403` |
+| Frontend | closure helper | Read ready-to-close vs signed-off states | Verified | helper tests confirm `canSignOff` and signed-off handoff reading stay low-noise |
+| Frontend | `/` | Show owner-only `正式收口 Phase 5` action | Verified | typecheck/build confirm the button is only wired through the existing homepage closure panel |
+| Frontend | `/` | Show signed-off next-phase handoff readout | Verified | build confirms the same homepage panel can now render next-phase handoff without creating a new shell |
+
+### Explicitly not shipped in this pass
+
+- browser smoke
+- phase 6 implementation
+- release dashboard shell

@@ -412,6 +412,10 @@ Infinite Pro 正式採：
   - 第 5 階段收尾狀態
   - 已完成幾條子線
   - 還剩哪個收尾項目
+- 若 phase 5 已開始支援 explicit sign-off，第一波也只可低噪音補：
+  - `正式收口 Phase 5`
+  - `下一階段 handoff`
+  - 不可因此長出 phase dashboard 或 release console
 - 不可因此長成 dashboard wall 或第二套管理後台
 
 ### `建立新案件`

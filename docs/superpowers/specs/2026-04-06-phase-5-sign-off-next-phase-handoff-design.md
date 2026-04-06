@@ -1,7 +1,7 @@
 # Phase 5 Sign-Off and Next-Phase Handoff Design
 
 日期：2026-04-06
-狀態：proposed
+狀態：shipped
 
 ## Purpose
 
@@ -189,3 +189,18 @@ system 應正式回出：
 2. frontend owner-only sign-off button + handoff readout
 
 也就是先把 phase 5 從「可準備收口」正式推到「已收口」。
+
+## Implemented Outcome
+
+這一輪已正式 shipped：
+
+- backend 已新增 `POST /workbench/phase-5-sign-off`
+- owner 可在首頁總覽的 phase-5 closure panel 內正式收口
+- 收口後 system 會正式回出：
+  - `signed_off`
+  - `signed_off_by_label`
+  - `next_phase_label`
+  - `handoff_summary`
+  - `handoff_items`
+- phase 5 現在可正式視為已收口，並 handoff 到：
+  - `phase-6 decision framing`

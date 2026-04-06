@@ -797,8 +797,12 @@ Infinite Pro 目前沒有也不應硬對齊於：
   - backend 已有 `phase-5 closure review` read model
   - `總覽` 已補上第 5 階段收尾狀態
   - system 現在可以正式回答 phase 5 做到哪、還剩什麼
-- 因此 phase 5 現在最自然的下一步已不是再補 closure review，而是：
-  - `phase-5 sign-off / next-phase handoff`
+- 現在 phase 5 的 `sign-off / next-phase handoff` 也已正式 shipped：
+  - owner 已可在既有首頁總覽內正式收口 phase 5
+  - system 會正式回出 `signed_off` 狀態、下一階段標籤與 handoff 摘要
+  - 第 5 階段現在可正式視為已收口
+- 因此現在最自然的下一步已不是再補 phase 5，而是：
+  - `phase-6 decision framing`
 
 ---
 

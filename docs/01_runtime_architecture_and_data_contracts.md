@@ -1814,6 +1814,36 @@ Object storage 負責：
 - phase control center
 - 自動 sign-off engine
 
+### 7.10 Phase 5 sign-off / next-phase handoff
+
+在 phase 5 closure review 之後，runtime 也已正式補上 explicit sign-off：
+
+- backend 已有 `POST /workbench/phase-5-sign-off`
+- owner 可在 `closure_status == ready_to_close` 時正式收口
+- 收口後 closure review 會正式回出：
+  - `signed_off`
+  - `signed_off_at`
+  - `signed_off_by_label`
+  - `next_phase_label`
+  - `handoff_summary`
+  - `handoff_items`
+
+正式規則：
+
+- 第一波 sign-off 仍只允許 owner 執行
+- sign-off action 仍只掛在既有 `總覽`
+- next phase 第一波只 handoff 到：
+  - `phase-6 decision framing`
+
+因此這一層現在應被理解為：
+
+- explicit phase closeout and handoff
+
+不是：
+
+- release workflow engine
+- phase dashboard shell
+
 ---
 
 ## 8. Provider Boundary
