@@ -18,6 +18,7 @@ from app.agents.base import (
     RiskDraft,
 )
 from app.agents.registry import AgentRegistry
+from app.core.auth import CurrentMember
 from app.domain import models, schemas
 from app.domain.enums import (
     ApprovalPolicy,
@@ -186,9 +187,12 @@ class ReadinessGovernance:
 
 
 class HostOrchestrator:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session, *, current_member: CurrentMember | None = None):
         self.db = db
-        self.registry = AgentRegistry(model_provider=get_model_provider())
+        self.current_member = current_member
+        self.registry = AgentRegistry(
+            model_provider=get_model_provider(db=db, current_member=current_member)
+        )
         self.extension_registry = ExtensionRegistry()
         self.agent_resolver = AgentResolver(self.extension_registry)
 

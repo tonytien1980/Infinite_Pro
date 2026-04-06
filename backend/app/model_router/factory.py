@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
+
+from sqlalchemy.orm import Session
 
 from app.model_router.base import ModelProvider, ModelProviderError
 from app.model_router.anthropic_provider import AnthropicModelProvider
@@ -8,13 +11,31 @@ from app.model_router.gemini_provider import GeminiModelProvider
 from app.model_router.mock import MockModelProvider
 from app.model_router.openai_provider import OpenAIModelProvider
 from app.model_router.provider_presets import get_provider_preset
-from app.services.system_provider_settings import resolve_effective_provider_config
+from app.services.system_provider_settings import (
+    resolve_effective_provider_config,
+    resolve_effective_provider_config_for_member,
+)
+
+if TYPE_CHECKING:
+    from app.core.auth import CurrentMember
 
 logger = logging.getLogger(__name__)
 
 
-def get_model_provider() -> ModelProvider:
-    config = resolve_effective_provider_config()
+def get_model_provider(
+    *,
+    db: Session | None = None,
+    current_member: "CurrentMember | None" = None,
+) -> ModelProvider:
+    if db is not None and current_member is not None:
+        config = resolve_effective_provider_config_for_member(
+            db,
+            user_id=current_member.user.id,
+            role=current_member.membership.role,
+            firm_id=current_member.firm.id,
+        )
+    else:
+        config = resolve_effective_provider_config()
     provider_name = config.provider_id.lower()
     preset = get_provider_preset(provider_name)
 

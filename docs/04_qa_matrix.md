@@ -4151,3 +4151,39 @@ Environment used:
 - owner allowlist UI
 - auth-aware run-time provider precedence
 - browser smoke
+
+---
+
+## Entry: 2026-04-06 phase-5 auth-aware provider resolution pass
+
+Scope:
+- phase 5 second slice current-member-aware provider resolution
+- consultant run fail-closed when personal provider credential is missing
+- owner personal credential precedence over unavailable global provider
+- Host run path and extension draft synthesis path aligned to the same provider boundary
+
+Environment used:
+- local backend verification only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`196 passed`) |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -k "consultant_run_fails_closed or owner_run_can_use_personal_provider_credential" -q` | Passed (`2 passed`) |
+
+### Provider resolution verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | `/tasks/{id}/run` consultant path | Run without personal provider settings | Verified | targeted backend test confirms consultant now gets `403` with `先完成個人模型設定` fail-closed message |
+| Backend | `/tasks/{id}/run` owner path | Run with owner personal credential while global provider is unavailable | Verified | targeted backend test confirms owner can still run through personal `mock` credential precedence |
+| Backend | Host provider boundary | Build Host orchestrator with current-member-aware provider | Verified | compileall plus targeted tests confirm Host no longer hardcodes global-only provider selection |
+| Backend | extension draft synthesis | Keep synthesis path inside member-aware provider boundary | Verified | compileall confirms route / service signatures now align to pass member-aware provider resolution through the draft path |
+
+### Explicitly not shipped in this pass
+
+- `/settings` 的 `Personal Provider Settings` UI
+- owner allowlist UI
+- browser smoke

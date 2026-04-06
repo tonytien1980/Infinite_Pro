@@ -770,7 +770,9 @@ Infinite Pro 目前沒有也不應硬對齊於：
   - encrypted `PersonalProviderCredential`
   - firm-scoped `ProviderAllowlistEntry`
   - owner / consultant 已有 personal-provider / provider-allowlist backend route
-  - 後續仍需接上 run-time precedence、fail-closed run path 與 `/settings` 分層 UI
+  - task run / extension draft synthesis 已開始吃 current-member-aware provider resolution
+  - consultant 缺少個人 key 時，run path 已 fail-closed
+  - 後續仍需接上 `/settings` 分層 UI
 
 ---
 

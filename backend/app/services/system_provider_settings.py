@@ -15,11 +15,14 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.database import SessionLocal
 from app.domain import models
+from app.model_router.base import ModelProviderAccessError
 from app.model_router.provider_presets import (
     ProviderPreset,
     get_provider_preset,
     list_settings_provider_presets,
 )
+from app.services.provider_allowlist import get_allowlist_entry
+from app.services.provider_secret_crypto import decrypt_provider_secret
 from app.workbench import schemas
 
 DEFAULT_SYSTEM_PROVIDER_SCOPE = "single_owner_runtime"
@@ -255,6 +258,76 @@ def resolve_effective_provider_config(db: Session | None = None) -> ResolvedProv
         preset_runtime_support_level=preset.runtime_support_level,
         using_env_baseline=False,
     )
+
+
+def _build_resolved_config_from_personal_credential(
+    credential: models.PersonalProviderCredential,
+) -> ResolvedProviderConfig:
+    preset = get_provider_preset(credential.provider_id) or get_provider_preset("mock")
+    if preset is None:
+        raise ModelProviderAccessError("目前不支援這組個人模型設定供應商。")
+
+    actual_model_id = credential.custom_model_id or credential.model_id
+    return ResolvedProviderConfig(
+        source="personal_config",
+        provider_id=credential.provider_id,
+        provider_display_name=preset.display_name,
+        model_level=credential.model_level,  # type: ignore[arg-type]
+        actual_model_id=actual_model_id,
+        custom_model_id=credential.custom_model_id,
+        base_url=credential.base_url.rstrip("/"),
+        timeout_seconds=credential.timeout_seconds,
+        api_key=decrypt_provider_secret(credential.api_key_ciphertext or ""),
+        api_key_configured=bool(credential.api_key_ciphertext),
+        api_key_masked=credential.api_key_masked,
+        last_validation_status=credential.last_validation_status,  # type: ignore[arg-type]
+        last_validation_message=credential.last_validation_message,
+        last_validated_at=credential.last_validated_at,
+        updated_at=credential.updated_at,
+        key_updated_at=credential.key_updated_at,
+        preset_runtime_support_level=preset.runtime_support_level,
+        using_env_baseline=False,
+    )
+
+
+def resolve_effective_provider_config_for_member(
+    db: Session,
+    *,
+    user_id: str,
+    role: str,
+    firm_id: str,
+) -> ResolvedProviderConfig:
+    if role == "demo":
+        raise ModelProviderAccessError("demo 帳號不可執行分析。")
+
+    credential = db.scalar(
+        select(models.PersonalProviderCredential).where(
+            models.PersonalProviderCredential.user_id == user_id
+        )
+    )
+
+    if role == "consultant":
+        if credential is None or not credential.api_key_ciphertext:
+            raise ModelProviderAccessError("請先完成個人模型設定，才能執行分析。")
+        allowlist = get_allowlist_entry(
+            db,
+            firm_id=firm_id,
+            provider_id=credential.provider_id,
+            model_level=credential.model_level,
+        )
+        if allowlist is None or allowlist.status != "active":
+            raise ModelProviderAccessError("目前 firm 尚未允許這組 provider / model。")
+        actual_model_id = credential.custom_model_id or credential.model_id
+        if credential.custom_model_id and not allowlist.allow_custom_model:
+            raise ModelProviderAccessError("目前 firm 尚未允許這個模型。")
+        if allowlist.allowed_model_ids and actual_model_id not in allowlist.allowed_model_ids:
+            raise ModelProviderAccessError("目前 firm 尚未允許這個模型。")
+        return _build_resolved_config_from_personal_credential(credential)
+
+    if credential is not None and credential.api_key_ciphertext:
+        return _build_resolved_config_from_personal_credential(credential)
+
+    return resolve_effective_provider_config(db)
 
 
 def get_system_provider_settings(

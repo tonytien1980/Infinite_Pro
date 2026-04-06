@@ -3,6 +3,9 @@ from __future__ import annotations
 from urllib import error
 
 from fastapi import HTTPException
+from sqlalchemy.orm import Session
+
+from app.core.auth import CurrentMember
 from app.domain.enums import CapabilityArchetype
 from app.extensions.registry import ExtensionRegistry
 from app.extensions.schemas import PackType
@@ -165,12 +168,18 @@ def _build_agent_contract_draft(
     payload: workbench_schemas.AgentContractDraftRequest,
     search_query: str,
     search_results: list[SearchResult],
+    *,
+    current_member: CurrentMember | None = None,
+    db: Session | None = None,
 ) -> tuple[
     workbench_schemas.AgentCatalogEntryUpdateRequest,
     str,
     list[str],
 ]:
-    provider = get_model_provider()
+    if db is not None and current_member is not None:
+        provider = get_model_provider(db=db, current_member=current_member)
+    else:
+        provider = get_model_provider()
     output = provider.generate_agent_contract_synthesis(
         AgentContractSynthesisRequest(
             agent_id=payload.agent_id,
@@ -238,12 +247,18 @@ def _build_pack_contract_draft(
     payload: workbench_schemas.PackContractDraftRequest,
     search_query: str,
     search_results: list[SearchResult],
+    *,
+    current_member: CurrentMember | None = None,
+    db: Session | None = None,
 ) -> tuple[
     workbench_schemas.PackCatalogEntryUpdateRequest,
     str,
     list[str],
 ]:
-    provider = get_model_provider()
+    if db is not None and current_member is not None:
+        provider = get_model_provider(db=db, current_member=current_member)
+    else:
+        provider = get_model_provider()
     output = provider.generate_pack_contract_synthesis(
         PackContractSynthesisRequest(
             pack_id=payload.pack_id,
@@ -301,6 +316,9 @@ def _build_pack_contract_draft(
 
 def synthesize_agent_contract_draft(
     payload: workbench_schemas.AgentContractDraftRequest,
+    *,
+    current_member: CurrentMember | None = None,
+    db: Session | None = None,
 ) -> workbench_schemas.AgentContractDraftResponse:
     search_query = _build_agent_search_query(payload)
     search_results, search_notes = _run_external_search(search_query)
@@ -310,6 +328,8 @@ def synthesize_agent_contract_draft(
             payload,
             search_query,
             search_results,
+            current_member=current_member,
+            db=db,
         )
     except ModelProviderError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
@@ -325,6 +345,9 @@ def synthesize_agent_contract_draft(
 
 def synthesize_pack_contract_draft(
     payload: workbench_schemas.PackContractDraftRequest,
+    *,
+    current_member: CurrentMember | None = None,
+    db: Session | None = None,
 ) -> workbench_schemas.PackContractDraftResponse:
     search_query = _build_pack_search_query(payload)
     search_results, search_notes = _run_external_search(search_query)
@@ -334,6 +357,8 @@ def synthesize_pack_contract_draft(
             payload,
             search_query,
             search_results,
+            current_member=current_member,
+            db=db,
         )
     except ModelProviderError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc

@@ -1707,7 +1707,7 @@ Object storage 負責：
 
 - 這一輪已正式建立 auth / membership foundation
 - 但仍未正式提供：
-  - consultant 自己的 `Personal Provider Settings`
+  - `/settings` 內 consultant 自己的 `Personal Provider Settings` UI
   - owner-managed provider allowlist UI
   - demo workspace data isolation
 
@@ -1744,7 +1744,9 @@ phase 5 auth foundation 之後，這裡也必須補一條正式邊界：
 - owner / consultant 已有 personal-provider settings backend route
 - owner / consultant 已能透過 backend contract 讀 personal provider state
 - owner 已能管理 provider allowlist backend route
-- 但 `Personal Provider Settings` 的正式 UI 與 auth-aware run precedence 尚未 shipped
+- Host / runs / extension draft synthesis 已開始吃 current-member-aware provider resolution
+- consultant 缺少 personal provider credential 時，run path 會 fail-closed
+- 但 `Personal Provider Settings` 的正式 UI 仍未 shipped
 - 因此 consultant 目前仍不可被誤寫成已能在正式 UI 內完成整個 personal provider workflow
 
 ### 8.2 Formal provider set
@@ -1759,8 +1761,21 @@ phase 5 auth foundation 之後，這裡也必須補一條正式邊界：
 
 正式 precedence：
 
-1. DB persisted runtime config
-2. `.env` baseline
+`owner`
+
+1. personal provider credential
+2. DB persisted runtime config
+3. `.env` baseline
+
+`consultant`
+
+1. personal provider credential
+2. allowlist check
+3. 若缺 key 或不在 allowlist，run fail-closed
+
+`demo`
+
+- 不可執行分析
 
 ### 8.4 Secret boundary
 

@@ -687,6 +687,61 @@ def test_consultant_personal_provider_settings_reject_provider_outside_allowlist
     assert "目前 firm 尚未允許這組 provider / model" in response.json()["detail"]
 
 
+def test_consultant_run_fails_closed_without_personal_provider_settings(
+    anonymous_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    consultant_client = login_as_consultant_with_owner_invite(anonymous_client, monkeypatch)
+
+    created = consultant_client.post("/api/v1/tasks", json=create_task_payload("Provider gate"))
+    assert created.status_code == 201
+
+    run = consultant_client.post(f"/api/v1/tasks/{created.json()['id']}/run")
+
+    assert run.status_code == 403
+    assert "先完成個人模型設定" in run.json()["detail"]
+
+
+def test_owner_run_can_use_personal_provider_credential_when_global_provider_is_unavailable(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.core.config import settings
+    from app.services.provider_secret_crypto import encrypt_provider_secret
+
+    monkeypatch.setattr(settings, "provider_secret_encryption_key", "phase5-fernet-test-key")
+    monkeypatch.setattr(settings, "model_provider", "openai")
+    monkeypatch.setattr(settings, "openai_api_key", None)
+    monkeypatch.setattr(settings, "model_provider_api_key", None)
+
+    with SessionLocal() as db:
+        owner = db.scalar(select(models.User).where(models.User.email == "owner@test.local"))
+        assert owner is not None
+        db.add(
+            models.PersonalProviderCredential(
+                user_id=owner.id,
+                provider_id="mock",
+                model_level="balanced",
+                model_id="mock",
+                custom_model_id=None,
+                base_url="",
+                timeout_seconds=0,
+                api_key_ciphertext=encrypt_provider_secret("owner-mock-secret"),
+                api_key_masked="••••cret",
+                last_validation_status="success",
+                last_validation_message="validated",
+            )
+        )
+        db.commit()
+
+    created = client.post("/api/v1/tasks", json=create_task_payload("Owner personal provider"))
+    assert created.status_code == 201
+
+    run = client.post(f"/api/v1/tasks/{created.json()['id']}/run")
+
+    assert run.status_code == 200
+
+
 def test_workbench_preferences_round_trip_theme_preference(client: TestClient) -> None:
     initial = client.get("/api/v1/workbench/preferences")
 

@@ -14,6 +14,10 @@ class ModelProviderError(RuntimeError):
     """Raised when the model provider cannot produce a usable result."""
 
 
+class ModelProviderAccessError(ModelProviderError):
+    """Raised when the current member is not allowed to use a provider path."""
+
+
 class ResearchSynthesisRequest(BaseModel):
     task_title: str
     task_description: str

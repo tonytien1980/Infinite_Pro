@@ -140,6 +140,9 @@ Infinite Pro 裡的 AI 不是整套系統本身，而是推理與生成引擎。
 - 系統層的「顧問 AI 大腦」不是單一模型人格
 - 它是 Host + reusable intelligence + feedback / writeback loop 一起長出的 shared brain
 - 不可把 model provider 升格成產品主腦，也不可把 Host / Agent / Pack 邊界混成同一層
+- phase 5 第二個 slice 之後，provider resolution 也必須誠實理解為 current-member-aware：
+  - task run 由 Host 進場時，先按 `owner / consultant / demo` 決定 provider precedence
+  - extension contract draft synthesis 仍留在 provider boundary 內，不得繞過身份與 allowlist 邏輯
 
 ### 3.4 Execution modes
 

@@ -35,8 +35,13 @@ def get_extension_manager_route(
 def synthesize_agent_contract_draft_route(
     payload: workbench_schemas.AgentContractDraftRequest,
     current_member=Depends(require_permission("manage_agents")),
+    db: Session = Depends(get_db),
 ) -> workbench_schemas.AgentContractDraftResponse:
-    return synthesize_agent_contract_draft(payload)
+    return synthesize_agent_contract_draft(
+        payload,
+        current_member=current_member,
+        db=db,
+    )
 
 
 @router.put("/agents/{agent_id}", response_model=ExtensionManagerSnapshot)
@@ -56,8 +61,13 @@ def update_agent_catalog_entry_route(
 def synthesize_pack_contract_draft_route(
     payload: workbench_schemas.PackContractDraftRequest,
     current_member=Depends(require_permission("manage_packs")),
+    db: Session = Depends(get_db),
 ) -> workbench_schemas.PackContractDraftResponse:
-    return synthesize_pack_contract_draft(payload)
+    return synthesize_pack_contract_draft(
+        payload,
+        current_member=current_member,
+        db=db,
+    )
 
 
 @router.put("/packs/{pack_id}", response_model=ExtensionManagerSnapshot)

@@ -877,6 +877,7 @@ Primary action：
 - phase 5 auth foundation 之後，`/settings` 也應誠實理解為：
   - 目前仍以 workbench preferences + owner-visible system provider config 為主要 shipped UI
   - `Firm Settings` / `Personal Provider Settings` 的正式分層已進入 phase 5，backend personal-provider / allowlist route 已存在
+  - task run 已開始吃 auth-aware provider precedence，但這個規則目前主要還是 backend runtime contract，不是已完成的 settings UI
   - 但 personal provider UI 與 owner allowlist UI 尚未正式 shipped
 
 ### 7.11 `/login`
