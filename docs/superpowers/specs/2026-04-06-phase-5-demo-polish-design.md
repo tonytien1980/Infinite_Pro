@@ -1,7 +1,7 @@
 # Phase 5 Demo Polish Design
 
 日期：2026-04-06
-狀態：proposed
+狀態：shipped
 
 ## Purpose
 
@@ -222,3 +222,19 @@
 2. `/demo` guided shell polish
 
 也就是先把 demo 從「安全但偏 raw」補成「安全而且像正式產品展示入口」。
+
+## Implemented Outcome
+
+這一輪已正式 shipped：
+
+- backend `DemoWorkspaceRead` 現在正式回出：
+  - `hero_summary`
+  - `showcase_highlights`
+  - `read_only_rules`
+  - `formal_workspace_explainer`
+- frontend `/demo` 已從 raw section list 補成 guided showcase shell
+- demo 仍維持：
+  - 固定 sample dataset
+  - 唯讀
+  - 登入後可見
+  - 與正式 firm workspace 完全隔離

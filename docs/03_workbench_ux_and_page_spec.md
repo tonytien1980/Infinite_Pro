@@ -940,6 +940,12 @@ Primary action：
 - demo 角色登入後若試圖進正式 workspace，應被導回 `/demo`
 - `/demo` 不可讀取正式 firm workspace 資料
 - `/demo` 應維持 consultant-facing、低噪音、展示導向
+- `/demo` 現在也應明確分出：
+  - guided hero
+  - showcase highlights
+  - read-only rules
+  - formal workspace explainer
+- 但仍不可長出新的 demo shell、interactive tour、或 marketing landing page
 
 第一屏必答：
 

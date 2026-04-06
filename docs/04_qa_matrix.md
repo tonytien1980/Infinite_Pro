@@ -4305,3 +4305,40 @@ Environment used:
 - browser smoke
 - demo polish
 - firm operating surfaces
+
+---
+
+## Entry: 2026-04-06 phase-5 demo polish pass
+
+Scope:
+- demo narrative read model
+- `/demo` guided hero / highlights / rules polish
+- formal workspace explainer copy
+
+Environment used:
+- local backend and frontend verification only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`205 passed`) |
+| `cd frontend && node --test tests/demo-workspace-isolation.test.mjs` | Passed (`8 passed`) |
+| `cd frontend && mkdir -p .next/types && npx next typegen && npm run typecheck` | Passed |
+| `cd frontend && npm run build` | Passed |
+
+### Demo polish verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | `/demo/workspace` | Read enriched demo workspace narrative contract | Verified | targeted backend test confirms `hero_summary`, `showcase_highlights`, `read_only_rules`, and `formal_workspace_explainer` are now present |
+| Frontend | demo helper copy | Render consultant-facing highlight summary and formal workspace fallback copy | Verified | node tests confirm new helper wording stays readable in Traditional Chinese |
+| Frontend | `/demo` | Build guided showcase shell instead of raw list-only view | Verified | Next build passes after `/demo` adds guided hero, summary cards, and read-only rules section |
+| Frontend | `/demo` | Keep demo route static and isolated | Verified | build output still includes static `/demo` route without adding new demo sub-routes |
+
+### Explicitly not shipped in this pass
+
+- browser smoke
+- interactive demo tour
+- firm operating surfaces

@@ -785,8 +785,12 @@ Infinite Pro 目前沒有也不應硬對齊於：
   - owner 可撤回 pending invite
   - owner 可在 `Firm Settings` 讀寫 demo workspace policy
   - `/members` 與 `Firm Settings` 已形成 single-firm owner control 的最小分工
-- 因此 phase 5 現在最自然的下一個 slice 已不是 owner controls，而是：
-  - `demo polish`
+- 其中第二條 `demo polish` 現在也已正式 shipped：
+  - `/demo` 已不再只是 raw section list
+  - backend 已正式回出 guided demo narrative contract
+  - frontend 已補成 guided hero、showcase highlights、read-only rules 與 formal-workspace explainer
+- 因此 phase 5 現在最自然的下一個 slice 已不是 demo，而是：
+  - `firm operating surfaces`
 
 ---
 
