@@ -211,6 +211,33 @@ def login_google_user(
     return callback.json()
 
 
+def login_as_consultant_with_owner_invite(
+    anonymous_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> TestClient:
+    configure_auth_settings(monkeypatch, bootstrap_owner_emails="owner@example.com")
+    login_google_user(
+        anonymous_client,
+        monkeypatch,
+        email="owner@example.com",
+        full_name="Owner User",
+    )
+    invite = anonymous_client.post(
+        "/api/v1/members/invites",
+        json={"email": "consultant@example.com", "role": "consultant"},
+    )
+    assert invite.status_code == 200
+    logout = anonymous_client.post("/api/v1/auth/logout")
+    assert logout.status_code == 200
+    login_google_user(
+        anonymous_client,
+        monkeypatch,
+        email="consultant@example.com",
+        full_name="Consultant User",
+    )
+    return anonymous_client
+
+
 def test_health_endpoint(client: TestClient) -> None:
     response = client.get("/api/v1/health")
 
@@ -517,6 +544,147 @@ def test_personal_provider_credential_and_allowlist_rows_persist(
         assert credential.api_key_ciphertext != "sk-live-owner"
         assert allowlist is not None
         assert allowlist.allowed_model_ids == ["gpt-5.4"]
+
+
+def test_owner_can_save_provider_allowlist_and_consultant_can_read_but_not_modify(
+    anonymous_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    configure_auth_settings(monkeypatch, bootstrap_owner_emails="owner@example.com")
+    login_google_user(
+        anonymous_client,
+        monkeypatch,
+        email="owner@example.com",
+        full_name="Owner User",
+    )
+
+    update = anonymous_client.put(
+        "/api/v1/workbench/provider-allowlist",
+        json={
+            "entries": [
+                {
+                    "provider_id": "openai",
+                    "model_level": "balanced",
+                    "allowed_model_ids": ["gpt-5.4-mini"],
+                    "allow_custom_model": False,
+                    "status": "active",
+                }
+            ]
+        },
+    )
+
+    assert update.status_code == 200
+    assert update.json()["entries"][0]["provider_id"] == "openai"
+
+    invite = anonymous_client.post(
+        "/api/v1/members/invites",
+        json={"email": "consultant@example.com", "role": "consultant"},
+    )
+    assert invite.status_code == 200
+    logout = anonymous_client.post("/api/v1/auth/logout")
+    assert logout.status_code == 200
+
+    login_google_user(
+        anonymous_client,
+        monkeypatch,
+        email="consultant@example.com",
+        full_name="Consultant User",
+    )
+
+    listing = anonymous_client.get("/api/v1/workbench/provider-allowlist")
+    assert listing.status_code == 200
+    assert listing.json()["entries"][0]["allowed_model_ids"] == ["gpt-5.4-mini"]
+
+    forbidden = anonymous_client.put(
+        "/api/v1/workbench/provider-allowlist",
+        json={"entries": []},
+    )
+    assert forbidden.status_code == 403
+
+
+def test_consultant_can_save_personal_provider_settings_with_encrypted_key(
+    anonymous_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "provider_secret_encryption_key", "phase5-fernet-test-key")
+    consultant_client = login_as_consultant_with_owner_invite(anonymous_client, monkeypatch)
+
+    with SessionLocal() as db:
+        firm = db.scalar(select(models.Firm).where(models.Firm.slug == "infinite-pro-studio"))
+        assert firm is not None
+        db.add(
+            models.ProviderAllowlistEntry(
+                firm_id=firm.id,
+                provider_id="openai",
+                model_level="balanced",
+                allowed_model_ids=["gpt-5.4-mini"],
+                allow_custom_model=False,
+                status="active",
+            )
+        )
+        db.commit()
+
+    response = consultant_client.put(
+        "/api/v1/workbench/personal-provider-settings",
+        json={
+            "provider_id": "openai",
+            "model_level": "balanced",
+            "model_id": "gpt-5.4-mini",
+            "custom_model_id": "",
+            "base_url": "https://api.openai.com/v1",
+            "timeout_seconds": 60,
+            "api_key": "sk-personal-123456",
+            "keep_existing_key": False,
+            "validate_before_save": False,
+            "force_save_without_validation": False,
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["current"]["api_key_configured"] is True
+    assert response.json()["current"]["source"] == "personal_config"
+
+    with SessionLocal() as db:
+        user = db.scalar(select(models.User).where(models.User.email == "consultant@example.com"))
+        assert user is not None
+        credential = db.scalar(
+            select(models.PersonalProviderCredential).where(
+                models.PersonalProviderCredential.user_id == user.id
+            )
+        )
+        assert credential is not None
+        assert credential.api_key_ciphertext != "sk-personal-123456"
+
+
+def test_consultant_personal_provider_settings_reject_provider_outside_allowlist(
+    anonymous_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "provider_secret_encryption_key", "phase5-fernet-test-key")
+    consultant_client = login_as_consultant_with_owner_invite(anonymous_client, monkeypatch)
+
+    response = consultant_client.put(
+        "/api/v1/workbench/personal-provider-settings",
+        json={
+            "provider_id": "openai",
+            "model_level": "balanced",
+            "model_id": "gpt-5.4-mini",
+            "custom_model_id": "",
+            "base_url": "https://api.openai.com/v1",
+            "timeout_seconds": 60,
+            "api_key": "sk-personal-123456",
+            "keep_existing_key": False,
+            "validate_before_save": False,
+            "force_save_without_validation": False,
+        },
+    )
+
+    assert response.status_code == 400
+    assert "目前 firm 尚未允許這組 provider / model" in response.json()["detail"]
 
 
 def test_workbench_preferences_round_trip_theme_preference(client: TestClient) -> None:

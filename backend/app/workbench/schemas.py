@@ -71,7 +71,7 @@ class ProviderValidationResponse(BaseModel):
 
 
 class CurrentProviderConfigResponse(BaseModel):
-    source: Literal["runtime_config", "env_baseline"]
+    source: Literal["runtime_config", "env_baseline", "personal_config"]
     provider_id: str
     provider_display_name: str
     model_level: ProviderModelLevel
@@ -110,6 +110,36 @@ class SystemProviderSettingsValidateRequest(BaseModel):
 class SystemProviderSettingsUpdateRequest(SystemProviderSettingsValidateRequest):
     validate_before_save: bool = True
     force_save_without_validation: bool = False
+
+
+class ProviderAllowlistEntryResponse(BaseModel):
+    provider_id: Literal["openai", "anthropic", "gemini", "xai", "minimax"]
+    model_level: ProviderModelLevel
+    allowed_model_ids: list[str] = Field(default_factory=list)
+    allow_custom_model: bool = False
+    status: Literal["active", "inactive"] = "active"
+
+
+class ProviderAllowlistResponse(BaseModel):
+    entries: list[ProviderAllowlistEntryResponse] = Field(default_factory=list)
+
+
+class ProviderAllowlistUpdateRequest(BaseModel):
+    entries: list[ProviderAllowlistEntryResponse] = Field(default_factory=list)
+
+
+class PersonalProviderSettingsValidateRequest(SystemProviderSettingsValidateRequest):
+    pass
+
+
+class PersonalProviderSettingsUpdateRequest(PersonalProviderSettingsValidateRequest):
+    validate_before_save: bool = True
+    force_save_without_validation: bool = False
+
+
+class PersonalProviderSettingsResponse(BaseModel):
+    current: CurrentProviderConfigResponse
+    presets: list[ProviderPresetResponse] = Field(default_factory=list)
 
 
 class AgentCatalogEntryUpdateRequest(BaseModel):

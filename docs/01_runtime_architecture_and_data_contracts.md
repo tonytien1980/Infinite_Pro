@@ -1738,11 +1738,14 @@ Object storage 負責：
 phase 5 auth foundation 之後，這裡也必須補一條正式邊界：
 
 - 目前 shipped 的仍是 `Firm Settings` 側的 system-level provider config
-- phase-5 第二個 slice 已開始建立 backend foundation：
+- phase-5 第二個 slice 已開始建立 backend API foundation：
   - encrypted `PersonalProviderCredential`
   - firm-scoped `ProviderAllowlistEntry`
-- 但 `Personal Provider Settings` 的正式 API / UI 尚未 shipped
-- 因此 consultant 目前仍不可被誤寫成已能在正式 UI 內保存自己的 API key
+- owner / consultant 已有 personal-provider settings backend route
+- owner / consultant 已能透過 backend contract 讀 personal provider state
+- owner 已能管理 provider allowlist backend route
+- 但 `Personal Provider Settings` 的正式 UI 與 auth-aware run precedence 尚未 shipped
+- 因此 consultant 目前仍不可被誤寫成已能在正式 UI 內完成整個 personal provider workflow
 
 ### 8.2 Formal provider set
 

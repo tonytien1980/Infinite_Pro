@@ -4115,3 +4115,39 @@ Environment used:
 - owner-managed provider allowlist UI
 - demo workspace data isolation / sample dataset
 - browser smoke for login flow
+
+---
+
+## Entry: 2026-04-06 phase-5 provider settings backend API foundation
+
+Scope:
+- phase 5 second slice `Personal Provider Settings + Allowlist Foundation`
+- encrypted personal provider credential storage
+- firm-scoped provider allowlist backend routes
+- owner / consultant personal provider settings backend routes
+- consultant-side allowlist enforcement on personal provider save
+
+Environment used:
+- local backend targeted verification only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -k "provider_allowlist or personal_provider_settings_with_encrypted_key or reject_provider_outside_allowlist" -q` | Passed (`3 passed`) |
+
+### Provider settings backend verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | `/workbench/provider-allowlist` | Owner save allowlist, consultant read but cannot modify | Verified | targeted backend tests confirm owner can persist allowlist entries while consultant gets `403` on write |
+| Backend | `/workbench/personal-provider-settings` | Consultant save encrypted personal provider settings | Verified | targeted backend tests confirm ciphertext is stored instead of raw secret and response source becomes `personal_config` |
+| Backend | personal-provider guard | Reject consultant provider choice outside firm allowlist | Verified | targeted backend tests confirm save path fails closed when no active allowlist entry exists |
+
+### Explicitly not shipped in this pass
+
+- `/settings` 的 `Personal Provider Settings` UI
+- owner allowlist UI
+- auth-aware run-time provider precedence
+- browser smoke

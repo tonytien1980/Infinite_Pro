@@ -5,6 +5,13 @@ from sqlalchemy.orm import Session
 
 from app.core.auth import require_permission
 from app.core.database import get_db
+from app.services.personal_provider_settings import (
+    get_personal_provider_settings,
+    revalidate_personal_provider_settings,
+    update_personal_provider_settings,
+    validate_personal_provider_settings,
+)
+from app.services.provider_allowlist import list_provider_allowlist, update_provider_allowlist
 from app.services.workbench import (
     apply_precedent_governance_recommendation,
     get_history_visibility_state,
@@ -42,6 +49,69 @@ def update_workbench_preferences_route(
     db: Session = Depends(get_db),
 ) -> schemas.WorkbenchPreferenceResponse:
     return update_workbench_preferences(db, payload)
+
+
+@router.get(
+    "/personal-provider-settings",
+    response_model=schemas.PersonalProviderSettingsResponse,
+)
+def get_personal_provider_settings_route(
+    current_member=Depends(require_permission("access_firm_workspace")),
+    db: Session = Depends(get_db),
+) -> schemas.PersonalProviderSettingsResponse:
+    return get_personal_provider_settings(db, user_id=current_member.user.id)
+
+
+@router.post(
+    "/personal-provider-settings/validate",
+    response_model=schemas.ProviderValidationResponse,
+)
+def validate_personal_provider_settings_route(
+    payload: schemas.PersonalProviderSettingsValidateRequest,
+    current_member=Depends(require_permission("access_firm_workspace")),
+    db: Session = Depends(get_db),
+) -> schemas.ProviderValidationResponse:
+    return validate_personal_provider_settings(db, current_member=current_member, payload=payload)
+
+
+@router.put(
+    "/personal-provider-settings",
+    response_model=schemas.PersonalProviderSettingsResponse,
+)
+def update_personal_provider_settings_route(
+    payload: schemas.PersonalProviderSettingsUpdateRequest,
+    current_member=Depends(require_permission("access_firm_workspace")),
+    db: Session = Depends(get_db),
+) -> schemas.PersonalProviderSettingsResponse:
+    return update_personal_provider_settings(db, current_member=current_member, payload=payload)
+
+
+@router.post(
+    "/personal-provider-settings/revalidate",
+    response_model=schemas.PersonalProviderSettingsResponse,
+)
+def revalidate_personal_provider_settings_route(
+    current_member=Depends(require_permission("access_firm_workspace")),
+    db: Session = Depends(get_db),
+) -> schemas.PersonalProviderSettingsResponse:
+    return revalidate_personal_provider_settings(db, current_member=current_member)
+
+
+@router.get("/provider-allowlist", response_model=schemas.ProviderAllowlistResponse)
+def get_provider_allowlist_route(
+    current_member=Depends(require_permission("access_firm_workspace")),
+    db: Session = Depends(get_db),
+) -> schemas.ProviderAllowlistResponse:
+    return list_provider_allowlist(db, firm_id=current_member.firm.id)
+
+
+@router.put("/provider-allowlist", response_model=schemas.ProviderAllowlistResponse)
+def update_provider_allowlist_route(
+    payload: schemas.ProviderAllowlistUpdateRequest,
+    current_member=Depends(require_permission("manage_firm_settings")),
+    db: Session = Depends(get_db),
+) -> schemas.ProviderAllowlistResponse:
+    return update_provider_allowlist(db, firm_id=current_member.firm.id, payload=payload)
 
 
 @router.get("/provider-settings", response_model=schemas.SystemProviderSettingsResponse)

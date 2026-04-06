@@ -56,6 +56,10 @@ def _mask_api_key(api_key: str) -> str:
     return f"••••••{trimmed[-4:]}"
 
 
+def mask_api_key(api_key: str) -> str:
+    return _mask_api_key(api_key)
+
+
 def _serialize_datetime(value: datetime | None) -> str | None:
     return value.isoformat() if value is not None else None
 
@@ -76,6 +80,10 @@ def _serialize_preset(preset: ProviderPreset) -> schemas.ProviderPresetResponse:
             low_cost=preset.recommended_models["low_cost"],
         ),
     )
+
+
+def serialize_provider_preset(preset: ProviderPreset) -> schemas.ProviderPresetResponse:
+    return _serialize_preset(preset)
 
 
 def _serialize_resolved_config(
@@ -145,6 +153,21 @@ def _get_effective_model_id(
         return trimmed_model, None
 
     return preset.recommended_models[model_level], None
+
+
+def get_effective_model_id(
+    *,
+    preset: ProviderPreset,
+    model_level: schemas.ProviderModelLevel,
+    model_id: str,
+    custom_model_id: str,
+) -> tuple[str, str | None]:
+    return _get_effective_model_id(
+        preset=preset,
+        model_level=model_level,
+        model_id=model_id,
+        custom_model_id=custom_model_id,
+    )
 
 
 def _build_env_baseline() -> ResolvedProviderConfig:
@@ -248,6 +271,20 @@ def _resolve_secret_for_payload(
     db: Session,
     payload: schemas.SystemProviderSettingsValidateRequest,
 ) -> str:
+    current = resolve_effective_provider_config(db)
+    return resolve_secret_for_validation_payload(
+        payload=payload,
+        current_secret=current.api_key,
+        current_provider_id=current.provider_id,
+    )
+
+
+def resolve_secret_for_validation_payload(
+    *,
+    payload: schemas.SystemProviderSettingsValidateRequest,
+    current_secret: str | None,
+    current_provider_id: str | None,
+) -> str:
     trimmed_key = payload.api_key.strip()
     if trimmed_key:
         return trimmed_key
@@ -255,17 +292,16 @@ def _resolve_secret_for_payload(
     if not payload.keep_existing_key:
         raise HTTPException(status_code=400, detail="請先輸入 API key，或保留目前已設定的 key。")
 
-    current = resolve_effective_provider_config(db)
-    if current.provider_id != payload.provider_id:
+    if current_provider_id and current_provider_id != payload.provider_id:
         raise HTTPException(
             status_code=400,
             detail="更換供應商時不可沿用不同供應商的既有 key，請重新輸入對應 API key。",
         )
 
-    if not current.api_key:
+    if not current_secret:
         raise HTTPException(status_code=400, detail="目前沒有可沿用的 API key。")
 
-    return current.api_key
+    return current_secret
 
 
 def _classify_http_error(
@@ -450,11 +486,29 @@ def validate_system_provider_settings(
     db: Session,
     payload: schemas.SystemProviderSettingsValidateRequest,
 ) -> schemas.ProviderValidationResponse:
+    current = resolve_effective_provider_config(db)
+    return validate_runtime_provider_payload(
+        payload=payload,
+        current_secret=current.api_key,
+        current_provider_id=current.provider_id,
+    )
+
+
+def validate_runtime_provider_payload(
+    *,
+    payload: schemas.SystemProviderSettingsValidateRequest,
+    current_secret: str | None,
+    current_provider_id: str | None,
+) -> schemas.ProviderValidationResponse:
     preset = get_provider_preset(payload.provider_id)
     if preset is None:
         raise HTTPException(status_code=400, detail="目前不支援指定的供應商。")
 
-    api_key = _resolve_secret_for_payload(db, payload)
+    api_key = resolve_secret_for_validation_payload(
+        payload=payload,
+        current_secret=current_secret,
+        current_provider_id=current_provider_id,
+    )
     actual_model_id, _ = _get_effective_model_id(
         preset=preset,
         model_level=payload.model_level,
