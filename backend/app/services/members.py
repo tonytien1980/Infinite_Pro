@@ -103,6 +103,29 @@ def create_firm_invite(
     return serialize_invite_row(invite)
 
 
+def revoke_firm_invite(
+    db: Session,
+    *,
+    current_member: CurrentMember,
+    invite_id: str,
+) -> identity_schemas.MemberInviteRead:
+    invite = db.scalar(
+        select(models.FirmInvite)
+        .where(models.FirmInvite.id == invite_id)
+        .where(models.FirmInvite.firm_id == current_member.firm.id)
+    )
+    if invite is None:
+        raise HTTPException(status_code=404, detail="找不到指定邀請。")
+    if invite.status != "pending":
+        raise HTTPException(status_code=400, detail="只有待接受邀請可以撤回。")
+
+    invite.status = "revoked"
+    db.add(invite)
+    db.commit()
+    db.refresh(invite)
+    return serialize_invite_row(invite)
+
+
 def update_firm_membership(
     db: Session,
     *,

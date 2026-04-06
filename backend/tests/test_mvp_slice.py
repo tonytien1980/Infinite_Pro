@@ -336,6 +336,33 @@ def test_member_list_includes_demo_summary_counts(client: TestClient) -> None:
     assert response.json()["summary"]["pending_demo_invite_count"] == 1
 
 
+def test_owner_can_revoke_pending_invite(client: TestClient) -> None:
+    invite = client.post(
+        "/api/v1/members/invites",
+        json={"email": "pending@example.com", "role": "demo"},
+    )
+    assert invite.status_code == 200
+
+    response = client.post(f"/api/v1/members/invites/{invite.json()['id']}/revoke")
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "revoked"
+
+
+def test_owner_cannot_revoke_same_invite_twice(client: TestClient) -> None:
+    invite = client.post(
+        "/api/v1/members/invites",
+        json={"email": "pending-twice@example.com", "role": "demo"},
+    )
+    assert invite.status_code == 200
+    first = client.post(f"/api/v1/members/invites/{invite.json()['id']}/revoke")
+    assert first.status_code == 200
+
+    response = client.post(f"/api/v1/members/invites/{invite.json()['id']}/revoke")
+
+    assert response.status_code == 400
+
+
 def test_health_endpoint(client: TestClient) -> None:
     response = client.get("/api/v1/health")
 

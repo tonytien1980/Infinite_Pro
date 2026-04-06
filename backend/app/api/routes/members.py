@@ -6,7 +6,12 @@ from sqlalchemy.orm import Session
 from app.core.auth import require_permission
 from app.core.database import get_db
 from app.identity import schemas as identity_schemas
-from app.services.members import create_firm_invite, list_firm_members, update_firm_membership
+from app.services.members import (
+    create_firm_invite,
+    list_firm_members,
+    revoke_firm_invite,
+    update_firm_membership,
+)
 
 router = APIRouter(prefix="/members", tags=["members"])
 
@@ -26,6 +31,19 @@ def create_member_invite_route(
     db: Session = Depends(get_db),
 ) -> identity_schemas.MemberInviteRead:
     return create_firm_invite(db, current_member=current_member, payload=payload)
+
+
+@router.post("/invites/{invite_id}/revoke", response_model=identity_schemas.MemberInviteRead)
+def revoke_member_invite_route(
+    invite_id: str,
+    current_member=Depends(require_permission("manage_members")),
+    db: Session = Depends(get_db),
+) -> identity_schemas.MemberInviteRead:
+    return revoke_firm_invite(
+        db,
+        current_member=current_member,
+        invite_id=invite_id,
+    )
 
 
 @router.patch("/{membership_id}", response_model=identity_schemas.MemberRead)
