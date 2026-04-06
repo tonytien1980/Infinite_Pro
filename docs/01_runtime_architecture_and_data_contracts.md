@@ -1880,6 +1880,50 @@ Object storage 負責：
 - team scorecard
 - automatic specialization engine
 
+### 7.12 Phase 6 reuse-boundary governance
+
+在 phase-6 capability coverage and anti-drift audit 已成立後，runtime 也已開始正式補上 reuse-boundary governance：
+
+- backend 已有 `GET /workbench/phase-6-reuse-boundary-governance`
+- 第一版正式回讀：
+  - `phase_id`
+  - `phase_label`
+  - `governance_posture`
+  - `governance_posture_label`
+  - `summary`
+  - `generalizable_count`
+  - `contextual_count`
+  - `narrow_use_count`
+  - `governance_items`
+  - `recommended_next_step`
+
+每個 `governance_item` 目前至少回答：
+
+- `asset_code`
+- `asset_label`
+- `boundary_status`
+- `boundary_status_label`
+- `reuse_recommendation`
+- `reuse_recommendation_label`
+- `summary`
+- `guardrail_note`
+
+正式規則：
+
+- 第一波只做治理建議 read model，不做 automatic gating
+- Host 仍保有最終 contextual judgment
+- UI 仍應掛在既有 `Generalist Governance` 內，不新增 `/phase-6` 或治理 dashboard
+
+因此這一層現在應被理解為：
+
+- low-noise reuse-boundary governance
+
+不是：
+
+- enforcement engine
+- approval queue
+- enterprise policy shell
+
 ---
 
 ## 8. Provider Boundary

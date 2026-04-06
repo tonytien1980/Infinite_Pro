@@ -822,6 +822,9 @@ Infinite Pro 目前沒有也不應硬對齊於：
   - backend 已有 `phase-6 capability coverage audit` read model
   - `總覽` 已補上一塊 low-noise `Generalist Governance`
   - system 已能正式回讀 coverage / anti-drift / reuse-boundary 的第一版 posture
+- 這條線現在也已往前推到第二刀：
+  - `reuse-boundary governance v1`
+  - system 已能更正式回答哪些 reusable assets 可擴大重用、哪些只能局部參考、哪些不應被擴大套用
 
 ---
 

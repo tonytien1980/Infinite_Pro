@@ -4124,6 +4124,19 @@ Environment used:
 - The homepage can now show whether shared intelligence is staying broad or beginning to skew toward high-frequency patterns
 - frontend now has a consultant-facing `/login` entry and owner-facing `/members` surface that align with the new backend session model
 
+### Phase-6 reuse-boundary governance verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | `/workbench/phase-6-reuse-boundary-governance` | Return reuse-boundary governance recommendations | Verified | targeted backend tests confirm the route returns `phase_6`, governance posture, and `restrict_narrow_use` items with guardrail notes |
+| Frontend | `phase-six-governance` helper copy | Keep governance posture and reuse recommendation labels low-noise | Verified | node helper tests confirm `stable / guardrails_needed` and `can_expand / keep_contextual / restrict_narrow_use` labels stay consultant-readable |
+| Frontend | `/` | Extend `Generalist Governance` panel with reuse-boundary governance summary | Verified | typecheck/build pass after adding parser, helper summary, and homepage governance recommendation block |
+
+### Verified outcomes
+
+- Phase 6 now not only audits drift risk, but also gives low-noise governance recommendations about which reusable assets can expand, stay contextual, or should remain narrow-use
+- `Generalist Governance` has become a real governance surface, not just an audit card
+
 ### Explicitly not shipped in this pass
 
 - `Personal Provider Settings`

@@ -1,7 +1,7 @@
 # Phase 6 Reuse-Boundary Governance v1 Design
 
 日期：2026-04-07
-狀態：proposed
+狀態：partially_implemented
 
 ## Purpose
 
@@ -118,3 +118,21 @@
 - 針對顧問做績效治理
 - 讓 owner 人工逐筆批准 reusable assets
 - 長出 `/phase-6` 或 `/governance`
+
+## Implemented Outcome
+
+目前這份 spec 的第一個 slice 已正式開始落地：
+
+- backend 已新增 `GET /workbench/phase-6-reuse-boundary-governance`
+- system 已能把 `generalizable / contextual / narrow_use` 轉成更正式的治理建議
+- frontend `Generalist Governance` 已補上低噪音 reuse-boundary governance 摘要
+
+但第一波仍只屬於：
+
+- governance recommendation read model
+
+尚未處理：
+
+- automatic gating
+- approval workflow
+- 更嚴格的 Host weighting / routing enforcement
