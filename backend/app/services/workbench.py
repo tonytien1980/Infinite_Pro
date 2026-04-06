@@ -31,6 +31,9 @@ from app.services.shared_intelligence_closure_review import (
 from app.services.phase_five_closure_review import (
     build_phase_five_closure_review,
 )
+from app.services.phase_six_generalist_governance import (
+    build_phase_six_capability_coverage_audit,
+)
 from app.workbench import schemas
 
 DEFAULT_WORKBENCH_PROFILE = "single_consultant_default"
@@ -461,3 +464,10 @@ def sign_off_phase_five(
     db.add(row)
     db.commit()
     return get_phase_five_closure_review(db)
+
+
+def get_phase_six_capability_coverage_audit(
+    db: Session,
+) -> schemas.PhaseSixCapabilityCoverageAuditResponse:
+    del db
+    return build_phase_six_capability_coverage_audit()

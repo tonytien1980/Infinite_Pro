@@ -461,6 +461,33 @@ def test_owner_can_sign_off_phase_five(client: TestClient) -> None:
     assert body["handoff_items"]
 
 
+def test_owner_can_read_phase_six_capability_coverage_audit(client: TestClient) -> None:
+    response = client.get("/api/v1/workbench/phase-6-capability-coverage-audit")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["phase_id"] == "phase_6"
+    assert payload["audit_status"] in {"balanced", "watch_drift"}
+    assert payload["coverage_summary"]
+    assert payload["generalist_posture_label"]
+    assert payload["coverage_areas"]
+    assert payload["recommended_next_step"]
+
+
+def test_phase_six_capability_coverage_audit_marks_narrow_assets_low_noise(
+    client: TestClient,
+) -> None:
+    response = client.get("/api/v1/workbench/phase-6-capability-coverage-audit")
+
+    assert response.status_code == 200
+    payload = response.json()
+    narrow_items = [
+        item for item in payload["reuse_boundary_items"] if item["boundary_status"] == "narrow_use"
+    ]
+    assert narrow_items
+    assert all(item["boundary_status_label"] for item in narrow_items)
+
+
 def test_consultant_cannot_sign_off_phase_five(
     anonymous_client: TestClient,
     monkeypatch: pytest.MonkeyPatch,

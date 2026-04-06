@@ -432,6 +432,36 @@ class PhaseFiveClosureReviewResponse(BaseModel):
     handoff_items: list[str] = Field(default_factory=list)
 
 
+class PhaseSixCoverageAreaRead(BaseModel):
+    area_id: str
+    area_label: str = ""
+    coverage_status: Literal["steady", "thin", "overweighted"] = "steady"
+    coverage_status_label: str = ""
+    summary: str = ""
+
+
+class PhaseSixReuseBoundaryItemRead(BaseModel):
+    asset_code: str
+    asset_label: str = ""
+    boundary_status: Literal["generalizable", "contextual", "narrow_use"] = "contextual"
+    boundary_status_label: str = ""
+    summary: str = ""
+
+
+class PhaseSixCapabilityCoverageAuditResponse(BaseModel):
+    phase_id: Literal["phase_6"] = "phase_6"
+    phase_label: str = ""
+    audit_status: Literal["balanced", "watch_drift"] = "watch_drift"
+    audit_status_label: str = ""
+    coverage_summary: str = ""
+    generalist_posture: Literal["broad", "watching_bias"] = "watching_bias"
+    generalist_posture_label: str = ""
+    priority_note: str = ""
+    coverage_areas: list[PhaseSixCoverageAreaRead] = Field(default_factory=list)
+    reuse_boundary_items: list[PhaseSixReuseBoundaryItemRead] = Field(default_factory=list)
+    recommended_next_step: str = ""
+
+
 class SharedIntelligenceClosureReviewResponse(BaseModel):
     phase_id: Literal["phase_4"] = "phase_4"
     phase_label: str = ""
