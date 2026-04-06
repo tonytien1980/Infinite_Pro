@@ -1959,6 +1959,45 @@ Object storage 負責：
 - full routing rewrite
 - consultant-visible tuning console
 
+### 7.14 Phase 6 generalist guidance posture
+
+在 Host 已開始把 phase-6 governance 訊號接進 reusable ordering 之後，runtime 也已正式補上一條 consultant-facing 的 `generalist guidance posture`：
+
+- backend 已有 `GET /workbench/phase-6-generalist-guidance-posture`
+- 第一版正式回讀：
+  - `phase_id`
+  - `phase_label`
+  - `guidance_posture`
+  - `guidance_posture_label`
+  - `summary`
+  - `work_guidance_summary`
+  - `boundary_emphasis`
+  - `guidance_items`
+  - `recommended_next_step`
+
+第一版 posture 目前至少可回答：
+
+- `light_guidance`
+- `balanced_guidance`
+- `guarded_guidance`
+
+正式規則：
+
+- 第一波只做 read model，不直接改寫 task / matter / deliverable 全部 work surface
+- guidance posture 應由 phase-6 audit 與 reuse-boundary governance 共同導出
+- 這一層的功能是把治理訊號翻成 consultant-facing guidance 語氣，不是 user ranking 或 maturity scoring
+- UI 仍只掛在既有 `Generalist Governance`，不新增 `/phase-6` / `/governance`
+
+因此這一層現在應被理解為：
+
+- low-noise consultant-facing guidance posture
+
+不是：
+
+- training mode engine
+- consultant scoring system
+- new dashboard shell
+
 ---
 
 ## 8. Provider Boundary

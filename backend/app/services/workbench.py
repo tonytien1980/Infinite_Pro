@@ -33,6 +33,7 @@ from app.services.phase_five_closure_review import (
 )
 from app.services.phase_six_generalist_governance import (
     build_phase_six_capability_coverage_audit,
+    build_phase_six_generalist_guidance_posture,
     build_phase_six_reuse_boundary_governance,
 )
 from app.workbench import schemas
@@ -479,3 +480,10 @@ def get_phase_six_reuse_boundary_governance(
 ) -> schemas.PhaseSixReuseBoundaryGovernanceResponse:
     del db
     return build_phase_six_reuse_boundary_governance()
+
+
+def get_phase_six_generalist_guidance_posture(
+    db: Session,
+) -> schemas.PhaseSixGeneralistGuidancePostureResponse:
+    del db
+    return build_phase_six_generalist_guidance_posture()

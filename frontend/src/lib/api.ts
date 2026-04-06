@@ -51,6 +51,7 @@ import {
   PersonalProviderSettingsPayload,
   PhaseFiveClosureReview,
   PhaseSixCapabilityCoverageAudit,
+  PhaseSixGeneralistGuidancePosture,
   PhaseSixReuseBoundaryGovernance,
   PersonalProviderSettingsSnapshot,
   PersonalProviderSettingsUpdatePayload,
@@ -259,6 +260,16 @@ export async function getPhaseSixReuseBoundaryGovernance(): Promise<PhaseSixReus
     },
   );
   return parsePhaseSixReuseBoundaryGovernancePayload(await parseResponse<any>(response));
+}
+
+export async function getPhaseSixGeneralistGuidancePosture(): Promise<PhaseSixGeneralistGuidancePosture> {
+  const response = await apiFetch(
+    `${getApiBaseUrl()}/workbench/phase-6-generalist-guidance-posture`,
+    {
+      cache: "no-store",
+    },
+  );
+  return parsePhaseSixGeneralistGuidancePosturePayload(await parseResponse<any>(response));
 }
 
 export async function signOffPhaseFive(
@@ -983,6 +994,29 @@ function parsePhaseSixReuseBoundaryGovernancePayload(
           summary: item.summary || "",
           guardrailNote: item.guardrail_note || "",
         }))
+      : [],
+    recommendedNextStep: payload.recommended_next_step || "",
+  };
+}
+
+function parsePhaseSixGeneralistGuidancePosturePayload(
+  payload: any,
+): PhaseSixGeneralistGuidancePosture {
+  return {
+    phaseId: "phase_6",
+    phaseLabel: payload.phase_label || "",
+    guidancePosture:
+      payload.guidance_posture === "light_guidance"
+        ? "light_guidance"
+        : payload.guidance_posture === "guarded_guidance"
+          ? "guarded_guidance"
+          : "balanced_guidance",
+    guidancePostureLabel: payload.guidance_posture_label || "",
+    summary: payload.summary || "",
+    workGuidanceSummary: payload.work_guidance_summary || "",
+    boundaryEmphasis: payload.boundary_emphasis || "",
+    guidanceItems: Array.isArray(payload.guidance_items)
+      ? payload.guidance_items.filter((item: unknown) => typeof item === "string")
       : [],
     recommendedNextStep: payload.recommended_next_step || "",
   };

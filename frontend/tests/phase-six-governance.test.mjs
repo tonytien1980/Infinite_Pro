@@ -4,8 +4,10 @@ import assert from "node:assert/strict";
 import {
   labelForPhaseSixAuditStatus,
   labelForPhaseSixGeneralistPosture,
+  labelForPhaseSixGuidancePosture,
   labelForPhaseSixGovernancePosture,
   labelForPhaseSixReuseRecommendation,
+  summarizePhaseSixGuidanceItems,
   summarizePhaseSixHostWeighting,
 } from "../src/lib/phase-six-governance.ts";
 
@@ -40,5 +42,18 @@ test("phase 6 host weighting summary stays low-noise and readable", () => {
       governanceItems: [],
     }),
     "Host 現在會先讓較可擴大重用的來源站前面，窄情境模板 / 骨架則先留背景校正。",
+  );
+});
+
+test("phase 6 guidance posture labels stay low-noise and readable", () => {
+  assert.equal(labelForPhaseSixGuidancePosture("light_guidance"), "維持低噪音");
+  assert.equal(labelForPhaseSixGuidancePosture("balanced_guidance"), "適度明示");
+  assert.equal(labelForPhaseSixGuidancePosture("guarded_guidance"), "先保守引導");
+  assert.equal(
+    summarizePhaseSixGuidanceItems([
+      "先把 shared intelligence 當校正主線，不要直接當成定論。",
+      "窄情境來源若有其他較穩替代，先留背景校正。",
+    ]),
+    "先把 shared intelligence 當校正主線，不要直接當成定論。｜窄情境來源若有其他較穩替代，先留背景校正。",
   );
 });

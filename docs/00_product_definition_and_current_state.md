@@ -830,6 +830,10 @@ Infinite Pro 目前沒有也不應硬對齊於：
   - Host 已開始把 `can_expand / keep_contextual / restrict_narrow_use` 接進 reusable asset ordering
   - precedent、domain playbook、deliverable template 現在不只看 shared-intelligence weight_action，也會看 reuse-boundary recommendation
   - `總覽` 的 `Generalist Governance` 也已補上低噪音 `Host weighting` 摘要
+- 這條線現在也已正式推到第四刀：
+  - `generalist guidance posture v1`
+  - system 已能正式回答目前工作 guidance 應維持多低噪音、哪些 reusable boundary 應先明示、什麼時候要先保守引導
+  - `總覽` 的 `Generalist Governance` 已補上低噪音 `guidance posture` 摘要
 
 ---
 

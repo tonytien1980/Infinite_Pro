@@ -1,5 +1,6 @@
 import type {
   PhaseSixCoverageArea,
+  PhaseSixGeneralistGuidancePosture,
   PhaseSixReuseBoundaryGovernance,
   PhaseSixReuseBoundaryGovernanceItem,
   PhaseSixReuseBoundaryItem,
@@ -94,4 +95,35 @@ export function summarizePhaseSixHostWeighting(
     return "Host 現在會先讓窄情境來源留在背景校正，不讓它單獨帶主線。";
   }
   return "Host 現在仍以局部參考排序為主，避免把來源過度放大。";
+}
+
+export function labelForPhaseSixGuidancePosture(
+  posture: "light_guidance" | "balanced_guidance" | "guarded_guidance",
+) {
+  if (posture === "light_guidance") {
+    return "維持低噪音";
+  }
+  if (posture === "guarded_guidance") {
+    return "先保守引導";
+  }
+  return "適度明示";
+}
+
+export function summarizePhaseSixGuidanceItems(items: string[]) {
+  if (items.length === 0) {
+    return "目前還沒有可讀取的 guidance signal。";
+  }
+  return items.slice(0, 2).join("｜");
+}
+
+export function summarizePhaseSixWorkGuidance(
+  posture: Pick<
+    PhaseSixGeneralistGuidancePosture,
+    "workGuidanceSummary" | "guidanceItems"
+  >,
+) {
+  if (posture.workGuidanceSummary) {
+    return posture.workGuidanceSummary;
+  }
+  return summarizePhaseSixGuidanceItems(posture.guidanceItems);
 }

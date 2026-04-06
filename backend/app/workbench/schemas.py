@@ -492,6 +492,22 @@ class PhaseSixReuseBoundaryGovernanceResponse(BaseModel):
     recommended_next_step: str = ""
 
 
+class PhaseSixGeneralistGuidancePostureResponse(BaseModel):
+    phase_id: Literal["phase_6"] = "phase_6"
+    phase_label: str = ""
+    guidance_posture: Literal[
+        "light_guidance",
+        "balanced_guidance",
+        "guarded_guidance",
+    ] = "balanced_guidance"
+    guidance_posture_label: str = ""
+    summary: str = ""
+    work_guidance_summary: str = ""
+    boundary_emphasis: str = ""
+    guidance_items: list[str] = Field(default_factory=list)
+    recommended_next_step: str = ""
+
+
 class SharedIntelligenceClosureReviewResponse(BaseModel):
     phase_id: Literal["phase_4"] = "phase_4"
     phase_label: str = ""

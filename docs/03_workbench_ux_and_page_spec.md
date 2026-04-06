@@ -426,6 +426,7 @@ Infinite Pro 正式採：
 - `Generalist Governance` 也只可維持低噪音摘要，不可因此長出 `/phase-6`、`/governance` 或 coverage dashboard
 - reuse-boundary governance 也只可作為 low-noise recommendation，不可長成 policy editor
 - Host weighting 也只可作為 low-noise ordering summary，不可長成 precedence editor 或 routing console
+- guidance posture 也只可作為 low-noise consultant-facing guidance note，不可長成顧問分級面板或 training shell
 - 不可因此長成 dashboard wall 或第二套管理後台
 
 ### `建立新案件`

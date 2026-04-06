@@ -151,6 +151,71 @@ def build_phase_six_reuse_boundary_governance(
     )
 
 
+def build_phase_six_generalist_guidance_posture(
+    *,
+    audit: schemas.PhaseSixCapabilityCoverageAuditResponse | None = None,
+    governance: schemas.PhaseSixReuseBoundaryGovernanceResponse | None = None,
+) -> schemas.PhaseSixGeneralistGuidancePostureResponse:
+    source_audit = audit or build_phase_six_capability_coverage_audit()
+    source_governance = governance or build_phase_six_reuse_boundary_governance(
+        audit=source_audit,
+    )
+
+    if (
+        source_audit.audit_status == "watch_drift"
+        and source_governance.governance_posture == "guardrails_needed"
+    ):
+        guidance_posture = "guarded_guidance"
+        guidance_posture_label = "先保守引導"
+        summary = "目前 shared intelligence 已能提供方向，但仍需先保守地把它當成工作校正主線。"
+        work_guidance_summary = (
+            "目前工作 guidance 應先保守引導：讓較可擴大重用的來源帶路，但不要把 shared intelligence 讀成近乎定論。"
+        )
+        boundary_emphasis = "窄情境模板 / 骨架與局部模式仍應明示邊界，必要時先留背景校正。"
+        guidance_items = [
+            "先把 shared intelligence 當校正主線，不要直接當成定論。",
+            "窄情境來源若有其他較穩替代，先留背景校正。",
+            "若當前案件證據仍薄，仍以 pack / shape / heuristic 先站主線。",
+        ]
+    elif (
+        source_audit.generalist_posture == "broad"
+        and source_governance.governance_posture == "stable"
+    ):
+        guidance_posture = "light_guidance"
+        guidance_posture_label = "維持低噪音"
+        summary = "目前 shared intelligence 較穩，工作 guidance 可維持低噪音 second-layer 提示。"
+        work_guidance_summary = "目前工作 guidance 可維持低噪音，只在需要時補 reusable boundary。"
+        boundary_emphasis = "仍保留 boundary note，但不需要在每輪都強烈前置。"
+        guidance_items = [
+            "優先保持 consultant-first 的低噪音讀法。",
+            "只有在 reusable boundary 真的影響判斷時，才補明示 guardrail。",
+        ]
+    else:
+        guidance_posture = "balanced_guidance"
+        guidance_posture_label = "適度明示"
+        summary = "目前 shared intelligence 已可提供穩定方向，但仍需適度明示哪些來源只屬局部參考。"
+        work_guidance_summary = "目前工作 guidance 應維持低噪音，但要適度把 reusable boundary 說清楚。"
+        boundary_emphasis = "可重用來源可站前面，但局部情境的限制仍要被看見。"
+        guidance_items = [
+            "讓較穩的 reusable intelligence 先帶工作主線。",
+            "遇到局部模式時，補一條簡短 boundary note 即可。",
+        ]
+
+    return schemas.PhaseSixGeneralistGuidancePostureResponse(
+        phase_id="phase_6",
+        phase_label="Generalist Consulting Intelligence Governance",
+        guidance_posture=guidance_posture,
+        guidance_posture_label=guidance_posture_label,
+        summary=summary,
+        work_guidance_summary=work_guidance_summary,
+        boundary_emphasis=boundary_emphasis,
+        guidance_items=guidance_items,
+        recommended_next_step=(
+            "若要繼續往下走，下一刀應把這條 guidance posture 再更正式地回寫到 task / matter / deliverable 的 second-layer guidance。"
+        ),
+    )
+
+
 def recommend_phase_six_reuse_weighting(
     *,
     asset_code: str,

@@ -4153,6 +4153,19 @@ Environment used:
 - narrow-use template / shape precedent can now stay in background more honestly when stronger reusable sources already exist
 - `Generalist Governance` can now explain not only what should stay narrow, but also how Host is currently biasing reusable-intelligence ordering
 
+### Phase-6 generalist guidance posture verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | `/workbench/phase-6-generalist-guidance-posture` | Return consultant-facing guidance posture read model | Verified | targeted backend tests confirm the route returns `phase_6`, `guidance_posture`, `work_guidance_summary`, `boundary_emphasis`, and `guidance_items` |
+| Frontend | `phase-six-governance` helper copy | Keep guidance posture labels low-noise and readable | Verified | node helper tests confirm `light_guidance / balanced_guidance / guarded_guidance` render consultant-readable Traditional Chinese labels |
+| Frontend | `/` | Extend `Generalist Governance` with guidance posture summary | Verified | typecheck/build pass after adding parser, helper summary, and homepage `guidance posture` block |
+
+### Verified outcomes
+
+- Phase 6 now not only audits coverage, governs reuse boundary, and explains Host ordering, but also answers how conservative or explicit consultant-facing guidance should be
+- `Generalist Governance` can now tell whether shared intelligence should stay low-noise, be moderately explicit, or first be read through guarded guidance
+
 ### Explicitly not shipped in this pass
 
 - `Personal Provider Settings`

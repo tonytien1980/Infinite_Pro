@@ -528,6 +528,35 @@ def test_phase_six_reuse_boundary_governance_exposes_host_weighting_summary(
     assert payload["host_weighting_guardrail_note"]
 
 
+def test_owner_can_read_phase_six_generalist_guidance_posture(client: TestClient) -> None:
+    response = client.get("/api/v1/workbench/phase-6-generalist-guidance-posture")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["phase_id"] == "phase_6"
+    assert payload["guidance_posture"] in {
+        "light_guidance",
+        "balanced_guidance",
+        "guarded_guidance",
+    }
+    assert payload["guidance_posture_label"]
+    assert payload["work_guidance_summary"]
+    assert payload["guidance_items"]
+    assert payload["recommended_next_step"]
+
+
+def test_phase_six_generalist_guidance_posture_prefers_guarded_reading(
+    client: TestClient,
+) -> None:
+    response = client.get("/api/v1/workbench/phase-6-generalist-guidance-posture")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["guidance_posture"] == "guarded_guidance"
+    assert "保守" in payload["guidance_posture_label"] or "保守" in payload["work_guidance_summary"]
+    assert payload["boundary_emphasis"]
+
+
 def test_consultant_cannot_sign_off_phase_five(
     anonymous_client: TestClient,
     monkeypatch: pytest.MonkeyPatch,

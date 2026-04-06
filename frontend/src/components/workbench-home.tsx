@@ -12,6 +12,7 @@ import {
   getFirmOperatingSnapshot,
   getPhaseFiveClosureReview,
   getPhaseSixCapabilityCoverageAudit,
+  getPhaseSixGeneralistGuidancePosture,
   getPhaseSixReuseBoundaryGovernance,
   listMatterWorkspaces,
   signOffPhaseFive,
@@ -25,11 +26,14 @@ import {
 import { buildPhaseFiveClosureView } from "@/lib/phase-five-closure";
 import {
   labelForPhaseSixAuditStatus,
+  labelForPhaseSixGuidancePosture,
   labelForPhaseSixGeneralistPosture,
   labelForPhaseSixGovernancePosture,
   labelForPhaseSixReuseRecommendation,
   summarizePhaseSixCoverageAreas,
+  summarizePhaseSixGuidanceItems,
   summarizePhaseSixGovernanceItems,
+  summarizePhaseSixWorkGuidance,
   summarizePhaseSixHostWeighting,
   summarizePhaseSixReuseBoundaryItems,
 } from "@/lib/phase-six-governance";
@@ -40,6 +44,7 @@ import type {
   MatterWorkspaceSummary,
   PhaseFiveClosureReview,
   PhaseSixCapabilityCoverageAudit,
+  PhaseSixGeneralistGuidancePosture,
   PhaseSixReuseBoundaryGovernance,
   TaskListItem,
 } from "@/lib/types";
@@ -111,6 +116,7 @@ export function WorkbenchHome() {
   const [phaseFiveClosureReview, setPhaseFiveClosureReview] = useState<PhaseFiveClosureReview | null>(null);
   const [phaseSixAudit, setPhaseSixAudit] = useState<PhaseSixCapabilityCoverageAudit | null>(null);
   const [phaseSixGovernance, setPhaseSixGovernance] = useState<PhaseSixReuseBoundaryGovernance | null>(null);
+  const [phaseSixGuidance, setPhaseSixGuidance] = useState<PhaseSixGeneralistGuidancePosture | null>(null);
   const [matterRecords] = useMatterWorkspaceRecords();
   const [settings] = useWorkbenchSettings();
   const [loading, setLoading] = useState(true);
@@ -120,6 +126,7 @@ export function WorkbenchHome() {
   const [phaseFiveClosureLoading, setPhaseFiveClosureLoading] = useState(true);
   const [phaseSixAuditLoading, setPhaseSixAuditLoading] = useState(true);
   const [phaseSixGovernanceLoading, setPhaseSixGovernanceLoading] = useState(true);
+  const [phaseSixGuidanceLoading, setPhaseSixGuidanceLoading] = useState(true);
   const [phaseFiveSignOffLoading, setPhaseFiveSignOffLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [matterError, setMatterError] = useState<string | null>(null);
@@ -128,6 +135,7 @@ export function WorkbenchHome() {
   const [phaseFiveClosureError, setPhaseFiveClosureError] = useState<string | null>(null);
   const [phaseSixAuditError, setPhaseSixAuditError] = useState<string | null>(null);
   const [phaseSixGovernanceError, setPhaseSixGovernanceError] = useState<string | null>(null);
+  const [phaseSixGuidanceError, setPhaseSixGuidanceError] = useState<string | null>(null);
   const [phaseFiveClosureFeedback, setPhaseFiveClosureFeedback] = useState<string | null>(null);
 
   async function refreshTasks() {
@@ -229,6 +237,22 @@ export function WorkbenchHome() {
     }
   }
 
+  async function refreshPhaseSixGuidance() {
+    try {
+      setPhaseSixGuidanceLoading(true);
+      setPhaseSixGuidanceError(null);
+      setPhaseSixGuidance(await getPhaseSixGeneralistGuidancePosture());
+    } catch (guidanceError) {
+      setPhaseSixGuidanceError(
+        guidanceError instanceof Error
+          ? guidanceError.message
+          : "載入 generalist guidance posture 失敗。",
+      );
+    } finally {
+      setPhaseSixGuidanceLoading(false);
+    }
+  }
+
   useEffect(() => {
     void refreshTasks();
     void refreshMatters();
@@ -237,6 +261,7 @@ export function WorkbenchHome() {
     void refreshPhaseFiveClosureReview();
     void refreshPhaseSixAudit();
     void refreshPhaseSixGovernance();
+    void refreshPhaseSixGuidance();
   }, []);
   const phaseFiveClosureView = buildPhaseFiveClosureView(phaseFiveClosureReview);
 
@@ -824,6 +849,31 @@ export function WorkbenchHome() {
                       <strong>{summarizePhaseSixHostWeighting(phaseSixGovernance)}</strong>
                       <p className="muted-text" style={{ marginTop: "8px" }}>
                         {phaseSixGovernance.hostWeightingGuardrailNote}
+                      </p>
+                    </div>
+                  ) : null}
+
+                  {phaseSixGuidanceLoading ? (
+                    <p className="status-text" style={{ marginTop: "16px" }}>
+                      正在整理 generalist guidance posture...
+                    </p>
+                  ) : null}
+
+                  {!phaseSixGuidanceLoading && phaseSixGuidance ? (
+                    <div className="section-card" style={{ marginTop: "16px" }}>
+                      <h3>guidance posture</h3>
+                      <p className="muted-text">
+                        {labelForPhaseSixGuidancePosture(phaseSixGuidance.guidancePosture)}
+                      </p>
+                      <strong>{summarizePhaseSixWorkGuidance(phaseSixGuidance)}</strong>
+                      <p className="muted-text" style={{ marginTop: "8px" }}>
+                        {phaseSixGuidance.boundaryEmphasis}
+                      </p>
+                      <p className="muted-text" style={{ marginTop: "8px" }}>
+                        {summarizePhaseSixGuidanceItems(phaseSixGuidance.guidanceItems)}
+                      </p>
+                      <p className="muted-text" style={{ marginTop: "12px" }}>
+                        {phaseSixGuidance.recommendedNextStep}
                       </p>
                     </div>
                   ) : null}

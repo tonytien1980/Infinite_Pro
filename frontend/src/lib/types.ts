@@ -419,6 +419,18 @@ export interface PhaseSixReuseBoundaryGovernance {
   recommendedNextStep: string;
 }
 
+export interface PhaseSixGeneralistGuidancePosture {
+  phaseId: "phase_6";
+  phaseLabel: string;
+  guidancePosture: "light_guidance" | "balanced_guidance" | "guarded_guidance";
+  guidancePostureLabel: string;
+  summary: string;
+  workGuidanceSummary: string;
+  boundaryEmphasis: string;
+  guidanceItems: string[];
+  recommendedNextStep: string;
+}
+
 export interface PrecedentDuplicateReviewPayload {
   review_key: string;
   resolution: "human_confirmed_canonical_row" | "keep_separate" | "split";
