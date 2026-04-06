@@ -13,3 +13,7 @@ export function buildDemoMemberSummary(snapshot: MemberListSnapshot | null) {
     pendingCount: snapshot?.summary.pendingDemoInviteCount || 0,
   };
 }
+
+export function canRevokeInvite(status: "pending" | "accepted" | "revoked") {
+  return status === "pending";
+}

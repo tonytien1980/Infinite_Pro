@@ -208,6 +208,13 @@ export async function createMemberInvite(payload: {
   return parseResponse<MemberInviteRead>(response);
 }
 
+export async function revokeMemberInvite(inviteId: string): Promise<MemberInviteRead> {
+  const response = await apiFetch(`${getApiBaseUrl()}/members/invites/${inviteId}/revoke`, {
+    method: "POST",
+  });
+  return parseResponse<MemberInviteRead>(response);
+}
+
 export async function updateMemberRole(
   membershipId: string,
   payload: {

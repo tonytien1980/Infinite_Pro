@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 
-import { createMemberInvite, listMembers, updateMemberRole } from "@/lib/api";
-import { buildDemoMemberSummary } from "@/lib/demo-workspace";
+import { createMemberInvite, listMembers, revokeMemberInvite, updateMemberRole } from "@/lib/api";
+import { buildDemoMemberSummary, canRevokeInvite } from "@/lib/demo-workspace";
 import type { MemberListSnapshot } from "@/lib/types";
 
 export function MembersPagePanel() {
@@ -77,6 +77,34 @@ export function MembersPagePanel() {
       setError(null);
     } catch (updateError) {
       setError(updateError instanceof Error ? updateError.message : "目前無法更新成員身份。");
+      setFeedback(null);
+    }
+  }
+
+  async function handleRevokeInvite(inviteId: string) {
+    try {
+      const revoked = await revokeMemberInvite(inviteId);
+      setSnapshot((current) =>
+        current
+          ? {
+              ...current,
+              pendingInvites: current.pendingInvites.map((invite) =>
+                invite.id === revoked.id ? revoked : invite,
+              ),
+              summary: {
+                ...current.summary,
+                pendingDemoInviteCount:
+                  revoked.role === "demo"
+                    ? Math.max(0, current.summary.pendingDemoInviteCount - 1)
+                    : current.summary.pendingDemoInviteCount,
+              },
+            }
+          : current,
+      );
+      setFeedback(`已撤回 ${revoked.email} 的邀請。`);
+      setError(null);
+    } catch (revokeError) {
+      setError(revokeError instanceof Error ? revokeError.message : "目前無法撤回邀請。");
       setFeedback(null);
     }
   }
@@ -156,6 +184,13 @@ export function MembersPagePanel() {
           {(snapshot?.pendingInvites ?? []).map((invite) => (
             <li key={invite.id}>
               <strong>{invite.email}</strong>｜{invite.role}｜{invite.status}
+              {canRevokeInvite(invite.status) ? (
+                <div style={{ marginTop: "8px" }}>
+                  <button type="button" onClick={() => void handleRevokeInvite(invite.id)}>
+                    撤回邀請
+                  </button>
+                </div>
+              ) : null}
             </li>
           ))}
         </ul>

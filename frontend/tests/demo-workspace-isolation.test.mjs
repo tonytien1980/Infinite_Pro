@@ -5,7 +5,7 @@ import {
   buildPrimaryNavForMembershipRole,
   resolveProtectedPathForMembershipRole,
 } from "../src/lib/permissions.ts";
-import { buildDemoMemberSummary } from "../src/lib/demo-workspace.ts";
+import { buildDemoMemberSummary, canRevokeInvite } from "../src/lib/demo-workspace.ts";
 
 test("demo sees only the demo nav entry", () => {
   const nav = buildPrimaryNavForMembershipRole("demo");
@@ -33,4 +33,10 @@ test("demo member summary counts active and pending demo seats", () => {
 
   assert.equal(summary.activeCount, 1);
   assert.equal(summary.pendingCount, 1);
+});
+
+test("only pending invites are revokable", () => {
+  assert.equal(canRevokeInvite("pending"), true);
+  assert.equal(canRevokeInvite("accepted"), false);
+  assert.equal(canRevokeInvite("revoked"), false);
 });
