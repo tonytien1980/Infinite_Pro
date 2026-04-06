@@ -15,6 +15,7 @@ SESSION_STATE_KEY = "user_session_token"
 
 Permission = Literal[
     "access_firm_workspace",
+    "access_demo_workspace",
     "view_agents",
     "view_packs",
     "manage_members",
@@ -28,6 +29,7 @@ Permission = Literal[
 ROLE_PERMISSIONS: dict[str, set[str]] = {
     "owner": {
         "access_firm_workspace",
+        "access_demo_workspace",
         "view_agents",
         "view_packs",
         "manage_members",
@@ -42,7 +44,9 @@ ROLE_PERMISSIONS: dict[str, set[str]] = {
         "view_agents",
         "view_packs",
     },
-    "demo": set(),
+    "demo": {
+        "access_demo_workspace",
+    },
 }
 
 

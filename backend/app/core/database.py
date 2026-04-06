@@ -200,6 +200,12 @@ def _ensure_incremental_schema_updates() -> None:
             "support_evidence_id": "VARCHAR(36)",
             "member_metadata": "JSON NOT NULL DEFAULT '{}'",
         },
+        "demo_workspace_policies": {
+            "status": "VARCHAR(30) NOT NULL DEFAULT 'active'",
+            "workspace_slug": "VARCHAR(60) NOT NULL DEFAULT 'demo'",
+            "seed_version": "VARCHAR(30) NOT NULL DEFAULT 'v1'",
+            "max_active_demo_members": "INTEGER NOT NULL DEFAULT 5",
+        },
     }
 
     inspector = inspect(engine)

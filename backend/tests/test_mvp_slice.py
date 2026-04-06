@@ -238,6 +238,41 @@ def login_as_consultant_with_owner_invite(
     return anonymous_client
 
 
+def test_demo_role_permissions_include_demo_workspace_access() -> None:
+    from app.core.auth import ROLE_PERMISSIONS
+
+    assert "access_demo_workspace" in ROLE_PERMISSIONS["owner"]
+    assert "access_demo_workspace" in ROLE_PERMISSIONS["demo"]
+    assert "access_firm_workspace" not in ROLE_PERMISSIONS["demo"]
+
+
+def test_demo_workspace_policy_row_persists(client: TestClient) -> None:
+    with SessionLocal() as db:
+        firm = db.scalar(select(models.Firm).where(models.Firm.slug == "test-firm"))
+        assert firm is not None
+
+        db.add(
+            models.DemoWorkspacePolicy(
+                firm_id=firm.id,
+                status="active",
+                workspace_slug="demo",
+                seed_version="v1",
+                max_active_demo_members=5,
+            )
+        )
+        db.commit()
+
+        row = db.scalar(
+            select(models.DemoWorkspacePolicy).where(
+                models.DemoWorkspacePolicy.firm_id == firm.id
+            )
+        )
+
+        assert row is not None
+        assert row.workspace_slug == "demo"
+        assert row.max_active_demo_members == 5
+
+
 def test_health_endpoint(client: TestClient) -> None:
     response = client.get("/api/v1/health")
 

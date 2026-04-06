@@ -163,6 +163,11 @@ class Firm(Base):
         cascade="all, delete-orphan",
         order_by="ProviderAllowlistEntry.updated_at.desc()",
     )
+    demo_workspace_policy: Mapped["DemoWorkspacePolicy | None"] = relationship(
+        back_populates="firm",
+        cascade="all, delete-orphan",
+        uselist=False,
+    )
 
 
 class User(Base):
@@ -338,6 +343,24 @@ class ProviderAllowlistEntry(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
     firm: Mapped["Firm"] = relationship(back_populates="provider_allowlist_entries")
+
+
+class DemoWorkspacePolicy(Base):
+    __tablename__ = "demo_workspace_policies"
+    __table_args__ = (
+        UniqueConstraint("firm_id", name="uq_demo_workspace_policy_firm"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    firm_id: Mapped[str] = mapped_column(ForeignKey("firms.id"), nullable=False)
+    status: Mapped[str] = mapped_column(String(30), default="active")
+    workspace_slug: Mapped[str] = mapped_column(String(60), default="demo")
+    seed_version: Mapped[str] = mapped_column(String(30), default="v1")
+    max_active_demo_members: Mapped[int] = mapped_column(Integer, default=5)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+    firm: Mapped["Firm"] = relationship(back_populates="demo_workspace_policy")
 
 
 class WorkbenchPreference(Base):
