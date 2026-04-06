@@ -4,6 +4,9 @@ from hashlib import sha1
 
 from app.domain import schemas
 from app.domain.enums import AdoptionFeedbackStatus, DeliverableClass, EngagementContinuityMode
+from app.services.phase_six_generalist_governance import (
+    recommend_phase_six_reuse_weighting,
+)
 from app.services.precedent_intelligence import select_weighted_precedent_reference_items
 from app.services.shared_source_lifecycle_intelligence import (
     build_feedback_linked_decay_summary,
@@ -230,6 +233,13 @@ def build_domain_playbook_guidance(
         ]
         precedent_stage_added = False
         for top_match in weighted_matches:
+            reuse_recommendation, _, reuse_guardrail_note, _ = recommend_phase_six_reuse_weighting(
+                asset_code="domain_playbook",
+                reason_codes=top_match.source_feedback_reason_codes,
+                weight_action=top_match.shared_intelligence_signal.weight_action,
+                stability=top_match.shared_intelligence_signal.stability,
+                strength=top_match.optimization_signal.strength,
+            )
             feedback_decay_summary = build_feedback_linked_decay_summary(
                 top_match.source_feedback_status,
                 subject_label="shared guidance",
@@ -238,6 +248,7 @@ def build_domain_playbook_guidance(
                 top_match.shared_intelligence_signal.stability != "stable"
                 or bool(feedback_decay_summary)
                 or top_match.shared_intelligence_signal.weight_action == "downweight"
+                or reuse_recommendation == "restrict_narrow_use"
             )
             if not precedent_stage_added:
                 add_stage(
@@ -273,6 +284,8 @@ def build_domain_playbook_guidance(
                 has_stale_shared_source = True
                 if feedback_decay_summary and not decay_summary:
                     decay_summary = feedback_decay_summary
+                elif reuse_recommendation == "restrict_narrow_use" and not decay_summary:
+                    decay_summary = reuse_guardrail_note
 
     pack_stage_added = False
     for pack in [*pack_resolution.selected_domain_packs, *pack_resolution.selected_industry_packs]:

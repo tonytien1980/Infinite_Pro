@@ -1924,6 +1924,41 @@ Object storage 負責：
 - approval queue
 - enterprise policy shell
 
+### 7.13 Phase 6 host-aware reuse weighting
+
+在 `reuse-boundary governance v1` 已能正式回答哪些 reusable assets 可擴大重用、哪些應維持局部參考、哪些不應被擴大套用之後，Host 也已開始正式把這些建議接回 reusable asset ordering：
+
+- `select_weighted_precedent_reference_items` 現在會先看 phase-6 reuse recommendation，再看 shared-intelligence `weight_action`
+- 第一波正式排序為：
+  - `can_expand`
+  - `keep_contextual`
+  - `restrict_narrow_use`
+- 若同一輪已有其他可用來源，`restrict_narrow_use` 的 precedent 會退到背景或被排到更後面
+- 第一波已正式接進：
+  - precedent-driven reusable asset ordering
+  - `domain playbook`
+  - `deliverable template`
+- `GET /workbench/phase-6-reuse-boundary-governance` 現在也正式補上：
+  - `host_weighting_summary`
+  - `host_weighting_guardrail_note`
+
+正式規則：
+
+- 這一刀只影響 reusable asset ordering，不做 hard blocking
+- `restrict_narrow_use` 仍可留在背景校正，不代表 asset 被封鎖
+- Host 仍保有最終 contextual judgment
+- 既有 UI 仍只以 low-noise `Generalist Governance` 摘要呈現，不新增 `/phase-6` 或 routing dashboard
+
+因此這一層現在應被理解為：
+
+- Host-aware reusable-intelligence ordering
+
+不是：
+
+- hidden policy engine
+- full routing rewrite
+- consultant-visible tuning console
+
 ---
 
 ## 8. Provider Boundary

@@ -17,6 +17,9 @@ from app.services.feedback_optimization_intelligence import (
     STRENGTH_RANK,
     build_precedent_optimization_signal,
 )
+from app.services.phase_six_generalist_governance import (
+    recommend_phase_six_reuse_weighting,
+)
 
 if TYPE_CHECKING:
     from app.domain import models
@@ -421,8 +424,30 @@ def select_weighted_precedent_reference_items(
     if preferred_matches:
         matches = preferred_matches
 
+    non_restricted_matches = [
+        item
+        for item in matches
+        if recommend_phase_six_reuse_weighting(
+            asset_code=asset_code,
+            reason_codes=item.source_feedback_reason_codes,
+            weight_action=item.shared_intelligence_signal.weight_action,
+            stability=item.shared_intelligence_signal.stability,
+            strength=item.optimization_signal.strength,
+        )[0]
+        != "restrict_narrow_use"
+    ]
+    if non_restricted_matches:
+        matches = non_restricted_matches
+
     matches.sort(
         key=lambda item: (
+            recommend_phase_six_reuse_weighting(
+                asset_code=asset_code,
+                reason_codes=item.source_feedback_reason_codes,
+                weight_action=item.shared_intelligence_signal.weight_action,
+                stability=item.shared_intelligence_signal.stability,
+                strength=item.optimization_signal.strength,
+            )[3],
             SHARED_INTELLIGENCE_WEIGHT_RANK[item.shared_intelligence_signal.weight_action],
             SHARED_INTELLIGENCE_MATURITY_RANK[item.shared_intelligence_signal.maturity],
             SHARED_INTELLIGENCE_STABILITY_RANK[item.shared_intelligence_signal.stability],

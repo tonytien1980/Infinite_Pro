@@ -410,6 +410,8 @@ export interface PhaseSixReuseBoundaryGovernance {
   governancePosture: "stable" | "guardrails_needed";
   governancePostureLabel: string;
   summary: string;
+  hostWeightingSummary: string;
+  hostWeightingGuardrailNote: string;
   generalizableCount: number;
   contextualCount: number;
   narrowUseCount: number;

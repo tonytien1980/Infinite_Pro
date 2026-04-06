@@ -483,6 +483,8 @@ class PhaseSixReuseBoundaryGovernanceResponse(BaseModel):
     governance_posture: Literal["stable", "guardrails_needed"] = "guardrails_needed"
     governance_posture_label: str = ""
     summary: str = ""
+    host_weighting_summary: str = ""
+    host_weighting_guardrail_note: str = ""
     generalizable_count: int = 0
     contextual_count: int = 0
     narrow_use_count: int = 0

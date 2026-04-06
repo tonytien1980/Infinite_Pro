@@ -957,6 +957,8 @@ function parsePhaseSixReuseBoundaryGovernancePayload(
       payload.governance_posture === "stable" ? "stable" : "guardrails_needed",
     governancePostureLabel: payload.governance_posture_label || "",
     summary: payload.summary || "",
+    hostWeightingSummary: payload.host_weighting_summary || "",
+    hostWeightingGuardrailNote: payload.host_weighting_guardrail_note || "",
     generalizableCount: Number(payload.generalizable_count ?? 0),
     contextualCount: Number(payload.contextual_count ?? 0),
     narrowUseCount: Number(payload.narrow_use_count ?? 0),

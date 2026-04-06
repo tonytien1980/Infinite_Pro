@@ -4137,6 +4137,22 @@ Environment used:
 - Phase 6 now not only audits drift risk, but also gives low-noise governance recommendations about which reusable assets can expand, stay contextual, or should remain narrow-use
 - `Generalist Governance` has become a real governance surface, not just an audit card
 
+### Phase-6 host-aware reuse weighting verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | `select_weighted_precedent_reference_items` | Prefer `can_expand` playbook matches over merely contextual ones | Verified | targeted backend tests confirm expandable `domain_playbook` precedent is ordered ahead of contextual precedent when both are otherwise stable and upweighted |
+| Backend | `deliverable template guidance` | Keep narrow-use template precedent in background | Verified | targeted backend tests confirm stable-but-narrow `deliverable_template` precedent falls back to pack template and keeps `precedent_deliverable_template` labeled `先留背景` |
+| Backend | `/workbench/phase-6-reuse-boundary-governance` | Return low-noise Host weighting summary | Verified | targeted backend tests confirm the governance route now exposes `host_weighting_summary` and `host_weighting_guardrail_note` |
+| Frontend | `phase-six-governance` helper copy | Keep Host weighting summary low-noise and consultant-readable | Verified | node helper tests confirm the new Host weighting summary helper returns stable Traditional Chinese copy for governance-driven ordering |
+| Frontend | `/` | Extend `Generalist Governance` with `Host weighting` summary | Verified | typecheck/build pass after adding the new governance payload fields, helper, and homepage Host weighting block |
+
+### Verified outcomes
+
+- Host has started to consume phase-6 reuse-boundary recommendations when ordering reusable intelligence, instead of relying only on shared-intelligence `weight_action`
+- narrow-use template / shape precedent can now stay in background more honestly when stronger reusable sources already exist
+- `Generalist Governance` can now explain not only what should stay narrow, but also how Host is currently biasing reusable-intelligence ordering
+
 ### Explicitly not shipped in this pass
 
 - `Personal Provider Settings`

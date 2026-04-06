@@ -30,6 +30,7 @@ import {
   labelForPhaseSixReuseRecommendation,
   summarizePhaseSixCoverageAreas,
   summarizePhaseSixGovernanceItems,
+  summarizePhaseSixHostWeighting,
   summarizePhaseSixReuseBoundaryItems,
 } from "@/lib/phase-six-governance";
 import { truncateText } from "@/lib/text-format";
@@ -813,6 +814,16 @@ export function WorkbenchHome() {
                       </ul>
                       <p className="muted-text" style={{ marginTop: "12px" }}>
                         {phaseSixGovernance.recommendedNextStep}
+                      </p>
+                    </div>
+                  ) : null}
+
+                  {!phaseSixGovernanceLoading && phaseSixGovernance ? (
+                    <div className="section-card" style={{ marginTop: "16px" }}>
+                      <h3>Host weighting</h3>
+                      <strong>{summarizePhaseSixHostWeighting(phaseSixGovernance)}</strong>
+                      <p className="muted-text" style={{ marginTop: "8px" }}>
+                        {phaseSixGovernance.hostWeightingGuardrailNote}
                       </p>
                     </div>
                   ) : null}

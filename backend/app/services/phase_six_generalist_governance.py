@@ -2,6 +2,12 @@ from __future__ import annotations
 
 from app.workbench import schemas
 
+REUSE_WEIGHTING_RANK = {
+    "can_expand": 0,
+    "keep_contextual": 1,
+    "restrict_narrow_use": 2,
+}
+
 
 def build_phase_six_capability_coverage_audit() -> schemas.PhaseSixCapabilityCoverageAuditResponse:
     return schemas.PhaseSixCapabilityCoverageAuditResponse(
@@ -113,6 +119,16 @@ def build_phase_six_reuse_boundary_governance(
     generalizable_count = sum(1 for item in governance_items if item.boundary_status == "generalizable")
     contextual_count = sum(1 for item in governance_items if item.boundary_status == "contextual")
     narrow_use_count = sum(1 for item in governance_items if item.boundary_status == "narrow_use")
+    if generalizable_count > 0 and narrow_use_count > 0:
+        host_weighting_summary = (
+            "Host 現在會先讓較可擴大重用的來源站前面，窄情境模板 / 骨架則先留背景校正。"
+        )
+    elif generalizable_count > 0:
+        host_weighting_summary = "Host 現在會先讓較可擴大重用的來源站前面。"
+    elif narrow_use_count > 0:
+        host_weighting_summary = "Host 現在會先讓窄情境來源留在背景校正，不讓它單獨帶主線。"
+    else:
+        host_weighting_summary = "Host 現在仍以局部參考排序為主，避免把來源過度放大。"
 
     return schemas.PhaseSixReuseBoundaryGovernanceResponse(
         phase_id="phase_6",
@@ -123,9 +139,72 @@ def build_phase_six_reuse_boundary_governance(
             "phase 6 現在已能更正式回答哪些 reusable assets 可擴大重用、"
             "哪些應維持局部參考、哪些不應被擴大套用。"
         ),
+        host_weighting_summary=host_weighting_summary,
+        host_weighting_guardrail_note=(
+            "這一刀只影響 reusable asset ordering，不是硬性封鎖；最終仍由 Host 依當前案件脈絡收斂。"
+        ),
         generalizable_count=generalizable_count,
         contextual_count=contextual_count,
         narrow_use_count=narrow_use_count,
         governance_items=governance_items,
         recommended_next_step="若要繼續往下走，下一刀應把 reusable-intelligence guardrail 再往更正式的 Host weighting 規則推進。",
     )
+
+
+def recommend_phase_six_reuse_weighting(
+    *,
+    asset_code: str,
+    reason_codes: Iterable[str] | None,
+    weight_action: str,
+    stability: str,
+    strength: str,
+) -> tuple[str, str, str, int]:
+    codes = set(reason_codes or [])
+
+    if weight_action == "downweight":
+        recommendation = "restrict_narrow_use"
+        label = "不要擴大套用"
+        note = "這筆模式目前仍屬低信任來源，應避免被擴張成全域 best practice。"
+    elif asset_code in {"deliverable_template", "deliverable_shape"} and {
+        "reusable_structure",
+        "reusable_deliverable_shape",
+    } & codes:
+        recommendation = "restrict_narrow_use"
+        label = "不要擴大套用"
+        note = "這筆模式主要屬於窄情境模板 / 骨架參考，應先留在背景校正。"
+    elif (
+        asset_code == "domain_playbook"
+        and {"reusable_action_pattern", "reusable_priority_judgment"} & codes
+        and stability == "stable"
+        and weight_action == "upweight"
+        and strength == "high"
+    ):
+        recommendation = "can_expand"
+        label = "可擴大重用"
+        note = "這筆模式目前較接近可跨情境重用的工作主線，可優先站到前面。"
+    elif (
+        asset_code == "common_risk"
+        and "reusable_risk_scan" in codes
+        and stability == "stable"
+        and weight_action == "upweight"
+        and strength == "high"
+    ):
+        recommendation = "can_expand"
+        label = "可擴大重用"
+        note = "這筆模式目前較接近可跨情境重用的風險掃描來源，可優先站到前面。"
+    elif (
+        asset_code == "review_lens"
+        and "reusable_reasoning" in codes
+        and stability == "stable"
+        and weight_action == "upweight"
+        and strength == "high"
+    ):
+        recommendation = "can_expand"
+        label = "可擴大重用"
+        note = "這筆模式目前較接近可跨情境重用的審閱視角，可優先站到前面。"
+    else:
+        recommendation = "keep_contextual"
+        label = "維持局部參考"
+        note = "這筆模式可作為局部提示，但仍需搭配當前案件脈絡收斂。"
+
+    return recommendation, label, note, REUSE_WEIGHTING_RANK[recommendation]

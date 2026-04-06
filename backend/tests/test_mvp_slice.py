@@ -516,6 +516,18 @@ def test_phase_six_reuse_boundary_governance_restricts_narrow_assets(
     assert all(item["guardrail_note"] for item in restricted)
 
 
+def test_phase_six_reuse_boundary_governance_exposes_host_weighting_summary(
+    client: TestClient,
+) -> None:
+    response = client.get("/api/v1/workbench/phase-6-reuse-boundary-governance")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["host_weighting_summary"]
+    assert "Host" in payload["host_weighting_summary"]
+    assert payload["host_weighting_guardrail_note"]
+
+
 def test_consultant_cannot_sign_off_phase_five(
     anonymous_client: TestClient,
     monkeypatch: pytest.MonkeyPatch,
@@ -6110,6 +6122,54 @@ def test_weighted_precedent_selection_prefers_stable_matches_over_recovering_mat
     ]
 
 
+def test_host_aware_reuse_weighting_prefers_expandable_playbook_matches() -> None:
+    from app.services.precedent_intelligence import select_weighted_precedent_reference_items
+
+    contextual = _test_precedent_reference_item(
+        candidate_id="candidate-contextual",
+        title="局部工作主線",
+        reason_codes=["reusable_constraint_handling"],
+        shared_signal=_test_shared_signal(
+            maturity="shared",
+            maturity_label="已接近共享模式",
+            weight_action="upweight",
+            weight_action_label="提高參考",
+            stability="stable",
+            stability_label="已站穩共享模式",
+        ),
+        optimization_asset_codes=["domain_playbook"],
+        optimization_asset_labels=["工作主線"],
+    )
+    expandable = _test_precedent_reference_item(
+        candidate_id="candidate-expandable",
+        title="可擴大重用工作主線",
+        reason_codes=["reusable_action_pattern"],
+        shared_signal=_test_shared_signal(
+            maturity="shared",
+            maturity_label="已接近共享模式",
+            weight_action="upweight",
+            weight_action_label="提高參考",
+            stability="stable",
+            stability_label="已站穩共享模式",
+        ),
+        optimization_asset_codes=["domain_playbook"],
+        optimization_asset_labels=["工作主線"],
+    )
+
+    selected = select_weighted_precedent_reference_items(
+        schemas.PrecedentReferenceGuidanceRead(
+            status="available",
+            matched_items=[contextual, expandable],
+        ),
+        asset_code="domain_playbook",
+    )
+
+    assert [item.candidate_id for item in selected][:2] == [
+        "candidate-expandable",
+        "candidate-contextual",
+    ]
+
+
 def test_shared_intelligence_signal_marks_promoted_shared_candidate_as_stable() -> None:
     from app.services.precedent_intelligence import build_shared_intelligence_signal
 
@@ -6974,6 +7034,49 @@ def test_deliverable_template_guidance_uses_pack_template_when_precedent_is_back
         assert guidance.template_label == "合約審閱備忘模板"
         assert "背景校正" in guidance.source_lifecycle_summary
         assert any("先留背景" in item.source_label for item in guidance.blocks if item.source_kind == "precedent_deliverable_template")
+
+
+def test_host_aware_reuse_weighting_keeps_narrow_template_precedent_in_background(
+    client: TestClient,
+) -> None:
+    from app.services.deliverable_template_intelligence import build_deliverable_template_guidance
+
+    with SessionLocal() as db:
+        guidance = build_deliverable_template_guidance(
+            db,
+            task_type="contract_review",
+            deliverable_class_hint=DeliverableClass.ASSESSMENT_REVIEW_MEMO,
+            precedent_reference_guidance=schemas.PrecedentReferenceGuidanceRead(
+                status="available",
+                matched_items=[
+                    _test_precedent_reference_item(
+                        candidate_id="candidate-narrow-template",
+                        title="窄情境模板",
+                        reason_codes=["reusable_structure"],
+                        shared_signal=_test_shared_signal(
+                            maturity="shared",
+                            maturity_label="已接近共享模式",
+                            weight_action="upweight",
+                            weight_action_label="提高參考",
+                            stability="stable",
+                            stability_label="已站穩共享模式",
+                        ),
+                        optimization_asset_codes=["deliverable_template"],
+                        optimization_asset_labels=["交付模板"],
+                    )
+                ],
+            ),
+            pack_resolution=schemas.PackResolutionRead(deliverable_presets=["合約審閱備忘"]),
+            domain_playbook_guidance=schemas.DomainPlaybookGuidanceRead(),
+            deliverable_shape_guidance=schemas.DeliverableShapeGuidanceRead(),
+        )
+
+        assert guidance.template_label == "合約審閱備忘模板"
+        assert any(
+            "先留背景" in item.source_label
+            for item in guidance.blocks
+            if item.source_kind == "precedent_deliverable_template"
+        )
 
 
 def test_deliverable_template_guidance_falls_back_when_only_background_precedent_exists(

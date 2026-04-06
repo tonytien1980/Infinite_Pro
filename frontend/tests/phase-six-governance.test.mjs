@@ -6,6 +6,7 @@ import {
   labelForPhaseSixGeneralistPosture,
   labelForPhaseSixGovernancePosture,
   labelForPhaseSixReuseRecommendation,
+  summarizePhaseSixHostWeighting,
 } from "../src/lib/phase-six-governance.ts";
 
 test("phase 6 audit labels stay low-noise and consultant-readable", () => {
@@ -26,5 +27,18 @@ test("phase 6 reuse-boundary governance labels stay low-noise and readable", () 
   assert.equal(
     labelForPhaseSixReuseRecommendation("restrict_narrow_use"),
     "不要擴大套用",
+  );
+});
+
+test("phase 6 host weighting summary stays low-noise and readable", () => {
+  assert.equal(
+    summarizePhaseSixHostWeighting({
+      hostWeightingSummary:
+        "Host 現在會先讓較可擴大重用的來源站前面，窄情境模板 / 骨架則先留背景校正。",
+      hostWeightingGuardrailNote:
+        "這一刀只影響 reusable asset ordering，不是硬性封鎖。",
+      governanceItems: [],
+    }),
+    "Host 現在會先讓較可擴大重用的來源站前面，窄情境模板 / 骨架則先留背景校正。",
   );
 });

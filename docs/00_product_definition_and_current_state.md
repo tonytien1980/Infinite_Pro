@@ -825,6 +825,11 @@ Infinite Pro 目前沒有也不應硬對齊於：
 - 這條線現在也已往前推到第二刀：
   - `reuse-boundary governance v1`
   - system 已能更正式回答哪些 reusable assets 可擴大重用、哪些只能局部參考、哪些不應被擴大套用
+- 這條線現在也已正式推到第三刀：
+  - `host-aware reuse weighting v1`
+  - Host 已開始把 `can_expand / keep_contextual / restrict_narrow_use` 接進 reusable asset ordering
+  - precedent、domain playbook、deliverable template 現在不只看 shared-intelligence weight_action，也會看 reuse-boundary recommendation
+  - `總覽` 的 `Generalist Governance` 也已補上低噪音 `Host weighting` 摘要
 
 ---
 

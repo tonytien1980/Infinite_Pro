@@ -1,5 +1,6 @@
 import type {
   PhaseSixCoverageArea,
+  PhaseSixReuseBoundaryGovernance,
   PhaseSixReuseBoundaryGovernanceItem,
   PhaseSixReuseBoundaryItem,
 } from "@/lib/types";
@@ -64,4 +65,33 @@ export function summarizePhaseSixGovernanceItems(
     .slice(0, 2)
     .map((item) => `${item.assetLabel}：${item.reuseRecommendationLabel}`)
     .join("｜");
+}
+
+export function summarizePhaseSixHostWeighting(
+  governance: Pick<
+    PhaseSixReuseBoundaryGovernance,
+    "hostWeightingSummary" | "governanceItems"
+  >,
+) {
+  if (governance.hostWeightingSummary) {
+    return governance.hostWeightingSummary;
+  }
+
+  const hasExpandable = governance.governanceItems.some(
+    (item) => item.reuseRecommendation === "can_expand",
+  );
+  const hasRestricted = governance.governanceItems.some(
+    (item) => item.reuseRecommendation === "restrict_narrow_use",
+  );
+
+  if (hasExpandable && hasRestricted) {
+    return "Host 現在會先讓較可擴大重用的來源站前面，窄情境模板 / 骨架則先留背景校正。";
+  }
+  if (hasExpandable) {
+    return "Host 現在會先讓較可擴大重用的來源站前面。";
+  }
+  if (hasRestricted) {
+    return "Host 現在會先讓窄情境來源留在背景校正，不讓它單獨帶主線。";
+  }
+  return "Host 現在仍以局部參考排序為主，避免把來源過度放大。";
 }

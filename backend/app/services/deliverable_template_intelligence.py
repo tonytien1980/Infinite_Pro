@@ -7,6 +7,9 @@ from sqlalchemy.orm import Session
 
 from app.domain import models, schemas
 from app.domain.enums import AdoptionFeedbackStatus, DeliverableClass
+from app.services.phase_six_generalist_governance import (
+    recommend_phase_six_reuse_weighting,
+)
 from app.services.precedent_intelligence import select_weighted_precedent_reference_items
 from app.services.shared_source_lifecycle_intelligence import (
     build_feedback_linked_decay_summary,
@@ -140,6 +143,11 @@ def build_deliverable_template_guidance(
     has_stale_shared_source = False
     core_sections: list[str] = []
     optional_sections: list[str] = []
+    has_alternative_template_anchor = (
+        bool(pack_resolution.deliverable_presets)
+        or deliverable_shape_guidance.status != "none"
+        or domain_playbook_guidance.status != "none"
+    )
 
     def add_block(
         *,
@@ -182,14 +190,26 @@ def build_deliverable_template_guidance(
     )
     if weighted_matches:
         for matched in weighted_matches:
+            reuse_recommendation, _, reuse_guardrail_note, _ = recommend_phase_six_reuse_weighting(
+                asset_code="deliverable_template",
+                reason_codes=matched.source_feedback_reason_codes,
+                weight_action=matched.shared_intelligence_signal.weight_action,
+                stability=matched.shared_intelligence_signal.stability,
+                strength=matched.optimization_signal.strength,
+            )
             feedback_decay_summary = build_feedback_linked_decay_summary(
                 matched.source_feedback_status,
                 subject_label="模板主線",
+            )
+            restrict_to_background = (
+                reuse_recommendation == "restrict_narrow_use"
+                and has_alternative_template_anchor
             )
             precedent_is_background_only = (
                 matched.shared_intelligence_signal.stability != "stable"
                 or bool(feedback_decay_summary)
                 or matched.shared_intelligence_signal.weight_action == "downweight"
+                or restrict_to_background
             )
             snapshot = snapshots.get(matched.candidate_id, {})
             candidate_label = _coerce_template_label(
@@ -239,6 +259,8 @@ def build_deliverable_template_guidance(
                 has_stale_shared_source = True
                 if feedback_decay_summary and not decay_summary:
                     decay_summary = feedback_decay_summary
+                elif restrict_to_background and not decay_summary:
+                    decay_summary = reuse_guardrail_note
 
     if not template_label and pack_resolution.deliverable_presets:
         template_label = _coerce_template_label(pack_resolution.deliverable_presets[0])
