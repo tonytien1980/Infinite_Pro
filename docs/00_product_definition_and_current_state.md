@@ -772,6 +772,9 @@ Infinite Pro 目前沒有也不應硬對齊於：
   - consultant 缺少個人 key 時，run path 已 fail-closed
   - `/settings` 已正式拆成 `Firm Settings` 與 `Personal Provider Settings`
   - owner 現在可在 UI 內管理 provider allowlist
+- 因此 phase 5 目前最明確的下一個 slice 應理解為：
+  - `demo workspace isolation`
+  - 也就是讓 demo role 有固定、共享、唯讀、與正式資料完全隔離的展示 workspace
 
 ---
 

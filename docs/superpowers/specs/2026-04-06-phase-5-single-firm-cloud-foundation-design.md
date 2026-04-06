@@ -185,6 +185,8 @@
 
 - production workspace 的唯讀旁觀模式
 
+目前這一層仍未正式落地，因此在本階段的後續 slice 中，`demo workspace isolation` 應被視為最明確的下一個正式子專案。
+
 ## Server-Side Access Control
 
 第一版正式原則：
