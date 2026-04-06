@@ -92,6 +92,7 @@ def upsert_google_identity_and_membership(
     *,
     identity: GoogleIdentity,
 ) -> AuthLoginResult:
+    bootstrapped_new_firm = False
     firm = db.scalar(select(models.Firm).order_by(models.Firm.created_at.asc()))
     if firm is None:
         if identity.email.lower() not in settings.bootstrap_owner_email_list:
@@ -102,6 +103,7 @@ def upsert_google_identity_and_membership(
         )
         db.add(firm)
         db.flush()
+        bootstrapped_new_firm = True
 
     user = db.scalar(select(models.User).where(models.User.email == identity.email.lower()))
     if user is None:
@@ -149,7 +151,7 @@ def upsert_google_identity_and_membership(
             .order_by(models.FirmInvite.created_at.desc())
         )
         if invite is None:
-            if identity.email.lower() not in settings.bootstrap_owner_email_list:
+            if not bootstrapped_new_firm:
                 raise HTTPException(status_code=403, detail="尚未獲邀加入這個 firm。")
             membership_role = "owner"
             invited_by_user_id = None

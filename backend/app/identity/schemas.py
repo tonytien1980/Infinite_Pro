@@ -34,3 +34,33 @@ class SessionStateResponse(BaseModel):
 class GoogleStartResponse(BaseModel):
     state: str
     authorization_url: str
+
+
+class MemberRead(BaseModel):
+    id: str
+    email: str
+    full_name: str
+    role: Literal["owner", "consultant", "demo"]
+    status: Literal["active", "disabled"]
+
+
+class MemberInviteCreateRequest(BaseModel):
+    email: str
+    role: Literal["consultant", "demo"]
+
+
+class MemberInviteRead(BaseModel):
+    id: str
+    email: str
+    role: Literal["consultant", "demo"]
+    status: Literal["pending", "accepted", "revoked"]
+
+
+class MemberUpdateRequest(BaseModel):
+    role: Literal["owner", "consultant", "demo"]
+    status: Literal["active", "disabled"]
+
+
+class MemberListResponse(BaseModel):
+    members: list[MemberRead] = Field(default_factory=list)
+    pending_invites: list[MemberInviteRead] = Field(default_factory=list)

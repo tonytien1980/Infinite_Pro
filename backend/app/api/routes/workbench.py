@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app.core.auth import require_current_member, require_permission
 from app.core.database import get_db
 from app.services.workbench import (
     apply_precedent_governance_recommendation,
@@ -28,6 +29,7 @@ router = APIRouter(prefix="/workbench", tags=["workbench"])
 
 @router.get("/preferences", response_model=schemas.WorkbenchPreferenceResponse)
 def get_workbench_preferences_route(
+    current_member=Depends(require_current_member),
     db: Session = Depends(get_db),
 ) -> schemas.WorkbenchPreferenceResponse:
     return get_workbench_preferences(db)
@@ -36,6 +38,7 @@ def get_workbench_preferences_route(
 @router.put("/preferences", response_model=schemas.WorkbenchPreferenceResponse)
 def update_workbench_preferences_route(
     payload: schemas.WorkbenchPreferenceUpdateRequest,
+    current_member=Depends(require_current_member),
     db: Session = Depends(get_db),
 ) -> schemas.WorkbenchPreferenceResponse:
     return update_workbench_preferences(db, payload)
@@ -43,6 +46,7 @@ def update_workbench_preferences_route(
 
 @router.get("/provider-settings", response_model=schemas.SystemProviderSettingsResponse)
 def get_system_provider_settings_route(
+    current_member=Depends(require_permission("manage_firm_settings")),
     db: Session = Depends(get_db),
 ) -> schemas.SystemProviderSettingsResponse:
     return get_system_provider_settings(db)
@@ -54,6 +58,7 @@ def get_system_provider_settings_route(
 )
 def validate_system_provider_settings_route(
     payload: schemas.SystemProviderSettingsValidateRequest,
+    current_member=Depends(require_permission("manage_firm_settings")),
     db: Session = Depends(get_db),
 ) -> schemas.ProviderValidationResponse:
     return validate_system_provider_settings(db, payload)
@@ -62,6 +67,7 @@ def validate_system_provider_settings_route(
 @router.put("/provider-settings", response_model=schemas.SystemProviderSettingsResponse)
 def update_system_provider_settings_route(
     payload: schemas.SystemProviderSettingsUpdateRequest,
+    current_member=Depends(require_permission("manage_firm_settings")),
     db: Session = Depends(get_db),
 ) -> schemas.SystemProviderSettingsResponse:
     return update_system_provider_settings(db, payload)
@@ -69,6 +75,7 @@ def update_system_provider_settings_route(
 
 @router.post("/provider-settings/revalidate", response_model=schemas.SystemProviderSettingsResponse)
 def revalidate_system_provider_settings_route(
+    current_member=Depends(require_permission("manage_firm_settings")),
     db: Session = Depends(get_db),
 ) -> schemas.SystemProviderSettingsResponse:
     return revalidate_system_provider_settings(db)
@@ -76,6 +83,7 @@ def revalidate_system_provider_settings_route(
 
 @router.post("/provider-settings/reset-to-env", response_model=schemas.SystemProviderSettingsResponse)
 def reset_system_provider_settings_route(
+    current_member=Depends(require_permission("manage_firm_settings")),
     db: Session = Depends(get_db),
 ) -> schemas.SystemProviderSettingsResponse:
     return reset_system_provider_settings_to_env(db)
@@ -83,6 +91,7 @@ def reset_system_provider_settings_route(
 
 @router.get("/history-visibility", response_model=schemas.HistoryVisibilityStateResponse)
 def get_history_visibility_route(
+    current_member=Depends(require_current_member),
     db: Session = Depends(get_db),
 ) -> schemas.HistoryVisibilityStateResponse:
     return get_history_visibility_state(db)
@@ -91,6 +100,7 @@ def get_history_visibility_route(
 @router.put("/history-visibility", response_model=schemas.HistoryVisibilityStateResponse)
 def update_history_visibility_route(
     payload: schemas.HistoryVisibilityUpdateRequest,
+    current_member=Depends(require_current_member),
     db: Session = Depends(get_db),
 ) -> schemas.HistoryVisibilityStateResponse:
     return update_history_visibility_state(db, payload)
@@ -98,6 +108,7 @@ def update_history_visibility_route(
 
 @router.get("/precedent-candidates", response_model=schemas.PrecedentReviewResponse)
 def get_precedent_review_route(
+    current_member=Depends(require_current_member),
     db: Session = Depends(get_db),
 ) -> schemas.PrecedentReviewResponse:
     return get_precedent_review_state(db)
@@ -110,6 +121,7 @@ def get_precedent_review_route(
 def apply_precedent_governance_recommendation_route(
     candidate_id: str,
     payload: schemas.PrecedentGovernanceApplyRequest,
+    current_member=Depends(require_permission("govern_shared_intelligence")),
     db: Session = Depends(get_db),
 ) -> schemas.PrecedentReviewResponse:
     return apply_precedent_governance_recommendation(
@@ -125,6 +137,7 @@ def apply_precedent_governance_recommendation_route(
 )
 def sign_off_shared_intelligence_phase_route(
     payload: schemas.SharedIntelligenceSignOffRequest,
+    current_member=Depends(require_permission("sign_off_phase")),
     db: Session = Depends(get_db),
 ) -> schemas.PrecedentReviewResponse:
     return sign_off_shared_intelligence_phase(db, payload=payload)
@@ -137,6 +150,7 @@ def sign_off_shared_intelligence_phase_route(
 def update_precedent_duplicate_review_route(
     matter_workspace_id: str,
     payload: schemas.PrecedentDuplicateReviewRequest,
+    current_member=Depends(require_permission("govern_shared_intelligence")),
     db: Session = Depends(get_db),
 ) -> schemas.PrecedentReviewResponse:
     return update_precedent_duplicate_review_state(

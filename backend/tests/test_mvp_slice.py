@@ -219,7 +219,7 @@ def test_health_endpoint(client: TestClient) -> None:
 
 
 def test_google_callback_bootstraps_first_owner_when_email_is_allowlisted(
-    client: TestClient,
+    anonymous_client: TestClient,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     configure_auth_settings(
@@ -229,7 +229,7 @@ def test_google_callback_bootstraps_first_owner_when_email_is_allowlisted(
     )
 
     body = login_google_user(
-        client,
+        anonymous_client,
         monkeypatch,
         email="owner@example.com",
         full_name="Owner User",
@@ -237,19 +237,19 @@ def test_google_callback_bootstraps_first_owner_when_email_is_allowlisted(
     assert body["membership"]["role"] == "owner"
     assert body["firm"]["name"] == "Infinite Pro Studio"
 
-    me = client.get("/api/v1/auth/me")
+    me = anonymous_client.get("/api/v1/auth/me")
     assert me.status_code == 200
     assert me.json()["membership"]["role"] == "owner"
     assert me.json()["user"]["email"] == "owner@example.com"
 
 
 def test_google_callback_rejects_uninvited_non_bootstrap_email(
-    client: TestClient,
+    anonymous_client: TestClient,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     configure_auth_settings(monkeypatch, bootstrap_owner_emails="owner@example.com")
 
-    start = client.get("/api/v1/auth/google/start")
+    start = anonymous_client.get("/api/v1/auth/google/start")
     assert start.status_code == 200
     state = start.json()["state"]
 
@@ -267,7 +267,7 @@ def test_google_callback_rejects_uninvited_non_bootstrap_email(
         ),
     )
 
-    callback = client.get(
+    callback = anonymous_client.get(
         "/api/v1/auth/google/callback",
         params={"code": "fake-code", "state": state},
     )
@@ -275,30 +275,156 @@ def test_google_callback_rejects_uninvited_non_bootstrap_email(
     assert "尚未獲邀加入" in callback.json()["detail"]
 
 
-def test_auth_me_requires_active_session(client: TestClient) -> None:
-    response = client.get("/api/v1/auth/me")
+def test_auth_me_requires_active_session(anonymous_client: TestClient) -> None:
+    response = anonymous_client.get("/api/v1/auth/me")
     assert response.status_code == 401
     assert "請先登入" in response.json()["detail"]
 
 
 def test_auth_logout_clears_active_session(
-    client: TestClient,
+    anonymous_client: TestClient,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     configure_auth_settings(monkeypatch, bootstrap_owner_emails="owner@example.com")
     login_google_user(
-        client,
+        anonymous_client,
         monkeypatch,
         email="owner@example.com",
         full_name="Owner User",
     )
 
-    logout = client.post("/api/v1/auth/logout")
+    logout = anonymous_client.post("/api/v1/auth/logout")
     assert logout.status_code == 200
     assert logout.json() == {"status": "ok"}
 
-    me = client.get("/api/v1/auth/me")
+    me = anonymous_client.get("/api/v1/auth/me")
     assert me.status_code == 401
+
+
+def test_owner_can_invite_consultant_and_list_members(client: TestClient) -> None:
+    invite = client.post(
+        "/api/v1/members/invites",
+        json={"email": "consultant@example.com", "role": "consultant"},
+    )
+
+    assert invite.status_code == 200
+    assert invite.json()["email"] == "consultant@example.com"
+
+    listing = client.get("/api/v1/members")
+
+    assert listing.status_code == 200
+    assert any(
+        item["email"] == "consultant@example.com"
+        for item in listing.json()["pending_invites"]
+    )
+
+
+def test_consultant_cannot_invite_members_or_manage_agents(
+    anonymous_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    configure_auth_settings(monkeypatch, bootstrap_owner_emails="owner@example.com")
+    login_google_user(
+        anonymous_client,
+        monkeypatch,
+        email="owner@example.com",
+        full_name="Owner User",
+    )
+    invite = anonymous_client.post(
+        "/api/v1/members/invites",
+        json={"email": "consultant@example.com", "role": "consultant"},
+    )
+    assert invite.status_code == 200
+
+    logout = anonymous_client.post("/api/v1/auth/logout")
+    assert logout.status_code == 200
+
+    login_google_user(
+        anonymous_client,
+        monkeypatch,
+        email="consultant@example.com",
+        full_name="Consultant User",
+    )
+
+    invite = anonymous_client.post(
+        "/api/v1/members/invites",
+        json={"email": "new@example.com", "role": "consultant"},
+    )
+    assert invite.status_code == 403
+
+    update_agent = anonymous_client.put(
+        "/api/v1/extensions/agents/operations_agent",
+        json={
+            "agent_id": "operations_agent",
+            "agent_name": "Operations Agent",
+            "agent_type": "specialist",
+            "description": "updated by consultant",
+            "supported_capabilities": [],
+            "relevant_domain_packs": [],
+            "relevant_industry_packs": [],
+            "primary_responsibilities": [],
+            "out_of_scope": [],
+            "defer_rules": [],
+            "preferred_execution_modes": [],
+            "input_requirements": [],
+            "minimum_evidence_readiness": [],
+            "required_context_fields": [],
+            "output_contract": [],
+            "produced_objects": [],
+            "deliverable_impact": [],
+            "writeback_expectations": [],
+            "invocation_rules": [],
+            "escalation_rules": [],
+            "handoff_targets": [],
+            "evaluation_focus": [],
+            "failure_modes_to_watch": [],
+            "trace_requirements": [],
+            "version": "1.0.0",
+            "status": "active",
+            "is_custom": False,
+        },
+    )
+    assert update_agent.status_code == 403
+
+
+def test_owner_can_sign_off_phase_but_consultant_cannot(
+    anonymous_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    configure_auth_settings(monkeypatch, bootstrap_owner_emails="owner@example.com")
+    login_google_user(
+        anonymous_client,
+        monkeypatch,
+        email="owner@example.com",
+        full_name="Owner User",
+    )
+    invite = anonymous_client.post(
+        "/api/v1/members/invites",
+        json={"email": "consultant@example.com", "role": "consultant"},
+    )
+    assert invite.status_code == 200
+
+    owner_attempt = anonymous_client.post(
+        "/api/v1/workbench/shared-intelligence/phase-4-sign-off",
+        json={"operator_label": "Owner User"},
+    )
+    assert owner_attempt.status_code in {200, 400}
+
+    logout = anonymous_client.post("/api/v1/auth/logout")
+    assert logout.status_code == 200
+
+    login_google_user(
+        anonymous_client,
+        monkeypatch,
+        email="consultant@example.com",
+        full_name="Consultant User",
+    )
+
+    consultant_attempt = anonymous_client.post(
+        "/api/v1/workbench/shared-intelligence/phase-4-sign-off",
+        json={"operator_label": "Consultant User"},
+    )
+    assert consultant_attempt.status_code == 403
 
 
 def test_workbench_preferences_round_trip_theme_preference(client: TestClient) -> None:

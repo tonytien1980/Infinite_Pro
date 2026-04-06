@@ -22,12 +22,14 @@ os.environ.setdefault("CORS_ORIGINS", "http://localhost:3000")
 
 sys.path.insert(0, str(BACKEND_ROOT))
 
-from app.core.database import Base, engine  # noqa: E402
+from app.core.auth import CurrentMember, ROLE_PERMISSIONS, require_current_member  # noqa: E402
+from app.core.database import Base, SessionLocal, engine  # noqa: E402
+from app.domain import models  # noqa: E402
 from app.main import create_app  # noqa: E402
 
 
 @pytest.fixture()
-def client() -> Generator[TestClient, None, None]:
+def anonymous_client() -> Generator[TestClient, None, None]:
     if UPLOAD_DIR.exists():
         shutil.rmtree(UPLOAD_DIR)
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -40,6 +42,40 @@ def client() -> Generator[TestClient, None, None]:
         yield test_client
 
     Base.metadata.drop_all(bind=engine)
+
+
+def _seed_default_owner_current_member() -> CurrentMember:
+    with SessionLocal() as session:
+        firm = models.Firm(name="Test Firm", slug="test-firm")
+        user = models.User(email="owner@test.local", full_name="Test Owner")
+        membership = models.FirmMembership(
+            firm=firm,
+            user=user,
+            role="owner",
+            status="active",
+        )
+        session.add_all([firm, user, membership])
+        session.commit()
+        session.refresh(firm)
+        session.refresh(user)
+        session.refresh(membership)
+        return CurrentMember(
+            user=user,
+            firm=firm,
+            membership=membership,
+            permissions=set(ROLE_PERMISSIONS["owner"]),
+        )
+
+
+@pytest.fixture()
+def client(anonymous_client: TestClient) -> Generator[TestClient, None, None]:
+    app = anonymous_client.app
+    current_member = _seed_default_owner_current_member()
+    app.dependency_overrides[require_current_member] = lambda: current_member
+    try:
+        yield anonymous_client
+    finally:
+        app.dependency_overrides.clear()
 
 
 @pytest.fixture(scope="session", autouse=True)

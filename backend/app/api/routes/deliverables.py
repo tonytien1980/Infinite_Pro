@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
+from app.core.auth import require_current_member
 from app.core.database import get_db
 from app.domain import schemas
 from app.services.tasks import (
@@ -25,6 +26,7 @@ router = APIRouter(prefix="/deliverables", tags=["deliverables"])
 @router.get("/{deliverable_id}", response_model=schemas.DeliverableWorkspaceResponse)
 def get_deliverable_workspace_route(
     deliverable_id: str,
+    current_member=Depends(require_current_member),
     db: Session = Depends(get_db),
 ) -> schemas.DeliverableWorkspaceResponse:
     return get_deliverable_workspace(db, deliverable_id)
@@ -34,6 +36,7 @@ def get_deliverable_workspace_route(
 def update_deliverable_metadata_route(
     deliverable_id: str,
     payload: schemas.DeliverableMetadataUpdateRequest,
+    current_member=Depends(require_current_member),
     db: Session = Depends(get_db),
 ) -> schemas.DeliverableWorkspaceResponse:
     return update_deliverable_metadata(db, deliverable_id, payload)
@@ -43,6 +46,7 @@ def update_deliverable_metadata_route(
 def update_deliverable_workspace_route(
     deliverable_id: str,
     payload: schemas.DeliverableWorkspaceUpdateRequest,
+    current_member=Depends(require_current_member),
     db: Session = Depends(get_db),
 ) -> schemas.DeliverableWorkspaceResponse:
     return update_deliverable_workspace(db, deliverable_id, payload)
@@ -52,6 +56,7 @@ def update_deliverable_workspace_route(
 def publish_deliverable_release_route(
     deliverable_id: str,
     payload: schemas.DeliverablePublishRequest,
+    current_member=Depends(require_current_member),
     db: Session = Depends(get_db),
 ) -> schemas.DeliverableWorkspaceResponse:
     return publish_deliverable_release(db, deliverable_id, payload)
@@ -61,6 +66,7 @@ def publish_deliverable_release_route(
 def apply_deliverable_adoption_feedback_route(
     deliverable_id: str,
     payload: schemas.AdoptionFeedbackRequest,
+    current_member=Depends(require_current_member),
     db: Session = Depends(get_db),
 ) -> schemas.DeliverableWorkspaceResponse:
     return apply_deliverable_adoption_feedback(db, deliverable_id, payload)
@@ -73,6 +79,7 @@ def apply_deliverable_adoption_feedback_route(
 def update_deliverable_precedent_candidate_status_route(
     deliverable_id: str,
     payload: schemas.PrecedentCandidateStatusUpdateRequest,
+    current_member=Depends(require_current_member),
     db: Session = Depends(get_db),
 ) -> schemas.DeliverableWorkspaceResponse:
     return update_deliverable_precedent_candidate_status(db, deliverable_id, payload)
@@ -85,6 +92,7 @@ def update_deliverable_precedent_candidate_status_route(
 def rollback_deliverable_content_revision_route(
     deliverable_id: str,
     revision_id: str,
+    current_member=Depends(require_current_member),
     db: Session = Depends(get_db),
 ) -> schemas.DeliverableWorkspaceResponse:
     return rollback_deliverable_content_revision(db, deliverable_id, revision_id)
@@ -93,6 +101,7 @@ def rollback_deliverable_content_revision_route(
 @router.get("/{deliverable_id}/export")
 def export_deliverable_markdown_route(
     deliverable_id: str,
+    current_member=Depends(require_current_member),
     db: Session = Depends(get_db),
 ) -> Response:
     filename, content, version_tag = build_deliverable_markdown_export(db, deliverable_id)
@@ -110,6 +119,7 @@ def export_deliverable_markdown_route(
 @router.get("/{deliverable_id}/export/docx")
 def export_deliverable_docx_route(
     deliverable_id: str,
+    current_member=Depends(require_current_member),
     db: Session = Depends(get_db),
 ) -> Response:
     filename, content, version_tag = build_deliverable_docx_export(db, deliverable_id)
@@ -128,6 +138,7 @@ def export_deliverable_docx_route(
 def download_deliverable_artifact_route(
     deliverable_id: str,
     artifact_id: str,
+    current_member=Depends(require_current_member),
     db: Session = Depends(get_db),
 ) -> Response:
     filename, content, version_tag, artifact_format, mime_type = download_deliverable_artifact(

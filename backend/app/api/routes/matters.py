@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, File, UploadFile
 from sqlalchemy.orm import Session
 
+from app.core.auth import require_current_member
 from app.core.database import get_db
 from app.domain import schemas
 from app.services.canonicalization import apply_matter_canonicalization_review
@@ -25,6 +26,7 @@ router = APIRouter(prefix="/matters", tags=["matters"])
 
 @router.get("", response_model=list[schemas.MatterWorkspaceSummaryRead])
 def list_matter_workspaces_route(
+    current_member=Depends(require_current_member),
     db: Session = Depends(get_db),
 ) -> list[schemas.MatterWorkspaceSummaryRead]:
     return list_matter_workspaces(db)
@@ -33,6 +35,7 @@ def list_matter_workspaces_route(
 @router.get("/{matter_id}", response_model=schemas.MatterWorkspaceResponse)
 def get_matter_workspace_route(
     matter_id: str,
+    current_member=Depends(require_current_member),
     db: Session = Depends(get_db),
 ) -> schemas.MatterWorkspaceResponse:
     return get_matter_workspace(db, matter_id)
@@ -42,6 +45,7 @@ def get_matter_workspace_route(
 def update_matter_workspace_metadata_route(
     matter_id: str,
     payload: schemas.MatterWorkspaceMetadataUpdateRequest,
+    current_member=Depends(require_current_member),
     db: Session = Depends(get_db),
 ) -> schemas.MatterWorkspaceResponse:
     return update_matter_workspace_metadata(db, matter_id, payload)
@@ -51,6 +55,7 @@ def update_matter_workspace_metadata_route(
 def update_matter_workspace_route(
     matter_id: str,
     payload: schemas.MatterWorkspaceUpdateRequest,
+    current_member=Depends(require_current_member),
     db: Session = Depends(get_db),
 ) -> schemas.MatterWorkspaceResponse:
     return update_matter_workspace(db, matter_id, payload)
@@ -60,6 +65,7 @@ def update_matter_workspace_route(
 def apply_matter_continuation_action_route(
     matter_id: str,
     payload: schemas.MatterContinuationActionRequest,
+    current_member=Depends(require_current_member),
     db: Session = Depends(get_db),
 ) -> schemas.MatterWorkspaceResponse:
     return apply_matter_continuation_action(db, matter_id, payload)
@@ -69,6 +75,7 @@ def apply_matter_continuation_action_route(
 def rollback_matter_content_revision_route(
     matter_id: str,
     revision_id: str,
+    current_member=Depends(require_current_member),
     db: Session = Depends(get_db),
 ) -> schemas.MatterWorkspaceResponse:
     return rollback_matter_content_revision(db, matter_id, revision_id)
@@ -80,6 +87,7 @@ def rollback_matter_content_revision_route(
 )
 def get_artifact_evidence_workspace_route(
     matter_id: str,
+    current_member=Depends(require_current_member),
     db: Session = Depends(get_db),
 ) -> schemas.ArtifactEvidenceWorkspaceResponse:
     return get_artifact_evidence_workspace(db, matter_id)
@@ -92,6 +100,7 @@ def get_artifact_evidence_workspace_route(
 def apply_matter_canonicalization_review_route(
     matter_id: str,
     payload: schemas.MatterCanonicalizationReviewRequest,
+    current_member=Depends(require_current_member),
     db: Session = Depends(get_db),
 ) -> schemas.ArtifactEvidenceWorkspaceResponse:
     apply_matter_canonicalization_review(
@@ -106,6 +115,7 @@ def apply_matter_canonicalization_review_route(
 def upload_matter_files_route(
     matter_id: str,
     files: list[UploadFile] = File(...),
+    current_member=Depends(require_current_member),
     db: Session = Depends(get_db),
 ) -> schemas.UploadBatchResponse:
     task = get_primary_task_for_matter(db, matter_id)
@@ -117,6 +127,7 @@ def upload_matter_files_route(
 def ingest_matter_sources_route(
     matter_id: str,
     payload: schemas.SourceIngestRequest,
+    current_member=Depends(require_current_member),
     db: Session = Depends(get_db),
 ) -> schemas.SourceIngestBatchResponse:
     task = get_primary_task_for_matter(db, matter_id)
