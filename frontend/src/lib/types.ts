@@ -189,6 +189,18 @@ export interface DemoWorkspaceSnapshot {
   sections: DemoWorkspaceSection[];
 }
 
+export interface DemoWorkspacePolicySnapshot {
+  status: "active" | "inactive";
+  workspaceSlug: string;
+  seedVersion: string;
+  maxActiveDemoMembers: number;
+}
+
+export interface DemoWorkspacePolicyUpdatePayload {
+  status: "active" | "inactive";
+  maxActiveDemoMembers: number;
+}
+
 export interface PrecedentReviewItem {
   id: string;
   candidate_type: PrecedentCandidateType;

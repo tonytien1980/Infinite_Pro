@@ -1,4 +1,8 @@
-import type { DemoWorkspaceSnapshot, MemberListSnapshot } from "@/lib/types";
+import type {
+  DemoWorkspacePolicySnapshot,
+  DemoWorkspaceSnapshot,
+  MemberListSnapshot,
+} from "@/lib/types";
 
 export function buildDemoEntryCopy(snapshot: DemoWorkspaceSnapshot | null) {
   if (!snapshot) {
@@ -16,4 +20,18 @@ export function buildDemoMemberSummary(snapshot: MemberListSnapshot | null) {
 
 export function canRevokeInvite(status: "pending" | "accepted" | "revoked") {
   return status === "pending";
+}
+
+export function labelForDemoWorkspacePolicyStatus(status: "active" | "inactive") {
+  return status === "active" ? "啟用中" : "已停用";
+}
+
+export function summarizeDemoWorkspaceCapacity(policy: DemoWorkspacePolicySnapshot | null) {
+  if (!policy) {
+    return "尚未載入 demo workspace policy。";
+  }
+  if (policy.maxActiveDemoMembers <= 0) {
+    return "目前不開放啟用 demo 帳號。";
+  }
+  return `最多可啟用 ${policy.maxActiveDemoMembers} 個 demo 帳號。`;
 }

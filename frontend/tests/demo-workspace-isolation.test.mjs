@@ -5,7 +5,12 @@ import {
   buildPrimaryNavForMembershipRole,
   resolveProtectedPathForMembershipRole,
 } from "../src/lib/permissions.ts";
-import { buildDemoMemberSummary, canRevokeInvite } from "../src/lib/demo-workspace.ts";
+import {
+  buildDemoMemberSummary,
+  canRevokeInvite,
+  labelForDemoWorkspacePolicyStatus,
+  summarizeDemoWorkspaceCapacity,
+} from "../src/lib/demo-workspace.ts";
 
 test("demo sees only the demo nav entry", () => {
   const nav = buildPrimaryNavForMembershipRole("demo");
@@ -39,4 +44,30 @@ test("only pending invites are revokable", () => {
   assert.equal(canRevokeInvite("pending"), true);
   assert.equal(canRevokeInvite("accepted"), false);
   assert.equal(canRevokeInvite("revoked"), false);
+});
+
+test("demo workspace policy status is rendered in Traditional Chinese", () => {
+  assert.equal(labelForDemoWorkspacePolicyStatus("active"), "啟用中");
+  assert.equal(labelForDemoWorkspacePolicyStatus("inactive"), "已停用");
+});
+
+test("demo workspace capacity summary handles zero and positive limits", () => {
+  assert.equal(
+    summarizeDemoWorkspaceCapacity({
+      status: "active",
+      workspaceSlug: "demo",
+      seedVersion: "v1",
+      maxActiveDemoMembers: 3,
+    }),
+    "最多可啟用 3 個 demo 帳號。",
+  );
+  assert.equal(
+    summarizeDemoWorkspaceCapacity({
+      status: "inactive",
+      workspaceSlug: "demo",
+      seedVersion: "v1",
+      maxActiveDemoMembers: 0,
+    }),
+    "目前不開放啟用 demo 帳號。",
+  );
 });

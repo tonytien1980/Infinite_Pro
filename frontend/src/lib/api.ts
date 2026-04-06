@@ -45,6 +45,8 @@ import {
   MemberListSnapshot,
   MemberRead,
   DemoWorkspaceSnapshot,
+  DemoWorkspacePolicySnapshot,
+  DemoWorkspacePolicyUpdatePayload,
   PersonalProviderSettingsPayload,
   PersonalProviderSettingsSnapshot,
   PersonalProviderSettingsUpdatePayload,
@@ -192,6 +194,29 @@ export async function getDemoWorkspaceSnapshot(): Promise<DemoWorkspaceSnapshot>
       items: Array.isArray(section.items) ? section.items : [],
     })),
   };
+}
+
+export async function getDemoWorkspacePolicy(): Promise<DemoWorkspacePolicySnapshot> {
+  const response = await apiFetch(`${getApiBaseUrl()}/workbench/demo-workspace-policy`, {
+    cache: "no-store",
+  });
+  return parseDemoWorkspacePolicyPayload(await parseResponse<any>(response));
+}
+
+export async function updateDemoWorkspacePolicy(
+  payload: DemoWorkspacePolicyUpdatePayload,
+): Promise<DemoWorkspacePolicySnapshot> {
+  const response = await apiFetch(`${getApiBaseUrl()}/workbench/demo-workspace-policy`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      status: payload.status,
+      max_active_demo_members: payload.maxActiveDemoMembers,
+    }),
+  });
+  return parseDemoWorkspacePolicyPayload(await parseResponse<any>(response));
 }
 
 export async function createMemberInvite(payload: {
@@ -755,6 +780,15 @@ function parseProviderAllowlistPayload(payload: any): ProviderAllowlistSnapshot 
       allowCustomModel: Boolean(entry.allow_custom_model),
       status: entry.status === "inactive" ? "inactive" : "active",
     })),
+  };
+}
+
+function parseDemoWorkspacePolicyPayload(payload: any): DemoWorkspacePolicySnapshot {
+  return {
+    status: payload.status === "inactive" ? "inactive" : "active",
+    workspaceSlug: payload.workspace_slug || "demo",
+    seedVersion: payload.seed_version || "v1",
+    maxActiveDemoMembers: Number(payload.max_active_demo_members ?? 0),
   };
 }
 

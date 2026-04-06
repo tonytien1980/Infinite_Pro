@@ -3,14 +3,20 @@
 import { useEffect, useState } from "react";
 
 import {
+  getDemoWorkspacePolicy,
   getProviderAllowlist,
   getSystemProviderSettings,
   resetSystemProviderSettingsToEnv,
   revalidateSystemProviderSettings,
+  updateDemoWorkspacePolicy,
   updateProviderAllowlist,
   updateSystemProviderSettings,
   validateSystemProviderSettings,
 } from "@/lib/api";
+import {
+  labelForDemoWorkspacePolicyStatus,
+  summarizeDemoWorkspaceCapacity,
+} from "@/lib/demo-workspace";
 import {
   buildProviderDraftFromCurrent,
   canReuseProviderKey,
@@ -21,6 +27,8 @@ import {
   type ProviderDraft,
 } from "@/lib/provider-settings";
 import type {
+  DemoWorkspacePolicySnapshot,
+  DemoWorkspacePolicyUpdatePayload,
   ProviderAllowlistSnapshot,
   ProviderId,
   ProviderModelLevel,
@@ -66,6 +74,15 @@ function buildAllowlistRows(snapshot: ProviderAllowlistSnapshot | null): Allowli
   }));
 }
 
+function buildDemoPolicyDraft(
+  snapshot: DemoWorkspacePolicySnapshot | null,
+): DemoWorkspacePolicyUpdatePayload {
+  return {
+    status: snapshot?.status || "active",
+    maxActiveDemoMembers: snapshot?.maxActiveDemoMembers ?? 5,
+  };
+}
+
 export function SettingsFirmProviderPanel() {
   const [providerSnapshot, setProviderSnapshot] = useState<SystemProviderSettingsSnapshot | null>(null);
   const [providerDraft, setProviderDraft] = useState<ProviderDraft>(() => buildProviderDraftFromCurrent(null));
@@ -87,15 +104,24 @@ export function SettingsFirmProviderPanel() {
   const [allowlistFeedback, setAllowlistFeedback] = useState<string | null>(null);
   const [allowlistError, setAllowlistError] = useState<string | null>(null);
 
+  const [demoPolicySnapshot, setDemoPolicySnapshot] = useState<DemoWorkspacePolicySnapshot | null>(null);
+  const [demoPolicyDraft, setDemoPolicyDraft] = useState<DemoWorkspacePolicyUpdatePayload>(() =>
+    buildDemoPolicyDraft(null),
+  );
+  const [demoPolicySaving, setDemoPolicySaving] = useState(false);
+  const [demoPolicyFeedback, setDemoPolicyFeedback] = useState<string | null>(null);
+  const [demoPolicyError, setDemoPolicyError] = useState<string | null>(null);
+
   useEffect(() => {
     let cancelled = false;
 
     async function hydrate() {
       setProviderLoading(true);
       try {
-        const [systemSnapshot, allowlist] = await Promise.all([
+        const [systemSnapshot, allowlist, demoPolicy] = await Promise.all([
           getSystemProviderSettings(),
           getProviderAllowlist(),
+          getDemoWorkspacePolicy(),
         ]);
         if (cancelled) {
           return;
@@ -104,6 +130,8 @@ export function SettingsFirmProviderPanel() {
         setProviderDraft(buildProviderDraftFromCurrent(systemSnapshot));
         setAllowlistSnapshot(allowlist);
         setAllowlistRows(buildAllowlistRows(allowlist));
+        setDemoPolicySnapshot(demoPolicy);
+        setDemoPolicyDraft(buildDemoPolicyDraft(demoPolicy));
       } catch (error) {
         if (!cancelled) {
           setProviderError(normalizeError(error, "目前無法載入 Firm Settings。"));
@@ -138,6 +166,15 @@ export function SettingsFirmProviderPanel() {
     setProviderValidation(null);
     setProviderFeedback(null);
     setProviderError(null);
+  }
+
+  function updateDemoPolicyDraft<K extends keyof DemoWorkspacePolicyUpdatePayload>(
+    key: K,
+    value: DemoWorkspacePolicyUpdatePayload[K],
+  ) {
+    setDemoPolicyDraft((current) => ({ ...current, [key]: value }));
+    setDemoPolicyFeedback(null);
+    setDemoPolicyError(null);
   }
 
   function handleProviderChange(nextProviderId: ProviderId) {
@@ -303,6 +340,22 @@ export function SettingsFirmProviderPanel() {
     }
   }
 
+  async function handleSaveDemoPolicy() {
+    setDemoPolicySaving(true);
+    setDemoPolicyFeedback(null);
+    setDemoPolicyError(null);
+    try {
+      const snapshot = await updateDemoWorkspacePolicy(demoPolicyDraft);
+      setDemoPolicySnapshot(snapshot);
+      setDemoPolicyDraft(buildDemoPolicyDraft(snapshot));
+      setDemoPolicyFeedback("demo workspace policy 已更新。");
+    } catch (error) {
+      setDemoPolicyError(normalizeError(error, "demo workspace policy 保存失敗。"));
+    } finally {
+      setDemoPolicySaving(false);
+    }
+  }
+
   return (
     <section className="panel" id="firm-provider-panel">
       <div className="panel-header">
@@ -345,6 +398,16 @@ export function SettingsFirmProviderPanel() {
               <p className="muted-text">目前 allowlist 條目</p>
               <strong>{allowlistSnapshot?.entries.length || 0}</strong>
               <p className="muted-text">consultant 只能在這些範圍內保存自己的模型設定。</p>
+            </div>
+            <div className="section-card">
+              <p className="muted-text">demo workspace 狀態</p>
+              <strong>{labelForDemoWorkspacePolicyStatus(demoPolicySnapshot?.status || "active")}</strong>
+              <p className="muted-text">{summarizeDemoWorkspaceCapacity(demoPolicySnapshot)}</p>
+            </div>
+            <div className="section-card">
+              <p className="muted-text">demo workspace seed</p>
+              <strong>{demoPolicySnapshot?.seedVersion || "v1"}</strong>
+              <p className="muted-text">slug：{demoPolicySnapshot?.workspaceSlug || "demo"}</p>
             </div>
           </div>
 
@@ -603,6 +666,73 @@ export function SettingsFirmProviderPanel() {
                     </button>
                     <button className="button-primary" type="button" onClick={() => void handleSaveAllowlist()} disabled={allowlistSaving}>
                       {allowlistSaving ? "儲存中..." : "儲存 allowlist"}
+                    </button>
+                  </div>
+                </section>
+
+                <section className="panel">
+                  <div className="panel-header">
+                    <div>
+                      <h3 className="panel-title">demo workspace policy</h3>
+                      <p className="panel-copy">控制 demo workspace 是否開放，以及可啟用 demo 帳號數量。</p>
+                    </div>
+                  </div>
+
+                  {demoPolicyError ? <p className="error-text">{demoPolicyError}</p> : null}
+                  {demoPolicyFeedback ? <p className="success-text">{demoPolicyFeedback}</p> : null}
+
+                  <div className="field-grid">
+                    <div className="field">
+                      <label htmlFor="demo-workspace-status">狀態</label>
+                      <select
+                        id="demo-workspace-status"
+                        value={demoPolicyDraft.status}
+                        onChange={(event) =>
+                          updateDemoPolicyDraft(
+                            "status",
+                            event.target.value === "inactive" ? "inactive" : "active",
+                          )
+                        }
+                      >
+                        <option value="active">啟用</option>
+                        <option value="inactive">停用</option>
+                      </select>
+                    </div>
+                    <div className="field">
+                      <label htmlFor="demo-workspace-max-members">可啟用 demo 帳號數量</label>
+                      <input
+                        id="demo-workspace-max-members"
+                        type="number"
+                        min={0}
+                        max={1000}
+                        value={demoPolicyDraft.maxActiveDemoMembers}
+                        onChange={(event) =>
+                          updateDemoPolicyDraft(
+                            "maxActiveDemoMembers",
+                            Math.max(0, Number(event.target.value) || 0),
+                          )
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div className="setting-note-card" style={{ marginTop: "16px" }}>
+                    <h3>目前展示資料</h3>
+                    <p className="content-block">
+                      workspace slug：{demoPolicySnapshot?.workspaceSlug || "demo"}
+                    </p>
+                    <p className="muted-text">seed version：{demoPolicySnapshot?.seedVersion || "v1"}</p>
+                    <p className="muted-text">{summarizeDemoWorkspaceCapacity(demoPolicySnapshot)}</p>
+                  </div>
+
+                  <div className="button-row" style={{ marginTop: "16px" }}>
+                    <button
+                      className="button-primary"
+                      type="button"
+                      onClick={() => void handleSaveDemoPolicy()}
+                      disabled={demoPolicySaving}
+                    >
+                      {demoPolicySaving ? "儲存中..." : "儲存 demo policy"}
                     </button>
                   </div>
                 </section>
