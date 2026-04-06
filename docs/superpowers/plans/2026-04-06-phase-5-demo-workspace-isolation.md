@@ -723,7 +723,7 @@ useEffect(() => {
 }, [redirectTarget]);
 ```
 
-- [ ] **Step 5: Run frontend tests and build checks**
+- [ ] **Step 5: Run the frontend tests and build checks**
 
 Run:
 
@@ -944,4 +944,3 @@ Scope:
 git add docs/00_product_definition_and_current_state.md docs/01_runtime_architecture_and_data_contracts.md docs/03_workbench_ux_and_page_spec.md docs/04_qa_matrix.md docs/superpowers/specs/2026-04-06-phase-5-demo-workspace-isolation-design.md
 git commit -m "docs: align demo workspace isolation"
 ```
-
