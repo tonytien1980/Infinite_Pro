@@ -74,3 +74,58 @@ def build_phase_six_capability_coverage_audit() -> schemas.PhaseSixCapabilityCov
         ],
         recommended_next_step="若 phase 6 要繼續往下走，下一刀應先把 reusable intelligence 的 reuse boundary 做得更正式。",
     )
+
+
+def build_phase_six_reuse_boundary_governance(
+    *,
+    audit: schemas.PhaseSixCapabilityCoverageAuditResponse | None = None,
+) -> schemas.PhaseSixReuseBoundaryGovernanceResponse:
+    source_audit = audit or build_phase_six_capability_coverage_audit()
+    governance_items: list[schemas.PhaseSixReuseBoundaryGovernanceItemRead] = []
+
+    for item in source_audit.reuse_boundary_items:
+        if item.boundary_status == "generalizable":
+            recommendation = "can_expand"
+            recommendation_label = "可擴大重用"
+            guardrail_note = "仍需由 Host 依當前案件脈絡做最後收斂，不可直接視為全域定論。"
+        elif item.boundary_status == "narrow_use":
+            recommendation = "restrict_narrow_use"
+            recommendation_label = "不要擴大套用"
+            guardrail_note = "這類資產只適合窄情境，應避免被直接擴張成全域 best practice。"
+        else:
+            recommendation = "keep_contextual"
+            recommendation_label = "維持局部參考"
+            guardrail_note = "這類資產可作為局部提示，但仍需搭配 client stage / domain lens 使用。"
+
+        governance_items.append(
+            schemas.PhaseSixReuseBoundaryGovernanceItemRead(
+                asset_code=item.asset_code,
+                asset_label=item.asset_label,
+                boundary_status=item.boundary_status,
+                boundary_status_label=item.boundary_status_label,
+                reuse_recommendation=recommendation,
+                reuse_recommendation_label=recommendation_label,
+                summary=item.summary,
+                guardrail_note=guardrail_note,
+            )
+        )
+
+    generalizable_count = sum(1 for item in governance_items if item.boundary_status == "generalizable")
+    contextual_count = sum(1 for item in governance_items if item.boundary_status == "contextual")
+    narrow_use_count = sum(1 for item in governance_items if item.boundary_status == "narrow_use")
+
+    return schemas.PhaseSixReuseBoundaryGovernanceResponse(
+        phase_id="phase_6",
+        phase_label="Generalist Consulting Intelligence Governance",
+        governance_posture="guardrails_needed" if narrow_use_count > 0 else "stable",
+        governance_posture_label="仍需治理邊界" if narrow_use_count > 0 else "目前治理較穩",
+        summary=(
+            "phase 6 現在已能更正式回答哪些 reusable assets 可擴大重用、"
+            "哪些應維持局部參考、哪些不應被擴大套用。"
+        ),
+        generalizable_count=generalizable_count,
+        contextual_count=contextual_count,
+        narrow_use_count=narrow_use_count,
+        governance_items=governance_items,
+        recommended_next_step="若要繼續往下走，下一刀應把 reusable-intelligence guardrail 再往更正式的 Host weighting 規則推進。",
+    )

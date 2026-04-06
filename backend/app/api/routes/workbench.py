@@ -23,6 +23,7 @@ from app.services.workbench import (
     get_history_visibility_state,
     get_phase_five_closure_review,
     get_phase_six_capability_coverage_audit,
+    get_phase_six_reuse_boundary_governance,
     get_precedent_review_state,
     get_workbench_preferences,
     sign_off_phase_five,
@@ -115,6 +116,17 @@ def get_phase_six_capability_coverage_audit_route(
     db: Session = Depends(get_db),
 ) -> schemas.PhaseSixCapabilityCoverageAuditResponse:
     return get_phase_six_capability_coverage_audit(db)
+
+
+@router.get(
+    "/phase-6-reuse-boundary-governance",
+    response_model=schemas.PhaseSixReuseBoundaryGovernanceResponse,
+)
+def get_phase_six_reuse_boundary_governance_route(
+    current_member=Depends(require_permission("access_firm_workspace")),
+    db: Session = Depends(get_db),
+) -> schemas.PhaseSixReuseBoundaryGovernanceResponse:
+    return get_phase_six_reuse_boundary_governance(db)
 
 
 @router.get(

@@ -488,6 +488,34 @@ def test_phase_six_capability_coverage_audit_marks_narrow_assets_low_noise(
     assert all(item["boundary_status_label"] for item in narrow_items)
 
 
+def test_owner_can_read_phase_six_reuse_boundary_governance(client: TestClient) -> None:
+    response = client.get("/api/v1/workbench/phase-6-reuse-boundary-governance")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["phase_id"] == "phase_6"
+    assert payload["governance_posture"] in {"stable", "guardrails_needed"}
+    assert payload["governance_posture_label"]
+    assert payload["governance_items"]
+    assert payload["recommended_next_step"]
+
+
+def test_phase_six_reuse_boundary_governance_restricts_narrow_assets(
+    client: TestClient,
+) -> None:
+    response = client.get("/api/v1/workbench/phase-6-reuse-boundary-governance")
+
+    assert response.status_code == 200
+    payload = response.json()
+    restricted = [
+        item
+        for item in payload["governance_items"]
+        if item["reuse_recommendation"] == "restrict_narrow_use"
+    ]
+    assert restricted
+    assert all(item["guardrail_note"] for item in restricted)
+
+
 def test_consultant_cannot_sign_off_phase_five(
     anonymous_client: TestClient,
     monkeypatch: pytest.MonkeyPatch,

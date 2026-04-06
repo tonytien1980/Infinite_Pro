@@ -462,6 +462,34 @@ class PhaseSixCapabilityCoverageAuditResponse(BaseModel):
     recommended_next_step: str = ""
 
 
+class PhaseSixReuseBoundaryGovernanceItemRead(BaseModel):
+    asset_code: str
+    asset_label: str = ""
+    boundary_status: Literal["generalizable", "contextual", "narrow_use"] = "contextual"
+    boundary_status_label: str = ""
+    reuse_recommendation: Literal[
+        "can_expand",
+        "keep_contextual",
+        "restrict_narrow_use",
+    ] = "keep_contextual"
+    reuse_recommendation_label: str = ""
+    summary: str = ""
+    guardrail_note: str = ""
+
+
+class PhaseSixReuseBoundaryGovernanceResponse(BaseModel):
+    phase_id: Literal["phase_6"] = "phase_6"
+    phase_label: str = ""
+    governance_posture: Literal["stable", "guardrails_needed"] = "guardrails_needed"
+    governance_posture_label: str = ""
+    summary: str = ""
+    generalizable_count: int = 0
+    contextual_count: int = 0
+    narrow_use_count: int = 0
+    governance_items: list[PhaseSixReuseBoundaryGovernanceItemRead] = Field(default_factory=list)
+    recommended_next_step: str = ""
+
+
 class SharedIntelligenceClosureReviewResponse(BaseModel):
     phase_id: Literal["phase_4"] = "phase_4"
     phase_label: str = ""
