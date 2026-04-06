@@ -876,7 +876,7 @@ Primary action：
 - 不可把這一格擴寫成帳號系統、團隊管理表、或權限設定後台
 - phase 5 auth foundation 之後，`/settings` 也應誠實理解為：
   - 目前仍以 workbench preferences + owner-visible system provider config 為主
-  - `Firm Settings` / `Personal Provider Settings` 的正式分層已進入 phase 5，但 personal provider UI 尚未 shipped
+  - `Firm Settings` / `Personal Provider Settings` 的正式分層已進入 phase 5，但目前只先有 backend encrypted credential / allowlist foundation，personal provider UI 尚未 shipped
 
 ### 7.11 `/login`
 

@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     bootstrap_owner_emails: str = ""
     default_firm_name: str = "Infinite Pro"
     default_firm_slug: str = "infinite-pro"
+    provider_secret_encryption_key: str | None = None
     model_provider: str = "mock"
     model_provider_api_key: str | None = None
     model_provider_model: str | None = None

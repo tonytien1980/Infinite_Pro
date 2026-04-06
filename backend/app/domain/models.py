@@ -158,6 +158,11 @@ class Firm(Base):
         cascade="all, delete-orphan",
         order_by="FirmInvite.created_at.desc()",
     )
+    provider_allowlist_entries: Mapped[list["ProviderAllowlistEntry"]] = relationship(
+        back_populates="firm",
+        cascade="all, delete-orphan",
+        order_by="ProviderAllowlistEntry.updated_at.desc()",
+    )
 
 
 class User(Base):
@@ -194,6 +199,11 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
         order_by="UserSession.created_at.desc()",
+    )
+    personal_provider_credentials: Mapped[list["PersonalProviderCredential"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        order_by="PersonalProviderCredential.updated_at.desc()",
     )
 
 
@@ -283,6 +293,51 @@ class UserSession(Base):
 
     user: Mapped["User"] = relationship(back_populates="sessions")
     membership: Mapped["FirmMembership"] = relationship(back_populates="sessions")
+
+
+class PersonalProviderCredential(Base):
+    __tablename__ = "personal_provider_credentials"
+    __table_args__ = (
+        UniqueConstraint("user_id", name="uq_personal_provider_credential_user"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False)
+    provider_id: Mapped[str] = mapped_column(String(50), nullable=False)
+    model_level: Mapped[str] = mapped_column(String(30), default="balanced")
+    model_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    custom_model_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    base_url: Mapped[str] = mapped_column(String(1024), nullable=False)
+    timeout_seconds: Mapped[int] = mapped_column(Integer, default=60)
+    api_key_ciphertext: Mapped[str | None] = mapped_column(Text, nullable=True)
+    api_key_masked: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    last_validation_status: Mapped[str] = mapped_column(String(50), default="not_validated")
+    last_validation_message: Mapped[str] = mapped_column(Text, default="")
+    last_validated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    key_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+    user: Mapped["User"] = relationship(back_populates="personal_provider_credentials")
+
+
+class ProviderAllowlistEntry(Base):
+    __tablename__ = "provider_allowlist_entries"
+    __table_args__ = (
+        UniqueConstraint("firm_id", "provider_id", "model_level", name="uq_provider_allowlist_entry"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    firm_id: Mapped[str] = mapped_column(ForeignKey("firms.id"), nullable=False)
+    provider_id: Mapped[str] = mapped_column(String(50), nullable=False)
+    model_level: Mapped[str] = mapped_column(String(30), nullable=False, default="balanced")
+    allowed_model_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
+    allow_custom_model: Mapped[bool] = mapped_column(Boolean, default=False)
+    status: Mapped[str] = mapped_column(String(30), default="active")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+    firm: Mapped["Firm"] = relationship(back_populates="provider_allowlist_entries")
 
 
 class WorkbenchPreference(Base):

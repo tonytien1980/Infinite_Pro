@@ -1738,8 +1738,11 @@ Object storage 負責：
 phase 5 auth foundation 之後，這裡也必須補一條正式邊界：
 
 - 目前 shipped 的仍是 `Firm Settings` 側的 system-level provider config
-- `Personal Provider Settings` 雖已進入 phase-5 設計，但尚未正式 shipped
-- 因此 consultant 目前不可被誤寫成已能在正式 UI 內保存自己的 API key
+- phase-5 第二個 slice 已開始建立 backend foundation：
+  - encrypted `PersonalProviderCredential`
+  - firm-scoped `ProviderAllowlistEntry`
+- 但 `Personal Provider Settings` 的正式 API / UI 尚未 shipped
+- 因此 consultant 目前仍不可被誤寫成已能在正式 UI 內保存自己的 API key
 
 ### 8.2 Formal provider set
 

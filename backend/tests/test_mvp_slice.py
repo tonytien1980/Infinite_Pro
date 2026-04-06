@@ -427,6 +427,98 @@ def test_owner_can_sign_off_phase_but_consultant_cannot(
     assert consultant_attempt.status_code == 403
 
 
+def test_personal_provider_secret_round_trip_requires_encryption_key(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "provider_secret_encryption_key", "phase5-fernet-test-key")
+
+    from app.services.provider_secret_crypto import decrypt_provider_secret, encrypt_provider_secret
+
+    ciphertext = encrypt_provider_secret("sk-test-1234567890")
+
+    assert ciphertext != "sk-test-1234567890"
+    assert decrypt_provider_secret(ciphertext) == "sk-test-1234567890"
+
+
+def test_personal_provider_secret_write_fails_closed_without_encryption_key(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "provider_secret_encryption_key", None)
+
+    from app.services.provider_secret_crypto import encrypt_provider_secret
+
+    with pytest.raises(RuntimeError):
+        encrypt_provider_secret("sk-test-1234567890")
+
+
+def test_personal_provider_credential_and_allowlist_rows_persist(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "provider_secret_encryption_key", "phase5-fernet-test-key")
+
+    from app.services.provider_secret_crypto import encrypt_provider_secret
+
+    with SessionLocal() as db:
+        owner = db.scalar(select(models.User).where(models.User.email == "owner@test.local"))
+        firm = db.scalar(select(models.Firm).where(models.Firm.slug == "test-firm"))
+
+        assert owner is not None
+        assert firm is not None
+
+        db.add(
+            models.PersonalProviderCredential(
+                user_id=owner.id,
+                provider_id="openai",
+                model_level="balanced",
+                model_id="gpt-5.4",
+                custom_model_id=None,
+                base_url="https://api.openai.com/v1",
+                timeout_seconds=60,
+                api_key_ciphertext=encrypt_provider_secret("sk-live-owner"),
+                api_key_masked="••••owner",
+                last_validation_status="not_validated",
+                last_validation_message="",
+            )
+        )
+        db.add(
+            models.ProviderAllowlistEntry(
+                firm_id=firm.id,
+                provider_id="openai",
+                model_level="balanced",
+                allowed_model_ids=["gpt-5.4"],
+                allow_custom_model=False,
+                status="active",
+            )
+        )
+        db.commit()
+
+        credential = db.scalar(
+            select(models.PersonalProviderCredential).where(
+                models.PersonalProviderCredential.user_id == owner.id
+            )
+        )
+        allowlist = db.scalar(
+            select(models.ProviderAllowlistEntry).where(
+                models.ProviderAllowlistEntry.firm_id == firm.id
+            )
+        )
+
+        assert credential is not None
+        assert credential.provider_id == "openai"
+        assert credential.api_key_ciphertext != "sk-live-owner"
+        assert allowlist is not None
+        assert allowlist.allowed_model_ids == ["gpt-5.4"]
+
+
 def test_workbench_preferences_round_trip_theme_preference(client: TestClient) -> None:
     initial = client.get("/api/v1/workbench/preferences")
 
