@@ -685,9 +685,11 @@ Infinite Pro 目前沒有也不應硬對齊於：
 - 下一輪工作不應從 further baseline extension 啟動，而應從新的 decision phase 啟動
 - 旗艦顧問案型、`Research / Investigation` lane、retained advisory loop 這三條主線，現在都已有可用 baseline / MVP，不應再被描述成只停在初始方向
 - 第 4 階段 `precedent / reusable intelligence` 已透過 closure review、asset audit、sign-off / handoff 正式收口
-- 因此目前正式狀態已不是「仍在 phase 4 主線施工中」，而是：
-  - `post-phase-4`
-  - `pre-phase-5 implementation`
+- 第 5 階段 `Single-Firm Cloud Foundation` 的第一個 implementation slice 已啟動並站穩：
+  - `Auth + Membership Foundation`
+- 因此目前正式狀態已不是 `pre-phase-5 implementation`，而是：
+  - `phase-5 implementation in progress`
+  - `single-firm cloud foundation, slice 1 standing`
 - 下一個 decision phase 的正式方向已定為：
   - `Phase 5: Single-Firm Cloud Foundation`
 - 第 5 階段要解的正式問題是：
@@ -754,6 +756,16 @@ Infinite Pro 目前沒有也不應硬對齊於：
 - 因此第 5 階段不是在推翻 single-user-first 的產品定義，而是在正式啟動：
   - `multi-user later` 的 single-firm 第一版落地
   - 再之後才讓大型客戶與明確團隊化有更穩的治理底座
+- 目前已正式落地的 phase-5 slice 包括：
+  - `Google Login` auth foundation
+  - `User / Firm / Membership / Invite / Session` 基礎資料模型
+  - `owner / consultant / demo` 的最小角色與 backend permission gate
+  - `Members` 管理頁
+  - consultant-facing `/login` 與 owner-facing `/members`
+- 目前仍明確未完成、也不應誤寫成已 shipped 的，包括：
+  - `Personal Provider Settings`
+  - owner-controlled provider allowlist UX
+  - `demo workspace` 的正式資料隔離與展示資料集
 
 ---
 

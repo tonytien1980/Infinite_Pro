@@ -1672,6 +1672,55 @@ Object storage 負責：
 - conflict auto-merge
 - OCR-heavy ingest platform
 
+### 7.6 Single-firm identity and access foundation
+
+在 phase 5 第一個 implementation slice 後，runtime 也正式新增：
+
+- `User`
+- `AuthIdentity`
+- `Firm`
+- `FirmMembership`
+- `FirmInvite`
+- `UserSession`
+
+第一版正式規則：
+
+- runtime posture 仍是 single-firm，不是 multi-tenant SaaS shell
+- Google Login 為唯一正式登入方式
+- `owner` 可 bootstrap 第一個 firm，之後新增成員正式改成 invite-only
+- 目前正式角色只有：
+  - `owner`
+  - `consultant`
+  - `demo`
+- backend route 已開始正式透過 current-member / permission bundle 控制：
+  - `access_firm_workspace`
+  - `view_agents`
+  - `view_packs`
+  - `manage_members`
+  - `manage_agents`
+  - `manage_packs`
+  - `manage_firm_settings`
+  - `govern_shared_intelligence`
+  - `sign_off_phase`
+
+正式邊界：
+
+- 這一輪已正式建立 auth / membership foundation
+- 但仍未正式提供：
+  - consultant 自己的 `Personal Provider Settings`
+  - owner-managed provider allowlist UI
+  - demo workspace data isolation
+
+因此這一層目前應被理解為：
+
+- cloud-ready identity / access foundation
+
+不是：
+
+- completed multi-user operating layer
+- finished tenant isolation shell
+- enterprise RBAC matrix
+
 ---
 
 ## 8. Provider Boundary
@@ -1685,6 +1734,12 @@ Object storage 負責：
 - backend persisted runtime config
 - backend validation
 - single active provider precedence
+
+phase 5 auth foundation 之後，這裡也必須補一條正式邊界：
+
+- 目前 shipped 的仍是 `Firm Settings` 側的 system-level provider config
+- `Personal Provider Settings` 雖已進入 phase-5 設計，但尚未正式 shipped
+- 因此 consultant 目前不可被誤寫成已能在正式 UI 內保存自己的 API key
 
 ### 8.2 Formal provider set
 

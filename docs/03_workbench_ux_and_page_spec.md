@@ -874,6 +874,56 @@ Primary action：
 - `本機顧問署名` 只保存在目前瀏覽器
 - 它的正式責任，是在採納回饋與 precedent 治理時，低負擔提供 attribution
 - 不可把這一格擴寫成帳號系統、團隊管理表、或權限設定後台
+- phase 5 auth foundation 之後，`/settings` 也應誠實理解為：
+  - 目前仍以 workbench preferences + owner-visible system provider config 為主
+  - `Firm Settings` / `Personal Provider Settings` 的正式分層已進入 phase 5，但 personal provider UI 尚未 shipped
+
+### 7.11 `/login`
+
+主任務：
+
+- 讓已受邀成員正式登入 Infinite Pro
+
+第一屏必答：
+
+- 目前只支援哪種登入方式
+- 哪些帳號可進正式系統
+- 登入後會回到哪種工作台
+
+Primary action：
+
+- 使用 Google 登入
+
+正式規則：
+
+- `/login` 是 public entry
+- visible copy 應維持 consultant-first，而不是 OAuth debug shell
+- 不可在這頁暴露 firm 管理、權限矩陣或 provider technical details
+
+### 7.12 `/members`
+
+主任務：
+
+- 讓 owner 管理 firm 成員與邀請
+
+第一屏必答：
+
+- 這一頁是誰可用
+- 目前可管理哪些身份別
+- 哪些仍屬後續 phase-5 slice
+
+Primary action：
+
+- 送出邀請 / 更新身份別
+
+正式規則：
+
+- `/members` 目前是 owner-only 頁面
+- 第一版只需要：
+  - member list
+  - pending invites
+  - role update
+- 不可長成 enterprise RBAC matrix、org chart 或 team analytics shell
 
 ---
 

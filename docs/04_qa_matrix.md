@@ -4061,3 +4061,57 @@ Environment used:
 - phase 4 can now be formally signed off inside the existing shared-intelligence closure surface
 - the next-phase handoff is now a shipped contract instead of a conversation-only recommendation
 - this pass formally closes phase 4 without creating a new governance shell
+
+---
+
+## Entry: 2026-04-06 phase-5 auth and membership foundation pass
+
+Scope:
+- phase 5 `Single-Firm Cloud Foundation` first implementation slice
+- Google Login auth foundation
+- `User / Firm / Membership / Invite / Session` backend runtime models
+- `owner / consultant / demo` role foundation
+- owner-only `members` API and page
+- frontend login shell and cookie-aware API client
+
+Environment used:
+- local repo runtime checks only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`188 passed`) |
+| `cd frontend && node --test tests/auth-foundation.test.mjs tests/intake-progress.test.mjs` | Passed (`35 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+
+### Phase-5 auth foundation verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | `/auth/google/start` + `/auth/google/callback` | Bootstrap first owner and reject uninvited login | Verified | targeted backend tests confirm allowlisted first owner can establish the first firm, while later uninvited logins fail closed |
+| Backend | `/auth/me` + `/auth/logout` | Read active session and clear it | Verified | targeted backend tests confirm active session readback and logout invalidation |
+| Backend | members API | Owner invite and role-management surface | Verified | targeted backend tests confirm owner can invite and list members |
+| Backend | route permissions | Consultant cannot manage agents or sign off phase 4 | Verified | targeted backend tests confirm consultant receives `403` on restricted governance actions |
+| Backend | protected work surfaces | Existing task / matter / deliverable APIs still work behind permission gates | Verified | full backend MVP test file remains green at `188 passed` after auth gating |
+| Frontend | `/login` | Render Google login shell | Verified | Next build includes static `/login` route and node helper tests confirm public-path behavior |
+| Frontend | `/members` | Render owner-only members surface | Verified | Next build includes static `/members` route and typecheck passes with new member snapshot contracts |
+| Frontend | API client | Include credentials for protected backend calls | Verified | frontend build / typecheck pass after auth-aware `apiFetch` rollout |
+| Frontend | App shell | Gate protected routes and show role-aware navigation | Verified | helper tests confirm role nav differences and public `/login` handling |
+
+### Verified outcomes
+
+- Infinite Pro now has a real cloud-ready auth / membership foundation instead of browser-local identity only
+- phase 5 has formally started in code, not only in planning docs
+- owner / consultant / demo is now a shipped backend role baseline, with owner-only members management and governance-sensitive route protection
+- frontend now has a consultant-facing `/login` entry and owner-facing `/members` surface that align with the new backend session model
+
+### Explicitly not shipped in this pass
+
+- `Personal Provider Settings`
+- owner-managed provider allowlist UI
+- demo workspace data isolation / sample dataset
+- browser smoke for login flow

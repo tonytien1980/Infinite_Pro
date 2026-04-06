@@ -1,7 +1,7 @@
 # Phase 5 Single-Firm Cloud Foundation Design
 
 日期：2026-04-06
-狀態：proposed
+狀態：partially_implemented
 
 ## Purpose
 
@@ -235,6 +235,19 @@
 原因：
 
 - 沒有這層，後續的 `members`、`Personal Provider Settings`、`demo isolation`、`permission gating` 都沒有正式地基
+
+目前這個 first slice 已正式落地：
+
+- Google auth foundation
+- single-firm membership / invite / session models
+- owner-only `members` page / API
+- backend route permission gate baseline
+
+但仍未完成：
+
+- `Personal Provider Settings`
+- provider allowlist UI
+- demo workspace data isolation
 
 ## Non-Goals
 
