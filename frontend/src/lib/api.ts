@@ -47,6 +47,7 @@ import {
   DemoWorkspaceSnapshot,
   DemoWorkspacePolicySnapshot,
   DemoWorkspacePolicyUpdatePayload,
+  FirmOperatingSnapshot,
   PersonalProviderSettingsPayload,
   PersonalProviderSettingsSnapshot,
   PersonalProviderSettingsUpdatePayload,
@@ -221,6 +222,13 @@ export async function updateDemoWorkspacePolicy(
     }),
   });
   return parseDemoWorkspacePolicyPayload(await parseResponse<any>(response));
+}
+
+export async function getFirmOperatingSnapshot(): Promise<FirmOperatingSnapshot> {
+  const response = await apiFetch(`${getApiBaseUrl()}/workbench/firm-operating-snapshot`, {
+    cache: "no-store",
+  });
+  return parseFirmOperatingSnapshotPayload(await parseResponse<any>(response));
 }
 
 export async function createMemberInvite(payload: {
@@ -793,6 +801,27 @@ function parseDemoWorkspacePolicyPayload(payload: any): DemoWorkspacePolicySnaps
     workspaceSlug: payload.workspace_slug || "demo",
     seedVersion: payload.seed_version || "v1",
     maxActiveDemoMembers: Number(payload.max_active_demo_members ?? 0),
+  };
+}
+
+function parseFirmOperatingSnapshotPayload(payload: any): FirmOperatingSnapshot {
+  return {
+    role: payload.role === "consultant" ? "consultant" : "owner",
+    operatingPosture:
+      payload.operating_posture === "attention_needed" ? "attention_needed" : "steady",
+    operatingSummary: payload.operating_summary || "",
+    priorityNote: payload.priority_note || "",
+    actionLabel: payload.action_label || "",
+    actionHref: payload.action_href || "/",
+    signals: Array.isArray(payload.signals)
+      ? payload.signals.map((signal: any) => ({
+          signalId: signal.signal_id,
+          label: signal.label,
+          value: signal.value,
+          status: signal.status === "attention" ? "attention" : "ok",
+          detail: signal.detail || "",
+        }))
+      : [],
   };
 }
 

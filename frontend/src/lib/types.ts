@@ -205,6 +205,24 @@ export interface DemoWorkspacePolicyUpdatePayload {
   maxActiveDemoMembers: number;
 }
 
+export interface FirmOperatingSignal {
+  signalId: string;
+  label: string;
+  value: string;
+  status: "ok" | "attention";
+  detail: string;
+}
+
+export interface FirmOperatingSnapshot {
+  role: "owner" | "consultant";
+  operatingPosture: "steady" | "attention_needed";
+  operatingSummary: string;
+  priorityNote: string;
+  actionLabel: string;
+  actionHref: string;
+  signals: FirmOperatingSignal[];
+}
+
 export interface PrecedentReviewItem {
   id: string;
   candidate_type: PrecedentCandidateType;

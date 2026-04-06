@@ -7,10 +7,21 @@ import {
   buildMatterWorkspaceCard,
   buildTaskListWorkspaceSummary,
 } from "@/lib/advisory-workflow";
-import { getExtensionManager, listMatterWorkspaces, listTasks } from "@/lib/api";
+import {
+  getExtensionManager,
+  getFirmOperatingSnapshot,
+  listMatterWorkspaces,
+  listTasks,
+} from "@/lib/api";
+import {
+  countAttentionSignals,
+  labelForFirmOperatingPosture,
+  summarizeFirmOperatingSignals,
+} from "@/lib/firm-operating";
 import { truncateText } from "@/lib/text-format";
 import type {
   ExtensionManagerSnapshot,
+  FirmOperatingSnapshot,
   MatterWorkspaceSummary,
   TaskListItem,
 } from "@/lib/types";
@@ -78,14 +89,17 @@ export function WorkbenchHome() {
   const [tasks, setTasks] = useState<TaskListItem[]>([]);
   const [matters, setMatters] = useState<MatterWorkspaceSummary[]>([]);
   const [extensionManager, setExtensionManager] = useState<ExtensionManagerSnapshot | null>(null);
+  const [firmOperating, setFirmOperating] = useState<FirmOperatingSnapshot | null>(null);
   const [matterRecords] = useMatterWorkspaceRecords();
   const [settings] = useWorkbenchSettings();
   const [loading, setLoading] = useState(true);
   const [matterLoading, setMatterLoading] = useState(true);
   const [extensionLoading, setExtensionLoading] = useState(true);
+  const [firmOperatingLoading, setFirmOperatingLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [matterError, setMatterError] = useState<string | null>(null);
   const [extensionError, setExtensionError] = useState<string | null>(null);
+  const [firmOperatingError, setFirmOperatingError] = useState<string | null>(null);
 
   async function refreshTasks() {
     try {
@@ -127,10 +141,25 @@ export function WorkbenchHome() {
     }
   }
 
+  async function refreshFirmOperating() {
+    try {
+      setFirmOperatingLoading(true);
+      setFirmOperatingError(null);
+      setFirmOperating(await getFirmOperatingSnapshot());
+    } catch (operatingError) {
+      setFirmOperatingError(
+        operatingError instanceof Error ? operatingError.message : "載入 firm operating 摘要失敗。",
+      );
+    } finally {
+      setFirmOperatingLoading(false);
+    }
+  }
+
   useEffect(() => {
     void refreshTasks();
     void refreshMatters();
     void refreshExtensionManager();
+    void refreshFirmOperating();
   }, []);
 
   const sortedTasks = useMemo(
@@ -310,6 +339,11 @@ export function WorkbenchHome() {
           {extensionError}
         </p>
       ) : null}
+      {firmOperatingError ? (
+        <p className="error-text" role="alert" aria-live="assertive">
+          {firmOperatingError}
+        </p>
+      ) : null}
 
       {!loading && !matterLoading ? (
         <div className="detail-grid">
@@ -447,6 +481,60 @@ export function WorkbenchHome() {
           </div>
 
           <div className="detail-stack">
+            <section className="panel">
+              <div className="panel-header">
+                <div>
+                  <h2 className="panel-title">Firm Operating</h2>
+                  <p className="panel-copy">低噪音回答這間 firm 目前是否已準備好順利工作。</p>
+                </div>
+                {firmOperating?.actionLabel ? (
+                  <Link className="button-secondary" href={firmOperating.actionHref}>
+                    {firmOperating.actionLabel}
+                  </Link>
+                ) : null}
+              </div>
+
+              {firmOperatingLoading ? <p className="status-text">正在整理 firm operating 摘要...</p> : null}
+              {!firmOperatingLoading && firmOperating ? (
+                <>
+                  <div className="summary-grid">
+                    <div className="section-card">
+                      <p className="muted-text">目前姿態</p>
+                      <strong>{labelForFirmOperatingPosture(firmOperating.operatingPosture)}</strong>
+                      <p className="muted-text">{firmOperating.operatingSummary}</p>
+                    </div>
+                    <div className="section-card">
+                      <p className="muted-text">目前重點</p>
+                      <strong>{firmOperating.priorityNote}</strong>
+                      <p className="muted-text">
+                        {firmOperating.role === "owner" ? "owner view" : "consultant view"}
+                      </p>
+                    </div>
+                    <div className="section-card">
+                      <p className="muted-text">需注意訊號</p>
+                      <strong>{countAttentionSignals(firmOperating.signals)}</strong>
+                      <p className="muted-text">{summarizeFirmOperatingSignals(firmOperating.signals)}</p>
+                    </div>
+                  </div>
+
+                  <div className="detail-list" style={{ marginTop: "16px" }}>
+                    {firmOperating.signals.map((signal) => (
+                      <div className="detail-item" key={signal.signalId}>
+                        <div className="meta-row">
+                          <span className="pill">
+                            {signal.status === "attention" ? "值得先處理" : "目前正常"}
+                          </span>
+                          <span>{signal.label}</span>
+                        </div>
+                        <h3>{signal.value}</h3>
+                        <p className="muted-text">{signal.detail}</p>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : null}
+            </section>
+
             {settings.showRecentActivity ? (
               <section className="panel">
                 <div className="panel-header">
