@@ -154,6 +154,24 @@ class DemoWorkspacePolicyUpdateRequest(BaseModel):
     max_active_demo_members: int = Field(default=5, ge=0, le=1000)
 
 
+class FirmOperatingSignalRead(BaseModel):
+    signal_id: str
+    label: str
+    value: str
+    status: Literal["ok", "attention"] = "ok"
+    detail: str = ""
+
+
+class FirmOperatingSnapshotRead(BaseModel):
+    role: Literal["owner", "consultant"]
+    operating_posture: Literal["steady", "attention_needed"] = "steady"
+    operating_summary: str
+    priority_note: str
+    action_label: str
+    action_href: str
+    signals: list[FirmOperatingSignalRead] = Field(default_factory=list)
+
+
 class AgentCatalogEntryUpdateRequest(BaseModel):
     agent_id: str = Field(min_length=1, max_length=255)
     agent_name: str = Field(min_length=1, max_length=255)

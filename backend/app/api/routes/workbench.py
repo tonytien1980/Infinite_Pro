@@ -15,6 +15,7 @@ from app.services.demo_workspace import (
     get_demo_workspace_policy,
     update_demo_workspace_policy,
 )
+from app.services.firm_operating_snapshot import get_firm_operating_snapshot
 from app.services.provider_allowlist import list_provider_allowlist, update_provider_allowlist
 from app.services.workbench import (
     apply_precedent_governance_recommendation,
@@ -74,6 +75,14 @@ def update_demo_workspace_policy_route(
         firm_id=current_member.firm.id,
         payload=payload,
     )
+
+
+@router.get("/firm-operating-snapshot", response_model=schemas.FirmOperatingSnapshotRead)
+def get_firm_operating_snapshot_route(
+    current_member=Depends(require_permission("access_firm_workspace")),
+    db: Session = Depends(get_db),
+) -> schemas.FirmOperatingSnapshotRead:
+    return get_firm_operating_snapshot(db, current_member=current_member)
 
 
 @router.get(

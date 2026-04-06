@@ -395,6 +395,39 @@ def test_owner_can_read_and_update_demo_workspace_policy(client: TestClient) -> 
     assert updated.json()["max_active_demo_members"] == 3
 
 
+def test_owner_can_read_firm_operating_snapshot(client: TestClient) -> None:
+    invite = client.post(
+        "/api/v1/members/invites",
+        json={"email": "demo-ops@example.com", "role": "demo"},
+    )
+    assert invite.status_code == 200
+
+    response = client.get("/api/v1/workbench/firm-operating-snapshot")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["operating_posture"] in {"steady", "attention_needed"}
+    assert payload["signals"]
+    assert payload["action_href"] in {"/members", "/settings"}
+    assert any(signal["signal_id"] == "active_members" for signal in payload["signals"])
+    assert any(signal["signal_id"] == "provider_guardrail" for signal in payload["signals"])
+
+
+def test_consultant_can_read_role_aware_firm_operating_snapshot(
+    anonymous_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    consultant_client = login_as_consultant_with_owner_invite(anonymous_client, monkeypatch)
+
+    response = consultant_client.get("/api/v1/workbench/firm-operating-snapshot")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["operating_posture"] == "attention_needed"
+    assert payload["action_href"] == "/settings"
+    assert any(signal["signal_id"] == "personal_provider" for signal in payload["signals"])
+
+
 def test_health_endpoint(client: TestClient) -> None:
     response = client.get("/api/v1/health")
 
