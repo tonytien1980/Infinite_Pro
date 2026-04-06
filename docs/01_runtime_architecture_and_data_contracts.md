@@ -1694,6 +1694,7 @@ Object storage 負責：
   - `demo`
 - backend route 已開始正式透過 current-member / permission bundle 控制：
   - `access_firm_workspace`
+  - `access_demo_workspace`
   - `view_agents`
   - `view_packs`
   - `manage_members`
@@ -1706,8 +1707,10 @@ Object storage 負責：
 正式邊界：
 
 - 這一輪已正式建立 auth / membership foundation
-- 但仍未正式提供：
-  - demo workspace data isolation
+- 目前也已正式建立 demo workspace isolation：
+  - `demo` 只能走 `access_demo_workspace`
+  - demo data source 與正式 firm workspace data source 分離
+  - demo route 不得回讀正式 matter / deliverable / history objects
 
 因此這一層目前應被理解為：
 
@@ -1773,7 +1776,9 @@ phase 5 auth foundation 之後，這裡也必須補一條正式邊界：
 
 `demo`
 
+- 只能進 demo workspace
 - 不可執行分析
+- 不可讀正式 firm workspace
 
 ### 8.4 Secret boundary
 

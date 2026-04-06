@@ -1,7 +1,7 @@
 # Phase 5 Demo Workspace Isolation Design
 
 日期：2026-04-06
-狀態：proposed
+狀態：shipped
 
 ## Purpose
 

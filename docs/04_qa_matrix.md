@@ -4222,3 +4222,43 @@ Environment used:
 ### Explicitly not shipped in this pass
 
 - browser smoke
+
+---
+
+## Entry: 2026-04-06 phase-5 demo workspace isolation pass
+
+Scope:
+- `demo` role routing and workspace gate
+- fixed shared demo dataset backend read model
+- `/demo` read-only demo shell
+- owner-visible demo account summary in `/members`
+
+Environment used:
+- local backend and frontend verification only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`201 passed`) |
+| `cd frontend && node --test tests/auth-foundation.test.mjs tests/provider-settings-foundation.test.mjs tests/demo-workspace-isolation.test.mjs tests/intake-progress.test.mjs` | Passed (`42 passed`) |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed after rerun |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+
+### Demo workspace verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | auth / membership permission | `demo` role gets `access_demo_workspace` but not `access_firm_workspace` | Verified | targeted backend tests confirm the new permission boundary |
+| Backend | `/demo/workspace` | Read fixed shared demo snapshot | Verified | targeted backend tests confirm demo can read the dedicated snapshot and receives `workspace_mode = demo` |
+| Backend | demo isolation | Demo account cannot read `/tasks` | Verified | targeted backend tests confirm demo still receives `403` on firm workspace routes |
+| Backend | `/members` summary | Owner sees pending demo invite count | Verified | targeted backend tests confirm member list now returns demo summary counts |
+| Frontend | nav / redirect helper | Demo only sees `/demo` nav and redirects off firm routes | Verified | node tests confirm demo nav shape and redirect helper behavior |
+| Frontend | `/demo` route | Build includes static `/demo` page | Verified | Next build now includes `/demo` as a static route |
+| Frontend | `/members` | Demo account summary is visible for owner | Verified | typecheck/build pass with new summary shape and demo summary helper |
+
+### Explicitly not shipped in this pass
+
+- browser smoke

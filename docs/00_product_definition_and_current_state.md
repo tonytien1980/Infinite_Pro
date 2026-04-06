@@ -762,8 +762,6 @@ Infinite Pro 目前沒有也不應硬對齊於：
   - `owner / consultant / demo` 的最小角色與 backend permission gate
   - `Members` 管理頁
   - consultant-facing `/login` 與 owner-facing `/members`
-- 目前仍明確未完成、也不應誤寫成已 shipped 的，包括：
-  - `demo workspace` 的正式資料隔離與展示資料集
 - 但 phase-5 第二個 slice 已進到 backend API foundation：
   - encrypted `PersonalProviderCredential`
   - firm-scoped `ProviderAllowlistEntry`
@@ -774,7 +772,11 @@ Infinite Pro 目前沒有也不應硬對齊於：
   - owner 現在可在 UI 內管理 provider allowlist
 - 因此 phase 5 目前最明確的下一個 slice 應理解為：
   - `demo workspace isolation`
-  - 也就是讓 demo role 有固定、共享、唯讀、與正式資料完全隔離的展示 workspace
+  - 這一刀現在也已正式落地：
+    - demo 只進 `/demo`
+    - demo 只讀固定 sample dataset
+    - demo 不可讀正式 firm workspace
+    - owner 可在 `/members` 看到 demo 帳號數量與待接受邀請數
 
 ---
 

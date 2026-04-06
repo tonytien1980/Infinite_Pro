@@ -908,6 +908,35 @@ Primary action：
 
 - 讓 owner 管理 firm 成員與邀請
 
+正式規則補充：
+
+- `/members` 現在也應顯示 demo 帳號概況
+- owner 應能直接看見：
+  - 已啟用 demo 數量
+  - 待接受 demo 邀請數
+
+### 7.13 `/demo`
+
+主任務：
+
+- 展示 Infinite Pro 的固定 sample workspace
+
+第一屏必答：
+
+- 你現在在 demo workspace
+- 這不是正式辦案 workspace
+- 這裡只能看，不能新增、修改、分析或治理
+
+Primary action：
+
+- 瀏覽 sample matters / deliverables / history
+
+正式規則：
+
+- demo 角色登入後若試圖進正式 workspace，應被導回 `/demo`
+- `/demo` 不可讀取正式 firm workspace 資料
+- `/demo` 應維持 consultant-facing、低噪音、展示導向
+
 第一屏必答：
 
 - 這一頁是誰可用
