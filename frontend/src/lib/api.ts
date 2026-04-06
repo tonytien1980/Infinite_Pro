@@ -50,6 +50,7 @@ import {
   FirmOperatingSnapshot,
   PersonalProviderSettingsPayload,
   PhaseFiveClosureReview,
+  PhaseSixCapabilityCoverageAudit,
   PersonalProviderSettingsSnapshot,
   PersonalProviderSettingsUpdatePayload,
   ProviderAllowlistSnapshot,
@@ -237,6 +238,16 @@ export async function getPhaseFiveClosureReview(): Promise<PhaseFiveClosureRevie
     cache: "no-store",
   });
   return parsePhaseFiveClosureReviewPayload(await parseResponse<any>(response));
+}
+
+export async function getPhaseSixCapabilityCoverageAudit(): Promise<PhaseSixCapabilityCoverageAudit> {
+  const response = await apiFetch(
+    `${getApiBaseUrl()}/workbench/phase-6-capability-coverage-audit`,
+    {
+      cache: "no-store",
+    },
+  );
+  return parsePhaseSixCapabilityCoverageAuditPayload(await parseResponse<any>(response));
 }
 
 export async function signOffPhaseFive(
@@ -879,6 +890,49 @@ function parsePhaseFiveClosureReviewPayload(payload: any): PhaseFiveClosureRevie
     next_phase_label: payload.next_phase_label || "",
     handoff_summary: payload.handoff_summary || "",
     handoff_items: Array.isArray(payload.handoff_items) ? payload.handoff_items : [],
+  };
+}
+
+function parsePhaseSixCapabilityCoverageAuditPayload(payload: any): PhaseSixCapabilityCoverageAudit {
+  return {
+    phaseId: "phase_6",
+    phaseLabel: payload.phase_label || "",
+    auditStatus: payload.audit_status === "balanced" ? "balanced" : "watch_drift",
+    auditStatusLabel: payload.audit_status_label || "",
+    coverageSummary: payload.coverage_summary || "",
+    generalistPosture:
+      payload.generalist_posture === "broad" ? "broad" : "watching_bias",
+    generalistPostureLabel: payload.generalist_posture_label || "",
+    priorityNote: payload.priority_note || "",
+    coverageAreas: Array.isArray(payload.coverage_areas)
+      ? payload.coverage_areas.map((item: any) => ({
+          areaId: item.area_id,
+          areaLabel: item.area_label || "",
+          coverageStatus:
+            item.coverage_status === "thin"
+              ? "thin"
+              : item.coverage_status === "overweighted"
+                ? "overweighted"
+                : "steady",
+          coverageStatusLabel: item.coverage_status_label || "",
+          summary: item.summary || "",
+        }))
+      : [],
+    reuseBoundaryItems: Array.isArray(payload.reuse_boundary_items)
+      ? payload.reuse_boundary_items.map((item: any) => ({
+          assetCode: item.asset_code,
+          assetLabel: item.asset_label || "",
+          boundaryStatus:
+            item.boundary_status === "generalizable"
+              ? "generalizable"
+              : item.boundary_status === "narrow_use"
+                ? "narrow_use"
+                : "contextual",
+          boundaryStatusLabel: item.boundary_status_label || "",
+          summary: item.summary || "",
+        }))
+      : [],
+    recommendedNextStep: payload.recommended_next_step || "",
   };
 }
 

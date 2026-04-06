@@ -11,6 +11,7 @@ import {
   getExtensionManager,
   getFirmOperatingSnapshot,
   getPhaseFiveClosureReview,
+  getPhaseSixCapabilityCoverageAudit,
   listMatterWorkspaces,
   signOffPhaseFive,
   listTasks,
@@ -21,12 +22,19 @@ import {
   summarizeFirmOperatingSignals,
 } from "@/lib/firm-operating";
 import { buildPhaseFiveClosureView } from "@/lib/phase-five-closure";
+import {
+  labelForPhaseSixAuditStatus,
+  labelForPhaseSixGeneralistPosture,
+  summarizePhaseSixCoverageAreas,
+  summarizePhaseSixReuseBoundaryItems,
+} from "@/lib/phase-six-governance";
 import { truncateText } from "@/lib/text-format";
 import type {
   ExtensionManagerSnapshot,
   FirmOperatingSnapshot,
   MatterWorkspaceSummary,
   PhaseFiveClosureReview,
+  PhaseSixCapabilityCoverageAudit,
   TaskListItem,
 } from "@/lib/types";
 import {
@@ -95,6 +103,7 @@ export function WorkbenchHome() {
   const [extensionManager, setExtensionManager] = useState<ExtensionManagerSnapshot | null>(null);
   const [firmOperating, setFirmOperating] = useState<FirmOperatingSnapshot | null>(null);
   const [phaseFiveClosureReview, setPhaseFiveClosureReview] = useState<PhaseFiveClosureReview | null>(null);
+  const [phaseSixAudit, setPhaseSixAudit] = useState<PhaseSixCapabilityCoverageAudit | null>(null);
   const [matterRecords] = useMatterWorkspaceRecords();
   const [settings] = useWorkbenchSettings();
   const [loading, setLoading] = useState(true);
@@ -102,12 +111,14 @@ export function WorkbenchHome() {
   const [extensionLoading, setExtensionLoading] = useState(true);
   const [firmOperatingLoading, setFirmOperatingLoading] = useState(true);
   const [phaseFiveClosureLoading, setPhaseFiveClosureLoading] = useState(true);
+  const [phaseSixAuditLoading, setPhaseSixAuditLoading] = useState(true);
   const [phaseFiveSignOffLoading, setPhaseFiveSignOffLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [matterError, setMatterError] = useState<string | null>(null);
   const [extensionError, setExtensionError] = useState<string | null>(null);
   const [firmOperatingError, setFirmOperatingError] = useState<string | null>(null);
   const [phaseFiveClosureError, setPhaseFiveClosureError] = useState<string | null>(null);
+  const [phaseSixAuditError, setPhaseSixAuditError] = useState<string | null>(null);
   const [phaseFiveClosureFeedback, setPhaseFiveClosureFeedback] = useState<string | null>(null);
 
   async function refreshTasks() {
@@ -179,12 +190,27 @@ export function WorkbenchHome() {
     }
   }
 
+  async function refreshPhaseSixAudit() {
+    try {
+      setPhaseSixAuditLoading(true);
+      setPhaseSixAuditError(null);
+      setPhaseSixAudit(await getPhaseSixCapabilityCoverageAudit());
+    } catch (auditError) {
+      setPhaseSixAuditError(
+        auditError instanceof Error ? auditError.message : "載入 Phase 6 治理摘要失敗。",
+      );
+    } finally {
+      setPhaseSixAuditLoading(false);
+    }
+  }
+
   useEffect(() => {
     void refreshTasks();
     void refreshMatters();
     void refreshExtensionManager();
     void refreshFirmOperating();
     void refreshPhaseFiveClosureReview();
+    void refreshPhaseSixAudit();
   }, []);
   const phaseFiveClosureView = buildPhaseFiveClosureView(phaseFiveClosureReview);
 
@@ -384,6 +410,11 @@ export function WorkbenchHome() {
       {firmOperatingError ? (
         <p className="error-text" role="alert" aria-live="assertive">
           {firmOperatingError}
+        </p>
+      ) : null}
+      {phaseSixAuditError ? (
+        <p className="error-text" role="alert" aria-live="assertive">
+          {phaseSixAuditError}
         </p>
       ) : null}
       {phaseFiveClosureError ? (
@@ -660,6 +691,71 @@ export function WorkbenchHome() {
                       ) : null}
                     </div>
                   ) : null}
+                </>
+              ) : null}
+            </section>
+
+            <section className="panel">
+              <div className="panel-header">
+                <div>
+                  <h2 className="panel-title">Generalist Governance</h2>
+                  <p className="panel-copy">低噪音回答 shared intelligence 目前有沒有開始偏科。</p>
+                </div>
+              </div>
+
+              {phaseSixAuditLoading ? <p className="status-text">正在整理 Phase 6 治理摘要...</p> : null}
+              {!phaseSixAuditLoading && phaseSixAudit ? (
+                <>
+                  <div className="summary-grid">
+                    <div className="section-card">
+                      <p className="muted-text">目前審核狀態</p>
+                      <strong>{labelForPhaseSixAuditStatus(phaseSixAudit.auditStatus)}</strong>
+                      <p className="muted-text">{phaseSixAudit.coverageSummary}</p>
+                    </div>
+                    <div className="section-card">
+                      <p className="muted-text">全面型姿態</p>
+                      <strong>
+                        {labelForPhaseSixGeneralistPosture(phaseSixAudit.generalistPosture)}
+                      </strong>
+                      <p className="muted-text">{phaseSixAudit.priorityNote}</p>
+                    </div>
+                    <div className="section-card">
+                      <p className="muted-text">目前覆蓋摘要</p>
+                      <strong>{phaseSixAudit.coverageAreas.length}</strong>
+                      <p className="muted-text">
+                        {summarizePhaseSixCoverageAreas(phaseSixAudit.coverageAreas)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="detail-list" style={{ marginTop: "16px" }}>
+                    {phaseSixAudit.coverageAreas.slice(0, 3).map((area) => (
+                      <div className="detail-item" key={area.areaId}>
+                        <div className="meta-row">
+                          <span className="pill">{area.coverageStatusLabel}</span>
+                          <span>{area.areaLabel}</span>
+                        </div>
+                        <p className="muted-text">{area.summary}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="section-card" style={{ marginTop: "16px" }}>
+                    <h3>reuse boundary</h3>
+                    <p className="muted-text">
+                      {summarizePhaseSixReuseBoundaryItems(phaseSixAudit.reuseBoundaryItems)}
+                    </p>
+                    <ul className="detail-list" style={{ marginTop: "12px" }}>
+                      {phaseSixAudit.reuseBoundaryItems.slice(0, 2).map((item) => (
+                        <li key={item.assetCode}>
+                          {item.assetLabel}｜{item.boundaryStatusLabel}｜{item.summary}
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="muted-text" style={{ marginTop: "12px" }}>
+                      {phaseSixAudit.recommendedNextStep}
+                    </p>
+                  </div>
                 </>
               ) : null}
             </section>

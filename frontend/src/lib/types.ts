@@ -363,6 +363,36 @@ export interface PhaseFiveClosureReview {
   handoff_items: string[];
 }
 
+export interface PhaseSixCoverageArea {
+  areaId: string;
+  areaLabel: string;
+  coverageStatus: "steady" | "thin" | "overweighted";
+  coverageStatusLabel: string;
+  summary: string;
+}
+
+export interface PhaseSixReuseBoundaryItem {
+  assetCode: string;
+  assetLabel: string;
+  boundaryStatus: "generalizable" | "contextual" | "narrow_use";
+  boundaryStatusLabel: string;
+  summary: string;
+}
+
+export interface PhaseSixCapabilityCoverageAudit {
+  phaseId: "phase_6";
+  phaseLabel: string;
+  auditStatus: "balanced" | "watch_drift";
+  auditStatusLabel: string;
+  coverageSummary: string;
+  generalistPosture: "broad" | "watching_bias";
+  generalistPostureLabel: string;
+  priorityNote: string;
+  coverageAreas: PhaseSixCoverageArea[];
+  reuseBoundaryItems: PhaseSixReuseBoundaryItem[];
+  recommendedNextStep: string;
+}
+
 export interface PrecedentDuplicateReviewPayload {
   review_key: string;
   resolution: "human_confirmed_canonical_row" | "keep_separate" | "split";
