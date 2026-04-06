@@ -9,10 +9,19 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     app_name: str = "Infinite Pro API"
     api_v1_prefix: str = "/api/v1"
+    app_base_url: str = "http://127.0.0.1:3001"
     database_url: str = "postgresql+psycopg://postgres:postgres@db:5432/ai_advisory_os"
     upload_dir: str = "/app/storage/uploads"
     derived_dir: str | None = None
     release_dir: str | None = None
+    google_client_id: str | None = None
+    google_client_secret: str | None = None
+    google_oauth_redirect_path: str = "/api/v1/auth/google/callback"
+    session_secret_key: str = "dev-infinite-pro-session-secret"
+    session_cookie_name: str = "infinite_pro_session"
+    bootstrap_owner_emails: str = ""
+    default_firm_name: str = "Infinite Pro"
+    default_firm_slug: str = "infinite-pro"
     model_provider: str = "mock"
     model_provider_api_key: str | None = None
     model_provider_model: str | None = None
@@ -74,6 +83,10 @@ class Settings(BaseSettings):
             if origin not in ordered:
                 ordered.append(origin)
         return ordered
+
+    @property
+    def bootstrap_owner_email_list(self) -> list[str]:
+        return [item.strip().lower() for item in self.bootstrap_owner_emails.split(",") if item.strip()]
 
 
 @lru_cache

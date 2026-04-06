@@ -138,6 +138,153 @@ class Task(Base):
     runs: Mapped[list["TaskRun"]] = relationship(back_populates="task", cascade="all, delete-orphan")
 
 
+class Firm(Base):
+    __tablename__ = "firms"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    slug: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
+    status: Mapped[str] = mapped_column(String(30), default="active")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+    memberships: Mapped[list["FirmMembership"]] = relationship(
+        back_populates="firm",
+        cascade="all, delete-orphan",
+        order_by="FirmMembership.created_at.asc()",
+    )
+    invites: Mapped[list["FirmInvite"]] = relationship(
+        back_populates="firm",
+        cascade="all, delete-orphan",
+        order_by="FirmInvite.created_at.desc()",
+    )
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    full_name: Mapped[str] = mapped_column(String(255), default="")
+    avatar_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    status: Mapped[str] = mapped_column(String(30), default="active")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+    auth_identities: Mapped[list["AuthIdentity"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        order_by="AuthIdentity.created_at.asc()",
+    )
+    memberships: Mapped[list["FirmMembership"]] = relationship(
+        back_populates="user",
+        foreign_keys="FirmMembership.user_id",
+        cascade="all, delete-orphan",
+        order_by="FirmMembership.created_at.asc()",
+    )
+    invited_memberships: Mapped[list["FirmMembership"]] = relationship(
+        back_populates="invited_by_user",
+        foreign_keys="FirmMembership.invited_by_user_id",
+    )
+    invited_member_invites: Mapped[list["FirmInvite"]] = relationship(
+        back_populates="invited_by_user",
+        foreign_keys="FirmInvite.invited_by_user_id",
+    )
+    sessions: Mapped[list["UserSession"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        order_by="UserSession.created_at.desc()",
+    )
+
+
+class AuthIdentity(Base):
+    __tablename__ = "auth_identities"
+    __table_args__ = (
+        UniqueConstraint("provider", "provider_subject", name="uq_auth_identity_provider_subject"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False)
+    provider: Mapped[str] = mapped_column(String(50), nullable=False, default="google")
+    provider_subject: Mapped[str] = mapped_column(String(255), nullable=False)
+    email: Mapped[str] = mapped_column(String(255), nullable=False)
+    email_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+    user: Mapped["User"] = relationship(back_populates="auth_identities")
+
+
+class FirmMembership(Base):
+    __tablename__ = "firm_memberships"
+    __table_args__ = (
+        UniqueConstraint("firm_id", "user_id", name="uq_firm_membership_user"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    firm_id: Mapped[str] = mapped_column(ForeignKey("firms.id"), nullable=False)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False)
+    role: Mapped[str] = mapped_column(String(30), nullable=False, default="consultant")
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="active")
+    invited_by_user_id: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+    firm: Mapped["Firm"] = relationship(back_populates="memberships")
+    user: Mapped["User"] = relationship(
+        back_populates="memberships",
+        foreign_keys=[user_id],
+    )
+    invited_by_user: Mapped["User | None"] = relationship(
+        back_populates="invited_memberships",
+        foreign_keys=[invited_by_user_id],
+    )
+    sessions: Mapped[list["UserSession"]] = relationship(
+        back_populates="membership",
+        cascade="all, delete-orphan",
+        order_by="UserSession.created_at.desc()",
+    )
+
+
+class FirmInvite(Base):
+    __tablename__ = "firm_invites"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    firm_id: Mapped[str] = mapped_column(ForeignKey("firms.id"), nullable=False)
+    invited_email: Mapped[str] = mapped_column(String(255), nullable=False)
+    role: Mapped[str] = mapped_column(String(30), nullable=False, default="consultant")
+    invite_token: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="pending")
+    invited_by_user_id: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+    firm: Mapped["Firm"] = relationship(back_populates="invites")
+    invited_by_user: Mapped["User | None"] = relationship(
+        back_populates="invited_member_invites",
+        foreign_keys=[invited_by_user_id],
+    )
+
+
+class UserSession(Base):
+    __tablename__ = "user_sessions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False)
+    membership_id: Mapped[str] = mapped_column(ForeignKey("firm_memberships.id"), nullable=False)
+    session_token: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="active")
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+    user: Mapped["User"] = relationship(back_populates="sessions")
+    membership: Mapped["FirmMembership"] = relationship(back_populates="sessions")
+
+
 class WorkbenchPreference(Base):
     __tablename__ = "workbench_preferences"
 

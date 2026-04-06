@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 
 from app.api.router import api_router
 from app.core.config import settings
@@ -44,6 +45,13 @@ def create_app() -> FastAPI:
             "X-Infinite-Pro-Version",
             "X-Infinite-Pro-Artifact-Format",
         ],
+    )
+    app.add_middleware(
+        SessionMiddleware,
+        secret_key=settings.session_secret_key,
+        session_cookie=settings.session_cookie_name,
+        same_site="lax",
+        https_only=False,
     )
 
     app.include_router(api_router, prefix=settings.api_v1_prefix)

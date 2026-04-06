@@ -151,11 +151,154 @@ def create_operations_process_payload(title: str = "Operations process review") 
     }
 
 
+def configure_auth_settings(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    bootstrap_owner_emails: str,
+    default_firm_name: str = "Infinite Pro Studio",
+) -> None:
+    from app.core.config import settings
+
+    expected_settings = {
+        "app_base_url": "http://127.0.0.1:3001",
+        "google_client_id": "google-client",
+        "google_client_secret": "google-secret",
+        "google_oauth_redirect_path": "/api/v1/auth/google/callback",
+        "session_secret_key": "phase5-session-secret",
+        "session_cookie_name": "infinite_pro_session",
+        "bootstrap_owner_emails": bootstrap_owner_emails,
+        "default_firm_name": default_firm_name,
+        "default_firm_slug": "infinite-pro-studio",
+    }
+    for field_name, value in expected_settings.items():
+        if hasattr(settings, field_name):
+            monkeypatch.setattr(settings, field_name, value)
+
+
+def login_google_user(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    email: str,
+    full_name: str,
+) -> dict:
+    from app.services import identity_access
+
+    def fake_exchange_google_code_for_identity(_code: str) -> identity_access.GoogleIdentity:
+        return identity_access.GoogleIdentity(
+            subject=f"subject-{email}",
+            email=email,
+            email_verified=True,
+            full_name=full_name,
+            avatar_url=None,
+        )
+
+    monkeypatch.setattr(
+        identity_access,
+        "exchange_google_code_for_identity",
+        fake_exchange_google_code_for_identity,
+    )
+
+    start = client.get("/api/v1/auth/google/start")
+    assert start.status_code == 200
+    state = start.json()["state"]
+
+    callback = client.get(
+        "/api/v1/auth/google/callback",
+        params={"code": "fake-code", "state": state},
+    )
+    assert callback.status_code == 200
+    return callback.json()
+
+
 def test_health_endpoint(client: TestClient) -> None:
     response = client.get("/api/v1/health")
 
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
+
+
+def test_google_callback_bootstraps_first_owner_when_email_is_allowlisted(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    configure_auth_settings(
+        monkeypatch,
+        bootstrap_owner_emails="owner@example.com",
+        default_firm_name="Infinite Pro Studio",
+    )
+
+    body = login_google_user(
+        client,
+        monkeypatch,
+        email="owner@example.com",
+        full_name="Owner User",
+    )
+    assert body["membership"]["role"] == "owner"
+    assert body["firm"]["name"] == "Infinite Pro Studio"
+
+    me = client.get("/api/v1/auth/me")
+    assert me.status_code == 200
+    assert me.json()["membership"]["role"] == "owner"
+    assert me.json()["user"]["email"] == "owner@example.com"
+
+
+def test_google_callback_rejects_uninvited_non_bootstrap_email(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    configure_auth_settings(monkeypatch, bootstrap_owner_emails="owner@example.com")
+
+    start = client.get("/api/v1/auth/google/start")
+    assert start.status_code == 200
+    state = start.json()["state"]
+
+    from app.services import identity_access
+
+    monkeypatch.setattr(
+        identity_access,
+        "exchange_google_code_for_identity",
+        lambda _code: identity_access.GoogleIdentity(
+            subject="google-subject-consultant",
+            email="consultant@example.com",
+            email_verified=True,
+            full_name="Consultant User",
+            avatar_url=None,
+        ),
+    )
+
+    callback = client.get(
+        "/api/v1/auth/google/callback",
+        params={"code": "fake-code", "state": state},
+    )
+    assert callback.status_code == 403
+    assert "尚未獲邀加入" in callback.json()["detail"]
+
+
+def test_auth_me_requires_active_session(client: TestClient) -> None:
+    response = client.get("/api/v1/auth/me")
+    assert response.status_code == 401
+    assert "請先登入" in response.json()["detail"]
+
+
+def test_auth_logout_clears_active_session(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    configure_auth_settings(monkeypatch, bootstrap_owner_emails="owner@example.com")
+    login_google_user(
+        client,
+        monkeypatch,
+        email="owner@example.com",
+        full_name="Owner User",
+    )
+
+    logout = client.post("/api/v1/auth/logout")
+    assert logout.status_code == 200
+    assert logout.json() == {"status": "ok"}
+
+    me = client.get("/api/v1/auth/me")
+    assert me.status_code == 401
 
 
 def test_workbench_preferences_round_trip_theme_preference(client: TestClient) -> None:
