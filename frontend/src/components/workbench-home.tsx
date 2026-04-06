@@ -12,6 +12,7 @@ import {
   getFirmOperatingSnapshot,
   getPhaseFiveClosureReview,
   getPhaseSixCapabilityCoverageAudit,
+  getPhaseSixReuseBoundaryGovernance,
   listMatterWorkspaces,
   signOffPhaseFive,
   listTasks,
@@ -25,7 +26,10 @@ import { buildPhaseFiveClosureView } from "@/lib/phase-five-closure";
 import {
   labelForPhaseSixAuditStatus,
   labelForPhaseSixGeneralistPosture,
+  labelForPhaseSixGovernancePosture,
+  labelForPhaseSixReuseRecommendation,
   summarizePhaseSixCoverageAreas,
+  summarizePhaseSixGovernanceItems,
   summarizePhaseSixReuseBoundaryItems,
 } from "@/lib/phase-six-governance";
 import { truncateText } from "@/lib/text-format";
@@ -35,6 +39,7 @@ import type {
   MatterWorkspaceSummary,
   PhaseFiveClosureReview,
   PhaseSixCapabilityCoverageAudit,
+  PhaseSixReuseBoundaryGovernance,
   TaskListItem,
 } from "@/lib/types";
 import {
@@ -104,6 +109,7 @@ export function WorkbenchHome() {
   const [firmOperating, setFirmOperating] = useState<FirmOperatingSnapshot | null>(null);
   const [phaseFiveClosureReview, setPhaseFiveClosureReview] = useState<PhaseFiveClosureReview | null>(null);
   const [phaseSixAudit, setPhaseSixAudit] = useState<PhaseSixCapabilityCoverageAudit | null>(null);
+  const [phaseSixGovernance, setPhaseSixGovernance] = useState<PhaseSixReuseBoundaryGovernance | null>(null);
   const [matterRecords] = useMatterWorkspaceRecords();
   const [settings] = useWorkbenchSettings();
   const [loading, setLoading] = useState(true);
@@ -112,6 +118,7 @@ export function WorkbenchHome() {
   const [firmOperatingLoading, setFirmOperatingLoading] = useState(true);
   const [phaseFiveClosureLoading, setPhaseFiveClosureLoading] = useState(true);
   const [phaseSixAuditLoading, setPhaseSixAuditLoading] = useState(true);
+  const [phaseSixGovernanceLoading, setPhaseSixGovernanceLoading] = useState(true);
   const [phaseFiveSignOffLoading, setPhaseFiveSignOffLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [matterError, setMatterError] = useState<string | null>(null);
@@ -119,6 +126,7 @@ export function WorkbenchHome() {
   const [firmOperatingError, setFirmOperatingError] = useState<string | null>(null);
   const [phaseFiveClosureError, setPhaseFiveClosureError] = useState<string | null>(null);
   const [phaseSixAuditError, setPhaseSixAuditError] = useState<string | null>(null);
+  const [phaseSixGovernanceError, setPhaseSixGovernanceError] = useState<string | null>(null);
   const [phaseFiveClosureFeedback, setPhaseFiveClosureFeedback] = useState<string | null>(null);
 
   async function refreshTasks() {
@@ -204,6 +212,22 @@ export function WorkbenchHome() {
     }
   }
 
+  async function refreshPhaseSixGovernance() {
+    try {
+      setPhaseSixGovernanceLoading(true);
+      setPhaseSixGovernanceError(null);
+      setPhaseSixGovernance(await getPhaseSixReuseBoundaryGovernance());
+    } catch (governanceError) {
+      setPhaseSixGovernanceError(
+        governanceError instanceof Error
+          ? governanceError.message
+          : "載入 reuse-boundary 治理摘要失敗。",
+      );
+    } finally {
+      setPhaseSixGovernanceLoading(false);
+    }
+  }
+
   useEffect(() => {
     void refreshTasks();
     void refreshMatters();
@@ -211,6 +235,7 @@ export function WorkbenchHome() {
     void refreshFirmOperating();
     void refreshPhaseFiveClosureReview();
     void refreshPhaseSixAudit();
+    void refreshPhaseSixGovernance();
   }, []);
   const phaseFiveClosureView = buildPhaseFiveClosureView(phaseFiveClosureReview);
 
@@ -415,6 +440,11 @@ export function WorkbenchHome() {
       {phaseSixAuditError ? (
         <p className="error-text" role="alert" aria-live="assertive">
           {phaseSixAuditError}
+        </p>
+      ) : null}
+      {phaseSixGovernanceError ? (
+        <p className="error-text" role="alert" aria-live="assertive">
+          {phaseSixGovernanceError}
         </p>
       ) : null}
       {phaseFiveClosureError ? (
@@ -756,6 +786,36 @@ export function WorkbenchHome() {
                       {phaseSixAudit.recommendedNextStep}
                     </p>
                   </div>
+
+                  {phaseSixGovernanceLoading ? (
+                    <p className="status-text" style={{ marginTop: "16px" }}>
+                      正在整理 reuse-boundary 治理建議...
+                    </p>
+                  ) : null}
+
+                  {!phaseSixGovernanceLoading && phaseSixGovernance ? (
+                    <div className="section-card" style={{ marginTop: "16px" }}>
+                      <h3>reuse-boundary governance</h3>
+                      <p className="muted-text">
+                        {labelForPhaseSixGovernancePosture(phaseSixGovernance.governancePosture)}
+                      </p>
+                      <strong>{phaseSixGovernance.summary}</strong>
+                      <p className="muted-text" style={{ marginTop: "8px" }}>
+                        {summarizePhaseSixGovernanceItems(phaseSixGovernance.governanceItems)}
+                      </p>
+                      <ul className="detail-list" style={{ marginTop: "12px" }}>
+                        {phaseSixGovernance.governanceItems.slice(0, 2).map((item) => (
+                          <li key={item.assetCode}>
+                            {item.assetLabel}｜{labelForPhaseSixReuseRecommendation(item.reuseRecommendation)}｜
+                            {item.guardrailNote}
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="muted-text" style={{ marginTop: "12px" }}>
+                        {phaseSixGovernance.recommendedNextStep}
+                      </p>
+                    </div>
+                  ) : null}
                 </>
               ) : null}
             </section>

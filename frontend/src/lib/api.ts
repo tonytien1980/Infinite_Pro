@@ -51,6 +51,7 @@ import {
   PersonalProviderSettingsPayload,
   PhaseFiveClosureReview,
   PhaseSixCapabilityCoverageAudit,
+  PhaseSixReuseBoundaryGovernance,
   PersonalProviderSettingsSnapshot,
   PersonalProviderSettingsUpdatePayload,
   ProviderAllowlistSnapshot,
@@ -248,6 +249,16 @@ export async function getPhaseSixCapabilityCoverageAudit(): Promise<PhaseSixCapa
     },
   );
   return parsePhaseSixCapabilityCoverageAuditPayload(await parseResponse<any>(response));
+}
+
+export async function getPhaseSixReuseBoundaryGovernance(): Promise<PhaseSixReuseBoundaryGovernance> {
+  const response = await apiFetch(
+    `${getApiBaseUrl()}/workbench/phase-6-reuse-boundary-governance`,
+    {
+      cache: "no-store",
+    },
+  );
+  return parsePhaseSixReuseBoundaryGovernancePayload(await parseResponse<any>(response));
 }
 
 export async function signOffPhaseFive(
@@ -930,6 +941,45 @@ function parsePhaseSixCapabilityCoverageAuditPayload(payload: any): PhaseSixCapa
                 : "contextual",
           boundaryStatusLabel: item.boundary_status_label || "",
           summary: item.summary || "",
+        }))
+      : [],
+    recommendedNextStep: payload.recommended_next_step || "",
+  };
+}
+
+function parsePhaseSixReuseBoundaryGovernancePayload(
+  payload: any,
+): PhaseSixReuseBoundaryGovernance {
+  return {
+    phaseId: "phase_6",
+    phaseLabel: payload.phase_label || "",
+    governancePosture:
+      payload.governance_posture === "stable" ? "stable" : "guardrails_needed",
+    governancePostureLabel: payload.governance_posture_label || "",
+    summary: payload.summary || "",
+    generalizableCount: Number(payload.generalizable_count ?? 0),
+    contextualCount: Number(payload.contextual_count ?? 0),
+    narrowUseCount: Number(payload.narrow_use_count ?? 0),
+    governanceItems: Array.isArray(payload.governance_items)
+      ? payload.governance_items.map((item: any) => ({
+          assetCode: item.asset_code,
+          assetLabel: item.asset_label || "",
+          boundaryStatus:
+            item.boundary_status === "generalizable"
+              ? "generalizable"
+              : item.boundary_status === "narrow_use"
+                ? "narrow_use"
+                : "contextual",
+          boundaryStatusLabel: item.boundary_status_label || "",
+          reuseRecommendation:
+            item.reuse_recommendation === "can_expand"
+              ? "can_expand"
+              : item.reuse_recommendation === "restrict_narrow_use"
+                ? "restrict_narrow_use"
+                : "keep_contextual",
+          reuseRecommendationLabel: item.reuse_recommendation_label || "",
+          summary: item.summary || "",
+          guardrailNote: item.guardrail_note || "",
         }))
       : [],
     recommendedNextStep: payload.recommended_next_step || "",

@@ -393,6 +393,30 @@ export interface PhaseSixCapabilityCoverageAudit {
   recommendedNextStep: string;
 }
 
+export interface PhaseSixReuseBoundaryGovernanceItem {
+  assetCode: string;
+  assetLabel: string;
+  boundaryStatus: "generalizable" | "contextual" | "narrow_use";
+  boundaryStatusLabel: string;
+  reuseRecommendation: "can_expand" | "keep_contextual" | "restrict_narrow_use";
+  reuseRecommendationLabel: string;
+  summary: string;
+  guardrailNote: string;
+}
+
+export interface PhaseSixReuseBoundaryGovernance {
+  phaseId: "phase_6";
+  phaseLabel: string;
+  governancePosture: "stable" | "guardrails_needed";
+  governancePostureLabel: string;
+  summary: string;
+  generalizableCount: number;
+  contextualCount: number;
+  narrowUseCount: number;
+  governanceItems: PhaseSixReuseBoundaryGovernanceItem[];
+  recommendedNextStep: string;
+}
+
 export interface PrecedentDuplicateReviewPayload {
   review_key: string;
   resolution: "human_confirmed_canonical_row" | "keep_separate" | "split";
