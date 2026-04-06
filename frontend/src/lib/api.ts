@@ -44,6 +44,7 @@ import {
   MemberInviteRead,
   MemberListSnapshot,
   MemberRead,
+  DemoWorkspaceSnapshot,
   PersonalProviderSettingsPayload,
   PersonalProviderSettingsSnapshot,
   PersonalProviderSettingsUpdatePayload,
@@ -153,6 +154,10 @@ export async function listMembers(): Promise<MemberListSnapshot> {
       role: "consultant" | "demo";
       status: "pending" | "accepted" | "revoked";
     }>;
+    summary?: {
+      active_demo_member_count?: number;
+      pending_demo_invite_count?: number;
+    };
   }>(response);
   return {
     members: payload.members.map((member) => ({
@@ -163,6 +168,29 @@ export async function listMembers(): Promise<MemberListSnapshot> {
       status: member.status,
     })),
     pendingInvites: payload.pending_invites,
+    summary: {
+      activeDemoMemberCount: payload.summary?.active_demo_member_count ?? 0,
+      pendingDemoInviteCount: payload.summary?.pending_demo_invite_count ?? 0,
+    },
+  };
+}
+
+export async function getDemoWorkspaceSnapshot(): Promise<DemoWorkspaceSnapshot> {
+  const response = await apiFetch(`${getApiBaseUrl()}/demo/workspace`, {
+    cache: "no-store",
+  });
+  const payload = await parseResponse<any>(response);
+  return {
+    workspaceMode: payload.workspace_mode,
+    title: payload.title,
+    subtitle: payload.subtitle,
+    entryMessage: payload.entry_message,
+    sections: (payload.sections || []).map((section: any) => ({
+      sectionId: section.section_id,
+      title: section.title,
+      summary: section.summary,
+      items: Array.isArray(section.items) ? section.items : [],
+    })),
   };
 }
 

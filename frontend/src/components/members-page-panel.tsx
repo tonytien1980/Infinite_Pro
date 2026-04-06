@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { createMemberInvite, listMembers, updateMemberRole } from "@/lib/api";
+import { buildDemoMemberSummary } from "@/lib/demo-workspace";
 import type { MemberListSnapshot } from "@/lib/types";
 
 export function MembersPagePanel() {
@@ -41,6 +42,11 @@ export function MembersPagePanel() {
           ? {
               members: current.members,
               pendingInvites: [created].concat(current.pendingInvites),
+              summary: {
+                activeDemoMemberCount: current.summary.activeDemoMemberCount,
+                pendingDemoInviteCount:
+                  current.summary.pendingDemoInviteCount + (created.role === "demo" ? 1 : 0),
+              },
             }
           : current,
       );
@@ -74,6 +80,8 @@ export function MembersPagePanel() {
       setFeedback(null);
     }
   }
+
+  const demoSummary = buildDemoMemberSummary(snapshot);
 
   return (
     <main className="page-shell management-page-shell">
@@ -112,6 +120,16 @@ export function MembersPagePanel() {
 
       <section className="section-card">
         <h2>現有成員</h2>
+        <div className="summary-grid" style={{ marginBottom: "16px" }}>
+          <div className="section-card">
+            <p className="muted-text">已啟用 demo</p>
+            <strong>{demoSummary.activeCount}</strong>
+          </div>
+          <div className="section-card">
+            <p className="muted-text">待接受 demo 邀請</p>
+            <strong>{demoSummary.pendingCount}</strong>
+          </div>
+        </div>
         <ul className="detail-list">
           {(snapshot?.members ?? []).map((member) => (
             <li key={member.id}>

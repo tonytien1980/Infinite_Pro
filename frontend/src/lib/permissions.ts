@@ -12,6 +12,19 @@ export function canManageExtensions(role: MembershipRole) {
   return role === "owner";
 }
 
+export function resolveProtectedPathForMembershipRole(
+  role: MembershipRole,
+  pathname: string,
+) {
+  if (role !== "demo") {
+    return null;
+  }
+  if (pathname === "/demo") {
+    return null;
+  }
+  return "/demo";
+}
+
 export function buildPrimaryNavForMembershipRole(role: MembershipRole) {
   const common = [
     { href: "/", label: "總覽" },
@@ -34,6 +47,10 @@ export function buildPrimaryNavForMembershipRole(role: MembershipRole) {
       { href: "/agents", label: "代理一覽" },
       { href: "/packs", label: "模組包一覽" },
     ]);
+  }
+
+  if (role === "demo") {
+    return [{ href: "/demo", label: "Demo Workspace" }];
   }
 
   return [];

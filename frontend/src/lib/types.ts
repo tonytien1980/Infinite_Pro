@@ -168,6 +168,25 @@ export interface MemberInviteRead {
 export interface MemberListSnapshot {
   members: MemberRead[];
   pendingInvites: MemberInviteRead[];
+  summary: {
+    activeDemoMemberCount: number;
+    pendingDemoInviteCount: number;
+  };
+}
+
+export interface DemoWorkspaceSection {
+  sectionId: "sample_matters" | "sample_deliverables" | "sample_history" | "workspace_rules";
+  title: string;
+  summary: string;
+  items: string[];
+}
+
+export interface DemoWorkspaceSnapshot {
+  workspaceMode: "demo";
+  title: string;
+  subtitle: string;
+  entryMessage: string;
+  sections: DemoWorkspaceSection[];
 }
 
 export interface PrecedentReviewItem {

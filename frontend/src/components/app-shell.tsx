@@ -5,7 +5,11 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { getCurrentSession } from "@/lib/api";
-import { buildPrimaryNavForMembershipRole, isPublicAppPath } from "@/lib/permissions";
+import {
+  buildPrimaryNavForMembershipRole,
+  isPublicAppPath,
+  resolveProtectedPathForMembershipRole,
+} from "@/lib/permissions";
 import { getLoginPath, getSessionDisplayName, isAuthError } from "@/lib/session";
 import { hydrateWorkbenchPreferences } from "@/lib/workbench-persistence";
 import { useWorkbenchSettings } from "@/lib/workbench-store";
@@ -117,6 +121,17 @@ export function AppShell({ children }: { children: ReactNode }) {
   const primaryNavItems = session
     ? buildPrimaryNavForMembershipRole(session.membership.role)
     : [];
+  const redirectTarget =
+    session && !publicPath
+      ? resolveProtectedPathForMembershipRole(session.membership.role, pathname)
+      : null;
+
+  useEffect(() => {
+    if (!redirectTarget) {
+      return;
+    }
+    window.location.href = redirectTarget;
+  }, [redirectTarget]);
 
   if (!publicPath && !authResolved) {
     return (
