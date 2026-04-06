@@ -186,6 +186,10 @@ export interface DemoWorkspaceSnapshot {
   title: string;
   subtitle: string;
   entryMessage: string;
+  heroSummary: string;
+  showcaseHighlights: string[];
+  readOnlyRules: string[];
+  formalWorkspaceExplainer: string;
   sections: DemoWorkspaceSection[];
 }
 

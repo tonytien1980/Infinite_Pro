@@ -11,6 +11,20 @@ export function buildDemoEntryCopy(snapshot: DemoWorkspaceSnapshot | null) {
   return snapshot.entryMessage;
 }
 
+export function summarizeDemoShowcaseHighlights(highlights: string[]) {
+  if (highlights.length === 0) {
+    return "這裡會展示 Infinite Pro 的典型案件、交付物與 shared intelligence 讀法。";
+  }
+  return `你可以先看 ${highlights.join("、")}。`;
+}
+
+export function buildFormalWorkspaceExplainer(snapshot: DemoWorkspaceSnapshot | null) {
+  if (!snapshot?.formalWorkspaceExplainer) {
+    return "正式版 workspace 會讓 consultant 進入自己的辦案路徑；demo 則只展示產品如何工作，不提供操作權限。";
+  }
+  return snapshot.formalWorkspaceExplainer;
+}
+
 export function buildDemoMemberSummary(snapshot: MemberListSnapshot | null) {
   return {
     activeCount: snapshot?.summary.activeDemoMemberCount || 0,

@@ -8,7 +8,9 @@ import {
 import {
   buildDemoMemberSummary,
   canRevokeInvite,
+  buildFormalWorkspaceExplainer,
   labelForDemoWorkspacePolicyStatus,
+  summarizeDemoShowcaseHighlights,
   summarizeDemoWorkspaceCapacity,
 } from "../src/lib/demo-workspace.ts";
 
@@ -69,5 +71,23 @@ test("demo workspace capacity summary handles zero and positive limits", () => {
       maxActiveDemoMembers: 0,
     }),
     "目前不開放啟用 demo 帳號。",
+  );
+});
+
+test("demo showcase summary keeps highlights consultant-readable", () => {
+  assert.equal(
+    summarizeDemoShowcaseHighlights([
+      "matter / case world 的正式工作面",
+      "deliverable shaping 的收斂讀法",
+      "history / shared intelligence 的唯讀展示",
+    ]),
+    "你可以先看 matter / case world 的正式工作面、deliverable shaping 的收斂讀法、history / shared intelligence 的唯讀展示。",
+  );
+});
+
+test("formal workspace explainer falls back to a safe default", () => {
+  assert.equal(
+    buildFormalWorkspaceExplainer(null),
+    "正式版 workspace 會讓 consultant 進入自己的辦案路徑；demo 則只展示產品如何工作，不提供操作權限。",
   );
 });

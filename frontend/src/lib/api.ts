@@ -187,6 +187,10 @@ export async function getDemoWorkspaceSnapshot(): Promise<DemoWorkspaceSnapshot>
     title: payload.title,
     subtitle: payload.subtitle,
     entryMessage: payload.entry_message,
+    heroSummary: payload.hero_summary || "",
+    showcaseHighlights: Array.isArray(payload.showcase_highlights) ? payload.showcase_highlights : [],
+    readOnlyRules: Array.isArray(payload.read_only_rules) ? payload.read_only_rules : [],
+    formalWorkspaceExplainer: payload.formal_workspace_explainer || "",
     sections: (payload.sections || []).map((section: any) => ({
       sectionId: section.section_id,
       title: section.title,
