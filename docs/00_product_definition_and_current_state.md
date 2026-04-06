@@ -781,6 +781,12 @@ Infinite Pro 目前沒有也不應硬對齊於：
   1. `owner controls deepen`
   2. `demo polish`
   3. `firm operating surfaces`
+- 其中第一條 `owner controls deepen` 現在也已正式 shipped：
+  - owner 可撤回 pending invite
+  - owner 可在 `Firm Settings` 讀寫 demo workspace policy
+  - `/members` 與 `Firm Settings` 已形成 single-firm owner control 的最小分工
+- 因此 phase 5 現在最自然的下一個 slice 已不是 owner controls，而是：
+  - `demo polish`
 
 ---
 

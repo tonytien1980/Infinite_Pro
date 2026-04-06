@@ -4262,3 +4262,46 @@ Environment used:
 ### Explicitly not shipped in this pass
 
 - browser smoke
+
+---
+
+## Entry: 2026-04-06 phase-5 owner controls deepen pass
+
+Scope:
+- pending invite revoke
+- demo workspace policy read / update
+- `/members` owner-side revoke action
+- `Firm Settings` demo policy panel
+
+Environment used:
+- local backend and frontend verification only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`204 passed`) |
+| `cd frontend && node --test tests/auth-foundation.test.mjs tests/provider-settings-foundation.test.mjs tests/demo-workspace-isolation.test.mjs tests/intake-progress.test.mjs` | Passed (`45 passed`) |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && mkdir -p .next/types && npx next typegen && npm run typecheck` | Passed |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+
+### Owner controls verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | `/members/invites/{id}/revoke` | Owner revokes a pending invite | Verified | targeted backend tests confirm pending invite becomes `revoked` |
+| Backend | invite revoke guardrail | Revoke the same invite twice | Verified | targeted backend tests confirm second revoke is rejected with `400` |
+| Backend | `/workbench/demo-workspace-policy` | Owner reads current demo workspace policy | Verified | full backend suite confirms owner can read `status`, `workspace_slug`, `seed_version`, and `max_active_demo_members` |
+| Backend | `/workbench/demo-workspace-policy` | Owner updates demo workspace policy | Verified | targeted backend tests confirm owner can persist `inactive` plus updated member cap |
+| Frontend | `/members` | Owner sees revoke action only on pending invites | Verified | node tests confirm revoke helper stays limited to `pending` rows |
+| Frontend | `/members` | Owner revoke action compiles into the shipped members panel | Verified | typecheck/build pass with revoke button and updated summary refresh path |
+| Frontend | `/settings` | `Firm Settings` shows demo workspace policy panel | Verified | typecheck/build pass with owner-facing `status` and `max active demo members` controls |
+| Frontend | demo policy copy | Status and capacity wording stay consultant-readable Traditional Chinese | Verified | node tests confirm `啟用中 / 已停用` and seat-capacity wording |
+
+### Explicitly not shipped in this pass
+
+- browser smoke
+- demo polish
+- firm operating surfaces

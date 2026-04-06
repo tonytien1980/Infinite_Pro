@@ -1,7 +1,7 @@
 # Phase 5 Owner Controls Deepen Design
 
 日期：2026-04-06
-狀態：proposed
+狀態：shipped
 
 ## Purpose
 
@@ -233,3 +233,12 @@ owner 應能在第一眼看見：
 2. `Firm Settings demo policy controls`
 
 也就是先把 owner 最常碰、最像「真正在營運一個 firm」的控制面補起來。
+
+## Implemented Outcome
+
+這一輪已正式 shipped：
+
+- owner 可撤回 `pending` invite
+- owner 可在 `/members` 直接看到 revoke action 與 demo account summary
+- owner 可在 `Firm Settings` 讀寫 demo workspace policy
+- 這一刀仍維持既有 `/members` + `Firm Settings` 的 low-noise 分工，沒有新增 admin dashboard

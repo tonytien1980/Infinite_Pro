@@ -1722,6 +1722,36 @@ Object storage 負責：
 - finished tenant isolation shell
 - enterprise RBAC matrix
 
+### 7.7 Owner operating controls
+
+在 demo workspace isolation 之後，runtime 也已正式補上 single-firm owner controls 的最小深化：
+
+- owner 可撤回 `pending` invite
+- backend 已有 `GET /workbench/demo-workspace-policy`
+- backend 已有 `PUT /workbench/demo-workspace-policy`
+- owner-side control surface 仍維持：
+  - `/members`
+  - `Firm Settings`
+
+正式規則：
+
+- invite revoke 只允許作用在 `pending` invite
+- `accepted` / `revoked` invite 不可重複撤回
+- demo workspace policy 第一版只允許 owner 更新：
+  - `status`
+  - `max_active_demo_members`
+- `workspace_slug` 與 `seed_version` 目前仍是 backend-owned metadata，不在 UI 開放編輯
+
+因此這一層現在應被理解為：
+
+- low-noise single-firm owner controls
+
+不是：
+
+- enterprise admin console
+- seat billing console
+- multi-firm policy center
+
 ---
 
 ## 8. Provider Boundary

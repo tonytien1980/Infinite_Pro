@@ -879,6 +879,8 @@ Primary action：
   - consultant 只會看到 `Personal Provider Settings`
   - task run 已開始吃 auth-aware provider precedence，且這層規則已透過 settings UI 進入正式工作流
   - owner allowlist 與 consultant personal key 現在都屬於 shipped UI，而不是 conversation-only 規則
+  - owner 現在也已能在 `Firm Settings` 直接讀寫 demo workspace policy
+  - 這一層仍應維持 low-noise，不可長成 generic admin shell
 
 ### 7.11 `/login`
 
@@ -914,6 +916,8 @@ Primary action：
 - owner 應能直接看見：
   - 已啟用 demo 數量
   - 待接受 demo 邀請數
+- owner 現在也應能直接撤回 `pending` invite
+- `accepted` / `revoked` invite 不應再顯示可撤回 action
 
 ### 7.13 `/demo`
 
