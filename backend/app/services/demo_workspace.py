@@ -39,6 +39,19 @@ def get_demo_workspace_snapshot(
         title="Infinite Pro Demo Workspace",
         subtitle=f"固定展示資料｜唯讀｜seed {policy.seed_version}",
         entry_message="你目前正在 demo workspace。這裡只能看，不能新增、修改、分析或治理。",
+        hero_summary="這裡展示的是 Infinite Pro 如何把案件世界、交付物與 shared intelligence 串成同一條顧問工作流。",
+        showcase_highlights=[
+            "matter / case world 的正式工作面",
+            "deliverable shaping 的收斂讀法",
+            "history / shared intelligence 的唯讀展示",
+        ],
+        read_only_rules=[
+            "不能新增案件",
+            "不能上傳材料",
+            "不能執行分析",
+            "不能碰正式資料",
+        ],
+        formal_workspace_explainer="正式版 workspace 會讓 consultant 進入自己的辦案路徑；demo 則只展示產品如何工作，不提供操作權限。",
         sections=[
             demo_schemas.DemoWorkspaceSectionRead(
                 section_id="sample_matters",

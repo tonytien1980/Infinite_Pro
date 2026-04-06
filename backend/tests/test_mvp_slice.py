@@ -312,6 +312,22 @@ def test_demo_can_read_demo_workspace_snapshot(
     assert response.json()["sections"][0]["section_id"] == "sample_matters"
 
 
+def test_demo_workspace_snapshot_includes_guided_narrative(
+    anonymous_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    demo_client = login_as_demo_with_owner_invite(anonymous_client, monkeypatch)
+
+    response = demo_client.get("/api/v1/demo/workspace")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["hero_summary"]
+    assert len(payload["showcase_highlights"]) >= 3
+    assert "不能執行分析" in payload["read_only_rules"]
+    assert payload["formal_workspace_explainer"]
+
+
 def test_demo_cannot_read_firm_workspace_routes(
     anonymous_client: TestClient,
     monkeypatch: pytest.MonkeyPatch,

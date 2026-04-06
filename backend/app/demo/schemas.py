@@ -22,4 +22,8 @@ class DemoWorkspaceRead(BaseModel):
     title: str
     subtitle: str
     entry_message: str
+    hero_summary: str
+    showcase_highlights: list[str] = Field(default_factory=list)
+    read_only_rules: list[str] = Field(default_factory=list)
+    formal_workspace_explainer: str
     sections: list[DemoWorkspaceSectionRead] = Field(default_factory=list)
