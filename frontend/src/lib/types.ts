@@ -128,6 +128,48 @@ export interface OperatorIdentitySettings {
   operatorDisplayName: string;
 }
 
+export type MembershipRole = "owner" | "consultant" | "demo";
+
+export interface SessionState {
+  user: {
+    id: string;
+    email: string;
+    fullName: string;
+    avatarUrl: string | null;
+  };
+  firm: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+  membership: {
+    id: string;
+    role: MembershipRole;
+    status: "active" | "disabled";
+  };
+  permissions: string[];
+}
+
+export interface MemberRead {
+  id: string;
+  email: string;
+  fullName: string;
+  role: MembershipRole;
+  status: "active" | "disabled";
+}
+
+export interface MemberInviteRead {
+  id: string;
+  email: string;
+  role: "consultant" | "demo";
+  status: "pending" | "accepted" | "revoked";
+}
+
+export interface MemberListSnapshot {
+  members: MemberRead[];
+  pendingInvites: MemberInviteRead[];
+}
+
 export interface PrecedentReviewItem {
   id: string;
   candidate_type: PrecedentCandidateType;

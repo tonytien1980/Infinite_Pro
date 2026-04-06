@@ -40,6 +40,10 @@ import {
   TaskListItem,
   UploadBatchResponse,
   WorkbenchSettings,
+  SessionState,
+  MemberInviteRead,
+  MemberListSnapshot,
+  MemberRead,
 } from "@/lib/types";
 
 function getApiBaseUrl() {
@@ -54,6 +58,13 @@ function getApiBaseUrl() {
   }
 
   return "http://127.0.0.1:8000/api/v1";
+}
+
+function apiFetch(input: string, init: RequestInit = {}) {
+  return fetch(input, {
+    ...init,
+    credentials: init.credentials ?? "include",
+  });
 }
 
 async function parseResponse<T>(response: Response): Promise<T> {
@@ -76,15 +87,134 @@ async function parseResponse<T>(response: Response): Promise<T> {
   return (await response.json()) as T;
 }
 
+export async function getCurrentSession(): Promise<SessionState> {
+  const response = await apiFetch(`${getApiBaseUrl()}/auth/me`, {
+    cache: "no-store",
+  });
+  const payload = await parseResponse<{
+    user: {
+      id: string;
+      email: string;
+      full_name: string;
+      avatar_url: string | null;
+    };
+    firm: {
+      id: string;
+      name: string;
+      slug: string;
+    };
+    membership: {
+      id: string;
+      role: "owner" | "consultant" | "demo";
+      status: "active" | "disabled";
+    };
+    permissions: string[];
+  }>(response);
+  return {
+    user: {
+      id: payload.user.id,
+      email: payload.user.email,
+      fullName: payload.user.full_name,
+      avatarUrl: payload.user.avatar_url,
+    },
+    firm: payload.firm,
+    membership: payload.membership,
+    permissions: payload.permissions,
+  };
+}
+
+export async function startGoogleLogin(): Promise<{ authorizationUrl: string }> {
+  const response = await apiFetch(`${getApiBaseUrl()}/auth/google/start`, {
+    cache: "no-store",
+  });
+  const payload = await parseResponse<{ state: string; authorization_url: string }>(response);
+  return { authorizationUrl: payload.authorization_url };
+}
+
+export async function listMembers(): Promise<MemberListSnapshot> {
+  const response = await apiFetch(`${getApiBaseUrl()}/members`, {
+    cache: "no-store",
+  });
+  const payload = await parseResponse<{
+    members: Array<{
+      id: string;
+      email: string;
+      full_name: string;
+      role: "owner" | "consultant" | "demo";
+      status: "active" | "disabled";
+    }>;
+    pending_invites: Array<{
+      id: string;
+      email: string;
+      role: "consultant" | "demo";
+      status: "pending" | "accepted" | "revoked";
+    }>;
+  }>(response);
+  return {
+    members: payload.members.map((member) => ({
+      id: member.id,
+      email: member.email,
+      fullName: member.full_name,
+      role: member.role,
+      status: member.status,
+    })),
+    pendingInvites: payload.pending_invites,
+  };
+}
+
+export async function createMemberInvite(payload: {
+  email: string;
+  role: "consultant" | "demo";
+}): Promise<MemberInviteRead> {
+  const response = await apiFetch(`${getApiBaseUrl()}/members/invites`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  return parseResponse<MemberInviteRead>(response);
+}
+
+export async function updateMemberRole(
+  membershipId: string,
+  payload: {
+    role: "owner" | "consultant" | "demo";
+    status: "active" | "disabled";
+  },
+): Promise<MemberRead> {
+  const response = await apiFetch(`${getApiBaseUrl()}/members/${membershipId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  const member = await parseResponse<{
+    id: string;
+    email: string;
+    full_name: string;
+    role: "owner" | "consultant" | "demo";
+    status: "active" | "disabled";
+  }>(response);
+  return {
+    id: member.id,
+    email: member.email,
+    fullName: member.full_name,
+    role: member.role,
+    status: member.status,
+  };
+}
+
 export async function listTasks(): Promise<TaskListItem[]> {
-  const response = await fetch(`${getApiBaseUrl()}/tasks`, {
+  const response = await apiFetch(`${getApiBaseUrl()}/tasks`, {
     cache: "no-store",
   });
   return parseResponse<TaskListItem[]>(response);
 }
 
 export async function getPrecedentReviewState(): Promise<PrecedentReviewResponse> {
-  const response = await fetch(`${getApiBaseUrl()}/workbench/precedent-candidates`, {
+  const response = await apiFetch(`${getApiBaseUrl()}/workbench/precedent-candidates`, {
     cache: "no-store",
   });
   return parseResponse<PrecedentReviewResponse>(response);
@@ -94,7 +224,7 @@ export async function updatePrecedentDuplicateReview(
   matterWorkspaceId: string,
   payload: PrecedentDuplicateReviewPayload,
 ): Promise<PrecedentReviewResponse> {
-  const response = await fetch(
+  const response = await apiFetch(
     `${getApiBaseUrl()}/workbench/matters/${matterWorkspaceId}/precedent-duplicate-review`,
     {
       method: "POST",
@@ -111,7 +241,7 @@ export async function applyPrecedentGovernanceRecommendation(
   candidateId: string,
   payload: PrecedentGovernanceApplyPayload,
 ): Promise<PrecedentReviewResponse> {
-  const response = await fetch(
+  const response = await apiFetch(
     `${getApiBaseUrl()}/workbench/precedent-candidates/${candidateId}/apply-governance-recommendation`,
     {
       method: "POST",
@@ -127,7 +257,7 @@ export async function applyPrecedentGovernanceRecommendation(
 export async function signOffSharedIntelligencePhase(
   payload: SharedIntelligenceSignOffPayload,
 ): Promise<PrecedentReviewResponse> {
-  const response = await fetch(
+  const response = await apiFetch(
     `${getApiBaseUrl()}/workbench/shared-intelligence/phase-4-sign-off`,
     {
       method: "POST",
@@ -141,7 +271,7 @@ export async function signOffSharedIntelligencePhase(
 }
 
 export async function getTask(taskId: string): Promise<TaskAggregate> {
-  const response = await fetch(`${getApiBaseUrl()}/tasks/${taskId}`, {
+  const response = await apiFetch(`${getApiBaseUrl()}/tasks/${taskId}`, {
     cache: "no-store",
   });
   return parseResponse<TaskAggregate>(response);
@@ -151,7 +281,7 @@ export async function approveTaskWriteback(
   taskId: string,
   payload: TaskWritebackApprovalPayload,
 ): Promise<TaskAggregate> {
-  const response = await fetch(`${getApiBaseUrl()}/tasks/${taskId}/writeback-approval`, {
+  const response = await apiFetch(`${getApiBaseUrl()}/tasks/${taskId}/writeback-approval`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -166,7 +296,7 @@ export async function applyRecommendationFeedback(
   recommendationId: string,
   payload: AdoptionFeedbackPayload,
 ): Promise<TaskAggregate> {
-  const response = await fetch(
+  const response = await apiFetch(
     `${getApiBaseUrl()}/tasks/${taskId}/recommendations/${recommendationId}/feedback`,
     {
       method: "POST",
@@ -184,7 +314,7 @@ export async function updateRecommendationPrecedentCandidateStatus(
   recommendationId: string,
   payload: PrecedentCandidateStatusUpdatePayload,
 ): Promise<TaskAggregate> {
-  const response = await fetch(
+  const response = await apiFetch(
     `${getApiBaseUrl()}/tasks/${taskId}/recommendations/${recommendationId}/precedent-candidate`,
     {
       method: "POST",
@@ -198,7 +328,7 @@ export async function updateRecommendationPrecedentCandidateStatus(
 }
 
 export async function getExtensionManager(): Promise<ExtensionManagerSnapshot> {
-  const response = await fetch(`${getApiBaseUrl()}/extensions/manager`, {
+  const response = await apiFetch(`${getApiBaseUrl()}/extensions/manager`, {
     cache: "no-store",
   });
   return parseResponse<ExtensionManagerSnapshot>(response);
@@ -209,7 +339,7 @@ export async function updateAgentCatalogEntry(
   payload: AgentCatalogEntryUpdatePayload,
 ): Promise<ExtensionManagerSnapshot> {
   const apiBaseUrl = getApiBaseUrl();
-  const response = await fetch(`${apiBaseUrl}/extensions/agents/${agentId}`, {
+  const response = await apiFetch(`${apiBaseUrl}/extensions/agents/${agentId}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -224,7 +354,7 @@ export async function updatePackCatalogEntry(
   payload: PackCatalogEntryUpdatePayload,
 ): Promise<ExtensionManagerSnapshot> {
   const apiBaseUrl = getApiBaseUrl();
-  const response = await fetch(`${apiBaseUrl}/extensions/packs/${packId}`, {
+  const response = await apiFetch(`${apiBaseUrl}/extensions/packs/${packId}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -238,7 +368,7 @@ export async function updateDeliverablePrecedentCandidateStatus(
   deliverableId: string,
   payload: PrecedentCandidateStatusUpdatePayload,
 ): Promise<DeliverableWorkspace> {
-  const response = await fetch(
+  const response = await apiFetch(
     `${getApiBaseUrl()}/deliverables/${deliverableId}/precedent-candidate`,
     {
       method: "POST",
@@ -255,7 +385,7 @@ export async function draftAgentContract(
   payload: AgentContractDraftPayload,
 ): Promise<AgentContractDraftResult> {
   const apiBaseUrl = getApiBaseUrl();
-  const response = await fetch(`${apiBaseUrl}/extensions/agents/contract-draft`, {
+  const response = await apiFetch(`${apiBaseUrl}/extensions/agents/contract-draft`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -269,7 +399,7 @@ export async function draftPackContract(
   payload: PackContractDraftPayload,
 ): Promise<PackContractDraftResult> {
   const apiBaseUrl = getApiBaseUrl();
-  const response = await fetch(`${apiBaseUrl}/extensions/packs/contract-draft`, {
+  const response = await apiFetch(`${apiBaseUrl}/extensions/packs/contract-draft`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -280,7 +410,7 @@ export async function draftPackContract(
 }
 
 export async function getWorkbenchPreferences(): Promise<WorkbenchSettings> {
-  const response = await fetch(`${getApiBaseUrl()}/workbench/preferences`, {
+  const response = await apiFetch(`${getApiBaseUrl()}/workbench/preferences`, {
     cache: "no-store",
   });
   return getWorkbenchPreferencesFromPayload(await parseWorkbenchPreferencesPayload(response));
@@ -289,7 +419,7 @@ export async function getWorkbenchPreferences(): Promise<WorkbenchSettings> {
 export async function updateWorkbenchPreferences(
   payload: WorkbenchSettings,
 ): Promise<WorkbenchSettings> {
-  const response = await fetch(`${getApiBaseUrl()}/workbench/preferences`, {
+  const response = await apiFetch(`${getApiBaseUrl()}/workbench/preferences`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -310,7 +440,7 @@ export async function updateWorkbenchPreferences(
 }
 
 export async function getSystemProviderSettings(): Promise<SystemProviderSettingsSnapshot> {
-  const response = await fetch(`${getApiBaseUrl()}/workbench/provider-settings`, {
+  const response = await apiFetch(`${getApiBaseUrl()}/workbench/provider-settings`, {
     cache: "no-store",
   });
   return parseSystemProviderSettingsPayload(await parseResponse<any>(response));
@@ -319,7 +449,7 @@ export async function getSystemProviderSettings(): Promise<SystemProviderSetting
 export async function validateSystemProviderSettings(
   payload: SystemProviderSettingsPayload,
 ): Promise<ProviderValidationResult> {
-  const response = await fetch(`${getApiBaseUrl()}/workbench/provider-settings/validate`, {
+  const response = await apiFetch(`${getApiBaseUrl()}/workbench/provider-settings/validate`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -341,7 +471,7 @@ export async function validateSystemProviderSettings(
 export async function updateSystemProviderSettings(
   payload: SystemProviderSettingsUpdatePayload,
 ): Promise<SystemProviderSettingsSnapshot> {
-  const response = await fetch(`${getApiBaseUrl()}/workbench/provider-settings`, {
+  const response = await apiFetch(`${getApiBaseUrl()}/workbench/provider-settings`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -363,14 +493,14 @@ export async function updateSystemProviderSettings(
 }
 
 export async function revalidateSystemProviderSettings(): Promise<SystemProviderSettingsSnapshot> {
-  const response = await fetch(`${getApiBaseUrl()}/workbench/provider-settings/revalidate`, {
+  const response = await apiFetch(`${getApiBaseUrl()}/workbench/provider-settings/revalidate`, {
     method: "POST",
   });
   return parseSystemProviderSettingsPayload(await parseResponse<any>(response));
 }
 
 export async function resetSystemProviderSettingsToEnv(): Promise<SystemProviderSettingsSnapshot> {
-  const response = await fetch(`${getApiBaseUrl()}/workbench/provider-settings/reset-to-env`, {
+  const response = await apiFetch(`${getApiBaseUrl()}/workbench/provider-settings/reset-to-env`, {
     method: "POST",
   });
   return parseSystemProviderSettingsPayload(await parseResponse<any>(response));
@@ -471,7 +601,7 @@ function parseSystemProviderSettingsPayload(payload: any): SystemProviderSetting
 }
 
 export async function getHistoryVisibilityState(): Promise<HistoryVisibilityState> {
-  const response = await fetch(`${getApiBaseUrl()}/workbench/history-visibility`, {
+  const response = await apiFetch(`${getApiBaseUrl()}/workbench/history-visibility`, {
     cache: "no-store",
   });
   return parseResponse<HistoryVisibilityState>(response);
@@ -480,7 +610,7 @@ export async function getHistoryVisibilityState(): Promise<HistoryVisibilityStat
 export async function updateHistoryVisibilityState(
   payload: HistoryVisibilityUpdatePayload,
 ): Promise<HistoryVisibilityState> {
-  const response = await fetch(`${getApiBaseUrl()}/workbench/history-visibility`, {
+  const response = await apiFetch(`${getApiBaseUrl()}/workbench/history-visibility`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -491,14 +621,14 @@ export async function updateHistoryVisibilityState(
 }
 
 export async function listMatterWorkspaces(): Promise<MatterWorkspaceSummary[]> {
-  const response = await fetch(`${getApiBaseUrl()}/matters`, {
+  const response = await apiFetch(`${getApiBaseUrl()}/matters`, {
     cache: "no-store",
   });
   return parseResponse<MatterWorkspaceSummary[]>(response);
 }
 
 export async function getMatterWorkspace(matterId: string): Promise<MatterWorkspace> {
-  const response = await fetch(`${getApiBaseUrl()}/matters/${matterId}`, {
+  const response = await apiFetch(`${getApiBaseUrl()}/matters/${matterId}`, {
     cache: "no-store",
   });
   return parseResponse<MatterWorkspace>(response);
@@ -508,7 +638,7 @@ export async function updateMatterWorkspaceMetadata(
   matterId: string,
   payload: MatterWorkspaceMetadataUpdatePayload,
 ): Promise<MatterWorkspace> {
-  const response = await fetch(`${getApiBaseUrl()}/matters/${matterId}/metadata`, {
+  const response = await apiFetch(`${getApiBaseUrl()}/matters/${matterId}/metadata`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -522,7 +652,7 @@ export async function updateMatterWorkspace(
   matterId: string,
   payload: MatterWorkspaceUpdatePayload,
 ): Promise<MatterWorkspace> {
-  const response = await fetch(`${getApiBaseUrl()}/matters/${matterId}/workspace`, {
+  const response = await apiFetch(`${getApiBaseUrl()}/matters/${matterId}/workspace`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -536,7 +666,7 @@ export async function rollbackMatterContentRevision(
   matterId: string,
   revisionId: string,
 ): Promise<MatterWorkspace> {
-  const response = await fetch(
+  const response = await apiFetch(
     `${getApiBaseUrl()}/matters/${matterId}/revisions/${revisionId}/rollback`,
     {
       method: "POST",
@@ -549,7 +679,7 @@ export async function getArtifactEvidenceWorkspace(
   matterId: string,
 ): Promise<ArtifactEvidenceWorkspace> {
   const apiBaseUrl = getApiBaseUrl();
-  const response = await fetch(`${apiBaseUrl}/matters/${matterId}/artifact-evidence`, {
+  const response = await apiFetch(`${apiBaseUrl}/matters/${matterId}/artifact-evidence`, {
     cache: "no-store",
   });
   return parseResponse<ArtifactEvidenceWorkspace>(response);
@@ -559,7 +689,7 @@ export async function resolveMatterCanonicalizationReview(
   matterId: string,
   payload: MatterCanonicalizationReviewPayload,
 ): Promise<ArtifactEvidenceWorkspace> {
-  const response = await fetch(`${getApiBaseUrl()}/matters/${matterId}/canonicalization-reviews`, {
+  const response = await apiFetch(`${getApiBaseUrl()}/matters/${matterId}/canonicalization-reviews`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -576,7 +706,7 @@ export async function resolveMatterCanonicalizationReview(
 export async function getDeliverableWorkspace(
   deliverableId: string,
 ): Promise<DeliverableWorkspace> {
-  const response = await fetch(`${getApiBaseUrl()}/deliverables/${deliverableId}`, {
+  const response = await apiFetch(`${getApiBaseUrl()}/deliverables/${deliverableId}`, {
     cache: "no-store",
   });
   return parseResponse<DeliverableWorkspace>(response);
@@ -586,7 +716,7 @@ export async function updateDeliverableMetadata(
   deliverableId: string,
   payload: DeliverableMetadataUpdatePayload,
 ): Promise<DeliverableWorkspace> {
-  const response = await fetch(`${getApiBaseUrl()}/deliverables/${deliverableId}/metadata`, {
+  const response = await apiFetch(`${getApiBaseUrl()}/deliverables/${deliverableId}/metadata`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -600,7 +730,7 @@ export async function updateDeliverableWorkspace(
   deliverableId: string,
   payload: DeliverableWorkspaceUpdatePayload,
 ): Promise<DeliverableWorkspace> {
-  const response = await fetch(`${getApiBaseUrl()}/deliverables/${deliverableId}/workspace`, {
+  const response = await apiFetch(`${getApiBaseUrl()}/deliverables/${deliverableId}/workspace`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -614,7 +744,7 @@ export async function publishDeliverableRelease(
   deliverableId: string,
   payload: DeliverablePublishPayload,
 ): Promise<DeliverableWorkspace> {
-  const response = await fetch(`${getApiBaseUrl()}/deliverables/${deliverableId}/publish`, {
+  const response = await apiFetch(`${getApiBaseUrl()}/deliverables/${deliverableId}/publish`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -628,7 +758,7 @@ export async function applyDeliverableFeedback(
   deliverableId: string,
   payload: AdoptionFeedbackPayload,
 ): Promise<DeliverableWorkspace> {
-  const response = await fetch(`${getApiBaseUrl()}/deliverables/${deliverableId}/feedback`, {
+  const response = await apiFetch(`${getApiBaseUrl()}/deliverables/${deliverableId}/feedback`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -642,7 +772,7 @@ export async function rollbackDeliverableContentRevision(
   deliverableId: string,
   revisionId: string,
 ): Promise<DeliverableWorkspace> {
-  const response = await fetch(
+  const response = await apiFetch(
     `${getApiBaseUrl()}/deliverables/${deliverableId}/revisions/${revisionId}/rollback`,
     {
       method: "POST",
@@ -685,7 +815,7 @@ export async function exportDeliverableArtifact(
     format === "docx"
       ? `${getApiBaseUrl()}/deliverables/${deliverableId}/export/docx`
       : `${getApiBaseUrl()}/deliverables/${deliverableId}/export`;
-  const response = await fetch(exportPath, {
+  const response = await apiFetch(exportPath, {
     cache: "no-store",
   });
   const fallbackExtension = format === "docx" ? "docx" : "md";
@@ -708,7 +838,7 @@ export async function downloadDeliverableArtifact(
   deliverableId: string,
   artifact: Pick<DeliverableArtifactRecord, "id" | "file_name" | "artifact_format">,
 ) {
-  const response = await fetch(
+  const response = await apiFetch(
     `${getApiBaseUrl()}/deliverables/${deliverableId}/artifacts/${artifact.id}`,
     {
       cache: "no-store",
@@ -718,7 +848,7 @@ export async function downloadDeliverableArtifact(
 }
 
 export async function createTask(payload: TaskCreatePayload): Promise<TaskAggregate> {
-  const response = await fetch(`${getApiBaseUrl()}/tasks`, {
+  const response = await apiFetch(`${getApiBaseUrl()}/tasks`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -735,7 +865,7 @@ export async function uploadTaskFiles(
   const formData = new FormData();
   files.forEach((file) => formData.append("files", file));
 
-  const response = await fetch(`${getApiBaseUrl()}/tasks/${taskId}/uploads`, {
+  const response = await apiFetch(`${getApiBaseUrl()}/tasks/${taskId}/uploads`, {
     method: "POST",
     body: formData,
   });
@@ -749,7 +879,7 @@ export async function uploadMatterFiles(
   const formData = new FormData();
   files.forEach((file) => formData.append("files", file));
 
-  const response = await fetch(`${getApiBaseUrl()}/matters/${matterId}/uploads`, {
+  const response = await apiFetch(`${getApiBaseUrl()}/matters/${matterId}/uploads`, {
     method: "POST",
     body: formData,
   });
@@ -760,7 +890,7 @@ export async function ingestTaskSources(
   taskId: string,
   payload: SourceIngestPayload,
 ): Promise<SourceIngestBatchResponse> {
-  const response = await fetch(`${getApiBaseUrl()}/tasks/${taskId}/sources`, {
+  const response = await apiFetch(`${getApiBaseUrl()}/tasks/${taskId}/sources`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -774,7 +904,7 @@ export async function ingestMatterSources(
   matterId: string,
   payload: SourceIngestPayload,
 ): Promise<SourceIngestBatchResponse> {
-  const response = await fetch(`${getApiBaseUrl()}/matters/${matterId}/sources`, {
+  const response = await apiFetch(`${getApiBaseUrl()}/matters/${matterId}/sources`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -785,7 +915,7 @@ export async function ingestMatterSources(
 }
 
 export async function runTask(taskId: string): Promise<ResearchRunResponse> {
-  const response = await fetch(`${getApiBaseUrl()}/tasks/${taskId}/run`, {
+  const response = await apiFetch(`${getApiBaseUrl()}/tasks/${taskId}/run`, {
     method: "POST",
   });
   return parseResponse<ResearchRunResponse>(response);
@@ -795,7 +925,7 @@ export async function applyMatterContinuationAction(
   matterId: string,
   payload: MatterContinuationActionPayload,
 ): Promise<MatterWorkspace> {
-  const response = await fetch(`${getApiBaseUrl()}/matters/${matterId}/continuation`, {
+  const response = await apiFetch(`${getApiBaseUrl()}/matters/${matterId}/continuation`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -809,7 +939,7 @@ export async function updateTaskExtensions(
   taskId: string,
   payload: TaskExtensionOverridePayload,
 ): Promise<TaskAggregate> {
-  const response = await fetch(`${getApiBaseUrl()}/tasks/${taskId}/extensions`, {
+  const response = await apiFetch(`${getApiBaseUrl()}/tasks/${taskId}/extensions`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",

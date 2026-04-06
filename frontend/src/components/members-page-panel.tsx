@@ -1,0 +1,147 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+import { createMemberInvite, listMembers, updateMemberRole } from "@/lib/api";
+import type { MemberListSnapshot } from "@/lib/types";
+
+export function MembersPagePanel() {
+  const [snapshot, setSnapshot] = useState<MemberListSnapshot | null>(null);
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState<"consultant" | "demo">("consultant");
+  const [error, setError] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const result = await listMembers();
+        if (!cancelled) {
+          setSnapshot(result);
+        }
+      } catch (loadError) {
+        if (!cancelled) {
+          setError(loadError instanceof Error ? loadError.message : "目前無法載入成員資料。");
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function handleInvite() {
+    try {
+      const created = await createMemberInvite({ email, role });
+      setSnapshot((current) =>
+        current
+          ? {
+              members: current.members,
+              pendingInvites: [created].concat(current.pendingInvites),
+            }
+          : current,
+      );
+      setEmail("");
+      setFeedback(`已送出 ${created.email} 的邀請。`);
+      setError(null);
+    } catch (inviteError) {
+      setError(inviteError instanceof Error ? inviteError.message : "目前無法送出邀請。");
+      setFeedback(null);
+    }
+  }
+
+  async function handleReapply(memberId: string, nextRole: "owner" | "consultant" | "demo", nextStatus: "active" | "disabled") {
+    try {
+      const updated = await updateMemberRole(memberId, {
+        role: nextRole,
+        status: nextStatus,
+      });
+      setSnapshot((current) =>
+        current
+          ? {
+              ...current,
+              members: current.members.map((member) => (member.id === updated.id ? updated : member)),
+            }
+          : current,
+      );
+      setFeedback(`已更新 ${updated.email} 的身份設定。`);
+      setError(null);
+    } catch (updateError) {
+      setError(updateError instanceof Error ? updateError.message : "目前無法更新成員身份。");
+      setFeedback(null);
+    }
+  }
+
+  return (
+    <main className="page-shell management-page-shell">
+      <section className="section-card">
+        <p className="hero-focus-label">成員管理</p>
+        <h1>管理 Firm 成員與邀請</h1>
+        <p className="section-copy">
+          只有 owner 可以在這裡管理成員身份別。consultant 與 demo 帳號都由這裡建立與維護。
+        </p>
+      </section>
+
+      <section className="section-card">
+        <h2>送出新邀請</h2>
+        <div className="form-row">
+          <input
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="email@example.com"
+            aria-label="受邀 email"
+          />
+          <select value={role} onChange={(event) => setRole(event.target.value as "consultant" | "demo")}>
+            <option value="consultant">Consultant</option>
+            <option value="demo">Demo</option>
+          </select>
+          <button className="button-primary" type="button" onClick={handleInvite} disabled={!email.trim()}>
+            送出邀請
+          </button>
+        </div>
+        {feedback ? <p>{feedback}</p> : null}
+        {error ? (
+          <p className="error-text" role="alert">
+            {error}
+          </p>
+        ) : null}
+      </section>
+
+      <section className="section-card">
+        <h2>現有成員</h2>
+        <ul className="detail-list">
+          {(snapshot?.members ?? []).map((member) => (
+            <li key={member.id}>
+              <strong>{member.email}</strong>
+              <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap", marginTop: "8px" }}>
+                <span>{member.fullName || "未命名成員"}</span>
+                <span>角色：{member.role}</span>
+                <span>狀態：{member.status}</span>
+                <button
+                  type="button"
+                  onClick={() => void handleReapply(member.id, member.role, member.status)}
+                >
+                  重新儲存
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="section-card">
+        <h2>待接受邀請</h2>
+        <ul className="detail-list">
+          {(snapshot?.pendingInvites ?? []).map((invite) => (
+            <li key={invite.id}>
+              <strong>{invite.email}</strong>｜{invite.role}｜{invite.status}
+            </li>
+          ))}
+        </ul>
+      </section>
+    </main>
+  );
+}

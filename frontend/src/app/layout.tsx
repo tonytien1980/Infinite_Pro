@@ -4,7 +4,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Infinite Pro",
-  description: "單人優先、多人相容的顧問工作台，承接案件、來源、證據與交付物工作面。",
+  description: "顧問公司可在雲端登入使用的 consulting intelligence workbench，承接案件、證據、交付物與 shared intelligence。",
 };
 
 export default function RootLayout({
