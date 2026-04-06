@@ -142,6 +142,18 @@ class PersonalProviderSettingsResponse(BaseModel):
     presets: list[ProviderPresetResponse] = Field(default_factory=list)
 
 
+class DemoWorkspacePolicyRead(BaseModel):
+    status: Literal["active", "inactive"] = "active"
+    workspace_slug: str = "demo"
+    seed_version: str = "v1"
+    max_active_demo_members: int = 5
+
+
+class DemoWorkspacePolicyUpdateRequest(BaseModel):
+    status: Literal["active", "inactive"] = "active"
+    max_active_demo_members: int = Field(default=5, ge=0, le=1000)
+
+
 class AgentCatalogEntryUpdateRequest(BaseModel):
     agent_id: str = Field(min_length=1, max_length=255)
     agent_name: str = Field(min_length=1, max_length=255)

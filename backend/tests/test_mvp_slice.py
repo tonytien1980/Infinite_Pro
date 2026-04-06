@@ -363,6 +363,22 @@ def test_owner_cannot_revoke_same_invite_twice(client: TestClient) -> None:
     assert response.status_code == 400
 
 
+def test_owner_can_read_and_update_demo_workspace_policy(client: TestClient) -> None:
+    initial = client.get("/api/v1/workbench/demo-workspace-policy")
+    assert initial.status_code == 200
+    assert initial.json()["status"] == "active"
+    assert initial.json()["max_active_demo_members"] == 5
+
+    updated = client.put(
+        "/api/v1/workbench/demo-workspace-policy",
+        json={"status": "inactive", "max_active_demo_members": 3},
+    )
+
+    assert updated.status_code == 200
+    assert updated.json()["status"] == "inactive"
+    assert updated.json()["max_active_demo_members"] == 3
+
+
 def test_health_endpoint(client: TestClient) -> None:
     response = client.get("/api/v1/health")
 

@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.demo import schemas as demo_schemas
 from app.domain import models
+from app.workbench import schemas as workbench_schemas
 
 
 def _get_or_create_demo_workspace_policy(
@@ -79,3 +80,32 @@ def get_demo_workspace_snapshot(
             ),
         ],
     )
+
+
+def get_demo_workspace_policy(
+    db: Session,
+    *,
+    firm_id: str,
+) -> workbench_schemas.DemoWorkspacePolicyRead:
+    policy = _get_or_create_demo_workspace_policy(db, firm_id=firm_id)
+    return workbench_schemas.DemoWorkspacePolicyRead(
+        status="active" if policy.status == "active" else "inactive",
+        workspace_slug=policy.workspace_slug,
+        seed_version=policy.seed_version,
+        max_active_demo_members=policy.max_active_demo_members,
+    )
+
+
+def update_demo_workspace_policy(
+    db: Session,
+    *,
+    firm_id: str,
+    payload: workbench_schemas.DemoWorkspacePolicyUpdateRequest,
+) -> workbench_schemas.DemoWorkspacePolicyRead:
+    policy = _get_or_create_demo_workspace_policy(db, firm_id=firm_id)
+    policy.status = "active" if payload.status == "active" else "inactive"
+    policy.max_active_demo_members = payload.max_active_demo_members
+    db.add(policy)
+    db.commit()
+    db.refresh(policy)
+    return get_demo_workspace_policy(db, firm_id=firm_id)

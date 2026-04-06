@@ -11,6 +11,10 @@ from app.services.personal_provider_settings import (
     update_personal_provider_settings,
     validate_personal_provider_settings,
 )
+from app.services.demo_workspace import (
+    get_demo_workspace_policy,
+    update_demo_workspace_policy,
+)
 from app.services.provider_allowlist import list_provider_allowlist, update_provider_allowlist
 from app.services.workbench import (
     apply_precedent_governance_recommendation,
@@ -49,6 +53,27 @@ def update_workbench_preferences_route(
     db: Session = Depends(get_db),
 ) -> schemas.WorkbenchPreferenceResponse:
     return update_workbench_preferences(db, payload)
+
+
+@router.get("/demo-workspace-policy", response_model=schemas.DemoWorkspacePolicyRead)
+def get_demo_workspace_policy_route(
+    current_member=Depends(require_permission("manage_firm_settings")),
+    db: Session = Depends(get_db),
+) -> schemas.DemoWorkspacePolicyRead:
+    return get_demo_workspace_policy(db, firm_id=current_member.firm.id)
+
+
+@router.put("/demo-workspace-policy", response_model=schemas.DemoWorkspacePolicyRead)
+def update_demo_workspace_policy_route(
+    payload: schemas.DemoWorkspacePolicyUpdateRequest,
+    current_member=Depends(require_permission("manage_firm_settings")),
+    db: Session = Depends(get_db),
+) -> schemas.DemoWorkspacePolicyRead:
+    return update_demo_workspace_policy(
+        db,
+        firm_id=current_member.firm.id,
+        payload=payload,
+    )
 
 
 @router.get(
