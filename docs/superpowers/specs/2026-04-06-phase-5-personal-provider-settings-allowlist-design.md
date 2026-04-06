@@ -1,7 +1,7 @@
 # Phase 5 Personal Provider Settings + Allowlist Foundation Design
 
 日期：2026-04-06
-狀態：proposed
+狀態：partially shipped
 
 ## Purpose
 

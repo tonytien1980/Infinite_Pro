@@ -763,8 +763,6 @@ Infinite Pro 目前沒有也不應硬對齊於：
   - `Members` 管理頁
   - consultant-facing `/login` 與 owner-facing `/members`
 - 目前仍明確未完成、也不應誤寫成已 shipped 的，包括：
-  - `/settings` 內的 `Personal Provider Settings` 正式 UI
-  - owner-controlled provider allowlist UX
   - `demo workspace` 的正式資料隔離與展示資料集
 - 但 phase-5 第二個 slice 已進到 backend API foundation：
   - encrypted `PersonalProviderCredential`
@@ -772,7 +770,8 @@ Infinite Pro 目前沒有也不應硬對齊於：
   - owner / consultant 已有 personal-provider / provider-allowlist backend route
   - task run / extension draft synthesis 已開始吃 current-member-aware provider resolution
   - consultant 缺少個人 key 時，run path 已 fail-closed
-  - 後續仍需接上 `/settings` 分層 UI
+  - `/settings` 已正式拆成 `Firm Settings` 與 `Personal Provider Settings`
+  - owner 現在可在 UI 內管理 provider allowlist
 
 ---
 

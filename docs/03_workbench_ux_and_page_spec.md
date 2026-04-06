@@ -875,10 +875,10 @@ Primary action：
 - 它的正式責任，是在採納回饋與 precedent 治理時，低負擔提供 attribution
 - 不可把這一格擴寫成帳號系統、團隊管理表、或權限設定後台
 - phase 5 auth foundation 之後，`/settings` 也應誠實理解為：
-  - 目前仍以 workbench preferences + owner-visible system provider config 為主要 shipped UI
-  - `Firm Settings` / `Personal Provider Settings` 的正式分層已進入 phase 5，backend personal-provider / allowlist route 已存在
-  - task run 已開始吃 auth-aware provider precedence，但這個規則目前主要還是 backend runtime contract，不是已完成的 settings UI
-  - 但 personal provider UI 與 owner allowlist UI 尚未正式 shipped
+  - owner 會看到 `Firm Settings` + `Personal Provider Settings`
+  - consultant 只會看到 `Personal Provider Settings`
+  - task run 已開始吃 auth-aware provider precedence，且這層規則已透過 settings UI 進入正式工作流
+  - owner allowlist 與 consultant personal key 現在都屬於 shipped UI，而不是 conversation-only 規則
 
 ### 7.11 `/login`
 

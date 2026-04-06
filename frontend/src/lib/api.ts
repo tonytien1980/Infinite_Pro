@@ -44,6 +44,10 @@ import {
   MemberInviteRead,
   MemberListSnapshot,
   MemberRead,
+  PersonalProviderSettingsPayload,
+  PersonalProviderSettingsSnapshot,
+  PersonalProviderSettingsUpdatePayload,
+  ProviderAllowlistSnapshot,
 } from "@/lib/types";
 
 function getApiBaseUrl() {
@@ -506,6 +510,92 @@ export async function resetSystemProviderSettingsToEnv(): Promise<SystemProvider
   return parseSystemProviderSettingsPayload(await parseResponse<any>(response));
 }
 
+export async function getPersonalProviderSettings(): Promise<PersonalProviderSettingsSnapshot> {
+  const response = await apiFetch(`${getApiBaseUrl()}/workbench/personal-provider-settings`, {
+    cache: "no-store",
+  });
+  return parsePersonalProviderSettingsPayload(await parseResponse<any>(response));
+}
+
+export async function validatePersonalProviderSettings(
+  payload: PersonalProviderSettingsPayload,
+): Promise<ProviderValidationResult> {
+  const response = await apiFetch(`${getApiBaseUrl()}/workbench/personal-provider-settings/validate`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      provider_id: payload.providerId,
+      model_level: payload.modelLevel,
+      model_id: payload.modelId,
+      custom_model_id: payload.customModelId,
+      base_url: payload.baseUrl,
+      timeout_seconds: payload.timeoutSeconds,
+      api_key: payload.apiKey,
+      keep_existing_key: payload.keepExistingKey,
+    }),
+  });
+  return parseProviderValidationPayload(await parseResponse<any>(response));
+}
+
+export async function updatePersonalProviderSettings(
+  payload: PersonalProviderSettingsUpdatePayload,
+): Promise<PersonalProviderSettingsSnapshot> {
+  const response = await apiFetch(`${getApiBaseUrl()}/workbench/personal-provider-settings`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      provider_id: payload.providerId,
+      model_level: payload.modelLevel,
+      model_id: payload.modelId,
+      custom_model_id: payload.customModelId,
+      base_url: payload.baseUrl,
+      timeout_seconds: payload.timeoutSeconds,
+      api_key: payload.apiKey,
+      keep_existing_key: payload.keepExistingKey,
+      validate_before_save: payload.validateBeforeSave,
+      force_save_without_validation: payload.forceSaveWithoutValidation,
+    }),
+  });
+  return parsePersonalProviderSettingsPayload(await parseResponse<any>(response));
+}
+
+export async function revalidatePersonalProviderSettings(): Promise<PersonalProviderSettingsSnapshot> {
+  const response = await apiFetch(`${getApiBaseUrl()}/workbench/personal-provider-settings/revalidate`, {
+    method: "POST",
+  });
+  return parsePersonalProviderSettingsPayload(await parseResponse<any>(response));
+}
+
+export async function getProviderAllowlist(): Promise<ProviderAllowlistSnapshot> {
+  const response = await apiFetch(`${getApiBaseUrl()}/workbench/provider-allowlist`, {
+    cache: "no-store",
+  });
+  return parseProviderAllowlistPayload(await parseResponse<any>(response));
+}
+
+export async function updateProviderAllowlist(payload: ProviderAllowlistSnapshot): Promise<ProviderAllowlistSnapshot> {
+  const response = await apiFetch(`${getApiBaseUrl()}/workbench/provider-allowlist`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      entries: payload.entries.map((entry) => ({
+        provider_id: entry.providerId,
+        model_level: entry.modelLevel,
+        allowed_model_ids: entry.allowedModelIds,
+        allow_custom_model: entry.allowCustomModel,
+        status: entry.status,
+      })),
+    }),
+  });
+  return parseProviderAllowlistPayload(await parseResponse<any>(response));
+}
+
 async function parseWorkbenchPreferencesPayload(response: Response) {
   return parseResponse<{
     interface_language: WorkbenchSettings["interfaceLanguage"];
@@ -596,6 +686,39 @@ function parseSystemProviderSettingsPayload(payload: any): SystemProviderSetting
         balanced: preset.recommended_models.balanced,
         low_cost: preset.recommended_models.low_cost,
       },
+      })),
+  };
+}
+
+function parsePersonalProviderSettingsPayload(payload: any): PersonalProviderSettingsSnapshot {
+  return {
+    current: parseCurrentProviderConfigPayload(payload.current),
+    presets: (payload.presets || []).map((preset: any) => ({
+      providerId: preset.provider_id,
+      displayName: preset.display_name,
+      defaultBaseUrl: preset.default_base_url,
+      defaultTimeoutSeconds: preset.default_timeout_seconds,
+      authSchemeType: preset.auth_scheme_type,
+      adapterKind: preset.adapter_kind,
+      runtimeSupportLevel: preset.runtime_support_level,
+      validationSupportLevel: preset.validation_support_level,
+      recommendedModels: {
+        high_quality: preset.recommended_models.high_quality,
+        balanced: preset.recommended_models.balanced,
+        low_cost: preset.recommended_models.low_cost,
+      },
+    })),
+  };
+}
+
+function parseProviderAllowlistPayload(payload: any): ProviderAllowlistSnapshot {
+  return {
+    entries: (payload.entries || []).map((entry: any) => ({
+      providerId: entry.provider_id,
+      modelLevel: entry.model_level,
+      allowedModelIds: Array.isArray(entry.allowed_model_ids) ? entry.allowed_model_ids : [],
+      allowCustomModel: Boolean(entry.allow_custom_model),
+      status: entry.status === "inactive" ? "inactive" : "active",
     })),
   };
 }

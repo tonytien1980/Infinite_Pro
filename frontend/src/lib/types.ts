@@ -312,7 +312,7 @@ export interface ProviderValidationResult {
 }
 
 export interface CurrentProviderConfig {
-  source: "runtime_config" | "env_baseline";
+  source: "runtime_config" | "env_baseline" | "personal_config";
   providerId: CurrentProviderId;
   providerDisplayName: string;
   modelLevel: ProviderModelLevel;
@@ -349,6 +349,39 @@ export interface SystemProviderSettingsPayload {
 }
 
 export interface SystemProviderSettingsUpdatePayload extends SystemProviderSettingsPayload {
+  validateBeforeSave: boolean;
+  forceSaveWithoutValidation: boolean;
+}
+
+export interface ProviderAllowlistEntry {
+  providerId: ProviderId;
+  modelLevel: ProviderModelLevel;
+  allowedModelIds: string[];
+  allowCustomModel: boolean;
+  status: "active" | "inactive";
+}
+
+export interface ProviderAllowlistSnapshot {
+  entries: ProviderAllowlistEntry[];
+}
+
+export interface PersonalProviderSettingsSnapshot {
+  current: CurrentProviderConfig;
+  presets: ProviderPreset[];
+}
+
+export interface PersonalProviderSettingsPayload {
+  providerId: ProviderId;
+  modelLevel: ProviderModelLevel;
+  modelId: string;
+  customModelId: string;
+  baseUrl: string;
+  timeoutSeconds: number;
+  apiKey: string;
+  keepExistingKey: boolean;
+}
+
+export interface PersonalProviderSettingsUpdatePayload extends PersonalProviderSettingsPayload {
   validateBeforeSave: boolean;
   forceSaveWithoutValidation: boolean;
 }

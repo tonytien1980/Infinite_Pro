@@ -4187,3 +4187,38 @@ Environment used:
 - `/settings` 的 `Personal Provider Settings` UI
 - owner allowlist UI
 - browser smoke
+
+---
+
+## Entry: 2026-04-06 phase-5 settings split UI pass
+
+Scope:
+- `/settings` 正式拆成 `Firm Settings` 與 `Personal Provider Settings`
+- owner-only firm provider default + allowlist UI
+- owner / consultant personal provider settings UI
+- frontend API client 與 provider helper contract 對齊 phase 5 second slice
+
+Environment used:
+- local frontend verification only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `cd frontend && node --test tests/auth-foundation.test.mjs tests/provider-settings-foundation.test.mjs tests/intake-progress.test.mjs` | Passed (`39 passed`) |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && npx next typegen && npm run typecheck` | Passed |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+
+### Settings split verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Frontend | provider helper contracts | Parse personal provider source, role visibility, and allowlist summaries | Verified | new node tests confirm `personal_config` reading, owner/consultant section visibility, and allowlist summary wording |
+| Frontend | `/settings` | Split settings page into firm-level and personal-level panels | Verified | Next build passes after page split into `SettingsFirmProviderPanel` and `SettingsPersonalProviderPanel` |
+| Frontend | owner flow | Manage firm provider default and allowlist UI | Verified | typecheck/build confirm owner-only panel and allowlist editor compile cleanly |
+| Frontend | consultant flow | Save personal provider settings through dedicated panel | Verified | build/typecheck confirm consultant-facing personal panel compiles against new backend contracts |
+
+### Explicitly not shipped in this pass
+
+- browser smoke
