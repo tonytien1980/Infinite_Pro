@@ -4342,3 +4342,42 @@ Environment used:
 - browser smoke
 - interactive demo tour
 - firm operating surfaces
+
+---
+
+## Entry: 2026-04-06 phase-5 firm operating surfaces pass
+
+Scope:
+- `GET /workbench/firm-operating-snapshot`
+- `總覽` 頁 role-aware firm operating panel
+- owner / consultant low-noise operating copy
+
+Environment used:
+- local backend and frontend verification only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`207 passed`) |
+| `cd frontend && node --test tests/auth-foundation.test.mjs tests/provider-settings-foundation.test.mjs tests/demo-workspace-isolation.test.mjs tests/intake-progress.test.mjs` | Passed (`49 passed`) |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && mkdir -p .next/types && npx next typegen && npm run typecheck` | Passed |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+
+### Firm operating verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | `/workbench/firm-operating-snapshot` owner path | Read owner operating snapshot | Verified | targeted backend tests confirm owner now receives posture, action target, and provider/demo/member signals |
+| Backend | `/workbench/firm-operating-snapshot` consultant path | Read consultant operating snapshot | Verified | targeted backend tests confirm consultant now receives role-aware `personal_provider` signal and `/settings` action target |
+| Frontend | operating helper copy | Render low-noise posture and signal summaries | Verified | node tests confirm posture label and compact signal summary stay consultant-readable |
+| Frontend | `/` | Homepage includes role-aware firm operating panel | Verified | typecheck/build confirm `WorkbenchHome` now consumes the snapshot and renders the new operating section |
+| Frontend | `/` | Existing overview layout remains inside the same page shell | Verified | build output still keeps homepage as the same route and does not introduce `/firm` or `/ops` surfaces |
+
+### Explicitly not shipped in this pass
+
+- browser smoke
+- `/firm` new page
+- analytics / chart wall

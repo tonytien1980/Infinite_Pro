@@ -1752,6 +1752,36 @@ Object storage 負責：
 - seat billing console
 - multi-firm policy center
 
+### 7.8 Firm operating snapshot
+
+在 owner controls 與 demo polish 之後，runtime 也已正式補上一個首頁總覽用的 single-firm operating read model：
+
+- backend 已有 `GET /workbench/firm-operating-snapshot`
+- 這條 route 會依 current-member role 回傳：
+  - owner view
+  - consultant view
+- 第一版 signal 只聚合：
+  - active members
+  - demo seats / pending demo invites
+  - demo workspace status
+  - provider readiness
+
+正式規則：
+
+- 這是一個 read model，不是新的治理 action center
+- owner 與 consultant 都走同一條 route，但 copy 與 signal 會 role-aware
+- 這層應支撐首頁總覽，不應長成 `/firm` 或 `/ops` 新頁面
+
+因此這一層現在應被理解為：
+
+- low-noise firm operating surface
+
+不是：
+
+- dashboard shell
+- analytics wall
+- second admin console
+
 ---
 
 ## 8. Provider Boundary

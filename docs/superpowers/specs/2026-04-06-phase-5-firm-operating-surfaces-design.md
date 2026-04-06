@@ -1,7 +1,7 @@
 # Phase 5 Firm Operating Surfaces Design
 
 日期：2026-04-06
-狀態：proposed
+狀態：shipped
 
 ## Purpose
 
@@ -222,3 +222,12 @@ consultant 應看到的重點偏向：
 2. `總覽` operating panel
 
 也就是先讓首頁正式回答「這間 firm 現在能不能順利工作」，再考慮更後面的 surface 深化。
+
+## Implemented Outcome
+
+這一輪已正式 shipped：
+
+- backend 已新增 `GET /workbench/firm-operating-snapshot`
+- owner / consultant 都會收到 role-aware 的 operating snapshot
+- frontend `總覽` 已補上一塊 low-noise 的 `firm operating` panel
+- 這一刀仍維持既有首頁，不新增 `/firm` 或 `/ops` 頁面

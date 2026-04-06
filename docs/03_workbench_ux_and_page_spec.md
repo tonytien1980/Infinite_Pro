@@ -398,6 +398,16 @@ Infinite Pro 正式採：
 
 - 今日工作總覽
 - 導引顧問回到最值得先處理的工作面
+- 低噪音回答目前這間 firm 是否已準備好順利工作
+
+正式規則補充：
+
+- `總覽` 現在可正式承接一塊 `firm operating snapshot`
+- 這塊只回答：
+  - 目前運作姿態
+  - 最值得先處理的 operating note
+  - 低噪音 operating signals
+- 不可因此長成 dashboard wall 或第二套管理後台
 
 ### `建立新案件`
 

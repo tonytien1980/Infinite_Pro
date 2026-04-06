@@ -789,8 +789,12 @@ Infinite Pro 目前沒有也不應硬對齊於：
   - `/demo` 已不再只是 raw section list
   - backend 已正式回出 guided demo narrative contract
   - frontend 已補成 guided hero、showcase highlights、read-only rules 與 formal-workspace explainer
-- 因此 phase 5 現在最自然的下一個 slice 已不是 demo，而是：
-  - `firm operating surfaces`
+- 其中第三條 `firm operating surfaces` 現在也已正式開始落地：
+  - `總覽` 已補上 role-aware 的 `firm operating snapshot`
+  - owner / consultant 一進首頁就能低噪音看到目前 firm 是否已準備好工作
+  - 這一刀仍留在既有首頁，不新增 `/firm` 或 `/ops` 管理頁
+- 因此 phase 5 現在最自然的下一步已不是再補單點功能，而是：
+  - `phase-5 completion pass / closure review`
 
 ---
 
