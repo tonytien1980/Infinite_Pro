@@ -11,6 +11,7 @@ import {
   labelForFirmOperatingPosture,
   summarizeFirmOperatingSignals,
 } from "../src/lib/firm-operating.ts";
+import { buildPhaseFiveClosureView } from "../src/lib/phase-five-closure.ts";
 
 test("owner sees members nav and consultant does not", () => {
   const ownerNav = buildPrimaryNavForMembershipRole("owner");
@@ -47,4 +48,29 @@ test("firm operating signal summary keeps top items compact", () => {
     ]),
     "Firm provider：驗證成功｜demo workspace：啟用中｜待接受 demo 邀請：1",
   );
+});
+
+test("phase 5 closure view stays consultant-readable", () => {
+  const view = buildPhaseFiveClosureView({
+    phase_id: "phase_5",
+    phase_label: "Single-Firm Cloud Foundation",
+    closure_status: "ready_to_close",
+    closure_status_label: "可準備收口",
+    summary: "phase 5 六條主線已站穩。",
+    foundation_snapshot: "已補 6 項｜剩 1 項",
+    completed_count: 6,
+    remaining_count: 1,
+    completed_items: [],
+    asset_audits: [],
+    remaining_items: ["phase 5 sign-off 與下一階段 handoff"],
+    recommended_next_step: "準備 sign-off。",
+    signed_off_at: null,
+    signed_off_by_label: "",
+    next_phase_label: "",
+    handoff_summary: "",
+    handoff_items: [],
+  });
+
+  assert.equal(view.title, "第 5 階段收尾狀態");
+  assert.equal(view.statusLabel, "可準備收口");
 });

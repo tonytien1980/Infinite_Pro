@@ -428,6 +428,17 @@ def test_consultant_can_read_role_aware_firm_operating_snapshot(
     assert any(signal["signal_id"] == "personal_provider" for signal in payload["signals"])
 
 
+def test_owner_can_read_phase_five_closure_review(client: TestClient) -> None:
+    response = client.get("/api/v1/workbench/phase-5-closure-review")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["phase_id"] == "phase_5"
+    assert body["closure_status"] == "ready_to_close"
+    assert body["asset_audits"]
+    assert body["remaining_items"] == ["phase 5 sign-off 與下一階段 handoff"]
+
+
 def test_health_endpoint(client: TestClient) -> None:
     response = client.get("/api/v1/health")
 

@@ -396,6 +396,42 @@ class SharedIntelligenceAssetAuditItemResponse(BaseModel):
     next_step: str = ""
 
 
+class PhaseFiveAssetAuditItemResponse(BaseModel):
+    asset_code: Literal[
+        "auth_membership",
+        "provider_settings",
+        "demo_isolation",
+        "owner_controls",
+        "demo_polish",
+        "firm_operating",
+    ]
+    asset_label: str = ""
+    audit_status: Literal["audited", "needs_followup"] = "audited"
+    audit_status_label: str = ""
+    summary: str = ""
+    next_step: str = ""
+
+
+class PhaseFiveClosureReviewResponse(BaseModel):
+    phase_id: Literal["phase_5"] = "phase_5"
+    phase_label: str = ""
+    closure_status: Literal["completion_pass", "ready_to_close", "signed_off"] = "completion_pass"
+    closure_status_label: str = ""
+    summary: str = ""
+    foundation_snapshot: str = ""
+    completed_count: int = 0
+    remaining_count: int = 0
+    completed_items: list[str] = Field(default_factory=list)
+    asset_audits: list[PhaseFiveAssetAuditItemResponse] = Field(default_factory=list)
+    remaining_items: list[str] = Field(default_factory=list)
+    recommended_next_step: str = ""
+    signed_off_at: str | None = None
+    signed_off_by_label: str = ""
+    next_phase_label: str = ""
+    handoff_summary: str = ""
+    handoff_items: list[str] = Field(default_factory=list)
+
+
 class SharedIntelligenceClosureReviewResponse(BaseModel):
     phase_id: Literal["phase_4"] = "phase_4"
     phase_label: str = ""

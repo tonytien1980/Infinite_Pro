@@ -10,6 +10,7 @@ import {
 import {
   getExtensionManager,
   getFirmOperatingSnapshot,
+  getPhaseFiveClosureReview,
   listMatterWorkspaces,
   listTasks,
 } from "@/lib/api";
@@ -18,11 +19,13 @@ import {
   labelForFirmOperatingPosture,
   summarizeFirmOperatingSignals,
 } from "@/lib/firm-operating";
+import { buildPhaseFiveClosureView } from "@/lib/phase-five-closure";
 import { truncateText } from "@/lib/text-format";
 import type {
   ExtensionManagerSnapshot,
   FirmOperatingSnapshot,
   MatterWorkspaceSummary,
+  PhaseFiveClosureReview,
   TaskListItem,
 } from "@/lib/types";
 import {
@@ -90,16 +93,19 @@ export function WorkbenchHome() {
   const [matters, setMatters] = useState<MatterWorkspaceSummary[]>([]);
   const [extensionManager, setExtensionManager] = useState<ExtensionManagerSnapshot | null>(null);
   const [firmOperating, setFirmOperating] = useState<FirmOperatingSnapshot | null>(null);
+  const [phaseFiveClosureReview, setPhaseFiveClosureReview] = useState<PhaseFiveClosureReview | null>(null);
   const [matterRecords] = useMatterWorkspaceRecords();
   const [settings] = useWorkbenchSettings();
   const [loading, setLoading] = useState(true);
   const [matterLoading, setMatterLoading] = useState(true);
   const [extensionLoading, setExtensionLoading] = useState(true);
   const [firmOperatingLoading, setFirmOperatingLoading] = useState(true);
+  const [phaseFiveClosureLoading, setPhaseFiveClosureLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [matterError, setMatterError] = useState<string | null>(null);
   const [extensionError, setExtensionError] = useState<string | null>(null);
   const [firmOperatingError, setFirmOperatingError] = useState<string | null>(null);
+  const [phaseFiveClosureError, setPhaseFiveClosureError] = useState<string | null>(null);
 
   async function refreshTasks() {
     try {
@@ -155,12 +161,28 @@ export function WorkbenchHome() {
     }
   }
 
+  async function refreshPhaseFiveClosureReview() {
+    try {
+      setPhaseFiveClosureLoading(true);
+      setPhaseFiveClosureError(null);
+      setPhaseFiveClosureReview(await getPhaseFiveClosureReview());
+    } catch (closureError) {
+      setPhaseFiveClosureError(
+        closureError instanceof Error ? closureError.message : "載入 phase 5 收尾狀態失敗。",
+      );
+    } finally {
+      setPhaseFiveClosureLoading(false);
+    }
+  }
+
   useEffect(() => {
     void refreshTasks();
     void refreshMatters();
     void refreshExtensionManager();
     void refreshFirmOperating();
+    void refreshPhaseFiveClosureReview();
   }, []);
+  const phaseFiveClosureView = buildPhaseFiveClosureView(phaseFiveClosureReview);
 
   const sortedTasks = useMemo(
     () =>
@@ -342,6 +364,11 @@ export function WorkbenchHome() {
       {firmOperatingError ? (
         <p className="error-text" role="alert" aria-live="assertive">
           {firmOperatingError}
+        </p>
+      ) : null}
+      {phaseFiveClosureError ? (
+        <p className="error-text" role="alert" aria-live="assertive">
+          {phaseFiveClosureError}
         </p>
       ) : null}
 
@@ -531,6 +558,59 @@ export function WorkbenchHome() {
                       </div>
                     ))}
                   </div>
+                </>
+              ) : null}
+            </section>
+
+            <section className="panel">
+              <div className="panel-header">
+                <div>
+                  <h2 className="panel-title">Phase 5 Closure Review</h2>
+                  <p className="panel-copy">低噪音回讀 Single-Firm Cloud Foundation 目前收尾到哪。</p>
+                </div>
+              </div>
+
+              {phaseFiveClosureLoading ? <p className="status-text">正在整理 phase 5 收尾狀態...</p> : null}
+              {!phaseFiveClosureLoading && phaseFiveClosureView.shouldShow ? (
+                <>
+                  <div className="summary-grid">
+                    <div className="section-card">
+                      <p className="muted-text">{phaseFiveClosureView.title}</p>
+                      <strong>{phaseFiveClosureView.statusLabel}</strong>
+                      <p className="muted-text">{phaseFiveClosureView.summary}</p>
+                    </div>
+                    <div className="section-card">
+                      <p className="muted-text">完成度</p>
+                      <strong>{phaseFiveClosureView.meta}</strong>
+                      <p className="muted-text">{phaseFiveClosureView.snapshot}</p>
+                    </div>
+                  </div>
+
+                  <div className="detail-list" style={{ marginTop: "16px" }}>
+                    {phaseFiveClosureView.assetAudits.map((item) => (
+                      <div className="detail-item" key={item.title}>
+                        <div className="meta-row">
+                          <span className="pill">{item.auditStatusLabel}</span>
+                          <span>{item.title}</span>
+                        </div>
+                        <p className="muted-text">{item.summary}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {phaseFiveClosureView.remainingItems.length > 0 ? (
+                    <div className="section-card" style={{ marginTop: "16px" }}>
+                      <h3>剩餘項目</h3>
+                      <ul className="detail-list">
+                        {phaseFiveClosureView.remainingItems.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                      <p className="muted-text" style={{ marginTop: "12px" }}>
+                        {phaseFiveClosureView.recommendedNextStep}
+                      </p>
+                    </div>
+                  ) : null}
                 </>
               ) : null}
             </section>

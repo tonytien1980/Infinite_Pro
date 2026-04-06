@@ -49,6 +49,7 @@ import {
   DemoWorkspacePolicyUpdatePayload,
   FirmOperatingSnapshot,
   PersonalProviderSettingsPayload,
+  PhaseFiveClosureReview,
   PersonalProviderSettingsSnapshot,
   PersonalProviderSettingsUpdatePayload,
   ProviderAllowlistSnapshot,
@@ -229,6 +230,13 @@ export async function getFirmOperatingSnapshot(): Promise<FirmOperatingSnapshot>
     cache: "no-store",
   });
   return parseFirmOperatingSnapshotPayload(await parseResponse<any>(response));
+}
+
+export async function getPhaseFiveClosureReview(): Promise<PhaseFiveClosureReview> {
+  const response = await apiFetch(`${getApiBaseUrl()}/workbench/phase-5-closure-review`, {
+    cache: "no-store",
+  });
+  return parsePhaseFiveClosureReviewPayload(await parseResponse<any>(response));
 }
 
 export async function createMemberInvite(payload: {
@@ -822,6 +830,42 @@ function parseFirmOperatingSnapshotPayload(payload: any): FirmOperatingSnapshot 
           detail: signal.detail || "",
         }))
       : [],
+  };
+}
+
+function parsePhaseFiveClosureReviewPayload(payload: any): PhaseFiveClosureReview {
+  return {
+    phase_id: "phase_5",
+    phase_label: payload.phase_label || "",
+    closure_status:
+      payload.closure_status === "signed_off"
+        ? "signed_off"
+        : payload.closure_status === "ready_to_close"
+          ? "ready_to_close"
+          : "completion_pass",
+    closure_status_label: payload.closure_status_label || "",
+    summary: payload.summary || "",
+    foundation_snapshot: payload.foundation_snapshot || "",
+    completed_count: Number(payload.completed_count ?? 0),
+    remaining_count: Number(payload.remaining_count ?? 0),
+    completed_items: Array.isArray(payload.completed_items) ? payload.completed_items : [],
+    asset_audits: Array.isArray(payload.asset_audits)
+      ? payload.asset_audits.map((item: any) => ({
+          asset_code: item.asset_code,
+          asset_label: item.asset_label || "",
+          audit_status: item.audit_status === "needs_followup" ? "needs_followup" : "audited",
+          audit_status_label: item.audit_status_label || "",
+          summary: item.summary || "",
+          next_step: item.next_step || "",
+        }))
+      : [],
+    remaining_items: Array.isArray(payload.remaining_items) ? payload.remaining_items : [],
+    recommended_next_step: payload.recommended_next_step || "",
+    signed_off_at: payload.signed_off_at || null,
+    signed_off_by_label: payload.signed_off_by_label || "",
+    next_phase_label: payload.next_phase_label || "",
+    handoff_summary: payload.handoff_summary || "",
+    handoff_items: Array.isArray(payload.handoff_items) ? payload.handoff_items : [],
   };
 }
 

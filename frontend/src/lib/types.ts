@@ -328,6 +328,41 @@ export interface SharedIntelligenceAssetAuditItem {
   next_step: string;
 }
 
+export interface PhaseFiveAssetAuditItem {
+  asset_code:
+    | "auth_membership"
+    | "provider_settings"
+    | "demo_isolation"
+    | "owner_controls"
+    | "demo_polish"
+    | "firm_operating";
+  asset_label: string;
+  audit_status: "audited" | "needs_followup";
+  audit_status_label: string;
+  summary: string;
+  next_step: string;
+}
+
+export interface PhaseFiveClosureReview {
+  phase_id: "phase_5";
+  phase_label: string;
+  closure_status: "completion_pass" | "ready_to_close" | "signed_off";
+  closure_status_label: string;
+  summary: string;
+  foundation_snapshot: string;
+  completed_count: number;
+  remaining_count: number;
+  completed_items: string[];
+  asset_audits: PhaseFiveAssetAuditItem[];
+  remaining_items: string[];
+  recommended_next_step: string;
+  signed_off_at: string | null;
+  signed_off_by_label: string;
+  next_phase_label: string;
+  handoff_summary: string;
+  handoff_items: string[];
+}
+
 export interface PrecedentDuplicateReviewPayload {
   review_key: string;
   resolution: "human_confirmed_canonical_row" | "keep_separate" | "split";
