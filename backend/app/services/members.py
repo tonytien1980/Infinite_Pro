@@ -50,6 +50,14 @@ def list_firm_members(
     return identity_schemas.MemberListResponse(
         members=[serialize_member_row(item) for item in memberships],
         pending_invites=[serialize_invite_row(item) for item in invites],
+        summary=identity_schemas.MemberListSummary(
+            active_demo_member_count=sum(
+                1 for item in memberships if item.role == "demo" and item.status == "active"
+            ),
+            pending_demo_invite_count=sum(
+                1 for item in invites if item.role == "demo" and item.status == "pending"
+            ),
+        ),
     )
 
 

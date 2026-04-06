@@ -238,6 +238,32 @@ def login_as_consultant_with_owner_invite(
     return anonymous_client
 
 
+def login_as_demo_with_owner_invite(
+    anonymous_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> TestClient:
+    configure_auth_settings(monkeypatch, bootstrap_owner_emails="owner@example.com")
+    login_google_user(
+        anonymous_client,
+        monkeypatch,
+        email="owner@example.com",
+        full_name="Owner User",
+    )
+    invite = anonymous_client.post(
+        "/api/v1/members/invites",
+        json={"email": "demo@example.com", "role": "demo"},
+    )
+    assert invite.status_code == 200
+    assert anonymous_client.post("/api/v1/auth/logout").status_code == 200
+    login_google_user(
+        anonymous_client,
+        monkeypatch,
+        email="demo@example.com",
+        full_name="Demo User",
+    )
+    return anonymous_client
+
+
 def test_demo_role_permissions_include_demo_workspace_access() -> None:
     from app.core.auth import ROLE_PERMISSIONS
 
@@ -271,6 +297,43 @@ def test_demo_workspace_policy_row_persists(client: TestClient) -> None:
         assert row is not None
         assert row.workspace_slug == "demo"
         assert row.max_active_demo_members == 5
+
+
+def test_demo_can_read_demo_workspace_snapshot(
+    anonymous_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    demo_client = login_as_demo_with_owner_invite(anonymous_client, monkeypatch)
+
+    response = demo_client.get("/api/v1/demo/workspace")
+
+    assert response.status_code == 200
+    assert response.json()["workspace_mode"] == "demo"
+    assert response.json()["sections"][0]["section_id"] == "sample_matters"
+
+
+def test_demo_cannot_read_firm_workspace_routes(
+    anonymous_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    demo_client = login_as_demo_with_owner_invite(anonymous_client, monkeypatch)
+
+    response = demo_client.get("/api/v1/tasks")
+
+    assert response.status_code == 403
+
+
+def test_member_list_includes_demo_summary_counts(client: TestClient) -> None:
+    create_demo = client.post(
+        "/api/v1/members/invites",
+        json={"email": "demo@example.com", "role": "demo"},
+    )
+    assert create_demo.status_code == 200
+
+    response = client.get("/api/v1/members")
+
+    assert response.status_code == 200
+    assert response.json()["summary"]["pending_demo_invite_count"] == 1
 
 
 def test_health_endpoint(client: TestClient) -> None:

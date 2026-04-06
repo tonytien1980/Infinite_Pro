@@ -61,6 +61,12 @@ class MemberUpdateRequest(BaseModel):
     status: Literal["active", "disabled"]
 
 
+class MemberListSummary(BaseModel):
+    active_demo_member_count: int = 0
+    pending_demo_invite_count: int = 0
+
+
 class MemberListResponse(BaseModel):
     members: list[MemberRead] = Field(default_factory=list)
     pending_invites: list[MemberInviteRead] = Field(default_factory=list)
+    summary: MemberListSummary = Field(default_factory=MemberListSummary)
