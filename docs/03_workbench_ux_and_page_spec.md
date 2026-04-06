@@ -412,10 +412,16 @@ Infinite Pro 正式採：
   - 第 5 階段收尾狀態
   - 已完成幾條子線
   - 還剩哪個收尾項目
+- `總覽` 現在也可正式承接一塊 `Generalist Governance`
+- 這塊只回答：
+  - shared intelligence 目前有沒有開始偏科
+  - 覆蓋目前偏穩、偏薄，還是過重的能力區塊
+  - 哪些 reusable assets 目前只適合局部情境
 - 若 phase 5 已開始支援 explicit sign-off，第一波也只可低噪音補：
   - `正式收口 Phase 5`
   - `下一階段 handoff`
   - 不可因此長出 phase dashboard 或 release console
+- `Generalist Governance` 也只可維持低噪音摘要，不可因此長出 `/phase-6`、`/governance` 或 coverage dashboard
 - 不可因此長成 dashboard wall 或第二套管理後台
 
 ### `建立新案件`

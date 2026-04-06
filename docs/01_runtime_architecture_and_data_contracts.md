@@ -1845,6 +1845,41 @@ Object storage 負責：
 - release workflow engine
 - phase dashboard shell
 
+### 7.11 Phase 6 capability coverage and anti-drift audit
+
+在 phase 5 已正式收口之後，runtime 也已開始正式補上 phase 6 的第一個治理 read model：
+
+- backend 已有 `GET /workbench/phase-6-capability-coverage-audit`
+- 第一版正式回讀：
+  - `phase_id`
+  - `phase_label`
+  - `audit_status`
+  - `audit_status_label`
+  - `coverage_summary`
+  - `generalist_posture`
+  - `generalist_posture_label`
+  - `priority_note`
+  - `coverage_areas`
+  - `reuse_boundary_items`
+  - `recommended_next_step`
+
+正式規則：
+
+- 第一波只做 coverage / drift / reuse-boundary 的 audit read model
+- 這層是 low-noise governance surface，不是新的 dashboard shell
+- Host 仍保有最終 contextual judgment；這一層只提供 explainability 與治理訊號
+- 第一波不做自動糾偏 engine，也不做 consultant ranking / training posture
+
+因此這一層現在應被理解為：
+
+- generalist-governance audit read model
+
+不是：
+
+- enterprise analytics wall
+- team scorecard
+- automatic specialization engine
+
 ---
 
 ## 8. Provider Boundary

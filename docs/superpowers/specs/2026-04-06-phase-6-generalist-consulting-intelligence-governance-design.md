@@ -1,7 +1,7 @@
 # Phase 6 Generalist Consulting Intelligence Governance Design
 
 日期：2026-04-06
-狀態：proposed
+狀態：partially_implemented
 
 ## Purpose
 
@@ -236,3 +236,21 @@ Phase 6 第一版明確不做：
 - 目前這套系統還是不是一個全面型顧問公司的 shared brain
 
 若這些問題還只能靠對話臨時推論，就不算進入真正的 Phase 6。
+
+## Implemented Outcome
+
+目前這份 spec 的第一個 slice 已正式開始落地：
+
+- backend 已新增 `GET /workbench/phase-6-capability-coverage-audit`
+- system 已能正式回讀 coverage / drift / reuse-boundary / generalist-posture 的第一版 audit contract
+- frontend 首頁已補上一塊 low-noise `Generalist Governance` panel
+
+但第一波仍只屬於：
+
+- `capability coverage and anti-drift audit v1`
+
+尚未處理：
+
+- 自動糾偏 engine
+- 更正式的 reusable-intelligence reuse-boundary governance
+- consultant maturity-aware guidance layering

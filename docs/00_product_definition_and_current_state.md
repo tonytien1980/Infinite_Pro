@@ -818,6 +818,10 @@ Infinite Pro 目前沒有也不應硬對齊於：
   - 哪些區塊過重
   - 哪些區塊偏薄
   - 哪些 reusable assets 屬於可泛化、局部適用或窄情境適用
+- 這個第一個 slice 現在也已正式開始落地：
+  - backend 已有 `phase-6 capability coverage audit` read model
+  - `總覽` 已補上一塊 low-noise `Generalist Governance`
+  - system 已能正式回讀 coverage / anti-drift / reuse-boundary 的第一版 posture
 
 ---
 

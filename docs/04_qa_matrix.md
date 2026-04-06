@@ -4108,6 +4108,20 @@ Environment used:
 - Infinite Pro now has a real cloud-ready auth / membership foundation instead of browser-local identity only
 - phase 5 has formally started in code, not only in planning docs
 - owner / consultant / demo is now a shipped backend role baseline, with owner-only members management and governance-sensitive route protection
+
+### Phase-6 capability coverage and anti-drift audit verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | `/workbench/phase-6-capability-coverage-audit` | Return phase-6 governance audit read model | Verified | targeted backend tests confirm the route returns `phase_6`, low-noise coverage summary, and reuse-boundary items including `narrow_use` assets |
+| Frontend | `Generalist Governance` helper copy | Keep audit / posture labels consultant-readable | Verified | node helper tests confirm low-noise Traditional Chinese labels for `balanced / watch_drift` and `broad / watching_bias` |
+| Frontend | `/` | Render `Generalist Governance` panel on existing homepage | Verified | typecheck/build pass after adding the phase-6 audit client, parser, helper, and homepage panel on `WorkbenchHome` |
+
+### Verified outcomes
+
+- Phase 6 has formally begun implementation through `capability coverage and anti-drift audit v1`
+- Infinite Pro now has a first low-noise governance read model for watching capability coverage, drift risk, and reuse-boundary posture
+- The homepage can now show whether shared intelligence is staying broad or beginning to skew toward high-frequency patterns
 - frontend now has a consultant-facing `/login` entry and owner-facing `/members` surface that align with the new backend session model
 
 ### Explicitly not shipped in this pass
