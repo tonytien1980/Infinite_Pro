@@ -685,50 +685,58 @@ Infinite Pro 目前沒有也不應硬對齊於：
 - 下一輪工作不應從 further baseline extension 啟動，而應從新的 decision phase 啟動
 - 旗艦顧問案型、`Research / Investigation` lane、retained advisory loop 這三條主線，現在都已有可用 baseline / MVP，不應再被描述成只停在初始方向
 - 第 4 階段 `precedent / reusable intelligence` 已透過 closure review、asset audit、sign-off / handoff 正式收口
-- 第 5 階段 `Single-Firm Cloud Foundation` 的第一個 implementation slice 已啟動並站穩：
-  - `Auth + Membership Foundation`
-- 因此目前正式狀態已不是 `pre-phase-5 implementation`，而是：
+- 第 5 階段 `Single-Firm Cloud Foundation` 已透過 closure review、sign-off 與 next-phase handoff 正式收口
+- 目前正式狀態已不是：
   - `phase-5 implementation in progress`
   - `single-firm cloud foundation, slice 1 standing`
-- 下一個 decision phase 的正式方向已定為：
-  - `Phase 5: Single-Firm Cloud Foundation`
-- 第 5 階段要解的正式問題是：
-  - 讓一間顧問公司可在雲端正式登入使用 Infinite Pro
-  - 讓多位顧問各自辦案時，有正式 identity / membership / role / access foundation
-  - 讓 shared intelligence 在 single-firm 的 operating posture 下繼續累積
+- 目前正式狀態應理解為：
+  - `phase 5 shipped and signed off`
+  - `phase-6 decision framing begins`
 - 因此此刻不應先把重心轉成：
   - multi-tenant SaaS shell
   - enterprise governance shell
   - 多人共編同一案件的 collaboration shell
+- 下一個正式問題不再是「能不能讓顧問公司上雲使用」，而是：
+  - 這套已會累積 shared intelligence 的系統，怎麼在長期演化時仍然維持全面型顧問公司的能力邊界
+  - 怎麼避免因近期高頻案型、局部成功模式或顧問風格而越學越偏
+  - 怎麼把 shared intelligence 從「會記住經驗」推進成「可治理、可泛化、可觀測的全面型顧問能力底座」
 
 ---
 
 ## 15. Recommended Next Phase Directions
 
-下一階段的正式施工順序應理解為：
+下一階段的正式方向應理解為：
 
-1. 先進入 `Phase 5: Single-Firm Cloud Foundation`
-2. 在 single-firm cloud foundation 站穩後，再評估較輕的 firm operating surfaces
-3. `trust / governance for larger clients` 放更後面
+- `Phase 6: Generalist Consulting Intelligence Governance`
 
-若只看現在最該優先的，正式答案是：
+如果只看現在最該優先的，正式答案也是：
 
-- `Single-Firm Cloud Foundation`
+- `Generalist Consulting Intelligence Governance`
 
-而且它此刻的真正施工重點應理解為：
+它的核心目標不是讓 Infinite Pro 更專，而是讓它：
 
-1. `Google Login + owner invite`
-2. `User / Firm / Membership / Invite` 的正式資料模型
-3. `owner / consultant / demo` 的最小角色與 server-side permission gate
-4. `Members` 管理頁
-5. `Firm Settings` 與 `Personal Provider Settings` 的正式分層
-6. `demo workspace` 與正式 workspace 的隔離
+- 在持續學習時不偏科
+- 在 shared intelligence 持續累積時仍然維持 full-scope by capability
+- 在多位顧問各自辦案後，仍然保有全面型顧問公司的能力結構
+
+因此它此刻真正要解的正式問題應理解為：
+
+1. `coverage`
+   - shared intelligence 目前覆蓋了哪些 client stages / client types / consulting domains /案件型態
+2. `anti-drift`
+   - 哪些 reusable intelligence 雖然高頻，卻未必代表高品質或可泛化
+3. `reuse boundary`
+   - 哪些 precedent / playbook / template 可跨情境泛化，哪些只能局部適用
+4. `generalist posture`
+   - system 目前仍像全面型顧問公司的 shared brain，還是已開始被高頻案型拉偏
 
 不是：
 
 - 先做 multi-tenant SaaS shell
 - 先做 enterprise RBAC matrix
 - 先做多人共編同一案件 collaboration shell
+- 先做 consultant ranking / training platform
+- 先做垂直案型 specialization program
 
 目前進度補充：
 
@@ -802,7 +810,14 @@ Infinite Pro 目前沒有也不應硬對齊於：
   - system 會正式回出 `signed_off` 狀態、下一階段標籤與 handoff 摘要
   - 第 5 階段現在可正式視為已收口
 - 因此現在最自然的下一步已不是再補 phase 5，而是：
-  - `phase-6 decision framing`
+  - `phase-6 generalist consulting intelligence governance`
+- Phase 6 第一個最合理的施工 slice 應是：
+  - `capability coverage and anti-drift audit v1`
+- 也就是先讓 system 正式回答：
+  - 哪些能力區塊已站穩
+  - 哪些區塊過重
+  - 哪些區塊偏薄
+  - 哪些 reusable assets 屬於可泛化、局部適用或窄情境適用
 
 ---
 
