@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
+from starlette.responses import RedirectResponse
 
 from app.core.auth import require_current_member, revoke_current_session
+from app.core.config import settings
 from app.core.database import get_db
 from app.identity import schemas as identity_schemas
 from app.services.identity_access import build_google_authorization_url, complete_google_login
@@ -20,14 +22,15 @@ def start_google_login(request: Request) -> identity_schemas.GoogleStartResponse
     )
 
 
-@router.get("/google/callback", response_model=identity_schemas.SessionStateResponse)
+@router.get("/google/callback")
 def google_callback(
     code: str,
     state: str,
     request: Request,
     db: Session = Depends(get_db),
-) -> identity_schemas.SessionStateResponse:
-    return complete_google_login(db, request, code=code, state=state)
+) -> RedirectResponse:
+    complete_google_login(db, request, code=code, state=state)
+    return RedirectResponse(url=settings.frontend_base_url, status_code=302)
 
 
 @router.get("/me", response_model=identity_schemas.SessionStateResponse)

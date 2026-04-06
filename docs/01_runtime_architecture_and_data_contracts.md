@@ -1687,6 +1687,7 @@ Object storage 負責：
 
 - runtime posture 仍是 single-firm，不是 multi-tenant SaaS shell
 - Google Login 為唯一正式登入方式
+- Google OAuth callback 完成後，backend 應先寫入 session，再導回 frontend workbench，而不是停在 raw JSON response
 - `owner` 可 bootstrap 第一個 firm，之後新增成員正式改成 invite-only
 - 目前正式角色只有：
   - `owner`

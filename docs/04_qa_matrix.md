@@ -4094,6 +4094,7 @@ Environment used:
 | --- | --- | --- | --- | --- |
 | Backend | `/auth/google/start` + `/auth/google/callback` | Bootstrap first owner and reject uninvited login | Verified | targeted backend tests confirm allowlisted first owner can establish the first firm, while later uninvited logins fail closed |
 | Backend | `/auth/me` + `/auth/logout` | Read active session and clear it | Verified | targeted backend tests confirm active session readback and logout invalidation |
+| Backend | local auth runtime | Google Login start returns a real authorization URL and callback now redirects back to frontend | Verified | 2026-04-06 live curl verification confirmed `/api/v1/auth/google/start` returns `200` with a Google authorization URL after env setup, while targeted backend tests confirm callback now returns `302` to `http://127.0.0.1:3000` instead of a raw JSON page |
 | Backend | members API | Owner invite and role-management surface | Verified | targeted backend tests confirm owner can invite and list members |
 | Backend | route permissions | Consultant cannot manage agents or sign off phase 4 | Verified | targeted backend tests confirm consultant receives `403` on restricted governance actions |
 | Backend | protected work surfaces | Existing task / matter / deliverable APIs still work behind permission gates | Verified | full backend MVP test file remains green at `188 passed` after auth gating |

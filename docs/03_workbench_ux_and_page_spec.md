@@ -921,6 +921,7 @@ Primary action：
 
 - `/login` 是 public entry
 - visible copy 應維持 consultant-first，而不是 OAuth debug shell
+- Google 登入成功後，應直接返回 frontend 首頁，由既有 session gate 接手，不可停在 backend callback JSON
 - 不可在這頁暴露 firm 管理、權限矩陣或 provider technical details
 
 ### 7.12 `/members`

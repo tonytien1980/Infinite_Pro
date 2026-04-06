@@ -161,6 +161,7 @@ def configure_auth_settings(
 
     expected_settings = {
         "app_base_url": "http://127.0.0.1:3001",
+        "frontend_base_url": "http://127.0.0.1:3000",
         "google_client_id": "google-client",
         "google_client_secret": "google-secret",
         "google_oauth_redirect_path": "/api/v1/auth/google/callback",
@@ -206,9 +207,13 @@ def login_google_user(
     callback = client.get(
         "/api/v1/auth/google/callback",
         params={"code": "fake-code", "state": state},
+        follow_redirects=False,
     )
-    assert callback.status_code == 200
-    return callback.json()
+    assert callback.status_code == 302
+    assert callback.headers["location"] == "http://127.0.0.1:3000"
+    me = client.get("/api/v1/auth/me")
+    assert me.status_code == 200
+    return me.json()
 
 
 def login_as_consultant_with_owner_invite(

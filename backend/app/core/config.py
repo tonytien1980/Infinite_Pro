@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     app_name: str = "Infinite Pro API"
     api_v1_prefix: str = "/api/v1"
     app_base_url: str = "http://127.0.0.1:3001"
+    frontend_base_url: str = "http://127.0.0.1:3000"
     database_url: str = "postgresql+psycopg://postgres:postgres@db:5432/ai_advisory_os"
     upload_dir: str = "/app/storage/uploads"
     derived_dir: str | None = None
