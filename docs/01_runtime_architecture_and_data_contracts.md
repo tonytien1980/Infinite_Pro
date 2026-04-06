@@ -1782,6 +1782,38 @@ Object storage 負責：
 - analytics wall
 - second admin console
 
+### 7.9 Phase 5 closure review
+
+在 firm operating surfaces 之後，runtime 也已正式補上 phase 5 的 closure review read model：
+
+- backend 已有 `GET /workbench/phase-5-closure-review`
+- 第一版正式回讀：
+  - `phase_id`
+  - `phase_label`
+  - `closure_status`
+  - `closure_status_label`
+  - `foundation_snapshot`
+  - `completed_items`
+  - `asset_audits`
+  - `remaining_items`
+  - `recommended_next_step`
+
+正式規則：
+
+- 第一波只做 closure review，不做 sign-off action
+- 這層是 phase-level read model，不是新的治理 shell
+- UI 只應低噪音掛在既有 `總覽`
+
+因此這一層現在應被理解為：
+
+- phase 5 completion read model
+
+不是：
+
+- release dashboard
+- phase control center
+- 自動 sign-off engine
+
 ---
 
 ## 8. Provider Boundary

@@ -407,6 +407,11 @@ Infinite Pro 正式採：
   - 目前運作姿態
   - 最值得先處理的 operating note
   - 低噪音 operating signals
+- `總覽` 現在也可正式承接一塊 `phase 5 closure review`
+- 這塊只回答：
+  - 第 5 階段收尾狀態
+  - 已完成幾條子線
+  - 還剩哪個收尾項目
 - 不可因此長成 dashboard wall 或第二套管理後台
 
 ### `建立新案件`

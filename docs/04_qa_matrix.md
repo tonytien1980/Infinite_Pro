@@ -4381,3 +4381,41 @@ Environment used:
 - browser smoke
 - `/firm` new page
 - analytics / chart wall
+
+---
+
+## Entry: 2026-04-06 phase-5 closure review pass
+
+Scope:
+- `GET /workbench/phase-5-closure-review`
+- `總覽` phase-5 closure review panel
+- phase-5 asset-audit read model
+
+Environment used:
+- local backend and frontend verification only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`208 passed`) |
+| `cd frontend && node --test tests/auth-foundation.test.mjs tests/provider-settings-foundation.test.mjs tests/demo-workspace-isolation.test.mjs tests/intake-progress.test.mjs` | Passed (`50 passed`) |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && mkdir -p .next/types && npx next typegen && npm run typecheck` | Passed |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+
+### Phase-5 closure review verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | `/workbench/phase-5-closure-review` | Return phase-5 closure review contract | Verified | targeted backend test confirms `phase_id = phase_5`, `asset_audits`, and `remaining_items` now exist |
+| Frontend | closure helper | Read closure review as low-noise homepage summary | Verified | node tests confirm phase-5 closure view stays consultant-readable |
+| Frontend | `/` | Keep closure review inside existing homepage shell | Verified | build / typecheck verification confirms closure review renders in `總覽` without creating a new phase dashboard |
+| Frontend | completion summary | Show completed asset audits plus remaining phase-5 sign-off item | Verified | homepage panel now reads current completion state and recommended next step |
+
+### Explicitly not shipped in this pass
+
+- browser smoke
+- phase-5 sign-off action
+- next-phase handoff persistence

@@ -793,8 +793,12 @@ Infinite Pro 目前沒有也不應硬對齊於：
   - `總覽` 已補上 role-aware 的 `firm operating snapshot`
   - owner / consultant 一進首頁就能低噪音看到目前 firm 是否已準備好工作
   - 這一刀仍留在既有首頁，不新增 `/firm` 或 `/ops` 管理頁
-- 因此 phase 5 現在最自然的下一步已不是再補單點功能，而是：
-  - `phase-5 completion pass / closure review`
+- 現在 phase 5 的 `completion pass / closure review` 也已正式 shipped：
+  - backend 已有 `phase-5 closure review` read model
+  - `總覽` 已補上第 5 階段收尾狀態
+  - system 現在可以正式回答 phase 5 做到哪、還剩什麼
+- 因此 phase 5 現在最自然的下一步已不是再補 closure review，而是：
+  - `phase-5 sign-off / next-phase handoff`
 
 ---
 

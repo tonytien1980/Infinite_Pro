@@ -1,7 +1,7 @@
 # Phase 5 Closure Review Design
 
 日期：2026-04-06
-狀態：proposed
+狀態：shipped
 
 ## Purpose
 
@@ -200,3 +200,13 @@ phase 5 第一波 asset audit 只回：
 2. frontend `總覽` closure review panel
 
 也就是先讓 system 正式回答「phase 5 現在做到哪」，再決定何時進 sign-off。
+
+## Implemented Outcome
+
+這一輪已正式 shipped：
+
+- backend 已新增 `GET /workbench/phase-5-closure-review`
+- frontend `總覽` 已補上 `第 5 階段收尾狀態`
+- phase 5 六條主要子線現在都能被 system 內正式回讀
+- remaining item 也已正式收斂成：
+  - `phase 5 sign-off 與下一階段 handoff`
