@@ -12,6 +12,7 @@ import {
   getFirmOperatingSnapshot,
   getPhaseFiveClosureReview,
   listMatterWorkspaces,
+  signOffPhaseFive,
   listTasks,
 } from "@/lib/api";
 import {
@@ -101,11 +102,13 @@ export function WorkbenchHome() {
   const [extensionLoading, setExtensionLoading] = useState(true);
   const [firmOperatingLoading, setFirmOperatingLoading] = useState(true);
   const [phaseFiveClosureLoading, setPhaseFiveClosureLoading] = useState(true);
+  const [phaseFiveSignOffLoading, setPhaseFiveSignOffLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [matterError, setMatterError] = useState<string | null>(null);
   const [extensionError, setExtensionError] = useState<string | null>(null);
   const [firmOperatingError, setFirmOperatingError] = useState<string | null>(null);
   const [phaseFiveClosureError, setPhaseFiveClosureError] = useState<string | null>(null);
+  const [phaseFiveClosureFeedback, setPhaseFiveClosureFeedback] = useState<string | null>(null);
 
   async function refreshTasks() {
     try {
@@ -165,6 +168,7 @@ export function WorkbenchHome() {
     try {
       setPhaseFiveClosureLoading(true);
       setPhaseFiveClosureError(null);
+      setPhaseFiveClosureFeedback(null);
       setPhaseFiveClosureReview(await getPhaseFiveClosureReview());
     } catch (closureError) {
       setPhaseFiveClosureError(
@@ -183,6 +187,22 @@ export function WorkbenchHome() {
     void refreshPhaseFiveClosureReview();
   }, []);
   const phaseFiveClosureView = buildPhaseFiveClosureView(phaseFiveClosureReview);
+
+  async function handlePhaseFiveSignOff() {
+    try {
+      setPhaseFiveSignOffLoading(true);
+      setPhaseFiveClosureError(null);
+      const next = await signOffPhaseFive({ operator_label: "" });
+      setPhaseFiveClosureReview(next);
+      setPhaseFiveClosureFeedback("phase 5 已正式收口，下一階段 handoff 已整理。");
+    } catch (signOffError) {
+      setPhaseFiveClosureError(
+        signOffError instanceof Error ? signOffError.message : "目前無法正式收口 phase 5。",
+      );
+    } finally {
+      setPhaseFiveSignOffLoading(false);
+    }
+  }
 
   const sortedTasks = useMemo(
     () =>
@@ -568,9 +588,20 @@ export function WorkbenchHome() {
                   <h2 className="panel-title">Phase 5 Closure Review</h2>
                   <p className="panel-copy">低噪音回讀 Single-Firm Cloud Foundation 目前收尾到哪。</p>
                 </div>
+                {firmOperating?.role === "owner" && phaseFiveClosureView.canSignOff ? (
+                  <button
+                    className="button-secondary"
+                    type="button"
+                    onClick={() => void handlePhaseFiveSignOff()}
+                    disabled={phaseFiveSignOffLoading}
+                  >
+                    {phaseFiveSignOffLoading ? "收口中..." : "正式收口 Phase 5"}
+                  </button>
+                ) : null}
               </div>
 
               {phaseFiveClosureLoading ? <p className="status-text">正在整理 phase 5 收尾狀態...</p> : null}
+              {phaseFiveClosureFeedback ? <p className="success-text">{phaseFiveClosureFeedback}</p> : null}
               {!phaseFiveClosureLoading && phaseFiveClosureView.shouldShow ? (
                 <>
                   <div className="summary-grid">
@@ -609,6 +640,24 @@ export function WorkbenchHome() {
                       <p className="muted-text" style={{ marginTop: "12px" }}>
                         {phaseFiveClosureView.recommendedNextStep}
                       </p>
+                    </div>
+                  ) : null}
+
+                  {phaseFiveClosureView.signedOffAt ? (
+                    <div className="section-card" style={{ marginTop: "16px" }}>
+                      <h3>下一階段 handoff</h3>
+                      <p className="muted-text">
+                        收口人：{phaseFiveClosureView.signedOffByLabel || "目前 owner"}
+                      </p>
+                      <p className="muted-text">{phaseFiveClosureView.nextPhaseLabel}</p>
+                      <p className="content-block">{phaseFiveClosureView.handoffSummary}</p>
+                      {phaseFiveClosureView.handoffItems.length > 0 ? (
+                        <ul className="detail-list">
+                          {phaseFiveClosureView.handoffItems.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      ) : null}
                     </div>
                   ) : null}
                 </>

@@ -73,4 +73,5 @@ test("phase 5 closure view stays consultant-readable", () => {
 
   assert.equal(view.title, "第 5 階段收尾狀態");
   assert.equal(view.statusLabel, "可準備收口");
+  assert.equal(view.canSignOff, true);
 });

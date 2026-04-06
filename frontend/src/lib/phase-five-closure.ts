@@ -15,6 +15,12 @@ export function buildPhaseFiveClosureView(
       assetAudits: [] as Array<{ title: string; auditStatusLabel: string; summary: string }>,
       remainingItems: [] as string[],
       recommendedNextStep: "",
+      signedOffAt: "",
+      signedOffByLabel: "",
+      nextPhaseLabel: "",
+      handoffSummary: "",
+      handoffItems: [] as string[],
+      canSignOff: false,
     };
   }
 
@@ -33,5 +39,11 @@ export function buildPhaseFiveClosureView(
     })),
     remainingItems: review.remaining_items,
     recommendedNextStep: review.recommended_next_step,
+    signedOffAt: review.signed_off_at || "",
+    signedOffByLabel: review.signed_off_by_label,
+    nextPhaseLabel: review.next_phase_label,
+    handoffSummary: review.handoff_summary,
+    handoffItems: review.handoff_items,
+    canSignOff: review.closure_status === "ready_to_close",
   };
 }

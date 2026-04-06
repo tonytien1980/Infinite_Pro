@@ -21,8 +21,10 @@ from app.services.provider_allowlist import list_provider_allowlist, update_prov
 from app.services.workbench import (
     apply_precedent_governance_recommendation,
     get_history_visibility_state,
+    get_phase_five_closure_review,
     get_precedent_review_state,
     get_workbench_preferences,
+    sign_off_phase_five,
     sign_off_shared_intelligence_phase,
     update_precedent_duplicate_review_state,
     update_history_visibility_state,
@@ -91,7 +93,16 @@ def get_phase_five_closure_review_route(
     current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.PhaseFiveClosureReviewResponse:
-    return build_phase_five_closure_review()
+    return get_phase_five_closure_review(db)
+
+
+@router.post("/phase-5-sign-off", response_model=schemas.PhaseFiveClosureReviewResponse)
+def sign_off_phase_five_route(
+    payload: schemas.PhaseFiveSignOffRequest,
+    current_member=Depends(require_permission("sign_off_phase")),
+    db: Session = Depends(get_db),
+) -> schemas.PhaseFiveClosureReviewResponse:
+    return sign_off_phase_five(db, payload=payload)
 
 
 @router.get(

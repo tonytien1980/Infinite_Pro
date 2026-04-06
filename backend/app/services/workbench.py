@@ -28,12 +28,16 @@ from app.services.feedback_optimization_intelligence import (
 from app.services.shared_intelligence_closure_review import (
     build_shared_intelligence_closure_review,
 )
+from app.services.phase_five_closure_review import (
+    build_phase_five_closure_review,
+)
 from app.workbench import schemas
 
 DEFAULT_WORKBENCH_PROFILE = "single_consultant_default"
 DEFAULT_WORKBENCH_PREFERENCES = schemas.WorkbenchPreferenceResponse()
 PHASE_REVIEW_EXTENSION_KIND = "phase_review"
 PHASE_4_SHARED_INTELLIGENCE_ID = "phase_4_shared_intelligence"
+PHASE_5_SINGLE_FIRM_CLOUD_ID = "phase_5_single_firm_cloud_foundation"
 
 
 def _normalize_operator_label(value: str | None) -> str:
@@ -418,3 +422,42 @@ def sign_off_shared_intelligence_phase(
     db.add(row)
     db.commit()
     return get_precedent_review_state(db)
+
+
+def get_phase_five_closure_review(db: Session) -> schemas.PhaseFiveClosureReviewResponse:
+    return build_phase_five_closure_review(
+        sign_off_state=(
+            _get_phase_review_row(db, extension_id=PHASE_5_SINGLE_FIRM_CLOUD_ID).payload
+            if _get_phase_review_row(db, extension_id=PHASE_5_SINGLE_FIRM_CLOUD_ID)
+            else None
+        )
+    )
+
+
+def sign_off_phase_five(
+    db: Session,
+    *,
+    payload: schemas.PhaseFiveSignOffRequest,
+) -> schemas.PhaseFiveClosureReviewResponse:
+    current = get_phase_five_closure_review(db)
+    if current.closure_status != "ready_to_close":
+        raise HTTPException(status_code=409, detail="目前還不能正式收口 phase 5。")
+
+    row = _get_phase_review_row(db, extension_id=PHASE_5_SINGLE_FIRM_CLOUD_ID)
+    if row is None:
+        row = models.WorkbenchExtensionState(
+            profile_key=DEFAULT_WORKBENCH_PROFILE,
+            extension_kind=PHASE_REVIEW_EXTENSION_KIND,
+            extension_id=PHASE_5_SINGLE_FIRM_CLOUD_ID,
+            is_custom=False,
+        )
+
+    operator_label = _normalize_operator_label(payload.operator_label)
+    row.payload = {
+        "signed_off": True,
+        "signed_off_at": models.utc_now().isoformat(),
+        "signed_off_by_label": operator_label,
+    }
+    db.add(row)
+    db.commit()
+    return get_phase_five_closure_review(db)

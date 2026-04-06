@@ -239,6 +239,19 @@ export async function getPhaseFiveClosureReview(): Promise<PhaseFiveClosureRevie
   return parsePhaseFiveClosureReviewPayload(await parseResponse<any>(response));
 }
 
+export async function signOffPhaseFive(
+  payload: SharedIntelligenceSignOffPayload,
+): Promise<PhaseFiveClosureReview> {
+  const response = await apiFetch(`${getApiBaseUrl()}/workbench/phase-5-sign-off`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  return parsePhaseFiveClosureReviewPayload(await parseResponse<any>(response));
+}
+
 export async function createMemberInvite(payload: {
   email: string;
   role: "consultant" | "demo";

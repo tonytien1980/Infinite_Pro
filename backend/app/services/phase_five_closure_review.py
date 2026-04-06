@@ -56,7 +56,10 @@ def _build_asset_audits() -> list[schemas.PhaseFiveAssetAuditItemResponse]:
     ]
 
 
-def build_phase_five_closure_review() -> schemas.PhaseFiveClosureReviewResponse:
+def build_phase_five_closure_review(
+    *,
+    sign_off_state: dict | None = None,
+) -> schemas.PhaseFiveClosureReviewResponse:
     asset_audits = _build_asset_audits()
     completed_items = [
         "single-firm identity / access foundation 已成立",
@@ -67,6 +70,33 @@ def build_phase_five_closure_review() -> schemas.PhaseFiveClosureReviewResponse:
         "firm operating surfaces 已成立",
     ]
     remaining_items = ["phase 5 sign-off 與下一階段 handoff"]
+
+    if sign_off_state and sign_off_state.get("signed_off"):
+        return schemas.PhaseFiveClosureReviewResponse(
+            phase_id="phase_5",
+            phase_label="Single-Firm Cloud Foundation",
+            closure_status="signed_off",
+            closure_status_label="已正式收口",
+            summary="phase 5 已正式收口，下一階段 handoff 已整理。",
+            foundation_snapshot="Single-Firm Cloud Foundation 六條主線已完成並正式收口。",
+            completed_count=len(completed_items) + len(asset_audits),
+            remaining_count=0,
+            completed_items=completed_items,
+            asset_audits=asset_audits,
+            remaining_items=[],
+            recommended_next_step="下一階段先做 phase-6 decision framing。",
+            signed_off_at=sign_off_state.get("signed_off_at"),
+            signed_off_by_label=sign_off_state.get("signed_off_by_label", ""),
+            next_phase_label="下一階段：phase-6 decision framing",
+            handoff_summary=(
+                "先確認 phase 6 應從 decision framing 開始，決定下一條真正要擴大的產品主線，"
+                "而不是直接把系統拉成 enterprise governance shell。"
+            ),
+            handoff_items=[
+                "先確認下一階段的主線仍要服務顧問公司內部 operating layer。",
+                "不要直接跳成 enterprise governance shell 或多租戶 SaaS 殼。",
+            ],
+        )
 
     return schemas.PhaseFiveClosureReviewResponse(
         phase_id="phase_5",

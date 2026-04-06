@@ -439,6 +439,37 @@ def test_owner_can_read_phase_five_closure_review(client: TestClient) -> None:
     assert body["remaining_items"] == ["phase 5 sign-off 與下一階段 handoff"]
 
 
+def test_owner_can_sign_off_phase_five(client: TestClient) -> None:
+    response = client.post(
+        "/api/v1/workbench/phase-5-sign-off",
+        json={"operator_label": "王顧問"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["closure_status"] == "signed_off"
+    assert body["closure_status_label"] == "已正式收口"
+    assert body["remaining_count"] == 0
+    assert body["signed_off_by_label"] == "王顧問"
+    assert body["next_phase_label"]
+    assert body["handoff_summary"]
+    assert body["handoff_items"]
+
+
+def test_consultant_cannot_sign_off_phase_five(
+    anonymous_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    consultant_client = login_as_consultant_with_owner_invite(anonymous_client, monkeypatch)
+
+    response = consultant_client.post(
+        "/api/v1/workbench/phase-5-sign-off",
+        json={"operator_label": "Consultant User"},
+    )
+
+    assert response.status_code == 403
+
+
 def test_health_endpoint(client: TestClient) -> None:
     response = client.get("/api/v1/health")
 

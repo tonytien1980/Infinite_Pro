@@ -456,6 +456,10 @@ class SharedIntelligenceSignOffRequest(BaseModel):
     operator_label: str | None = None
 
 
+class PhaseFiveSignOffRequest(BaseModel):
+    operator_label: str | None = None
+
+
 class PrecedentReviewResponse(BaseModel):
     summary: PrecedentReviewSummaryResponse = Field(
         default_factory=PrecedentReviewSummaryResponse
