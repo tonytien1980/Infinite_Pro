@@ -777,6 +777,10 @@ Infinite Pro 目前沒有也不應硬對齊於：
     - demo 只讀固定 sample dataset
     - demo 不可讀正式 firm workspace
     - owner 可在 `/members` 看到 demo 帳號數量與待接受邀請數
+- demo 之後，後續三條較輕的主線固定按這個順序往下走：
+  1. `owner controls deepen`
+  2. `demo polish`
+  3. `firm operating surfaces`
 
 ---
 
