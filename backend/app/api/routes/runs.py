@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.agents.host import HostOrchestrator
-from app.core.auth import require_current_member
+from app.core.auth import require_permission
 from app.core.database import get_db
 from app.domain import schemas
 from app.model_router.base import ModelProviderError
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 @router.post("/{task_id}/run", response_model=schemas.ResearchRunResponse)
 def run_task(
     task_id: str,
-    current_member=Depends(require_current_member),
+    current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.ResearchRunResponse:
     logger.info("Received run request for task %s", task_id)
@@ -38,7 +38,7 @@ def run_task(
 @router.post("/{task_id}/runs/research-synthesis", response_model=schemas.ResearchRunResponse)
 def run_research_synthesis(
     task_id: str,
-    current_member=Depends(require_current_member),
+    current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.ResearchRunResponse:
     ensure_task_allows_continuation_activity(get_loaded_task(db, task_id))

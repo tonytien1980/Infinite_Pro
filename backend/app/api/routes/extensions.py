@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.core.auth import require_current_member, require_permission
+from app.core.auth import require_permission
 from app.extensions.schemas import ExtensionManagerSnapshot
 from app.core.database import get_db
 from app.services.extensions_manager import (
@@ -22,7 +22,7 @@ router = APIRouter(prefix="/extensions", tags=["extensions"])
 
 @router.get("/manager", response_model=ExtensionManagerSnapshot)
 def get_extension_manager_route(
-    current_member=Depends(require_current_member),
+    current_member=Depends(require_permission("view_agents")),
     db: Session = Depends(get_db),
 ) -> ExtensionManagerSnapshot:
     return get_extension_manager_snapshot(db)

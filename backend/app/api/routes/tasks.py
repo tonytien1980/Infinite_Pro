@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
-from app.core.auth import require_current_member
+from app.core.auth import require_permission
 from app.core.database import get_db
 from app.domain import schemas
 from app.services.tasks import (
@@ -24,7 +24,7 @@ router = APIRouter(prefix="/tasks", tags=["tasks"])
 @router.post("", response_model=schemas.TaskAggregateResponse, status_code=status.HTTP_201_CREATED)
 def create_task_route(
     payload: schemas.TaskCreateRequest,
-    current_member=Depends(require_current_member),
+    current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.TaskAggregateResponse:
     task = create_task(db, payload)
@@ -33,7 +33,7 @@ def create_task_route(
 
 @router.get("", response_model=list[schemas.TaskListItemResponse])
 def list_tasks_route(
-    current_member=Depends(require_current_member),
+    current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> list[schemas.TaskListItemResponse]:
     return list_tasks(db)
@@ -42,7 +42,7 @@ def list_tasks_route(
 @router.get("/{task_id}", response_model=schemas.TaskAggregateResponse)
 def get_task_route(
     task_id: str,
-    current_member=Depends(require_current_member),
+    current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.TaskAggregateResponse:
     task = get_loaded_task(db, task_id)
@@ -53,7 +53,7 @@ def get_task_route(
 def update_task_extensions_route(
     task_id: str,
     payload: schemas.TaskExtensionOverrideRequest,
-    current_member=Depends(require_current_member),
+    current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.TaskAggregateResponse:
     task = update_task_extension_overrides(db, task_id, payload)
@@ -64,7 +64,7 @@ def update_task_extensions_route(
 def approve_task_writeback_route(
     task_id: str,
     payload: schemas.TaskWritebackApprovalRequest,
-    current_member=Depends(require_current_member),
+    current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.TaskAggregateResponse:
     return approve_task_writeback_record(db, task_id, payload)
@@ -78,7 +78,7 @@ def apply_recommendation_adoption_feedback_route(
     task_id: str,
     recommendation_id: str,
     payload: schemas.AdoptionFeedbackRequest,
-    current_member=Depends(require_current_member),
+    current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.TaskAggregateResponse:
     return apply_recommendation_adoption_feedback(db, task_id, recommendation_id, payload)
@@ -92,7 +92,7 @@ def update_recommendation_precedent_candidate_status_route(
     task_id: str,
     recommendation_id: str,
     payload: schemas.PrecedentCandidateStatusUpdateRequest,
-    current_member=Depends(require_current_member),
+    current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.TaskAggregateResponse:
     return update_recommendation_precedent_candidate_status(
@@ -106,7 +106,7 @@ def update_recommendation_precedent_candidate_status_route(
 @router.get("/{task_id}/history", response_model=schemas.TaskHistoryResponse)
 def get_task_history_route(
     task_id: str,
-    current_member=Depends(require_current_member),
+    current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.TaskHistoryResponse:
     return get_task_history(db, task_id)

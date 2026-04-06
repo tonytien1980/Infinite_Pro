@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.core.auth import require_current_member, require_permission
+from app.core.auth import require_permission
 from app.core.database import get_db
 from app.services.workbench import (
     apply_precedent_governance_recommendation,
@@ -29,7 +29,7 @@ router = APIRouter(prefix="/workbench", tags=["workbench"])
 
 @router.get("/preferences", response_model=schemas.WorkbenchPreferenceResponse)
 def get_workbench_preferences_route(
-    current_member=Depends(require_current_member),
+    current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.WorkbenchPreferenceResponse:
     return get_workbench_preferences(db)
@@ -38,7 +38,7 @@ def get_workbench_preferences_route(
 @router.put("/preferences", response_model=schemas.WorkbenchPreferenceResponse)
 def update_workbench_preferences_route(
     payload: schemas.WorkbenchPreferenceUpdateRequest,
-    current_member=Depends(require_current_member),
+    current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.WorkbenchPreferenceResponse:
     return update_workbench_preferences(db, payload)
@@ -91,7 +91,7 @@ def reset_system_provider_settings_route(
 
 @router.get("/history-visibility", response_model=schemas.HistoryVisibilityStateResponse)
 def get_history_visibility_route(
-    current_member=Depends(require_current_member),
+    current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.HistoryVisibilityStateResponse:
     return get_history_visibility_state(db)
@@ -100,7 +100,7 @@ def get_history_visibility_route(
 @router.put("/history-visibility", response_model=schemas.HistoryVisibilityStateResponse)
 def update_history_visibility_route(
     payload: schemas.HistoryVisibilityUpdateRequest,
-    current_member=Depends(require_current_member),
+    current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.HistoryVisibilityStateResponse:
     return update_history_visibility_state(db, payload)
@@ -108,7 +108,7 @@ def update_history_visibility_route(
 
 @router.get("/precedent-candidates", response_model=schemas.PrecedentReviewResponse)
 def get_precedent_review_route(
-    current_member=Depends(require_current_member),
+    current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.PrecedentReviewResponse:
     return get_precedent_review_state(db)
