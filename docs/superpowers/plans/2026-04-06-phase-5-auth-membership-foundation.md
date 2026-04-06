@@ -57,6 +57,8 @@
   - `/members/{membership_id}`
 - Modify: `backend/app/core/config.py`
   - Google OAuth、session、first-owner bootstrap、firm defaults
+- Modify: `backend/requirements.txt`
+  - 新增 runtime 所需的 `httpx`
 - Modify: `backend/app/domain/models.py`
   - 新增 single-firm cloud foundation 所需 tables
 - Modify: `backend/app/core/database.py`
@@ -131,6 +133,7 @@
 - Create: `backend/app/services/identity_access.py`
 - Create: `backend/app/api/routes/auth.py`
 - Modify: `backend/app/core/config.py`
+- Modify: `backend/requirements.txt`
 - Modify: `backend/app/domain/models.py`
 - Modify: `backend/app/core/database.py`
 - Modify: `backend/app/main.py`
@@ -266,6 +269,11 @@ default_firm_slug: str = "infinite-pro"
 @property
 def bootstrap_owner_email_list(self) -> list[str]:
     return [item.strip().lower() for item in self.bootstrap_owner_emails.split(",") if item.strip()]
+```
+
+```text
+# backend/requirements.txt
+httpx>=0.28,<1.0
 ```
 
 ```python
@@ -734,7 +742,7 @@ Expected:
 - [ ] **Step 6: Commit the backend auth foundation**
 
 ```bash
-git add backend/app/core/config.py backend/app/domain/models.py backend/app/core/database.py backend/app/main.py backend/app/api/router.py backend/app/core/auth.py backend/app/identity/__init__.py backend/app/identity/schemas.py backend/app/services/identity_access.py backend/app/api/routes/auth.py backend/tests/test_mvp_slice.py
+git add backend/requirements.txt backend/app/core/config.py backend/app/domain/models.py backend/app/core/database.py backend/app/main.py backend/app/api/router.py backend/app/core/auth.py backend/app/identity/__init__.py backend/app/identity/schemas.py backend/app/services/identity_access.py backend/app/api/routes/auth.py backend/tests/test_mvp_slice.py
 git commit -m "feat: add auth and membership foundation"
 ```
 
