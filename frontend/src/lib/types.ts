@@ -431,6 +431,27 @@ export interface PhaseSixGeneralistGuidancePosture {
   recommendedNextStep: string;
 }
 
+export interface PhaseSixContextDistanceItem {
+  assetCode: string;
+  assetLabel: string;
+  contextDistance: "close" | "moderate" | "far";
+  contextDistanceLabel: string;
+  reuseConfidence: "high_confidence" | "bounded_confidence" | "low_confidence";
+  reuseConfidenceLabel: string;
+  summary: string;
+  guardrailNote: string;
+}
+
+export interface PhaseSixContextDistanceAudit {
+  phaseId: "phase_6";
+  phaseLabel: string;
+  confidencePosture: "mostly_close" | "mixed_distance";
+  confidencePostureLabel: string;
+  summary: string;
+  distanceItems: PhaseSixContextDistanceItem[];
+  recommendedNextStep: string;
+}
+
 export interface GeneralistGuidancePosture {
   guidance_posture: "light_guidance" | "balanced_guidance" | "guarded_guidance";
   guidance_posture_label: string;

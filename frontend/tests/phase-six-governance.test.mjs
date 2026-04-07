@@ -3,10 +3,13 @@ import assert from "node:assert/strict";
 
 import {
   labelForPhaseSixAuditStatus,
+  labelForPhaseSixContextDistance,
   labelForPhaseSixGeneralistPosture,
   labelForPhaseSixGuidancePosture,
   labelForPhaseSixGovernancePosture,
+  labelForPhaseSixReuseConfidence,
   labelForPhaseSixReuseRecommendation,
+  summarizePhaseSixDistanceItems,
   summarizePhaseSixGuidanceItems,
   summarizePhaseSixHostWeighting,
 } from "../src/lib/phase-six-governance.ts";
@@ -55,5 +58,39 @@ test("phase 6 guidance posture labels stay low-noise and readable", () => {
       "窄情境來源若有其他較穩替代，先留背景校正。",
     ]),
     "先把 shared intelligence 當校正主線，不要直接當成定論。｜窄情境來源若有其他較穩替代，先留背景校正。",
+  );
+});
+
+test("phase 6 distance and reuse-confidence labels stay low-noise and readable", () => {
+  assert.equal(labelForPhaseSixContextDistance("close"), "距離較近");
+  assert.equal(labelForPhaseSixContextDistance("moderate"), "仍有距離");
+  assert.equal(labelForPhaseSixContextDistance("far"), "距離偏遠");
+  assert.equal(labelForPhaseSixReuseConfidence("high_confidence"), "高信心重用");
+  assert.equal(labelForPhaseSixReuseConfidence("bounded_confidence"), "有邊界重用");
+  assert.equal(labelForPhaseSixReuseConfidence("low_confidence"), "低信心重用");
+  assert.equal(
+    summarizePhaseSixDistanceItems([
+      {
+        assetCode: "precedent_general_pattern",
+        assetLabel: "precedent general pattern",
+        contextDistance: "close",
+        contextDistanceLabel: "距離較近",
+        reuseConfidence: "high_confidence",
+        reuseConfidenceLabel: "高信心重用",
+        summary: "這類 precedent 與目前案件脈絡較接近。",
+        guardrailNote: "仍需由 Host 做最後收斂。",
+      },
+      {
+        assetCode: "template_narrow_shape",
+        assetLabel: "template narrow shape",
+        contextDistance: "far",
+        contextDistanceLabel: "距離偏遠",
+        reuseConfidence: "low_confidence",
+        reuseConfidenceLabel: "低信心重用",
+        summary: "這類窄情境模板與目前案件距離偏遠。",
+        guardrailNote: "先留背景校正。",
+      },
+    ]),
+    "precedent general pattern：高信心重用｜template narrow shape：低信心重用",
   );
 });

@@ -2031,6 +2031,52 @@ Object storage 負責：
 - page-local policy engine
 - long-form training overlay
 
+### 7.16 Phase 6 context-distance / reuse confidence
+
+在 phase 6 已能回答 reusable boundary、Host ordering、guidance posture 並 propagation 到 work surface 後，runtime 也已正式補上 `context-distance / reuse confidence`：
+
+- backend 已有 `GET /workbench/phase-6-context-distance-audit`
+- 第一版正式回讀：
+  - `phase_id`
+  - `phase_label`
+  - `confidence_posture`
+  - `confidence_posture_label`
+  - `summary`
+  - `distance_items`
+  - `recommended_next_step`
+
+每個 `distance_item` 目前至少回答：
+
+- `asset_code`
+- `asset_label`
+- `context_distance`
+- `context_distance_label`
+- `reuse_confidence`
+- `reuse_confidence_label`
+- `summary`
+- `guardrail_note`
+
+第一版目前至少可回答：
+
+- `close / moderate / far`
+- `high_confidence / bounded_confidence / low_confidence`
+
+正式規則：
+
+- 第一波只做 read model，不直接改寫 Host weighting
+- 這一層的作用是把 reusable-intelligence 與「目前這案」的距離讀出來，不是 hard policy
+- UI 仍只掛在既有 `Generalist Governance`
+
+因此這一層現在應被理解為：
+
+- context-distance and reuse-confidence reading
+
+不是：
+
+- routing engine rewrite
+- automatic blocking
+- new dashboard shell
+
 ---
 
 ## 8. Provider Boundary

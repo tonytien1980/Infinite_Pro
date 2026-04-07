@@ -1,5 +1,6 @@
 import type {
   PhaseSixCoverageArea,
+  PhaseSixContextDistanceItem,
   PhaseSixGeneralistGuidancePosture,
   PhaseSixReuseBoundaryGovernance,
   PhaseSixReuseBoundaryGovernanceItem,
@@ -126,4 +127,40 @@ export function summarizePhaseSixWorkGuidance(
     return posture.workGuidanceSummary;
   }
   return summarizePhaseSixGuidanceItems(posture.guidanceItems);
+}
+
+export function labelForPhaseSixContextDistance(
+  distance: "close" | "moderate" | "far",
+) {
+  if (distance === "close") {
+    return "距離較近";
+  }
+  if (distance === "far") {
+    return "距離偏遠";
+  }
+  return "仍有距離";
+}
+
+export function labelForPhaseSixReuseConfidence(
+  confidence: "high_confidence" | "bounded_confidence" | "low_confidence",
+) {
+  if (confidence === "high_confidence") {
+    return "高信心重用";
+  }
+  if (confidence === "low_confidence") {
+    return "低信心重用";
+  }
+  return "有邊界重用";
+}
+
+export function summarizePhaseSixDistanceItems(
+  items: PhaseSixContextDistanceItem[],
+) {
+  if (items.length === 0) {
+    return "目前還沒有可讀取的 reuse-confidence signal。";
+  }
+  return items
+    .slice(0, 2)
+    .map((item) => `${item.assetLabel}：${item.reuseConfidenceLabel}`)
+    .join("｜");
 }

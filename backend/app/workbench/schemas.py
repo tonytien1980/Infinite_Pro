@@ -508,6 +508,31 @@ class PhaseSixGeneralistGuidancePostureResponse(BaseModel):
     recommended_next_step: str = ""
 
 
+class PhaseSixContextDistanceItemRead(BaseModel):
+    asset_code: str
+    asset_label: str = ""
+    context_distance: Literal["close", "moderate", "far"] = "moderate"
+    context_distance_label: str = ""
+    reuse_confidence: Literal[
+        "high_confidence",
+        "bounded_confidence",
+        "low_confidence",
+    ] = "bounded_confidence"
+    reuse_confidence_label: str = ""
+    summary: str = ""
+    guardrail_note: str = ""
+
+
+class PhaseSixContextDistanceAuditResponse(BaseModel):
+    phase_id: Literal["phase_6"] = "phase_6"
+    phase_label: str = ""
+    confidence_posture: Literal["mostly_close", "mixed_distance"] = "mixed_distance"
+    confidence_posture_label: str = ""
+    summary: str = ""
+    distance_items: list[PhaseSixContextDistanceItemRead] = Field(default_factory=list)
+    recommended_next_step: str = ""
+
+
 class SharedIntelligenceClosureReviewResponse(BaseModel):
     phase_id: Literal["phase_4"] = "phase_4"
     phase_label: str = ""

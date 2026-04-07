@@ -23,6 +23,7 @@ from app.services.workbench import (
     get_history_visibility_state,
     get_phase_five_closure_review,
     get_phase_six_capability_coverage_audit,
+    get_phase_six_context_distance_audit,
     get_phase_six_generalist_guidance_posture,
     get_phase_six_reuse_boundary_governance,
     get_precedent_review_state,
@@ -139,6 +140,17 @@ def get_phase_six_generalist_guidance_posture_route(
     db: Session = Depends(get_db),
 ) -> schemas.PhaseSixGeneralistGuidancePostureResponse:
     return get_phase_six_generalist_guidance_posture(db)
+
+
+@router.get(
+    "/phase-6-context-distance-audit",
+    response_model=schemas.PhaseSixContextDistanceAuditResponse,
+)
+def get_phase_six_context_distance_audit_route(
+    current_member=Depends(require_permission("access_firm_workspace")),
+    db: Session = Depends(get_db),
+) -> schemas.PhaseSixContextDistanceAuditResponse:
+    return get_phase_six_context_distance_audit(db)
 
 
 @router.get(

@@ -51,6 +51,7 @@ import {
   PersonalProviderSettingsPayload,
   PhaseFiveClosureReview,
   PhaseSixCapabilityCoverageAudit,
+  PhaseSixContextDistanceAudit,
   PhaseSixGeneralistGuidancePosture,
   PhaseSixReuseBoundaryGovernance,
   PersonalProviderSettingsSnapshot,
@@ -270,6 +271,16 @@ export async function getPhaseSixGeneralistGuidancePosture(): Promise<PhaseSixGe
     },
   );
   return parsePhaseSixGeneralistGuidancePosturePayload(await parseResponse<any>(response));
+}
+
+export async function getPhaseSixContextDistanceAudit(): Promise<PhaseSixContextDistanceAudit> {
+  const response = await apiFetch(
+    `${getApiBaseUrl()}/workbench/phase-6-context-distance-audit`,
+    {
+      cache: "no-store",
+    },
+  );
+  return parsePhaseSixContextDistanceAuditPayload(await parseResponse<any>(response));
 }
 
 export async function signOffPhaseFive(
@@ -1017,6 +1028,42 @@ function parsePhaseSixGeneralistGuidancePosturePayload(
     boundaryEmphasis: payload.boundary_emphasis || "",
     guidanceItems: Array.isArray(payload.guidance_items)
       ? payload.guidance_items.filter((item: unknown) => typeof item === "string")
+      : [],
+    recommendedNextStep: payload.recommended_next_step || "",
+  };
+}
+
+function parsePhaseSixContextDistanceAuditPayload(
+  payload: any,
+): PhaseSixContextDistanceAudit {
+  return {
+    phaseId: "phase_6",
+    phaseLabel: payload.phase_label || "",
+    confidencePosture:
+      payload.confidence_posture === "mostly_close" ? "mostly_close" : "mixed_distance",
+    confidencePostureLabel: payload.confidence_posture_label || "",
+    summary: payload.summary || "",
+    distanceItems: Array.isArray(payload.distance_items)
+      ? payload.distance_items.map((item: any) => ({
+          assetCode: item.asset_code,
+          assetLabel: item.asset_label || "",
+          contextDistance:
+            item.context_distance === "close"
+              ? "close"
+              : item.context_distance === "far"
+                ? "far"
+                : "moderate",
+          contextDistanceLabel: item.context_distance_label || "",
+          reuseConfidence:
+            item.reuse_confidence === "high_confidence"
+              ? "high_confidence"
+              : item.reuse_confidence === "low_confidence"
+                ? "low_confidence"
+                : "bounded_confidence",
+          reuseConfidenceLabel: item.reuse_confidence_label || "",
+          summary: item.summary || "",
+          guardrailNote: item.guardrail_note || "",
+        }))
       : [],
     recommendedNextStep: payload.recommended_next_step || "",
   };

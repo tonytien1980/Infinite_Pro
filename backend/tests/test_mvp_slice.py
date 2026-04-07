@@ -599,6 +599,34 @@ def test_matter_workspace_exposes_generalist_guidance_posture(
     assert payload["generalist_guidance_posture"]["guidance_items"]
 
 
+def test_owner_can_read_phase_six_context_distance_audit(client: TestClient) -> None:
+    response = client.get("/api/v1/workbench/phase-6-context-distance-audit")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["phase_id"] == "phase_6"
+    assert payload["confidence_posture"] in {"mostly_close", "mixed_distance"}
+    assert payload["confidence_posture_label"]
+    assert payload["distance_items"]
+    assert payload["recommended_next_step"]
+
+
+def test_phase_six_context_distance_audit_marks_far_assets_as_low_confidence(
+    client: TestClient,
+) -> None:
+    response = client.get("/api/v1/workbench/phase-6-context-distance-audit")
+
+    assert response.status_code == 200
+    payload = response.json()
+    low_confidence_items = [
+        item
+        for item in payload["distance_items"]
+        if item["reuse_confidence"] == "low_confidence"
+    ]
+    assert low_confidence_items
+    assert all(item["context_distance"] == "far" for item in low_confidence_items)
+
+
 def test_consultant_cannot_sign_off_phase_five(
     anonymous_client: TestClient,
     monkeypatch: pytest.MonkeyPatch,

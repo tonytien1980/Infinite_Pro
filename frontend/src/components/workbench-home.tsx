@@ -12,6 +12,7 @@ import {
   getFirmOperatingSnapshot,
   getPhaseFiveClosureReview,
   getPhaseSixCapabilityCoverageAudit,
+  getPhaseSixContextDistanceAudit,
   getPhaseSixGeneralistGuidancePosture,
   getPhaseSixReuseBoundaryGovernance,
   listMatterWorkspaces,
@@ -26,11 +27,14 @@ import {
 import { buildPhaseFiveClosureView } from "@/lib/phase-five-closure";
 import {
   labelForPhaseSixAuditStatus,
+  labelForPhaseSixContextDistance,
   labelForPhaseSixGuidancePosture,
   labelForPhaseSixGeneralistPosture,
   labelForPhaseSixGovernancePosture,
+  labelForPhaseSixReuseConfidence,
   labelForPhaseSixReuseRecommendation,
   summarizePhaseSixCoverageAreas,
+  summarizePhaseSixDistanceItems,
   summarizePhaseSixGuidanceItems,
   summarizePhaseSixGovernanceItems,
   summarizePhaseSixWorkGuidance,
@@ -44,6 +48,7 @@ import type {
   MatterWorkspaceSummary,
   PhaseFiveClosureReview,
   PhaseSixCapabilityCoverageAudit,
+  PhaseSixContextDistanceAudit,
   PhaseSixGeneralistGuidancePosture,
   PhaseSixReuseBoundaryGovernance,
   TaskListItem,
@@ -115,6 +120,7 @@ export function WorkbenchHome() {
   const [firmOperating, setFirmOperating] = useState<FirmOperatingSnapshot | null>(null);
   const [phaseFiveClosureReview, setPhaseFiveClosureReview] = useState<PhaseFiveClosureReview | null>(null);
   const [phaseSixAudit, setPhaseSixAudit] = useState<PhaseSixCapabilityCoverageAudit | null>(null);
+  const [phaseSixDistance, setPhaseSixDistance] = useState<PhaseSixContextDistanceAudit | null>(null);
   const [phaseSixGovernance, setPhaseSixGovernance] = useState<PhaseSixReuseBoundaryGovernance | null>(null);
   const [phaseSixGuidance, setPhaseSixGuidance] = useState<PhaseSixGeneralistGuidancePosture | null>(null);
   const [matterRecords] = useMatterWorkspaceRecords();
@@ -125,6 +131,7 @@ export function WorkbenchHome() {
   const [firmOperatingLoading, setFirmOperatingLoading] = useState(true);
   const [phaseFiveClosureLoading, setPhaseFiveClosureLoading] = useState(true);
   const [phaseSixAuditLoading, setPhaseSixAuditLoading] = useState(true);
+  const [phaseSixDistanceLoading, setPhaseSixDistanceLoading] = useState(true);
   const [phaseSixGovernanceLoading, setPhaseSixGovernanceLoading] = useState(true);
   const [phaseSixGuidanceLoading, setPhaseSixGuidanceLoading] = useState(true);
   const [phaseFiveSignOffLoading, setPhaseFiveSignOffLoading] = useState(false);
@@ -134,6 +141,7 @@ export function WorkbenchHome() {
   const [firmOperatingError, setFirmOperatingError] = useState<string | null>(null);
   const [phaseFiveClosureError, setPhaseFiveClosureError] = useState<string | null>(null);
   const [phaseSixAuditError, setPhaseSixAuditError] = useState<string | null>(null);
+  const [phaseSixDistanceError, setPhaseSixDistanceError] = useState<string | null>(null);
   const [phaseSixGovernanceError, setPhaseSixGovernanceError] = useState<string | null>(null);
   const [phaseSixGuidanceError, setPhaseSixGuidanceError] = useState<string | null>(null);
   const [phaseFiveClosureFeedback, setPhaseFiveClosureFeedback] = useState<string | null>(null);
@@ -237,6 +245,22 @@ export function WorkbenchHome() {
     }
   }
 
+  async function refreshPhaseSixDistance() {
+    try {
+      setPhaseSixDistanceLoading(true);
+      setPhaseSixDistanceError(null);
+      setPhaseSixDistance(await getPhaseSixContextDistanceAudit());
+    } catch (distanceError) {
+      setPhaseSixDistanceError(
+        distanceError instanceof Error
+          ? distanceError.message
+          : "載入 reuse confidence 摘要失敗。",
+      );
+    } finally {
+      setPhaseSixDistanceLoading(false);
+    }
+  }
+
   async function refreshPhaseSixGuidance() {
     try {
       setPhaseSixGuidanceLoading(true);
@@ -260,6 +284,7 @@ export function WorkbenchHome() {
     void refreshFirmOperating();
     void refreshPhaseFiveClosureReview();
     void refreshPhaseSixAudit();
+    void refreshPhaseSixDistance();
     void refreshPhaseSixGovernance();
     void refreshPhaseSixGuidance();
   }, []);
@@ -466,6 +491,11 @@ export function WorkbenchHome() {
       {phaseSixAuditError ? (
         <p className="error-text" role="alert" aria-live="assertive">
           {phaseSixAuditError}
+        </p>
+      ) : null}
+      {phaseSixDistanceError ? (
+        <p className="error-text" role="alert" aria-live="assertive">
+          {phaseSixDistanceError}
         </p>
       ) : null}
       {phaseSixGovernanceError ? (
@@ -812,6 +842,35 @@ export function WorkbenchHome() {
                       {phaseSixAudit.recommendedNextStep}
                     </p>
                   </div>
+
+                  {phaseSixDistanceLoading ? (
+                    <p className="status-text" style={{ marginTop: "16px" }}>
+                      正在整理 reuse confidence 摘要...
+                    </p>
+                  ) : null}
+
+                  {!phaseSixDistanceLoading && phaseSixDistance ? (
+                    <div className="section-card" style={{ marginTop: "16px" }}>
+                      <h3>reuse confidence</h3>
+                      <p className="muted-text">{phaseSixDistance.confidencePostureLabel}</p>
+                      <strong>{phaseSixDistance.summary}</strong>
+                      <p className="muted-text" style={{ marginTop: "8px" }}>
+                        {summarizePhaseSixDistanceItems(phaseSixDistance.distanceItems)}
+                      </p>
+                      <ul className="detail-list" style={{ marginTop: "12px" }}>
+                        {phaseSixDistance.distanceItems.slice(0, 2).map((item) => (
+                          <li key={item.assetCode}>
+                            {item.assetLabel}｜
+                            {labelForPhaseSixContextDistance(item.contextDistance)}｜
+                            {labelForPhaseSixReuseConfidence(item.reuseConfidence)}
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="muted-text" style={{ marginTop: "12px" }}>
+                        {phaseSixDistance.recommendedNextStep}
+                      </p>
+                    </div>
+                  ) : null}
 
                   {phaseSixGovernanceLoading ? (
                     <p className="status-text" style={{ marginTop: "16px" }}>

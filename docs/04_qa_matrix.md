@@ -4179,6 +4179,19 @@ Environment used:
 - `generalist_guidance_posture` no longer only lives on the homepage; it now flows through the existing task / matter / deliverable work-surface contracts
 - Phase 6 guidance can now shape second-layer reading without introducing a new governance page or training shell
 
+### Phase-6 context-distance / reuse-confidence verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | `/workbench/phase-6-context-distance-audit` | Return context-distance / reuse-confidence read model | Verified | targeted backend tests confirm the route returns `phase_6`, confidence posture, and low-confidence items that are marked `far` |
+| Frontend | `phase-six-governance` helper copy | Keep distance / confidence labels low-noise and readable | Verified | node helper tests confirm `close / moderate / far` and `high_confidence / bounded_confidence / low_confidence` stay consultant-readable |
+| Frontend | `/` | Extend `Generalist Governance` with low-noise `reuse confidence` summary | Verified | typecheck/build pass after adding parser, helper summary, and homepage reuse-confidence block |
+
+### Verified outcomes
+
+- Phase 6 can now answer not only whether a reusable asset should stay narrow or expand, but also how close it is to the current case context
+- `Generalist Governance` can now read back a low-noise reuse-confidence posture without adding a new dashboard surface
+
 ### Explicitly not shipped in this pass
 
 - `Personal Provider Settings`

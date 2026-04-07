@@ -216,6 +216,70 @@ def build_phase_six_generalist_guidance_posture(
     )
 
 
+def build_phase_six_context_distance_audit(
+    *,
+    audit: schemas.PhaseSixCapabilityCoverageAuditResponse | None = None,
+    governance: schemas.PhaseSixReuseBoundaryGovernanceResponse | None = None,
+) -> schemas.PhaseSixContextDistanceAuditResponse:
+    source_audit = audit or build_phase_six_capability_coverage_audit()
+    source_governance = governance or build_phase_six_reuse_boundary_governance(
+        audit=source_audit,
+    )
+
+    distance_items: list[schemas.PhaseSixContextDistanceItemRead] = []
+    for item in source_governance.governance_items:
+        if item.reuse_recommendation == "can_expand":
+            context_distance = "close"
+            context_distance_label = "距離較近"
+            reuse_confidence = "high_confidence"
+            reuse_confidence_label = "高信心重用"
+            summary = "這類 reusable asset 與目前案件脈絡較接近，可作為較高信心的重用來源。"
+            guardrail_note = "仍需由 Host 做最後 contextual 收斂，不可直接視為全域定論。"
+        elif item.reuse_recommendation == "restrict_narrow_use":
+            context_distance = "far"
+            context_distance_label = "距離偏遠"
+            reuse_confidence = "low_confidence"
+            reuse_confidence_label = "低信心重用"
+            summary = "這類 reusable asset 與目前案件距離偏遠，較適合留在背景校正。"
+            guardrail_note = "先留背景校正，避免直接擴張成目前案件的主要依據。"
+        else:
+            context_distance = "moderate"
+            context_distance_label = "仍有距離"
+            reuse_confidence = "bounded_confidence"
+            reuse_confidence_label = "有邊界重用"
+            summary = "這類 reusable asset 可提供方向，但仍需明示脈絡邊界。"
+            guardrail_note = "可作為局部參考，但要搭配 client stage / domain lens 收斂。"
+
+        distance_items.append(
+            schemas.PhaseSixContextDistanceItemRead(
+                asset_code=item.asset_code,
+                asset_label=item.asset_label,
+                context_distance=context_distance,
+                context_distance_label=context_distance_label,
+                reuse_confidence=reuse_confidence,
+                reuse_confidence_label=reuse_confidence_label,
+                summary=summary,
+                guardrail_note=guardrail_note,
+            )
+        )
+
+    has_far = any(item.context_distance == "far" for item in distance_items)
+    return schemas.PhaseSixContextDistanceAuditResponse(
+        phase_id="phase_6",
+        phase_label="Generalist Consulting Intelligence Governance",
+        confidence_posture="mixed_distance" if has_far else "mostly_close",
+        confidence_posture_label="目前距離混合" if has_far else "目前多數較近",
+        summary=(
+            "phase 6 現在已能更正式回答 reusable assets 與目前案件脈絡的距離，"
+            "以及目前較接近高信心、有限邊界或低信心的重用。"
+        ),
+        distance_items=distance_items,
+        recommended_next_step=(
+            "若要繼續往下走，下一刀應把 context distance 再更正式接進 Host 的 reuse confidence weighting。"
+        ),
+    )
+
+
 def recommend_phase_six_reuse_weighting(
     *,
     asset_code: str,
