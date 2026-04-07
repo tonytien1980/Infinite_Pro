@@ -4838,3 +4838,40 @@ Environment used:
 - browser smoke
 - next-phase handoff
 - new governance dashboard
+
+---
+
+## Entry: 2026-04-07 phase-6 next-phase handoff foundation pass
+
+Scope:
+- signed-off handoff fields in `phase-6 completion review`
+- homepage signed-off handoff readout inside `Generalist Governance`
+- no new page family
+
+Environment used:
+- local backend and frontend verification only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`244 passed`) |
+| `cd frontend && node --test tests/auth-foundation.test.mjs tests/provider-settings-foundation.test.mjs tests/demo-workspace-isolation.test.mjs tests/phase-six-governance.test.mjs tests/intake-progress.test.mjs` | Passed (`63 passed`) |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && mkdir -p .next/types && npx next typegen && npm run typecheck` | Passed |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+
+### Phase-6 handoff verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | `/workbench/phase-6-sign-off` | Return next-phase handoff fields after sign-off | Verified | targeted backend test confirms signed-off response now includes `next_phase_label`, `handoff_summary`, and `handoff_items` |
+| Frontend | phase-six governance helper | Read low-noise handoff wording | Verified | node tests confirm handoff items stay compact and consultant-readable |
+| Frontend | `/` | Keep signed-off handoff inside existing `Generalist Governance` completion-review block | Verified | typecheck/build confirm handoff readout stays inside the same homepage block rather than a new dashboard family |
+
+### Explicitly not shipped in this pass
+
+- browser smoke
+- phase 7 implementation
+- roadmap shell

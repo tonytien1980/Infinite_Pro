@@ -53,6 +53,7 @@ import {
   summarizePhaseSixDistanceItems,
   summarizePhaseSixGuidanceItems,
   summarizePhaseSixGovernanceItems,
+  summarizePhaseSixHandoffItems,
   summarizePhaseSixMaturityMilestones,
   summarizePhaseSixWorkGuidance,
   summarizePhaseSixReuseBoundaryItems,
@@ -1023,10 +1024,21 @@ export function WorkbenchHome() {
                         {labelForPhaseSixSignOffStatus(phaseSixCompletionReview.signOffStatus)}
                       </p>
                       {phaseSixCompletionReview.signedOffAt ? (
-                        <p className="muted-text" style={{ marginTop: "8px" }}>
-                          收口人：{phaseSixCompletionReview.signedOffByLabel || "目前 owner"}｜
-                          {phaseSixCompletionReview.signedOffAt}
-                        </p>
+                        <>
+                          <p className="muted-text" style={{ marginTop: "8px" }}>
+                            收口人：{phaseSixCompletionReview.signedOffByLabel || "目前 owner"}｜
+                            {phaseSixCompletionReview.signedOffAt}
+                          </p>
+                          <p className="muted-text" style={{ marginTop: "8px" }}>
+                            {phaseSixCompletionReview.nextPhaseLabel}
+                          </p>
+                          <p className="muted-text" style={{ marginTop: "8px" }}>
+                            {phaseSixCompletionReview.handoffSummary}
+                          </p>
+                          <p className="muted-text" style={{ marginTop: "8px" }}>
+                            {summarizePhaseSixHandoffItems(phaseSixCompletionReview.handoffItems)}
+                          </p>
+                        </>
                       ) : null}
                       <p className="muted-text" style={{ marginTop: "12px" }}>
                         {phaseSixCompletionReview.recommendedNextStep}

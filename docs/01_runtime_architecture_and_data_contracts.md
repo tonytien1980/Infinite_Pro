@@ -2471,6 +2471,33 @@ Object storage 負責：
 - next-phase handoff shell
 - governance dashboard family
 
+### 7.26 Phase 6 next-phase handoff foundation
+
+在 `phase-6 sign-off foundation` 已成立後，runtime 也已正式補上 signed-off handoff：
+
+- `next_phase_label`
+- `handoff_summary`
+- `handoff_items`
+
+第一版正式規則：
+
+- handoff 只在 `sign_off_status == signed_off` 時回出
+- 第一版 next phase 目前只 handoff 到：
+  - `下一階段：consultant operating leverage framing`
+- handoff 應明確提醒：
+  - 下一階段應把 governance foundation 轉成顧問更直接感受到的 operating leverage
+  - 不要把下一階段拉成 admin shell / enterprise governance console
+
+因此這一層現在應被理解為：
+
+- signed-off next-phase handoff
+
+不是：
+
+- phase 7 implementation
+- roadmap shell
+- release dashboard
+
 ---
 
 ## 8. Provider Boundary

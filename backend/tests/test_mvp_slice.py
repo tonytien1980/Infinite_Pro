@@ -652,6 +652,9 @@ def test_owner_can_sign_off_phase_six_after_checkpoint(client: TestClient) -> No
     assert payload["signed_off_by_label"] == "王顧問"
     assert payload["signed_off_at"]
     assert payload["can_sign_off"] is False
+    assert payload["next_phase_label"]
+    assert payload["handoff_summary"]
+    assert payload["handoff_items"]
 
 
 def test_consultant_cannot_sign_off_phase_six(

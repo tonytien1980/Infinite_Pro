@@ -1145,6 +1145,9 @@ function parsePhaseSixCompletionReviewPayload(payload: any): PhaseSixCompletionR
     signOffStatusLabel: payload.sign_off_status_label || "",
     signedOffAt: payload.signed_off_at || null,
     signedOffByLabel: payload.signed_off_by_label || "",
+    nextPhaseLabel: payload.next_phase_label || "",
+    handoffSummary: payload.handoff_summary || "",
+    handoffItems: Array.isArray(payload.handoff_items) ? payload.handoff_items : [],
     recommendedNextStep: payload.recommended_next_step || "",
   };
 }

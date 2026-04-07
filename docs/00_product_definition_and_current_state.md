@@ -929,6 +929,16 @@ Infinite Pro 目前沒有也不應硬對齊於：
     - 是否已達到可正式收口的基礎門檻
   - 這一刀仍未做 next-phase handoff：
     - 現在只是把 persisted scoring 與 sign-off foundation 站穩
+- 這條線現在也已正式推到第二十二刀：
+  - `phase-6 next-phase handoff foundation`
+  - signed-off 後，system 現在也會正式回出：
+    - `next_phase_label`
+    - `handoff_summary`
+    - `handoff_items`
+  - `總覽` 的既有 `Generalist Governance` 現在已能把 signed-off 狀態接成真正的 low-noise handoff
+  - 第一版 next phase 目前正式指向：
+    - `下一階段：consultant operating leverage framing`
+  - 也就是說，Phase 6 現在已不只會收口，還能正式把下一步交接出去
 
 ---
 

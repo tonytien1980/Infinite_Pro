@@ -285,6 +285,23 @@ def build_phase_six_completion_review(
     can_sign_off = checkpointed and review_posture == "review_ready" and not signed_off
     sign_off_status = "signed_off" if signed_off else "open"
     sign_off_status_label = "已正式收口" if signed_off else "尚未正式收口"
+    next_phase_label = (
+        "下一階段：consultant operating leverage framing" if signed_off else ""
+    )
+    handoff_summary = (
+        "下一階段應把已完成的 governance foundation 轉成顧問更直接感受到的 operating leverage，"
+        "而不是再往 admin shell 或治理頁面擴張。"
+        if signed_off
+        else ""
+    )
+    handoff_items = (
+        [
+            "先把 governance / weighting / closure criteria 接成顧問工作面更直接感受到的 operating leverage。",
+            "不要把下一階段拉成 admin shell、enterprise governance console 或純 score dashboard。",
+        ]
+        if signed_off
+        else []
+    )
 
     return schemas.PhaseSixCompletionReviewResponse(
         phase_id="phase_6",
@@ -306,6 +323,9 @@ def build_phase_six_completion_review(
         sign_off_status_label=sign_off_status_label,
         signed_off_at=checkpoint_state.get("signed_off_at") if checkpoint_state else None,
         signed_off_by_label=checkpoint_state.get("signed_off_by_label", "") if checkpoint_state else "",
+        next_phase_label=next_phase_label,
+        handoff_summary=handoff_summary,
+        handoff_items=handoff_items,
         recommended_next_step=(
             "下一刀應把這份 checkpoint 與 feedback-linked evidence 更正式接回 persisted governance scoring / next-phase handoff。"
             if signed_off

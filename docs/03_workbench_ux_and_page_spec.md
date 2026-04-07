@@ -458,6 +458,9 @@ Infinite Pro 正式採：
 - 若 completion review foundation 已成立，也可在同一區塊補 phase-6 sign-off foundation：
   - 只在 `review_ready` 時給 owner 低噪音 sign-off action
   - signed off 後只回讀狀態與時間 / 人，不可立刻長出 handoff console
+- 若 phase-6 sign-off foundation 已成立，也可在同一區塊補 next-phase handoff foundation：
+  - 只回下一階段標籤、handoff 摘要、handoff items
+  - 不可長出 roadmap shell 或新的 phase dashboard
 - 不可因此長成 dashboard wall 或第二套管理後台
 
 ### `建立新案件`

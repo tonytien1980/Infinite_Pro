@@ -528,6 +528,9 @@ class PhaseSixCompletionReviewResponse(BaseModel):
     sign_off_status_label: str = ""
     signed_off_at: str | None = None
     signed_off_by_label: str = ""
+    next_phase_label: str = ""
+    handoff_summary: str = ""
+    handoff_items: list[str] = Field(default_factory=list)
     recommended_next_step: str = ""
 
 

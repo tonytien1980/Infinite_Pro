@@ -20,6 +20,7 @@ import {
   summarizePhaseSixClosureCriteria,
   summarizePhaseSixDistanceItems,
   summarizePhaseSixGuidanceItems,
+  summarizePhaseSixHandoffItems,
   summarizePhaseSixHostWeighting,
   summarizePhaseSixMaturityMilestones,
 } from "../src/lib/phase-six-governance.ts";
@@ -126,6 +127,13 @@ test("phase 6 completion review labels stay low-noise and readable", () => {
 test("phase 6 sign-off labels stay low-noise and readable", () => {
   assert.equal(labelForPhaseSixSignOffStatus("open"), "尚未正式收口");
   assert.equal(labelForPhaseSixSignOffStatus("signed_off"), "已正式收口");
+  assert.equal(
+    summarizePhaseSixHandoffItems([
+      "先把已建立的 governance foundation 轉成顧問更直接感受到的 operating leverage。",
+      "不要把下一階段拉成 admin shell 或 enterprise governance console。",
+    ]),
+    "先把已建立的 governance foundation 轉成顧問更直接感受到的 operating leverage。｜不要把下一階段拉成 admin shell 或 enterprise governance console。",
+  );
 });
 
 test("phase 6 reuse-boundary governance labels stay low-noise and readable", () => {

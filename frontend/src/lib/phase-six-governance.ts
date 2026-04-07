@@ -64,6 +64,13 @@ export function labelForPhaseSixSignOffStatus(status: "open" | "signed_off") {
   return status === "signed_off" ? "已正式收口" : "尚未正式收口";
 }
 
+export function summarizePhaseSixHandoffItems(items: string[]) {
+  if (items.length === 0) {
+    return "目前還沒有可讀取的 next-phase handoff。";
+  }
+  return items.slice(0, 2).join("｜");
+}
+
 export function summarizePhaseSixMaturityMilestones(
   milestones: PhaseSixMaturityMilestone[],
 ) {

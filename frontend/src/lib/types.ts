@@ -451,6 +451,9 @@ export interface PhaseSixCompletionReview {
   signOffStatusLabel: string;
   signedOffAt: string | null;
   signedOffByLabel: string;
+  nextPhaseLabel: string;
+  handoffSummary: string;
+  handoffItems: string[];
   recommendedNextStep: string;
 }
 
