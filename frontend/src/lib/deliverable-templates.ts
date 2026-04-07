@@ -1,6 +1,7 @@
 import type {
   DeliverableTemplateGuidance,
   GeneralistGuidancePosture,
+  ReuseConfidenceSignal,
 } from "@/lib/types";
 
 function labelForTemplatePriority(priority: string) {
@@ -16,6 +17,7 @@ function labelForTemplatePriority(priority: string) {
 export function buildDeliverableTemplateView(
   guidance: DeliverableTemplateGuidance | null | undefined,
   generalistGuidancePosture?: GeneralistGuidancePosture | null,
+  reuseConfidenceSignal?: ReuseConfidenceSignal | null,
 ): {
   shouldShow: boolean;
   sectionTitle: string;
@@ -37,6 +39,7 @@ export function buildDeliverableTemplateView(
   optionalListTitle: string;
   optionalSections: string[];
   generalistGuidanceNote: string;
+  reuseConfidenceNote: string;
   boundaryNote: string;
 } {
   if (!guidance || guidance.status === "none") {
@@ -61,6 +64,7 @@ export function buildDeliverableTemplateView(
       optionalListTitle: "",
       optionalSections: [],
       generalistGuidanceNote: "",
+      reuseConfidenceNote: "",
       boundaryNote: "",
     };
   }
@@ -94,6 +98,13 @@ export function buildDeliverableTemplateView(
     generalistGuidanceNote:
       generalistGuidancePosture?.guidance_posture_label && generalistGuidancePosture?.work_guidance_summary
         ? `Phase 6 guidance：${generalistGuidancePosture.guidance_posture_label}｜${generalistGuidancePosture.work_guidance_summary}`
+        : "",
+    reuseConfidenceNote:
+      reuseConfidenceSignal?.confidence_posture_label && reuseConfidenceSignal.distance_items?.length
+        ? `Phase 6 reuse confidence：${reuseConfidenceSignal.confidence_posture_label}｜${reuseConfidenceSignal.distance_items
+            .slice(0, 2)
+            .map((item) => `${item.asset_label}：${item.reuse_confidence_label}`)
+            .join("｜")}`
         : "",
     boundaryNote: guidance.boundary_note,
   };

@@ -461,6 +461,24 @@ export interface GeneralistGuidancePosture {
   guidance_items: string[];
 }
 
+export interface ReuseConfidenceDistanceItem {
+  asset_code: string;
+  asset_label: string;
+  context_distance: "close" | "moderate" | "far";
+  context_distance_label: string;
+  reuse_confidence: "high_confidence" | "bounded_confidence" | "low_confidence";
+  reuse_confidence_label: string;
+  summary: string;
+  guardrail_note: string;
+}
+
+export interface ReuseConfidenceSignal {
+  confidence_posture: "mostly_close" | "mixed_distance";
+  confidence_posture_label: string;
+  summary: string;
+  distance_items: ReuseConfidenceDistanceItem[];
+}
+
 export interface PrecedentDuplicateReviewPayload {
   review_key: string;
   resolution: "human_confirmed_canonical_row" | "keep_separate" | "split";
@@ -2068,6 +2086,7 @@ export interface TaskAggregate {
   domain_playbook_guidance: DomainPlaybookGuidance;
   precedent_reference_guidance: PrecedentReferenceGuidance;
   generalist_guidance_posture: GeneralistGuidancePosture;
+  reuse_confidence_signal: ReuseConfidenceSignal;
   review_lens_guidance: ReviewLensGuidance;
   common_risk_guidance: CommonRiskGuidance;
   deliverable_shape_guidance: DeliverableShapeGuidance;
@@ -2145,6 +2164,7 @@ export interface MatterWorkspace {
   organization_memory_guidance: OrganizationMemoryGuidance;
   domain_playbook_guidance: DomainPlaybookGuidance;
   generalist_guidance_posture: GeneralistGuidancePosture;
+  reuse_confidence_signal: ReuseConfidenceSignal;
   research_runs: ResearchRun[];
   decision_records: DecisionRecord[];
   action_plans: ActionPlan[];

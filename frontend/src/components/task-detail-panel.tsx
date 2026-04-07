@@ -606,12 +606,14 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
     ? buildOrganizationMemoryView(
         task.organization_memory_guidance,
         task.generalist_guidance_posture,
+        task.reuse_confidence_signal,
       )
     : null;
   const domainPlaybookView = task
     ? buildDomainPlaybookView(
         task.domain_playbook_guidance,
         task.generalist_guidance_posture,
+        task.reuse_confidence_signal,
       )
     : null;
   const researchDetailView = task
@@ -631,6 +633,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
     ? buildDeliverableTemplateView(
         task.deliverable_template_guidance,
         task.generalist_guidance_posture,
+        task.reuse_confidence_signal,
       )
     : null;
   const evidenceWorkspaceLane =
@@ -1408,6 +1411,11 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                         {organizationMemoryView.generalistGuidanceNote}
                       </p>
                     ) : null}
+                    {organizationMemoryView.reuseConfidenceNote ? (
+                      <p className="muted-text" style={{ marginTop: "12px" }}>
+                        {organizationMemoryView.reuseConfidenceNote}
+                      </p>
+                    ) : null}
                     <p className="muted-text" style={{ marginTop: "12px" }}>
                       {organizationMemoryView.boundaryNote}
                     </p>
@@ -1476,6 +1484,11 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     {domainPlaybookView.generalistGuidanceNote ? (
                       <p className="muted-text" style={{ marginTop: "12px" }}>
                         {domainPlaybookView.generalistGuidanceNote}
+                      </p>
+                    ) : null}
+                    {domainPlaybookView.reuseConfidenceNote ? (
+                      <p className="muted-text" style={{ marginTop: "12px" }}>
+                        {domainPlaybookView.reuseConfidenceNote}
                       </p>
                     ) : null}
                     <p className="muted-text" style={{ marginTop: "12px" }}>
@@ -1605,6 +1618,11 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     {deliverableTemplateView.generalistGuidanceNote ? (
                       <p className="muted-text" style={{ marginTop: "12px" }}>
                         {deliverableTemplateView.generalistGuidanceNote}
+                      </p>
+                    ) : null}
+                    {deliverableTemplateView.reuseConfidenceNote ? (
+                      <p className="muted-text" style={{ marginTop: "12px" }}>
+                        {deliverableTemplateView.reuseConfidenceNote}
                       </p>
                     ) : null}
                     <p className="muted-text" style={{ marginTop: "12px" }}>

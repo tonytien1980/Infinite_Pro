@@ -96,6 +96,7 @@ from app.services.organization_memory_intelligence import build_organization_mem
 from app.services.domain_playbook_intelligence import build_domain_playbook_guidance
 from app.services.deliverable_shape_intelligence import build_deliverable_shape_guidance
 from app.services.deliverable_template_intelligence import build_deliverable_template_guidance
+from app.services.phase_six_generalist_governance import build_phase_six_context_distance_audit
 from app.services.phase_six_generalist_governance import build_phase_six_generalist_guidance_posture
 from app.services.precedent_duplicate_governance import (
     collapse_precedent_candidates_for_reference,
@@ -8583,6 +8584,7 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
         precedent_reference_guidance=matter_precedent_reference_guidance,
     )
     generalist_guidance_posture = build_phase_six_generalist_guidance_posture()
+    reuse_confidence_signal = build_phase_six_context_distance_audit()
 
     return schemas.MatterWorkspaceResponse(
         summary=summary,
@@ -8628,6 +8630,24 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
             work_guidance_summary=generalist_guidance_posture.work_guidance_summary,
             boundary_emphasis=generalist_guidance_posture.boundary_emphasis,
             guidance_items=generalist_guidance_posture.guidance_items,
+        ),
+        reuse_confidence_signal=schemas.ReuseConfidenceSignalRead(
+            confidence_posture=reuse_confidence_signal.confidence_posture,
+            confidence_posture_label=reuse_confidence_signal.confidence_posture_label,
+            summary=reuse_confidence_signal.summary,
+            distance_items=[
+                schemas.ReuseConfidenceDistanceItemRead(
+                    asset_code=item.asset_code,
+                    asset_label=item.asset_label,
+                    context_distance=item.context_distance,
+                    context_distance_label=item.context_distance_label,
+                    reuse_confidence=item.reuse_confidence,
+                    reuse_confidence_label=item.reuse_confidence_label,
+                    summary=item.summary,
+                    guardrail_note=item.guardrail_note,
+                )
+                for item in reuse_confidence_signal.distance_items
+            ],
         ),
         readiness_hint=readiness_hint,
         continuity_notes=continuity_notes,
@@ -11544,6 +11564,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         deliverable_shape_guidance=deliverable_shape_guidance,
     )
     generalist_guidance_posture = build_phase_six_generalist_guidance_posture()
+    reuse_confidence_signal = build_phase_six_context_distance_audit()
     canonicalization_summary, canonicalization_candidates = build_matter_canonicalization_contract(
         db,
         matter_workspace_id=matter_workspace.id,
@@ -11635,6 +11656,24 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
             work_guidance_summary=generalist_guidance_posture.work_guidance_summary,
             boundary_emphasis=generalist_guidance_posture.boundary_emphasis,
             guidance_items=generalist_guidance_posture.guidance_items,
+        ),
+        reuse_confidence_signal=schemas.ReuseConfidenceSignalRead(
+            confidence_posture=reuse_confidence_signal.confidence_posture,
+            confidence_posture_label=reuse_confidence_signal.confidence_posture_label,
+            summary=reuse_confidence_signal.summary,
+            distance_items=[
+                schemas.ReuseConfidenceDistanceItemRead(
+                    asset_code=item.asset_code,
+                    asset_label=item.asset_label,
+                    context_distance=item.context_distance,
+                    context_distance_label=item.context_distance_label,
+                    reuse_confidence=item.reuse_confidence,
+                    reuse_confidence_label=item.reuse_confidence_label,
+                    summary=item.summary,
+                    guardrail_note=item.guardrail_note,
+                )
+                for item in reuse_confidence_signal.distance_items
+            ],
         ),
         review_lens_guidance=review_lens_guidance,
         common_risk_guidance=common_risk_guidance,

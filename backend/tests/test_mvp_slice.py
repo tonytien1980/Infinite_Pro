@@ -627,6 +627,43 @@ def test_phase_six_context_distance_audit_marks_far_assets_as_low_confidence(
     assert all(item["context_distance"] == "far" for item in low_confidence_items)
 
 
+def test_task_aggregate_exposes_reuse_confidence_signal(
+    client: TestClient,
+) -> None:
+    task = client.post(
+        "/api/v1/tasks",
+        json=create_contract_review_payload("Reuse confidence aggregate"),
+    ).json()
+
+    response = client.get(f"/api/v1/tasks/{task['id']}")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["reuse_confidence_signal"]["confidence_posture"] in {
+        "mostly_close",
+        "mixed_distance",
+    }
+    assert payload["reuse_confidence_signal"]["distance_items"]
+
+
+def test_matter_workspace_exposes_reuse_confidence_signal(
+    client: TestClient,
+) -> None:
+    task = client.post(
+        "/api/v1/tasks",
+        json=create_contract_review_payload("Reuse confidence matter"),
+    ).json()
+    aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
+    matter_id = aggregate["matter_workspace"]["id"]
+
+    response = client.get(f"/api/v1/matters/{matter_id}")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["reuse_confidence_signal"]["confidence_posture_label"]
+    assert payload["reuse_confidence_signal"]["distance_items"]
+
+
 def test_consultant_cannot_sign_off_phase_five(
     anonymous_client: TestClient,
     monkeypatch: pytest.MonkeyPatch,

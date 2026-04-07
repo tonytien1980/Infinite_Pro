@@ -4192,6 +4192,19 @@ Environment used:
 - Phase 6 can now answer not only whether a reusable asset should stay narrow or expand, but also how close it is to the current case context
 - `Generalist Governance` can now read back a low-noise reuse-confidence posture without adding a new dashboard surface
 
+### Phase-6 context-distance propagation verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | `TaskAggregateResponse` / `MatterWorkspaceResponse` | Carry `reuse_confidence_signal` through existing work-surface contracts | Verified | targeted backend tests confirm task aggregate and matter workspace now expose `reuse_confidence_signal` with confidence posture and distance items |
+| Frontend | `organization-memory` / `domain-playbooks` / `deliverable-templates` helpers | Render low-noise `Phase 6 reuse confidence` note inside existing second-layer cards | Verified | node helper tests confirm the three helpers can render confidence-aware notes without changing primary summaries |
+| Frontend | task / matter / deliverable surfaces | Keep reuse-confidence propagation inside existing second-layer disclosure | Verified | typecheck/build pass after wiring the new note into task detail, matter workspace, and deliverable workspace cards |
+
+### Verified outcomes
+
+- `reuse_confidence_signal` no longer only lives on the homepage; it now flows through the existing task / matter / deliverable work-surface contracts
+- Phase 6 can now express both guidance posture and reuse-confidence reading inside existing second-layer cards without creating a new governance page
+
 ### Explicitly not shipped in this pass
 
 - `Personal Provider Settings`

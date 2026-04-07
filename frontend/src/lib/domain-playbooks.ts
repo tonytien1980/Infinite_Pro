@@ -1,11 +1,13 @@
 import type {
   DomainPlaybookGuidance,
   GeneralistGuidancePosture,
+  ReuseConfidenceSignal,
 } from "@/lib/types";
 
 export function buildDomainPlaybookView(
   guidance: DomainPlaybookGuidance | null | undefined,
   generalistGuidancePosture?: GeneralistGuidancePosture | null,
+  reuseConfidenceSignal?: ReuseConfidenceSignal | null,
 ): {
   shouldShow: boolean;
   sectionTitle: string;
@@ -26,6 +28,7 @@ export function buildDomainPlaybookView(
   listTitle: string;
   listItems: string[];
   generalistGuidanceNote: string;
+  reuseConfidenceNote: string;
   boundaryNote: string;
 } {
   if (!guidance || guidance.status === "none" || guidance.stages.length === 0) {
@@ -49,6 +52,7 @@ export function buildDomainPlaybookView(
       listTitle: "",
       listItems: [],
       generalistGuidanceNote: "",
+      reuseConfidenceNote: "",
       boundaryNote: "",
     };
   }
@@ -79,6 +83,13 @@ export function buildDomainPlaybookView(
     generalistGuidanceNote:
       generalistGuidancePosture?.guidance_posture_label && generalistGuidancePosture?.work_guidance_summary
         ? `Phase 6 guidance：${generalistGuidancePosture.guidance_posture_label}｜${generalistGuidancePosture.work_guidance_summary}`
+        : "",
+    reuseConfidenceNote:
+      reuseConfidenceSignal?.confidence_posture_label && reuseConfidenceSignal.distance_items?.length
+        ? `Phase 6 reuse confidence：${reuseConfidenceSignal.confidence_posture_label}｜${reuseConfidenceSignal.distance_items
+            .slice(0, 2)
+            .map((item) => `${item.asset_label}：${item.reuse_confidence_label}`)
+            .join("｜")}`
         : "",
     boundaryNote: guidance.boundary_note,
   };

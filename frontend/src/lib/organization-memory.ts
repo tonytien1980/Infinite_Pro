@@ -1,11 +1,13 @@
 import type {
   GeneralistGuidancePosture,
   OrganizationMemoryGuidance,
+  ReuseConfidenceSignal,
 } from "@/lib/types";
 
 export function buildOrganizationMemoryView(
   guidance: OrganizationMemoryGuidance | null | undefined,
   generalistGuidancePosture?: GeneralistGuidancePosture | null,
+  reuseConfidenceSignal?: ReuseConfidenceSignal | null,
 ): {
   shouldShow: boolean;
   sectionTitle: string;
@@ -22,6 +24,7 @@ export function buildOrganizationMemoryView(
   crossMatterSummary: string;
   crossMatterItems: Array<{ title: string; summary: string; meta: string; matterWorkspaceId: string }>;
   generalistGuidanceNote: string;
+  reuseConfidenceNote: string;
   boundaryNote: string;
 } {
   if (!guidance || guidance.status !== "available") {
@@ -41,6 +44,7 @@ export function buildOrganizationMemoryView(
       crossMatterSummary: "",
       crossMatterItems: [],
       generalistGuidanceNote: "",
+      reuseConfidenceNote: "",
       boundaryNote: "",
     };
   }
@@ -68,6 +72,13 @@ export function buildOrganizationMemoryView(
     generalistGuidanceNote:
       generalistGuidancePosture?.guidance_posture_label && generalistGuidancePosture?.work_guidance_summary
         ? `Phase 6 guidance：${generalistGuidancePosture.guidance_posture_label}｜${generalistGuidancePosture.work_guidance_summary}`
+        : "",
+    reuseConfidenceNote:
+      reuseConfidenceSignal?.confidence_posture_label && reuseConfidenceSignal.distance_items?.length
+        ? `Phase 6 reuse confidence：${reuseConfidenceSignal.confidence_posture_label}｜${reuseConfidenceSignal.distance_items
+            .slice(0, 2)
+            .map((item) => `${item.asset_label}：${item.reuse_confidence_label}`)
+            .join("｜")}`
         : "",
     boundaryNote: guidance.boundary_note,
   };

@@ -564,6 +564,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
     ? buildDeliverableTemplateView(
         task.deliverable_template_guidance,
         task.generalist_guidance_posture,
+        task.reuse_confidence_signal,
       )
     : null;
   const continuityPosture = buildContinuationPostureView(continuationSurface);
@@ -1737,6 +1738,11 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                   {deliverableTemplateView.generalistGuidanceNote ? (
                     <p className="muted-text" style={{ marginTop: "12px" }}>
                       {deliverableTemplateView.generalistGuidanceNote}
+                    </p>
+                  ) : null}
+                  {deliverableTemplateView.reuseConfidenceNote ? (
+                    <p className="muted-text" style={{ marginTop: "12px" }}>
+                      {deliverableTemplateView.reuseConfidenceNote}
                     </p>
                   ) : null}
                   <p className="muted-text" style={{ marginTop: "12px" }}>

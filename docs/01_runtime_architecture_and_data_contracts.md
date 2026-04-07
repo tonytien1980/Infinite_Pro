@@ -2077,6 +2077,39 @@ Object storage 負責：
 - automatic blocking
 - new dashboard shell
 
+### 7.17 Phase 6 context-distance propagation
+
+在 `context-distance / reuse confidence v1` 已成立後，runtime 也已正式把這條 signal 回寫到既有 work-surface contract：
+
+- `TaskAggregateResponse` 現在已正式補上：
+  - `reuse_confidence_signal`
+- `MatterWorkspaceResponse` 現在也已正式補上：
+  - `reuse_confidence_signal`
+- deliverable workspace 可沿用既有 `task: TaskAggregate`
+
+第一波 propagation 目前正式接進：
+
+- `organization memory`
+- `domain playbook`
+- `deliverable template`
+
+正式規則：
+
+- 這一刀只在既有 second-layer guidance 補低噪音 `reuse confidence` note
+- 不新增新頁面
+- 不讓每個 page 自己額外查 `phase-6-context-distance-audit`
+- 不把 second-layer note 膨脹成 confidence dashboard
+
+因此這一層現在應被理解為：
+
+- work-surface reuse-confidence propagation
+
+不是：
+
+- new governance console
+- page-local confidence engine
+- long-form scoring overlay
+
 ---
 
 ## 8. Provider Boundary

@@ -842,6 +842,10 @@ Infinite Pro 目前沒有也不應硬對齊於：
   - `context-distance / reuse confidence v1`
   - system 已能正式回答 reusable assets 跟目前案件脈絡的距離，以及目前是高信心、有限邊界，還是低信心重用
   - `總覽` 的 `Generalist Governance` 已補上低噪音 `reuse confidence` 摘要
+- 這條線現在也已正式推到第七刀：
+  - `context-distance propagation v1`
+  - `reuse_confidence_signal` 已正式回寫到 task / matter / deliverable 的 second-layer guidance
+  - 既有 `organization memory` / `domain playbook` / `deliverable template` 卡片現在也能讀到低噪音 `Phase 6 reuse confidence` note
 
 ---
 

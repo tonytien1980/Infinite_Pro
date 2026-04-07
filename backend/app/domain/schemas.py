@@ -1056,6 +1056,28 @@ class GeneralistGuidancePostureRead(BaseModel):
     guidance_items: list[str] = Field(default_factory=list)
 
 
+class ReuseConfidenceDistanceItemRead(BaseModel):
+    asset_code: str
+    asset_label: str = ""
+    context_distance: Literal["close", "moderate", "far"] = "moderate"
+    context_distance_label: str = ""
+    reuse_confidence: Literal[
+        "high_confidence",
+        "bounded_confidence",
+        "low_confidence",
+    ] = "bounded_confidence"
+    reuse_confidence_label: str = ""
+    summary: str = ""
+    guardrail_note: str = ""
+
+
+class ReuseConfidenceSignalRead(BaseModel):
+    confidence_posture: Literal["mostly_close", "mixed_distance"] = "mixed_distance"
+    confidence_posture_label: str = ""
+    summary: str = ""
+    distance_items: list[ReuseConfidenceDistanceItemRead] = Field(default_factory=list)
+
+
 class PrecedentDuplicateSummaryRead(BaseModel):
     pending_review_count: int = 0
     human_confirmed_count: int = 0
@@ -1732,6 +1754,9 @@ class MatterWorkspaceResponse(BaseModel):
     generalist_guidance_posture: GeneralistGuidancePostureRead = Field(
         default_factory=GeneralistGuidancePostureRead
     )
+    reuse_confidence_signal: ReuseConfidenceSignalRead = Field(
+        default_factory=ReuseConfidenceSignalRead
+    )
     readiness_hint: str = ""
     continuity_notes: list[str] = Field(default_factory=list)
     continuation_surface: ContinuationSurfaceRead | None = None
@@ -1886,6 +1911,9 @@ class TaskAggregateResponse(BaseModel):
     )
     generalist_guidance_posture: GeneralistGuidancePostureRead = Field(
         default_factory=GeneralistGuidancePostureRead
+    )
+    reuse_confidence_signal: ReuseConfidenceSignalRead = Field(
+        default_factory=ReuseConfidenceSignalRead
     )
     review_lens_guidance: ReviewLensGuidanceRead = Field(default_factory=ReviewLensGuidanceRead)
     common_risk_guidance: CommonRiskGuidanceRead = Field(default_factory=CommonRiskGuidanceRead)

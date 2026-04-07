@@ -486,6 +486,22 @@ test("organization memory view stays low-noise and consultant-readable", () => {
     boundary_emphasis: "可重用來源可站前面，但局部情境的限制仍要被看見。",
     guidance_items: ["遇到局部模式時，補一條簡短 boundary note 即可。"],
     recommended_next_step: "next",
+  }, {
+    confidence_posture: "mixed_distance",
+    confidence_posture_label: "目前距離混合",
+    summary: "summary",
+    distance_items: [
+      {
+        asset_code: "template_narrow_shape",
+        asset_label: "template narrow shape",
+        context_distance: "far",
+        context_distance_label: "距離偏遠",
+        reuse_confidence: "low_confidence",
+        reuse_confidence_label: "低信心重用",
+        summary: "summary",
+        guardrail_note: "先留背景校正。",
+      },
+    ],
   });
 
   assert.equal(view.shouldShow, true);
@@ -502,6 +518,7 @@ test("organization memory view stays low-noise and consultant-readable", () => {
   assert.match(view.crossMatterItems[0]?.meta ?? "", /同一客戶/);
   assert.match(view.crossMatterItems[0]?.meta ?? "", /較舊背景/);
   assert.match(view.generalistGuidanceNote ?? "", /適度明示/);
+  assert.match(view.reuseConfidenceNote ?? "", /低信心重用/);
 });
 
 test("domain playbook view stays low-noise and consultant-readable", () => {
@@ -558,6 +575,22 @@ test("domain playbook view stays low-noise and consultant-readable", () => {
     boundary_emphasis: "窄情境來源仍要明示邊界。",
     guidance_items: ["先把 shared intelligence 當校正主線。"],
     recommended_next_step: "next",
+  }, {
+    confidence_posture: "mixed_distance",
+    confidence_posture_label: "目前距離混合",
+    summary: "summary",
+    distance_items: [
+      {
+        asset_code: "domain_playbook_contextual",
+        asset_label: "domain playbook contextual guidance",
+        context_distance: "moderate",
+        context_distance_label: "仍有距離",
+        reuse_confidence: "bounded_confidence",
+        reuse_confidence_label: "有邊界重用",
+        summary: "summary",
+        guardrail_note: "需搭配 client stage / domain lens。",
+      },
+    ],
   });
 
   assert.equal(view.shouldShow, true);
@@ -577,6 +610,7 @@ test("domain playbook view stays low-noise and consultant-readable", () => {
   assert.match(view.cards[0]?.meta ?? "", /task heuristic/);
   assert.match(view.cards[2]?.meta ?? "", /cross-matter organization memory/);
   assert.match(view.generalistGuidanceNote ?? "", /保守引導/);
+  assert.match(view.reuseConfidenceNote ?? "", /有邊界重用/);
   assert.match(view.boundaryNote, /不是強制 checklist/);
 });
 
@@ -1606,6 +1640,22 @@ test("deliverable template view stays low-noise and consultant-readable", () => 
     boundary_emphasis: "窄情境來源仍要明示邊界。",
     guidance_items: ["先把 shared intelligence 當校正主線。"],
     recommended_next_step: "next",
+  }, {
+    confidence_posture: "mixed_distance",
+    confidence_posture_label: "目前距離混合",
+    summary: "summary",
+    distance_items: [
+      {
+        asset_code: "template_narrow_shape",
+        asset_label: "template narrow shape",
+        context_distance: "far",
+        context_distance_label: "距離偏遠",
+        reuse_confidence: "low_confidence",
+        reuse_confidence_label: "低信心重用",
+        summary: "summary",
+        guardrail_note: "先留背景校正。",
+      },
+    ],
   });
 
   assert.equal(view.shouldShow, true);
@@ -1626,6 +1676,7 @@ test("deliverable template view stays low-noise and consultant-readable", () => 
   assert.match(view.cards[0]?.meta ?? "", /precedent deliverable template/);
   assert.match(view.cards[2]?.meta ?? "", /deliverable shape/);
   assert.match(view.generalistGuidanceNote ?? "", /保守引導/);
+  assert.match(view.reuseConfidenceNote ?? "", /低信心重用/);
   assert.match(view.boundaryNote, /不是自動套模板/);
 });
 
