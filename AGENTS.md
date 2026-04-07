@@ -40,11 +40,12 @@ Infinite Pro is:
 Before making product, architecture, ontology, runtime, agent, pack, or UI decisions, read these docs in order:
 
 1. `docs/00_product_definition_and_current_state.md`
-2. `docs/01_runtime_architecture_and_data_contracts.md`
-3. `docs/02_host_agents_packs_and_extension_system.md`
-4. `docs/03_workbench_ux_and_page_spec.md`
-5. `docs/04_qa_matrix.md` when you need shipped verification evidence
-6. `docs/05_benchmark_and_regression.md` when you need benchmark / regression gate context
+2. `docs/06_product_alignment_and_85_point_roadmap.md`
+3. `docs/01_runtime_architecture_and_data_contracts.md`
+4. `docs/02_host_agents_packs_and_extension_system.md`
+5. `docs/03_workbench_ux_and_page_spec.md`
+6. `docs/04_qa_matrix.md` when you need shipped verification evidence
+7. `docs/05_benchmark_and_regression.md` when you need benchmark / regression gate context
 
 Everything else lives outside `docs/` under `archive/` or `research/` and is not active source of truth.
 
@@ -180,6 +181,7 @@ Therefore:
 The current recommended next-phase directions live in:
 
 - `docs/00_product_definition_and_current_state.md`
+- `docs/06_product_alignment_and_85_point_roadmap.md`
 
 ---
 

@@ -16,7 +16,7 @@
 4. 它目前最適合承接哪幾類顧問工作
 5. 這個階段之後不該再怎麼做
 
-本文件不處理細部 runtime schema、page-level UI 規格或 QA append-only 證據。這些分別由 `docs/01_runtime_architecture_and_data_contracts.md`、`docs/03_workbench_ux_and_page_spec.md`、`docs/04_qa_matrix.md` / `docs/05_benchmark_and_regression.md` 承接。
+本文件不處理細部 runtime schema、page-level UI 規格、85 分補強路線或 QA append-only 證據。這些分別由 `docs/01_runtime_architecture_and_data_contracts.md`、`docs/03_workbench_ux_and_page_spec.md`、`docs/06_product_alignment_and_85_point_roadmap.md`、`docs/04_qa_matrix.md` / `docs/05_benchmark_and_regression.md` 承接。
 
 ---
 
@@ -966,6 +966,8 @@ Infinite Pro 目前沒有也不應硬對齊於：
 
 ## 17. Relationship To Other Active Docs
 
+- `docs/06_product_alignment_and_85_point_roadmap.md`
+  承接創辦人產品想像、目前 attainment 對照、85 分補強順序與下一輪 anti-drift execution rule
 - `docs/01_runtime_architecture_and_data_contracts.md`
   承接 runtime shape、persistence、ingestion、provider 與 bridge semantics
 - `docs/02_host_agents_packs_and_extension_system.md`
