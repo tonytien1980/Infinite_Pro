@@ -20,9 +20,11 @@ from app.services.phase_five_closure_review import build_phase_five_closure_revi
 from app.services.provider_allowlist import list_provider_allowlist, update_provider_allowlist
 from app.services.workbench import (
     apply_precedent_governance_recommendation,
+    checkpoint_phase_six_completion_review,
     get_history_visibility_state,
     get_phase_five_closure_review,
     get_phase_six_capability_coverage_audit,
+    get_phase_six_completion_review,
     get_phase_six_closure_criteria_review,
     get_phase_six_maturity_review,
     get_phase_six_calibration_aware_weighting,
@@ -111,6 +113,29 @@ def sign_off_phase_five_route(
     db: Session = Depends(get_db),
 ) -> schemas.PhaseFiveClosureReviewResponse:
     return sign_off_phase_five(db, payload=payload)
+
+
+@router.get(
+    "/phase-6-completion-review",
+    response_model=schemas.PhaseSixCompletionReviewResponse,
+)
+def get_phase_six_completion_review_route(
+    current_member=Depends(require_permission("access_firm_workspace")),
+    db: Session = Depends(get_db),
+) -> schemas.PhaseSixCompletionReviewResponse:
+    return get_phase_six_completion_review(db)
+
+
+@router.post(
+    "/phase-6-completion-review/checkpoint",
+    response_model=schemas.PhaseSixCompletionReviewResponse,
+)
+def checkpoint_phase_six_completion_review_route(
+    payload: schemas.PhaseSixCompletionReviewCheckpointRequest,
+    current_member=Depends(require_permission("sign_off_phase")),
+    db: Session = Depends(get_db),
+) -> schemas.PhaseSixCompletionReviewResponse:
+    return checkpoint_phase_six_completion_review(db, payload=payload)
 
 
 @router.get(

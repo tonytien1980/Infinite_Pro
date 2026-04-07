@@ -51,6 +51,7 @@ import {
   PersonalProviderSettingsPayload,
   PhaseFiveClosureReview,
   PhaseSixCapabilityCoverageAudit,
+  PhaseSixCompletionReview,
   PhaseSixClosureCriteriaReview,
   PhaseSixMaturityReview,
   PhaseSixCalibrationAwareWeighting,
@@ -269,6 +270,29 @@ export async function getPhaseSixClosureCriteriaReview(): Promise<PhaseSixClosur
     cache: "no-store",
   });
   return parsePhaseSixClosureCriteriaReviewPayload(await parseResponse<any>(response));
+}
+
+export async function getPhaseSixCompletionReview(): Promise<PhaseSixCompletionReview> {
+  const response = await apiFetch(`${getApiBaseUrl()}/workbench/phase-6-completion-review`, {
+    cache: "no-store",
+  });
+  return parsePhaseSixCompletionReviewPayload(await parseResponse<any>(response));
+}
+
+export async function checkpointPhaseSixCompletionReview(
+  payload: SharedIntelligenceSignOffPayload,
+): Promise<PhaseSixCompletionReview> {
+  const response = await apiFetch(
+    `${getApiBaseUrl()}/workbench/phase-6-completion-review/checkpoint`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+  );
+  return parsePhaseSixCompletionReviewPayload(await parseResponse<any>(response));
 }
 
 export async function getPhaseSixReuseBoundaryGovernance(): Promise<PhaseSixReuseBoundaryGovernance> {
@@ -1072,6 +1096,37 @@ function parsePhaseSixClosureCriteriaReviewPayload(payload: any): PhaseSixClosur
     remainingBlockers: Array.isArray(payload.remaining_blockers)
       ? payload.remaining_blockers.filter((item: unknown) => typeof item === "string")
       : [],
+    recommendedNextStep: payload.recommended_next_step || "",
+  };
+}
+
+function parsePhaseSixCompletionReviewPayload(payload: any): PhaseSixCompletionReview {
+  return {
+    phaseId: "phase_6",
+    phaseLabel: payload.phase_label || "",
+    reviewPosture:
+      payload.review_posture === "review_ready"
+        ? "review_ready"
+        : payload.review_posture === "checkpoint_recorded"
+          ? "checkpoint_recorded"
+          : "baseline_only",
+    reviewPostureLabel: payload.review_posture_label || "",
+    summary: payload.summary || "",
+    overallScore: Number(payload.overall_score ?? 0),
+    scorecardItems: Array.isArray(payload.scorecard_items)
+      ? payload.scorecard_items.map((item: any) => ({
+          dimensionCode: item.dimension_code,
+          dimensionLabel: item.dimension_label || "",
+          score: Number(item.score ?? 0),
+          statusLabel: item.status_label || "",
+          summary: item.summary || "",
+        }))
+      : [],
+    closurePosture: payload.closure_posture || "",
+    closurePostureLabel: payload.closure_posture_label || "",
+    checkpointSummary: payload.checkpoint_summary || "",
+    lastCheckpointAt: payload.last_checkpoint_at || null,
+    lastCheckpointByLabel: payload.last_checkpoint_by_label || "",
     recommendedNextStep: payload.recommended_next_step || "",
   };
 }

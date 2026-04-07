@@ -425,6 +425,30 @@ export interface PhaseSixClosureCriteriaReview {
   recommendedNextStep: string;
 }
 
+export interface PhaseSixCompletionScorecardItem {
+  dimensionCode: string;
+  dimensionLabel: string;
+  score: number;
+  statusLabel: string;
+  summary: string;
+}
+
+export interface PhaseSixCompletionReview {
+  phaseId: "phase_6";
+  phaseLabel: string;
+  reviewPosture: "baseline_only" | "checkpoint_recorded" | "review_ready";
+  reviewPostureLabel: string;
+  summary: string;
+  overallScore: number;
+  scorecardItems: PhaseSixCompletionScorecardItem[];
+  closurePosture: string;
+  closurePostureLabel: string;
+  checkpointSummary: string;
+  lastCheckpointAt: string | null;
+  lastCheckpointByLabel: string;
+  recommendedNextStep: string;
+}
+
 export interface PhaseSixCapabilityCoverageAudit {
   phaseId: "phase_6";
   phaseLabel: string;

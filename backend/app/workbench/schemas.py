@@ -502,6 +502,34 @@ class PhaseSixClosureCriteriaReviewResponse(BaseModel):
     recommended_next_step: str = ""
 
 
+class PhaseSixCompletionScorecardItemRead(BaseModel):
+    dimension_code: str
+    dimension_label: str = ""
+    score: int = 0
+    status_label: str = ""
+    summary: str = ""
+
+
+class PhaseSixCompletionReviewResponse(BaseModel):
+    phase_id: Literal["phase_6"] = "phase_6"
+    phase_label: str = ""
+    review_posture: Literal["baseline_only", "checkpoint_recorded", "review_ready"] = "baseline_only"
+    review_posture_label: str = ""
+    summary: str = ""
+    overall_score: int = 0
+    scorecard_items: list[PhaseSixCompletionScorecardItemRead] = Field(default_factory=list)
+    closure_posture: str = ""
+    closure_posture_label: str = ""
+    checkpoint_summary: str = ""
+    last_checkpoint_at: str | None = None
+    last_checkpoint_by_label: str = ""
+    recommended_next_step: str = ""
+
+
+class PhaseSixCompletionReviewCheckpointRequest(BaseModel):
+    operator_label: str | None = None
+
+
 class PhaseSixCapabilityCoverageAuditResponse(BaseModel):
     phase_id: Literal["phase_6"] = "phase_6"
     phase_label: str = ""

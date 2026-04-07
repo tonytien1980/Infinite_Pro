@@ -8,10 +8,12 @@ import {
   buildTaskListWorkspaceSummary,
 } from "@/lib/advisory-workflow";
 import {
+  checkpointPhaseSixCompletionReview,
   getExtensionManager,
   getFirmOperatingSnapshot,
   getPhaseFiveClosureReview,
   getPhaseSixCapabilityCoverageAudit,
+  getPhaseSixCompletionReview,
   getPhaseSixClosureCriteriaReview,
   getPhaseSixMaturityReview,
   getPhaseSixCalibrationAwareWeighting,
@@ -32,6 +34,7 @@ import { buildPhaseFiveClosureView } from "@/lib/phase-five-closure";
 import {
   labelForPhaseSixAuditStatus,
   labelForPhaseSixCalibrationStatus,
+  labelForPhaseSixCompletionReviewPosture,
   labelForPhaseSixClosurePosture,
   labelForPhaseSixContextDistance,
   labelForPhaseSixGuidancePosture,
@@ -42,6 +45,7 @@ import {
   labelForPhaseSixReuseRecommendation,
   summarizePhaseSixCalibrationAwareWeightingItems,
   summarizePhaseSixCalibrationItems,
+  summarizePhaseSixCompletionScorecard,
   summarizePhaseSixCoverageAreas,
   summarizePhaseSixClosureCriteria,
   summarizePhaseSixDistanceItems,
@@ -58,6 +62,7 @@ import type {
   MatterWorkspaceSummary,
   PhaseFiveClosureReview,
   PhaseSixCapabilityCoverageAudit,
+  PhaseSixCompletionReview,
   PhaseSixClosureCriteriaReview,
   PhaseSixMaturityReview,
   PhaseSixCalibrationAwareWeighting,
@@ -134,6 +139,8 @@ export function WorkbenchHome() {
   const [firmOperating, setFirmOperating] = useState<FirmOperatingSnapshot | null>(null);
   const [phaseFiveClosureReview, setPhaseFiveClosureReview] = useState<PhaseFiveClosureReview | null>(null);
   const [phaseSixAudit, setPhaseSixAudit] = useState<PhaseSixCapabilityCoverageAudit | null>(null);
+  const [phaseSixCompletionReview, setPhaseSixCompletionReview] =
+    useState<PhaseSixCompletionReview | null>(null);
   const [phaseSixClosureCriteria, setPhaseSixClosureCriteria] =
     useState<PhaseSixClosureCriteriaReview | null>(null);
   const [phaseSixMaturity, setPhaseSixMaturity] = useState<PhaseSixMaturityReview | null>(null);
@@ -151,6 +158,7 @@ export function WorkbenchHome() {
   const [firmOperatingLoading, setFirmOperatingLoading] = useState(true);
   const [phaseFiveClosureLoading, setPhaseFiveClosureLoading] = useState(true);
   const [phaseSixAuditLoading, setPhaseSixAuditLoading] = useState(true);
+  const [phaseSixCompletionReviewLoading, setPhaseSixCompletionReviewLoading] = useState(true);
   const [phaseSixClosureCriteriaLoading, setPhaseSixClosureCriteriaLoading] = useState(true);
   const [phaseSixMaturityLoading, setPhaseSixMaturityLoading] = useState(true);
   const [phaseSixCalibrationWeightingLoading, setPhaseSixCalibrationWeightingLoading] = useState(true);
@@ -159,12 +167,14 @@ export function WorkbenchHome() {
   const [phaseSixGovernanceLoading, setPhaseSixGovernanceLoading] = useState(true);
   const [phaseSixGuidanceLoading, setPhaseSixGuidanceLoading] = useState(true);
   const [phaseFiveSignOffLoading, setPhaseFiveSignOffLoading] = useState(false);
+  const [phaseSixCheckpointLoading, setPhaseSixCheckpointLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [matterError, setMatterError] = useState<string | null>(null);
   const [extensionError, setExtensionError] = useState<string | null>(null);
   const [firmOperatingError, setFirmOperatingError] = useState<string | null>(null);
   const [phaseFiveClosureError, setPhaseFiveClosureError] = useState<string | null>(null);
   const [phaseSixAuditError, setPhaseSixAuditError] = useState<string | null>(null);
+  const [phaseSixCompletionReviewError, setPhaseSixCompletionReviewError] = useState<string | null>(null);
   const [phaseSixClosureCriteriaError, setPhaseSixClosureCriteriaError] = useState<string | null>(null);
   const [phaseSixMaturityError, setPhaseSixMaturityError] = useState<string | null>(null);
   const [phaseSixCalibrationWeightingError, setPhaseSixCalibrationWeightingError] =
@@ -174,6 +184,7 @@ export function WorkbenchHome() {
   const [phaseSixGovernanceError, setPhaseSixGovernanceError] = useState<string | null>(null);
   const [phaseSixGuidanceError, setPhaseSixGuidanceError] = useState<string | null>(null);
   const [phaseFiveClosureFeedback, setPhaseFiveClosureFeedback] = useState<string | null>(null);
+  const [phaseSixCompletionFeedback, setPhaseSixCompletionFeedback] = useState<string | null>(null);
 
   async function refreshTasks() {
     try {
@@ -255,6 +266,21 @@ export function WorkbenchHome() {
       );
     } finally {
       setPhaseSixAuditLoading(false);
+    }
+  }
+
+  async function refreshPhaseSixCompletionReview() {
+    try {
+      setPhaseSixCompletionReviewLoading(true);
+      setPhaseSixCompletionReviewError(null);
+      setPhaseSixCompletionFeedback(null);
+      setPhaseSixCompletionReview(await getPhaseSixCompletionReview());
+    } catch (reviewError) {
+      setPhaseSixCompletionReviewError(
+        reviewError instanceof Error ? reviewError.message : "載入 Phase 6 completion review 失敗。",
+      );
+    } finally {
+      setPhaseSixCompletionReviewLoading(false);
     }
   }
 
@@ -373,6 +399,7 @@ export function WorkbenchHome() {
     void refreshFirmOperating();
     void refreshPhaseFiveClosureReview();
     void refreshPhaseSixAudit();
+    void refreshPhaseSixCompletionReview();
     void refreshPhaseSixClosureCriteria();
     void refreshPhaseSixMaturity();
     void refreshPhaseSixCalibrationWeighting();
@@ -396,6 +423,24 @@ export function WorkbenchHome() {
       );
     } finally {
       setPhaseFiveSignOffLoading(false);
+    }
+  }
+
+  async function handlePhaseSixCheckpoint() {
+    try {
+      setPhaseSixCheckpointLoading(true);
+      setPhaseSixCompletionReviewError(null);
+      const next = await checkpointPhaseSixCompletionReview({ operator_label: "" });
+      setPhaseSixCompletionReview(next);
+      setPhaseSixCompletionFeedback("已記錄一筆 Phase 6 completion review checkpoint。");
+    } catch (checkpointError) {
+      setPhaseSixCompletionReviewError(
+        checkpointError instanceof Error
+          ? checkpointError.message
+          : "記錄 Phase 6 completion review checkpoint 失敗。",
+      );
+    } finally {
+      setPhaseSixCheckpointLoading(false);
     }
   }
 
@@ -584,6 +629,11 @@ export function WorkbenchHome() {
       {phaseSixAuditError ? (
         <p className="error-text" role="alert" aria-live="assertive">
           {phaseSixAuditError}
+        </p>
+      ) : null}
+      {phaseSixCompletionReviewError ? (
+        <p className="error-text" role="alert" aria-live="assertive">
+          {phaseSixCompletionReviewError}
         </p>
       ) : null}
       {phaseSixClosureCriteriaError ? (
@@ -900,11 +950,51 @@ export function WorkbenchHome() {
                   <h2 className="panel-title">Generalist Governance</h2>
                   <p className="panel-copy">低噪音回答 shared intelligence 目前有沒有開始偏科。</p>
                 </div>
+                {firmOperating?.role === "owner" && phaseSixCompletionReview ? (
+                  <button
+                    className="button-secondary"
+                    type="button"
+                    onClick={() => void handlePhaseSixCheckpoint()}
+                    disabled={phaseSixCheckpointLoading}
+                  >
+                    {phaseSixCheckpointLoading ? "記錄中..." : "記錄 completion checkpoint"}
+                  </button>
+                ) : null}
               </div>
 
               {phaseSixAuditLoading ? <p className="status-text">正在整理 Phase 6 治理摘要...</p> : null}
+              {phaseSixCompletionFeedback ? <p className="success-text">{phaseSixCompletionFeedback}</p> : null}
               {!phaseSixAuditLoading && phaseSixAudit ? (
                 <>
+                  {phaseSixCompletionReviewLoading ? (
+                    <p className="status-text" style={{ marginBottom: "16px" }}>
+                      正在整理 Phase 6 completion review...
+                    </p>
+                  ) : null}
+
+                  {!phaseSixCompletionReviewLoading && phaseSixCompletionReview ? (
+                    <div className="section-card" style={{ marginBottom: "16px" }}>
+                      <h3>completion review</h3>
+                      <p className="muted-text">
+                        {labelForPhaseSixCompletionReviewPosture(
+                          phaseSixCompletionReview.reviewPosture,
+                        )}
+                      </p>
+                      <strong>總分 {phaseSixCompletionReview.overallScore}</strong>
+                      <p className="muted-text" style={{ marginTop: "8px" }}>
+                        {summarizePhaseSixCompletionScorecard(
+                          phaseSixCompletionReview.scorecardItems,
+                        )}
+                      </p>
+                      <p className="muted-text" style={{ marginTop: "8px" }}>
+                        {phaseSixCompletionReview.checkpointSummary}
+                      </p>
+                      <p className="muted-text" style={{ marginTop: "12px" }}>
+                        {phaseSixCompletionReview.recommendedNextStep}
+                      </p>
+                    </div>
+                  ) : null}
+
                   {phaseSixClosureCriteriaLoading ? (
                     <p className="status-text" style={{ marginBottom: "16px" }}>
                       正在整理 Phase 6 closure criteria...

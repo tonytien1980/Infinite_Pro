@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   labelForPhaseSixAuditStatus,
   labelForPhaseSixCalibrationStatus,
+  labelForPhaseSixCompletionReviewPosture,
   labelForPhaseSixClosurePosture,
   labelForPhaseSixMaturityStage,
   labelForPhaseSixContextDistance,
@@ -14,6 +15,7 @@ import {
   labelForPhaseSixReuseRecommendation,
   summarizePhaseSixCalibrationItems,
   summarizePhaseSixCalibrationAwareWeightingItems,
+  summarizePhaseSixCompletionScorecard,
   summarizePhaseSixClosureCriteria,
   summarizePhaseSixDistanceItems,
   summarizePhaseSixGuidanceItems,
@@ -86,6 +88,37 @@ test("phase 6 closure criteria labels stay low-noise and readable", () => {
       },
     ]),
     "runtime feedback loop：已開始形成｜completion review contract：已站穩",
+  );
+});
+
+test("phase 6 completion review labels stay low-noise and readable", () => {
+  assert.equal(labelForPhaseSixCompletionReviewPosture("baseline_only"), "先看基礎是否齊");
+  assert.equal(
+    labelForPhaseSixCompletionReviewPosture("checkpoint_recorded"),
+    "已有 review checkpoint",
+  );
+  assert.equal(
+    labelForPhaseSixCompletionReviewPosture("review_ready"),
+    "可準備 completion review",
+  );
+  assert.equal(
+    summarizePhaseSixCompletionScorecard([
+      {
+        dimensionCode: "governance_runtime",
+        dimensionLabel: "governance runtime",
+        score: 84,
+        statusLabel: "已站穩",
+        summary: "runtime governance layer 已成立。",
+      },
+      {
+        dimensionCode: "feedback_loop",
+        dimensionLabel: "feedback loop",
+        score: 62,
+        statusLabel: "仍需加深",
+        summary: "feedback-linked evidence 已開始形成。",
+      },
+    ]),
+    "governance runtime：84｜feedback loop：62",
   );
 });
 

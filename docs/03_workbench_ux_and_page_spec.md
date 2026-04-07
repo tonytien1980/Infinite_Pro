@@ -418,6 +418,8 @@ Infinite Pro 正式採：
   - Phase 6 目前是處於 foundation、refinement，還是可準備收斂
   - runtime feedback loop 到底有沒有開始形成
   - 距離 completion review 還差哪些真正 blocker
+  - 目前 completion review overall score 大概到哪
+  - 最近是否已有 recorded checkpoint
   - 覆蓋目前偏穩、偏薄，還是過重的能力區塊
   - 哪些 reusable assets 目前只適合局部情境
   - 哪些 reusable assets 可擴大重用、維持局部參考，或不要擴大套用
@@ -449,6 +451,10 @@ Infinite Pro 正式採：
 - 若 maturity review 已開始告訴 system 目前還不能收口，後續也可在既有 `Generalist Governance` 內補一塊 `closure criteria`：
   - 只回答 runtime feedback loop 與 remaining blockers
   - 不可長出 `/phase-6/closure`, `/release`, `/sign-off` 新頁面
+- 若 closure criteria 已成立，也可在同一個 `Generalist Governance` 內補一塊 `completion review`：
+  - 只回答 overall score、review posture 與最近 checkpoint
+  - owner 可在同一區塊低噪音記錄 checkpoint
+  - 不可長出 scoring dashboard 或 release console
 - 不可因此長成 dashboard wall 或第二套管理後台
 
 ### `建立新案件`

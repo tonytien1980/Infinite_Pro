@@ -1,5 +1,6 @@
 import type {
   PhaseSixCalibrationAwareWeightingItem,
+  PhaseSixCompletionScorecardItem,
   PhaseSixClosureCriterion,
   PhaseSixCoverageArea,
   PhaseSixConfidenceCalibrationItem,
@@ -47,6 +48,18 @@ export function labelForPhaseSixClosurePosture(
   return "正在建立收口基礎";
 }
 
+export function labelForPhaseSixCompletionReviewPosture(
+  posture: "baseline_only" | "checkpoint_recorded" | "review_ready",
+) {
+  if (posture === "checkpoint_recorded") {
+    return "已有 review checkpoint";
+  }
+  if (posture === "review_ready") {
+    return "可準備 completion review";
+  }
+  return "先看基礎是否齊";
+}
+
 export function summarizePhaseSixMaturityMilestones(
   milestones: PhaseSixMaturityMilestone[],
 ) {
@@ -68,6 +81,18 @@ export function summarizePhaseSixClosureCriteria(
   return criteria
     .slice(0, 2)
     .map((item) => `${item.criterionLabel}：${item.criterionStatusLabel}`)
+    .join("｜");
+}
+
+export function summarizePhaseSixCompletionScorecard(
+  items: PhaseSixCompletionScorecardItem[],
+) {
+  if (items.length === 0) {
+    return "目前還沒有可讀取的 completion review scorecard。";
+  }
+  return items
+    .slice(0, 2)
+    .map((item) => `${item.dimensionLabel}：${item.score}`)
     .join("｜");
 }
 

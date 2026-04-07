@@ -190,6 +190,97 @@ def build_phase_six_closure_criteria_review(
     )
 
 
+def build_phase_six_completion_review(
+    *,
+    closure_review: schemas.PhaseSixClosureCriteriaReviewResponse,
+    checkpoint_state: dict | None = None,
+) -> schemas.PhaseSixCompletionReviewResponse:
+    runtime_score = 84
+    propagation_score = 86
+    feedback_loop_score = (
+        82
+        if closure_review.feedback_signal_count >= 3 and closure_review.governed_outcome_count >= 2
+        else 64
+        if closure_review.feedback_signal_count > 0 or closure_review.governed_outcome_count > 0
+        else 38
+    )
+    completion_foundation_score = (
+        88 if closure_review.closure_posture == "ready_for_completion_review" else 72
+    )
+    scorecard_items = [
+        schemas.PhaseSixCompletionScorecardItemRead(
+            dimension_code="governance_runtime",
+            dimension_label="governance runtime",
+            score=runtime_score,
+            status_label="已站穩",
+            summary="coverage、boundary、weighting、guidance、closure criteria 已形成 phase-level runtime layer。",
+        ),
+        schemas.PhaseSixCompletionScorecardItemRead(
+            dimension_code="work_surface_propagation",
+            dimension_label="work-surface propagation",
+            score=propagation_score,
+            status_label="已站穩",
+            summary="task / matter / deliverable 已能回讀 phase-6 guidance、confidence、weighting 與 condensed notes。",
+        ),
+        schemas.PhaseSixCompletionScorecardItemRead(
+            dimension_code="feedback_loop",
+            dimension_label="feedback loop",
+            score=feedback_loop_score,
+            status_label="已開始形成" if feedback_loop_score >= 60 else "仍需加深",
+            summary=closure_review.feedback_loop_summary,
+        ),
+        schemas.PhaseSixCompletionScorecardItemRead(
+            dimension_code="completion_foundation",
+            dimension_label="completion foundation",
+            score=completion_foundation_score,
+            status_label="可準備 review" if completion_foundation_score >= 80 else "仍在打底",
+            summary="system 已能正式回讀 closure posture、remaining blockers，以及下一條 completion review foundation。",
+        ),
+    ]
+    overall_score = round(sum(item.score for item in scorecard_items) / len(scorecard_items))
+
+    checkpointed = bool(checkpoint_state and checkpoint_state.get("checkpointed"))
+    review_posture = (
+        "review_ready"
+        if checkpointed and closure_review.closure_posture == "ready_for_completion_review"
+        else "checkpoint_recorded"
+        if checkpointed
+        else "baseline_only"
+    )
+    review_posture_label = (
+        "可準備 completion review"
+        if review_posture == "review_ready"
+        else "已有 review checkpoint"
+        if review_posture == "checkpoint_recorded"
+        else "先看基礎是否齊"
+    )
+    checkpoint_summary = (
+        f"最近一次 checkpoint 由 {checkpoint_state.get('checkpointed_by_label') or 'owner'} 記錄。"
+        if checkpointed
+        else "目前還沒有 recorded checkpoint，可先用這次 scorecard 做第一筆 completion review snapshot。"
+    )
+
+    return schemas.PhaseSixCompletionReviewResponse(
+        phase_id="phase_6",
+        phase_label="Generalist Consulting Intelligence Governance",
+        review_posture=review_posture,  # type: ignore[arg-type]
+        review_posture_label=review_posture_label,
+        summary=(
+            "Phase 6 completion review foundation 現在已形成：system 不只知道還差什麼，也能把 readiness 收成低噪音 scorecard。"
+        ),
+        overall_score=overall_score,
+        scorecard_items=scorecard_items,
+        closure_posture=closure_review.closure_posture,
+        closure_posture_label=closure_review.closure_posture_label,
+        checkpoint_summary=checkpoint_summary,
+        last_checkpoint_at=checkpoint_state.get("checkpointed_at") if checkpoint_state else None,
+        last_checkpoint_by_label=checkpoint_state.get("checkpointed_by_label", "") if checkpoint_state else "",
+        recommended_next_step=(
+            "下一刀應把這份 checkpoint 與 feedback-linked evidence 更正式接回 persisted governance scoring，而不是直接跳 sign-off。"
+        ),
+    )
+
+
 def build_phase_six_capability_coverage_audit() -> schemas.PhaseSixCapabilityCoverageAuditResponse:
     return schemas.PhaseSixCapabilityCoverageAuditResponse(
         phase_id="phase_6",

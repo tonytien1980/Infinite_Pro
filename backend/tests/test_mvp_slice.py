@@ -534,6 +534,47 @@ def test_phase_six_closure_criteria_exposes_runtime_feedback_item(client: TestCl
     assert runtime_items[0]["criterion_status"] in {"landed", "watching", "needs_followup"}
 
 
+def test_owner_can_read_phase_six_completion_review(client: TestClient) -> None:
+    response = client.get("/api/v1/workbench/phase-6-completion-review")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["phase_id"] == "phase_6"
+    assert payload["review_posture"] in {"baseline_only", "checkpoint_recorded", "review_ready"}
+    assert payload["review_posture_label"]
+    assert isinstance(payload["overall_score"], int)
+    assert payload["scorecard_items"]
+    assert payload["recommended_next_step"]
+
+
+def test_owner_can_checkpoint_phase_six_completion_review(client: TestClient) -> None:
+    response = client.post(
+        "/api/v1/workbench/phase-6-completion-review/checkpoint",
+        json={"operator_label": "王顧問"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["review_posture"] in {"checkpoint_recorded", "review_ready"}
+    assert payload["last_checkpoint_by_label"] == "王顧問"
+    assert payload["last_checkpoint_at"]
+    assert payload["checkpoint_summary"]
+
+
+def test_consultant_cannot_checkpoint_phase_six_completion_review(
+    anonymous_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    consultant_client = login_as_consultant_with_owner_invite(anonymous_client, monkeypatch)
+
+    response = consultant_client.post(
+        "/api/v1/workbench/phase-6-completion-review/checkpoint",
+        json={"operator_label": "Consultant User"},
+    )
+
+    assert response.status_code == 403
+
+
 def test_phase_six_capability_coverage_audit_marks_narrow_assets_low_noise(
     client: TestClient,
 ) -> None:

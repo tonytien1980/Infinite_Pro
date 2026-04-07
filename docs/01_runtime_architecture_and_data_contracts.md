@@ -2380,6 +2380,59 @@ Object storage 負責：
 - new governance dashboard
 - release manager shell
 
+### 7.24 Phase 6 governance scorecard / completion review foundation
+
+在 `phase-6 closure criteria review v1` 已能正式回答 remaining blockers 之後，runtime 也已正式補上：
+
+- `GET /workbench/phase-6-completion-review`
+- `POST /workbench/phase-6-completion-review/checkpoint`
+
+第一版 contract 至少包括：
+
+- `review_posture`
+  - `baseline_only`
+  - `checkpoint_recorded`
+  - `review_ready`
+- `review_posture_label`
+- `summary`
+- `overall_score`
+- `scorecard_items`
+- `closure_posture`
+- `closure_posture_label`
+- `checkpoint_summary`
+- `last_checkpoint_at`
+- `last_checkpoint_by_label`
+- `recommended_next_step`
+
+每筆 `scorecard_item` 至少包括：
+
+- `dimension_code`
+- `dimension_label`
+- `score`
+- `status_label`
+- `summary`
+
+正式規則：
+
+- 這層是 low-noise completion review foundation，不是 correctness score
+- `checkpoint` 只代表 owner 在這個時間點記錄了一次 phase-level review snapshot
+- `checkpoint` 不等於 sign-off
+- 第一版只允許把 checkpoint action 掛在既有首頁 `Generalist Governance`
+- 不可長出：
+  - score dashboard
+  - release manager shell
+  - consultant ranking
+
+因此這一層現在應被理解為：
+
+- phase-level completion review foundation
+
+不是：
+
+- sign-off flow
+- scoring wall
+- enterprise review console
+
 ---
 
 ## 8. Provider Boundary

@@ -33,6 +33,7 @@ from app.services.phase_five_closure_review import (
 )
 from app.services.phase_six_generalist_governance import (
     build_phase_six_capability_coverage_audit,
+    build_phase_six_completion_review,
     build_phase_six_closure_criteria_review,
     build_phase_six_maturity_review,
     build_phase_six_calibration_aware_weighting,
@@ -48,6 +49,7 @@ DEFAULT_WORKBENCH_PREFERENCES = schemas.WorkbenchPreferenceResponse()
 PHASE_REVIEW_EXTENSION_KIND = "phase_review"
 PHASE_4_SHARED_INTELLIGENCE_ID = "phase_4_shared_intelligence"
 PHASE_5_SINGLE_FIRM_CLOUD_ID = "phase_5_single_firm_cloud_foundation"
+PHASE_6_GENERALIST_GOVERNANCE_ID = "phase_6_generalist_consulting_intelligence_governance"
 
 
 def _normalize_operator_label(value: str | None) -> str:
@@ -509,6 +511,50 @@ def get_phase_six_closure_criteria_review(
         feedback_signal_count=feedback_signal_count,
         governed_outcome_count=governed_outcome_count,
     )
+
+
+def get_phase_six_completion_review(
+    db: Session,
+) -> schemas.PhaseSixCompletionReviewResponse:
+    closure_review = get_phase_six_closure_criteria_review(db)
+    checkpoint_state = (
+        _get_phase_review_row(db, extension_id=PHASE_6_GENERALIST_GOVERNANCE_ID).payload
+        if _get_phase_review_row(db, extension_id=PHASE_6_GENERALIST_GOVERNANCE_ID)
+        else None
+    )
+    return build_phase_six_completion_review(
+        closure_review=closure_review,
+        checkpoint_state=checkpoint_state,
+    )
+
+
+def checkpoint_phase_six_completion_review(
+    db: Session,
+    *,
+    payload: schemas.PhaseSixCompletionReviewCheckpointRequest,
+) -> schemas.PhaseSixCompletionReviewResponse:
+    current = get_phase_six_completion_review(db)
+    row = _get_phase_review_row(db, extension_id=PHASE_6_GENERALIST_GOVERNANCE_ID)
+    if row is None:
+        row = models.WorkbenchExtensionState(
+            profile_key=DEFAULT_WORKBENCH_PROFILE,
+            extension_kind=PHASE_REVIEW_EXTENSION_KIND,
+            extension_id=PHASE_6_GENERALIST_GOVERNANCE_ID,
+            is_custom=False,
+        )
+
+    operator_label = _normalize_operator_label(payload.operator_label)
+    row.payload = {
+        "checkpointed": True,
+        "checkpointed_at": models.utc_now().isoformat(),
+        "checkpointed_by_label": operator_label,
+        "overall_score": current.overall_score,
+        "review_posture": current.review_posture,
+        "closure_posture": current.closure_posture,
+    }
+    db.add(row)
+    db.commit()
+    return get_phase_six_completion_review(db)
 
 
 def get_phase_six_reuse_boundary_governance(

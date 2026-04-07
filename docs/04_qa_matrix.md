@@ -4758,3 +4758,43 @@ Environment used:
 - browser smoke
 - phase 6 sign-off / completion-review action
 - persisted governance scoring rewrite
+
+---
+
+## Entry: 2026-04-07 phase-6 governance scorecard / completion review foundation pass
+
+Scope:
+- `GET /workbench/phase-6-completion-review`
+- `POST /workbench/phase-6-completion-review/checkpoint`
+- `總覽` `Generalist Governance` 內的 `completion review` 摘要
+
+Environment used:
+- local backend and frontend verification only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`241 passed`) |
+| `cd frontend && node --test tests/auth-foundation.test.mjs tests/provider-settings-foundation.test.mjs tests/demo-workspace-isolation.test.mjs tests/phase-six-governance.test.mjs tests/intake-progress.test.mjs` | Passed (`62 passed`) |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && mkdir -p .next/types && npx next typegen && npm run typecheck` | Passed |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+
+### Phase-6 completion review verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | `/workbench/phase-6-completion-review` | Return review posture, overall score, and scorecard items | Verified | targeted backend tests confirm `review_posture`, `overall_score`, `scorecard_items`, and `recommended_next_step` now exist |
+| Backend | `/workbench/phase-6-completion-review/checkpoint` owner path | Record a completion checkpoint | Verified | targeted backend tests confirm checkpoint now persists `last_checkpoint_at`, `last_checkpoint_by_label`, and `checkpoint_summary` |
+| Backend | `/workbench/phase-6-completion-review/checkpoint` consultant path | Consultant attempts checkpoint | Verified | targeted backend tests confirm consultant still receives `403` |
+| Frontend | phase-six governance helper | Read completion review posture and scorecard summary in low-noise copy | Verified | node tests confirm completion review labels stay consultant-readable and scorecard summary remains compact |
+| Frontend | `/` | Keep completion review inside existing `Generalist Governance` panel | Verified | typecheck/build confirm homepage reads the new completion review contract without adding a new dashboard page |
+| Frontend | `/` owner path | Show low-noise `記錄 completion checkpoint` action | Verified | homepage now offers owner-only checkpoint action while keeping the panel inside the same overview shell |
+
+### Explicitly not shipped in this pass
+
+- browser smoke
+- phase 6 sign-off / handoff
+- persisted governance scoring engine rewrite
