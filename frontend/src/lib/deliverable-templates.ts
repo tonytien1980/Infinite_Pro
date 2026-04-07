@@ -1,4 +1,5 @@
 import type {
+  CalibrationAwareWeightingSignal,
   ConfidenceCalibrationSignal,
   DeliverableTemplateGuidance,
   GeneralistGuidancePosture,
@@ -20,6 +21,7 @@ export function buildDeliverableTemplateView(
   generalistGuidancePosture?: GeneralistGuidancePosture | null,
   reuseConfidenceSignal?: ReuseConfidenceSignal | null,
   confidenceCalibrationSignal?: ConfidenceCalibrationSignal | null,
+  calibrationAwareWeightingSignal?: CalibrationAwareWeightingSignal | null,
 ): {
   shouldShow: boolean;
   sectionTitle: string;
@@ -43,6 +45,7 @@ export function buildDeliverableTemplateView(
   generalistGuidanceNote: string;
   reuseConfidenceNote: string;
   confidenceCalibrationNote: string;
+  calibrationAwareWeightingNote: string;
   boundaryNote: string;
 } {
   if (!guidance || guidance.status === "none") {
@@ -69,6 +72,7 @@ export function buildDeliverableTemplateView(
       generalistGuidanceNote: "",
       reuseConfidenceNote: "",
       confidenceCalibrationNote: "",
+      calibrationAwareWeightingNote: "",
       boundaryNote: "",
     };
   }
@@ -116,6 +120,14 @@ export function buildDeliverableTemplateView(
         ? `Phase 6 confidence calibration：${confidenceCalibrationSignal.calibration_posture_label}｜${confidenceCalibrationSignal.calibration_items
             .slice(0, 2)
             .map((item) => `${item.axis_label}：${item.calibration_status_label}`)
+            .join("｜")}`
+        : "",
+    calibrationAwareWeightingNote:
+      calibrationAwareWeightingSignal?.weighting_posture_label &&
+      calibrationAwareWeightingSignal.weighting_items?.length
+        ? `Phase 6 Host weighting：${calibrationAwareWeightingSignal.weighting_posture_label}｜${calibrationAwareWeightingSignal.weighting_items
+            .slice(0, 2)
+            .map((item) => `${item.axis_label}：${item.weighting_effect_label}`)
             .join("｜")}`
         : "",
     boundaryNote: guidance.boundary_note,

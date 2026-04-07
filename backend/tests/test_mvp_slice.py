@@ -728,6 +728,43 @@ def test_matter_workspace_exposes_confidence_calibration_signal(
     assert payload["confidence_calibration_signal"]["calibration_items"]
 
 
+def test_task_aggregate_exposes_calibration_aware_weighting_signal(
+    client: TestClient,
+) -> None:
+    task = client.post(
+        "/api/v1/tasks",
+        json=create_contract_review_payload("Calibration-aware weighting aggregate"),
+    ).json()
+
+    response = client.get(f"/api/v1/tasks/{task['id']}")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["calibration_aware_weighting_signal"]["weighting_posture"] in {
+        "calibrated_ordering",
+        "watch_mismatch",
+    }
+    assert payload["calibration_aware_weighting_signal"]["weighting_items"]
+
+
+def test_matter_workspace_exposes_calibration_aware_weighting_signal(
+    client: TestClient,
+) -> None:
+    task = client.post(
+        "/api/v1/tasks",
+        json=create_contract_review_payload("Calibration-aware weighting matter"),
+    ).json()
+    aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
+    matter_id = aggregate["matter_workspace"]["id"]
+
+    response = client.get(f"/api/v1/matters/{matter_id}")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["calibration_aware_weighting_signal"]["weighting_posture_label"]
+    assert payload["calibration_aware_weighting_signal"]["weighting_items"]
+
+
 def test_owner_can_read_phase_six_calibration_aware_weighting(client: TestClient) -> None:
     response = client.get("/api/v1/workbench/phase-6-calibration-aware-weighting")
 

@@ -608,6 +608,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
         task.generalist_guidance_posture,
         task.reuse_confidence_signal,
         task.confidence_calibration_signal,
+        task.calibration_aware_weighting_signal,
       )
     : null;
   const domainPlaybookView = task
@@ -616,6 +617,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
         task.generalist_guidance_posture,
         task.reuse_confidence_signal,
         task.confidence_calibration_signal,
+        task.calibration_aware_weighting_signal,
       )
     : null;
   const researchDetailView = task
@@ -637,6 +639,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
         task.generalist_guidance_posture,
         task.reuse_confidence_signal,
         task.confidence_calibration_signal,
+        task.calibration_aware_weighting_signal,
       )
     : null;
   const evidenceWorkspaceLane =
@@ -1424,6 +1427,11 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                         {organizationMemoryView.confidenceCalibrationNote}
                       </p>
                     ) : null}
+                    {organizationMemoryView.calibrationAwareWeightingNote ? (
+                      <p className="muted-text" style={{ marginTop: "12px" }}>
+                        {organizationMemoryView.calibrationAwareWeightingNote}
+                      </p>
+                    ) : null}
                     <p className="muted-text" style={{ marginTop: "12px" }}>
                       {organizationMemoryView.boundaryNote}
                     </p>
@@ -1502,6 +1510,11 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     {domainPlaybookView.confidenceCalibrationNote ? (
                       <p className="muted-text" style={{ marginTop: "12px" }}>
                         {domainPlaybookView.confidenceCalibrationNote}
+                      </p>
+                    ) : null}
+                    {domainPlaybookView.calibrationAwareWeightingNote ? (
+                      <p className="muted-text" style={{ marginTop: "12px" }}>
+                        {domainPlaybookView.calibrationAwareWeightingNote}
                       </p>
                     ) : null}
                     <p className="muted-text" style={{ marginTop: "12px" }}>
@@ -1641,6 +1654,11 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     {deliverableTemplateView.confidenceCalibrationNote ? (
                       <p className="muted-text" style={{ marginTop: "12px" }}>
                         {deliverableTemplateView.confidenceCalibrationNote}
+                      </p>
+                    ) : null}
+                    {deliverableTemplateView.calibrationAwareWeightingNote ? (
+                      <p className="muted-text" style={{ marginTop: "12px" }}>
+                        {deliverableTemplateView.calibrationAwareWeightingNote}
                       </p>
                     ) : null}
                     <p className="muted-text" style={{ marginTop: "12px" }}>

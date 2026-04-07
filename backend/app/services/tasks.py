@@ -96,6 +96,9 @@ from app.services.organization_memory_intelligence import build_organization_mem
 from app.services.domain_playbook_intelligence import build_domain_playbook_guidance
 from app.services.deliverable_shape_intelligence import build_deliverable_shape_guidance
 from app.services.deliverable_template_intelligence import build_deliverable_template_guidance
+from app.services.phase_six_generalist_governance import (
+    build_phase_six_calibration_aware_weighting,
+)
 from app.services.phase_six_generalist_governance import build_phase_six_confidence_calibration
 from app.services.phase_six_generalist_governance import build_phase_six_context_distance_audit
 from app.services.phase_six_generalist_governance import build_phase_six_generalist_guidance_posture
@@ -8590,6 +8593,7 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
     generalist_guidance_posture = build_phase_six_generalist_guidance_posture()
     reuse_confidence_signal = build_phase_six_context_distance_audit()
     confidence_calibration_signal = build_phase_six_confidence_calibration()
+    calibration_aware_weighting_signal = build_phase_six_calibration_aware_weighting()
 
     return schemas.MatterWorkspaceResponse(
         summary=summary,
@@ -8670,6 +8674,23 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
                     guardrail_note=item.guardrail_note,
                 )
                 for item in confidence_calibration_signal.calibration_items
+            ],
+        ),
+        calibration_aware_weighting_signal=schemas.CalibrationAwareWeightingSignalRead(
+            weighting_posture=calibration_aware_weighting_signal.weighting_posture,
+            weighting_posture_label=calibration_aware_weighting_signal.weighting_posture_label,
+            summary=calibration_aware_weighting_signal.summary,
+            weighting_items=[
+                schemas.CalibrationAwareWeightingItemRead(
+                    axis_kind=item.axis_kind,
+                    axis_label=item.axis_label,
+                    calibration_status=item.calibration_status,
+                    calibration_status_label=item.calibration_status_label,
+                    weighting_effect=item.weighting_effect,
+                    weighting_effect_label=item.weighting_effect_label,
+                    summary=item.summary,
+                )
+                for item in calibration_aware_weighting_signal.weighting_items
             ],
         ),
         readiness_hint=readiness_hint,
@@ -11589,6 +11610,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
     generalist_guidance_posture = build_phase_six_generalist_guidance_posture()
     reuse_confidence_signal = build_phase_six_context_distance_audit()
     confidence_calibration_signal = build_phase_six_confidence_calibration()
+    calibration_aware_weighting_signal = build_phase_six_calibration_aware_weighting()
     canonicalization_summary, canonicalization_candidates = build_matter_canonicalization_contract(
         db,
         matter_workspace_id=matter_workspace.id,
@@ -11715,6 +11737,23 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
                     guardrail_note=item.guardrail_note,
                 )
                 for item in confidence_calibration_signal.calibration_items
+            ],
+        ),
+        calibration_aware_weighting_signal=schemas.CalibrationAwareWeightingSignalRead(
+            weighting_posture=calibration_aware_weighting_signal.weighting_posture,
+            weighting_posture_label=calibration_aware_weighting_signal.weighting_posture_label,
+            summary=calibration_aware_weighting_signal.summary,
+            weighting_items=[
+                schemas.CalibrationAwareWeightingItemRead(
+                    axis_kind=item.axis_kind,
+                    axis_label=item.axis_label,
+                    calibration_status=item.calibration_status,
+                    calibration_status_label=item.calibration_status_label,
+                    weighting_effect=item.weighting_effect,
+                    weighting_effect_label=item.weighting_effect_label,
+                    summary=item.summary,
+                )
+                for item in calibration_aware_weighting_signal.weighting_items
             ],
         ),
         review_lens_guidance=review_lens_guidance,

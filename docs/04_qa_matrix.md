@@ -4245,6 +4245,19 @@ Environment used:
 - Host reusable ordering no longer stops at shared-intelligence weight plus reuse-boundary recommendation; it now also reads `client stage / client type / domain lens` calibration
 - `domain lens` mismatch is now treated as a stronger background-only signal, while `client stage / client type` mismatch prevents sources from staying in `can_expand`
 
+### Phase-6 calibration-aware weighting propagation verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | `TaskAggregateResponse` / `MatterWorkspaceResponse` | Carry `calibration_aware_weighting_signal` through existing work-surface contracts | Verified | targeted backend tests confirm task aggregate and matter workspace now expose `calibration_aware_weighting_signal` with posture label and weighting items |
+| Frontend | `organization-memory` / `domain-playbooks` / `deliverable-templates` helpers | Render low-noise `Phase 6 Host weighting` note inside existing second-layer cards | Verified | node helper tests confirm the three helpers can render weighting-aware notes without changing primary summaries |
+| Frontend | task / matter / deliverable surfaces | Keep calibration-aware weighting propagation inside existing second-layer disclosure | Verified | typecheck/build pass after wiring the new note into task detail, matter workspace, and deliverable workspace cards |
+
+### Verified outcomes
+
+- `calibration_aware_weighting_signal` no longer only lives on the homepage; it now flows through the existing task / matter / deliverable work-surface contracts
+- Phase 6 can now express guidance posture, reuse-confidence reading, confidence calibration, and calibration-aware Host weighting inside existing second-layer cards without creating a new governance page
+
 ### Explicitly not shipped in this pass
 
 - `Personal Provider Settings`

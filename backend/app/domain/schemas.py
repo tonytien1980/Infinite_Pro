@@ -1103,6 +1103,25 @@ class ConfidenceCalibrationSignalRead(BaseModel):
     calibration_items: list[ConfidenceCalibrationItemRead] = Field(default_factory=list)
 
 
+class CalibrationAwareWeightingItemRead(BaseModel):
+    axis_kind: Literal["client_stage", "client_type", "domain_lens"] = "client_stage"
+    axis_label: str = ""
+    calibration_status: Literal["aligned", "caution", "mismatch"] = "caution"
+    calibration_status_label: str = ""
+    weighting_effect: Literal["allow_expand", "keep_contextual", "background_only"] = (
+        "keep_contextual"
+    )
+    weighting_effect_label: str = ""
+    summary: str = ""
+
+
+class CalibrationAwareWeightingSignalRead(BaseModel):
+    weighting_posture: Literal["calibrated_ordering", "watch_mismatch"] = "watch_mismatch"
+    weighting_posture_label: str = ""
+    summary: str = ""
+    weighting_items: list[CalibrationAwareWeightingItemRead] = Field(default_factory=list)
+
+
 class PrecedentDuplicateSummaryRead(BaseModel):
     pending_review_count: int = 0
     human_confirmed_count: int = 0
@@ -1785,6 +1804,9 @@ class MatterWorkspaceResponse(BaseModel):
     confidence_calibration_signal: ConfidenceCalibrationSignalRead = Field(
         default_factory=ConfidenceCalibrationSignalRead
     )
+    calibration_aware_weighting_signal: CalibrationAwareWeightingSignalRead = Field(
+        default_factory=CalibrationAwareWeightingSignalRead
+    )
     readiness_hint: str = ""
     continuity_notes: list[str] = Field(default_factory=list)
     continuation_surface: ContinuationSurfaceRead | None = None
@@ -1945,6 +1967,9 @@ class TaskAggregateResponse(BaseModel):
     )
     confidence_calibration_signal: ConfidenceCalibrationSignalRead = Field(
         default_factory=ConfidenceCalibrationSignalRead
+    )
+    calibration_aware_weighting_signal: CalibrationAwareWeightingSignalRead = Field(
+        default_factory=CalibrationAwareWeightingSignalRead
     )
     review_lens_guidance: ReviewLensGuidanceRead = Field(default_factory=ReviewLensGuidanceRead)
     common_risk_guidance: CommonRiskGuidanceRead = Field(default_factory=CommonRiskGuidanceRead)

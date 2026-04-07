@@ -1,4 +1,5 @@
 import type {
+  CalibrationAwareWeightingSignal,
   ConfidenceCalibrationSignal,
   GeneralistGuidancePosture,
   OrganizationMemoryGuidance,
@@ -10,6 +11,7 @@ export function buildOrganizationMemoryView(
   generalistGuidancePosture?: GeneralistGuidancePosture | null,
   reuseConfidenceSignal?: ReuseConfidenceSignal | null,
   confidenceCalibrationSignal?: ConfidenceCalibrationSignal | null,
+  calibrationAwareWeightingSignal?: CalibrationAwareWeightingSignal | null,
 ): {
   shouldShow: boolean;
   sectionTitle: string;
@@ -28,6 +30,7 @@ export function buildOrganizationMemoryView(
   generalistGuidanceNote: string;
   reuseConfidenceNote: string;
   confidenceCalibrationNote: string;
+  calibrationAwareWeightingNote: string;
   boundaryNote: string;
 } {
   if (!guidance || guidance.status !== "available") {
@@ -49,6 +52,7 @@ export function buildOrganizationMemoryView(
       generalistGuidanceNote: "",
       reuseConfidenceNote: "",
       confidenceCalibrationNote: "",
+      calibrationAwareWeightingNote: "",
       boundaryNote: "",
     };
   }
@@ -90,6 +94,14 @@ export function buildOrganizationMemoryView(
         ? `Phase 6 confidence calibration：${confidenceCalibrationSignal.calibration_posture_label}｜${confidenceCalibrationSignal.calibration_items
             .slice(0, 2)
             .map((item) => `${item.axis_label}：${item.calibration_status_label}`)
+            .join("｜")}`
+        : "",
+    calibrationAwareWeightingNote:
+      calibrationAwareWeightingSignal?.weighting_posture_label &&
+      calibrationAwareWeightingSignal.weighting_items?.length
+        ? `Phase 6 Host weighting：${calibrationAwareWeightingSignal.weighting_posture_label}｜${calibrationAwareWeightingSignal.weighting_items
+            .slice(0, 2)
+            .map((item) => `${item.axis_label}：${item.weighting_effect_label}`)
             .join("｜")}`
         : "",
     boundaryNote: guidance.boundary_note,

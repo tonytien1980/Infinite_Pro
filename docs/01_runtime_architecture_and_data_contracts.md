@@ -2241,6 +2241,39 @@ Object storage 負責：
 - routing hard gate
 - precedence tuning console
 
+### 7.21 Phase 6 calibration-aware weighting propagation
+
+在 `calibration-aware reuse weighting v1` 已成立後，runtime 也已正式把這條 signal 回寫到既有 work-surface contract：
+
+- `TaskAggregateResponse` 現在已正式補上：
+  - `calibration_aware_weighting_signal`
+- `MatterWorkspaceResponse` 現在也已正式補上：
+  - `calibration_aware_weighting_signal`
+- deliverable workspace 可沿用既有 `task: TaskAggregate`
+
+第一波 propagation 目前正式接進：
+
+- `organization memory`
+- `domain playbook`
+- `deliverable template`
+
+正式規則：
+
+- 這一刀只在既有 second-layer guidance 補低噪音 `Phase 6 Host weighting` note
+- 不新增新頁面
+- 不讓每個 page 自己額外查 `phase-6-calibration-aware-weighting`
+- 不把 second-layer note 膨脹成 weighting dashboard
+
+因此這一層現在應被理解為：
+
+- work-surface calibration-aware-weighting propagation
+
+不是：
+
+- new governance console
+- page-local weighting engine
+- long-form routing overlay
+
 ---
 
 ## 8. Provider Boundary

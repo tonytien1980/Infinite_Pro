@@ -518,6 +518,23 @@ test("organization memory view stays low-noise and consultant-readable", () => {
         guardrail_note: "先留背景校正。",
       },
     ],
+  }, {
+    weighting_posture: "watch_mismatch",
+    weighting_posture_label: "仍需看 mismatch",
+    summary: "summary",
+    host_weighting_summary: "Host 現在會先看 domain lens 是否對齊。",
+    host_weighting_guardrail_note: "仍由 Host 做最後收斂。",
+    weighting_items: [
+      {
+        axis_kind: "domain_lens",
+        axis_label: "domain lens",
+        calibration_status: "mismatch",
+        calibration_status_label: "仍有不對齊",
+        weighting_effect: "background_only",
+        weighting_effect_label: "先留背景校正",
+        summary: "summary",
+      },
+    ],
   });
 
   assert.equal(view.shouldShow, true);
@@ -536,6 +553,7 @@ test("organization memory view stays low-noise and consultant-readable", () => {
   assert.match(view.generalistGuidanceNote ?? "", /適度明示/);
   assert.match(view.reuseConfidenceNote ?? "", /低信心重用/);
   assert.match(view.confidenceCalibrationNote ?? "", /仍有不對齊/);
+  assert.match(view.calibrationAwareWeightingNote ?? "", /先留背景校正/);
 });
 
 test("domain playbook view stays low-noise and consultant-readable", () => {
@@ -624,6 +642,23 @@ test("domain playbook view stays low-noise and consultant-readable", () => {
         guardrail_note: "先留背景校正。",
       },
     ],
+  }, {
+    weighting_posture: "watch_mismatch",
+    weighting_posture_label: "仍需看 mismatch",
+    summary: "summary",
+    host_weighting_summary: "Host 現在會先看 domain lens 是否對齊。",
+    host_weighting_guardrail_note: "仍由 Host 做最後收斂。",
+    weighting_items: [
+      {
+        axis_kind: "domain_lens",
+        axis_label: "domain lens",
+        calibration_status: "mismatch",
+        calibration_status_label: "仍有不對齊",
+        weighting_effect: "background_only",
+        weighting_effect_label: "先留背景校正",
+        summary: "summary",
+      },
+    ],
   });
 
   assert.equal(view.shouldShow, true);
@@ -645,6 +680,7 @@ test("domain playbook view stays low-noise and consultant-readable", () => {
   assert.match(view.generalistGuidanceNote ?? "", /保守引導/);
   assert.match(view.reuseConfidenceNote ?? "", /有邊界重用/);
   assert.match(view.confidenceCalibrationNote ?? "", /仍有不對齊/);
+  assert.match(view.calibrationAwareWeightingNote ?? "", /先留背景校正/);
   assert.match(view.boundaryNote, /不是強制 checklist/);
 });
 
@@ -1706,6 +1742,23 @@ test("deliverable template view stays low-noise and consultant-readable", () => 
         guardrail_note: "先留背景校正。",
       },
     ],
+  }, {
+    weighting_posture: "watch_mismatch",
+    weighting_posture_label: "仍需看 mismatch",
+    summary: "summary",
+    host_weighting_summary: "Host 現在會先看 domain lens 是否對齊。",
+    host_weighting_guardrail_note: "仍由 Host 做最後收斂。",
+    weighting_items: [
+      {
+        axis_kind: "domain_lens",
+        axis_label: "domain lens",
+        calibration_status: "mismatch",
+        calibration_status_label: "仍有不對齊",
+        weighting_effect: "background_only",
+        weighting_effect_label: "先留背景校正",
+        summary: "summary",
+      },
+    ],
   });
 
   assert.equal(view.shouldShow, true);
@@ -1728,6 +1781,7 @@ test("deliverable template view stays low-noise and consultant-readable", () => 
   assert.match(view.generalistGuidanceNote ?? "", /保守引導/);
   assert.match(view.reuseConfidenceNote ?? "", /低信心重用/);
   assert.match(view.confidenceCalibrationNote ?? "", /仍有不對齊/);
+  assert.match(view.calibrationAwareWeightingNote ?? "", /先留背景校正/);
   assert.match(view.boundaryNote, /不是自動套模板/);
 });
 

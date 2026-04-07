@@ -582,6 +582,7 @@ export function MatterWorkspacePanel({
         matter.generalist_guidance_posture,
         matter.reuse_confidence_signal,
         matter.confidence_calibration_signal,
+        matter.calibration_aware_weighting_signal,
       )
     : null;
   const domainPlaybookView = matter
@@ -590,6 +591,7 @@ export function MatterWorkspacePanel({
         matter.generalist_guidance_posture,
         matter.reuse_confidence_signal,
         matter.confidence_calibration_signal,
+        matter.calibration_aware_weighting_signal,
       )
     : null;
   const researchDetailView = matter
@@ -1136,6 +1138,11 @@ export function MatterWorkspacePanel({
                             {organizationMemoryView.confidenceCalibrationNote}
                           </p>
                         ) : null}
+                        {organizationMemoryView.calibrationAwareWeightingNote ? (
+                          <p className="muted-text" style={{ marginTop: "12px" }}>
+                            {organizationMemoryView.calibrationAwareWeightingNote}
+                          </p>
+                        ) : null}
                         <p className="muted-text" style={{ marginTop: "12px" }}>
                           {organizationMemoryView.boundaryNote}
                         </p>
@@ -1202,6 +1209,11 @@ export function MatterWorkspacePanel({
                         {domainPlaybookView.confidenceCalibrationNote ? (
                           <p className="muted-text" style={{ marginTop: "12px" }}>
                             {domainPlaybookView.confidenceCalibrationNote}
+                          </p>
+                        ) : null}
+                        {domainPlaybookView.calibrationAwareWeightingNote ? (
+                          <p className="muted-text" style={{ marginTop: "12px" }}>
+                            {domainPlaybookView.calibrationAwareWeightingNote}
                           </p>
                         ) : null}
                         <p className="muted-text" style={{ marginTop: "12px" }}>

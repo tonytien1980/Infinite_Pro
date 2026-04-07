@@ -540,6 +540,23 @@ export interface ConfidenceCalibrationSignal {
   calibration_items: ConfidenceCalibrationItem[];
 }
 
+export interface CalibrationAwareWeightingItem {
+  axis_kind: "client_stage" | "client_type" | "domain_lens";
+  axis_label: string;
+  calibration_status: "aligned" | "caution" | "mismatch";
+  calibration_status_label: string;
+  weighting_effect: "allow_expand" | "keep_contextual" | "background_only";
+  weighting_effect_label: string;
+  summary: string;
+}
+
+export interface CalibrationAwareWeightingSignal {
+  weighting_posture: "calibrated_ordering" | "watch_mismatch";
+  weighting_posture_label: string;
+  summary: string;
+  weighting_items: CalibrationAwareWeightingItem[];
+}
+
 export interface PrecedentDuplicateReviewPayload {
   review_key: string;
   resolution: "human_confirmed_canonical_row" | "keep_separate" | "split";
@@ -2149,6 +2166,7 @@ export interface TaskAggregate {
   generalist_guidance_posture: GeneralistGuidancePosture;
   reuse_confidence_signal: ReuseConfidenceSignal;
   confidence_calibration_signal: ConfidenceCalibrationSignal;
+  calibration_aware_weighting_signal: CalibrationAwareWeightingSignal;
   review_lens_guidance: ReviewLensGuidance;
   common_risk_guidance: CommonRiskGuidance;
   deliverable_shape_guidance: DeliverableShapeGuidance;
@@ -2228,6 +2246,7 @@ export interface MatterWorkspace {
   generalist_guidance_posture: GeneralistGuidancePosture;
   reuse_confidence_signal: ReuseConfidenceSignal;
   confidence_calibration_signal: ConfidenceCalibrationSignal;
+  calibration_aware_weighting_signal: CalibrationAwareWeightingSignal;
   research_runs: ResearchRun[];
   decision_records: DecisionRecord[];
   action_plans: ActionPlan[];
