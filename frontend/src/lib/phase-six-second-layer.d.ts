@@ -10,4 +10,5 @@ export function buildPhaseSixSecondLayerSignalNote(args: {
   reuseConfidenceSignal?: ReuseConfidenceSignal | null;
   confidenceCalibrationSignal?: ConfidenceCalibrationSignal | null;
   calibrationAwareWeightingSignal?: CalibrationAwareWeightingSignal | null;
+  lifecyclePrioritySummary?: string;
 }): string;

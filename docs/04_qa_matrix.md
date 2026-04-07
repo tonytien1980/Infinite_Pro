@@ -4270,6 +4270,18 @@ Environment used:
 - second-layer cards no longer stack 4 separate Phase 6 notes under every reusable guidance card
 - the most important Phase 6 message still remains visible, but the cards stay lighter and easier to scan
 
+### Phase-6 reusable-signal freshness prioritization verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Frontend | `phase-six-second-layer` helper | Prioritize reusable lifecycle / freshness signal ahead of generic boundary signal | Verified | node helper tests confirm condensed notes now prefer `reactivation / recovery / decay / freshness` over generic boundary wording |
+| Frontend | `organization-memory` / `domain-playbooks` / `deliverable-templates` helpers | Pass lifecycle/freshness summaries into the shared condensed-note helper | Verified | targeted tests confirm organization memory, domain playbook, and deliverable template views now surface the reactivation/freshness wording first |
+
+### Verified outcomes
+
+- condensed second-layer `Phase 6` notes no longer always lead with generic boundary signals
+- when reusable sources are newly reactivated, recovering, stale, or decaying, that lifecycle signal now gets surfaced first to the consultant
+
 ### Explicitly not shipped in this pass
 
 - `Personal Provider Settings`

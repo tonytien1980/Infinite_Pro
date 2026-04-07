@@ -551,7 +551,7 @@ test("organization memory view stays low-noise and consultant-readable", () => {
   assert.match(view.crossMatterItems[0]?.meta ?? "", /同一客戶/);
   assert.match(view.crossMatterItems[0]?.meta ?? "", /較舊背景/);
   assert.match(view.phaseSixSignalNote ?? "", /適度明示/);
-  assert.match(view.phaseSixSignalNote ?? "", /先留背景校正/);
+  assert.match(view.phaseSixSignalNote ?? "", /重新拉回前景/);
 });
 
 test("domain playbook view stays low-noise and consultant-readable", () => {
@@ -676,7 +676,7 @@ test("domain playbook view stays low-noise and consultant-readable", () => {
   assert.match(view.cards[0]?.meta ?? "", /task heuristic/);
   assert.match(view.cards[2]?.meta ?? "", /cross-matter organization memory/);
   assert.match(view.phaseSixSignalNote ?? "", /保守引導/);
-  assert.match(view.phaseSixSignalNote ?? "", /先留背景校正/);
+  assert.match(view.phaseSixSignalNote ?? "", /重新讓 shared guidance 站前面/);
   assert.match(view.boundaryNote, /不是強制 checklist/);
 });
 
@@ -1775,7 +1775,7 @@ test("deliverable template view stays low-noise and consultant-readable", () => 
   assert.match(view.cards[0]?.meta ?? "", /precedent deliverable template/);
   assert.match(view.cards[2]?.meta ?? "", /deliverable shape/);
   assert.match(view.phaseSixSignalNote ?? "", /保守引導/);
-  assert.match(view.phaseSixSignalNote ?? "", /先留背景校正/);
+  assert.match(view.phaseSixSignalNote ?? "", /重新讓模板主線站前面/);
   assert.match(view.boundaryNote, /不是自動套模板/);
 });
 

@@ -103,6 +103,13 @@ export function buildDeliverableTemplateView(
       reuseConfidenceSignal,
       confidenceCalibrationSignal,
       calibrationAwareWeightingSignal,
+      lifecyclePrioritySummary:
+        guidance.recovery_balance_summary ||
+        guidance.reactivation_summary ||
+        guidance.decay_summary ||
+        guidance.freshness_summary ||
+        guidance.source_lifecycle_summary ||
+        "",
     }),
     boundaryNote: guidance.boundary_note,
   };

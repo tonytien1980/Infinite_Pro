@@ -867,6 +867,10 @@ Infinite Pro 目前沒有也不應硬對齊於：
   - `second-layer signal condensation v1`
   - task / matter / deliverable 的既有 second-layer cards 現在會把 4 條 Phase 6 notes 收成 1 條 low-noise condensed note
   - frontend 已用共用 helper 收斂這條讀法，避免 second-layer cards 持續變厚
+- 這條線現在也已正式推到第十三刀：
+  - `reusable-signal freshness prioritization v1`
+  - condensed second-layer `Phase 6` note 現在會優先顯示 reusable source 的 freshness / lifecycle posture
+  - 若 shared source 是剛回來、仍在恢復、偏舊或需要退背景，顧問會先看到這條訊號，而不是永遠先看到一般 boundary note
 
 ---
 

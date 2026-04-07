@@ -47,10 +47,16 @@ export function buildPhaseSixSecondLayerSignalNote(args) {
     segments.push(args.generalistGuidancePosture.guidance_posture_label);
   }
 
+  if (args.lifecyclePrioritySummary) {
+    segments.push(args.lifecyclePrioritySummary);
+  }
+
   const actionableSegment =
-    resolveWeightingSegment(args.calibrationAwareWeightingSignal) ||
-    resolveCalibrationSegment(args.confidenceCalibrationSignal) ||
-    resolveReuseConfidenceSegment(args.reuseConfidenceSignal);
+    args.lifecyclePrioritySummary
+      ? ""
+      : resolveWeightingSegment(args.calibrationAwareWeightingSignal) ||
+        resolveCalibrationSegment(args.confidenceCalibrationSignal) ||
+        resolveReuseConfidenceSegment(args.reuseConfidenceSignal);
 
   if (actionableSegment) {
     segments.push(actionableSegment);

@@ -77,6 +77,11 @@ export function buildOrganizationMemoryView(
       reuseConfidenceSignal,
       confidenceCalibrationSignal,
       calibrationAwareWeightingSignal,
+      lifecyclePrioritySummary:
+        guidance.reactivation_summary ||
+        guidance.freshness_summary ||
+        guidance.source_lifecycle_summary ||
+        "",
     }),
     boundaryNote: guidance.boundary_note,
   };

@@ -435,6 +435,7 @@ Infinite Pro 正式採：
 - 若 reuse confidence 已 propagation 到 task / matter / deliverable，第一波也只可補在既有 second-layer cards 內，不可新增 confidence 區塊牆
 - 若 guidance posture 已 propagation 到 task / matter / deliverable，第一波也只可補在既有 second-layer cards 內，不可額外長出 Phase 6 區塊牆
 - 若 second-layer cards 已累積多條 Phase 6 notes，後續 slice 應優先做 note condensation，而不是繼續把 note 往下堆
+- 若 condensed second-layer note 同時有 freshness / lifecycle 與 boundary 類訊號，應優先讓顧問看到 freshness / lifecycle posture
 - 不可因此長成 dashboard wall 或第二套管理後台
 
 ### `建立新案件`
