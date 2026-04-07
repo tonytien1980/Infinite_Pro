@@ -4166,6 +4166,19 @@ Environment used:
 - Phase 6 now not only audits coverage, governs reuse boundary, and explains Host ordering, but also answers how conservative or explicit consultant-facing guidance should be
 - `Generalist Governance` can now tell whether shared intelligence should stay low-noise, be moderately explicit, or first be read through guarded guidance
 
+### Phase-6 guidance posture propagation verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | `TaskAggregateResponse` / `MatterWorkspaceResponse` | Carry `generalist_guidance_posture` through existing work-surface contracts | Verified | targeted backend tests confirm task aggregate and matter workspace now expose `generalist_guidance_posture` with posture label and work guidance summary |
+| Frontend | `organization-memory` / `domain-playbooks` / `deliverable-templates` helpers | Render low-noise Phase 6 guidance note inside existing second-layer cards | Verified | node helper tests confirm the three helpers can render posture-aware consultant-facing notes without changing primary summaries |
+| Frontend | task / matter / deliverable surfaces | Keep posture propagation inside existing second-layer disclosure | Verified | typecheck/build pass after wiring the new note into task detail, matter workspace, and deliverable workspace cards |
+
+### Verified outcomes
+
+- `generalist_guidance_posture` no longer only lives on the homepage; it now flows through the existing task / matter / deliverable work-surface contracts
+- Phase 6 guidance can now shape second-layer reading without introducing a new governance page or training shell
+
 ### Explicitly not shipped in this pass
 
 - `Personal Provider Settings`

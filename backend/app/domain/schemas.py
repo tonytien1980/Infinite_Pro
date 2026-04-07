@@ -1043,6 +1043,19 @@ class DeliverableTemplateGuidanceRead(BaseModel):
     blocks: list[DeliverableTemplateBlockRead] = Field(default_factory=list)
 
 
+class GeneralistGuidancePostureRead(BaseModel):
+    guidance_posture: Literal[
+        "light_guidance",
+        "balanced_guidance",
+        "guarded_guidance",
+    ] = "balanced_guidance"
+    guidance_posture_label: str = ""
+    summary: str = ""
+    work_guidance_summary: str = ""
+    boundary_emphasis: str = ""
+    guidance_items: list[str] = Field(default_factory=list)
+
+
 class PrecedentDuplicateSummaryRead(BaseModel):
     pending_review_count: int = 0
     human_confirmed_count: int = 0
@@ -1716,6 +1729,9 @@ class MatterWorkspaceResponse(BaseModel):
     domain_playbook_guidance: DomainPlaybookGuidanceRead = Field(
         default_factory=DomainPlaybookGuidanceRead
     )
+    generalist_guidance_posture: GeneralistGuidancePostureRead = Field(
+        default_factory=GeneralistGuidancePostureRead
+    )
     readiness_hint: str = ""
     continuity_notes: list[str] = Field(default_factory=list)
     continuation_surface: ContinuationSurfaceRead | None = None
@@ -1867,6 +1883,9 @@ class TaskAggregateResponse(BaseModel):
     )
     precedent_reference_guidance: PrecedentReferenceGuidanceRead = Field(
         default_factory=PrecedentReferenceGuidanceRead
+    )
+    generalist_guidance_posture: GeneralistGuidancePostureRead = Field(
+        default_factory=GeneralistGuidancePostureRead
     )
     review_lens_guidance: ReviewLensGuidanceRead = Field(default_factory=ReviewLensGuidanceRead)
     common_risk_guidance: CommonRiskGuidanceRead = Field(default_factory=CommonRiskGuidanceRead)

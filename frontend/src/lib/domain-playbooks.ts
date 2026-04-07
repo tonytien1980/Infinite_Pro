@@ -1,7 +1,11 @@
-import type { DomainPlaybookGuidance } from "@/lib/types";
+import type {
+  DomainPlaybookGuidance,
+  GeneralistGuidancePosture,
+} from "@/lib/types";
 
 export function buildDomainPlaybookView(
   guidance: DomainPlaybookGuidance | null | undefined,
+  generalistGuidancePosture?: GeneralistGuidancePosture | null,
 ): {
   shouldShow: boolean;
   sectionTitle: string;
@@ -21,6 +25,7 @@ export function buildDomainPlaybookView(
   cards: Array<{ title: string; summary: string; meta: string }>;
   listTitle: string;
   listItems: string[];
+  generalistGuidanceNote: string;
   boundaryNote: string;
 } {
   if (!guidance || guidance.status === "none" || guidance.stages.length === 0) {
@@ -43,6 +48,7 @@ export function buildDomainPlaybookView(
       cards: [],
       listTitle: "",
       listItems: [],
+      generalistGuidanceNote: "",
       boundaryNote: "",
     };
   }
@@ -70,6 +76,10 @@ export function buildDomainPlaybookView(
     })),
     listTitle: "這類案子通常這樣推進",
     listItems: guidance.stages.map((item) => item.title),
+    generalistGuidanceNote:
+      generalistGuidancePosture?.guidance_posture_label && generalistGuidancePosture?.work_guidance_summary
+        ? `Phase 6 guidance：${generalistGuidancePosture.guidance_posture_label}｜${generalistGuidancePosture.work_guidance_summary}`
+        : "",
     boundaryNote: guidance.boundary_note,
   };
 }

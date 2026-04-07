@@ -577,10 +577,16 @@ export function MatterWorkspacePanel({
     : null;
   const researchGuidance = matter ? buildResearchGuidanceView(matter.research_guidance) : null;
   const organizationMemoryView = matter
-    ? buildOrganizationMemoryView(matter.organization_memory_guidance)
+    ? buildOrganizationMemoryView(
+        matter.organization_memory_guidance,
+        matter.generalist_guidance_posture,
+      )
     : null;
   const domainPlaybookView = matter
-    ? buildDomainPlaybookView(matter.domain_playbook_guidance)
+    ? buildDomainPlaybookView(
+        matter.domain_playbook_guidance,
+        matter.generalist_guidance_posture,
+      )
     : null;
   const researchDetailView = matter
     ? buildResearchDetailView(researchGuidance, matter.research_runs[0] ?? null)
@@ -1111,6 +1117,11 @@ export function MatterWorkspacePanel({
                             {organizationMemoryView.continuityAnchor}
                           </p>
                         ) : null}
+                        {organizationMemoryView.generalistGuidanceNote ? (
+                          <p className="muted-text" style={{ marginTop: "12px" }}>
+                            {organizationMemoryView.generalistGuidanceNote}
+                          </p>
+                        ) : null}
                         <p className="muted-text" style={{ marginTop: "12px" }}>
                           {organizationMemoryView.boundaryNote}
                         </p>
@@ -1163,6 +1174,11 @@ export function MatterWorkspacePanel({
                               <li key={item}>{item}</li>
                             ))}
                           </ul>
+                        ) : null}
+                        {domainPlaybookView.generalistGuidanceNote ? (
+                          <p className="muted-text" style={{ marginTop: "12px" }}>
+                            {domainPlaybookView.generalistGuidanceNote}
+                          </p>
                         ) : null}
                         <p className="muted-text" style={{ marginTop: "12px" }}>
                           {domainPlaybookView.boundaryNote}

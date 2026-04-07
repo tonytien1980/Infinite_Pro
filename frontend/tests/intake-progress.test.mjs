@@ -478,6 +478,14 @@ test("organization memory view stays low-noise and consultant-readable", () => {
       },
     ],
     boundary_note: "這是同一案件世界內目前已知的穩定背景。",
+  }, {
+    guidance_posture: "balanced_guidance",
+    guidance_posture_label: "適度明示",
+    summary: "summary",
+    work_guidance_summary: "目前工作 guidance 應維持低噪音，但要適度把 reusable boundary 說清楚。",
+    boundary_emphasis: "可重用來源可站前面，但局部情境的限制仍要被看見。",
+    guidance_items: ["遇到局部模式時，補一條簡短 boundary note 即可。"],
+    recommended_next_step: "next",
   });
 
   assert.equal(view.shouldShow, true);
@@ -493,6 +501,7 @@ test("organization memory view stays low-noise and consultant-readable", () => {
   assert.equal(view.crossMatterItems[0]?.title, "年度法務盤點｜合約風險整理");
   assert.match(view.crossMatterItems[0]?.meta ?? "", /同一客戶/);
   assert.match(view.crossMatterItems[0]?.meta ?? "", /較舊背景/);
+  assert.match(view.generalistGuidanceNote ?? "", /適度明示/);
 });
 
 test("domain playbook view stays low-noise and consultant-readable", () => {
@@ -541,6 +550,14 @@ test("domain playbook view stays low-noise and consultant-readable", () => {
         priority: "medium",
       },
     ],
+  }, {
+    guidance_posture: "guarded_guidance",
+    guidance_posture_label: "先保守引導",
+    summary: "summary",
+    work_guidance_summary: "目前工作 guidance 應先保守引導。",
+    boundary_emphasis: "窄情境來源仍要明示邊界。",
+    guidance_items: ["先把 shared intelligence 當校正主線。"],
+    recommended_next_step: "next",
   });
 
   assert.equal(view.shouldShow, true);
@@ -559,6 +576,7 @@ test("domain playbook view stays low-noise and consultant-readable", () => {
   assert.match(view.listItems[0] ?? "", /先補齊審閱範圍/);
   assert.match(view.cards[0]?.meta ?? "", /task heuristic/);
   assert.match(view.cards[2]?.meta ?? "", /cross-matter organization memory/);
+  assert.match(view.generalistGuidanceNote ?? "", /保守引導/);
   assert.match(view.boundaryNote, /不是強制 checklist/);
 });
 
@@ -1580,6 +1598,14 @@ test("deliverable template view stays low-noise and consultant-readable", () => 
         priority: "medium",
       },
     ],
+  }, {
+    guidance_posture: "guarded_guidance",
+    guidance_posture_label: "先保守引導",
+    summary: "summary",
+    work_guidance_summary: "目前工作 guidance 應先保守引導。",
+    boundary_emphasis: "窄情境來源仍要明示邊界。",
+    guidance_items: ["先把 shared intelligence 當校正主線。"],
+    recommended_next_step: "next",
   });
 
   assert.equal(view.shouldShow, true);
@@ -1599,6 +1625,7 @@ test("deliverable template view stays low-noise and consultant-readable", () => 
   assert.equal(view.optionalSections[0], "待補資料");
   assert.match(view.cards[0]?.meta ?? "", /precedent deliverable template/);
   assert.match(view.cards[2]?.meta ?? "", /deliverable shape/);
+  assert.match(view.generalistGuidanceNote ?? "", /保守引導/);
   assert.match(view.boundaryNote, /不是自動套模板/);
 });
 

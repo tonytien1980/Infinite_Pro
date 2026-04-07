@@ -557,6 +557,48 @@ def test_phase_six_generalist_guidance_posture_prefers_guarded_reading(
     assert payload["boundary_emphasis"]
 
 
+def test_task_aggregate_exposes_generalist_guidance_posture(
+    client: TestClient,
+) -> None:
+    task = client.post(
+        "/api/v1/tasks",
+        json=create_contract_review_payload("Guidance posture aggregate"),
+    ).json()
+
+    response = client.get(f"/api/v1/tasks/{task['id']}")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["generalist_guidance_posture"]["guidance_posture"] in {
+        "light_guidance",
+        "balanced_guidance",
+        "guarded_guidance",
+    }
+    assert payload["generalist_guidance_posture"]["work_guidance_summary"]
+
+
+def test_matter_workspace_exposes_generalist_guidance_posture(
+    client: TestClient,
+) -> None:
+    task = client.post(
+        "/api/v1/tasks",
+        json=create_contract_review_payload("Guidance posture matter"),
+    ).json()
+    aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
+    matter_id = aggregate["matter_workspace"]["id"]
+
+    response = client.get(f"/api/v1/matters/{matter_id}")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["generalist_guidance_posture"]["guidance_posture"] in {
+        "light_guidance",
+        "balanced_guidance",
+        "guarded_guidance",
+    }
+    assert payload["generalist_guidance_posture"]["guidance_items"]
+
+
 def test_consultant_cannot_sign_off_phase_five(
     anonymous_client: TestClient,
     monkeypatch: pytest.MonkeyPatch,

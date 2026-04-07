@@ -1,4 +1,7 @@
-import type { DeliverableTemplateGuidance } from "@/lib/types";
+import type {
+  DeliverableTemplateGuidance,
+  GeneralistGuidancePosture,
+} from "@/lib/types";
 
 function labelForTemplatePriority(priority: string) {
   if (priority === "high") {
@@ -12,6 +15,7 @@ function labelForTemplatePriority(priority: string) {
 
 export function buildDeliverableTemplateView(
   guidance: DeliverableTemplateGuidance | null | undefined,
+  generalistGuidancePosture?: GeneralistGuidancePosture | null,
 ): {
   shouldShow: boolean;
   sectionTitle: string;
@@ -32,6 +36,7 @@ export function buildDeliverableTemplateView(
   coreSections: string[];
   optionalListTitle: string;
   optionalSections: string[];
+  generalistGuidanceNote: string;
   boundaryNote: string;
 } {
   if (!guidance || guidance.status === "none") {
@@ -55,6 +60,7 @@ export function buildDeliverableTemplateView(
       coreSections: [],
       optionalListTitle: "",
       optionalSections: [],
+      generalistGuidanceNote: "",
       boundaryNote: "",
     };
   }
@@ -85,6 +91,10 @@ export function buildDeliverableTemplateView(
     coreSections: guidance.core_sections,
     optionalListTitle: "這些區塊視案件補",
     optionalSections: guidance.optional_sections,
+    generalistGuidanceNote:
+      generalistGuidancePosture?.guidance_posture_label && generalistGuidancePosture?.work_guidance_summary
+        ? `Phase 6 guidance：${generalistGuidancePosture.guidance_posture_label}｜${generalistGuidancePosture.work_guidance_summary}`
+        : "",
     boundaryNote: guidance.boundary_note,
   };
 }

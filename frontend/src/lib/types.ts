@@ -431,6 +431,15 @@ export interface PhaseSixGeneralistGuidancePosture {
   recommendedNextStep: string;
 }
 
+export interface GeneralistGuidancePosture {
+  guidance_posture: "light_guidance" | "balanced_guidance" | "guarded_guidance";
+  guidance_posture_label: string;
+  summary: string;
+  work_guidance_summary: string;
+  boundary_emphasis: string;
+  guidance_items: string[];
+}
+
 export interface PrecedentDuplicateReviewPayload {
   review_key: string;
   resolution: "human_confirmed_canonical_row" | "keep_separate" | "split";
@@ -2037,6 +2046,7 @@ export interface TaskAggregate {
   organization_memory_guidance: OrganizationMemoryGuidance;
   domain_playbook_guidance: DomainPlaybookGuidance;
   precedent_reference_guidance: PrecedentReferenceGuidance;
+  generalist_guidance_posture: GeneralistGuidancePosture;
   review_lens_guidance: ReviewLensGuidance;
   common_risk_guidance: CommonRiskGuidance;
   deliverable_shape_guidance: DeliverableShapeGuidance;
@@ -2113,6 +2123,7 @@ export interface MatterWorkspace {
   research_guidance: ResearchGuidance;
   organization_memory_guidance: OrganizationMemoryGuidance;
   domain_playbook_guidance: DomainPlaybookGuidance;
+  generalist_guidance_posture: GeneralistGuidancePosture;
   research_runs: ResearchRun[];
   decision_records: DecisionRecord[];
   action_plans: ActionPlan[];

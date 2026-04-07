@@ -603,10 +603,16 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
   const materialReviewPosture = buildMaterialReviewPostureView(flagshipLane);
   const researchGuidance = task ? buildResearchGuidanceView(task.research_guidance) : null;
   const organizationMemoryView = task
-    ? buildOrganizationMemoryView(task.organization_memory_guidance)
+    ? buildOrganizationMemoryView(
+        task.organization_memory_guidance,
+        task.generalist_guidance_posture,
+      )
     : null;
   const domainPlaybookView = task
-    ? buildDomainPlaybookView(task.domain_playbook_guidance)
+    ? buildDomainPlaybookView(
+        task.domain_playbook_guidance,
+        task.generalist_guidance_posture,
+      )
     : null;
   const researchDetailView = task
     ? buildResearchDetailView(researchGuidance, task.research_runs[0] ?? null)
@@ -622,7 +628,10 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
     ? buildDeliverableShapeHintView(task.deliverable_shape_guidance)
     : null;
   const deliverableTemplateView = task
-    ? buildDeliverableTemplateView(task.deliverable_template_guidance)
+    ? buildDeliverableTemplateView(
+        task.deliverable_template_guidance,
+        task.generalist_guidance_posture,
+      )
     : null;
   const evidenceWorkspaceLane =
     task ? buildEvidenceWorkspaceLane(task, latestDeliverable, readinessGovernance) : null;
@@ -1394,6 +1403,11 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                         {organizationMemoryView.continuityAnchor}
                       </p>
                     ) : null}
+                    {organizationMemoryView.generalistGuidanceNote ? (
+                      <p className="muted-text" style={{ marginTop: "12px" }}>
+                        {organizationMemoryView.generalistGuidanceNote}
+                      </p>
+                    ) : null}
                     <p className="muted-text" style={{ marginTop: "12px" }}>
                       {organizationMemoryView.boundaryNote}
                     </p>
@@ -1458,6 +1472,11 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                           ))}
                         </ul>
                       </>
+                    ) : null}
+                    {domainPlaybookView.generalistGuidanceNote ? (
+                      <p className="muted-text" style={{ marginTop: "12px" }}>
+                        {domainPlaybookView.generalistGuidanceNote}
+                      </p>
                     ) : null}
                     <p className="muted-text" style={{ marginTop: "12px" }}>
                       {domainPlaybookView.boundaryNote}
@@ -1582,6 +1601,11 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                           ))}
                         </ul>
                       </>
+                    ) : null}
+                    {deliverableTemplateView.generalistGuidanceNote ? (
+                      <p className="muted-text" style={{ marginTop: "12px" }}>
+                        {deliverableTemplateView.generalistGuidanceNote}
+                      </p>
                     ) : null}
                     <p className="muted-text" style={{ marginTop: "12px" }}>
                       {deliverableTemplateView.boundaryNote}

@@ -96,6 +96,7 @@ from app.services.organization_memory_intelligence import build_organization_mem
 from app.services.domain_playbook_intelligence import build_domain_playbook_guidance
 from app.services.deliverable_shape_intelligence import build_deliverable_shape_guidance
 from app.services.deliverable_template_intelligence import build_deliverable_template_guidance
+from app.services.phase_six_generalist_governance import build_phase_six_generalist_guidance_posture
 from app.services.precedent_duplicate_governance import (
     collapse_precedent_candidates_for_reference,
 )
@@ -8581,6 +8582,7 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
         pack_resolution=matter_pack_resolution,
         precedent_reference_guidance=matter_precedent_reference_guidance,
     )
+    generalist_guidance_posture = build_phase_six_generalist_guidance_posture()
 
     return schemas.MatterWorkspaceResponse(
         summary=summary,
@@ -8619,6 +8621,14 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
         research_guidance=research_guidance,
         organization_memory_guidance=organization_memory_guidance,
         domain_playbook_guidance=domain_playbook_guidance,
+        generalist_guidance_posture=schemas.GeneralistGuidancePostureRead(
+            guidance_posture=generalist_guidance_posture.guidance_posture,
+            guidance_posture_label=generalist_guidance_posture.guidance_posture_label,
+            summary=generalist_guidance_posture.summary,
+            work_guidance_summary=generalist_guidance_posture.work_guidance_summary,
+            boundary_emphasis=generalist_guidance_posture.boundary_emphasis,
+            guidance_items=generalist_guidance_posture.guidance_items,
+        ),
         readiness_hint=readiness_hint,
         continuity_notes=continuity_notes,
         continuation_surface=continuation_surface,
@@ -11533,6 +11543,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         domain_playbook_guidance=domain_playbook_guidance,
         deliverable_shape_guidance=deliverable_shape_guidance,
     )
+    generalist_guidance_posture = build_phase_six_generalist_guidance_posture()
     canonicalization_summary, canonicalization_candidates = build_matter_canonicalization_contract(
         db,
         matter_workspace_id=matter_workspace.id,
@@ -11617,6 +11628,14 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         organization_memory_guidance=organization_memory_guidance,
         domain_playbook_guidance=domain_playbook_guidance,
         precedent_reference_guidance=precedent_reference_guidance,
+        generalist_guidance_posture=schemas.GeneralistGuidancePostureRead(
+            guidance_posture=generalist_guidance_posture.guidance_posture,
+            guidance_posture_label=generalist_guidance_posture.guidance_posture_label,
+            summary=generalist_guidance_posture.summary,
+            work_guidance_summary=generalist_guidance_posture.work_guidance_summary,
+            boundary_emphasis=generalist_guidance_posture.boundary_emphasis,
+            guidance_items=generalist_guidance_posture.guidance_items,
+        ),
         review_lens_guidance=review_lens_guidance,
         common_risk_guidance=common_risk_guidance,
         deliverable_shape_guidance=deliverable_shape_guidance,

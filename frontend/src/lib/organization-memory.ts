@@ -1,7 +1,11 @@
-import type { OrganizationMemoryGuidance } from "@/lib/types";
+import type {
+  GeneralistGuidancePosture,
+  OrganizationMemoryGuidance,
+} from "@/lib/types";
 
 export function buildOrganizationMemoryView(
   guidance: OrganizationMemoryGuidance | null | undefined,
+  generalistGuidancePosture?: GeneralistGuidancePosture | null,
 ): {
   shouldShow: boolean;
   sectionTitle: string;
@@ -17,6 +21,7 @@ export function buildOrganizationMemoryView(
   continuityAnchor: string;
   crossMatterSummary: string;
   crossMatterItems: Array<{ title: string; summary: string; meta: string; matterWorkspaceId: string }>;
+  generalistGuidanceNote: string;
   boundaryNote: string;
 } {
   if (!guidance || guidance.status !== "available") {
@@ -35,6 +40,7 @@ export function buildOrganizationMemoryView(
       continuityAnchor: "",
       crossMatterSummary: "",
       crossMatterItems: [],
+      generalistGuidanceNote: "",
       boundaryNote: "",
     };
   }
@@ -59,6 +65,10 @@ export function buildOrganizationMemoryView(
       meta: [item.relation_reason, item.freshness_label].filter(Boolean).join("｜"),
       matterWorkspaceId: item.matter_workspace_id,
     })),
+    generalistGuidanceNote:
+      generalistGuidancePosture?.guidance_posture_label && generalistGuidancePosture?.work_guidance_summary
+        ? `Phase 6 guidance：${generalistGuidancePosture.guidance_posture_label}｜${generalistGuidancePosture.work_guidance_summary}`
+        : "",
     boundaryNote: guidance.boundary_note,
   };
 }

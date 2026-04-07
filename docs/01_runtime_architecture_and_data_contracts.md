@@ -1998,6 +1998,39 @@ Object storage 負責：
 - consultant scoring system
 - new dashboard shell
 
+### 7.15 Phase 6 guidance posture propagation
+
+在 `generalist guidance posture v1` 已成立後，runtime 也已正式把這條 posture 回寫到既有 work-surface contract：
+
+- `TaskAggregateResponse` 現在已正式補上：
+  - `generalist_guidance_posture`
+- `MatterWorkspaceResponse` 現在也已正式補上：
+  - `generalist_guidance_posture`
+- deliverable workspace 可沿用既有 `task: TaskAggregate`，不另開新 contract
+
+第一波 propagation 目前正式接進：
+
+- `organization memory`
+- `domain playbook`
+- `deliverable template`
+
+正式規則：
+
+- 這一刀只在既有 second-layer guidance 補低噪音 guidance note
+- 不新增新頁面
+- 不讓每個 page 自己額外查 governance route
+- 不把 second-layer guidance 變成 training copy
+
+因此這一層現在應被理解為：
+
+- work-surface guidance propagation
+
+不是：
+
+- new governance console
+- page-local policy engine
+- long-form training overlay
+
 ---
 
 ## 8. Provider Boundary

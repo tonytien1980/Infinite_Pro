@@ -561,7 +561,10 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
     ? buildDeliverableShapeHintView(task.deliverable_shape_guidance)
     : null;
   const deliverableTemplateView = task
-    ? buildDeliverableTemplateView(task.deliverable_template_guidance)
+    ? buildDeliverableTemplateView(
+        task.deliverable_template_guidance,
+        task.generalist_guidance_posture,
+      )
     : null;
   const continuityPosture = buildContinuationPostureView(continuationSurface);
   const workspaceView = workspace ? buildDeliverableWorkspaceView(workspace) : null;
@@ -1730,6 +1733,11 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                         ))}
                       </ul>
                     </>
+                  ) : null}
+                  {deliverableTemplateView.generalistGuidanceNote ? (
+                    <p className="muted-text" style={{ marginTop: "12px" }}>
+                      {deliverableTemplateView.generalistGuidanceNote}
+                    </p>
                   ) : null}
                   <p className="muted-text" style={{ marginTop: "12px" }}>
                     {deliverableTemplateView.boundaryNote}
