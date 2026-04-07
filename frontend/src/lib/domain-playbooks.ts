@@ -96,6 +96,7 @@ export function buildDomainPlaybookView(
         guidance.freshness_summary ||
         guidance.source_lifecycle_summary ||
         "",
+      emphasisLabel: "先校正工作主線",
     }),
     boundaryNote: guidance.boundary_note,
   };

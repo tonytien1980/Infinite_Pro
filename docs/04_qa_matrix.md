@@ -4294,6 +4294,18 @@ Environment used:
 - the same reusable posture now reads more consistently across task / matter / deliverable
 - consultants no longer see noticeably different sentence skeletons for equivalent reusable lifecycle states across surfaces
 
+### Phase-6 surface-specific emphasis tuning verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Frontend | `phase-six-second-layer` helper | Add a short surface-specific emphasis segment while keeping the note low-noise | Verified | targeted helper tests confirm the condensed note now appends a short emphasis such as `先校正客戶 / 組織背景` / `先校正工作主線` / `先校正交付骨架` |
+| Frontend | `organization-memory` / `domain-playbooks` / `deliverable-templates` helpers | Pass per-card emphasis labels into the shared helper | Verified | targeted tests confirm each reusable guidance helper now surfaces the correct emphasis label without changing the backend contract |
+
+### Verified outcomes
+
+- consultants can now read not only the reusable posture, but also which kind of work the note is mainly helping them calibrate
+- the condensed note stays single-line and low-noise while becoming slightly more actionable
+
 ### Explicitly not shipped in this pass
 
 - `Personal Provider Settings`

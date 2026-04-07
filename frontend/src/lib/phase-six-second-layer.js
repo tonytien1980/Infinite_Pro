@@ -67,6 +67,10 @@ export function buildPhaseSixSecondLayerSignalNote(args) {
     segments.push(actionableSegment);
   }
 
+  if (args.emphasisLabel) {
+    segments.push(args.emphasisLabel);
+  }
+
   if (segments.length === 0) {
     return "";
   }

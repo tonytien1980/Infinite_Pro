@@ -111,6 +111,7 @@ export function buildDeliverableTemplateView(
         guidance.freshness_summary ||
         guidance.source_lifecycle_summary ||
         "",
+      emphasisLabel: "先校正交付骨架",
     }),
     boundaryNote: guidance.boundary_note,
   };

@@ -875,6 +875,10 @@ Infinite Pro 目前沒有也不應硬對齊於：
   - `cross-surface note consistency v1`
   - task / matter / deliverable 的 condensed `Phase 6` note 現在已對齊成一致句型骨架
   - 同類 reusable posture 現在不再因 surface 不同而各說各話，但仍保留各 surface 自己的主詞
+- 這條線現在也已正式推到第十五刀：
+  - `surface-specific emphasis tuning v1`
+  - condensed `Phase 6` note 現在會再補一段短的 surface-specific emphasis
+  - 顧問現在能更直接看出這條 reusable signal 這輪主要是拿來校正背景、工作主線，還是交付骨架
 
 ---
 

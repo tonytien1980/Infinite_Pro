@@ -83,6 +83,7 @@ export function buildOrganizationMemoryView(
         guidance.freshness_summary ||
         guidance.source_lifecycle_summary ||
         "",
+      emphasisLabel: "先校正客戶 / 組織背景",
     }),
     boundaryNote: guidance.boundary_note,
   };
