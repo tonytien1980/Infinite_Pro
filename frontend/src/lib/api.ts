@@ -295,6 +295,19 @@ export async function checkpointPhaseSixCompletionReview(
   return parsePhaseSixCompletionReviewPayload(await parseResponse<any>(response));
 }
 
+export async function signOffPhaseSix(
+  payload: SharedIntelligenceSignOffPayload,
+): Promise<PhaseSixCompletionReview> {
+  const response = await apiFetch(`${getApiBaseUrl()}/workbench/phase-6-sign-off`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  return parsePhaseSixCompletionReviewPayload(await parseResponse<any>(response));
+}
+
 export async function getPhaseSixReuseBoundaryGovernance(): Promise<PhaseSixReuseBoundaryGovernance> {
   const response = await apiFetch(
     `${getApiBaseUrl()}/workbench/phase-6-reuse-boundary-governance`,
@@ -1127,6 +1140,11 @@ function parsePhaseSixCompletionReviewPayload(payload: any): PhaseSixCompletionR
     checkpointSummary: payload.checkpoint_summary || "",
     lastCheckpointAt: payload.last_checkpoint_at || null,
     lastCheckpointByLabel: payload.last_checkpoint_by_label || "",
+    canSignOff: Boolean(payload.can_sign_off),
+    signOffStatus: payload.sign_off_status === "signed_off" ? "signed_off" : "open",
+    signOffStatusLabel: payload.sign_off_status_label || "",
+    signedOffAt: payload.signed_off_at || null,
+    signedOffByLabel: payload.signed_off_by_label || "",
     recommendedNextStep: payload.recommended_next_step || "",
   };
 }

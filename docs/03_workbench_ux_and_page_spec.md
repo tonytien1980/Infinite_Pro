@@ -455,6 +455,9 @@ Infinite Pro 正式採：
   - 只回答 overall score、review posture 與最近 checkpoint
   - owner 可在同一區塊低噪音記錄 checkpoint
   - 不可長出 scoring dashboard 或 release console
+- 若 completion review foundation 已成立，也可在同一區塊補 phase-6 sign-off foundation：
+  - 只在 `review_ready` 時給 owner 低噪音 sign-off action
+  - signed off 後只回讀狀態與時間 / 人，不可立刻長出 handoff console
 - 不可因此長成 dashboard wall 或第二套管理後台
 
 ### `建立新案件`

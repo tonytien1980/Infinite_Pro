@@ -207,7 +207,7 @@ def build_phase_six_completion_review(
     completion_foundation_score = (
         88 if closure_review.closure_posture == "ready_for_completion_review" else 72
     )
-    scorecard_items = [
+    computed_scorecard_items = [
         schemas.PhaseSixCompletionScorecardItemRead(
             dimension_code="governance_runtime",
             dimension_label="governance runtime",
@@ -237,12 +237,34 @@ def build_phase_six_completion_review(
             summary="system 已能正式回讀 closure posture、remaining blockers，以及下一條 completion review foundation。",
         ),
     ]
-    overall_score = round(sum(item.score for item in scorecard_items) / len(scorecard_items))
+    computed_overall_score = round(
+        sum(item.score for item in computed_scorecard_items) / len(computed_scorecard_items)
+    )
+
+    persisted_scorecard_items: list[schemas.PhaseSixCompletionScorecardItemRead] = []
+    for item in checkpoint_state.get("scorecard_items", []) if checkpoint_state else []:
+        if not isinstance(item, dict):
+            continue
+        persisted_scorecard_items.append(
+            schemas.PhaseSixCompletionScorecardItemRead(
+                dimension_code=str(item.get("dimension_code", "")),
+                dimension_label=str(item.get("dimension_label", "")),
+                score=int(item.get("score", 0)),
+                status_label=str(item.get("status_label", "")),
+                summary=str(item.get("summary", "")),
+            )
+        )
+    scorecard_items = persisted_scorecard_items or computed_scorecard_items
+    overall_score = (
+        int(checkpoint_state.get("overall_score"))
+        if checkpoint_state and checkpoint_state.get("overall_score") is not None
+        else computed_overall_score
+    )
 
     checkpointed = bool(checkpoint_state and checkpoint_state.get("checkpointed"))
     review_posture = (
         "review_ready"
-        if checkpointed and closure_review.closure_posture == "ready_for_completion_review"
+        if checkpointed and overall_score >= 75
         else "checkpoint_recorded"
         if checkpointed
         else "baseline_only"
@@ -255,10 +277,14 @@ def build_phase_six_completion_review(
         else "先看基礎是否齊"
     )
     checkpoint_summary = (
-        f"最近一次 checkpoint 由 {checkpoint_state.get('checkpointed_by_label') or 'owner'} 記錄。"
+        f"最近一次 checkpoint 由 {checkpoint_state.get('checkpointed_by_label') or 'owner'} 記錄，當時總分 {overall_score}。"
         if checkpointed
         else "目前還沒有 recorded checkpoint，可先用這次 scorecard 做第一筆 completion review snapshot。"
     )
+    signed_off = bool(checkpoint_state and checkpoint_state.get("signed_off"))
+    can_sign_off = checkpointed and review_posture == "review_ready" and not signed_off
+    sign_off_status = "signed_off" if signed_off else "open"
+    sign_off_status_label = "已正式收口" if signed_off else "尚未正式收口"
 
     return schemas.PhaseSixCompletionReviewResponse(
         phase_id="phase_6",
@@ -275,8 +301,15 @@ def build_phase_six_completion_review(
         checkpoint_summary=checkpoint_summary,
         last_checkpoint_at=checkpoint_state.get("checkpointed_at") if checkpoint_state else None,
         last_checkpoint_by_label=checkpoint_state.get("checkpointed_by_label", "") if checkpoint_state else "",
+        can_sign_off=can_sign_off,
+        sign_off_status=sign_off_status,  # type: ignore[arg-type]
+        sign_off_status_label=sign_off_status_label,
+        signed_off_at=checkpoint_state.get("signed_off_at") if checkpoint_state else None,
+        signed_off_by_label=checkpoint_state.get("signed_off_by_label", "") if checkpoint_state else "",
         recommended_next_step=(
-            "下一刀應把這份 checkpoint 與 feedback-linked evidence 更正式接回 persisted governance scoring，而不是直接跳 sign-off。"
+            "下一刀應把這份 checkpoint 與 feedback-linked evidence 更正式接回 persisted governance scoring / next-phase handoff。"
+            if signed_off
+            else "下一刀應把這份 checkpoint 與 feedback-linked evidence 更正式接回 persisted governance scoring，而不是直接跳 sign-off。"
         ),
     )
 

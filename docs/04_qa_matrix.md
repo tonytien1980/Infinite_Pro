@@ -4798,3 +4798,43 @@ Environment used:
 - browser smoke
 - phase 6 sign-off / handoff
 - persisted governance scoring engine rewrite
+
+---
+
+## Entry: 2026-04-07 phase-6 persisted governance scoring / sign-off foundation pass
+
+Scope:
+- persisted completion-review checkpoint snapshot
+- `POST /workbench/phase-6-sign-off`
+- homepage signed-off readout inside existing `Generalist Governance`
+
+Environment used:
+- local backend and frontend verification only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`244 passed`) |
+| `cd frontend && node --test tests/auth-foundation.test.mjs tests/provider-settings-foundation.test.mjs tests/demo-workspace-isolation.test.mjs tests/phase-six-governance.test.mjs tests/intake-progress.test.mjs` | Passed (`63 passed`) |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && mkdir -p .next/types && npx next typegen && npm run typecheck` | Initial run hit `.next/types/routes.d.ts` ENOENT; not counted as pass |
+| `cd frontend && npx next typegen && npm run typecheck` | Passed after serial rerun |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+
+### Phase-6 sign-off foundation verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | checkpoint persistence | Persist score snapshot on checkpoint | Verified | targeted backend tests confirm checkpointed completion review now round-trips stored score snapshot and checkpoint attribution |
+| Backend | `/workbench/phase-6-sign-off` owner path | Owner signs off phase 6 after readiness evidence is seeded | Verified | targeted backend tests confirm owner can sign off once completion checkpoint exists and review-ready gate is met |
+| Backend | `/workbench/phase-6-sign-off` consultant path | Consultant attempts sign-off | Verified | targeted backend tests confirm consultant still receives `403` |
+| Frontend | phase-six governance helper | Read sign-off status in low-noise copy | Verified | node tests confirm `open / signed_off` labels stay consultant-readable |
+| Frontend | `/` | Keep sign-off action and signed-off state inside existing `Generalist Governance` panel | Verified | typecheck/build confirm homepage now conditionally switches from checkpoint action to sign-off action without creating a new dashboard family |
+
+### Explicitly not shipped in this pass
+
+- browser smoke
+- next-phase handoff
+- new governance dashboard

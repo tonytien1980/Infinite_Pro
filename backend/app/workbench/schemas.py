@@ -523,10 +523,19 @@ class PhaseSixCompletionReviewResponse(BaseModel):
     checkpoint_summary: str = ""
     last_checkpoint_at: str | None = None
     last_checkpoint_by_label: str = ""
+    can_sign_off: bool = False
+    sign_off_status: Literal["open", "signed_off"] = "open"
+    sign_off_status_label: str = ""
+    signed_off_at: str | None = None
+    signed_off_by_label: str = ""
     recommended_next_step: str = ""
 
 
 class PhaseSixCompletionReviewCheckpointRequest(BaseModel):
+    operator_label: str | None = None
+
+
+class PhaseSixSignOffRequest(BaseModel):
     operator_label: str | None = None
 
 

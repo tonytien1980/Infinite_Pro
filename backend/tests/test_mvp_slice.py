@@ -575,6 +575,99 @@ def test_consultant_cannot_checkpoint_phase_six_completion_review(
     assert response.status_code == 403
 
 
+def test_phase_six_completion_review_reads_persisted_checkpoint_snapshot(client: TestClient) -> None:
+    checkpoint = client.post(
+        "/api/v1/workbench/phase-6-completion-review/checkpoint",
+        json={"operator_label": "王顧問"},
+    )
+    assert checkpoint.status_code == 200
+    checkpoint_body = checkpoint.json()
+
+    review = client.get("/api/v1/workbench/phase-6-completion-review")
+    assert review.status_code == 200
+    review_body = review.json()
+    assert review_body["overall_score"] == checkpoint_body["overall_score"]
+    assert review_body["last_checkpoint_by_label"] == "王顧問"
+    assert review_body["checkpoint_summary"]
+
+
+def test_owner_can_sign_off_phase_six_after_checkpoint(client: TestClient) -> None:
+    task_payload = client.post(
+        "/api/v1/tasks",
+        json=create_contract_review_payload("Phase 6 sign-off readiness"),
+    )
+    assert task_payload.status_code == 201
+    created_task = task_payload.json()
+    matter_workspace_id = created_task["matter_workspace"]["id"]
+
+    with SessionLocal() as db:
+        task = db.get(models.Task, created_task["id"])
+        assert task is not None
+        for index in range(3):
+            db.add(
+                models.AdoptionFeedback(
+                    task_id=task.id,
+                    matter_workspace_id=matter_workspace_id,
+                    feedback_status="adopted",
+                    reason_codes=["reusable_reasoning"],
+                    note=f"feedback-{index}",
+                    operator_label="王顧問",
+                )
+            )
+        for index in range(4):
+            db.add(
+                models.PrecedentCandidate(
+                    task_id=task.id,
+                    matter_workspace_id=matter_workspace_id,
+                    candidate_type="recommendation_pattern",
+                    candidate_status="promoted" if index < 3 else "dismissed",
+                    source_feedback_status="adopted",
+                    source_feedback_reason_codes=["reusable_reasoning"],
+                    source_feedback_operator_label="王顧問",
+                    created_by_label="王顧問",
+                    last_status_changed_by_label="王顧問",
+                    title=f"phase6-signoff-{index}",
+                    summary="sign-off readiness",
+                    reusable_reason="runtime evidence",
+                    lane_id="generalist_governance",
+                    continuity_mode="one_off",
+                )
+            )
+        db.commit()
+
+    checkpoint = client.post(
+        "/api/v1/workbench/phase-6-completion-review/checkpoint",
+        json={"operator_label": "王顧問"},
+    )
+    assert checkpoint.status_code == 200
+
+    response = client.post(
+        "/api/v1/workbench/phase-6-sign-off",
+        json={"operator_label": "王顧問"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["sign_off_status"] == "signed_off"
+    assert payload["signed_off_by_label"] == "王顧問"
+    assert payload["signed_off_at"]
+    assert payload["can_sign_off"] is False
+
+
+def test_consultant_cannot_sign_off_phase_six(
+    anonymous_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    consultant_client = login_as_consultant_with_owner_invite(anonymous_client, monkeypatch)
+
+    response = consultant_client.post(
+        "/api/v1/workbench/phase-6-sign-off",
+        json={"operator_label": "Consultant User"},
+    )
+
+    assert response.status_code == 403
+
+
 def test_phase_six_capability_coverage_audit_marks_narrow_assets_low_noise(
     client: TestClient,
 ) -> None:

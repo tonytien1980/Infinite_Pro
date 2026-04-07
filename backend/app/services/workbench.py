@@ -549,8 +549,34 @@ def checkpoint_phase_six_completion_review(
         "checkpointed_at": models.utc_now().isoformat(),
         "checkpointed_by_label": operator_label,
         "overall_score": current.overall_score,
+        "scorecard_items": [item.model_dump() for item in current.scorecard_items],
         "review_posture": current.review_posture,
         "closure_posture": current.closure_posture,
+    }
+    db.add(row)
+    db.commit()
+    return get_phase_six_completion_review(db)
+
+
+def sign_off_phase_six(
+    db: Session,
+    *,
+    payload: schemas.PhaseSixSignOffRequest,
+) -> schemas.PhaseSixCompletionReviewResponse:
+    current = get_phase_six_completion_review(db)
+    if not current.can_sign_off:
+        raise HTTPException(status_code=409, detail="目前還不能正式收口 phase 6。")
+
+    row = _get_phase_review_row(db, extension_id=PHASE_6_GENERALIST_GOVERNANCE_ID)
+    if row is None:
+        raise HTTPException(status_code=409, detail="目前還沒有可用的 phase 6 checkpoint。")
+
+    operator_label = _normalize_operator_label(payload.operator_label)
+    row.payload = {
+        **dict(row.payload or {}),
+        "signed_off": True,
+        "signed_off_at": models.utc_now().isoformat(),
+        "signed_off_by_label": operator_label,
     }
     db.add(row)
     db.commit()

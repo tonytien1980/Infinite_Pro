@@ -6,6 +6,7 @@ import {
   labelForPhaseSixCalibrationStatus,
   labelForPhaseSixCompletionReviewPosture,
   labelForPhaseSixClosurePosture,
+  labelForPhaseSixSignOffStatus,
   labelForPhaseSixMaturityStage,
   labelForPhaseSixContextDistance,
   labelForPhaseSixGeneralistPosture,
@@ -120,6 +121,11 @@ test("phase 6 completion review labels stay low-noise and readable", () => {
     ]),
     "governance runtime：84｜feedback loop：62",
   );
+});
+
+test("phase 6 sign-off labels stay low-noise and readable", () => {
+  assert.equal(labelForPhaseSixSignOffStatus("open"), "尚未正式收口");
+  assert.equal(labelForPhaseSixSignOffStatus("signed_off"), "已正式收口");
 });
 
 test("phase 6 reuse-boundary governance labels stay low-noise and readable", () => {

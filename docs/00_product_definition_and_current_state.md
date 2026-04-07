@@ -919,6 +919,16 @@ Infinite Pro 目前沒有也不應硬對齊於：
     - 現在比較像 baseline-only、checkpoint-recorded，還是接近 review-ready
   - 這一刀仍不是 sign-off：
     - 它只是讓 Phase 6 第一次擁有可回讀、可保存的 completion review foundation
+- 這條線現在也已正式推到第二十一刀：
+  - `phase-6 persisted governance scoring / sign-off foundation`
+  - checkpoint 現在不只記時間，也會保存當時的 governance score snapshot
+  - owner 現在可在 review-ready 後正式做 `Phase 6 sign-off`
+  - `總覽` 的既有 `Generalist Governance` 現在也能正式回答：
+    - 目前是 open 還是 signed-off
+    - 最近一次 checkpoint 記下的總分是什麼
+    - 是否已達到可正式收口的基礎門檻
+  - 這一刀仍未做 next-phase handoff：
+    - 現在只是把 persisted scoring 與 sign-off foundation 站穩
 
 ---
 

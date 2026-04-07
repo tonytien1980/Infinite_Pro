@@ -60,6 +60,10 @@ export function labelForPhaseSixCompletionReviewPosture(
   return "先看基礎是否齊";
 }
 
+export function labelForPhaseSixSignOffStatus(status: "open" | "signed_off") {
+  return status === "signed_off" ? "已正式收口" : "尚未正式收口";
+}
+
 export function summarizePhaseSixMaturityMilestones(
   milestones: PhaseSixMaturityMilestone[],
 ) {

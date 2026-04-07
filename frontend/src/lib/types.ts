@@ -446,6 +446,11 @@ export interface PhaseSixCompletionReview {
   checkpointSummary: string;
   lastCheckpointAt: string | null;
   lastCheckpointByLabel: string;
+  canSignOff: boolean;
+  signOffStatus: "open" | "signed_off";
+  signOffStatusLabel: string;
+  signedOffAt: string | null;
+  signedOffByLabel: string;
   recommendedNextStep: string;
 }
 

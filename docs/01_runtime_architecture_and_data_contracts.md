@@ -2433,6 +2433,44 @@ Object storage 負責：
 - scoring wall
 - enterprise review console
 
+### 7.25 Phase 6 persisted governance scoring / sign-off foundation
+
+在 `phase-6 completion review foundation` 已成立後，runtime 也已正式補上：
+
+- persisted checkpoint score snapshot
+- `POST /workbench/phase-6-sign-off`
+
+第一版 `completion review` contract 現在也正式補上：
+
+- `can_sign_off`
+- `sign_off_status`
+- `sign_off_status_label`
+- `signed_off_at`
+- `signed_off_by_label`
+
+正式規則：
+
+- checkpoint 現在應保存：
+  - `overall_score`
+  - `scorecard_items`
+  - `closure_posture`
+- completion review 的 `review_posture` 應優先讀 persisted checkpoint snapshot，而不是只看當下即時計算
+- sign-off 只允許：
+  - owner
+  - 已有 checkpoint
+  - persisted review posture 已達 `review_ready`
+- sign-off 後仍不代表已有 next-phase handoff
+
+因此這一層現在應被理解為：
+
+- persisted review snapshot + sign-off foundation
+
+不是：
+
+- full release workflow
+- next-phase handoff shell
+- governance dashboard family
+
 ---
 
 ## 8. Provider Boundary

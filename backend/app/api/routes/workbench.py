@@ -34,6 +34,7 @@ from app.services.workbench import (
     get_phase_six_reuse_boundary_governance,
     get_precedent_review_state,
     get_workbench_preferences,
+    sign_off_phase_six,
     sign_off_phase_five,
     sign_off_shared_intelligence_phase,
     update_precedent_duplicate_review_state,
@@ -136,6 +137,18 @@ def checkpoint_phase_six_completion_review_route(
     db: Session = Depends(get_db),
 ) -> schemas.PhaseSixCompletionReviewResponse:
     return checkpoint_phase_six_completion_review(db, payload=payload)
+
+
+@router.post(
+    "/phase-6-sign-off",
+    response_model=schemas.PhaseSixCompletionReviewResponse,
+)
+def sign_off_phase_six_route(
+    payload: schemas.PhaseSixSignOffRequest,
+    current_member=Depends(require_permission("sign_off_phase")),
+    db: Session = Depends(get_db),
+) -> schemas.PhaseSixCompletionReviewResponse:
+    return sign_off_phase_six(db, payload=payload)
 
 
 @router.get(

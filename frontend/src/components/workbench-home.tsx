@@ -23,6 +23,7 @@ import {
   getPhaseSixReuseBoundaryGovernance,
   listMatterWorkspaces,
   signOffPhaseFive,
+  signOffPhaseSix,
   listTasks,
 } from "@/lib/api";
 import {
@@ -36,6 +37,7 @@ import {
   labelForPhaseSixCalibrationStatus,
   labelForPhaseSixCompletionReviewPosture,
   labelForPhaseSixClosurePosture,
+  labelForPhaseSixSignOffStatus,
   labelForPhaseSixContextDistance,
   labelForPhaseSixGuidancePosture,
   labelForPhaseSixGeneralistPosture,
@@ -168,6 +170,7 @@ export function WorkbenchHome() {
   const [phaseSixGuidanceLoading, setPhaseSixGuidanceLoading] = useState(true);
   const [phaseFiveSignOffLoading, setPhaseFiveSignOffLoading] = useState(false);
   const [phaseSixCheckpointLoading, setPhaseSixCheckpointLoading] = useState(false);
+  const [phaseSixSignOffLoading, setPhaseSixSignOffLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [matterError, setMatterError] = useState<string | null>(null);
   const [extensionError, setExtensionError] = useState<string | null>(null);
@@ -441,6 +444,22 @@ export function WorkbenchHome() {
       );
     } finally {
       setPhaseSixCheckpointLoading(false);
+    }
+  }
+
+  async function handlePhaseSixSignOff() {
+    try {
+      setPhaseSixSignOffLoading(true);
+      setPhaseSixCompletionReviewError(null);
+      const next = await signOffPhaseSix({ operator_label: "" });
+      setPhaseSixCompletionReview(next);
+      setPhaseSixCompletionFeedback("Phase 6 已正式收口。");
+    } catch (signOffError) {
+      setPhaseSixCompletionReviewError(
+        signOffError instanceof Error ? signOffError.message : "目前無法正式收口 Phase 6。",
+      );
+    } finally {
+      setPhaseSixSignOffLoading(false);
     }
   }
 
@@ -951,14 +970,25 @@ export function WorkbenchHome() {
                   <p className="panel-copy">低噪音回答 shared intelligence 目前有沒有開始偏科。</p>
                 </div>
                 {firmOperating?.role === "owner" && phaseSixCompletionReview ? (
-                  <button
-                    className="button-secondary"
-                    type="button"
-                    onClick={() => void handlePhaseSixCheckpoint()}
-                    disabled={phaseSixCheckpointLoading}
-                  >
-                    {phaseSixCheckpointLoading ? "記錄中..." : "記錄 completion checkpoint"}
-                  </button>
+                  phaseSixCompletionReview.canSignOff ? (
+                    <button
+                      className="button-secondary"
+                      type="button"
+                      onClick={() => void handlePhaseSixSignOff()}
+                      disabled={phaseSixSignOffLoading}
+                    >
+                      {phaseSixSignOffLoading ? "收口中..." : "正式收口 Phase 6"}
+                    </button>
+                  ) : phaseSixCompletionReview.signOffStatus !== "signed_off" ? (
+                    <button
+                      className="button-secondary"
+                      type="button"
+                      onClick={() => void handlePhaseSixCheckpoint()}
+                      disabled={phaseSixCheckpointLoading}
+                    >
+                      {phaseSixCheckpointLoading ? "記錄中..." : "記錄 completion checkpoint"}
+                    </button>
+                  ) : null
                 ) : null}
               </div>
 
@@ -989,6 +1019,15 @@ export function WorkbenchHome() {
                       <p className="muted-text" style={{ marginTop: "8px" }}>
                         {phaseSixCompletionReview.checkpointSummary}
                       </p>
+                      <p className="muted-text" style={{ marginTop: "8px" }}>
+                        {labelForPhaseSixSignOffStatus(phaseSixCompletionReview.signOffStatus)}
+                      </p>
+                      {phaseSixCompletionReview.signedOffAt ? (
+                        <p className="muted-text" style={{ marginTop: "8px" }}>
+                          收口人：{phaseSixCompletionReview.signedOffByLabel || "目前 owner"}｜
+                          {phaseSixCompletionReview.signedOffAt}
+                        </p>
+                      ) : null}
                       <p className="muted-text" style={{ marginTop: "12px" }}>
                         {phaseSixCompletionReview.recommendedNextStep}
                       </p>
