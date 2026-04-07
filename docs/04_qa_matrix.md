@@ -4875,3 +4875,41 @@ Environment used:
 - browser smoke
 - phase 7 implementation
 - roadmap shell
+
+---
+
+## Entry: 2026-04-07 phase-6 closeout review pass
+
+Scope:
+- `GET /workbench/phase-6-closeout-review`
+- homepage `Phase 6 closeout` readout inside existing `Generalist Governance`
+- signed-off phase-level closeout summary
+
+Environment used:
+- local backend and frontend verification only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`245 passed`) |
+| `cd frontend && node --test tests/auth-foundation.test.mjs tests/provider-settings-foundation.test.mjs tests/demo-workspace-isolation.test.mjs tests/phase-six-governance.test.mjs tests/intake-progress.test.mjs` | Passed (`64 passed`) |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && mkdir -p .next/types && npx next typegen && npm run typecheck` | Passed |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+
+### Phase-6 closeout review verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | `/workbench/phase-6-closeout-review` | Return phase-level closeout contract | Verified | targeted backend tests confirm route now returns `closure_status`, `foundation_snapshot`, `asset_audits`, and signed-off handoff fields |
+| Backend | signed-off flow | Read closeout review after phase-6 sign-off | Verified | targeted backend test confirms signed-off flow can now re-read closeout status as `signed_off` with handoff fields intact |
+| Frontend | phase-six governance helper | Read low-noise closeout audit summary | Verified | node tests confirm closeout audit summary stays compact and consultant-readable |
+| Frontend | `/` | Keep closeout readout inside existing `Generalist Governance` panel | Verified | typecheck/build confirm homepage now renders a `Phase 6 closeout` section without creating a new dashboard family |
+
+### Explicitly not shipped in this pass
+
+- browser smoke
+- phase 7 implementation
+- git / release UI

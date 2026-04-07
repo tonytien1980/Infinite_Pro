@@ -33,6 +33,7 @@ from app.services.phase_five_closure_review import (
 )
 from app.services.phase_six_generalist_governance import (
     build_phase_six_capability_coverage_audit,
+    build_phase_six_closeout_review,
     build_phase_six_completion_review,
     build_phase_six_closure_criteria_review,
     build_phase_six_maturity_review,
@@ -525,6 +526,14 @@ def get_phase_six_completion_review(
     return build_phase_six_completion_review(
         closure_review=closure_review,
         checkpoint_state=checkpoint_state,
+    )
+
+
+def get_phase_six_closeout_review(
+    db: Session,
+) -> schemas.PhaseSixCloseoutReviewResponse:
+    return build_phase_six_closeout_review(
+        completion_review=get_phase_six_completion_review(db),
     )
 
 

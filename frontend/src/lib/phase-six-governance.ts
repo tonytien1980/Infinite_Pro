@@ -71,6 +71,18 @@ export function summarizePhaseSixHandoffItems(items: string[]) {
   return items.slice(0, 2).join("｜");
 }
 
+export function summarizePhaseSixCloseoutAudits(
+  items: Array<{ assetLabel: string; auditStatusLabel: string }>,
+) {
+  if (items.length === 0) {
+    return "目前還沒有可讀取的 closeout audit。";
+  }
+  return items
+    .slice(0, 2)
+    .map((item) => `${item.assetLabel}：${item.auditStatusLabel}`)
+    .join("｜");
+}
+
 export function summarizePhaseSixMaturityMilestones(
   milestones: PhaseSixMaturityMilestone[],
 ) {

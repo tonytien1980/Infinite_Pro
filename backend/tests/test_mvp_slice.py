@@ -547,6 +547,20 @@ def test_owner_can_read_phase_six_completion_review(client: TestClient) -> None:
     assert payload["recommended_next_step"]
 
 
+def test_owner_can_read_phase_six_closeout_review(client: TestClient) -> None:
+    response = client.get("/api/v1/workbench/phase-6-closeout-review")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["phase_id"] == "phase_6"
+    assert payload["closure_status"] in {"completion_pass", "ready_to_close", "signed_off"}
+    assert payload["closure_status_label"]
+    assert payload["foundation_snapshot"]
+    assert payload["completed_items"]
+    assert payload["asset_audits"]
+    assert payload["recommended_next_step"]
+
+
 def test_owner_can_checkpoint_phase_six_completion_review(client: TestClient) -> None:
     response = client.post(
         "/api/v1/workbench/phase-6-completion-review/checkpoint",
@@ -655,6 +669,13 @@ def test_owner_can_sign_off_phase_six_after_checkpoint(client: TestClient) -> No
     assert payload["next_phase_label"]
     assert payload["handoff_summary"]
     assert payload["handoff_items"]
+
+    closeout = client.get("/api/v1/workbench/phase-6-closeout-review")
+    assert closeout.status_code == 200
+    closeout_body = closeout.json()
+    assert closeout_body["closure_status"] == "signed_off"
+    assert closeout_body["next_phase_label"]
+    assert closeout_body["handoff_summary"]
 
 
 def test_consultant_cannot_sign_off_phase_six(

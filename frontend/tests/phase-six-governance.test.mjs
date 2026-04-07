@@ -17,6 +17,7 @@ import {
   summarizePhaseSixCalibrationItems,
   summarizePhaseSixCalibrationAwareWeightingItems,
   summarizePhaseSixCompletionScorecard,
+  summarizePhaseSixCloseoutAudits,
   summarizePhaseSixClosureCriteria,
   summarizePhaseSixDistanceItems,
   summarizePhaseSixGuidanceItems,
@@ -133,6 +134,30 @@ test("phase 6 sign-off labels stay low-noise and readable", () => {
       "不要把下一階段拉成 admin shell 或 enterprise governance console。",
     ]),
     "先把已建立的 governance foundation 轉成顧問更直接感受到的 operating leverage。｜不要把下一階段拉成 admin shell 或 enterprise governance console。",
+  );
+});
+
+test("phase 6 closeout summary stays low-noise and readable", () => {
+  assert.equal(
+    summarizePhaseSixCloseoutAudits([
+      {
+        assetCode: "governance_runtime",
+        assetLabel: "governance runtime",
+        auditStatus: "audited",
+        auditStatusLabel: "已站穩",
+        summary: "Phase 6 runtime governance 已成立。",
+        nextStep: "",
+      },
+      {
+        assetCode: "completion_review",
+        assetLabel: "completion review",
+        auditStatus: "audited",
+        auditStatusLabel: "已站穩",
+        summary: "已能正式回讀 completion / sign-off / handoff。",
+        nextStep: "",
+      },
+    ]),
+    "governance runtime：已站穩｜completion review：已站穩",
   );
 });
 

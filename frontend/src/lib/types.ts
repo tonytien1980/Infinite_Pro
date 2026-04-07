@@ -457,6 +457,40 @@ export interface PhaseSixCompletionReview {
   recommendedNextStep: string;
 }
 
+export interface PhaseSixCloseoutAuditItem {
+  assetCode:
+    | "governance_runtime"
+    | "work_surface_propagation"
+    | "feedback_loop"
+    | "completion_review"
+    | "sign_off_handoff";
+  assetLabel: string;
+  auditStatus: "audited" | "needs_followup";
+  auditStatusLabel: string;
+  summary: string;
+  nextStep: string;
+}
+
+export interface PhaseSixCloseoutReview {
+  phaseId: "phase_6";
+  phaseLabel: string;
+  closureStatus: "completion_pass" | "ready_to_close" | "signed_off";
+  closureStatusLabel: string;
+  summary: string;
+  foundationSnapshot: string;
+  completedCount: number;
+  remainingCount: number;
+  completedItems: string[];
+  assetAudits: PhaseSixCloseoutAuditItem[];
+  remainingItems: string[];
+  recommendedNextStep: string;
+  signedOffAt: string | null;
+  signedOffByLabel: string;
+  nextPhaseLabel: string;
+  handoffSummary: string;
+  handoffItems: string[];
+}
+
 export interface PhaseSixCapabilityCoverageAudit {
   phaseId: "phase_6";
   phaseLabel: string;

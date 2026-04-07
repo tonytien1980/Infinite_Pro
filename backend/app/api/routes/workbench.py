@@ -24,6 +24,7 @@ from app.services.workbench import (
     get_history_visibility_state,
     get_phase_five_closure_review,
     get_phase_six_capability_coverage_audit,
+    get_phase_six_closeout_review,
     get_phase_six_completion_review,
     get_phase_six_closure_criteria_review,
     get_phase_six_maturity_review,
@@ -114,6 +115,17 @@ def sign_off_phase_five_route(
     db: Session = Depends(get_db),
 ) -> schemas.PhaseFiveClosureReviewResponse:
     return sign_off_phase_five(db, payload=payload)
+
+
+@router.get(
+    "/phase-6-closeout-review",
+    response_model=schemas.PhaseSixCloseoutReviewResponse,
+)
+def get_phase_six_closeout_review_route(
+    current_member=Depends(require_permission("access_firm_workspace")),
+    db: Session = Depends(get_db),
+) -> schemas.PhaseSixCloseoutReviewResponse:
+    return get_phase_six_closeout_review(db)
 
 
 @router.get(

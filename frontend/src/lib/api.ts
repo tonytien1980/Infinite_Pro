@@ -51,6 +51,7 @@ import {
   PersonalProviderSettingsPayload,
   PhaseFiveClosureReview,
   PhaseSixCapabilityCoverageAudit,
+  PhaseSixCloseoutReview,
   PhaseSixCompletionReview,
   PhaseSixClosureCriteriaReview,
   PhaseSixMaturityReview,
@@ -277,6 +278,13 @@ export async function getPhaseSixCompletionReview(): Promise<PhaseSixCompletionR
     cache: "no-store",
   });
   return parsePhaseSixCompletionReviewPayload(await parseResponse<any>(response));
+}
+
+export async function getPhaseSixCloseoutReview(): Promise<PhaseSixCloseoutReview> {
+  const response = await apiFetch(`${getApiBaseUrl()}/workbench/phase-6-closeout-review`, {
+    cache: "no-store",
+  });
+  return parsePhaseSixCloseoutReviewPayload(await parseResponse<any>(response));
 }
 
 export async function checkpointPhaseSixCompletionReview(
@@ -1149,6 +1157,42 @@ function parsePhaseSixCompletionReviewPayload(payload: any): PhaseSixCompletionR
     handoffSummary: payload.handoff_summary || "",
     handoffItems: Array.isArray(payload.handoff_items) ? payload.handoff_items : [],
     recommendedNextStep: payload.recommended_next_step || "",
+  };
+}
+
+function parsePhaseSixCloseoutReviewPayload(payload: any): PhaseSixCloseoutReview {
+  return {
+    phaseId: "phase_6",
+    phaseLabel: payload.phase_label || "",
+    closureStatus:
+      payload.closure_status === "signed_off"
+        ? "signed_off"
+        : payload.closure_status === "ready_to_close"
+          ? "ready_to_close"
+          : "completion_pass",
+    closureStatusLabel: payload.closure_status_label || "",
+    summary: payload.summary || "",
+    foundationSnapshot: payload.foundation_snapshot || "",
+    completedCount: Number(payload.completed_count ?? 0),
+    remainingCount: Number(payload.remaining_count ?? 0),
+    completedItems: Array.isArray(payload.completed_items) ? payload.completed_items : [],
+    assetAudits: Array.isArray(payload.asset_audits)
+      ? payload.asset_audits.map((item: any) => ({
+          assetCode: item.asset_code,
+          assetLabel: item.asset_label || "",
+          auditStatus: item.audit_status === "needs_followup" ? "needs_followup" : "audited",
+          auditStatusLabel: item.audit_status_label || "",
+          summary: item.summary || "",
+          nextStep: item.next_step || "",
+        }))
+      : [],
+    remainingItems: Array.isArray(payload.remaining_items) ? payload.remaining_items : [],
+    recommendedNextStep: payload.recommended_next_step || "",
+    signedOffAt: payload.signed_off_at || null,
+    signedOffByLabel: payload.signed_off_by_label || "",
+    nextPhaseLabel: payload.next_phase_label || "",
+    handoffSummary: payload.handoff_summary || "",
+    handoffItems: Array.isArray(payload.handoff_items) ? payload.handoff_items : [],
   };
 }
 

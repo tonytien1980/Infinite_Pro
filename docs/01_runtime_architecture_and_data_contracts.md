@@ -2498,6 +2498,45 @@ Object storage 負責：
 - roadmap shell
 - release dashboard
 
+### 7.27 Phase 6 closeout review
+
+在 `phase-6 sign-off` 與 `next-phase handoff foundation` 都已成立後，runtime 也已正式補上：
+
+- `GET /workbench/phase-6-closeout-review`
+
+第一版 contract 至少包括：
+
+- `closure_status`
+  - `completion_pass`
+  - `ready_to_close`
+  - `signed_off`
+- `closure_status_label`
+- `foundation_snapshot`
+- `completed_items`
+- `asset_audits`
+- `remaining_items`
+- `recommended_next_step`
+- signed-off 後的：
+  - `next_phase_label`
+  - `handoff_summary`
+  - `handoff_items`
+
+正式規則：
+
+- 這層是 phase-level closeout read model，不是新的 phase dashboard
+- UI 只允許低噪音掛在既有首頁 `Generalist Governance`
+- signed-off 後可以正式回讀 handoff，但不代表 phase 7 已開始施工
+
+因此這一層現在應被理解為：
+
+- phase-level closeout review
+
+不是：
+
+- roadmap shell
+- release workflow console
+- new governance dashboard family
+
 ---
 
 ## 8. Provider Boundary

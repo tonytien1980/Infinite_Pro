@@ -9,6 +9,94 @@ REUSE_WEIGHTING_RANK = {
 }
 
 
+def build_phase_six_closeout_review(
+    *,
+    completion_review: schemas.PhaseSixCompletionReviewResponse,
+) -> schemas.PhaseSixCloseoutReviewResponse:
+    signed_off = completion_review.sign_off_status == "signed_off"
+    asset_audits = [
+        schemas.PhaseSixAssetAuditItemResponse(
+            asset_code="governance_runtime",
+            asset_label="governance runtime",
+            audit_status="audited",
+            audit_status_label="已站穩",
+            summary="coverage / boundary / weighting / calibration / guidance 已形成正式治理 runtime。",
+            next_step="",
+        ),
+        schemas.PhaseSixAssetAuditItemResponse(
+            asset_code="work_surface_propagation",
+            asset_label="work-surface propagation",
+            audit_status="audited",
+            audit_status_label="已站穩",
+            summary="task / matter / deliverable 已能低噪音回讀 phase-6 signals。",
+            next_step="",
+        ),
+        schemas.PhaseSixAssetAuditItemResponse(
+            asset_code="feedback_loop",
+            asset_label="feedback loop",
+            audit_status="audited" if completion_review.overall_score >= 75 else "needs_followup",
+            audit_status_label="已站穩" if completion_review.overall_score >= 75 else "仍需補強",
+            summary="runtime feedback loop 已開始形成，現在也已被納入 completion review / sign-off 基礎。",
+            next_step="" if completion_review.overall_score >= 75 else "持續把 feedback-linked evidence 接回 persisted scoring。",
+        ),
+        schemas.PhaseSixAssetAuditItemResponse(
+            asset_code="completion_review",
+            asset_label="completion review foundation",
+            audit_status="audited",
+            audit_status_label="已站穩",
+            summary="completion review、checkpoint 與 persisted score snapshot 已正式成立。",
+            next_step="",
+        ),
+        schemas.PhaseSixAssetAuditItemResponse(
+            asset_code="sign_off_handoff",
+            asset_label="sign-off / handoff",
+            audit_status="audited" if signed_off else "needs_followup",
+            audit_status_label="已站穩" if signed_off else "仍待收口",
+            summary="owner sign-off 與 next-phase handoff 已成立。" if signed_off else "目前只剩 explicit sign-off 與 signed-off handoff readout。",
+            next_step="" if signed_off else "先完成 explicit sign-off，再正式回讀 handoff。",
+        ),
+    ]
+    completed_items = [
+        "generalist governance runtime 已成立",
+        "work-surface propagation 已成立",
+        "runtime feedback loop / closure criteria 已成立",
+        "completion review foundation 已成立",
+        "persisted scoring / sign-off foundation 已成立",
+    ]
+    remaining_items = [] if signed_off else ["phase 6 sign-off 與下一階段 handoff"]
+    return schemas.PhaseSixCloseoutReviewResponse(
+        phase_id="phase_6",
+        phase_label="Generalist Consulting Intelligence Governance",
+        closure_status="signed_off" if signed_off else "ready_to_close",
+        closure_status_label="已正式收口" if signed_off else "可準備收口",
+        summary=(
+            "phase 6 已正式收口，下一階段 handoff 已整理。"
+            if signed_off
+            else "phase 6 的 governance runtime、completion review foundation 與 sign-off foundation 已站穩，目前主要剩 explicit sign-off。"
+        ),
+        foundation_snapshot=(
+            "Generalist governance 主線已完成並正式收口。"
+            if signed_off
+            else "目前已補 5 項主要子線｜剩 1 項收尾項目。"
+        ),
+        completed_count=len(completed_items) + len(asset_audits),
+        remaining_count=len(remaining_items),
+        completed_items=completed_items,
+        asset_audits=asset_audits,
+        remaining_items=remaining_items,
+        recommended_next_step=(
+            "下一階段先做 consultant operating leverage framing。"
+            if signed_off
+            else "若沒有新的 regression，就可準備做 phase 6 sign-off 與下一階段 handoff。"
+        ),
+        signed_off_at=completion_review.signed_off_at,
+        signed_off_by_label=completion_review.signed_off_by_label,
+        next_phase_label=completion_review.next_phase_label,
+        handoff_summary=completion_review.handoff_summary,
+        handoff_items=completion_review.handoff_items,
+    )
+
+
 def build_phase_six_maturity_review() -> schemas.PhaseSixMaturityReviewResponse:
     milestone_audits = [
         schemas.PhaseSixMaturityMilestoneRead(

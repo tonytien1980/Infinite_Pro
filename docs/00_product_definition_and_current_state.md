@@ -939,6 +939,14 @@ Infinite Pro 目前沒有也不應硬對齊於：
   - 第一版 next phase 目前正式指向：
     - `下一階段：consultant operating leverage framing`
   - 也就是說，Phase 6 現在已不只會收口，還能正式把下一步交接出去
+- 這條線現在也已正式推到第二十三刀：
+  - `phase-6 closeout review`
+  - backend 已正式補上 `phase-6 closeout review` read model
+  - `總覽` 的既有 `Generalist Governance` 現在也能直接回讀：
+    - Phase 6 現在是 `completion_pass / ready_to_close / signed_off` 的哪一種
+    - 已完成哪些主線與 asset families
+    - signed-off 後的 next-phase handoff
+  - 也就是說，Phase 6 這整段現在已經不只是散落的 review / sign-off / handoff，而是 system 已能正式回讀整段 closeout 狀態
 
 ---
 

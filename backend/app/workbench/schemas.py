@@ -432,6 +432,41 @@ class PhaseFiveClosureReviewResponse(BaseModel):
     handoff_items: list[str] = Field(default_factory=list)
 
 
+class PhaseSixAssetAuditItemResponse(BaseModel):
+    asset_code: Literal[
+        "governance_runtime",
+        "work_surface_propagation",
+        "feedback_loop",
+        "completion_review",
+        "sign_off_handoff",
+    ]
+    asset_label: str = ""
+    audit_status: Literal["audited", "needs_followup"] = "audited"
+    audit_status_label: str = ""
+    summary: str = ""
+    next_step: str = ""
+
+
+class PhaseSixCloseoutReviewResponse(BaseModel):
+    phase_id: Literal["phase_6"] = "phase_6"
+    phase_label: str = ""
+    closure_status: Literal["completion_pass", "ready_to_close", "signed_off"] = "completion_pass"
+    closure_status_label: str = ""
+    summary: str = ""
+    foundation_snapshot: str = ""
+    completed_count: int = 0
+    remaining_count: int = 0
+    completed_items: list[str] = Field(default_factory=list)
+    asset_audits: list[PhaseSixAssetAuditItemResponse] = Field(default_factory=list)
+    remaining_items: list[str] = Field(default_factory=list)
+    recommended_next_step: str = ""
+    signed_off_at: str | None = None
+    signed_off_by_label: str = ""
+    next_phase_label: str = ""
+    handoff_summary: str = ""
+    handoff_items: list[str] = Field(default_factory=list)
+
+
 class PhaseSixCoverageAreaRead(BaseModel):
     area_id: str
     area_label: str = ""

@@ -13,6 +13,7 @@ import {
   getFirmOperatingSnapshot,
   getPhaseFiveClosureReview,
   getPhaseSixCapabilityCoverageAudit,
+  getPhaseSixCloseoutReview,
   getPhaseSixCompletionReview,
   getPhaseSixClosureCriteriaReview,
   getPhaseSixMaturityReview,
@@ -48,6 +49,7 @@ import {
   summarizePhaseSixCalibrationAwareWeightingItems,
   summarizePhaseSixCalibrationItems,
   summarizePhaseSixCompletionScorecard,
+  summarizePhaseSixCloseoutAudits,
   summarizePhaseSixCoverageAreas,
   summarizePhaseSixClosureCriteria,
   summarizePhaseSixDistanceItems,
@@ -65,6 +67,7 @@ import type {
   MatterWorkspaceSummary,
   PhaseFiveClosureReview,
   PhaseSixCapabilityCoverageAudit,
+  PhaseSixCloseoutReview,
   PhaseSixCompletionReview,
   PhaseSixClosureCriteriaReview,
   PhaseSixMaturityReview,
@@ -142,6 +145,8 @@ export function WorkbenchHome() {
   const [firmOperating, setFirmOperating] = useState<FirmOperatingSnapshot | null>(null);
   const [phaseFiveClosureReview, setPhaseFiveClosureReview] = useState<PhaseFiveClosureReview | null>(null);
   const [phaseSixAudit, setPhaseSixAudit] = useState<PhaseSixCapabilityCoverageAudit | null>(null);
+  const [phaseSixCloseoutReview, setPhaseSixCloseoutReview] =
+    useState<PhaseSixCloseoutReview | null>(null);
   const [phaseSixCompletionReview, setPhaseSixCompletionReview] =
     useState<PhaseSixCompletionReview | null>(null);
   const [phaseSixClosureCriteria, setPhaseSixClosureCriteria] =
@@ -161,6 +166,7 @@ export function WorkbenchHome() {
   const [firmOperatingLoading, setFirmOperatingLoading] = useState(true);
   const [phaseFiveClosureLoading, setPhaseFiveClosureLoading] = useState(true);
   const [phaseSixAuditLoading, setPhaseSixAuditLoading] = useState(true);
+  const [phaseSixCloseoutReviewLoading, setPhaseSixCloseoutReviewLoading] = useState(true);
   const [phaseSixCompletionReviewLoading, setPhaseSixCompletionReviewLoading] = useState(true);
   const [phaseSixClosureCriteriaLoading, setPhaseSixClosureCriteriaLoading] = useState(true);
   const [phaseSixMaturityLoading, setPhaseSixMaturityLoading] = useState(true);
@@ -178,6 +184,7 @@ export function WorkbenchHome() {
   const [firmOperatingError, setFirmOperatingError] = useState<string | null>(null);
   const [phaseFiveClosureError, setPhaseFiveClosureError] = useState<string | null>(null);
   const [phaseSixAuditError, setPhaseSixAuditError] = useState<string | null>(null);
+  const [phaseSixCloseoutReviewError, setPhaseSixCloseoutReviewError] = useState<string | null>(null);
   const [phaseSixCompletionReviewError, setPhaseSixCompletionReviewError] = useState<string | null>(null);
   const [phaseSixClosureCriteriaError, setPhaseSixClosureCriteriaError] = useState<string | null>(null);
   const [phaseSixMaturityError, setPhaseSixMaturityError] = useState<string | null>(null);
@@ -270,6 +277,20 @@ export function WorkbenchHome() {
       );
     } finally {
       setPhaseSixAuditLoading(false);
+    }
+  }
+
+  async function refreshPhaseSixCloseoutReview() {
+    try {
+      setPhaseSixCloseoutReviewLoading(true);
+      setPhaseSixCloseoutReviewError(null);
+      setPhaseSixCloseoutReview(await getPhaseSixCloseoutReview());
+    } catch (reviewError) {
+      setPhaseSixCloseoutReviewError(
+        reviewError instanceof Error ? reviewError.message : "載入 Phase 6 closeout review 失敗。",
+      );
+    } finally {
+      setPhaseSixCloseoutReviewLoading(false);
     }
   }
 
@@ -403,6 +424,7 @@ export function WorkbenchHome() {
     void refreshFirmOperating();
     void refreshPhaseFiveClosureReview();
     void refreshPhaseSixAudit();
+    void refreshPhaseSixCloseoutReview();
     void refreshPhaseSixCompletionReview();
     void refreshPhaseSixClosureCriteria();
     void refreshPhaseSixMaturity();
@@ -649,6 +671,11 @@ export function WorkbenchHome() {
       {phaseSixAuditError ? (
         <p className="error-text" role="alert" aria-live="assertive">
           {phaseSixAuditError}
+        </p>
+      ) : null}
+      {phaseSixCloseoutReviewError ? (
+        <p className="error-text" role="alert" aria-live="assertive">
+          {phaseSixCloseoutReviewError}
         </p>
       ) : null}
       {phaseSixCompletionReviewError ? (
@@ -997,6 +1024,26 @@ export function WorkbenchHome() {
               {phaseSixCompletionFeedback ? <p className="success-text">{phaseSixCompletionFeedback}</p> : null}
               {!phaseSixAuditLoading && phaseSixAudit ? (
                 <>
+                  {phaseSixCloseoutReviewLoading ? (
+                    <p className="status-text" style={{ marginBottom: "16px" }}>
+                      正在整理 Phase 6 closeout review...
+                    </p>
+                  ) : null}
+
+                  {!phaseSixCloseoutReviewLoading && phaseSixCloseoutReview ? (
+                    <div className="section-card" style={{ marginBottom: "16px" }}>
+                      <h3>Phase 6 closeout</h3>
+                      <p className="muted-text">{phaseSixCloseoutReview.closureStatusLabel}</p>
+                      <strong>{phaseSixCloseoutReview.foundationSnapshot}</strong>
+                      <p className="muted-text" style={{ marginTop: "8px" }}>
+                        {summarizePhaseSixCloseoutAudits(phaseSixCloseoutReview.assetAudits)}
+                      </p>
+                      <p className="muted-text" style={{ marginTop: "12px" }}>
+                        {phaseSixCloseoutReview.recommendedNextStep}
+                      </p>
+                    </div>
+                  ) : null}
+
                   {phaseSixCompletionReviewLoading ? (
                     <p className="status-text" style={{ marginBottom: "16px" }}>
                       正在整理 Phase 6 completion review...

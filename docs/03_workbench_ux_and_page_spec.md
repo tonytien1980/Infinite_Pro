@@ -461,6 +461,9 @@ Infinite Pro 正式採：
 - 若 phase-6 sign-off foundation 已成立，也可在同一區塊補 next-phase handoff foundation：
   - 只回下一階段標籤、handoff 摘要、handoff items
   - 不可長出 roadmap shell 或新的 phase dashboard
+- 若 next-phase handoff foundation 已成立，也可在同一區塊補 `Phase 6 closeout`：
+  - 只回 closeout status、foundation snapshot、少量 asset-audit summary
+  - 不可把這層長成完整的 phase dashboard
 - 不可因此長成 dashboard wall 或第二套管理後台
 
 ### `建立新案件`
