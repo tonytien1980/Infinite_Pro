@@ -883,6 +883,10 @@ Infinite Pro 目前沒有也不應硬對齊於：
   - `note brevity guardrails v1`
   - condensed `Phase 6` note 現在會優先使用更短的 canonical labels
   - reusable posture 與 emphasis 已從完整句壓成單行、三段主訊息的短標籤讀法
+- 這條線現在也已正式推到第十七刀：
+  - `note fallback consistency v1`
+  - 當主要 lifecycle 訊號缺失時，condensed `Phase 6` note 現在會穩定退回 weighting -> calibration -> reuse confidence
+  - fallback 也已正式壓成短標籤，不再回到臨時長句
 
 ---
 

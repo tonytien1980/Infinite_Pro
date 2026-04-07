@@ -9,7 +9,23 @@ function resolveWeightingSegment(signal) {
   if (!preferred?.axis_label || !preferred?.weighting_effect_label) {
     return "";
   }
-  return `${preferred.axis_label}：${preferred.weighting_effect_label}`;
+  const axis =
+    preferred.axis_label === "domain lens"
+      ? "領域"
+      : preferred.axis_label === "client stage"
+        ? "階段"
+        : preferred.axis_label === "client type"
+          ? "客型"
+          : preferred.axis_label;
+  const effect =
+    preferred.weighting_effect_label === "先留背景校正"
+      ? "退背景"
+      : preferred.weighting_effect_label === "先保留邊界"
+        ? "留邊界"
+        : preferred.weighting_effect_label === "可維持擴大重用"
+          ? "可放大"
+          : preferred.weighting_effect_label;
+  return `${axis}${effect}`;
 }
 
 function resolveCalibrationSegment(signal) {
@@ -23,7 +39,23 @@ function resolveCalibrationSegment(signal) {
   if (!preferred?.axis_label || !preferred?.calibration_status_label) {
     return "";
   }
-  return `${preferred.axis_label}：${preferred.calibration_status_label}`;
+  const axis =
+    preferred.axis_label === "domain lens"
+      ? "領域"
+      : preferred.axis_label === "client stage"
+        ? "階段"
+        : preferred.axis_label === "client type"
+          ? "客型"
+          : preferred.axis_label;
+  const status =
+    preferred.calibration_status_label === "仍有不對齊"
+      ? "仍不對齊"
+      : preferred.calibration_status_label === "需要留意"
+        ? "要留意"
+        : preferred.calibration_status_label === "目前對齊"
+          ? "已對齊"
+          : preferred.calibration_status_label;
+  return `${axis}${status}`;
 }
 
 function resolveReuseConfidenceSegment(signal) {
@@ -37,7 +69,15 @@ function resolveReuseConfidenceSegment(signal) {
   if (!preferred?.asset_label || !preferred?.reuse_confidence_label) {
     return "";
   }
-  return `${preferred.asset_label}：${preferred.reuse_confidence_label}`;
+  const confidence =
+    preferred.reuse_confidence_label === "低信心重用"
+      ? "重用低信心"
+      : preferred.reuse_confidence_label === "有邊界重用"
+        ? "重用有邊界"
+        : preferred.reuse_confidence_label === "高信心重用"
+          ? "重用高信心"
+          : preferred.reuse_confidence_label;
+  return confidence;
 }
 
 function normalizeEmphasisLabel(label) {

@@ -4318,6 +4318,18 @@ Environment used:
 - condensed `Phase 6` notes now read more like workbench cues than mini paragraphs
 - the note remains actionable while staying shorter and easier to scan
 
+### Phase-6 note fallback consistency verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Frontend | `phase-six-second-layer` helper | Fall back from lifecycle to weighting, then calibration, then reuse confidence using stable short labels | Verified | targeted helper tests confirm the note now falls back in the fixed order and renders short labels like `領域退背景`, `階段要留意`, `重用低信心` |
+| Frontend | `phase-six-second-layer` helper | Keep fallback output inside the same single-line, three-part note shape | Verified | targeted helper tests confirm fallback output still respects the compact note shape instead of expanding into longer copy |
+
+### Verified outcomes
+
+- condensed `Phase 6` notes now degrade more predictably when the strongest reusable signal is missing
+- fallback copy no longer reverts to mixed-length temporary wording
+
 ### Explicitly not shipped in this pass
 
 - `Personal Provider Settings`

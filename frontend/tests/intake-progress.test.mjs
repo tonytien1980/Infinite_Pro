@@ -1803,6 +1803,97 @@ test("phase 6 second-layer note keeps a short three-part shape", () => {
   assert.equal((note.match(/｜/g) ?? []).length, 2);
 });
 
+test("phase 6 second-layer note falls back to weighting, calibration, and confidence in a fixed short form", () => {
+  const weightingNote = buildPhaseSixSecondLayerSignalNote({
+    generalistGuidancePosture: {
+      guidance_posture: "balanced_guidance",
+      guidance_posture_label: "適度明示",
+      summary: "",
+      work_guidance_summary: "",
+      boundary_emphasis: "",
+      guidance_items: [],
+    },
+    calibrationAwareWeightingSignal: {
+      weighting_posture: "watch_mismatch",
+      weighting_posture_label: "仍需看 mismatch",
+      summary: "",
+      weighting_items: [
+        {
+          axis_kind: "domain_lens",
+          axis_label: "domain lens",
+          calibration_status: "mismatch",
+          calibration_status_label: "仍有不對齊",
+          weighting_effect: "background_only",
+          weighting_effect_label: "先留背景校正",
+          summary: "",
+        },
+      ],
+    },
+    emphasisLabel: "先校正工作主線",
+  });
+  assert.equal(weightingNote, "Phase 6：適度明示｜領域退背景｜校正工作主線");
+
+  const calibrationNote = buildPhaseSixSecondLayerSignalNote({
+    generalistGuidancePosture: {
+      guidance_posture: "balanced_guidance",
+      guidance_posture_label: "適度明示",
+      summary: "",
+      work_guidance_summary: "",
+      boundary_emphasis: "",
+      guidance_items: [],
+    },
+    confidenceCalibrationSignal: {
+      calibration_posture: "watch_mismatch",
+      calibration_posture_label: "仍需看不對齊",
+      summary: "",
+      calibration_items: [
+        {
+          axis_kind: "client_stage",
+          axis_label: "client stage",
+          calibration_status: "caution",
+          calibration_status_label: "需要留意",
+          reuse_confidence: "bounded_confidence",
+          reuse_confidence_label: "有邊界重用",
+          summary: "",
+          guardrail_note: "",
+        },
+      ],
+    },
+    emphasisLabel: "先校正客戶 / 組織背景",
+  });
+  assert.equal(calibrationNote, "Phase 6：適度明示｜階段要留意｜校正客戶背景");
+
+  const confidenceNote = buildPhaseSixSecondLayerSignalNote({
+    generalistGuidancePosture: {
+      guidance_posture: "balanced_guidance",
+      guidance_posture_label: "適度明示",
+      summary: "",
+      work_guidance_summary: "",
+      boundary_emphasis: "",
+      guidance_items: [],
+    },
+    reuseConfidenceSignal: {
+      confidence_posture: "mixed_distance",
+      confidence_posture_label: "目前距離混合",
+      summary: "",
+      distance_items: [
+        {
+          asset_code: "template_narrow_shape",
+          asset_label: "template narrow shape",
+          context_distance: "far",
+          context_distance_label: "距離偏遠",
+          reuse_confidence: "low_confidence",
+          reuse_confidence_label: "低信心重用",
+          summary: "",
+          guardrail_note: "",
+        },
+      ],
+    },
+    emphasisLabel: "先校正交付骨架",
+  });
+  assert.equal(confidenceNote, "Phase 6：適度明示｜重用低信心｜校正交付骨架");
+});
+
 test("precedent duplicate governance view stays consultant-readable", () => {
   const summaryView = buildPrecedentDuplicateSummaryView({
     pending_review_count: 1,

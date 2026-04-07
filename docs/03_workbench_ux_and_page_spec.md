@@ -439,6 +439,7 @@ Infinite Pro 正式採：
 - 若同一種 reusable posture 已在多個 surface 顯示，後續 slice 應優先做 wording consistency，而不是讓 task / matter / deliverable 各自漂移
 - 若 condensed note 已有一致骨架，後續 slice 可補一段很短的 surface-specific emphasis，但不可長成 instruction wall
 - 若 condensed note 已開始帶 posture / lifecycle / emphasis，後續 slice 應優先補 brevity guardrails，避免又長回完整句
+- 若 condensed note 的主要 lifecycle 訊號缺失，後續 slice 應優先補 fallback consistency，而不是讓頁面各自臨時 fallback
 - 不可因此長成 dashboard wall 或第二套管理後台
 
 ### `建立新案件`
