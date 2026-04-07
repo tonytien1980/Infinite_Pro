@@ -4719,3 +4719,42 @@ Environment used:
 - browser smoke
 - phase 6 sign-off / closure flow
 - persisted governance scoring rewrite
+
+---
+
+## Entry: 2026-04-07 phase-6 runtime feedback loop / closure criteria v1 pass
+
+Scope:
+- `GET /workbench/phase-6-closure-criteria`
+- `總覽` `Generalist Governance` 內的 `closure criteria` 摘要
+- runtime feedback loop / remaining blocker review
+
+Environment used:
+- local backend and frontend verification only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`238 passed`) |
+| `cd frontend && node --test tests/auth-foundation.test.mjs tests/provider-settings-foundation.test.mjs tests/demo-workspace-isolation.test.mjs tests/phase-six-governance.test.mjs tests/intake-progress.test.mjs` | Passed (`61 passed`) |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && mkdir -p .next/types && npx next typegen && npm run typecheck` | Passed |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+
+### Phase-6 closure criteria verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | `/workbench/phase-6-closure-criteria` | Return closure posture, feedback loop summary, and criteria items | Verified | targeted backend tests confirm `closure_posture`, `feedback_loop_summary`, `criteria_items`, `remaining_blockers`, and `recommended_next_step` now exist |
+| Backend | `/workbench/phase-6-closure-criteria` | Expose runtime feedback criterion as a first-class gate | Verified | targeted backend tests confirm a `runtime_feedback_loop` criterion row is now returned |
+| Frontend | phase-six governance helper | Read closure posture labels and closure-criteria summaries in low-noise copy | Verified | node tests confirm closure posture labels stay consultant-readable and criteria summaries remain compact |
+| Frontend | `/` | Keep closure criteria inside existing `Generalist Governance` panel | Verified | typecheck/build confirm `WorkbenchHome` consumes the new review contract without creating a new phase dashboard |
+| Frontend | `/` | Show runtime feedback summary and remaining blockers | Verified | homepage summary now explains why Phase 6 is still open and what the real blockers are, instead of only listing completed slices |
+
+### Explicitly not shipped in this pass
+
+- browser smoke
+- phase 6 sign-off / completion-review action
+- persisted governance scoring rewrite

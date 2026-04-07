@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   labelForPhaseSixAuditStatus,
   labelForPhaseSixCalibrationStatus,
+  labelForPhaseSixClosurePosture,
   labelForPhaseSixMaturityStage,
   labelForPhaseSixContextDistance,
   labelForPhaseSixGeneralistPosture,
@@ -13,6 +14,7 @@ import {
   labelForPhaseSixReuseRecommendation,
   summarizePhaseSixCalibrationItems,
   summarizePhaseSixCalibrationAwareWeightingItems,
+  summarizePhaseSixClosureCriteria,
   summarizePhaseSixDistanceItems,
   summarizePhaseSixGuidanceItems,
   summarizePhaseSixHostWeighting,
@@ -51,6 +53,39 @@ test("phase 6 maturity review labels stay low-noise and stage-readable", () => {
       },
     ]),
     "coverage / anti-drift：已站穩｜guidance propagation：已站穩",
+  );
+});
+
+test("phase 6 closure criteria labels stay low-noise and readable", () => {
+  assert.equal(labelForPhaseSixClosurePosture("not_ready"), "尚未接近收口");
+  assert.equal(
+    labelForPhaseSixClosurePosture("building_closure_basis"),
+    "正在建立收口基礎",
+  );
+  assert.equal(
+    labelForPhaseSixClosurePosture("ready_for_completion_review"),
+    "可準備 completion review",
+  );
+  assert.equal(
+    summarizePhaseSixClosureCriteria([
+      {
+        criterionCode: "runtime_feedback_loop",
+        criterionLabel: "runtime feedback loop",
+        criterionStatus: "watching",
+        criterionStatusLabel: "已開始形成",
+        summary: "已開始看到 adoption feedback 與 governed outcomes。",
+        nextStep: "再把 feedback loop 接回 persisted scoring。",
+      },
+      {
+        criterionCode: "completion_review_contract",
+        criterionLabel: "completion review contract",
+        criterionStatus: "landed",
+        criterionStatusLabel: "已站穩",
+        summary: "已能正式回讀 closure criteria。",
+        nextStep: "",
+      },
+    ]),
+    "runtime feedback loop：已開始形成｜completion review contract：已站穩",
   );
 });
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.domain import models
@@ -33,6 +33,7 @@ from app.services.phase_five_closure_review import (
 )
 from app.services.phase_six_generalist_governance import (
     build_phase_six_capability_coverage_audit,
+    build_phase_six_closure_criteria_review,
     build_phase_six_maturity_review,
     build_phase_six_calibration_aware_weighting,
     build_phase_six_confidence_calibration,
@@ -484,6 +485,30 @@ def get_phase_six_maturity_review(
 ) -> schemas.PhaseSixMaturityReviewResponse:
     del db
     return build_phase_six_maturity_review()
+
+
+def get_phase_six_closure_criteria_review(
+    db: Session,
+) -> schemas.PhaseSixClosureCriteriaReviewResponse:
+    feedback_signal_count = int(
+        db.scalar(select(func.count()).select_from(models.AdoptionFeedback)) or 0
+    )
+    governed_outcome_count = int(
+        db.scalar(
+            select(func.count())
+            .select_from(models.PrecedentCandidate)
+            .where(
+                models.PrecedentCandidate.candidate_status.in_(
+                    ["promoted", "dismissed"]
+                )
+            )
+        )
+        or 0
+    )
+    return build_phase_six_closure_criteria_review(
+        feedback_signal_count=feedback_signal_count,
+        governed_outcome_count=governed_outcome_count,
+    )
 
 
 def get_phase_six_reuse_boundary_governance(

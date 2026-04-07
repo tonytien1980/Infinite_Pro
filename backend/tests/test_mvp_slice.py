@@ -503,6 +503,37 @@ def test_phase_six_maturity_review_marks_current_lane_as_refinement(client: Test
     assert any(item["milestone_status"] == "landed" for item in payload["milestone_audits"])
 
 
+def test_owner_can_read_phase_six_closure_criteria(client: TestClient) -> None:
+    response = client.get("/api/v1/workbench/phase-6-closure-criteria")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["phase_id"] == "phase_6"
+    assert payload["closure_posture"] in {
+        "not_ready",
+        "building_closure_basis",
+        "ready_for_completion_review",
+    }
+    assert payload["closure_posture_label"]
+    assert payload["summary"]
+    assert payload["feedback_loop_summary"]
+    assert payload["criteria_items"]
+    assert payload["remaining_blockers"]
+    assert payload["recommended_next_step"]
+
+
+def test_phase_six_closure_criteria_exposes_runtime_feedback_item(client: TestClient) -> None:
+    response = client.get("/api/v1/workbench/phase-6-closure-criteria")
+
+    assert response.status_code == 200
+    payload = response.json()
+    runtime_items = [
+        item for item in payload["criteria_items"] if item["criterion_code"] == "runtime_feedback_loop"
+    ]
+    assert runtime_items
+    assert runtime_items[0]["criterion_status"] in {"landed", "watching", "needs_followup"}
+
+
 def test_phase_six_capability_coverage_audit_marks_narrow_assets_low_noise(
     client: TestClient,
 ) -> None:

@@ -2327,6 +2327,59 @@ Object storage 負責：
 - release console
 - new governance dashboard family
 
+### 7.23 Phase 6 runtime feedback loop / closure criteria
+
+在 `phase-6 maturity review v1` 已能正式回答目前屬於 foundation、refinement，還是 closure preparation 之後，runtime 也已正式補上：
+
+- `GET /workbench/phase-6-closure-criteria`
+
+第一版 contract 至少包括：
+
+- `closure_posture`
+  - `not_ready`
+  - `building_closure_basis`
+  - `ready_for_completion_review`
+- `closure_posture_label`
+- `summary`
+- `closure_snapshot`
+- `feedback_loop_summary`
+- `feedback_signal_count`
+- `governed_outcome_count`
+- `criteria_items`
+- `remaining_blockers`
+- `recommended_next_step`
+
+每筆 `criterion_item` 至少包括：
+
+- `criterion_code`
+- `criterion_label`
+- `criterion_status`
+  - `landed`
+  - `watching`
+  - `needs_followup`
+- `criterion_status_label`
+- `summary`
+- `next_step`
+
+正式規則：
+
+- 這層應明確把 runtime feedback loop 也納入 Phase 6 closing posture，而不只看 read-model completeness
+- 第一版可低風險吃的 runtime evidence 包括：
+  - `AdoptionFeedback`
+  - `PrecedentCandidate` governed outcomes
+- 這層不是 sign-off flow，也不是 hard release gate
+- 第一版只允許作為 low-noise phase-level review，不允許長成 owner console
+
+因此這一層現在應被理解為：
+
+- phase-level closure criteria review
+
+不是：
+
+- sign-off action
+- new governance dashboard
+- release manager shell
+
 ---
 
 ## 8. Provider Boundary

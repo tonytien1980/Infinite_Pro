@@ -898,6 +898,17 @@ Infinite Pro 目前沒有也不應硬對齊於：
     - 目前已進入 `refinement lane`
     - 不是新的基礎施工期
     - 下一刀應優先看 runtime feedback loop / closure criteria，而不是繼續鑽 note wording
+- 這條線現在也已正式推到第十九刀：
+  - `phase-6 runtime feedback loop / closure criteria v1`
+  - backend 已正式補上 `phase-6 closure criteria` read model
+  - `總覽` 的既有 `Generalist Governance` 現在也能正式回答：
+    - runtime feedback loop 到底有沒有開始形成
+    - Phase 6 為什麼現在還不能收口
+    - 距離 completion review 還差哪些真正 blocker
+  - 也就是說，Phase 6 現在不只知道自己在 refinement lane，也能更誠實地回讀：
+    - governance runtime layer 已站穩
+    - work-surface propagation 已站穩
+    - 但 feedback loop 深度與正式 completion review flow 仍是下一批大項
 
 ---
 

@@ -416,6 +416,8 @@ Infinite Pro 正式採：
 - 這塊只回答：
   - shared intelligence 目前有沒有開始偏科
   - Phase 6 目前是處於 foundation、refinement，還是可準備收斂
+  - runtime feedback loop 到底有沒有開始形成
+  - 距離 completion review 還差哪些真正 blocker
   - 覆蓋目前偏穩、偏薄，還是過重的能力區塊
   - 哪些 reusable assets 目前只適合局部情境
   - 哪些 reusable assets 可擴大重用、維持局部參考，或不要擴大套用
@@ -444,6 +446,9 @@ Infinite Pro 正式採：
 - 若 Phase 6 slice 已經累積很多，後續也可在既有 `Generalist Governance` 內補一塊 `Phase 6 maturity`：
   - 只回答目前屬於哪個 maturity stage、已完成哪些 milestone clusters、還剩哪些真 focus items
   - 不可長出 `/phase-6`, `/maturity`, `/governance` 新頁面
+- 若 maturity review 已開始告訴 system 目前還不能收口，後續也可在既有 `Generalist Governance` 內補一塊 `closure criteria`：
+  - 只回答 runtime feedback loop 與 remaining blockers
+  - 不可長出 `/phase-6/closure`, `/release`, `/sign-off` 新頁面
 - 不可因此長成 dashboard wall 或第二套管理後台
 
 ### `建立新案件`

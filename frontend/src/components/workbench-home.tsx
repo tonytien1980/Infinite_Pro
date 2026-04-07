@@ -12,6 +12,7 @@ import {
   getFirmOperatingSnapshot,
   getPhaseFiveClosureReview,
   getPhaseSixCapabilityCoverageAudit,
+  getPhaseSixClosureCriteriaReview,
   getPhaseSixMaturityReview,
   getPhaseSixCalibrationAwareWeighting,
   getPhaseSixConfidenceCalibration,
@@ -31,6 +32,7 @@ import { buildPhaseFiveClosureView } from "@/lib/phase-five-closure";
 import {
   labelForPhaseSixAuditStatus,
   labelForPhaseSixCalibrationStatus,
+  labelForPhaseSixClosurePosture,
   labelForPhaseSixContextDistance,
   labelForPhaseSixGuidancePosture,
   labelForPhaseSixGeneralistPosture,
@@ -41,6 +43,7 @@ import {
   summarizePhaseSixCalibrationAwareWeightingItems,
   summarizePhaseSixCalibrationItems,
   summarizePhaseSixCoverageAreas,
+  summarizePhaseSixClosureCriteria,
   summarizePhaseSixDistanceItems,
   summarizePhaseSixGuidanceItems,
   summarizePhaseSixGovernanceItems,
@@ -55,6 +58,7 @@ import type {
   MatterWorkspaceSummary,
   PhaseFiveClosureReview,
   PhaseSixCapabilityCoverageAudit,
+  PhaseSixClosureCriteriaReview,
   PhaseSixMaturityReview,
   PhaseSixCalibrationAwareWeighting,
   PhaseSixConfidenceCalibration,
@@ -130,6 +134,8 @@ export function WorkbenchHome() {
   const [firmOperating, setFirmOperating] = useState<FirmOperatingSnapshot | null>(null);
   const [phaseFiveClosureReview, setPhaseFiveClosureReview] = useState<PhaseFiveClosureReview | null>(null);
   const [phaseSixAudit, setPhaseSixAudit] = useState<PhaseSixCapabilityCoverageAudit | null>(null);
+  const [phaseSixClosureCriteria, setPhaseSixClosureCriteria] =
+    useState<PhaseSixClosureCriteriaReview | null>(null);
   const [phaseSixMaturity, setPhaseSixMaturity] = useState<PhaseSixMaturityReview | null>(null);
   const [phaseSixCalibrationWeighting, setPhaseSixCalibrationWeighting] =
     useState<PhaseSixCalibrationAwareWeighting | null>(null);
@@ -145,6 +151,7 @@ export function WorkbenchHome() {
   const [firmOperatingLoading, setFirmOperatingLoading] = useState(true);
   const [phaseFiveClosureLoading, setPhaseFiveClosureLoading] = useState(true);
   const [phaseSixAuditLoading, setPhaseSixAuditLoading] = useState(true);
+  const [phaseSixClosureCriteriaLoading, setPhaseSixClosureCriteriaLoading] = useState(true);
   const [phaseSixMaturityLoading, setPhaseSixMaturityLoading] = useState(true);
   const [phaseSixCalibrationWeightingLoading, setPhaseSixCalibrationWeightingLoading] = useState(true);
   const [phaseSixCalibrationLoading, setPhaseSixCalibrationLoading] = useState(true);
@@ -158,6 +165,7 @@ export function WorkbenchHome() {
   const [firmOperatingError, setFirmOperatingError] = useState<string | null>(null);
   const [phaseFiveClosureError, setPhaseFiveClosureError] = useState<string | null>(null);
   const [phaseSixAuditError, setPhaseSixAuditError] = useState<string | null>(null);
+  const [phaseSixClosureCriteriaError, setPhaseSixClosureCriteriaError] = useState<string | null>(null);
   const [phaseSixMaturityError, setPhaseSixMaturityError] = useState<string | null>(null);
   const [phaseSixCalibrationWeightingError, setPhaseSixCalibrationWeightingError] =
     useState<string | null>(null);
@@ -247,6 +255,20 @@ export function WorkbenchHome() {
       );
     } finally {
       setPhaseSixAuditLoading(false);
+    }
+  }
+
+  async function refreshPhaseSixClosureCriteria() {
+    try {
+      setPhaseSixClosureCriteriaLoading(true);
+      setPhaseSixClosureCriteriaError(null);
+      setPhaseSixClosureCriteria(await getPhaseSixClosureCriteriaReview());
+    } catch (closureError) {
+      setPhaseSixClosureCriteriaError(
+        closureError instanceof Error ? closureError.message : "載入 Phase 6 closure criteria 失敗。",
+      );
+    } finally {
+      setPhaseSixClosureCriteriaLoading(false);
     }
   }
 
@@ -351,6 +373,7 @@ export function WorkbenchHome() {
     void refreshFirmOperating();
     void refreshPhaseFiveClosureReview();
     void refreshPhaseSixAudit();
+    void refreshPhaseSixClosureCriteria();
     void refreshPhaseSixMaturity();
     void refreshPhaseSixCalibrationWeighting();
     void refreshPhaseSixCalibration();
@@ -561,6 +584,11 @@ export function WorkbenchHome() {
       {phaseSixAuditError ? (
         <p className="error-text" role="alert" aria-live="assertive">
           {phaseSixAuditError}
+        </p>
+      ) : null}
+      {phaseSixClosureCriteriaError ? (
+        <p className="error-text" role="alert" aria-live="assertive">
+          {phaseSixClosureCriteriaError}
         </p>
       ) : null}
       {phaseSixMaturityError ? (
@@ -877,6 +905,36 @@ export function WorkbenchHome() {
               {phaseSixAuditLoading ? <p className="status-text">正在整理 Phase 6 治理摘要...</p> : null}
               {!phaseSixAuditLoading && phaseSixAudit ? (
                 <>
+                  {phaseSixClosureCriteriaLoading ? (
+                    <p className="status-text" style={{ marginBottom: "16px" }}>
+                      正在整理 Phase 6 closure criteria...
+                    </p>
+                  ) : null}
+
+                  {!phaseSixClosureCriteriaLoading && phaseSixClosureCriteria ? (
+                    <div className="section-card" style={{ marginBottom: "16px" }}>
+                      <h3>closure criteria</h3>
+                      <p className="muted-text">
+                        {labelForPhaseSixClosurePosture(phaseSixClosureCriteria.closurePosture)}
+                      </p>
+                      <strong>{phaseSixClosureCriteria.closureSnapshot}</strong>
+                      <p className="muted-text" style={{ marginTop: "8px" }}>
+                        {phaseSixClosureCriteria.feedbackLoopSummary}
+                      </p>
+                      <p className="muted-text" style={{ marginTop: "8px" }}>
+                        {summarizePhaseSixClosureCriteria(phaseSixClosureCriteria.criteriaItems)}
+                      </p>
+                      <ul className="detail-list" style={{ marginTop: "12px" }}>
+                        {phaseSixClosureCriteria.remainingBlockers.slice(0, 2).map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                      <p className="muted-text" style={{ marginTop: "12px" }}>
+                        {phaseSixClosureCriteria.recommendedNextStep}
+                      </p>
+                    </div>
+                  ) : null}
+
                   {phaseSixMaturityLoading ? (
                     <p className="status-text" style={{ marginBottom: "16px" }}>
                       正在整理 Phase 6 maturity...

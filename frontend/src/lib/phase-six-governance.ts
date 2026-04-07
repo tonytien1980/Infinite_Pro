@@ -1,5 +1,6 @@
 import type {
   PhaseSixCalibrationAwareWeightingItem,
+  PhaseSixClosureCriterion,
   PhaseSixCoverageArea,
   PhaseSixConfidenceCalibrationItem,
   PhaseSixContextDistanceItem,
@@ -34,6 +35,18 @@ export function labelForPhaseSixMaturityStage(
   return "已進入收斂深化";
 }
 
+export function labelForPhaseSixClosurePosture(
+  posture: "not_ready" | "building_closure_basis" | "ready_for_completion_review",
+) {
+  if (posture === "not_ready") {
+    return "尚未接近收口";
+  }
+  if (posture === "ready_for_completion_review") {
+    return "可準備 completion review";
+  }
+  return "正在建立收口基礎";
+}
+
 export function summarizePhaseSixMaturityMilestones(
   milestones: PhaseSixMaturityMilestone[],
 ) {
@@ -43,6 +56,18 @@ export function summarizePhaseSixMaturityMilestones(
   return milestones
     .slice(0, 2)
     .map((item) => `${item.milestoneLabel}：${item.milestoneStatusLabel}`)
+    .join("｜");
+}
+
+export function summarizePhaseSixClosureCriteria(
+  criteria: PhaseSixClosureCriterion[],
+) {
+  if (criteria.length === 0) {
+    return "目前還沒有可讀取的 closure criteria signal。";
+  }
+  return criteria
+    .slice(0, 2)
+    .map((item) => `${item.criterionLabel}：${item.criterionStatusLabel}`)
     .join("｜");
 }
 

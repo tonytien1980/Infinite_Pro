@@ -474,6 +474,34 @@ class PhaseSixMaturityReviewResponse(BaseModel):
     recommended_next_step: str = ""
 
 
+class PhaseSixClosureCriterionRead(BaseModel):
+    criterion_code: str
+    criterion_label: str = ""
+    criterion_status: Literal["landed", "watching", "needs_followup"] = "needs_followup"
+    criterion_status_label: str = ""
+    summary: str = ""
+    next_step: str = ""
+
+
+class PhaseSixClosureCriteriaReviewResponse(BaseModel):
+    phase_id: Literal["phase_6"] = "phase_6"
+    phase_label: str = ""
+    closure_posture: Literal[
+        "not_ready",
+        "building_closure_basis",
+        "ready_for_completion_review",
+    ] = "building_closure_basis"
+    closure_posture_label: str = ""
+    summary: str = ""
+    closure_snapshot: str = ""
+    feedback_loop_summary: str = ""
+    feedback_signal_count: int = 0
+    governed_outcome_count: int = 0
+    criteria_items: list[PhaseSixClosureCriterionRead] = Field(default_factory=list)
+    remaining_blockers: list[str] = Field(default_factory=list)
+    recommended_next_step: str = ""
+
+
 class PhaseSixCapabilityCoverageAuditResponse(BaseModel):
     phase_id: Literal["phase_6"] = "phase_6"
     phase_label: str = ""

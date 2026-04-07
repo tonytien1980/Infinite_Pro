@@ -73,6 +73,123 @@ def build_phase_six_maturity_review() -> schemas.PhaseSixMaturityReviewResponse:
     )
 
 
+def build_phase_six_closure_criteria_review(
+    *,
+    feedback_signal_count: int,
+    governed_outcome_count: int,
+) -> schemas.PhaseSixClosureCriteriaReviewResponse:
+    runtime_feedback_status = (
+        "landed"
+        if feedback_signal_count >= 3 and governed_outcome_count >= 2
+        else "watching"
+        if feedback_signal_count > 0 or governed_outcome_count > 0
+        else "needs_followup"
+    )
+    runtime_feedback_status_label = (
+        "已開始形成"
+        if runtime_feedback_status == "landed"
+        else "正在觀察"
+        if runtime_feedback_status == "watching"
+        else "仍待補強"
+    )
+    if runtime_feedback_status == "landed":
+        feedback_loop_summary = (
+            f"目前已看到 {feedback_signal_count} 筆 feedback signals 與 {governed_outcome_count} 筆 governed outcomes，"
+            "Phase 6 已不再只是 read-model governance。"
+        )
+    elif runtime_feedback_status == "watching":
+        feedback_loop_summary = (
+            f"目前已看到 {feedback_signal_count} 筆 feedback signals 與 {governed_outcome_count} 筆 governed outcomes，"
+            "但還不足以把 Phase 6 視為接近可收口。"
+        )
+    else:
+        feedback_loop_summary = (
+            "目前 Phase 6 仍偏向 read-model governance，runtime feedback loop evidence 還薄。"
+        )
+
+    criteria_items = [
+        schemas.PhaseSixClosureCriterionRead(
+            criterion_code="generalist_governance_runtime",
+            criterion_label="generalist governance runtime",
+            criterion_status="landed",
+            criterion_status_label="已站穩",
+            summary="coverage、boundary、weighting、guidance、calibration 與 maturity review 已形成正式 runtime read layer。",
+            next_step="",
+        ),
+        schemas.PhaseSixClosureCriterionRead(
+            criterion_code="work_surface_propagation",
+            criterion_label="work-surface propagation",
+            criterion_status="landed",
+            criterion_status_label="已站穩",
+            summary="task / matter / deliverable 已能回讀 phase-6 guidance、confidence、weighting 與 condensed note。",
+            next_step="",
+        ),
+        schemas.PhaseSixClosureCriterionRead(
+            criterion_code="runtime_feedback_loop",
+            criterion_label="runtime feedback loop",
+            criterion_status=runtime_feedback_status,  # type: ignore[arg-type]
+            criterion_status_label=runtime_feedback_status_label,
+            summary=feedback_loop_summary,
+            next_step=(
+                ""
+                if runtime_feedback_status == "landed"
+                else "應把 feedback-linked evidence 更正式接回 persisted governance scoring 與 completion review。"
+            ),
+        ),
+        schemas.PhaseSixClosureCriterionRead(
+            criterion_code="completion_review_contract",
+            criterion_label="completion review contract",
+            criterion_status="landed",
+            criterion_status_label="已站穩",
+            summary="system 現在已能正式回答距離 phase-6 completion review 還差哪些真正 blocker。",
+            next_step="",
+        ),
+    ]
+
+    remaining_blockers = [
+        "runtime feedback loop 雖已開始形成，但仍需更正式接回 persisted governance scoring。",
+        "phase-6 completion review / sign-off flow 尚未正式 shipped。",
+    ]
+    closure_posture = (
+        "ready_for_completion_review"
+        if runtime_feedback_status == "landed" and governed_outcome_count >= 4
+        else "building_closure_basis"
+        if runtime_feedback_status in {"landed", "watching"}
+        else "not_ready"
+    )
+    closure_posture_label = (
+        "可準備 completion review"
+        if closure_posture == "ready_for_completion_review"
+        else "正在建立收口基礎"
+        if closure_posture == "building_closure_basis"
+        else "尚未接近收口"
+    )
+
+    return schemas.PhaseSixClosureCriteriaReviewResponse(
+        phase_id="phase_6",
+        phase_label="Generalist Consulting Intelligence Governance",
+        closure_posture=closure_posture,  # type: ignore[arg-type]
+        closure_posture_label=closure_posture_label,
+        summary=(
+            "Phase 6 現在已能正式回答 closure criteria：目前已站穩的不是 note 文案，而是 runtime governance layer；"
+            "真正還差的是 feedback loop depth 與 completion review flow。"
+        ),
+        closure_snapshot=(
+            f"feedback signals {feedback_signal_count}｜governed outcomes {governed_outcome_count}｜"
+            f"目前屬於 {closure_posture_label}"
+        ),
+        feedback_loop_summary=feedback_loop_summary,
+        feedback_signal_count=feedback_signal_count,
+        governed_outcome_count=governed_outcome_count,
+        criteria_items=criteria_items,
+        remaining_blockers=remaining_blockers,
+        recommended_next_step=(
+            "下一刀應優先把 feedback-linked evidence 更正式接回 persisted scoring / completion review，"
+            "而不是再新增新的 note micro-slice。"
+        ),
+    )
+
+
 def build_phase_six_capability_coverage_audit() -> schemas.PhaseSixCapabilityCoverageAuditResponse:
     return schemas.PhaseSixCapabilityCoverageAuditResponse(
         phase_id="phase_6",

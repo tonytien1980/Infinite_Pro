@@ -401,6 +401,30 @@ export interface PhaseSixMaturityReview {
   recommendedNextStep: string;
 }
 
+export interface PhaseSixClosureCriterion {
+  criterionCode: string;
+  criterionLabel: string;
+  criterionStatus: "landed" | "watching" | "needs_followup";
+  criterionStatusLabel: string;
+  summary: string;
+  nextStep: string;
+}
+
+export interface PhaseSixClosureCriteriaReview {
+  phaseId: "phase_6";
+  phaseLabel: string;
+  closurePosture: "not_ready" | "building_closure_basis" | "ready_for_completion_review";
+  closurePostureLabel: string;
+  summary: string;
+  closureSnapshot: string;
+  feedbackLoopSummary: string;
+  feedbackSignalCount: number;
+  governedOutcomeCount: number;
+  criteriaItems: PhaseSixClosureCriterion[];
+  remainingBlockers: string[];
+  recommendedNextStep: string;
+}
+
 export interface PhaseSixCapabilityCoverageAudit {
   phaseId: "phase_6";
   phaseLabel: string;

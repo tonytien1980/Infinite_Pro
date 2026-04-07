@@ -51,6 +51,7 @@ import {
   PersonalProviderSettingsPayload,
   PhaseFiveClosureReview,
   PhaseSixCapabilityCoverageAudit,
+  PhaseSixClosureCriteriaReview,
   PhaseSixMaturityReview,
   PhaseSixCalibrationAwareWeighting,
   PhaseSixConfidenceCalibration,
@@ -261,6 +262,13 @@ export async function getPhaseSixMaturityReview(): Promise<PhaseSixMaturityRevie
     cache: "no-store",
   });
   return parsePhaseSixMaturityReviewPayload(await parseResponse<any>(response));
+}
+
+export async function getPhaseSixClosureCriteriaReview(): Promise<PhaseSixClosureCriteriaReview> {
+  const response = await apiFetch(`${getApiBaseUrl()}/workbench/phase-6-closure-criteria`, {
+    cache: "no-store",
+  });
+  return parsePhaseSixClosureCriteriaReviewPayload(await parseResponse<any>(response));
 }
 
 export async function getPhaseSixReuseBoundaryGovernance(): Promise<PhaseSixReuseBoundaryGovernance> {
@@ -1025,6 +1033,44 @@ function parsePhaseSixMaturityReviewPayload(payload: any): PhaseSixMaturityRevie
       : [],
     remainingFocusItems: Array.isArray(payload.remaining_focus_items)
       ? payload.remaining_focus_items.filter((item: unknown) => typeof item === "string")
+      : [],
+    recommendedNextStep: payload.recommended_next_step || "",
+  };
+}
+
+function parsePhaseSixClosureCriteriaReviewPayload(payload: any): PhaseSixClosureCriteriaReview {
+  return {
+    phaseId: "phase_6",
+    phaseLabel: payload.phase_label || "",
+    closurePosture:
+      payload.closure_posture === "not_ready"
+        ? "not_ready"
+        : payload.closure_posture === "ready_for_completion_review"
+          ? "ready_for_completion_review"
+          : "building_closure_basis",
+    closurePostureLabel: payload.closure_posture_label || "",
+    summary: payload.summary || "",
+    closureSnapshot: payload.closure_snapshot || "",
+    feedbackLoopSummary: payload.feedback_loop_summary || "",
+    feedbackSignalCount: Number(payload.feedback_signal_count ?? 0),
+    governedOutcomeCount: Number(payload.governed_outcome_count ?? 0),
+    criteriaItems: Array.isArray(payload.criteria_items)
+      ? payload.criteria_items.map((item: any) => ({
+          criterionCode: item.criterion_code,
+          criterionLabel: item.criterion_label || "",
+          criterionStatus:
+            item.criterion_status === "landed"
+              ? "landed"
+              : item.criterion_status === "watching"
+                ? "watching"
+                : "needs_followup",
+          criterionStatusLabel: item.criterion_status_label || "",
+          summary: item.summary || "",
+          nextStep: item.next_step || "",
+        }))
+      : [],
+    remainingBlockers: Array.isArray(payload.remaining_blockers)
+      ? payload.remaining_blockers.filter((item: unknown) => typeof item === "string")
       : [],
     recommendedNextStep: payload.recommended_next_step || "",
   };
