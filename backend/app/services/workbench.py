@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections import Counter
+
 from fastapi import HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
@@ -22,6 +24,7 @@ from app.services.precedent_intelligence import (
     classify_precedent_review_priority,
 )
 from app.services.feedback_optimization_intelligence import (
+    REASON_TO_ASSET_CODES,
     STRENGTH_RANK,
     build_precedent_optimization_signal,
 )
@@ -36,6 +39,7 @@ from app.services.phase_six_generalist_governance import (
     build_phase_six_closeout_review,
     build_phase_six_completion_review,
     build_phase_six_closure_criteria_review,
+    build_phase_six_feedback_linked_scoring_snapshot,
     build_phase_six_maturity_review,
     build_phase_six_calibration_aware_weighting,
     build_phase_six_confidence_calibration,
@@ -98,6 +102,46 @@ def _get_or_create_preference_row(db: Session) -> models.WorkbenchPreference:
     db.commit()
     db.refresh(row)
     return row
+
+
+def _build_phase_six_feedback_linked_snapshot(
+    db: Session,
+) -> schemas.PhaseSixFeedbackLinkedScoringSnapshotRead:
+    feedback_rows = db.scalars(select(models.AdoptionFeedback)).all()
+    candidate_rows = db.scalars(select(models.PrecedentCandidate)).all()
+
+    adopted_count = sum(1 for row in feedback_rows if row.feedback_status == "adopted")
+    needs_revision_count = sum(1 for row in feedback_rows if row.feedback_status == "needs_revision")
+    not_adopted_count = sum(1 for row in feedback_rows if row.feedback_status == "not_adopted")
+    template_candidate_count = sum(
+        1 for row in feedback_rows if row.feedback_status == "template_candidate"
+    )
+    governed_candidate_count = len(candidate_rows)
+    promoted_candidate_count = sum(1 for row in candidate_rows if row.candidate_status == "promoted")
+    dismissed_candidate_count = sum(1 for row in candidate_rows if row.candidate_status == "dismissed")
+    override_signal_count = needs_revision_count + not_adopted_count + dismissed_candidate_count
+
+    asset_counter: Counter[str] = Counter()
+    for row in feedback_rows:
+        for code in row.reason_codes or []:
+            for asset_code in REASON_TO_ASSET_CODES.get(str(code).strip(), []):
+                asset_counter[asset_code] += 1
+    for row in candidate_rows:
+        for code in row.source_feedback_reason_codes or []:
+            for asset_code in REASON_TO_ASSET_CODES.get(str(code).strip(), []):
+                asset_counter[asset_code] += 1
+
+    return build_phase_six_feedback_linked_scoring_snapshot(
+        adopted_count=adopted_count,
+        needs_revision_count=needs_revision_count,
+        not_adopted_count=not_adopted_count,
+        template_candidate_count=template_candidate_count,
+        governed_candidate_count=governed_candidate_count,
+        promoted_candidate_count=promoted_candidate_count,
+        dismissed_candidate_count=dismissed_candidate_count,
+        override_signal_count=override_signal_count,
+        top_asset_codes=[code for code, _ in asset_counter.most_common(3)],
+    )
 
 
 def _serialize_preferences(
@@ -518,6 +562,7 @@ def get_phase_six_completion_review(
     db: Session,
 ) -> schemas.PhaseSixCompletionReviewResponse:
     closure_review = get_phase_six_closure_criteria_review(db)
+    feedback_snapshot = _build_phase_six_feedback_linked_snapshot(db)
     checkpoint_state = (
         _get_phase_review_row(db, extension_id=PHASE_6_GENERALIST_GOVERNANCE_ID).payload
         if _get_phase_review_row(db, extension_id=PHASE_6_GENERALIST_GOVERNANCE_ID)
@@ -525,6 +570,7 @@ def get_phase_six_completion_review(
     )
     return build_phase_six_completion_review(
         closure_review=closure_review,
+        feedback_snapshot=feedback_snapshot,
         checkpoint_state=checkpoint_state,
     )
 
@@ -559,6 +605,8 @@ def checkpoint_phase_six_completion_review(
         "checkpointed_by_label": operator_label,
         "overall_score": current.overall_score,
         "scorecard_items": [item.model_dump() for item in current.scorecard_items],
+        "feedback_linked_summary": current.feedback_linked_summary,
+        "feedback_linked_scoring_snapshot": current.feedback_linked_scoring_snapshot.model_dump(),
         "review_posture": current.review_posture,
         "closure_posture": current.closure_posture,
     }

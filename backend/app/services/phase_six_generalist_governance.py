@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Iterable
 
+from app.services.feedback_optimization_intelligence import OPTIMIZATION_ASSET_LABELS
 from app.workbench import schemas
 
 REUSE_WEIGHTING_RANK = {
@@ -220,6 +221,49 @@ def _resolve_calibration_status(
         "low_confidence",
         "低信心重用",
         "目前 domain lens 與 pack context 都偏薄，先把這條 reusable confidence 留在背景校正。",
+    )
+
+
+def build_phase_six_feedback_linked_scoring_snapshot(
+    *,
+    adopted_count: int,
+    needs_revision_count: int,
+    not_adopted_count: int,
+    template_candidate_count: int,
+    governed_candidate_count: int,
+    promoted_candidate_count: int,
+    dismissed_candidate_count: int,
+    override_signal_count: int,
+    top_asset_codes: list[str],
+) -> schemas.PhaseSixFeedbackLinkedScoringSnapshotRead:
+    normalized_top_asset_codes: list[str] = []
+    for code in top_asset_codes:
+        normalized = str(code).strip()
+        if not normalized or normalized in normalized_top_asset_codes:
+            continue
+        normalized_top_asset_codes.append(normalized)
+
+    top_asset_labels = [
+        OPTIMIZATION_ASSET_LABELS[item]
+        for item in normalized_top_asset_codes
+        if item in OPTIMIZATION_ASSET_LABELS
+    ]
+    summary = (
+        f"已採用 {adopted_count}｜需改寫 {needs_revision_count}｜不採用 {not_adopted_count}"
+        f"｜主要影響 {'、'.join(top_asset_labels[:2]) or '既有 reusable assets'}。"
+    )
+    return schemas.PhaseSixFeedbackLinkedScoringSnapshotRead(
+        adopted_count=adopted_count,
+        needs_revision_count=needs_revision_count,
+        not_adopted_count=not_adopted_count,
+        template_candidate_count=template_candidate_count,
+        governed_candidate_count=governed_candidate_count,
+        promoted_candidate_count=promoted_candidate_count,
+        dismissed_candidate_count=dismissed_candidate_count,
+        override_signal_count=override_signal_count,
+        top_asset_codes=normalized_top_asset_codes[:3],
+        top_asset_labels=top_asset_labels[:3],
+        summary=summary,
     )
 
 
@@ -495,16 +539,35 @@ def build_phase_six_closure_criteria_review(
 def build_phase_six_completion_review(
     *,
     closure_review: schemas.PhaseSixClosureCriteriaReviewResponse,
+    feedback_snapshot: schemas.PhaseSixFeedbackLinkedScoringSnapshotRead | None = None,
     checkpoint_state: dict | None = None,
 ) -> schemas.PhaseSixCompletionReviewResponse:
     runtime_score = 84
     propagation_score = 86
+    computed_feedback_snapshot = feedback_snapshot or build_phase_six_feedback_linked_scoring_snapshot(
+        adopted_count=0,
+        needs_revision_count=0,
+        not_adopted_count=0,
+        template_candidate_count=0,
+        governed_candidate_count=0,
+        promoted_candidate_count=0,
+        dismissed_candidate_count=0,
+        override_signal_count=0,
+        top_asset_codes=[],
+    )
+    positive_feedback_count = (
+        computed_feedback_snapshot.adopted_count
+        + computed_feedback_snapshot.template_candidate_count
+        + computed_feedback_snapshot.promoted_candidate_count
+    )
     feedback_loop_score = (
-        82
-        if closure_review.feedback_signal_count >= 3 and closure_review.governed_outcome_count >= 2
-        else 64
-        if closure_review.feedback_signal_count > 0 or closure_review.governed_outcome_count > 0
-        else 38
+        84
+        if positive_feedback_count >= 4 and computed_feedback_snapshot.override_signal_count <= 1
+        else 68
+        if positive_feedback_count > 0
+        or computed_feedback_snapshot.needs_revision_count > 0
+        or computed_feedback_snapshot.governed_candidate_count > 0
+        else 42
     )
     completion_foundation_score = (
         88 if closure_review.closure_posture == "ready_for_completion_review" else 72
@@ -529,7 +592,10 @@ def build_phase_six_completion_review(
             dimension_label="feedback loop",
             score=feedback_loop_score,
             status_label="已開始形成" if feedback_loop_score >= 60 else "仍需加深",
-            summary=closure_review.feedback_loop_summary,
+            summary=(
+                f"{computed_feedback_snapshot.summary}"
+                f"｜governed candidates {computed_feedback_snapshot.governed_candidate_count}。"
+            ),
         ),
         schemas.PhaseSixCompletionScorecardItemRead(
             dimension_code="completion_foundation",
@@ -557,6 +623,19 @@ def build_phase_six_completion_review(
             )
         )
     scorecard_items = persisted_scorecard_items or computed_scorecard_items
+    persisted_feedback_snapshot = (
+        schemas.PhaseSixFeedbackLinkedScoringSnapshotRead.model_validate(
+            checkpoint_state.get("feedback_linked_scoring_snapshot", {})
+        )
+        if checkpoint_state and checkpoint_state.get("feedback_linked_scoring_snapshot")
+        else None
+    )
+    effective_feedback_snapshot = persisted_feedback_snapshot or computed_feedback_snapshot
+    feedback_linked_summary = (
+        str(checkpoint_state.get("feedback_linked_summary", "")).strip()
+        if checkpoint_state and checkpoint_state.get("feedback_linked_summary")
+        else effective_feedback_snapshot.summary
+    )
     overall_score = (
         int(checkpoint_state.get("overall_score"))
         if checkpoint_state and checkpoint_state.get("overall_score") is not None
@@ -615,6 +694,8 @@ def build_phase_six_completion_review(
         ),
         overall_score=overall_score,
         scorecard_items=scorecard_items,
+        feedback_linked_summary=feedback_linked_summary,
+        feedback_linked_scoring_snapshot=effective_feedback_snapshot,
         closure_posture=closure_review.closure_posture,
         closure_posture_label=closure_review.closure_posture_label,
         checkpoint_summary=checkpoint_summary,

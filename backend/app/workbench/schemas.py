@@ -545,6 +545,20 @@ class PhaseSixCompletionScorecardItemRead(BaseModel):
     summary: str = ""
 
 
+class PhaseSixFeedbackLinkedScoringSnapshotRead(BaseModel):
+    adopted_count: int = 0
+    needs_revision_count: int = 0
+    not_adopted_count: int = 0
+    template_candidate_count: int = 0
+    governed_candidate_count: int = 0
+    promoted_candidate_count: int = 0
+    dismissed_candidate_count: int = 0
+    override_signal_count: int = 0
+    top_asset_codes: list[str] = Field(default_factory=list)
+    top_asset_labels: list[str] = Field(default_factory=list)
+    summary: str = ""
+
+
 class PhaseSixCompletionReviewResponse(BaseModel):
     phase_id: Literal["phase_6"] = "phase_6"
     phase_label: str = ""
@@ -553,6 +567,10 @@ class PhaseSixCompletionReviewResponse(BaseModel):
     summary: str = ""
     overall_score: int = 0
     scorecard_items: list[PhaseSixCompletionScorecardItemRead] = Field(default_factory=list)
+    feedback_linked_summary: str = ""
+    feedback_linked_scoring_snapshot: PhaseSixFeedbackLinkedScoringSnapshotRead = Field(
+        default_factory=PhaseSixFeedbackLinkedScoringSnapshotRead
+    )
     closure_posture: str = ""
     closure_posture_label: str = ""
     checkpoint_summary: str = ""
