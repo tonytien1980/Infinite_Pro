@@ -429,6 +429,7 @@ Infinite Pro 正式採：
 - guidance posture 也只可作為 low-noise consultant-facing guidance note，不可長成顧問分級面板或 training shell
 - context distance / reuse confidence 也只可作為 low-noise reuse-confidence reading，不可長成 confidence dashboard
 - confidence calibration 也只可作為 low-noise calibration reading，不可長成 calibration dashboard
+- calibration-aware reuse weighting 若已 shipped，也只可折回既有 `Host weighting` 摘要，不可再長出新的 weighting 區塊牆
 - 若 confidence calibration 已 propagation 到 task / matter / deliverable，第一波也只可補在既有 second-layer cards 內，不可新增 calibration 區塊牆
 - 若 reuse confidence 已 propagation 到 task / matter / deliverable，第一波也只可補在既有 second-layer cards 內，不可新增 confidence 區塊牆
 - 若 guidance posture 已 propagation 到 task / matter / deliverable，第一波也只可補在既有 second-layer cards 內，不可額外長出 Phase 6 區塊牆

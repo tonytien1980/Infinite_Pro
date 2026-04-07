@@ -4231,6 +4231,20 @@ Environment used:
 - `confidence_calibration_signal` no longer only lives on the homepage; it now flows through the existing task / matter / deliverable work-surface contracts
 - Phase 6 can now express guidance posture, reuse-confidence reading, and confidence calibration inside existing second-layer cards without creating a new governance page
 
+### Phase-6 calibration-aware reuse weighting verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | `/workbench/phase-6-calibration-aware-weighting` | Return calibration-aware Host weighting read model | Verified | targeted backend tests confirm the new route returns `phase_6`, weighting posture, host weighting summary, and a `domain_lens` item marked `background_only` |
+| Backend | `select_weighted_precedent_reference_items` | Demote reusable matches when calibration is misaligned | Verified | targeted backend tests confirm a `domain_lens` mismatch no longer survives ahead of aligned `domain_playbook` sources |
+| Frontend | `phase-six-governance` helper copy | Keep calibration-aware weighting summary low-noise and consultant-readable | Verified | node helper tests confirm the new summary reads as `client stage：先保留邊界｜domain lens：先留背景校正` |
+| Frontend | `/` | Keep calibration-aware weighting folded into existing `Host weighting` summary | Verified | typecheck/build pass after wiring the new route into the existing `Generalist Governance` Host weighting block without adding a new governance card wall |
+
+### Verified outcomes
+
+- Host reusable ordering no longer stops at shared-intelligence weight plus reuse-boundary recommendation; it now also reads `client stage / client type / domain lens` calibration
+- `domain lens` mismatch is now treated as a stronger background-only signal, while `client stage / client type` mismatch prevents sources from staying in `can_expand`
+
 ### Explicitly not shipped in this pass
 
 - `Personal Provider Settings`

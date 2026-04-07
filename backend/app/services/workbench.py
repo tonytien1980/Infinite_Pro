@@ -33,6 +33,7 @@ from app.services.phase_five_closure_review import (
 )
 from app.services.phase_six_generalist_governance import (
     build_phase_six_capability_coverage_audit,
+    build_phase_six_calibration_aware_weighting,
     build_phase_six_confidence_calibration,
     build_phase_six_context_distance_audit,
     build_phase_six_generalist_guidance_posture,
@@ -503,3 +504,10 @@ def get_phase_six_confidence_calibration(
 ) -> schemas.PhaseSixConfidenceCalibrationResponse:
     del db
     return build_phase_six_confidence_calibration()
+
+
+def get_phase_six_calibration_aware_weighting(
+    db: Session,
+) -> schemas.PhaseSixCalibrationAwareWeightingResponse:
+    del db
+    return build_phase_six_calibration_aware_weighting()

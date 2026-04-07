@@ -473,6 +473,28 @@ export interface PhaseSixConfidenceCalibration {
   recommendedNextStep: string;
 }
 
+export interface PhaseSixCalibrationAwareWeightingItem {
+  axisKind: "client_stage" | "client_type" | "domain_lens";
+  axisLabel: string;
+  calibrationStatus: "aligned" | "caution" | "mismatch";
+  calibrationStatusLabel: string;
+  weightingEffect: "allow_expand" | "keep_contextual" | "background_only";
+  weightingEffectLabel: string;
+  summary: string;
+}
+
+export interface PhaseSixCalibrationAwareWeighting {
+  phaseId: "phase_6";
+  phaseLabel: string;
+  weightingPosture: "calibrated_ordering" | "watch_mismatch";
+  weightingPostureLabel: string;
+  summary: string;
+  hostWeightingSummary: string;
+  hostWeightingGuardrailNote: string;
+  weightingItems: PhaseSixCalibrationAwareWeightingItem[];
+  recommendedNextStep: string;
+}
+
 export interface GeneralistGuidancePosture {
   guidance_posture: "light_guidance" | "balanced_guidance" | "guarded_guidance";
   guidance_posture_label: string;

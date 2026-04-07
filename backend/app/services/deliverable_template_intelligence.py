@@ -196,6 +196,9 @@ def build_deliverable_template_guidance(
                 weight_action=matched.shared_intelligence_signal.weight_action,
                 stability=matched.shared_intelligence_signal.stability,
                 strength=matched.optimization_signal.strength,
+                client_stage_alignment=matched.client_stage_alignment,
+                client_type_alignment=matched.client_type_alignment,
+                domain_lens_alignment=matched.domain_lens_alignment,
             )
             feedback_decay_summary = build_feedback_linked_decay_summary(
                 matched.source_feedback_status,

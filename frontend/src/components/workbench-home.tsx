@@ -12,6 +12,7 @@ import {
   getFirmOperatingSnapshot,
   getPhaseFiveClosureReview,
   getPhaseSixCapabilityCoverageAudit,
+  getPhaseSixCalibrationAwareWeighting,
   getPhaseSixConfidenceCalibration,
   getPhaseSixContextDistanceAudit,
   getPhaseSixGeneralistGuidancePosture,
@@ -35,13 +36,13 @@ import {
   labelForPhaseSixGovernancePosture,
   labelForPhaseSixReuseConfidence,
   labelForPhaseSixReuseRecommendation,
+  summarizePhaseSixCalibrationAwareWeightingItems,
   summarizePhaseSixCalibrationItems,
   summarizePhaseSixCoverageAreas,
   summarizePhaseSixDistanceItems,
   summarizePhaseSixGuidanceItems,
   summarizePhaseSixGovernanceItems,
   summarizePhaseSixWorkGuidance,
-  summarizePhaseSixHostWeighting,
   summarizePhaseSixReuseBoundaryItems,
 } from "@/lib/phase-six-governance";
 import { truncateText } from "@/lib/text-format";
@@ -51,6 +52,7 @@ import type {
   MatterWorkspaceSummary,
   PhaseFiveClosureReview,
   PhaseSixCapabilityCoverageAudit,
+  PhaseSixCalibrationAwareWeighting,
   PhaseSixConfidenceCalibration,
   PhaseSixContextDistanceAudit,
   PhaseSixGeneralistGuidancePosture,
@@ -124,6 +126,8 @@ export function WorkbenchHome() {
   const [firmOperating, setFirmOperating] = useState<FirmOperatingSnapshot | null>(null);
   const [phaseFiveClosureReview, setPhaseFiveClosureReview] = useState<PhaseFiveClosureReview | null>(null);
   const [phaseSixAudit, setPhaseSixAudit] = useState<PhaseSixCapabilityCoverageAudit | null>(null);
+  const [phaseSixCalibrationWeighting, setPhaseSixCalibrationWeighting] =
+    useState<PhaseSixCalibrationAwareWeighting | null>(null);
   const [phaseSixCalibration, setPhaseSixCalibration] = useState<PhaseSixConfidenceCalibration | null>(null);
   const [phaseSixDistance, setPhaseSixDistance] = useState<PhaseSixContextDistanceAudit | null>(null);
   const [phaseSixGovernance, setPhaseSixGovernance] = useState<PhaseSixReuseBoundaryGovernance | null>(null);
@@ -136,6 +140,7 @@ export function WorkbenchHome() {
   const [firmOperatingLoading, setFirmOperatingLoading] = useState(true);
   const [phaseFiveClosureLoading, setPhaseFiveClosureLoading] = useState(true);
   const [phaseSixAuditLoading, setPhaseSixAuditLoading] = useState(true);
+  const [phaseSixCalibrationWeightingLoading, setPhaseSixCalibrationWeightingLoading] = useState(true);
   const [phaseSixCalibrationLoading, setPhaseSixCalibrationLoading] = useState(true);
   const [phaseSixDistanceLoading, setPhaseSixDistanceLoading] = useState(true);
   const [phaseSixGovernanceLoading, setPhaseSixGovernanceLoading] = useState(true);
@@ -147,6 +152,8 @@ export function WorkbenchHome() {
   const [firmOperatingError, setFirmOperatingError] = useState<string | null>(null);
   const [phaseFiveClosureError, setPhaseFiveClosureError] = useState<string | null>(null);
   const [phaseSixAuditError, setPhaseSixAuditError] = useState<string | null>(null);
+  const [phaseSixCalibrationWeightingError, setPhaseSixCalibrationWeightingError] =
+    useState<string | null>(null);
   const [phaseSixCalibrationError, setPhaseSixCalibrationError] = useState<string | null>(null);
   const [phaseSixDistanceError, setPhaseSixDistanceError] = useState<string | null>(null);
   const [phaseSixGovernanceError, setPhaseSixGovernanceError] = useState<string | null>(null);
@@ -252,6 +259,22 @@ export function WorkbenchHome() {
     }
   }
 
+  async function refreshPhaseSixCalibrationWeighting() {
+    try {
+      setPhaseSixCalibrationWeightingLoading(true);
+      setPhaseSixCalibrationWeightingError(null);
+      setPhaseSixCalibrationWeighting(await getPhaseSixCalibrationAwareWeighting());
+    } catch (weightingError) {
+      setPhaseSixCalibrationWeightingError(
+        weightingError instanceof Error
+          ? weightingError.message
+          : "載入 calibration-aware Host weighting 摘要失敗。",
+      );
+    } finally {
+      setPhaseSixCalibrationWeightingLoading(false);
+    }
+  }
+
   async function refreshPhaseSixGovernance() {
     try {
       setPhaseSixGovernanceLoading(true);
@@ -307,6 +330,7 @@ export function WorkbenchHome() {
     void refreshFirmOperating();
     void refreshPhaseFiveClosureReview();
     void refreshPhaseSixAudit();
+    void refreshPhaseSixCalibrationWeighting();
     void refreshPhaseSixCalibration();
     void refreshPhaseSixDistance();
     void refreshPhaseSixGovernance();
@@ -520,6 +544,11 @@ export function WorkbenchHome() {
       {phaseSixCalibrationError ? (
         <p className="error-text" role="alert" aria-live="assertive">
           {phaseSixCalibrationError}
+        </p>
+      ) : null}
+      {phaseSixCalibrationWeightingError ? (
+        <p className="error-text" role="alert" aria-live="assertive">
+          {phaseSixCalibrationWeightingError}
         </p>
       ) : null}
       {phaseSixDistanceError ? (
@@ -960,12 +989,29 @@ export function WorkbenchHome() {
                     </div>
                   ) : null}
 
-                  {!phaseSixGovernanceLoading && phaseSixGovernance ? (
+                  {phaseSixCalibrationWeightingLoading ? (
+                    <p className="status-text" style={{ marginTop: "16px" }}>
+                      正在整理 calibration-aware Host weighting...
+                    </p>
+                  ) : null}
+
+                  {!phaseSixCalibrationWeightingLoading && phaseSixCalibrationWeighting ? (
                     <div className="section-card" style={{ marginTop: "16px" }}>
                       <h3>Host weighting</h3>
-                      <strong>{summarizePhaseSixHostWeighting(phaseSixGovernance)}</strong>
+                      <p className="muted-text">
+                        {phaseSixCalibrationWeighting.weightingPostureLabel}
+                      </p>
+                      <strong>{phaseSixCalibrationWeighting.hostWeightingSummary}</strong>
                       <p className="muted-text" style={{ marginTop: "8px" }}>
-                        {phaseSixGovernance.hostWeightingGuardrailNote}
+                        {summarizePhaseSixCalibrationAwareWeightingItems(
+                          phaseSixCalibrationWeighting.weightingItems,
+                        )}
+                      </p>
+                      <p className="muted-text" style={{ marginTop: "8px" }}>
+                        {phaseSixCalibrationWeighting.hostWeightingGuardrailNote}
+                      </p>
+                      <p className="muted-text" style={{ marginTop: "12px" }}>
+                        {phaseSixCalibrationWeighting.recommendedNextStep}
                       </p>
                     </div>
                   ) : null}

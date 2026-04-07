@@ -861,6 +861,9 @@ class PrecedentReferenceItemRead(BaseModel):
     reusable_reason: str = ""
     match_reason: str = ""
     safe_use_note: str = ""
+    client_stage_alignment: Literal["matched", "mismatch", "unknown"] = "unknown"
+    client_type_alignment: Literal["matched", "mismatch", "unknown"] = "unknown"
+    domain_lens_alignment: Literal["matched", "mismatch", "unknown"] = "unknown"
     source_task_id: str
     source_deliverable_id: str | None = None
     source_recommendation_id: str | None = None

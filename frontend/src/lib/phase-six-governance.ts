@@ -1,4 +1,5 @@
 import type {
+  PhaseSixCalibrationAwareWeightingItem,
   PhaseSixCoverageArea,
   PhaseSixConfidenceCalibrationItem,
   PhaseSixContextDistanceItem,
@@ -187,5 +188,17 @@ export function summarizePhaseSixCalibrationItems(
   return items
     .slice(0, 2)
     .map((item) => `${item.axisLabel}：${item.calibrationStatusLabel}`)
+    .join("｜");
+}
+
+export function summarizePhaseSixCalibrationAwareWeightingItems(
+  items: PhaseSixCalibrationAwareWeightingItem[],
+) {
+  if (items.length === 0) {
+    return "目前還沒有可讀取的 calibration-aware weighting signal。";
+  }
+  return items
+    .slice(0, 2)
+    .map((item) => `${item.axisLabel}：${item.weightingEffectLabel}`)
     .join("｜");
 }

@@ -328,7 +328,65 @@ def build_phase_six_confidence_calibration(
         ),
         calibration_items=calibration_items,
         recommended_next_step=(
-            "若要繼續往下走，下一刀應把這些 calibration axes 更正式接進 context-distance propagation，而不是只停在首頁。"
+            "若要繼續往下走，下一刀應把這些 calibration axes 更正式接進 Host 的 reusable ordering，而不是只停在首頁。"
+        ),
+    )
+
+
+def build_phase_six_calibration_aware_weighting(
+    *,
+    calibration: schemas.PhaseSixConfidenceCalibrationResponse | None = None,
+) -> schemas.PhaseSixCalibrationAwareWeightingResponse:
+    source_calibration = calibration or build_phase_six_confidence_calibration()
+    weighting_items: list[schemas.PhaseSixCalibrationAwareWeightingItemRead] = []
+
+    for item in source_calibration.calibration_items:
+        if item.axis_kind == "domain_lens" and item.calibration_status == "mismatch":
+            weighting_effect = "background_only"
+            weighting_effect_label = "先留背景校正"
+            summary = "domain lens 不對齊時，就算共享訊號穩，也先不要讓這類來源單獨帶主線。"
+        elif item.calibration_status == "caution":
+            weighting_effect = "keep_contextual"
+            weighting_effect_label = "先保留邊界"
+            summary = "這條 calibration axis 若仍有距離，Host 應把 reusable source 留在 contextual reuse。"
+        else:
+            weighting_effect = "allow_expand"
+            weighting_effect_label = "可維持擴大重用"
+            summary = "這條 calibration axis 目前較對齊，不需要額外拉低 reusable ordering。"
+
+        weighting_items.append(
+            schemas.PhaseSixCalibrationAwareWeightingItemRead(
+                axis_kind=item.axis_kind,
+                axis_label=item.axis_label,
+                calibration_status=item.calibration_status,
+                calibration_status_label=item.calibration_status_label,
+                weighting_effect=weighting_effect,
+                weighting_effect_label=weighting_effect_label,
+                summary=summary,
+            )
+        )
+
+    has_background_only = any(
+        item.weighting_effect == "background_only" for item in weighting_items
+    )
+    return schemas.PhaseSixCalibrationAwareWeightingResponse(
+        phase_id="phase_6",
+        phase_label="Generalist Consulting Intelligence Governance",
+        weighting_posture="watch_mismatch" if has_background_only else "calibrated_ordering",
+        weighting_posture_label="仍需看 mismatch" if has_background_only else "已接入 ordering",
+        summary=(
+            "phase 6 現在已把 confidence calibration 接回 Host ordering："
+            "domain lens mismatch 先退背景，stage / type mismatch 不再直接視為可擴大重用。"
+        ),
+        host_weighting_summary=(
+            "Host 現在會先看 domain lens 是否對齊；若不對齊，就算 shared intelligence 穩，也先留背景校正。"
+        ),
+        host_weighting_guardrail_note=(
+            "這一刀仍是 soft ordering，不做 hard block；最終仍由 Host 依當前案件證據與限制收斂。"
+        ),
+        weighting_items=weighting_items,
+        recommended_next_step=(
+            "若要繼續往下走，下一刀應把 calibration-aware weighting 再更正式地回寫到 second-layer reuse note。"
         ),
     )
 
@@ -340,6 +398,9 @@ def recommend_phase_six_reuse_weighting(
     weight_action: str,
     stability: str,
     strength: str,
+    client_stage_alignment: str = "unknown",
+    client_type_alignment: str = "unknown",
+    domain_lens_alignment: str = "unknown",
 ) -> tuple[str, str, str, int]:
     codes = set(reason_codes or [])
 
@@ -388,5 +449,17 @@ def recommend_phase_six_reuse_weighting(
         recommendation = "keep_contextual"
         label = "維持局部參考"
         note = "這筆模式可作為局部提示，但仍需搭配當前案件脈絡收斂。"
+
+    if domain_lens_alignment == "mismatch":
+        recommendation = "restrict_narrow_use"
+        label = "不要擴大套用"
+        note = "這筆模式與目前案件的 domain lens 不對齊，先留在背景校正，不要讓它直接帶主線。"
+    elif (
+        recommendation == "can_expand"
+        and "mismatch" in {client_stage_alignment, client_type_alignment}
+    ):
+        recommendation = "keep_contextual"
+        label = "維持局部參考"
+        note = "這筆模式雖然共享訊號穩，但 client stage / client type 仍未完全對齊，先保留邊界再重用。"
 
     return recommendation, label, note, REUSE_WEIGHTING_RANK[recommendation]

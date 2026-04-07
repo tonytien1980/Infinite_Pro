@@ -11,6 +11,7 @@ import {
   labelForPhaseSixReuseConfidence,
   labelForPhaseSixReuseRecommendation,
   summarizePhaseSixCalibrationItems,
+  summarizePhaseSixCalibrationAwareWeightingItems,
   summarizePhaseSixDistanceItems,
   summarizePhaseSixGuidanceItems,
   summarizePhaseSixHostWeighting,
@@ -125,5 +126,31 @@ test("phase 6 confidence calibration labels stay low-noise and readable", () => 
       },
     ]),
     "client stage：需要留意｜domain lens：仍有不對齊",
+  );
+});
+
+test("phase 6 calibration-aware weighting summary stays low-noise and readable", () => {
+  assert.equal(
+    summarizePhaseSixCalibrationAwareWeightingItems([
+      {
+        axisKind: "client_stage",
+        axisLabel: "client stage",
+        calibrationStatus: "caution",
+        calibrationStatusLabel: "需要留意",
+        weightingEffect: "keep_contextual",
+        weightingEffectLabel: "先保留邊界",
+        summary: "client stage 不同時，先不要直接視為可擴大重用。",
+      },
+      {
+        axisKind: "domain_lens",
+        axisLabel: "domain lens",
+        calibrationStatus: "mismatch",
+        calibrationStatusLabel: "仍有不對齊",
+        weightingEffect: "background_only",
+        weightingEffectLabel: "先留背景校正",
+        summary: "domain lens 不對齊時，先退到背景校正。",
+      },
+    ]),
+    "client stage：先保留邊界｜domain lens：先留背景校正",
   );
 });

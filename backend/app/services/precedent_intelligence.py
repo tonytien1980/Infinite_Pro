@@ -71,6 +71,9 @@ class PrecedentReferenceMatch:
     shared_intelligence_signal: schemas.SharedIntelligenceSignalRead
     match_reason: str
     safe_use_note: str
+    client_stage_alignment: str
+    client_type_alignment: str
+    domain_lens_alignment: str
     score: int
 
 
@@ -433,6 +436,9 @@ def select_weighted_precedent_reference_items(
             weight_action=item.shared_intelligence_signal.weight_action,
             stability=item.shared_intelligence_signal.stability,
             strength=item.optimization_signal.strength,
+            client_stage_alignment=item.client_stage_alignment,
+            client_type_alignment=item.client_type_alignment,
+            domain_lens_alignment=item.domain_lens_alignment,
         )[0]
         != "restrict_narrow_use"
     ]
@@ -447,6 +453,9 @@ def select_weighted_precedent_reference_items(
                 weight_action=item.shared_intelligence_signal.weight_action,
                 stability=item.shared_intelligence_signal.stability,
                 strength=item.optimization_signal.strength,
+                client_stage_alignment=item.client_stage_alignment,
+                client_type_alignment=item.client_type_alignment,
+                domain_lens_alignment=item.domain_lens_alignment,
             )[3],
             SHARED_INTELLIGENCE_WEIGHT_RANK[item.shared_intelligence_signal.weight_action],
             SHARED_INTELLIGENCE_MATURITY_RANK[item.shared_intelligence_signal.maturity],
@@ -542,6 +551,13 @@ def select_precedent_reference_matches(
             reasons.append("交付型態一致")
 
         overlapping_lenses = sorted(normalized_domain_lenses.intersection(candidate.domain_lenses or []))
+        domain_lens_alignment = (
+            "matched"
+            if normalized_domain_lenses and candidate.domain_lenses and overlapping_lenses
+            else "mismatch"
+            if normalized_domain_lenses and candidate.domain_lenses
+            else "unknown"
+        )
         if overlapping_lenses:
             score += 3
             reasons.append(f"同樣聚焦「{'、'.join(overlapping_lenses[:2])}」")
@@ -551,10 +567,24 @@ def select_precedent_reference_matches(
             score += 2
             reasons.append("套用的模組包高度重疊")
 
-        if client_stage and candidate.client_stage and candidate.client_stage == client_stage:
+        client_stage_alignment = (
+            "matched"
+            if client_stage and candidate.client_stage and candidate.client_stage == client_stage
+            else "mismatch"
+            if client_stage and candidate.client_stage
+            else "unknown"
+        )
+        if client_stage_alignment == "matched":
             score += 1
             reasons.append("客戶階段一致")
-        if client_type and candidate.client_type and candidate.client_type == client_type:
+        client_type_alignment = (
+            "matched"
+            if client_type and candidate.client_type and candidate.client_type == client_type
+            else "mismatch"
+            if client_type and candidate.client_type
+            else "unknown"
+        )
+        if client_type_alignment == "matched":
             score += 1
             reasons.append("客戶型態一致")
         if continuity_mode and candidate.continuity_mode == continuity_mode:
@@ -599,6 +629,9 @@ def select_precedent_reference_matches(
                     candidate.candidate_type,
                     candidate_reason_codes(candidate),
                 ),
+                client_stage_alignment=client_stage_alignment,
+                client_type_alignment=client_type_alignment,
+                domain_lens_alignment=domain_lens_alignment,
                 score=score,
             )
         )

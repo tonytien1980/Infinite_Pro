@@ -51,6 +51,7 @@ import {
   PersonalProviderSettingsPayload,
   PhaseFiveClosureReview,
   PhaseSixCapabilityCoverageAudit,
+  PhaseSixCalibrationAwareWeighting,
   PhaseSixConfidenceCalibration,
   PhaseSixContextDistanceAudit,
   PhaseSixGeneralistGuidancePosture,
@@ -292,6 +293,16 @@ export async function getPhaseSixConfidenceCalibration(): Promise<PhaseSixConfid
     },
   );
   return parsePhaseSixConfidenceCalibrationPayload(await parseResponse<any>(response));
+}
+
+export async function getPhaseSixCalibrationAwareWeighting(): Promise<PhaseSixCalibrationAwareWeighting> {
+  const response = await apiFetch(
+    `${getApiBaseUrl()}/workbench/phase-6-calibration-aware-weighting`,
+    {
+      cache: "no-store",
+    },
+  );
+  return parsePhaseSixCalibrationAwareWeightingPayload(await parseResponse<any>(response));
 }
 
 export async function signOffPhaseFive(
@@ -1117,6 +1128,50 @@ function parsePhaseSixConfidenceCalibrationPayload(
           reuseConfidenceLabel: item.reuse_confidence_label || "",
           summary: item.summary || "",
           guardrailNote: item.guardrail_note || "",
+        }))
+      : [],
+    recommendedNextStep: payload.recommended_next_step || "",
+  };
+}
+
+function parsePhaseSixCalibrationAwareWeightingPayload(
+  payload: any,
+): PhaseSixCalibrationAwareWeighting {
+  return {
+    phaseId: "phase_6",
+    phaseLabel: payload.phase_label || "",
+    weightingPosture:
+      payload.weighting_posture === "calibrated_ordering"
+        ? "calibrated_ordering"
+        : "watch_mismatch",
+    weightingPostureLabel: payload.weighting_posture_label || "",
+    summary: payload.summary || "",
+    hostWeightingSummary: payload.host_weighting_summary || "",
+    hostWeightingGuardrailNote: payload.host_weighting_guardrail_note || "",
+    weightingItems: Array.isArray(payload.weighting_items)
+      ? payload.weighting_items.map((item: any) => ({
+          axisKind:
+            item.axis_kind === "client_type"
+              ? "client_type"
+              : item.axis_kind === "domain_lens"
+                ? "domain_lens"
+                : "client_stage",
+          axisLabel: item.axis_label || "",
+          calibrationStatus:
+            item.calibration_status === "aligned"
+              ? "aligned"
+              : item.calibration_status === "mismatch"
+                ? "mismatch"
+                : "caution",
+          calibrationStatusLabel: item.calibration_status_label || "",
+          weightingEffect:
+            item.weighting_effect === "allow_expand"
+              ? "allow_expand"
+              : item.weighting_effect === "background_only"
+                ? "background_only"
+                : "keep_contextual",
+          weightingEffectLabel: item.weighting_effect_label || "",
+          summary: item.summary || "",
         }))
       : [],
     recommendedNextStep: payload.recommended_next_step || "",

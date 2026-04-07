@@ -239,6 +239,9 @@ def build_domain_playbook_guidance(
                 weight_action=top_match.shared_intelligence_signal.weight_action,
                 stability=top_match.shared_intelligence_signal.stability,
                 strength=top_match.optimization_signal.strength,
+                client_stage_alignment=top_match.client_stage_alignment,
+                client_type_alignment=top_match.client_type_alignment,
+                domain_lens_alignment=top_match.domain_lens_alignment,
             )
             feedback_decay_summary = build_feedback_linked_decay_summary(
                 top_match.source_feedback_status,

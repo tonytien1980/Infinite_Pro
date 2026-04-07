@@ -728,6 +728,32 @@ def test_matter_workspace_exposes_confidence_calibration_signal(
     assert payload["confidence_calibration_signal"]["calibration_items"]
 
 
+def test_owner_can_read_phase_six_calibration_aware_weighting(client: TestClient) -> None:
+    response = client.get("/api/v1/workbench/phase-6-calibration-aware-weighting")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["phase_id"] == "phase_6"
+    assert payload["weighting_posture"] in {"calibrated_ordering", "watch_mismatch"}
+    assert payload["host_weighting_summary"]
+    assert payload["weighting_items"]
+    assert payload["recommended_next_step"]
+
+
+def test_phase_six_calibration_aware_weighting_marks_domain_lens_background_only(
+    client: TestClient,
+) -> None:
+    response = client.get("/api/v1/workbench/phase-6-calibration-aware-weighting")
+
+    assert response.status_code == 200
+    payload = response.json()
+    domain_lens_items = [
+        item for item in payload["weighting_items"] if item["axis_kind"] == "domain_lens"
+    ]
+    assert domain_lens_items
+    assert domain_lens_items[0]["weighting_effect"] == "background_only"
+
+
 def test_consultant_cannot_sign_off_phase_five(
     anonymous_client: TestClient,
     monkeypatch: pytest.MonkeyPatch,
@@ -6202,6 +6228,9 @@ def _test_precedent_reference_item(
     optimization_asset_labels: list[str],
     source_feedback_status: AdoptionFeedbackStatus = AdoptionFeedbackStatus.TEMPLATE_CANDIDATE,
     source_deliverable_id: str | None = None,
+    client_stage_alignment: str = "unknown",
+    client_type_alignment: str = "unknown",
+    domain_lens_alignment: str = "unknown",
 ) -> schemas.PrecedentReferenceItemRead:
     return schemas.PrecedentReferenceItemRead(
         candidate_id=candidate_id,
@@ -6228,6 +6257,9 @@ def _test_precedent_reference_item(
         reusable_reason=f"{title} reusable reason",
         match_reason=f"{title} 和這輪主線高度相似。",
         safe_use_note="只可拿來參考模式，不可直接複製舊案內容。",
+        client_stage_alignment=client_stage_alignment,
+        client_type_alignment=client_type_alignment,
+        domain_lens_alignment=domain_lens_alignment,
         source_task_id="task-precedent",
         source_deliverable_id=source_deliverable_id,
     )
@@ -6368,6 +6400,57 @@ def test_host_aware_reuse_weighting_prefers_expandable_playbook_matches() -> Non
         "candidate-expandable",
         "candidate-contextual",
     ]
+
+
+def test_calibration_aware_weighting_demotes_domain_lens_mismatch() -> None:
+    from app.services.precedent_intelligence import select_weighted_precedent_reference_items
+
+    aligned = _test_precedent_reference_item(
+        candidate_id="candidate-aligned",
+        title="同脈絡工作主線",
+        reason_codes=["reusable_action_pattern"],
+        shared_signal=_test_shared_signal(
+            maturity="shared",
+            maturity_label="已接近共享模式",
+            weight_action="upweight",
+            weight_action_label="提高參考",
+            stability="stable",
+            stability_label="已站穩共享模式",
+        ),
+        optimization_asset_codes=["domain_playbook"],
+        optimization_asset_labels=["工作主線"],
+        client_stage_alignment="matched",
+        client_type_alignment="matched",
+        domain_lens_alignment="matched",
+    )
+    mismatched = _test_precedent_reference_item(
+        candidate_id="candidate-mismatched",
+        title="跨 lens 工作主線",
+        reason_codes=["reusable_action_pattern"],
+        shared_signal=_test_shared_signal(
+            maturity="shared",
+            maturity_label="已接近共享模式",
+            weight_action="upweight",
+            weight_action_label="提高參考",
+            stability="stable",
+            stability_label="已站穩共享模式",
+        ),
+        optimization_asset_codes=["domain_playbook"],
+        optimization_asset_labels=["工作主線"],
+        client_stage_alignment="matched",
+        client_type_alignment="matched",
+        domain_lens_alignment="mismatch",
+    )
+
+    selected = select_weighted_precedent_reference_items(
+        schemas.PrecedentReferenceGuidanceRead(
+            status="available",
+            matched_items=[mismatched, aligned],
+        ),
+        asset_code="domain_playbook",
+    )
+
+    assert [item.candidate_id for item in selected] == ["candidate-aligned"]
 
 
 def test_shared_intelligence_signal_marks_promoted_shared_candidate_as_stable() -> None:

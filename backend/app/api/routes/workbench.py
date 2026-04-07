@@ -23,6 +23,7 @@ from app.services.workbench import (
     get_history_visibility_state,
     get_phase_five_closure_review,
     get_phase_six_capability_coverage_audit,
+    get_phase_six_calibration_aware_weighting,
     get_phase_six_confidence_calibration,
     get_phase_six_context_distance_audit,
     get_phase_six_generalist_guidance_posture,
@@ -163,6 +164,17 @@ def get_phase_six_confidence_calibration_route(
     db: Session = Depends(get_db),
 ) -> schemas.PhaseSixConfidenceCalibrationResponse:
     return get_phase_six_confidence_calibration(db)
+
+
+@router.get(
+    "/phase-6-calibration-aware-weighting",
+    response_model=schemas.PhaseSixCalibrationAwareWeightingResponse,
+)
+def get_phase_six_calibration_aware_weighting_route(
+    current_member=Depends(require_permission("access_firm_workspace")),
+    db: Session = Depends(get_db),
+) -> schemas.PhaseSixCalibrationAwareWeightingResponse:
+    return get_phase_six_calibration_aware_weighting(db)
 
 
 @router.get(

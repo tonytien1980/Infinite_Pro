@@ -558,6 +558,30 @@ class PhaseSixConfidenceCalibrationResponse(BaseModel):
     recommended_next_step: str = ""
 
 
+class PhaseSixCalibrationAwareWeightingItemRead(BaseModel):
+    axis_kind: Literal["client_stage", "client_type", "domain_lens"] = "client_stage"
+    axis_label: str = ""
+    calibration_status: Literal["aligned", "caution", "mismatch"] = "caution"
+    calibration_status_label: str = ""
+    weighting_effect: Literal["allow_expand", "keep_contextual", "background_only"] = (
+        "keep_contextual"
+    )
+    weighting_effect_label: str = ""
+    summary: str = ""
+
+
+class PhaseSixCalibrationAwareWeightingResponse(BaseModel):
+    phase_id: Literal["phase_6"] = "phase_6"
+    phase_label: str = ""
+    weighting_posture: Literal["calibrated_ordering", "watch_mismatch"] = "watch_mismatch"
+    weighting_posture_label: str = ""
+    summary: str = ""
+    host_weighting_summary: str = ""
+    host_weighting_guardrail_note: str = ""
+    weighting_items: list[PhaseSixCalibrationAwareWeightingItemRead] = Field(default_factory=list)
+    recommended_next_step: str = ""
+
+
 class SharedIntelligenceClosureReviewResponse(BaseModel):
     phase_id: Literal["phase_4"] = "phase_4"
     phase_label: str = ""

@@ -7671,6 +7671,9 @@ def _build_precedent_reference_guidance_read(
             reusable_reason=item.candidate.reusable_reason or "",
             match_reason=item.match_reason,
             safe_use_note=item.safe_use_note,
+            client_stage_alignment=item.client_stage_alignment,  # type: ignore[arg-type]
+            client_type_alignment=item.client_type_alignment,  # type: ignore[arg-type]
+            domain_lens_alignment=item.domain_lens_alignment,  # type: ignore[arg-type]
             source_task_id=item.candidate.task_id,
             source_deliverable_id=item.candidate.source_deliverable_id,
             source_recommendation_id=item.candidate.source_recommendation_id,

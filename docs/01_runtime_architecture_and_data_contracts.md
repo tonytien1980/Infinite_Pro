@@ -2196,6 +2196,51 @@ Object storage 負責：
 - page-local calibration engine
 - long-form scoring overlay
 
+### 7.20 Phase 6 calibration-aware reuse weighting
+
+在 `confidence calibration v1` 與 `confidence calibration propagation v1` 已成立後，runtime 也已正式把這條 signal 接回 Host 的 reusable ordering：
+
+- backend 已有 `GET /workbench/phase-6-calibration-aware-weighting`
+- 第一版正式回讀：
+  - `phase_id`
+  - `phase_label`
+  - `weighting_posture`
+  - `weighting_posture_label`
+  - `summary`
+  - `host_weighting_summary`
+  - `host_weighting_guardrail_note`
+  - `weighting_items`
+  - `recommended_next_step`
+
+每個 `weighting_item` 目前至少回答：
+
+- `axis_kind`
+- `axis_label`
+- `calibration_status`
+- `calibration_status_label`
+- `weighting_effect`
+- `weighting_effect_label`
+- `summary`
+
+第一版正式規則：
+
+- `domain lens` mismatch 會先退到背景校正
+- `client stage / client type` mismatch 不再維持 `can_expand`
+- 這一刀仍只做 soft ordering，不做 hard block
+- `select_weighted_precedent_reference_items` 現在會在 phase-6 reuse recommendation 之外，再看 calibration alignment
+- `domain playbook` / `deliverable template` 在讀 precedent weighting 時，也會一起看 calibration alignment
+- UI 仍只掛在既有 `Generalist Governance` 的 `Host weighting` 區塊，不新增新卡牆
+
+因此這一層現在應被理解為：
+
+- calibration-aware Host ordering
+
+不是：
+
+- hidden policy engine
+- routing hard gate
+- precedence tuning console
+
 ---
 
 ## 8. Provider Boundary
