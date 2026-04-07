@@ -69,4 +69,4 @@ cd frontend && npm run build
 cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build
 ```
 
-- [ ] Commit and push the slice branch.
+- [x] Commit and push the slice branch.
