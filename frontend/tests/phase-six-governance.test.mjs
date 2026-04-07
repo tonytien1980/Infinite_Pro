@@ -3,12 +3,14 @@ import assert from "node:assert/strict";
 
 import {
   labelForPhaseSixAuditStatus,
+  labelForPhaseSixCalibrationStatus,
   labelForPhaseSixContextDistance,
   labelForPhaseSixGeneralistPosture,
   labelForPhaseSixGuidancePosture,
   labelForPhaseSixGovernancePosture,
   labelForPhaseSixReuseConfidence,
   labelForPhaseSixReuseRecommendation,
+  summarizePhaseSixCalibrationItems,
   summarizePhaseSixDistanceItems,
   summarizePhaseSixGuidanceItems,
   summarizePhaseSixHostWeighting,
@@ -92,5 +94,36 @@ test("phase 6 distance and reuse-confidence labels stay low-noise and readable",
       },
     ]),
     "precedent general pattern：高信心重用｜template narrow shape：低信心重用",
+  );
+});
+
+test("phase 6 confidence calibration labels stay low-noise and readable", () => {
+  assert.equal(labelForPhaseSixCalibrationStatus("aligned"), "目前對齊");
+  assert.equal(labelForPhaseSixCalibrationStatus("caution"), "需要留意");
+  assert.equal(labelForPhaseSixCalibrationStatus("mismatch"), "仍有不對齊");
+  assert.equal(
+    summarizePhaseSixCalibrationItems([
+      {
+        axisKind: "client_stage",
+        axisLabel: "client stage",
+        calibrationStatus: "caution",
+        calibrationStatusLabel: "需要留意",
+        reuseConfidence: "bounded_confidence",
+        reuseConfidenceLabel: "有邊界重用",
+        summary: "目前 client stage 仍有距離。",
+        guardrailNote: "需要明示 stage 邊界。",
+      },
+      {
+        axisKind: "domain_lens",
+        axisLabel: "domain lens",
+        calibrationStatus: "mismatch",
+        calibrationStatusLabel: "仍有不對齊",
+        reuseConfidence: "low_confidence",
+        reuseConfidenceLabel: "低信心重用",
+        summary: "目前 domain lens 距離偏遠。",
+        guardrailNote: "先留背景校正。",
+      },
+    ]),
+    "client stage：需要留意｜domain lens：仍有不對齊",
   );
 });

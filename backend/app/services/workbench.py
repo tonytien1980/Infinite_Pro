@@ -33,6 +33,7 @@ from app.services.phase_five_closure_review import (
 )
 from app.services.phase_six_generalist_governance import (
     build_phase_six_capability_coverage_audit,
+    build_phase_six_confidence_calibration,
     build_phase_six_context_distance_audit,
     build_phase_six_generalist_guidance_posture,
     build_phase_six_reuse_boundary_governance,
@@ -495,3 +496,10 @@ def get_phase_six_context_distance_audit(
 ) -> schemas.PhaseSixContextDistanceAuditResponse:
     del db
     return build_phase_six_context_distance_audit()
+
+
+def get_phase_six_confidence_calibration(
+    db: Session,
+) -> schemas.PhaseSixConfidenceCalibrationResponse:
+    del db
+    return build_phase_six_confidence_calibration()

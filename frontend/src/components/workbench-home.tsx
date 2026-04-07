@@ -12,6 +12,7 @@ import {
   getFirmOperatingSnapshot,
   getPhaseFiveClosureReview,
   getPhaseSixCapabilityCoverageAudit,
+  getPhaseSixConfidenceCalibration,
   getPhaseSixContextDistanceAudit,
   getPhaseSixGeneralistGuidancePosture,
   getPhaseSixReuseBoundaryGovernance,
@@ -27,12 +28,14 @@ import {
 import { buildPhaseFiveClosureView } from "@/lib/phase-five-closure";
 import {
   labelForPhaseSixAuditStatus,
+  labelForPhaseSixCalibrationStatus,
   labelForPhaseSixContextDistance,
   labelForPhaseSixGuidancePosture,
   labelForPhaseSixGeneralistPosture,
   labelForPhaseSixGovernancePosture,
   labelForPhaseSixReuseConfidence,
   labelForPhaseSixReuseRecommendation,
+  summarizePhaseSixCalibrationItems,
   summarizePhaseSixCoverageAreas,
   summarizePhaseSixDistanceItems,
   summarizePhaseSixGuidanceItems,
@@ -48,6 +51,7 @@ import type {
   MatterWorkspaceSummary,
   PhaseFiveClosureReview,
   PhaseSixCapabilityCoverageAudit,
+  PhaseSixConfidenceCalibration,
   PhaseSixContextDistanceAudit,
   PhaseSixGeneralistGuidancePosture,
   PhaseSixReuseBoundaryGovernance,
@@ -120,6 +124,7 @@ export function WorkbenchHome() {
   const [firmOperating, setFirmOperating] = useState<FirmOperatingSnapshot | null>(null);
   const [phaseFiveClosureReview, setPhaseFiveClosureReview] = useState<PhaseFiveClosureReview | null>(null);
   const [phaseSixAudit, setPhaseSixAudit] = useState<PhaseSixCapabilityCoverageAudit | null>(null);
+  const [phaseSixCalibration, setPhaseSixCalibration] = useState<PhaseSixConfidenceCalibration | null>(null);
   const [phaseSixDistance, setPhaseSixDistance] = useState<PhaseSixContextDistanceAudit | null>(null);
   const [phaseSixGovernance, setPhaseSixGovernance] = useState<PhaseSixReuseBoundaryGovernance | null>(null);
   const [phaseSixGuidance, setPhaseSixGuidance] = useState<PhaseSixGeneralistGuidancePosture | null>(null);
@@ -131,6 +136,7 @@ export function WorkbenchHome() {
   const [firmOperatingLoading, setFirmOperatingLoading] = useState(true);
   const [phaseFiveClosureLoading, setPhaseFiveClosureLoading] = useState(true);
   const [phaseSixAuditLoading, setPhaseSixAuditLoading] = useState(true);
+  const [phaseSixCalibrationLoading, setPhaseSixCalibrationLoading] = useState(true);
   const [phaseSixDistanceLoading, setPhaseSixDistanceLoading] = useState(true);
   const [phaseSixGovernanceLoading, setPhaseSixGovernanceLoading] = useState(true);
   const [phaseSixGuidanceLoading, setPhaseSixGuidanceLoading] = useState(true);
@@ -141,6 +147,7 @@ export function WorkbenchHome() {
   const [firmOperatingError, setFirmOperatingError] = useState<string | null>(null);
   const [phaseFiveClosureError, setPhaseFiveClosureError] = useState<string | null>(null);
   const [phaseSixAuditError, setPhaseSixAuditError] = useState<string | null>(null);
+  const [phaseSixCalibrationError, setPhaseSixCalibrationError] = useState<string | null>(null);
   const [phaseSixDistanceError, setPhaseSixDistanceError] = useState<string | null>(null);
   const [phaseSixGovernanceError, setPhaseSixGovernanceError] = useState<string | null>(null);
   const [phaseSixGuidanceError, setPhaseSixGuidanceError] = useState<string | null>(null);
@@ -229,6 +236,22 @@ export function WorkbenchHome() {
     }
   }
 
+  async function refreshPhaseSixCalibration() {
+    try {
+      setPhaseSixCalibrationLoading(true);
+      setPhaseSixCalibrationError(null);
+      setPhaseSixCalibration(await getPhaseSixConfidenceCalibration());
+    } catch (calibrationError) {
+      setPhaseSixCalibrationError(
+        calibrationError instanceof Error
+          ? calibrationError.message
+          : "載入 confidence calibration 摘要失敗。",
+      );
+    } finally {
+      setPhaseSixCalibrationLoading(false);
+    }
+  }
+
   async function refreshPhaseSixGovernance() {
     try {
       setPhaseSixGovernanceLoading(true);
@@ -284,6 +307,7 @@ export function WorkbenchHome() {
     void refreshFirmOperating();
     void refreshPhaseFiveClosureReview();
     void refreshPhaseSixAudit();
+    void refreshPhaseSixCalibration();
     void refreshPhaseSixDistance();
     void refreshPhaseSixGovernance();
     void refreshPhaseSixGuidance();
@@ -491,6 +515,11 @@ export function WorkbenchHome() {
       {phaseSixAuditError ? (
         <p className="error-text" role="alert" aria-live="assertive">
           {phaseSixAuditError}
+        </p>
+      ) : null}
+      {phaseSixCalibrationError ? (
+        <p className="error-text" role="alert" aria-live="assertive">
+          {phaseSixCalibrationError}
         </p>
       ) : null}
       {phaseSixDistanceError ? (
@@ -842,6 +871,35 @@ export function WorkbenchHome() {
                       {phaseSixAudit.recommendedNextStep}
                     </p>
                   </div>
+
+                  {phaseSixCalibrationLoading ? (
+                    <p className="status-text" style={{ marginTop: "16px" }}>
+                      正在整理 confidence calibration...
+                    </p>
+                  ) : null}
+
+                  {!phaseSixCalibrationLoading && phaseSixCalibration ? (
+                    <div className="section-card" style={{ marginTop: "16px" }}>
+                      <h3>confidence calibration</h3>
+                      <p className="muted-text">{phaseSixCalibration.calibrationPostureLabel}</p>
+                      <strong>{phaseSixCalibration.summary}</strong>
+                      <p className="muted-text" style={{ marginTop: "8px" }}>
+                        {summarizePhaseSixCalibrationItems(phaseSixCalibration.calibrationItems)}
+                      </p>
+                      <ul className="detail-list" style={{ marginTop: "12px" }}>
+                        {phaseSixCalibration.calibrationItems.slice(0, 2).map((item) => (
+                          <li key={`${item.axisKind}-${item.axisLabel}`}>
+                            {item.axisLabel}｜
+                            {labelForPhaseSixCalibrationStatus(item.calibrationStatus)}｜
+                            {labelForPhaseSixReuseConfidence(item.reuseConfidence)}
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="muted-text" style={{ marginTop: "12px" }}>
+                        {phaseSixCalibration.recommendedNextStep}
+                      </p>
+                    </div>
+                  ) : null}
 
                   {phaseSixDistanceLoading ? (
                     <p className="status-text" style={{ marginTop: "16px" }}>

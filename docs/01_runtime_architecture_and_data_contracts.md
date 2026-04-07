@@ -2110,6 +2110,59 @@ Object storage 負責：
 - page-local confidence engine
 - long-form scoring overlay
 
+### 7.18 Phase 6 confidence calibration
+
+在 `context-distance / reuse confidence v1` 已成立後，runtime 也已正式把 reusable confidence 拆成更明確的 calibration axes：
+
+- backend 已有 `GET /workbench/phase-6-confidence-calibration`
+- 第一版正式回讀：
+  - `phase_id`
+  - `phase_label`
+  - `calibration_posture`
+  - `calibration_posture_label`
+  - `summary`
+  - `calibration_items`
+  - `recommended_next_step`
+
+每個 `calibration_item` 目前至少回答：
+
+- `axis_kind`
+- `axis_label`
+- `calibration_status`
+- `calibration_status_label`
+- `reuse_confidence`
+- `reuse_confidence_label`
+- `summary`
+- `guardrail_note`
+
+第一版目前至少校準：
+
+- `client_stage`
+- `client_type`
+- `domain_lens`
+
+第一版目前至少回答：
+
+- `aligned`
+- `caution`
+- `mismatch`
+
+正式規則：
+
+- 第一波只做 read model，不改寫 Host weighting
+- 這一層的作用是把 reusable confidence 再更明確拆成哪一種脈絡差距在拉低信心，不是 hard policy
+- UI 仍只掛在既有 `Generalist Governance`
+
+因此這一層現在應被理解為：
+
+- low-noise confidence calibration
+
+不是：
+
+- new dashboard shell
+- scoring engine
+- routing rewrite
+
 ---
 
 ## 8. Provider Boundary

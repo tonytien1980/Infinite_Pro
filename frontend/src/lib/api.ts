@@ -51,6 +51,7 @@ import {
   PersonalProviderSettingsPayload,
   PhaseFiveClosureReview,
   PhaseSixCapabilityCoverageAudit,
+  PhaseSixConfidenceCalibration,
   PhaseSixContextDistanceAudit,
   PhaseSixGeneralistGuidancePosture,
   PhaseSixReuseBoundaryGovernance,
@@ -281,6 +282,16 @@ export async function getPhaseSixContextDistanceAudit(): Promise<PhaseSixContext
     },
   );
   return parsePhaseSixContextDistanceAuditPayload(await parseResponse<any>(response));
+}
+
+export async function getPhaseSixConfidenceCalibration(): Promise<PhaseSixConfidenceCalibration> {
+  const response = await apiFetch(
+    `${getApiBaseUrl()}/workbench/phase-6-confidence-calibration`,
+    {
+      cache: "no-store",
+    },
+  );
+  return parsePhaseSixConfidenceCalibrationPayload(await parseResponse<any>(response));
 }
 
 export async function signOffPhaseFive(
@@ -1054,6 +1065,49 @@ function parsePhaseSixContextDistanceAuditPayload(
                 ? "far"
                 : "moderate",
           contextDistanceLabel: item.context_distance_label || "",
+          reuseConfidence:
+            item.reuse_confidence === "high_confidence"
+              ? "high_confidence"
+              : item.reuse_confidence === "low_confidence"
+                ? "low_confidence"
+                : "bounded_confidence",
+          reuseConfidenceLabel: item.reuse_confidence_label || "",
+          summary: item.summary || "",
+          guardrailNote: item.guardrail_note || "",
+        }))
+      : [],
+    recommendedNextStep: payload.recommended_next_step || "",
+  };
+}
+
+function parsePhaseSixConfidenceCalibrationPayload(
+  payload: any,
+): PhaseSixConfidenceCalibration {
+  return {
+    phaseId: "phase_6",
+    phaseLabel: payload.phase_label || "",
+    calibrationPosture:
+      payload.calibration_posture === "stable_alignment"
+        ? "stable_alignment"
+        : "watch_mismatch",
+    calibrationPostureLabel: payload.calibration_posture_label || "",
+    summary: payload.summary || "",
+    calibrationItems: Array.isArray(payload.calibration_items)
+      ? payload.calibration_items.map((item: any) => ({
+          axisKind:
+            item.axis_kind === "client_type"
+              ? "client_type"
+              : item.axis_kind === "domain_lens"
+                ? "domain_lens"
+                : "client_stage",
+          axisLabel: item.axis_label || "",
+          calibrationStatus:
+            item.calibration_status === "aligned"
+              ? "aligned"
+              : item.calibration_status === "mismatch"
+                ? "mismatch"
+                : "caution",
+          calibrationStatusLabel: item.calibration_status_label || "",
           reuseConfidence:
             item.reuse_confidence === "high_confidence"
               ? "high_confidence"

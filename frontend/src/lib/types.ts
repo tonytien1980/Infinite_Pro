@@ -452,6 +452,27 @@ export interface PhaseSixContextDistanceAudit {
   recommendedNextStep: string;
 }
 
+export interface PhaseSixConfidenceCalibrationItem {
+  axisKind: "client_stage" | "client_type" | "domain_lens";
+  axisLabel: string;
+  calibrationStatus: "aligned" | "caution" | "mismatch";
+  calibrationStatusLabel: string;
+  reuseConfidence: "high_confidence" | "bounded_confidence" | "low_confidence";
+  reuseConfidenceLabel: string;
+  summary: string;
+  guardrailNote: string;
+}
+
+export interface PhaseSixConfidenceCalibration {
+  phaseId: "phase_6";
+  phaseLabel: string;
+  calibrationPosture: "stable_alignment" | "watch_mismatch";
+  calibrationPostureLabel: string;
+  summary: string;
+  calibrationItems: PhaseSixConfidenceCalibrationItem[];
+  recommendedNextStep: string;
+}
+
 export interface GeneralistGuidancePosture {
   guidance_posture: "light_guidance" | "balanced_guidance" | "guarded_guidance";
   guidance_posture_label: string;

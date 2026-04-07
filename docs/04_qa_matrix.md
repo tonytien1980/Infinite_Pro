@@ -4205,6 +4205,19 @@ Environment used:
 - `reuse_confidence_signal` no longer only lives on the homepage; it now flows through the existing task / matter / deliverable work-surface contracts
 - Phase 6 can now express both guidance posture and reuse-confidence reading inside existing second-layer cards without creating a new governance page
 
+### Phase-6 confidence calibration verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | `/workbench/phase-6-confidence-calibration` | Return calibration read model across client stage / client type / domain lens | Verified | targeted backend tests confirm the route returns `phase_6`, calibration posture, and at least one `domain_lens` item marked `mismatch` |
+| Frontend | `phase-six-governance` helper copy | Keep calibration labels low-noise and readable | Verified | node helper tests confirm `aligned / caution / mismatch` render consultant-readable Traditional Chinese labels |
+| Frontend | `/` | Extend `Generalist Governance` with low-noise `confidence calibration` summary | Verified | typecheck/build pass after adding parser, helper summary, and homepage confidence-calibration block |
+
+### Verified outcomes
+
+- Phase 6 can now explain not only how confident reuse currently is, but which axis is lowering that confidence
+- `Generalist Governance` can now tell whether reusable confidence is mainly being limited by client stage, client type, or domain lens distance without adding a new dashboard
+
 ### Explicitly not shipped in this pass
 
 - `Personal Provider Settings`

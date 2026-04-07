@@ -533,6 +533,31 @@ class PhaseSixContextDistanceAuditResponse(BaseModel):
     recommended_next_step: str = ""
 
 
+class PhaseSixConfidenceCalibrationItemRead(BaseModel):
+    axis_kind: Literal["client_stage", "client_type", "domain_lens"] = "client_stage"
+    axis_label: str = ""
+    calibration_status: Literal["aligned", "caution", "mismatch"] = "caution"
+    calibration_status_label: str = ""
+    reuse_confidence: Literal[
+        "high_confidence",
+        "bounded_confidence",
+        "low_confidence",
+    ] = "bounded_confidence"
+    reuse_confidence_label: str = ""
+    summary: str = ""
+    guardrail_note: str = ""
+
+
+class PhaseSixConfidenceCalibrationResponse(BaseModel):
+    phase_id: Literal["phase_6"] = "phase_6"
+    phase_label: str = ""
+    calibration_posture: Literal["stable_alignment", "watch_mismatch"] = "watch_mismatch"
+    calibration_posture_label: str = ""
+    summary: str = ""
+    calibration_items: list[PhaseSixConfidenceCalibrationItemRead] = Field(default_factory=list)
+    recommended_next_step: str = ""
+
+
 class SharedIntelligenceClosureReviewResponse(BaseModel):
     phase_id: Literal["phase_4"] = "phase_4"
     phase_label: str = ""

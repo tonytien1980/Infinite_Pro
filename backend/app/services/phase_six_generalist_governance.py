@@ -280,6 +280,59 @@ def build_phase_six_context_distance_audit(
     )
 
 
+def build_phase_six_confidence_calibration(
+    *,
+    context_distance: schemas.PhaseSixContextDistanceAuditResponse | None = None,
+) -> schemas.PhaseSixConfidenceCalibrationResponse:
+    source_distance = context_distance or build_phase_six_context_distance_audit()
+    calibration_items: list[schemas.PhaseSixConfidenceCalibrationItemRead] = [
+        schemas.PhaseSixConfidenceCalibrationItemRead(
+            axis_kind="client_stage",
+            axis_label="client stage",
+            calibration_status="caution",
+            calibration_status_label="需要留意",
+            reuse_confidence="bounded_confidence",
+            reuse_confidence_label="有邊界重用",
+            summary="目前 reusable confidence 在 client stage 上仍有距離，較適合保留邊界再重用。",
+            guardrail_note="若 client stage 明顯不同，先把 precedent / playbook 當方向參考，不要直接視為同一成熟度做法。",
+        ),
+        schemas.PhaseSixConfidenceCalibrationItemRead(
+            axis_kind="client_type",
+            axis_label="client type",
+            calibration_status="caution",
+            calibration_status_label="需要留意",
+            reuse_confidence="bounded_confidence",
+            reuse_confidence_label="有邊界重用",
+            summary="目前 reusable confidence 在 client type 上仍需保留邊界，不宜直接假設同樣成立。",
+            guardrail_note="若 client type 差異明顯，先保留 boundary note，再決定哪些模式能沿用。",
+        ),
+        schemas.PhaseSixConfidenceCalibrationItemRead(
+            axis_kind="domain_lens",
+            axis_label="domain lens",
+            calibration_status="mismatch",
+            calibration_status_label="仍有不對齊",
+            reuse_confidence="low_confidence",
+            reuse_confidence_label="低信心重用",
+            summary="目前最容易拉低 reusable confidence 的仍是 domain lens 差距，應避免直接擴張重用。",
+            guardrail_note="若 domain lens 本身差距偏遠，先留背景校正，不要讓它帶主線。",
+        ),
+    ]
+    has_mismatch = any(item.calibration_status == "mismatch" for item in calibration_items)
+    return schemas.PhaseSixConfidenceCalibrationResponse(
+        phase_id="phase_6",
+        phase_label="Generalist Consulting Intelligence Governance",
+        calibration_posture="watch_mismatch" if has_mismatch else "stable_alignment",
+        calibration_posture_label="仍需看不對齊" if has_mismatch else "目前較對齊",
+        summary=(
+            "phase 6 現在已能把 reusable confidence 再拆成 client stage、client type、domain lens 三個 calibration axes。"
+        ),
+        calibration_items=calibration_items,
+        recommended_next_step=(
+            "若要繼續往下走，下一刀應把這些 calibration axes 更正式接進 context-distance propagation，而不是只停在首頁。"
+        ),
+    )
+
+
 def recommend_phase_six_reuse_weighting(
     *,
     asset_code: str,

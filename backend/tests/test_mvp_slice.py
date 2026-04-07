@@ -664,6 +664,33 @@ def test_matter_workspace_exposes_reuse_confidence_signal(
     assert payload["reuse_confidence_signal"]["distance_items"]
 
 
+def test_owner_can_read_phase_six_confidence_calibration(client: TestClient) -> None:
+    response = client.get("/api/v1/workbench/phase-6-confidence-calibration")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["phase_id"] == "phase_6"
+    assert payload["calibration_posture"] in {"stable_alignment", "watch_mismatch"}
+    assert payload["calibration_items"]
+    assert payload["recommended_next_step"]
+
+
+def test_phase_six_confidence_calibration_marks_domain_lens_as_mismatch(
+    client: TestClient,
+) -> None:
+    response = client.get("/api/v1/workbench/phase-6-confidence-calibration")
+
+    assert response.status_code == 200
+    payload = response.json()
+    mismatches = [
+        item
+        for item in payload["calibration_items"]
+        if item["calibration_status"] == "mismatch"
+    ]
+    assert mismatches
+    assert any(item["axis_kind"] == "domain_lens" for item in mismatches)
+
+
 def test_consultant_cannot_sign_off_phase_five(
     anonymous_client: TestClient,
     monkeypatch: pytest.MonkeyPatch,

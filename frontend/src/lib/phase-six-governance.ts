@@ -1,5 +1,6 @@
 import type {
   PhaseSixCoverageArea,
+  PhaseSixConfidenceCalibrationItem,
   PhaseSixContextDistanceItem,
   PhaseSixGeneralistGuidancePosture,
   PhaseSixReuseBoundaryGovernance,
@@ -162,5 +163,29 @@ export function summarizePhaseSixDistanceItems(
   return items
     .slice(0, 2)
     .map((item) => `${item.assetLabel}：${item.reuseConfidenceLabel}`)
+    .join("｜");
+}
+
+export function labelForPhaseSixCalibrationStatus(
+  status: "aligned" | "caution" | "mismatch",
+) {
+  if (status === "aligned") {
+    return "目前對齊";
+  }
+  if (status === "mismatch") {
+    return "仍有不對齊";
+  }
+  return "需要留意";
+}
+
+export function summarizePhaseSixCalibrationItems(
+  items: PhaseSixConfidenceCalibrationItem[],
+) {
+  if (items.length === 0) {
+    return "目前還沒有可讀取的 calibration signal。";
+  }
+  return items
+    .slice(0, 2)
+    .map((item) => `${item.axisLabel}：${item.calibrationStatusLabel}`)
     .join("｜");
 }

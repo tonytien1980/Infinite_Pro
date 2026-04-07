@@ -846,6 +846,10 @@ Infinite Pro 目前沒有也不應硬對齊於：
   - `context-distance propagation v1`
   - `reuse_confidence_signal` 已正式回寫到 task / matter / deliverable 的 second-layer guidance
   - 既有 `organization memory` / `domain playbook` / `deliverable template` 卡片現在也能讀到低噪音 `Phase 6 reuse confidence` note
+- 這條線現在也已正式推到第八刀：
+  - `cross-stage / cross-domain confidence calibration v1`
+  - system 已能更明確回答 reusable confidence 目前是被 `client stage`、`client type` 還是 `domain lens` 的差距拉低
+  - `總覽` 的 `Generalist Governance` 已補上低噪音 `confidence calibration` 摘要
 
 ---
 
