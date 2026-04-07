@@ -433,6 +433,20 @@ export interface PhaseSixCompletionScorecardItem {
   summary: string;
 }
 
+export interface PhaseSixFeedbackLinkedScoringSnapshot {
+  adoptedCount: number;
+  needsRevisionCount: number;
+  notAdoptedCount: number;
+  templateCandidateCount: number;
+  governedCandidateCount: number;
+  promotedCandidateCount: number;
+  dismissedCandidateCount: number;
+  overrideSignalCount: number;
+  topAssetCodes: string[];
+  topAssetLabels: string[];
+  summary: string;
+}
+
 export interface PhaseSixCompletionReview {
   phaseId: "phase_6";
   phaseLabel: string;
@@ -441,6 +455,8 @@ export interface PhaseSixCompletionReview {
   summary: string;
   overallScore: number;
   scorecardItems: PhaseSixCompletionScorecardItem[];
+  feedbackLinkedSummary: string;
+  feedbackLinkedScoringSnapshot: PhaseSixFeedbackLinkedScoringSnapshot;
   closurePosture: string;
   closurePostureLabel: string;
   checkpointSummary: string;

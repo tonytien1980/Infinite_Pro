@@ -119,6 +119,14 @@ export function summarizePhaseSixCompletionScorecard(
     .join("｜");
 }
 
+export function summarizePhaseSixFeedbackLinkedScoring(
+  review: Pick<{
+    feedbackLinkedSummary: string;
+  }, "feedbackLinkedSummary">,
+) {
+  return review.feedbackLinkedSummary || "目前還沒有可讀取的 feedback-linked scoring。";
+}
+
 export function summarizePhaseSixCoverageAreas(areas: PhaseSixCoverageArea[]) {
   if (areas.length === 0) {
     return "目前還沒有可讀取的 coverage signal。";

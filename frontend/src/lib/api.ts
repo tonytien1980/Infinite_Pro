@@ -1143,6 +1143,38 @@ function parsePhaseSixCompletionReviewPayload(payload: any): PhaseSixCompletionR
           summary: item.summary || "",
         }))
       : [],
+    feedbackLinkedSummary: payload.feedback_linked_summary || "",
+    feedbackLinkedScoringSnapshot: {
+      adoptedCount: Number(payload.feedback_linked_scoring_snapshot?.adopted_count ?? 0),
+      needsRevisionCount: Number(
+        payload.feedback_linked_scoring_snapshot?.needs_revision_count ?? 0,
+      ),
+      notAdoptedCount: Number(
+        payload.feedback_linked_scoring_snapshot?.not_adopted_count ?? 0,
+      ),
+      templateCandidateCount: Number(
+        payload.feedback_linked_scoring_snapshot?.template_candidate_count ?? 0,
+      ),
+      governedCandidateCount: Number(
+        payload.feedback_linked_scoring_snapshot?.governed_candidate_count ?? 0,
+      ),
+      promotedCandidateCount: Number(
+        payload.feedback_linked_scoring_snapshot?.promoted_candidate_count ?? 0,
+      ),
+      dismissedCandidateCount: Number(
+        payload.feedback_linked_scoring_snapshot?.dismissed_candidate_count ?? 0,
+      ),
+      overrideSignalCount: Number(
+        payload.feedback_linked_scoring_snapshot?.override_signal_count ?? 0,
+      ),
+      topAssetCodes: Array.isArray(payload.feedback_linked_scoring_snapshot?.top_asset_codes)
+        ? payload.feedback_linked_scoring_snapshot.top_asset_codes
+        : [],
+      topAssetLabels: Array.isArray(payload.feedback_linked_scoring_snapshot?.top_asset_labels)
+        ? payload.feedback_linked_scoring_snapshot.top_asset_labels
+        : [],
+      summary: payload.feedback_linked_scoring_snapshot?.summary || "",
+    },
     closurePosture: payload.closure_posture || "",
     closurePostureLabel: payload.closure_posture_label || "",
     checkpointSummary: payload.checkpoint_summary || "",

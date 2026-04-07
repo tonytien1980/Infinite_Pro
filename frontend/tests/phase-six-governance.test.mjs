@@ -17,6 +17,7 @@ import {
   summarizePhaseSixCalibrationItems,
   summarizePhaseSixCalibrationAwareWeightingItems,
   summarizePhaseSixCompletionScorecard,
+  summarizePhaseSixFeedbackLinkedScoring,
   summarizePhaseSixCloseoutAudits,
   summarizePhaseSixClosureCriteria,
   summarizePhaseSixDistanceItems,
@@ -122,6 +123,26 @@ test("phase 6 completion review labels stay low-noise and readable", () => {
       },
     ]),
     "governance runtime：84｜feedback loop：62",
+  );
+  assert.equal(
+    summarizePhaseSixFeedbackLinkedScoring({
+      feedbackLinkedSummary:
+        "已採用 2｜需改寫 1｜不採用 1｜主要影響工作主線、審閱視角。",
+      feedbackLinkedScoringSnapshot: {
+        adoptedCount: 2,
+        needsRevisionCount: 1,
+        notAdoptedCount: 1,
+        templateCandidateCount: 3,
+        governedCandidateCount: 4,
+        promotedCandidateCount: 2,
+        dismissedCandidateCount: 1,
+        overrideSignalCount: 2,
+        topAssetCodes: ["domain_playbook", "review_lens"],
+        topAssetLabels: ["工作主線", "審閱視角"],
+        summary: "summary",
+      },
+    }),
+    "已採用 2｜需改寫 1｜不採用 1｜主要影響工作主線、審閱視角。",
   );
 });
 
