@@ -2274,6 +2274,59 @@ Object storage 負責：
 - page-local weighting engine
 - long-form routing overlay
 
+### 7.22 Phase 6 maturity review
+
+在 Phase 6 已補上 coverage、reuse-boundary、Host weighting、guidance propagation、context distance、confidence calibration，以及 second-layer note condensation / guardrails 之後，runtime 也已正式補上一個：
+
+- `GET /workbench/phase-6-maturity-review`
+
+第一版 contract 至少包括：
+
+- `maturity_stage`
+  - `foundation_lane`
+  - `refinement_lane`
+  - `closure_preparation`
+- `maturity_stage_label`
+- `summary`
+- `maturity_snapshot`
+- `completed_count`
+- `remaining_count`
+- `milestone_audits`
+- `remaining_focus_items`
+- `recommended_next_step`
+
+每筆 `milestone_audit` 至少包括：
+
+- `milestone_code`
+- `milestone_label`
+- `milestone_status`
+- `milestone_status_label`
+- `summary`
+
+正式規則：
+
+- 這層是 phase-level maturity read model，不是假裝 phase 6 已正式收口
+- 第一版只允許把目前 Phase 6 的真實位置讀成：
+  - `refinement_lane`
+- 這層應回答：
+  - 現在是在打基礎、收斂深化，還是可準備收口
+  - 目前哪幾個 milestone clusters 已站穩
+  - 還剩哪些真正值得投入的 focus items
+- 這層不可長成：
+  - sign-off flow
+  - release dashboard
+  - manager analytics wall
+
+因此這一層現在應被理解為：
+
+- phase-level maturity review
+
+不是：
+
+- closure review impersonation
+- release console
+- new governance dashboard family
+
 ---
 
 ## 8. Provider Boundary

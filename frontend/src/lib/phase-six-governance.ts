@@ -4,6 +4,7 @@ import type {
   PhaseSixConfidenceCalibrationItem,
   PhaseSixContextDistanceItem,
   PhaseSixGeneralistGuidancePosture,
+  PhaseSixMaturityMilestone,
   PhaseSixReuseBoundaryGovernance,
   PhaseSixReuseBoundaryGovernanceItem,
   PhaseSixReuseBoundaryItem,
@@ -19,6 +20,30 @@ export function labelForPhaseSixGeneralistPosture(
   return posture === "broad"
     ? "目前仍維持全面型姿態"
     : "目前仍全面，但需持續看偏移";
+}
+
+export function labelForPhaseSixMaturityStage(
+  stage: "foundation_lane" | "refinement_lane" | "closure_preparation",
+) {
+  if (stage === "foundation_lane") {
+    return "仍在打基礎";
+  }
+  if (stage === "closure_preparation") {
+    return "可準備收口判讀";
+  }
+  return "已進入收斂深化";
+}
+
+export function summarizePhaseSixMaturityMilestones(
+  milestones: PhaseSixMaturityMilestone[],
+) {
+  if (milestones.length === 0) {
+    return "目前還沒有可讀取的 maturity signal。";
+  }
+  return milestones
+    .slice(0, 2)
+    .map((item) => `${item.milestoneLabel}：${item.milestoneStatusLabel}`)
+    .join("｜");
 }
 
 export function summarizePhaseSixCoverageAreas(areas: PhaseSixCoverageArea[]) {

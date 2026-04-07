@@ -23,6 +23,7 @@ from app.services.workbench import (
     get_history_visibility_state,
     get_phase_five_closure_review,
     get_phase_six_capability_coverage_audit,
+    get_phase_six_maturity_review,
     get_phase_six_calibration_aware_weighting,
     get_phase_six_confidence_calibration,
     get_phase_six_context_distance_audit,
@@ -109,6 +110,17 @@ def sign_off_phase_five_route(
     db: Session = Depends(get_db),
 ) -> schemas.PhaseFiveClosureReviewResponse:
     return sign_off_phase_five(db, payload=payload)
+
+
+@router.get(
+    "/phase-6-maturity-review",
+    response_model=schemas.PhaseSixMaturityReviewResponse,
+)
+def get_phase_six_maturity_review_route(
+    current_member=Depends(require_permission("access_firm_workspace")),
+    db: Session = Depends(get_db),
+) -> schemas.PhaseSixMaturityReviewResponse:
+    return get_phase_six_maturity_review(db)
 
 
 @router.get(

@@ -379,6 +379,28 @@ export interface PhaseSixReuseBoundaryItem {
   summary: string;
 }
 
+export interface PhaseSixMaturityMilestone {
+  milestoneCode: string;
+  milestoneLabel: string;
+  milestoneStatus: "landed" | "stabilizing";
+  milestoneStatusLabel: string;
+  summary: string;
+}
+
+export interface PhaseSixMaturityReview {
+  phaseId: "phase_6";
+  phaseLabel: string;
+  maturityStage: "foundation_lane" | "refinement_lane" | "closure_preparation";
+  maturityStageLabel: string;
+  summary: string;
+  maturitySnapshot: string;
+  completedCount: number;
+  remainingCount: number;
+  milestoneAudits: PhaseSixMaturityMilestone[];
+  remainingFocusItems: string[];
+  recommendedNextStep: string;
+}
+
 export interface PhaseSixCapabilityCoverageAudit {
   phaseId: "phase_6";
   phaseLabel: string;

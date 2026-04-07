@@ -448,6 +448,32 @@ class PhaseSixReuseBoundaryItemRead(BaseModel):
     summary: str = ""
 
 
+class PhaseSixMaturityMilestoneRead(BaseModel):
+    milestone_code: str
+    milestone_label: str = ""
+    milestone_status: Literal["landed", "stabilizing"] = "landed"
+    milestone_status_label: str = ""
+    summary: str = ""
+
+
+class PhaseSixMaturityReviewResponse(BaseModel):
+    phase_id: Literal["phase_6"] = "phase_6"
+    phase_label: str = ""
+    maturity_stage: Literal[
+        "foundation_lane",
+        "refinement_lane",
+        "closure_preparation",
+    ] = "refinement_lane"
+    maturity_stage_label: str = ""
+    summary: str = ""
+    maturity_snapshot: str = ""
+    completed_count: int = 0
+    remaining_count: int = 0
+    milestone_audits: list[PhaseSixMaturityMilestoneRead] = Field(default_factory=list)
+    remaining_focus_items: list[str] = Field(default_factory=list)
+    recommended_next_step: str = ""
+
+
 class PhaseSixCapabilityCoverageAuditResponse(BaseModel):
     phase_id: Literal["phase_6"] = "phase_6"
     phase_label: str = ""

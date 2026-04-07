@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   labelForPhaseSixAuditStatus,
   labelForPhaseSixCalibrationStatus,
+  labelForPhaseSixMaturityStage,
   labelForPhaseSixContextDistance,
   labelForPhaseSixGeneralistPosture,
   labelForPhaseSixGuidancePosture,
@@ -15,6 +16,7 @@ import {
   summarizePhaseSixDistanceItems,
   summarizePhaseSixGuidanceItems,
   summarizePhaseSixHostWeighting,
+  summarizePhaseSixMaturityMilestones,
 } from "../src/lib/phase-six-governance.ts";
 
 test("phase 6 audit labels stay low-noise and consultant-readable", () => {
@@ -24,6 +26,31 @@ test("phase 6 audit labels stay low-noise and consultant-readable", () => {
   assert.equal(
     labelForPhaseSixGeneralistPosture("watching_bias"),
     "目前仍全面，但需持續看偏移",
+  );
+});
+
+test("phase 6 maturity review labels stay low-noise and stage-readable", () => {
+  assert.equal(labelForPhaseSixMaturityStage("foundation_lane"), "仍在打基礎");
+  assert.equal(labelForPhaseSixMaturityStage("refinement_lane"), "已進入收斂深化");
+  assert.equal(labelForPhaseSixMaturityStage("closure_preparation"), "可準備收口判讀");
+  assert.equal(
+    summarizePhaseSixMaturityMilestones([
+      {
+        milestoneCode: "coverage_boundary",
+        milestoneLabel: "coverage / anti-drift",
+        milestoneStatus: "landed",
+        milestoneStatusLabel: "已站穩",
+        summary: "已能正式回讀 coverage 與 anti-drift posture。",
+      },
+      {
+        milestoneCode: "guidance_propagation",
+        milestoneLabel: "guidance propagation",
+        milestoneStatus: "landed",
+        milestoneStatusLabel: "已站穩",
+        summary: "已回寫到 task / matter / deliverable。",
+      },
+    ]),
+    "coverage / anti-drift：已站穩｜guidance propagation：已站穩",
   );
 });
 

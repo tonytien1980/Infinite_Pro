@@ -9,6 +9,70 @@ REUSE_WEIGHTING_RANK = {
 }
 
 
+def build_phase_six_maturity_review() -> schemas.PhaseSixMaturityReviewResponse:
+    milestone_audits = [
+        schemas.PhaseSixMaturityMilestoneRead(
+            milestone_code="coverage_boundary",
+            milestone_label="coverage / anti-drift",
+            milestone_status="landed",
+            milestone_status_label="已站穩",
+            summary="coverage audit 與 reuse-boundary governance 已正式成立，現在已能回讀偏科風險與泛化邊界。",
+        ),
+        schemas.PhaseSixMaturityMilestoneRead(
+            milestone_code="host_weighting_calibration",
+            milestone_label="Host weighting / calibration",
+            milestone_status="landed",
+            milestone_status_label="已站穩",
+            summary="context distance、confidence calibration 與 calibration-aware Host weighting 已成立。",
+        ),
+        schemas.PhaseSixMaturityMilestoneRead(
+            milestone_code="guidance_propagation",
+            milestone_label="guidance propagation",
+            milestone_status="landed",
+            milestone_status_label="已站穩",
+            summary="generalist guidance posture 已 propagation 到 task / matter / deliverable 的既有 contract。",
+        ),
+        schemas.PhaseSixMaturityMilestoneRead(
+            milestone_code="signal_condensation",
+            milestone_label="second-layer condensation",
+            milestone_status="landed",
+            milestone_status_label="已站穩",
+            summary="multiple phase-6 signals 已被收斂成單條 low-noise second-layer note，而不是持續往卡片下堆疊。",
+        ),
+        schemas.PhaseSixMaturityMilestoneRead(
+            milestone_code="surface_guardrails",
+            milestone_label="surface guardrails",
+            milestone_status="landed",
+            milestone_status_label="已站穩",
+            summary="freshness prioritization、cross-surface consistency、brevity guardrails 與 fallback consistency 已成立。",
+        ),
+    ]
+    remaining_focus_items = [
+        "把 Phase 6 的治理判斷再更正式接進 persisted asset scoring，而不是只停在 read model 與 note surface。",
+        "定義明確的 phase-6 completion / closure criteria，避免 refinement lane 無限延長。",
+        "把 generalist governance 與真實採用回饋閉環再接得更緊，讓 Host / continuity writeback 能回證哪些治理真的有效。",
+    ]
+    return schemas.PhaseSixMaturityReviewResponse(
+        phase_id="phase_6",
+        phase_label="Generalist Consulting Intelligence Governance",
+        maturity_stage="refinement_lane",
+        maturity_stage_label="已進入收斂深化",
+        summary=(
+            "Phase 6 已不再只是 foundation 起步，而是進入 generalist governance 的收斂深化期："
+            "coverage、boundary、weighting、propagation 與 second-layer guardrails 都已站穩。"
+        ),
+        maturity_snapshot="已完成 17 個 slice｜目前屬於 refinement lane，不是新的基礎施工期。",
+        completed_count=17,
+        remaining_count=len(remaining_focus_items),
+        milestone_audits=milestone_audits,
+        remaining_focus_items=remaining_focus_items,
+        recommended_next_step=(
+            "下一刀應優先處理 Phase 6 的 runtime feedback loop / closure criteria，"
+            "而不是再繼續往 note wording 微調。"
+        ),
+    )
+
+
 def build_phase_six_capability_coverage_audit() -> schemas.PhaseSixCapabilityCoverageAuditResponse:
     return schemas.PhaseSixCapabilityCoverageAuditResponse(
         phase_id="phase_6",

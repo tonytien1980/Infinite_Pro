@@ -12,6 +12,7 @@ import {
   getFirmOperatingSnapshot,
   getPhaseFiveClosureReview,
   getPhaseSixCapabilityCoverageAudit,
+  getPhaseSixMaturityReview,
   getPhaseSixCalibrationAwareWeighting,
   getPhaseSixConfidenceCalibration,
   getPhaseSixContextDistanceAudit,
@@ -33,6 +34,7 @@ import {
   labelForPhaseSixContextDistance,
   labelForPhaseSixGuidancePosture,
   labelForPhaseSixGeneralistPosture,
+  labelForPhaseSixMaturityStage,
   labelForPhaseSixGovernancePosture,
   labelForPhaseSixReuseConfidence,
   labelForPhaseSixReuseRecommendation,
@@ -42,6 +44,7 @@ import {
   summarizePhaseSixDistanceItems,
   summarizePhaseSixGuidanceItems,
   summarizePhaseSixGovernanceItems,
+  summarizePhaseSixMaturityMilestones,
   summarizePhaseSixWorkGuidance,
   summarizePhaseSixReuseBoundaryItems,
 } from "@/lib/phase-six-governance";
@@ -52,6 +55,7 @@ import type {
   MatterWorkspaceSummary,
   PhaseFiveClosureReview,
   PhaseSixCapabilityCoverageAudit,
+  PhaseSixMaturityReview,
   PhaseSixCalibrationAwareWeighting,
   PhaseSixConfidenceCalibration,
   PhaseSixContextDistanceAudit,
@@ -126,6 +130,7 @@ export function WorkbenchHome() {
   const [firmOperating, setFirmOperating] = useState<FirmOperatingSnapshot | null>(null);
   const [phaseFiveClosureReview, setPhaseFiveClosureReview] = useState<PhaseFiveClosureReview | null>(null);
   const [phaseSixAudit, setPhaseSixAudit] = useState<PhaseSixCapabilityCoverageAudit | null>(null);
+  const [phaseSixMaturity, setPhaseSixMaturity] = useState<PhaseSixMaturityReview | null>(null);
   const [phaseSixCalibrationWeighting, setPhaseSixCalibrationWeighting] =
     useState<PhaseSixCalibrationAwareWeighting | null>(null);
   const [phaseSixCalibration, setPhaseSixCalibration] = useState<PhaseSixConfidenceCalibration | null>(null);
@@ -140,6 +145,7 @@ export function WorkbenchHome() {
   const [firmOperatingLoading, setFirmOperatingLoading] = useState(true);
   const [phaseFiveClosureLoading, setPhaseFiveClosureLoading] = useState(true);
   const [phaseSixAuditLoading, setPhaseSixAuditLoading] = useState(true);
+  const [phaseSixMaturityLoading, setPhaseSixMaturityLoading] = useState(true);
   const [phaseSixCalibrationWeightingLoading, setPhaseSixCalibrationWeightingLoading] = useState(true);
   const [phaseSixCalibrationLoading, setPhaseSixCalibrationLoading] = useState(true);
   const [phaseSixDistanceLoading, setPhaseSixDistanceLoading] = useState(true);
@@ -152,6 +158,7 @@ export function WorkbenchHome() {
   const [firmOperatingError, setFirmOperatingError] = useState<string | null>(null);
   const [phaseFiveClosureError, setPhaseFiveClosureError] = useState<string | null>(null);
   const [phaseSixAuditError, setPhaseSixAuditError] = useState<string | null>(null);
+  const [phaseSixMaturityError, setPhaseSixMaturityError] = useState<string | null>(null);
   const [phaseSixCalibrationWeightingError, setPhaseSixCalibrationWeightingError] =
     useState<string | null>(null);
   const [phaseSixCalibrationError, setPhaseSixCalibrationError] = useState<string | null>(null);
@@ -243,6 +250,20 @@ export function WorkbenchHome() {
     }
   }
 
+  async function refreshPhaseSixMaturity() {
+    try {
+      setPhaseSixMaturityLoading(true);
+      setPhaseSixMaturityError(null);
+      setPhaseSixMaturity(await getPhaseSixMaturityReview());
+    } catch (maturityError) {
+      setPhaseSixMaturityError(
+        maturityError instanceof Error ? maturityError.message : "載入 Phase 6 maturity 摘要失敗。",
+      );
+    } finally {
+      setPhaseSixMaturityLoading(false);
+    }
+  }
+
   async function refreshPhaseSixCalibration() {
     try {
       setPhaseSixCalibrationLoading(true);
@@ -330,6 +351,7 @@ export function WorkbenchHome() {
     void refreshFirmOperating();
     void refreshPhaseFiveClosureReview();
     void refreshPhaseSixAudit();
+    void refreshPhaseSixMaturity();
     void refreshPhaseSixCalibrationWeighting();
     void refreshPhaseSixCalibration();
     void refreshPhaseSixDistance();
@@ -539,6 +561,11 @@ export function WorkbenchHome() {
       {phaseSixAuditError ? (
         <p className="error-text" role="alert" aria-live="assertive">
           {phaseSixAuditError}
+        </p>
+      ) : null}
+      {phaseSixMaturityError ? (
+        <p className="error-text" role="alert" aria-live="assertive">
+          {phaseSixMaturityError}
         </p>
       ) : null}
       {phaseSixCalibrationError ? (
@@ -850,6 +877,36 @@ export function WorkbenchHome() {
               {phaseSixAuditLoading ? <p className="status-text">正在整理 Phase 6 治理摘要...</p> : null}
               {!phaseSixAuditLoading && phaseSixAudit ? (
                 <>
+                  {phaseSixMaturityLoading ? (
+                    <p className="status-text" style={{ marginBottom: "16px" }}>
+                      正在整理 Phase 6 maturity...
+                    </p>
+                  ) : null}
+
+                  {!phaseSixMaturityLoading && phaseSixMaturity ? (
+                    <div className="section-card" style={{ marginBottom: "16px" }}>
+                      <h3>Phase 6 maturity</h3>
+                      <p className="muted-text">
+                        {labelForPhaseSixMaturityStage(phaseSixMaturity.maturityStage)}
+                      </p>
+                      <strong>{phaseSixMaturity.maturitySnapshot}</strong>
+                      <p className="muted-text" style={{ marginTop: "8px" }}>
+                        {phaseSixMaturity.summary}
+                      </p>
+                      <p className="muted-text" style={{ marginTop: "8px" }}>
+                        {summarizePhaseSixMaturityMilestones(phaseSixMaturity.milestoneAudits)}
+                      </p>
+                      <ul className="detail-list" style={{ marginTop: "12px" }}>
+                        {phaseSixMaturity.remainingFocusItems.slice(0, 2).map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                      <p className="muted-text" style={{ marginTop: "12px" }}>
+                        {phaseSixMaturity.recommendedNextStep}
+                      </p>
+                    </div>
+                  ) : null}
+
                   <div className="summary-grid">
                     <div className="section-card">
                       <p className="muted-text">目前審核狀態</p>

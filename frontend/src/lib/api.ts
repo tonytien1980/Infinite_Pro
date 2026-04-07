@@ -51,6 +51,7 @@ import {
   PersonalProviderSettingsPayload,
   PhaseFiveClosureReview,
   PhaseSixCapabilityCoverageAudit,
+  PhaseSixMaturityReview,
   PhaseSixCalibrationAwareWeighting,
   PhaseSixConfidenceCalibration,
   PhaseSixContextDistanceAudit,
@@ -253,6 +254,13 @@ export async function getPhaseSixCapabilityCoverageAudit(): Promise<PhaseSixCapa
     },
   );
   return parsePhaseSixCapabilityCoverageAuditPayload(await parseResponse<any>(response));
+}
+
+export async function getPhaseSixMaturityReview(): Promise<PhaseSixMaturityReview> {
+  const response = await apiFetch(`${getApiBaseUrl()}/workbench/phase-6-maturity-review`, {
+    cache: "no-store",
+  });
+  return parsePhaseSixMaturityReviewPayload(await parseResponse<any>(response));
 }
 
 export async function getPhaseSixReuseBoundaryGovernance(): Promise<PhaseSixReuseBoundaryGovernance> {
@@ -986,6 +994,37 @@ function parsePhaseSixCapabilityCoverageAuditPayload(payload: any): PhaseSixCapa
           boundaryStatusLabel: item.boundary_status_label || "",
           summary: item.summary || "",
         }))
+      : [],
+    recommendedNextStep: payload.recommended_next_step || "",
+  };
+}
+
+function parsePhaseSixMaturityReviewPayload(payload: any): PhaseSixMaturityReview {
+  return {
+    phaseId: "phase_6",
+    phaseLabel: payload.phase_label || "",
+    maturityStage:
+      payload.maturity_stage === "foundation_lane"
+        ? "foundation_lane"
+        : payload.maturity_stage === "closure_preparation"
+          ? "closure_preparation"
+          : "refinement_lane",
+    maturityStageLabel: payload.maturity_stage_label || "",
+    summary: payload.summary || "",
+    maturitySnapshot: payload.maturity_snapshot || "",
+    completedCount: Number(payload.completed_count ?? 0),
+    remainingCount: Number(payload.remaining_count ?? 0),
+    milestoneAudits: Array.isArray(payload.milestone_audits)
+      ? payload.milestone_audits.map((item: any) => ({
+          milestoneCode: item.milestone_code,
+          milestoneLabel: item.milestone_label || "",
+          milestoneStatus: item.milestone_status === "stabilizing" ? "stabilizing" : "landed",
+          milestoneStatusLabel: item.milestone_status_label || "",
+          summary: item.summary || "",
+        }))
+      : [],
+    remainingFocusItems: Array.isArray(payload.remaining_focus_items)
+      ? payload.remaining_focus_items.filter((item: unknown) => typeof item === "string")
       : [],
     recommendedNextStep: payload.recommended_next_step || "",
   };

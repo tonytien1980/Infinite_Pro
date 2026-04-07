@@ -415,6 +415,7 @@ Infinite Pro 正式採：
 - `總覽` 現在也可正式承接一塊 `Generalist Governance`
 - 這塊只回答：
   - shared intelligence 目前有沒有開始偏科
+  - Phase 6 目前是處於 foundation、refinement，還是可準備收斂
   - 覆蓋目前偏穩、偏薄，還是過重的能力區塊
   - 哪些 reusable assets 目前只適合局部情境
   - 哪些 reusable assets 可擴大重用、維持局部參考，或不要擴大套用
@@ -440,6 +441,9 @@ Infinite Pro 正式採：
 - 若 condensed note 已有一致骨架，後續 slice 可補一段很短的 surface-specific emphasis，但不可長成 instruction wall
 - 若 condensed note 已開始帶 posture / lifecycle / emphasis，後續 slice 應優先補 brevity guardrails，避免又長回完整句
 - 若 condensed note 的主要 lifecycle 訊號缺失，後續 slice 應優先補 fallback consistency，而不是讓頁面各自臨時 fallback
+- 若 Phase 6 slice 已經累積很多，後續也可在既有 `Generalist Governance` 內補一塊 `Phase 6 maturity`：
+  - 只回答目前屬於哪個 maturity stage、已完成哪些 milestone clusters、還剩哪些真 focus items
+  - 不可長出 `/phase-6`, `/maturity`, `/governance` 新頁面
 - 不可因此長成 dashboard wall 或第二套管理後台
 
 ### `建立新案件`

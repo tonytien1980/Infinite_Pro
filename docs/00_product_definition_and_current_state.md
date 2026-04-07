@@ -887,6 +887,17 @@ Infinite Pro 目前沒有也不應硬對齊於：
   - `note fallback consistency v1`
   - 當主要 lifecycle 訊號缺失時，condensed `Phase 6` note 現在會穩定退回 weighting -> calibration -> reuse confidence
   - fallback 也已正式壓成短標籤，不再回到臨時長句
+- 這條線現在也已正式推到第十八刀：
+  - `phase-6 maturity review v1`
+  - backend 已正式補上 `phase-6 maturity review` read model
+  - `總覽` 的既有 `Generalist Governance` 現在也會正式回答：
+    - Phase 6 目前屬於哪個 maturity stage
+    - 目前已完成哪些 milestone clusters
+    - 目前還剩哪些真正值得投入的 focus items
+  - 也就是說，Phase 6 現在不只是一串已做過的 slice，而是 system 已能正式回讀：
+    - 目前已進入 `refinement lane`
+    - 不是新的基礎施工期
+    - 下一刀應優先看 runtime feedback loop / closure criteria，而不是繼續鑽 note wording
 
 ---
 

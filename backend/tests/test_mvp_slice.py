@@ -474,6 +474,35 @@ def test_owner_can_read_phase_six_capability_coverage_audit(client: TestClient) 
     assert payload["recommended_next_step"]
 
 
+def test_owner_can_read_phase_six_maturity_review(client: TestClient) -> None:
+    response = client.get("/api/v1/workbench/phase-6-maturity-review")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["phase_id"] == "phase_6"
+    assert payload["maturity_stage"] in {
+        "foundation_lane",
+        "refinement_lane",
+        "closure_preparation",
+    }
+    assert payload["maturity_stage_label"]
+    assert payload["summary"]
+    assert payload["completed_count"] >= 1
+    assert payload["milestone_audits"]
+    assert payload["remaining_focus_items"]
+    assert payload["recommended_next_step"]
+
+
+def test_phase_six_maturity_review_marks_current_lane_as_refinement(client: TestClient) -> None:
+    response = client.get("/api/v1/workbench/phase-6-maturity-review")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["maturity_stage"] == "refinement_lane"
+    assert payload["completed_count"] > payload["remaining_count"]
+    assert any(item["milestone_status"] == "landed" for item in payload["milestone_audits"])
+
+
 def test_phase_six_capability_coverage_audit_marks_narrow_assets_low_noise(
     client: TestClient,
 ) -> None:

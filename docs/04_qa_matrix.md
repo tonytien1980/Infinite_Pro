@@ -4679,3 +4679,43 @@ Environment used:
 - browser smoke
 - phase 6 implementation
 - release dashboard shell
+
+---
+
+## Entry: 2026-04-07 phase-6 maturity review v1 pass
+
+Scope:
+- `GET /workbench/phase-6-maturity-review`
+- `總覽` `Generalist Governance` 內的 `Phase 6 maturity` 摘要
+- Phase 6 current-lane / milestone / remaining-focus read model
+
+Environment used:
+- local backend and frontend verification only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`236 passed`) |
+| `cd frontend && node --test tests/auth-foundation.test.mjs tests/provider-settings-foundation.test.mjs tests/demo-workspace-isolation.test.mjs tests/phase-six-governance.test.mjs tests/intake-progress.test.mjs` | Passed (`60 passed`) |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && mkdir -p .next/types && npx next typegen && npm run typecheck` | Passed |
+| `cd frontend && npm run build` | Initial parallel run hit `.next/types/routes.d.ts` ENOENT; not counted as pass |
+| `cd frontend && mkdir -p .next/types && npx next typegen && npm run build` | Passed after serial rerun |
+| `cd frontend && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010/api/v1 npm run build` | Passed |
+
+### Phase-6 maturity review verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | `/workbench/phase-6-maturity-review` | Return phase-6 maturity review contract | Verified | targeted backend tests confirm `maturity_stage`, `milestone_audits`, `remaining_focus_items`, and `recommended_next_step` now exist |
+| Backend | `/workbench/phase-6-maturity-review` | Read current lane as refinement rather than closure | Verified | targeted backend tests confirm current stage is `refinement_lane` and completed items now exceed remaining focus items |
+| Frontend | phase-six governance helper | Read maturity stage labels and milestone summaries in low-noise copy | Verified | node tests confirm stage labels stay consultant-readable and milestone summaries remain compact |
+| Frontend | `/` | Keep maturity review inside existing `Generalist Governance` panel | Verified | typecheck/build confirm `WorkbenchHome` consumes the new maturity contract without creating a new page family |
+| Frontend | `/` | Show current lane, milestone clusters, and remaining focus items | Verified | homepage summary now explains that Phase 6 is in refinement lane rather than implying another foundation pass |
+
+### Explicitly not shipped in this pass
+
+- browser smoke
+- phase 6 sign-off / closure flow
+- persisted governance scoring rewrite

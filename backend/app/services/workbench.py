@@ -33,6 +33,7 @@ from app.services.phase_five_closure_review import (
 )
 from app.services.phase_six_generalist_governance import (
     build_phase_six_capability_coverage_audit,
+    build_phase_six_maturity_review,
     build_phase_six_calibration_aware_weighting,
     build_phase_six_confidence_calibration,
     build_phase_six_context_distance_audit,
@@ -476,6 +477,13 @@ def get_phase_six_capability_coverage_audit(
 ) -> schemas.PhaseSixCapabilityCoverageAuditResponse:
     del db
     return build_phase_six_capability_coverage_audit()
+
+
+def get_phase_six_maturity_review(
+    db: Session,
+) -> schemas.PhaseSixMaturityReviewResponse:
+    del db
+    return build_phase_six_maturity_review()
 
 
 def get_phase_six_reuse_boundary_governance(
