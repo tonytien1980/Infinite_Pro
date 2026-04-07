@@ -5,6 +5,7 @@ import type {
   GeneralistGuidancePosture,
   ReuseConfidenceSignal,
 } from "@/lib/types";
+import { buildPhaseSixSecondLayerSignalNote } from "./phase-six-second-layer.js";
 
 function labelForTemplatePriority(priority: string) {
   if (priority === "high") {
@@ -42,10 +43,7 @@ export function buildDeliverableTemplateView(
   coreSections: string[];
   optionalListTitle: string;
   optionalSections: string[];
-  generalistGuidanceNote: string;
-  reuseConfidenceNote: string;
-  confidenceCalibrationNote: string;
-  calibrationAwareWeightingNote: string;
+  phaseSixSignalNote: string;
   boundaryNote: string;
 } {
   if (!guidance || guidance.status === "none") {
@@ -69,10 +67,7 @@ export function buildDeliverableTemplateView(
       coreSections: [],
       optionalListTitle: "",
       optionalSections: [],
-      generalistGuidanceNote: "",
-      reuseConfidenceNote: "",
-      confidenceCalibrationNote: "",
-      calibrationAwareWeightingNote: "",
+      phaseSixSignalNote: "",
       boundaryNote: "",
     };
   }
@@ -103,33 +98,12 @@ export function buildDeliverableTemplateView(
     coreSections: guidance.core_sections,
     optionalListTitle: "這些區塊視案件補",
     optionalSections: guidance.optional_sections,
-    generalistGuidanceNote:
-      generalistGuidancePosture?.guidance_posture_label && generalistGuidancePosture?.work_guidance_summary
-        ? `Phase 6 guidance：${generalistGuidancePosture.guidance_posture_label}｜${generalistGuidancePosture.work_guidance_summary}`
-        : "",
-    reuseConfidenceNote:
-      reuseConfidenceSignal?.confidence_posture_label && reuseConfidenceSignal.distance_items?.length
-        ? `Phase 6 reuse confidence：${reuseConfidenceSignal.confidence_posture_label}｜${reuseConfidenceSignal.distance_items
-            .slice(0, 2)
-            .map((item) => `${item.asset_label}：${item.reuse_confidence_label}`)
-            .join("｜")}`
-        : "",
-    confidenceCalibrationNote:
-      confidenceCalibrationSignal?.calibration_posture_label &&
-      confidenceCalibrationSignal.calibration_items?.length
-        ? `Phase 6 confidence calibration：${confidenceCalibrationSignal.calibration_posture_label}｜${confidenceCalibrationSignal.calibration_items
-            .slice(0, 2)
-            .map((item) => `${item.axis_label}：${item.calibration_status_label}`)
-            .join("｜")}`
-        : "",
-    calibrationAwareWeightingNote:
-      calibrationAwareWeightingSignal?.weighting_posture_label &&
-      calibrationAwareWeightingSignal.weighting_items?.length
-        ? `Phase 6 Host weighting：${calibrationAwareWeightingSignal.weighting_posture_label}｜${calibrationAwareWeightingSignal.weighting_items
-            .slice(0, 2)
-            .map((item) => `${item.axis_label}：${item.weighting_effect_label}`)
-            .join("｜")}`
-        : "",
+    phaseSixSignalNote: buildPhaseSixSecondLayerSignalNote({
+      generalistGuidancePosture,
+      reuseConfidenceSignal,
+      confidenceCalibrationSignal,
+      calibrationAwareWeightingSignal,
+    }),
     boundaryNote: guidance.boundary_note,
   };
 }

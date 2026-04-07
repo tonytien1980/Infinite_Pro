@@ -550,10 +550,8 @@ test("organization memory view stays low-noise and consultant-readable", () => {
   assert.equal(view.crossMatterItems[0]?.title, "年度法務盤點｜合約風險整理");
   assert.match(view.crossMatterItems[0]?.meta ?? "", /同一客戶/);
   assert.match(view.crossMatterItems[0]?.meta ?? "", /較舊背景/);
-  assert.match(view.generalistGuidanceNote ?? "", /適度明示/);
-  assert.match(view.reuseConfidenceNote ?? "", /低信心重用/);
-  assert.match(view.confidenceCalibrationNote ?? "", /仍有不對齊/);
-  assert.match(view.calibrationAwareWeightingNote ?? "", /先留背景校正/);
+  assert.match(view.phaseSixSignalNote ?? "", /適度明示/);
+  assert.match(view.phaseSixSignalNote ?? "", /先留背景校正/);
 });
 
 test("domain playbook view stays low-noise and consultant-readable", () => {
@@ -677,10 +675,8 @@ test("domain playbook view stays low-noise and consultant-readable", () => {
   assert.match(view.listItems[0] ?? "", /先補齊審閱範圍/);
   assert.match(view.cards[0]?.meta ?? "", /task heuristic/);
   assert.match(view.cards[2]?.meta ?? "", /cross-matter organization memory/);
-  assert.match(view.generalistGuidanceNote ?? "", /保守引導/);
-  assert.match(view.reuseConfidenceNote ?? "", /有邊界重用/);
-  assert.match(view.confidenceCalibrationNote ?? "", /仍有不對齊/);
-  assert.match(view.calibrationAwareWeightingNote ?? "", /先留背景校正/);
+  assert.match(view.phaseSixSignalNote ?? "", /保守引導/);
+  assert.match(view.phaseSixSignalNote ?? "", /先留背景校正/);
   assert.match(view.boundaryNote, /不是強制 checklist/);
 });
 
@@ -1778,10 +1774,8 @@ test("deliverable template view stays low-noise and consultant-readable", () => 
   assert.equal(view.optionalSections[0], "待補資料");
   assert.match(view.cards[0]?.meta ?? "", /precedent deliverable template/);
   assert.match(view.cards[2]?.meta ?? "", /deliverable shape/);
-  assert.match(view.generalistGuidanceNote ?? "", /保守引導/);
-  assert.match(view.reuseConfidenceNote ?? "", /低信心重用/);
-  assert.match(view.confidenceCalibrationNote ?? "", /仍有不對齊/);
-  assert.match(view.calibrationAwareWeightingNote ?? "", /先留背景校正/);
+  assert.match(view.phaseSixSignalNote ?? "", /保守引導/);
+  assert.match(view.phaseSixSignalNote ?? "", /先留背景校正/);
   assert.match(view.boundaryNote, /不是自動套模板/);
 });
 

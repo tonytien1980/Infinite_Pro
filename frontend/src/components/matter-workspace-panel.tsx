@@ -1123,24 +1123,9 @@ export function MatterWorkspacePanel({
                             {organizationMemoryView.continuityAnchor}
                           </p>
                         ) : null}
-                        {organizationMemoryView.generalistGuidanceNote ? (
+                        {organizationMemoryView.phaseSixSignalNote ? (
                           <p className="muted-text" style={{ marginTop: "12px" }}>
-                            {organizationMemoryView.generalistGuidanceNote}
-                          </p>
-                        ) : null}
-                        {organizationMemoryView.reuseConfidenceNote ? (
-                          <p className="muted-text" style={{ marginTop: "12px" }}>
-                            {organizationMemoryView.reuseConfidenceNote}
-                          </p>
-                        ) : null}
-                        {organizationMemoryView.confidenceCalibrationNote ? (
-                          <p className="muted-text" style={{ marginTop: "12px" }}>
-                            {organizationMemoryView.confidenceCalibrationNote}
-                          </p>
-                        ) : null}
-                        {organizationMemoryView.calibrationAwareWeightingNote ? (
-                          <p className="muted-text" style={{ marginTop: "12px" }}>
-                            {organizationMemoryView.calibrationAwareWeightingNote}
+                            {organizationMemoryView.phaseSixSignalNote}
                           </p>
                         ) : null}
                         <p className="muted-text" style={{ marginTop: "12px" }}>
@@ -1196,24 +1181,9 @@ export function MatterWorkspacePanel({
                             ))}
                           </ul>
                         ) : null}
-                        {domainPlaybookView.generalistGuidanceNote ? (
+                        {domainPlaybookView.phaseSixSignalNote ? (
                           <p className="muted-text" style={{ marginTop: "12px" }}>
-                            {domainPlaybookView.generalistGuidanceNote}
-                          </p>
-                        ) : null}
-                        {domainPlaybookView.reuseConfidenceNote ? (
-                          <p className="muted-text" style={{ marginTop: "12px" }}>
-                            {domainPlaybookView.reuseConfidenceNote}
-                          </p>
-                        ) : null}
-                        {domainPlaybookView.confidenceCalibrationNote ? (
-                          <p className="muted-text" style={{ marginTop: "12px" }}>
-                            {domainPlaybookView.confidenceCalibrationNote}
-                          </p>
-                        ) : null}
-                        {domainPlaybookView.calibrationAwareWeightingNote ? (
-                          <p className="muted-text" style={{ marginTop: "12px" }}>
-                            {domainPlaybookView.calibrationAwareWeightingNote}
+                            {domainPlaybookView.phaseSixSignalNote}
                           </p>
                         ) : null}
                         <p className="muted-text" style={{ marginTop: "12px" }}>

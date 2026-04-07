@@ -1737,24 +1737,9 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                       </ul>
                     </>
                   ) : null}
-                  {deliverableTemplateView.generalistGuidanceNote ? (
+                  {deliverableTemplateView.phaseSixSignalNote ? (
                     <p className="muted-text" style={{ marginTop: "12px" }}>
-                      {deliverableTemplateView.generalistGuidanceNote}
-                    </p>
-                  ) : null}
-                  {deliverableTemplateView.reuseConfidenceNote ? (
-                    <p className="muted-text" style={{ marginTop: "12px" }}>
-                      {deliverableTemplateView.reuseConfidenceNote}
-                    </p>
-                  ) : null}
-                  {deliverableTemplateView.confidenceCalibrationNote ? (
-                    <p className="muted-text" style={{ marginTop: "12px" }}>
-                      {deliverableTemplateView.confidenceCalibrationNote}
-                    </p>
-                  ) : null}
-                  {deliverableTemplateView.calibrationAwareWeightingNote ? (
-                    <p className="muted-text" style={{ marginTop: "12px" }}>
-                      {deliverableTemplateView.calibrationAwareWeightingNote}
+                      {deliverableTemplateView.phaseSixSignalNote}
                     </p>
                   ) : null}
                   <p className="muted-text" style={{ marginTop: "12px" }}>

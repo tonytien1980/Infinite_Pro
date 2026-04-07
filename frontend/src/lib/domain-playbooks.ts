@@ -5,6 +5,7 @@ import type {
   GeneralistGuidancePosture,
   ReuseConfidenceSignal,
 } from "@/lib/types";
+import { buildPhaseSixSecondLayerSignalNote } from "./phase-six-second-layer.js";
 
 export function buildDomainPlaybookView(
   guidance: DomainPlaybookGuidance | null | undefined,
@@ -31,10 +32,7 @@ export function buildDomainPlaybookView(
   cards: Array<{ title: string; summary: string; meta: string }>;
   listTitle: string;
   listItems: string[];
-  generalistGuidanceNote: string;
-  reuseConfidenceNote: string;
-  confidenceCalibrationNote: string;
-  calibrationAwareWeightingNote: string;
+  phaseSixSignalNote: string;
   boundaryNote: string;
 } {
   if (!guidance || guidance.status === "none" || guidance.stages.length === 0) {
@@ -57,10 +55,7 @@ export function buildDomainPlaybookView(
       cards: [],
       listTitle: "",
       listItems: [],
-      generalistGuidanceNote: "",
-      reuseConfidenceNote: "",
-      confidenceCalibrationNote: "",
-      calibrationAwareWeightingNote: "",
+      phaseSixSignalNote: "",
       boundaryNote: "",
     };
   }
@@ -88,33 +83,12 @@ export function buildDomainPlaybookView(
     })),
     listTitle: "這類案子通常這樣推進",
     listItems: guidance.stages.map((item) => item.title),
-    generalistGuidanceNote:
-      generalistGuidancePosture?.guidance_posture_label && generalistGuidancePosture?.work_guidance_summary
-        ? `Phase 6 guidance：${generalistGuidancePosture.guidance_posture_label}｜${generalistGuidancePosture.work_guidance_summary}`
-        : "",
-    reuseConfidenceNote:
-      reuseConfidenceSignal?.confidence_posture_label && reuseConfidenceSignal.distance_items?.length
-        ? `Phase 6 reuse confidence：${reuseConfidenceSignal.confidence_posture_label}｜${reuseConfidenceSignal.distance_items
-            .slice(0, 2)
-            .map((item) => `${item.asset_label}：${item.reuse_confidence_label}`)
-            .join("｜")}`
-        : "",
-    confidenceCalibrationNote:
-      confidenceCalibrationSignal?.calibration_posture_label &&
-      confidenceCalibrationSignal.calibration_items?.length
-        ? `Phase 6 confidence calibration：${confidenceCalibrationSignal.calibration_posture_label}｜${confidenceCalibrationSignal.calibration_items
-            .slice(0, 2)
-            .map((item) => `${item.axis_label}：${item.calibration_status_label}`)
-            .join("｜")}`
-        : "",
-    calibrationAwareWeightingNote:
-      calibrationAwareWeightingSignal?.weighting_posture_label &&
-      calibrationAwareWeightingSignal.weighting_items?.length
-        ? `Phase 6 Host weighting：${calibrationAwareWeightingSignal.weighting_posture_label}｜${calibrationAwareWeightingSignal.weighting_items
-            .slice(0, 2)
-            .map((item) => `${item.axis_label}：${item.weighting_effect_label}`)
-            .join("｜")}`
-        : "",
+    phaseSixSignalNote: buildPhaseSixSecondLayerSignalNote({
+      generalistGuidancePosture,
+      reuseConfidenceSignal,
+      confidenceCalibrationSignal,
+      calibrationAwareWeightingSignal,
+    }),
     boundaryNote: guidance.boundary_note,
   };
 }

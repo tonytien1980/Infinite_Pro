@@ -5,6 +5,7 @@ import type {
   OrganizationMemoryGuidance,
   ReuseConfidenceSignal,
 } from "@/lib/types";
+import { buildPhaseSixSecondLayerSignalNote } from "./phase-six-second-layer.js";
 
 export function buildOrganizationMemoryView(
   guidance: OrganizationMemoryGuidance | null | undefined,
@@ -27,10 +28,7 @@ export function buildOrganizationMemoryView(
   continuityAnchor: string;
   crossMatterSummary: string;
   crossMatterItems: Array<{ title: string; summary: string; meta: string; matterWorkspaceId: string }>;
-  generalistGuidanceNote: string;
-  reuseConfidenceNote: string;
-  confidenceCalibrationNote: string;
-  calibrationAwareWeightingNote: string;
+  phaseSixSignalNote: string;
   boundaryNote: string;
 } {
   if (!guidance || guidance.status !== "available") {
@@ -49,10 +47,7 @@ export function buildOrganizationMemoryView(
       continuityAnchor: "",
       crossMatterSummary: "",
       crossMatterItems: [],
-      generalistGuidanceNote: "",
-      reuseConfidenceNote: "",
-      confidenceCalibrationNote: "",
-      calibrationAwareWeightingNote: "",
+      phaseSixSignalNote: "",
       boundaryNote: "",
     };
   }
@@ -77,33 +72,12 @@ export function buildOrganizationMemoryView(
       meta: [item.relation_reason, item.freshness_label].filter(Boolean).join("｜"),
       matterWorkspaceId: item.matter_workspace_id,
     })),
-    generalistGuidanceNote:
-      generalistGuidancePosture?.guidance_posture_label && generalistGuidancePosture?.work_guidance_summary
-        ? `Phase 6 guidance：${generalistGuidancePosture.guidance_posture_label}｜${generalistGuidancePosture.work_guidance_summary}`
-        : "",
-    reuseConfidenceNote:
-      reuseConfidenceSignal?.confidence_posture_label && reuseConfidenceSignal.distance_items?.length
-        ? `Phase 6 reuse confidence：${reuseConfidenceSignal.confidence_posture_label}｜${reuseConfidenceSignal.distance_items
-            .slice(0, 2)
-            .map((item) => `${item.asset_label}：${item.reuse_confidence_label}`)
-            .join("｜")}`
-        : "",
-    confidenceCalibrationNote:
-      confidenceCalibrationSignal?.calibration_posture_label &&
-      confidenceCalibrationSignal.calibration_items?.length
-        ? `Phase 6 confidence calibration：${confidenceCalibrationSignal.calibration_posture_label}｜${confidenceCalibrationSignal.calibration_items
-            .slice(0, 2)
-            .map((item) => `${item.axis_label}：${item.calibration_status_label}`)
-            .join("｜")}`
-        : "",
-    calibrationAwareWeightingNote:
-      calibrationAwareWeightingSignal?.weighting_posture_label &&
-      calibrationAwareWeightingSignal.weighting_items?.length
-        ? `Phase 6 Host weighting：${calibrationAwareWeightingSignal.weighting_posture_label}｜${calibrationAwareWeightingSignal.weighting_items
-            .slice(0, 2)
-            .map((item) => `${item.axis_label}：${item.weighting_effect_label}`)
-            .join("｜")}`
-        : "",
+    phaseSixSignalNote: buildPhaseSixSecondLayerSignalNote({
+      generalistGuidancePosture,
+      reuseConfidenceSignal,
+      confidenceCalibrationSignal,
+      calibrationAwareWeightingSignal,
+    }),
     boundaryNote: guidance.boundary_note,
   };
 }

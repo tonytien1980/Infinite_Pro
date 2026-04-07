@@ -863,6 +863,10 @@ Infinite Pro 目前沒有也不應硬對齊於：
   - `calibration-aware weighting propagation v1`
   - `calibration_aware_weighting_signal` 已正式回寫到 task / matter / deliverable 的 second-layer guidance
   - 既有 `organization memory` / `domain playbook` / `deliverable template` 卡片現在也能讀到低噪音 `Phase 6 Host weighting` note
+- 這條線現在也已正式推到第十二刀：
+  - `second-layer signal condensation v1`
+  - task / matter / deliverable 的既有 second-layer cards 現在會把 4 條 Phase 6 notes 收成 1 條 low-noise condensed note
+  - frontend 已用共用 helper 收斂這條讀法，避免 second-layer cards 持續變厚
 
 ---
 

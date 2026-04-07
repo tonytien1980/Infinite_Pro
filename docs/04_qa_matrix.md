@@ -4258,6 +4258,18 @@ Environment used:
 - `calibration_aware_weighting_signal` no longer only lives on the homepage; it now flows through the existing task / matter / deliverable work-surface contracts
 - Phase 6 can now express guidance posture, reuse-confidence reading, confidence calibration, and calibration-aware Host weighting inside existing second-layer cards without creating a new governance page
 
+### Phase-6 second-layer signal condensation verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Frontend | `organization-memory` / `domain-playbooks` / `deliverable-templates` helpers | Condense 4 Phase 6 notes into 1 low-noise second-layer note | Verified | node helper tests confirm the 3 helpers now expose a single `phaseSixSignalNote` that still preserves posture plus the most actionable boundary signal |
+| Frontend | task / matter / deliverable surfaces | Render one condensed Phase 6 note instead of 4 stacked lines | Verified | typecheck/build pass after removing the 4 separate paragraph renders and replacing them with one condensed note line |
+
+### Verified outcomes
+
+- second-layer cards no longer stack 4 separate Phase 6 notes under every reusable guidance card
+- the most important Phase 6 message still remains visible, but the cards stay lighter and easier to scan
+
 ### Explicitly not shipped in this pass
 
 - `Personal Provider Settings`
