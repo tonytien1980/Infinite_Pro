@@ -4306,6 +4306,18 @@ Environment used:
 - consultants can now read not only the reusable posture, but also which kind of work the note is mainly helping them calibrate
 - the condensed note stays single-line and low-noise while becoming slightly more actionable
 
+### Phase-6 note brevity guardrails verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Frontend | `phase-six-second-layer` helper | Normalize reusable posture and emphasis into shorter canonical labels | Verified | targeted tests confirm the condensed note now prefers shorter labels like `背景回前景`, `主線回前景`, `骨架回前景`, and short emphasis labels |
+| Frontend | `phase-six-second-layer` helper | Keep note shape to a stable three-part single-line readout | Verified | targeted tests confirm the note stays in a compact `Phase 6：姿態｜狀態｜重點` shape without drifting back into full-sentence copy |
+
+### Verified outcomes
+
+- condensed `Phase 6` notes now read more like workbench cues than mini paragraphs
+- the note remains actionable while staying shorter and easier to scan
+
 ### Explicitly not shipped in this pass
 
 - `Personal Provider Settings`

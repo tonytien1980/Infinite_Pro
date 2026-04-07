@@ -40,6 +40,22 @@ function resolveReuseConfidenceSegment(signal) {
   return `${preferred.asset_label}：${preferred.reuse_confidence_label}`;
 }
 
+function normalizeEmphasisLabel(label) {
+  if (!label) {
+    return "";
+  }
+  if (/客戶|組織背景/.test(label)) {
+    return "校正客戶背景";
+  }
+  if (/工作主線/.test(label)) {
+    return "校正工作主線";
+  }
+  if (/交付骨架|模板/.test(label)) {
+    return "校正交付骨架";
+  }
+  return label.replace(/^先/, "").replace(/\s*\/\s*/g, "");
+}
+
 export function buildPhaseSixSecondLayerSignalNote(args) {
   const segments = [];
 
@@ -67,8 +83,9 @@ export function buildPhaseSixSecondLayerSignalNote(args) {
     segments.push(actionableSegment);
   }
 
-  if (args.emphasisLabel) {
-    segments.push(args.emphasisLabel);
+  const normalizedEmphasisLabel = normalizeEmphasisLabel(args.emphasisLabel);
+  if (normalizedEmphasisLabel) {
+    segments.push(normalizedEmphasisLabel);
   }
 
   if (segments.length === 0) {
@@ -84,22 +101,16 @@ function normalizeLifecyclePrioritySummary(surfaceKind, summary) {
 
   if (/重新拉回前景|重新讓.*站前面/.test(summary)) {
     if (surfaceKind === "organization_memory") {
-      return "組織背景已重新回前景";
+      return "背景回前景";
     }
     if (surfaceKind === "deliverable_template") {
-      return "模板主線已重新回前景";
+      return "骨架回前景";
     }
-    return "工作主線已重新回前景";
+    return "主線回前景";
   }
 
   if (/需要改寫|退到背景觀察|留背景校正/.test(summary)) {
-    if (surfaceKind === "organization_memory") {
-      return "組織背景仍需退背景";
-    }
-    if (surfaceKind === "deliverable_template") {
-      return "模板主線仍需退背景";
-    }
-    return "工作主線仍需退背景";
+    return "需退背景";
   }
 
   if (/偏舊/.test(summary)) {
@@ -107,7 +118,7 @@ function normalizeLifecyclePrioritySummary(surfaceKind, summary) {
   }
 
   if (/恢復/.test(summary)) {
-    return "仍在恢復期";
+    return "仍在恢復";
   }
 
   return summary;

@@ -48,6 +48,7 @@ import { buildSharedIntelligenceClosureView } from "../src/lib/shared-intelligen
 import { buildContinuationPostureView } from "../src/lib/continuity-ux.ts";
 import { buildResearchDetailView, buildResearchGuidanceView } from "../src/lib/research-lane.ts";
 import { buildOrganizationMemoryView } from "../src/lib/organization-memory.ts";
+import { buildPhaseSixSecondLayerSignalNote } from "../src/lib/phase-six-second-layer.js";
 
 test("batch progress summary distinguishes done, parsing, failed, blocking, and reference-only items", () => {
   const items = buildIntakePreviewItems({
@@ -551,8 +552,8 @@ test("organization memory view stays low-noise and consultant-readable", () => {
   assert.match(view.crossMatterItems[0]?.meta ?? "", /同一客戶/);
   assert.match(view.crossMatterItems[0]?.meta ?? "", /較舊背景/);
   assert.match(view.phaseSixSignalNote ?? "", /適度明示/);
-  assert.match(view.phaseSixSignalNote ?? "", /組織背景已重新回前景/);
-  assert.match(view.phaseSixSignalNote ?? "", /先校正客戶 \/ 組織背景/);
+  assert.match(view.phaseSixSignalNote ?? "", /背景回前景/);
+  assert.match(view.phaseSixSignalNote ?? "", /校正客戶背景/);
 });
 
 test("domain playbook view stays low-noise and consultant-readable", () => {
@@ -677,8 +678,8 @@ test("domain playbook view stays low-noise and consultant-readable", () => {
   assert.match(view.cards[0]?.meta ?? "", /task heuristic/);
   assert.match(view.cards[2]?.meta ?? "", /cross-matter organization memory/);
   assert.match(view.phaseSixSignalNote ?? "", /保守引導/);
-  assert.match(view.phaseSixSignalNote ?? "", /工作主線已重新回前景/);
-  assert.match(view.phaseSixSignalNote ?? "", /先校正工作主線/);
+  assert.match(view.phaseSixSignalNote ?? "", /主線回前景/);
+  assert.match(view.phaseSixSignalNote ?? "", /校正工作主線/);
   assert.match(view.boundaryNote, /不是強制 checklist/);
 });
 
@@ -1777,9 +1778,29 @@ test("deliverable template view stays low-noise and consultant-readable", () => 
   assert.match(view.cards[0]?.meta ?? "", /precedent deliverable template/);
   assert.match(view.cards[2]?.meta ?? "", /deliverable shape/);
   assert.match(view.phaseSixSignalNote ?? "", /保守引導/);
-  assert.match(view.phaseSixSignalNote ?? "", /模板主線已重新回前景/);
-  assert.match(view.phaseSixSignalNote ?? "", /先校正交付骨架/);
+  assert.match(view.phaseSixSignalNote ?? "", /骨架回前景/);
+  assert.match(view.phaseSixSignalNote ?? "", /校正交付骨架/);
   assert.match(view.boundaryNote, /不是自動套模板/);
+});
+
+test("phase 6 second-layer note keeps a short three-part shape", () => {
+  const note = buildPhaseSixSecondLayerSignalNote({
+    surfaceKind: "organization_memory",
+    generalistGuidancePosture: {
+      guidance_posture: "balanced_guidance",
+      guidance_posture_label: "適度明示",
+      summary: "",
+      work_guidance_summary: "",
+      boundary_emphasis: "",
+      guidance_items: [],
+    },
+    lifecyclePrioritySummary:
+      "較新的同客戶背景已回來，這輪可重新拉回前景；偏舊背景仍留作背景參考。",
+    emphasisLabel: "先校正客戶 / 組織背景",
+  });
+
+  assert.equal(note, "Phase 6：適度明示｜背景回前景｜校正客戶背景");
+  assert.equal((note.match(/｜/g) ?? []).length, 2);
 });
 
 test("precedent duplicate governance view stays consultant-readable", () => {
