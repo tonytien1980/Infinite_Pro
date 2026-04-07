@@ -4913,3 +4913,39 @@ Environment used:
 - browser smoke
 - phase 7 implementation
 - git / release UI
+
+---
+
+## Entry: 2026-04-08 phase-6 case-aware governance runtime v1
+
+Scope:
+- `docs/06` `7.1 case-aware governance runtime` first slice
+- task / matter work-surface `Phase 6` signals now eat real case context
+- no new page family and no homepage governance console rewrite
+
+Environment used:
+- local backend and frontend verification only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `PYTHONPATH=backend .venv312/bin/python -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/pytest backend/tests/test_phase_six_case_aware_runtime.py -q` | Passed (`2 passed`) |
+| `PYTHONPATH=backend .venv312/bin/pytest backend/tests/test_mvp_slice.py -q` | Passed (`245 passed`) |
+| `cd frontend && node --test tests/phase-six-governance.test.mjs tests/intake-progress.test.mjs` | Passed (`46 passed`) |
+
+### Phase-6 case-aware runtime verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | phase-six governance builder | Let the same reusable governance family return different `guidance / confidence / calibration / weighting` between rich and sparse case context | Verified | targeted backend tests confirm the builder now reads `client_stage`, `client_type`, `domain_lenses`, `evidence_thickness`, and `pack context` instead of only phase-level defaults |
+| Backend | `/api/v1/tasks/{taskId}` | Return case-aware `generalist_guidance_posture` on task aggregate | Verified | targeted integration test confirms rich and sparse tasks now read different `guidance_posture` values instead of the same phase-level static output |
+| Backend | `/api/v1/matters/{matterId}` | Carry populated case-aware `generalist_guidance_posture` into matter workspace | Verified | targeted integration test confirms the matter workspace now returns a populated `Phase 6` guidance signal assembled from current case context |
+| Frontend | phase-six governance helpers / second-layer note | Keep existing low-noise wording compatible with case-aware backend payloads | Verified | node tests for phase-six governance labels and second-layer note composition remain green without introducing a new UI surface |
+
+### Explicitly not shipped in this pass
+
+- homepage phase-level governance console rewrite
+- new dashboard family
+- fully context-aware adaptive consultant brain

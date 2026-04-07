@@ -128,6 +128,10 @@ Infinite Pro 的正式產品想像應理解為：
 - capability coverage / anti-drift / reuse-boundary / guidance posture / calibration / weighting / completion review / sign-off / closeout review 都已進 code
 - 首頁既有 `Generalist Governance` 已能低噪音回讀 phase-6 主線狀態
 - task / matter / deliverable 也已能回讀 condensed `Phase 6` second-layer note
+- `7.1` 的第一刀也已開始正式落地：
+  - task / matter / deliverable work-surface 讀到的 `guidance / confidence / calibration / weighting`
+  - 現在已開始吃 `client_stage / client_type / domain_lenses / evidence_thickness / pack context`
+  - 不再完全只是 phase-level 固定輸出
 
 ---
 
@@ -144,6 +148,7 @@ Infinite Pro 的正式產品想像應理解為：
 - 已有 `generalist governance read layer`
 - 已有 `low-noise work-surface guidance signals`
 - 已有 `completion review / sign-off / closeout foundation`
+- `7.1 case-aware runtime` 已有第一版 work-surface grounding，但仍屬 first pass
 
 尚未完全成立的是：
 

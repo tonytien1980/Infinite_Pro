@@ -2061,6 +2061,16 @@ Object storage 負責：
 - `close / moderate / far`
 - `high_confidence / bounded_confidence / low_confidence`
 
+work-surface case-aware 第一版現在也已正式吃：
+
+- `client_stage`
+- `client_type`
+- `domain_lenses`
+- `evidence_thickness`
+- `pack context`
+
+因此同一類 reusable asset 在不同 task / matter 中，現在可得到不同的 `context distance / reuse confidence` 判讀，而不再只剩 phase-level 固定輸出。
+
 正式規則：
 
 - 第一波只做 read model，不直接改寫 Host weighting
@@ -2140,6 +2150,14 @@ Object storage 負責：
 - `client_stage`
 - `client_type`
 - `domain_lens`
+
+work-surface case-aware 第一版現在也已正式把：
+
+- explicit client context
+- evidence thickness
+- selected pack context
+
+一起吃進 calibration read model，而不再只用 phase-level 預設敘述回讀 alignment。
 
 第一版目前至少回答：
 
@@ -2227,6 +2245,7 @@ Object storage 負責：
 - `domain lens` mismatch 會先退到背景校正
 - `client stage / client type` mismatch 不再維持 `can_expand`
 - 這一刀仍只做 soft ordering，不做 hard block
+- task / matter response 在組 `calibration-aware weighting` 時，現在也會正式吃當前案件的 case context，而不是只用 phase-level 預設 weighting 敘述
 - `select_weighted_precedent_reference_items` 現在會在 phase-6 reuse recommendation 之外，再看 calibration alignment
 - `domain playbook` / `deliverable template` 在讀 precedent weighting 時，也會一起看 calibration alignment
 - UI 仍只掛在既有 `Generalist Governance` 的 `Host weighting` 區塊，不新增新卡牆

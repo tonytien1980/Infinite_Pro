@@ -97,6 +97,7 @@ from app.services.domain_playbook_intelligence import build_domain_playbook_guid
 from app.services.deliverable_shape_intelligence import build_deliverable_shape_guidance
 from app.services.deliverable_template_intelligence import build_deliverable_template_guidance
 from app.services.phase_six_generalist_governance import (
+    PhaseSixCaseContext,
     build_phase_six_calibration_aware_weighting,
 )
 from app.services.phase_six_generalist_governance import build_phase_six_confidence_calibration
@@ -269,6 +270,29 @@ INDUSTRY_PACK_REASON_HINTS = {
         "療程",
     },
 }
+
+
+def _build_phase_six_case_context(
+    *,
+    client_stage: str | None,
+    client_type: str | None,
+    domain_lenses: list[str],
+    evidence_count: int,
+    unresolved_evidence_gap_count: int,
+    selected_domain_pack_ids: list[str],
+    selected_industry_pack_ids: list[str],
+) -> PhaseSixCaseContext:
+    return PhaseSixCaseContext(
+        client_stage=(client_stage or "").strip() or None,
+        client_type=(client_type or "").strip() or None,
+        domain_lenses=_unique_preserve_order(
+            [item.strip() for item in domain_lenses if item and item.strip()]
+        ),
+        evidence_count=max(0, evidence_count),
+        unresolved_evidence_gap_count=max(0, unresolved_evidence_gap_count),
+        selected_domain_pack_ids=_unique_preserve_order(selected_domain_pack_ids),
+        selected_industry_pack_ids=_unique_preserve_order(selected_industry_pack_ids),
+    )
 CLIENT_STAGE_KEYWORDS = {
     "創業階段": ("創業", "早期", "新創", "起步", "初期", "pmf", "驗證"),
     "制度化階段": ("制度化", "流程", "sop", "管理", "內控", "團隊", "穩定化"),
@@ -8590,10 +8614,33 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
         pack_resolution=matter_pack_resolution,
         precedent_reference_guidance=matter_precedent_reference_guidance,
     )
-    generalist_guidance_posture = build_phase_six_generalist_guidance_posture()
-    reuse_confidence_signal = build_phase_six_context_distance_audit()
-    confidence_calibration_signal = build_phase_six_confidence_calibration()
-    calibration_aware_weighting_signal = build_phase_six_calibration_aware_weighting()
+    phase_six_case_context = _build_phase_six_case_context(
+        client_stage=summary.client_stage,
+        client_type=summary.client_type,
+        domain_lenses=summary.domain_lenses,
+        evidence_count=len(_usable_evidence(latest_task)),
+        unresolved_evidence_gap_count=len(
+            [item for item in evidence_gap_records if item.status != "resolved"]
+        ),
+        selected_domain_pack_ids=[
+            item.pack_id for item in matter_pack_resolution.selected_domain_packs
+        ],
+        selected_industry_pack_ids=[
+            item.pack_id for item in matter_pack_resolution.selected_industry_packs
+        ],
+    )
+    generalist_guidance_posture = build_phase_six_generalist_guidance_posture(
+        case_context=phase_six_case_context
+    )
+    reuse_confidence_signal = build_phase_six_context_distance_audit(
+        case_context=phase_six_case_context
+    )
+    confidence_calibration_signal = build_phase_six_confidence_calibration(
+        case_context=phase_six_case_context
+    )
+    calibration_aware_weighting_signal = build_phase_six_calibration_aware_weighting(
+        case_context=phase_six_case_context
+    )
 
     return schemas.MatterWorkspaceResponse(
         summary=summary,
@@ -11607,10 +11654,39 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         domain_playbook_guidance=domain_playbook_guidance,
         deliverable_shape_guidance=deliverable_shape_guidance,
     )
-    generalist_guidance_posture = build_phase_six_generalist_guidance_posture()
-    reuse_confidence_signal = build_phase_six_context_distance_audit()
-    confidence_calibration_signal = build_phase_six_confidence_calibration()
-    calibration_aware_weighting_signal = build_phase_six_calibration_aware_weighting()
+    phase_six_case_context = _build_phase_six_case_context(
+        client_stage=(
+            world_decision_context.client_stage
+            if world_decision_context and world_decision_context.client_stage
+            else decision_context.client_stage if decision_context else client.client_stage if client else None
+        ),
+        client_type=(
+            world_decision_context.client_type
+            if world_decision_context and world_decision_context.client_type
+            else decision_context.client_type if decision_context else client.client_type if client else None
+        ),
+        domain_lenses=domain_lenses,
+        evidence_count=len(_usable_evidence(task)),
+        unresolved_evidence_gap_count=len(
+            [item for item in evidence_gap_rows if item.status != "resolved"]
+        ),
+        selected_domain_pack_ids=[item.pack_id for item in pack_resolution.selected_domain_packs],
+        selected_industry_pack_ids=[
+            item.pack_id for item in pack_resolution.selected_industry_packs
+        ],
+    )
+    generalist_guidance_posture = build_phase_six_generalist_guidance_posture(
+        case_context=phase_six_case_context
+    )
+    reuse_confidence_signal = build_phase_six_context_distance_audit(
+        case_context=phase_six_case_context
+    )
+    confidence_calibration_signal = build_phase_six_confidence_calibration(
+        case_context=phase_six_case_context
+    )
+    calibration_aware_weighting_signal = build_phase_six_calibration_aware_weighting(
+        case_context=phase_six_case_context
+    )
     canonicalization_summary, canonicalization_candidates = build_matter_canonicalization_contract(
         db,
         matter_workspace_id=matter_workspace.id,

@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from dataclasses import dataclass, field
+from typing import Iterable
+
 from app.workbench import schemas
 
 REUSE_WEIGHTING_RANK = {
@@ -7,6 +10,217 @@ REUSE_WEIGHTING_RANK = {
     "keep_contextual": 1,
     "restrict_narrow_use": 2,
 }
+DEFAULT_DOMAIN_LENS = "綜合"
+UNSPECIFIED_LABEL = "未指定"
+
+
+@dataclass(frozen=True)
+class PhaseSixCaseContext:
+    client_stage: str | None = None
+    client_type: str | None = None
+    domain_lenses: list[str] = field(default_factory=list)
+    evidence_count: int = 0
+    unresolved_evidence_gap_count: int = 0
+    selected_domain_pack_ids: list[str] = field(default_factory=list)
+    selected_industry_pack_ids: list[str] = field(default_factory=list)
+
+
+def _has_explicit_value(value: str | None) -> bool:
+    normalized = (value or "").strip()
+    return bool(normalized and normalized != UNSPECIFIED_LABEL)
+
+
+def _normalized_domain_lenses(case_context: PhaseSixCaseContext | None) -> list[str]:
+    if case_context is None:
+        return []
+    return [
+        item.strip()
+        for item in case_context.domain_lenses
+        if item and item.strip() and item.strip() != DEFAULT_DOMAIN_LENS
+    ]
+
+
+def _has_pack_context(case_context: PhaseSixCaseContext | None) -> bool:
+    if case_context is None:
+        return False
+    return bool(case_context.selected_domain_pack_ids or case_context.selected_industry_pack_ids)
+
+
+def _is_evidence_ready(case_context: PhaseSixCaseContext | None) -> bool:
+    if case_context is None:
+        return False
+    return case_context.evidence_count >= 2 and case_context.unresolved_evidence_gap_count <= 1
+
+
+def _is_evidence_rich(case_context: PhaseSixCaseContext | None) -> bool:
+    if case_context is None:
+        return False
+    return case_context.evidence_count >= 4 and case_context.unresolved_evidence_gap_count == 0
+
+
+def _is_evidence_thin(case_context: PhaseSixCaseContext | None) -> bool:
+    if case_context is None:
+        return False
+    return case_context.evidence_count == 0 or case_context.unresolved_evidence_gap_count >= 3
+
+
+def _resolve_context_distance_status(
+    *,
+    asset_code: str,
+    case_context: PhaseSixCaseContext,
+) -> tuple[str, str, str, str]:
+    has_stage = _has_explicit_value(case_context.client_stage)
+    has_type = _has_explicit_value(case_context.client_type)
+    has_domain_focus = bool(_normalized_domain_lenses(case_context))
+    has_pack_context = _has_pack_context(case_context)
+    evidence_ready = _is_evidence_ready(case_context)
+    evidence_rich = _is_evidence_rich(case_context)
+    evidence_thin = _is_evidence_thin(case_context)
+
+    if asset_code == "precedent_general_pattern":
+        if has_stage and has_type and evidence_ready:
+            return (
+                "close",
+                "距離較近",
+                "high_confidence",
+                "高信心重用",
+            )
+        if evidence_thin and not (has_stage or has_type):
+            return (
+                "far",
+                "距離偏遠",
+                "low_confidence",
+                "低信心重用",
+            )
+        return (
+            "moderate",
+            "仍有距離",
+            "bounded_confidence",
+            "有邊界重用",
+        )
+
+    if asset_code == "domain_playbook_contextual":
+        if has_domain_focus and has_pack_context and evidence_ready:
+            return (
+                "close",
+                "距離較近",
+                "high_confidence",
+                "高信心重用",
+            )
+        if evidence_thin or not has_domain_focus or not has_pack_context:
+            return (
+                "far",
+                "距離偏遠",
+                "low_confidence",
+                "低信心重用",
+            )
+        return (
+            "moderate",
+            "仍有距離",
+            "bounded_confidence",
+            "有邊界重用",
+        )
+
+    if asset_code == "template_narrow_shape" and evidence_rich and has_pack_context:
+        return (
+            "moderate",
+            "仍有距離",
+            "bounded_confidence",
+            "有邊界重用",
+        )
+    return (
+        "far",
+        "距離偏遠",
+        "low_confidence",
+        "低信心重用",
+    )
+
+
+def _resolve_calibration_status(
+    *,
+    axis_kind: str,
+    case_context: PhaseSixCaseContext,
+) -> tuple[str, str, str, str, str]:
+    has_domain_focus = bool(_normalized_domain_lenses(case_context))
+    has_pack_context = _has_pack_context(case_context)
+    evidence_ready = _is_evidence_ready(case_context)
+    evidence_thin = _is_evidence_thin(case_context)
+
+    if axis_kind == "client_stage":
+        explicit = _has_explicit_value(case_context.client_stage)
+        if explicit and evidence_ready:
+            return (
+                "aligned",
+                "目前對齊",
+                "high_confidence",
+                "高信心重用",
+                "目前 client stage 已較明確，這條 reusable confidence 可更正式地吃進目前案件。",
+            )
+        if explicit or case_context.evidence_count > 0:
+            return (
+                "caution",
+                "需要留意",
+                "bounded_confidence",
+                "有邊界重用",
+                "client stage 雖已有部分脈絡，但 evidence thickness 還不夠厚，先保留邊界再重用。",
+            )
+        return (
+            "mismatch",
+            "仍有不對齊",
+            "low_confidence",
+            "低信心重用",
+            "目前 client stage 仍未明確，先不要把這條 reusable confidence 放大。",
+        )
+
+    if axis_kind == "client_type":
+        explicit = _has_explicit_value(case_context.client_type)
+        if explicit and evidence_ready:
+            return (
+                "aligned",
+                "目前對齊",
+                "high_confidence",
+                "高信心重用",
+                "目前 client type 已較明確，這條 reusable confidence 可更正式地吃進目前案件。",
+            )
+        if explicit or case_context.evidence_count > 0:
+            return (
+                "caution",
+                "需要留意",
+                "bounded_confidence",
+                "有邊界重用",
+                "client type 雖已有部分脈絡，但 evidence thickness 還不夠厚，先保留邊界再重用。",
+            )
+        return (
+            "mismatch",
+            "仍有不對齊",
+            "low_confidence",
+            "低信心重用",
+            "目前 client type 仍未明確，先不要把這條 reusable confidence 放大。",
+        )
+
+    if has_domain_focus and has_pack_context and evidence_ready:
+        return (
+            "aligned",
+            "目前對齊",
+            "high_confidence",
+            "高信心重用",
+            "目前 domain lens 與 pack context 都較明確，可讓 reusable guidance 更正式地吃進當前案件。",
+        )
+    if has_domain_focus or (has_pack_context and not evidence_thin):
+        return (
+            "caution",
+            "需要留意",
+            "bounded_confidence",
+            "有邊界重用",
+            "domain lens 雖已有部分脈絡，但 pack context 或 evidence thickness 還不夠厚，先保留邊界再重用。",
+        )
+    return (
+        "mismatch",
+        "仍有不對齊",
+        "low_confidence",
+        "低信心重用",
+        "目前 domain lens 與 pack context 都偏薄，先把這條 reusable confidence 留在背景校正。",
+    )
 
 
 def build_phase_six_closeout_review(
@@ -568,7 +782,75 @@ def build_phase_six_generalist_guidance_posture(
     *,
     audit: schemas.PhaseSixCapabilityCoverageAuditResponse | None = None,
     governance: schemas.PhaseSixReuseBoundaryGovernanceResponse | None = None,
+    case_context: PhaseSixCaseContext | None = None,
 ) -> schemas.PhaseSixGeneralistGuidancePostureResponse:
+    if case_context is not None:
+        has_domain_focus = bool(_normalized_domain_lenses(case_context))
+        has_pack_context = _has_pack_context(case_context)
+        has_client_context = _has_explicit_value(case_context.client_stage) and _has_explicit_value(
+            case_context.client_type
+        )
+        evidence_rich = _is_evidence_rich(case_context)
+        evidence_thin = _is_evidence_thin(case_context)
+
+        if evidence_thin or not has_domain_focus:
+            guidance_posture = "guarded_guidance"
+            guidance_posture_label = "先保守引導"
+            summary = (
+                "目前案件的 evidence thickness 與 domain / pack context 仍偏薄，"
+                "Phase 6 應先保守地把 shared intelligence 當成校正主線。"
+            )
+            work_guidance_summary = (
+                "目前先保守引導：讓 shared intelligence 幫你校正方向，但不要直接把它讀成當前案件的定論。"
+            )
+            boundary_emphasis = "先把 evidence gaps 與 pack context 補清楚，再決定哪些 reusable assets 能站到前面。"
+            guidance_items = [
+                "目前 evidence thickness 仍薄，shared intelligence 先做背景校正。",
+                "domain lens 或 pack context 還沒站穩時，不要讓 reusable guidance 直接帶主線。",
+                "若關鍵 client stage / client type 還未明確，先保留 boundary note。",
+            ]
+        elif evidence_rich and has_pack_context and has_client_context:
+            guidance_posture = "light_guidance"
+            guidance_posture_label = "維持低噪音"
+            summary = (
+                "目前案件的 client stage / client type / domain lens、evidence thickness 與 pack context 都較明確，"
+                "shared intelligence 可維持 low-noise second-layer 提示。"
+            )
+            work_guidance_summary = "目前工作 guidance 可維持低噪音，只在需要時補 reusable boundary。"
+            boundary_emphasis = "這輪 reusable guidance 可站前面，但仍保留簡短 guardrail。"
+            guidance_items = [
+                "目前案件上下文已較完整，讓 reusable guidance 低噪音地站前面即可。",
+                "只在真的碰到窄情境來源時，再補一條短 boundary note。",
+            ]
+        else:
+            guidance_posture = "balanced_guidance"
+            guidance_posture_label = "適度明示"
+            summary = (
+                "目前案件已有基本 client / domain 脈絡，但 evidence thickness 或 pack context 還沒有厚到可完全低噪音，"
+                "Phase 6 應維持適度明示。"
+            )
+            work_guidance_summary = "目前工作 guidance 應維持低噪音，但要適度把 reusable boundary 與 evidence thickness 說清楚。"
+            boundary_emphasis = "可重用來源可站前面，但 evidence / pack context 還不夠厚的地方要保留提醒。"
+            guidance_items = [
+                "讓較穩的 reusable guidance 先帶主線，但保留 evidence thickness 提醒。",
+                "當 domain lens 與 pack context 還未完全站穩時，補一條簡短 boundary note。",
+            ]
+
+        return schemas.PhaseSixGeneralistGuidancePostureResponse(
+            phase_id="phase_6",
+            phase_label="Generalist Consulting Intelligence Governance",
+            guidance_posture=guidance_posture,
+            guidance_posture_label=guidance_posture_label,
+            summary=summary,
+            work_guidance_summary=work_guidance_summary,
+            boundary_emphasis=boundary_emphasis,
+            guidance_items=guidance_items,
+            recommended_next_step=(
+                "下一刀應把這條 case-aware guidance posture 再更正式地延伸到 deliverable-side reading，"
+                "而不是回頭做新的 note wording micro-slice。"
+            ),
+        )
+
     source_audit = audit or build_phase_six_capability_coverage_audit()
     source_governance = governance or build_phase_six_reuse_boundary_governance(
         audit=source_audit,
@@ -633,6 +915,7 @@ def build_phase_six_context_distance_audit(
     *,
     audit: schemas.PhaseSixCapabilityCoverageAuditResponse | None = None,
     governance: schemas.PhaseSixReuseBoundaryGovernanceResponse | None = None,
+    case_context: PhaseSixCaseContext | None = None,
 ) -> schemas.PhaseSixContextDistanceAuditResponse:
     source_audit = audit or build_phase_six_capability_coverage_audit()
     source_governance = governance or build_phase_six_reuse_boundary_governance(
@@ -641,7 +924,35 @@ def build_phase_six_context_distance_audit(
 
     distance_items: list[schemas.PhaseSixContextDistanceItemRead] = []
     for item in source_governance.governance_items:
-        if item.reuse_recommendation == "can_expand":
+        if case_context is not None:
+            (
+                context_distance,
+                context_distance_label,
+                reuse_confidence,
+                reuse_confidence_label,
+            ) = _resolve_context_distance_status(
+                asset_code=item.asset_code,
+                case_context=case_context,
+            )
+            if context_distance == "close":
+                summary = (
+                    f"{item.asset_label} 與目前案件脈絡較接近，"
+                    "可作為較高信心的重用來源。"
+                )
+                guardrail_note = "仍需由 Host 做最後 contextual 收斂，不可直接視為全域定論。"
+            elif context_distance == "far":
+                summary = (
+                    f"{item.asset_label} 與目前案件的 domain / evidence / pack context 距離偏遠，"
+                    "較適合留在背景校正。"
+                )
+                guardrail_note = "先留背景校正，避免直接擴張成目前案件的主要依據。"
+            else:
+                summary = (
+                    f"{item.asset_label} 可提供方向，但 evidence thickness 或 pack context 還不夠厚，"
+                    "仍需明示脈絡邊界。"
+                )
+                guardrail_note = "可作為局部參考，但要搭配 client stage / domain lens / pack context 收斂。"
+        elif item.reuse_recommendation == "can_expand":
             context_distance = "close"
             context_distance_label = "距離較近"
             reuse_confidence = "high_confidence"
@@ -696,40 +1007,74 @@ def build_phase_six_context_distance_audit(
 def build_phase_six_confidence_calibration(
     *,
     context_distance: schemas.PhaseSixContextDistanceAuditResponse | None = None,
+    case_context: PhaseSixCaseContext | None = None,
 ) -> schemas.PhaseSixConfidenceCalibrationResponse:
-    source_distance = context_distance or build_phase_six_context_distance_audit()
-    calibration_items: list[schemas.PhaseSixConfidenceCalibrationItemRead] = [
-        schemas.PhaseSixConfidenceCalibrationItemRead(
-            axis_kind="client_stage",
-            axis_label="client stage",
-            calibration_status="caution",
-            calibration_status_label="需要留意",
-            reuse_confidence="bounded_confidence",
-            reuse_confidence_label="有邊界重用",
-            summary="目前 reusable confidence 在 client stage 上仍有距離，較適合保留邊界再重用。",
-            guardrail_note="若 client stage 明顯不同，先把 precedent / playbook 當方向參考，不要直接視為同一成熟度做法。",
-        ),
-        schemas.PhaseSixConfidenceCalibrationItemRead(
-            axis_kind="client_type",
-            axis_label="client type",
-            calibration_status="caution",
-            calibration_status_label="需要留意",
-            reuse_confidence="bounded_confidence",
-            reuse_confidence_label="有邊界重用",
-            summary="目前 reusable confidence 在 client type 上仍需保留邊界，不宜直接假設同樣成立。",
-            guardrail_note="若 client type 差異明顯，先保留 boundary note，再決定哪些模式能沿用。",
-        ),
-        schemas.PhaseSixConfidenceCalibrationItemRead(
-            axis_kind="domain_lens",
-            axis_label="domain lens",
-            calibration_status="mismatch",
-            calibration_status_label="仍有不對齊",
-            reuse_confidence="low_confidence",
-            reuse_confidence_label="低信心重用",
-            summary="目前最容易拉低 reusable confidence 的仍是 domain lens 差距，應避免直接擴張重用。",
-            guardrail_note="若 domain lens 本身差距偏遠，先留背景校正，不要讓它帶主線。",
-        ),
-    ]
+    source_distance = context_distance or build_phase_six_context_distance_audit(case_context=case_context)
+    if case_context is not None:
+        calibration_items: list[schemas.PhaseSixConfidenceCalibrationItemRead] = []
+        for axis_kind, axis_label in (
+            ("client_stage", "client stage"),
+            ("client_type", "client type"),
+            ("domain_lens", "domain lens"),
+        ):
+            (
+                calibration_status,
+                calibration_status_label,
+                reuse_confidence,
+                reuse_confidence_label,
+                summary,
+            ) = _resolve_calibration_status(axis_kind=axis_kind, case_context=case_context)
+            if calibration_status == "aligned":
+                guardrail_note = "目前已較接近可正式沿用的脈絡，但仍需由 Host 做最後收斂。"
+            elif calibration_status == "caution":
+                guardrail_note = "先保留 boundary note，再決定哪些模式能沿用。"
+            else:
+                guardrail_note = "先留背景校正，不要讓它單獨帶主線。"
+            calibration_items.append(
+                schemas.PhaseSixConfidenceCalibrationItemRead(
+                    axis_kind=axis_kind,  # type: ignore[arg-type]
+                    axis_label=axis_label,
+                    calibration_status=calibration_status,  # type: ignore[arg-type]
+                    calibration_status_label=calibration_status_label,
+                    reuse_confidence=reuse_confidence,  # type: ignore[arg-type]
+                    reuse_confidence_label=reuse_confidence_label,
+                    summary=summary,
+                    guardrail_note=guardrail_note,
+                )
+            )
+    else:
+        calibration_items = [
+            schemas.PhaseSixConfidenceCalibrationItemRead(
+                axis_kind="client_stage",
+                axis_label="client stage",
+                calibration_status="caution",
+                calibration_status_label="需要留意",
+                reuse_confidence="bounded_confidence",
+                reuse_confidence_label="有邊界重用",
+                summary="目前 reusable confidence 在 client stage 上仍有距離，較適合保留邊界再重用。",
+                guardrail_note="若 client stage 明顯不同，先把 precedent / playbook 當方向參考，不要直接視為同一成熟度做法。",
+            ),
+            schemas.PhaseSixConfidenceCalibrationItemRead(
+                axis_kind="client_type",
+                axis_label="client type",
+                calibration_status="caution",
+                calibration_status_label="需要留意",
+                reuse_confidence="bounded_confidence",
+                reuse_confidence_label="有邊界重用",
+                summary="目前 reusable confidence 在 client type 上仍需保留邊界，不宜直接假設同樣成立。",
+                guardrail_note="若 client type 差異明顯，先保留 boundary note，再決定哪些模式能沿用。",
+            ),
+            schemas.PhaseSixConfidenceCalibrationItemRead(
+                axis_kind="domain_lens",
+                axis_label="domain lens",
+                calibration_status="mismatch",
+                calibration_status_label="仍有不對齊",
+                reuse_confidence="low_confidence",
+                reuse_confidence_label="低信心重用",
+                summary="目前最容易拉低 reusable confidence 的仍是 domain lens 差距，應避免直接擴張重用。",
+                guardrail_note="若 domain lens 本身差距偏遠，先留背景校正，不要讓它帶主線。",
+            ),
+        ]
     has_mismatch = any(item.calibration_status == "mismatch" for item in calibration_items)
     return schemas.PhaseSixConfidenceCalibrationResponse(
         phase_id="phase_6",
@@ -749,8 +1094,9 @@ def build_phase_six_confidence_calibration(
 def build_phase_six_calibration_aware_weighting(
     *,
     calibration: schemas.PhaseSixConfidenceCalibrationResponse | None = None,
+    case_context: PhaseSixCaseContext | None = None,
 ) -> schemas.PhaseSixCalibrationAwareWeightingResponse:
-    source_calibration = calibration or build_phase_six_confidence_calibration()
+    source_calibration = calibration or build_phase_six_confidence_calibration(case_context=case_context)
     weighting_items: list[schemas.PhaseSixCalibrationAwareWeightingItemRead] = []
 
     for item in source_calibration.calibration_items:
@@ -761,7 +1107,10 @@ def build_phase_six_calibration_aware_weighting(
         elif item.calibration_status == "caution":
             weighting_effect = "keep_contextual"
             weighting_effect_label = "先保留邊界"
-            summary = "這條 calibration axis 若仍有距離，Host 應把 reusable source 留在 contextual reuse。"
+            summary = (
+                "這條 calibration axis 若仍有距離，Host 應把 reusable source 留在 contextual reuse，"
+                "不要在 evidence thickness 還薄時直接放大。"
+            )
         else:
             weighting_effect = "allow_expand"
             weighting_effect_label = "可維持擴大重用"
@@ -790,9 +1139,15 @@ def build_phase_six_calibration_aware_weighting(
         summary=(
             "phase 6 現在已把 confidence calibration 接回 Host ordering："
             "domain lens mismatch 先退背景，stage / type mismatch 不再直接視為可擴大重用。"
+            if case_context is None
+            else "phase 6 現在會依當前案件的 client / domain / evidence / pack context，"
+            "把 calibration signal 正式接回 Host ordering。"
         ),
         host_weighting_summary=(
             "Host 現在會先看 domain lens 是否對齊；若不對齊，就算 shared intelligence 穩，也先留背景校正。"
+            if case_context is None
+            else "Host 現在會先看這輪案件的 domain lens、evidence thickness 與 pack context；"
+            "脈絡還沒站穩時，shared intelligence 先留在背景或 contextual reuse。"
         ),
         host_weighting_guardrail_note=(
             "這一刀仍是 soft ordering，不做 hard block；最終仍由 Host 依當前案件證據與限制收斂。"
