@@ -73,6 +73,7 @@ export function buildOrganizationMemoryView(
       matterWorkspaceId: item.matter_workspace_id,
     })),
     phaseSixSignalNote: buildPhaseSixSecondLayerSignalNote({
+      surfaceKind: "organization_memory",
       generalistGuidancePosture,
       reuseConfidenceSignal,
       confidenceCalibrationSignal,

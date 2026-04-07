@@ -84,6 +84,7 @@ export function buildDomainPlaybookView(
     listTitle: "這類案子通常這樣推進",
     listItems: guidance.stages.map((item) => item.title),
     phaseSixSignalNote: buildPhaseSixSecondLayerSignalNote({
+      surfaceKind: "domain_playbook",
       generalistGuidancePosture,
       reuseConfidenceSignal,
       confidenceCalibrationSignal,

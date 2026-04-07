@@ -99,6 +99,7 @@ export function buildDeliverableTemplateView(
     optionalListTitle: "這些區塊視案件補",
     optionalSections: guidance.optional_sections,
     phaseSixSignalNote: buildPhaseSixSecondLayerSignalNote({
+      surfaceKind: "deliverable_template",
       generalistGuidancePosture,
       reuseConfidenceSignal,
       confidenceCalibrationSignal,

@@ -871,6 +871,10 @@ Infinite Pro 目前沒有也不應硬對齊於：
   - `reusable-signal freshness prioritization v1`
   - condensed second-layer `Phase 6` note 現在會優先顯示 reusable source 的 freshness / lifecycle posture
   - 若 shared source 是剛回來、仍在恢復、偏舊或需要退背景，顧問會先看到這條訊號，而不是永遠先看到一般 boundary note
+- 這條線現在也已正式推到第十四刀：
+  - `cross-surface note consistency v1`
+  - task / matter / deliverable 的 condensed `Phase 6` note 現在已對齊成一致句型骨架
+  - 同類 reusable posture 現在不再因 surface 不同而各說各話，但仍保留各 surface 自己的主詞
 
 ---
 

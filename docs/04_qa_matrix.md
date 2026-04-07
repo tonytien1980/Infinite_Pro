@@ -4282,6 +4282,18 @@ Environment used:
 - condensed second-layer `Phase 6` notes no longer always lead with generic boundary signals
 - when reusable sources are newly reactivated, recovering, stale, or decaying, that lifecycle signal now gets surfaced first to the consultant
 
+### Phase-6 cross-surface note consistency verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Frontend | `phase-six-second-layer` helper | Normalize the wording skeleton for the same reusable posture across surfaces | Verified | targeted helper tests confirm organization memory, domain playbook, and deliverable template now render aligned wording such as `重新回前景` with surface-specific subjects |
+| Frontend | `organization-memory` / `domain-playbooks` / `deliverable-templates` helpers | Pass explicit surface context into the shared condensed-note helper | Verified | targeted tests confirm the shared helper now keeps wording consistent while preserving each surface's own subject |
+
+### Verified outcomes
+
+- the same reusable posture now reads more consistently across task / matter / deliverable
+- consultants no longer see noticeably different sentence skeletons for equivalent reusable lifecycle states across surfaces
+
 ### Explicitly not shipped in this pass
 
 - `Personal Provider Settings`
