@@ -502,6 +502,22 @@ test("organization memory view stays low-noise and consultant-readable", () => {
         guardrail_note: "先留背景校正。",
       },
     ],
+  }, {
+    calibration_posture: "watch_mismatch",
+    calibration_posture_label: "仍需看不對齊",
+    summary: "summary",
+    calibration_items: [
+      {
+        axis_kind: "domain_lens",
+        axis_label: "domain lens",
+        calibration_status: "mismatch",
+        calibration_status_label: "仍有不對齊",
+        reuse_confidence: "low_confidence",
+        reuse_confidence_label: "低信心重用",
+        summary: "summary",
+        guardrail_note: "先留背景校正。",
+      },
+    ],
   });
 
   assert.equal(view.shouldShow, true);
@@ -519,6 +535,7 @@ test("organization memory view stays low-noise and consultant-readable", () => {
   assert.match(view.crossMatterItems[0]?.meta ?? "", /較舊背景/);
   assert.match(view.generalistGuidanceNote ?? "", /適度明示/);
   assert.match(view.reuseConfidenceNote ?? "", /低信心重用/);
+  assert.match(view.confidenceCalibrationNote ?? "", /仍有不對齊/);
 });
 
 test("domain playbook view stays low-noise and consultant-readable", () => {
@@ -591,6 +608,22 @@ test("domain playbook view stays low-noise and consultant-readable", () => {
         guardrail_note: "需搭配 client stage / domain lens。",
       },
     ],
+  }, {
+    calibration_posture: "watch_mismatch",
+    calibration_posture_label: "仍需看不對齊",
+    summary: "summary",
+    calibration_items: [
+      {
+        axis_kind: "domain_lens",
+        axis_label: "domain lens",
+        calibration_status: "mismatch",
+        calibration_status_label: "仍有不對齊",
+        reuse_confidence: "low_confidence",
+        reuse_confidence_label: "低信心重用",
+        summary: "summary",
+        guardrail_note: "先留背景校正。",
+      },
+    ],
   });
 
   assert.equal(view.shouldShow, true);
@@ -611,6 +644,7 @@ test("domain playbook view stays low-noise and consultant-readable", () => {
   assert.match(view.cards[2]?.meta ?? "", /cross-matter organization memory/);
   assert.match(view.generalistGuidanceNote ?? "", /保守引導/);
   assert.match(view.reuseConfidenceNote ?? "", /有邊界重用/);
+  assert.match(view.confidenceCalibrationNote ?? "", /仍有不對齊/);
   assert.match(view.boundaryNote, /不是強制 checklist/);
 });
 
@@ -1656,6 +1690,22 @@ test("deliverable template view stays low-noise and consultant-readable", () => 
         guardrail_note: "先留背景校正。",
       },
     ],
+  }, {
+    calibration_posture: "watch_mismatch",
+    calibration_posture_label: "仍需看不對齊",
+    summary: "summary",
+    calibration_items: [
+      {
+        axis_kind: "domain_lens",
+        axis_label: "domain lens",
+        calibration_status: "mismatch",
+        calibration_status_label: "仍有不對齊",
+        reuse_confidence: "low_confidence",
+        reuse_confidence_label: "低信心重用",
+        summary: "summary",
+        guardrail_note: "先留背景校正。",
+      },
+    ],
   });
 
   assert.equal(view.shouldShow, true);
@@ -1677,6 +1727,7 @@ test("deliverable template view stays low-noise and consultant-readable", () => 
   assert.match(view.cards[2]?.meta ?? "", /deliverable shape/);
   assert.match(view.generalistGuidanceNote ?? "", /保守引導/);
   assert.match(view.reuseConfidenceNote ?? "", /低信心重用/);
+  assert.match(view.confidenceCalibrationNote ?? "", /仍有不對齊/);
   assert.match(view.boundaryNote, /不是自動套模板/);
 });
 

@@ -96,6 +96,7 @@ from app.services.organization_memory_intelligence import build_organization_mem
 from app.services.domain_playbook_intelligence import build_domain_playbook_guidance
 from app.services.deliverable_shape_intelligence import build_deliverable_shape_guidance
 from app.services.deliverable_template_intelligence import build_deliverable_template_guidance
+from app.services.phase_six_generalist_governance import build_phase_six_confidence_calibration
 from app.services.phase_six_generalist_governance import build_phase_six_context_distance_audit
 from app.services.phase_six_generalist_governance import build_phase_six_generalist_guidance_posture
 from app.services.precedent_duplicate_governance import (
@@ -8585,6 +8586,7 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
     )
     generalist_guidance_posture = build_phase_six_generalist_guidance_posture()
     reuse_confidence_signal = build_phase_six_context_distance_audit()
+    confidence_calibration_signal = build_phase_six_confidence_calibration()
 
     return schemas.MatterWorkspaceResponse(
         summary=summary,
@@ -8647,6 +8649,24 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
                     guardrail_note=item.guardrail_note,
                 )
                 for item in reuse_confidence_signal.distance_items
+            ],
+        ),
+        confidence_calibration_signal=schemas.ConfidenceCalibrationSignalRead(
+            calibration_posture=confidence_calibration_signal.calibration_posture,
+            calibration_posture_label=confidence_calibration_signal.calibration_posture_label,
+            summary=confidence_calibration_signal.summary,
+            calibration_items=[
+                schemas.ConfidenceCalibrationItemRead(
+                    axis_kind=item.axis_kind,
+                    axis_label=item.axis_label,
+                    calibration_status=item.calibration_status,
+                    calibration_status_label=item.calibration_status_label,
+                    reuse_confidence=item.reuse_confidence,
+                    reuse_confidence_label=item.reuse_confidence_label,
+                    summary=item.summary,
+                    guardrail_note=item.guardrail_note,
+                )
+                for item in confidence_calibration_signal.calibration_items
             ],
         ),
         readiness_hint=readiness_hint,
@@ -11565,6 +11585,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
     )
     generalist_guidance_posture = build_phase_six_generalist_guidance_posture()
     reuse_confidence_signal = build_phase_six_context_distance_audit()
+    confidence_calibration_signal = build_phase_six_confidence_calibration()
     canonicalization_summary, canonicalization_candidates = build_matter_canonicalization_contract(
         db,
         matter_workspace_id=matter_workspace.id,
@@ -11673,6 +11694,24 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
                     guardrail_note=item.guardrail_note,
                 )
                 for item in reuse_confidence_signal.distance_items
+            ],
+        ),
+        confidence_calibration_signal=schemas.ConfidenceCalibrationSignalRead(
+            calibration_posture=confidence_calibration_signal.calibration_posture,
+            calibration_posture_label=confidence_calibration_signal.calibration_posture_label,
+            summary=confidence_calibration_signal.summary,
+            calibration_items=[
+                schemas.ConfidenceCalibrationItemRead(
+                    axis_kind=item.axis_kind,
+                    axis_label=item.axis_label,
+                    calibration_status=item.calibration_status,
+                    calibration_status_label=item.calibration_status_label,
+                    reuse_confidence=item.reuse_confidence,
+                    reuse_confidence_label=item.reuse_confidence_label,
+                    summary=item.summary,
+                    guardrail_note=item.guardrail_note,
+                )
+                for item in confidence_calibration_signal.calibration_items
             ],
         ),
         review_lens_guidance=review_lens_guidance,

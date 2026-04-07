@@ -607,6 +607,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
         task.organization_memory_guidance,
         task.generalist_guidance_posture,
         task.reuse_confidence_signal,
+        task.confidence_calibration_signal,
       )
     : null;
   const domainPlaybookView = task
@@ -614,6 +615,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
         task.domain_playbook_guidance,
         task.generalist_guidance_posture,
         task.reuse_confidence_signal,
+        task.confidence_calibration_signal,
       )
     : null;
   const researchDetailView = task
@@ -634,6 +636,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
         task.deliverable_template_guidance,
         task.generalist_guidance_posture,
         task.reuse_confidence_signal,
+        task.confidence_calibration_signal,
       )
     : null;
   const evidenceWorkspaceLane =
@@ -1416,6 +1419,11 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                         {organizationMemoryView.reuseConfidenceNote}
                       </p>
                     ) : null}
+                    {organizationMemoryView.confidenceCalibrationNote ? (
+                      <p className="muted-text" style={{ marginTop: "12px" }}>
+                        {organizationMemoryView.confidenceCalibrationNote}
+                      </p>
+                    ) : null}
                     <p className="muted-text" style={{ marginTop: "12px" }}>
                       {organizationMemoryView.boundaryNote}
                     </p>
@@ -1489,6 +1497,11 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     {domainPlaybookView.reuseConfidenceNote ? (
                       <p className="muted-text" style={{ marginTop: "12px" }}>
                         {domainPlaybookView.reuseConfidenceNote}
+                      </p>
+                    ) : null}
+                    {domainPlaybookView.confidenceCalibrationNote ? (
+                      <p className="muted-text" style={{ marginTop: "12px" }}>
+                        {domainPlaybookView.confidenceCalibrationNote}
                       </p>
                     ) : null}
                     <p className="muted-text" style={{ marginTop: "12px" }}>
@@ -1623,6 +1636,11 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     {deliverableTemplateView.reuseConfidenceNote ? (
                       <p className="muted-text" style={{ marginTop: "12px" }}>
                         {deliverableTemplateView.reuseConfidenceNote}
+                      </p>
+                    ) : null}
+                    {deliverableTemplateView.confidenceCalibrationNote ? (
+                      <p className="muted-text" style={{ marginTop: "12px" }}>
+                        {deliverableTemplateView.confidenceCalibrationNote}
                       </p>
                     ) : null}
                     <p className="muted-text" style={{ marginTop: "12px" }}>

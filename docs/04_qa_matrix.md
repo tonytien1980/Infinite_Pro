@@ -4218,6 +4218,19 @@ Environment used:
 - Phase 6 can now explain not only how confident reuse currently is, but which axis is lowering that confidence
 - `Generalist Governance` can now tell whether reusable confidence is mainly being limited by client stage, client type, or domain lens distance without adding a new dashboard
 
+### Phase-6 confidence calibration propagation verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | `TaskAggregateResponse` / `MatterWorkspaceResponse` | Carry `confidence_calibration_signal` through existing work-surface contracts | Verified | targeted backend tests confirm task aggregate and matter workspace now expose `confidence_calibration_signal` with posture label and calibration items |
+| Frontend | `organization-memory` / `domain-playbooks` / `deliverable-templates` helpers | Render low-noise `Phase 6 confidence calibration` note inside existing second-layer cards | Verified | node helper tests confirm the three helpers can render calibration-aware notes without changing primary summaries |
+| Frontend | task / matter / deliverable surfaces | Keep confidence-calibration propagation inside existing second-layer disclosure | Verified | typecheck/build pass after wiring the new note into task detail, matter workspace, and deliverable workspace cards |
+
+### Verified outcomes
+
+- `confidence_calibration_signal` no longer only lives on the homepage; it now flows through the existing task / matter / deliverable work-surface contracts
+- Phase 6 can now express guidance posture, reuse-confidence reading, and confidence calibration inside existing second-layer cards without creating a new governance page
+
 ### Explicitly not shipped in this pass
 
 - `Personal Provider Settings`

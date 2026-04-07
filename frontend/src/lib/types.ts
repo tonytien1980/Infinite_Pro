@@ -500,6 +500,24 @@ export interface ReuseConfidenceSignal {
   distance_items: ReuseConfidenceDistanceItem[];
 }
 
+export interface ConfidenceCalibrationItem {
+  axis_kind: "client_stage" | "client_type" | "domain_lens";
+  axis_label: string;
+  calibration_status: "aligned" | "caution" | "mismatch";
+  calibration_status_label: string;
+  reuse_confidence: "high_confidence" | "bounded_confidence" | "low_confidence";
+  reuse_confidence_label: string;
+  summary: string;
+  guardrail_note: string;
+}
+
+export interface ConfidenceCalibrationSignal {
+  calibration_posture: "stable_alignment" | "watch_mismatch";
+  calibration_posture_label: string;
+  summary: string;
+  calibration_items: ConfidenceCalibrationItem[];
+}
+
 export interface PrecedentDuplicateReviewPayload {
   review_key: string;
   resolution: "human_confirmed_canonical_row" | "keep_separate" | "split";
@@ -2108,6 +2126,7 @@ export interface TaskAggregate {
   precedent_reference_guidance: PrecedentReferenceGuidance;
   generalist_guidance_posture: GeneralistGuidancePosture;
   reuse_confidence_signal: ReuseConfidenceSignal;
+  confidence_calibration_signal: ConfidenceCalibrationSignal;
   review_lens_guidance: ReviewLensGuidance;
   common_risk_guidance: CommonRiskGuidance;
   deliverable_shape_guidance: DeliverableShapeGuidance;
@@ -2186,6 +2205,7 @@ export interface MatterWorkspace {
   domain_playbook_guidance: DomainPlaybookGuidance;
   generalist_guidance_posture: GeneralistGuidancePosture;
   reuse_confidence_signal: ReuseConfidenceSignal;
+  confidence_calibration_signal: ConfidenceCalibrationSignal;
   research_runs: ResearchRun[];
   decision_records: DecisionRecord[];
   action_plans: ActionPlan[];

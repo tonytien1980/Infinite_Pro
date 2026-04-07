@@ -581,6 +581,7 @@ export function MatterWorkspacePanel({
         matter.organization_memory_guidance,
         matter.generalist_guidance_posture,
         matter.reuse_confidence_signal,
+        matter.confidence_calibration_signal,
       )
     : null;
   const domainPlaybookView = matter
@@ -588,6 +589,7 @@ export function MatterWorkspacePanel({
         matter.domain_playbook_guidance,
         matter.generalist_guidance_posture,
         matter.reuse_confidence_signal,
+        matter.confidence_calibration_signal,
       )
     : null;
   const researchDetailView = matter
@@ -1129,6 +1131,11 @@ export function MatterWorkspacePanel({
                             {organizationMemoryView.reuseConfidenceNote}
                           </p>
                         ) : null}
+                        {organizationMemoryView.confidenceCalibrationNote ? (
+                          <p className="muted-text" style={{ marginTop: "12px" }}>
+                            {organizationMemoryView.confidenceCalibrationNote}
+                          </p>
+                        ) : null}
                         <p className="muted-text" style={{ marginTop: "12px" }}>
                           {organizationMemoryView.boundaryNote}
                         </p>
@@ -1190,6 +1197,11 @@ export function MatterWorkspacePanel({
                         {domainPlaybookView.reuseConfidenceNote ? (
                           <p className="muted-text" style={{ marginTop: "12px" }}>
                             {domainPlaybookView.reuseConfidenceNote}
+                          </p>
+                        ) : null}
+                        {domainPlaybookView.confidenceCalibrationNote ? (
+                          <p className="muted-text" style={{ marginTop: "12px" }}>
+                            {domainPlaybookView.confidenceCalibrationNote}
                           </p>
                         ) : null}
                         <p className="muted-text" style={{ marginTop: "12px" }}>

@@ -1,4 +1,5 @@
 import type {
+  ConfidenceCalibrationSignal,
   GeneralistGuidancePosture,
   OrganizationMemoryGuidance,
   ReuseConfidenceSignal,
@@ -8,6 +9,7 @@ export function buildOrganizationMemoryView(
   guidance: OrganizationMemoryGuidance | null | undefined,
   generalistGuidancePosture?: GeneralistGuidancePosture | null,
   reuseConfidenceSignal?: ReuseConfidenceSignal | null,
+  confidenceCalibrationSignal?: ConfidenceCalibrationSignal | null,
 ): {
   shouldShow: boolean;
   sectionTitle: string;
@@ -25,6 +27,7 @@ export function buildOrganizationMemoryView(
   crossMatterItems: Array<{ title: string; summary: string; meta: string; matterWorkspaceId: string }>;
   generalistGuidanceNote: string;
   reuseConfidenceNote: string;
+  confidenceCalibrationNote: string;
   boundaryNote: string;
 } {
   if (!guidance || guidance.status !== "available") {
@@ -45,6 +48,7 @@ export function buildOrganizationMemoryView(
       crossMatterItems: [],
       generalistGuidanceNote: "",
       reuseConfidenceNote: "",
+      confidenceCalibrationNote: "",
       boundaryNote: "",
     };
   }
@@ -78,6 +82,14 @@ export function buildOrganizationMemoryView(
         ? `Phase 6 reuse confidence：${reuseConfidenceSignal.confidence_posture_label}｜${reuseConfidenceSignal.distance_items
             .slice(0, 2)
             .map((item) => `${item.asset_label}：${item.reuse_confidence_label}`)
+            .join("｜")}`
+        : "",
+    confidenceCalibrationNote:
+      confidenceCalibrationSignal?.calibration_posture_label &&
+      confidenceCalibrationSignal.calibration_items?.length
+        ? `Phase 6 confidence calibration：${confidenceCalibrationSignal.calibration_posture_label}｜${confidenceCalibrationSignal.calibration_items
+            .slice(0, 2)
+            .map((item) => `${item.axis_label}：${item.calibration_status_label}`)
             .join("｜")}`
         : "",
     boundaryNote: guidance.boundary_note,

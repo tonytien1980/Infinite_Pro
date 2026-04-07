@@ -691,6 +691,43 @@ def test_phase_six_confidence_calibration_marks_domain_lens_as_mismatch(
     assert any(item["axis_kind"] == "domain_lens" for item in mismatches)
 
 
+def test_task_aggregate_exposes_confidence_calibration_signal(
+    client: TestClient,
+) -> None:
+    task = client.post(
+        "/api/v1/tasks",
+        json=create_contract_review_payload("Confidence calibration aggregate"),
+    ).json()
+
+    response = client.get(f"/api/v1/tasks/{task['id']}")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["confidence_calibration_signal"]["calibration_posture"] in {
+        "stable_alignment",
+        "watch_mismatch",
+    }
+    assert payload["confidence_calibration_signal"]["calibration_items"]
+
+
+def test_matter_workspace_exposes_confidence_calibration_signal(
+    client: TestClient,
+) -> None:
+    task = client.post(
+        "/api/v1/tasks",
+        json=create_contract_review_payload("Confidence calibration matter"),
+    ).json()
+    aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
+    matter_id = aggregate["matter_workspace"]["id"]
+
+    response = client.get(f"/api/v1/matters/{matter_id}")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["confidence_calibration_signal"]["calibration_posture_label"]
+    assert payload["confidence_calibration_signal"]["calibration_items"]
+
+
 def test_consultant_cannot_sign_off_phase_five(
     anonymous_client: TestClient,
     monkeypatch: pytest.MonkeyPatch,
