@@ -2416,6 +2416,8 @@ work-surface case-aware 第一版現在也已正式把：
 - `summary`
 - `overall_score`
 - `scorecard_items`
+- `feedback_linked_summary`
+- `feedback_linked_scoring_snapshot`
 - `closure_posture`
 - `closure_posture_label`
 - `checkpoint_summary`
@@ -2431,12 +2433,34 @@ work-surface case-aware 第一版現在也已正式把：
 - `status_label`
 - `summary`
 
+第一版 `feedback_linked_scoring_snapshot` 目前至少包括：
+
+- `adopted_count`
+- `needs_revision_count`
+- `not_adopted_count`
+- `template_candidate_count`
+- `governed_candidate_count`
+- `promoted_candidate_count`
+- `dismissed_candidate_count`
+- `override_signal_count`
+- `top_asset_codes`
+- `top_asset_labels`
+- `summary`
+
 正式規則：
 
 - 這層是 low-noise completion review foundation，不是 correctness score
 - `checkpoint` 只代表 owner 在這個時間點記錄了一次 phase-level review snapshot
 - `checkpoint` 不等於 sign-off
 - 第一版只允許把 checkpoint action 掛在既有首頁 `Generalist Governance`
+- `feedback-linked persisted scoring` 第一刀目前只吃：
+  - explicit `AdoptionFeedback`
+  - `PrecedentCandidate` governance outcomes
+- 第一刀目前還不把：
+  - deliverable publish / release evidence
+  - action execution / outcome writeback evidence
+  - continuity result quality
+  直接接成 scoring engine
 - 不可長出：
   - score dashboard
   - release manager shell
@@ -2473,7 +2497,10 @@ work-surface case-aware 第一版現在也已正式把：
   - `overall_score`
   - `scorecard_items`
   - `closure_posture`
+  - `feedback_linked_summary`
+  - `feedback_linked_scoring_snapshot`
 - completion review 的 `review_posture` 應優先讀 persisted checkpoint snapshot，而不是只看當下即時計算
+- persisted snapshot 現在也應能回答：這次 checkpoint 的 feedback loop 分數主要是被哪些 explicit feedback evidence 推動
 - sign-off 只允許：
   - owner
   - 已有 checkpoint

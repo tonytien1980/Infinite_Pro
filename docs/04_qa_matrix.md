@@ -4949,3 +4949,43 @@ Environment used:
 - homepage phase-level governance console rewrite
 - new dashboard family
 - fully context-aware adaptive consultant brain
+
+---
+
+## Entry: 2026-04-08 phase-6 feedback-linked persisted scoring v1
+
+Scope:
+- `docs/06` `7.2 feedback-linked persisted scoring` first slice
+- `completion review / checkpoint` now persist explicit feedback-linked evidence snapshot
+- first slice only uses `AdoptionFeedback` and candidate governance outcomes
+
+Environment used:
+- local backend and frontend verification only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `PYTHONPATH=backend .venv312/bin/python -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/pytest backend/tests/test_phase_six_feedback_scoring.py -q` | Passed (`2 passed`) |
+| `PYTHONPATH=backend .venv312/bin/pytest backend/tests/test_mvp_slice.py -q` | Passed (`245 passed`) |
+| `cd frontend && node --test tests/phase-six-governance.test.mjs tests/intake-progress.test.mjs` | Passed (`46 passed`) |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && mkdir -p .next/types && npx next typegen && npm run typecheck` | Passed |
+| `cd frontend && npm run build` | Passed |
+
+### Phase-6 feedback-linked scoring verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | feedback-linked snapshot builder | Summarize explicit adoption / revision / not-adopted / template-candidate signals plus candidate governance outcomes | Verified | targeted backend tests confirm `feedback_linked_scoring_snapshot` now returns positive, negative, governed, and top-asset evidence in one low-noise snapshot |
+| Backend | `/workbench/phase-6-completion-review` | Return `feedback_linked_summary` and `feedback_linked_scoring_snapshot` in completion-review payload | Verified | targeted backend tests confirm completion-review payload now exposes feedback-linked scoring evidence instead of only abstract score |
+| Backend | `/workbench/phase-6-completion-review/checkpoint` | Persist feedback-linked scoring evidence into phase-review checkpoint payload | Verified | targeted backend tests confirm checkpoint payload now stores `feedback_linked_summary` and `feedback_linked_scoring_snapshot` |
+| Backend | phase-six completion-review / sign-off regression | Preserve existing checkpoint / sign-off flow | Verified | full `backend/tests/test_mvp_slice.py` regression remains green after the scoring payload rewrite |
+| Frontend | homepage `Generalist Governance` completion-review card | Read low-noise feedback-linked summary without adding a new dashboard family | Verified | node tests confirm the new feedback-linked summary helper stays compact and consultant-readable |
+| Frontend | homepage completion-review card | Keep new payload compatible with typecheck / production build | Verified | `typecheck` and `next build` both pass after extending completion-review types and homepage readout |
+
+### Explicitly not shipped in this pass
+
+- deliverable publish / release evidence scoring
+- action execution / outcome writeback scoring
+- scoring dashboard family

@@ -132,6 +132,10 @@ Infinite Pro 的正式產品想像應理解為：
   - task / matter / deliverable work-surface 讀到的 `guidance / confidence / calibration / weighting`
   - 現在已開始吃 `client_stage / client_type / domain_lenses / evidence_thickness / pack context`
   - 不再完全只是 phase-level 固定輸出
+- `7.2` 的第一刀也已開始正式落地：
+  - `completion review / checkpoint` 現在開始正式保存 explicit feedback-linked evidence snapshot
+  - 但目前仍只先吃 `AdoptionFeedback` 與 candidate governance outcomes
+  - 還沒有把 deliverable / outcome writeback evidence 一次做滿
 
 ---
 
