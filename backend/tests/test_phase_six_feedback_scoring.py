@@ -196,3 +196,67 @@ def test_phase_six_completion_review_persists_feedback_linked_snapshot(
         assert row is not None
         assert row.payload["feedback_linked_summary"] == review_payload["feedback_linked_summary"]
         assert row.payload["feedback_linked_scoring_snapshot"]["adopted_count"] == 1
+
+
+def test_phase_six_completion_review_reads_deliverable_closeout_depth(
+    client: TestClient,
+) -> None:
+    task = _create_feedback_task(client, title="Phase 6 closeout depth")
+    upload = client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[
+            (
+                "files",
+                ("agreement.txt", b"Termination and liability clauses need review.", "text/plain"),
+            )
+        ],
+    )
+    assert upload.status_code == 200
+
+    run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
+    assert run_response.status_code == 200
+    deliverable_id = run_response.json()["deliverable"]["id"]
+
+    workspace = client.get(f"/api/v1/deliverables/{deliverable_id}").json()
+    publish_response = client.post(
+        f"/api/v1/deliverables/{deliverable_id}/publish",
+        json={
+            "title": workspace["deliverable"]["title"],
+            "summary": workspace["deliverable"]["summary"],
+            "version_tag": workspace["deliverable"]["version_tag"] or "v1",
+            "publish_note": "closeout depth verification",
+            "artifact_formats": ["markdown"],
+            "content_sections": workspace["content_sections"],
+        },
+    )
+    assert publish_response.status_code == 200
+
+    feedback_response = client.post(
+        f"/api/v1/deliverables/{deliverable_id}/feedback",
+        json={"feedback_status": "adopted", "note": "這份交付可直接採用。"},
+    )
+    assert feedback_response.status_code == 200
+
+    promote_response = client.post(
+        f"/api/v1/deliverables/{deliverable_id}/precedent-candidate",
+        json={"candidate_status": "promoted"},
+    )
+    assert promote_response.status_code == 200
+
+    review = client.get("/api/v1/workbench/phase-6-completion-review")
+    assert review.status_code == 200
+    body = review.json()
+    feedback_loop = next(
+        item for item in body["scorecard_items"] if item["dimension_code"] == "feedback_loop"
+    )
+
+    assert body["feedback_linked_scoring_snapshot"]["published_adopted_count"] == 1
+    assert body["feedback_linked_scoring_snapshot"]["governed_deliverable_candidate_count"] == 1
+    assert "交付回饋" in feedback_loop["summary"]
+
+    checkpoint = client.post(
+        "/api/v1/workbench/phase-6-completion-review/checkpoint",
+        json={"operator_label": "王顧問"},
+    )
+    assert checkpoint.status_code == 200
+    assert "交付回饋" in checkpoint.json()["checkpoint_summary"]

@@ -403,12 +403,24 @@ def build_phase_six_phase_level_alignment_snapshot(
             or source_snapshot.governed_candidate_count > 0
         )
     ) or feedback_signal_count > 0 or governed_outcome_count > 0
+    has_deliverable_closeout_depth = bool(source_snapshot) and (
+        source_snapshot.deliverable_feedback_count > 0
+        or source_snapshot.deliverable_candidate_count > 0
+    )
+    has_strong_deliverable_closeout_depth = bool(source_snapshot) and (
+        source_snapshot.published_adopted_count > 0
+        or source_snapshot.governed_deliverable_candidate_count > 0
+    )
     return PhaseSixPhaseLevelAlignmentSnapshot(
         phase_level_boundary_note="這裡是 Phase 6 的階段層 review，不是案件計分引擎。",
         work_surface_landed_summary="三個正式工作面已正式落地。",
         scoring_pending_summary=(
-            "下一刀應把採用回饋證據更正式接回治理評分。"
+            "下一刀應把 feedback foundation 正式接到交付收尾深度。"
             if not has_feedback_depth
+            else "下一刀應把交付收尾證據再往 outcome / writeback evidence 推進。"
+            if has_strong_deliverable_closeout_depth
+            else "下一刀應把已形成的交付收尾證據更正式接回治理評分。"
+            if has_deliverable_closeout_depth
             else "下一刀應把已形成的採用回饋證據更正式接回治理評分。"
         ),
     )
@@ -632,11 +644,21 @@ def build_phase_six_completion_review(
         + computed_feedback_snapshot.template_candidate_count
         + computed_feedback_snapshot.promoted_candidate_count
     )
+    has_strong_deliverable_closeout_depth = (
+        computed_feedback_snapshot.deliverable_adopted_count > 0
+        and computed_feedback_snapshot.published_adopted_count > 0
+    )
+    has_deliverable_closeout_depth = (
+        computed_feedback_snapshot.deliverable_feedback_count > 0
+        or computed_feedback_snapshot.deliverable_candidate_count > 0
+    )
     feedback_loop_score = (
         84
-        if positive_feedback_count >= 4 and computed_feedback_snapshot.override_signal_count <= 1
+        if has_strong_deliverable_closeout_depth
+        or computed_feedback_snapshot.governed_deliverable_candidate_count > 0
         else 68
-        if positive_feedback_count > 0
+        if has_deliverable_closeout_depth
+        or positive_feedback_count > 0
         or computed_feedback_snapshot.needs_revision_count > 0
         or computed_feedback_snapshot.governed_candidate_count > 0
         else 42
@@ -666,6 +688,7 @@ def build_phase_six_completion_review(
             status_label="已開始形成" if feedback_loop_score >= 60 else "仍需加深",
             summary=(
                 f"{computed_feedback_snapshot.summary}"
+                f"｜{computed_feedback_snapshot.closeout_depth_summary}"
                 f"｜governed candidates {computed_feedback_snapshot.governed_candidate_count}。"
             ),
         ),
@@ -706,7 +729,10 @@ def build_phase_six_completion_review(
     feedback_linked_summary = (
         str(checkpoint_state.get("feedback_linked_summary", "")).strip()
         if checkpoint_state and checkpoint_state.get("feedback_linked_summary")
-        else effective_feedback_snapshot.summary
+        else (
+            f"{effective_feedback_snapshot.summary}"
+            f"｜{effective_feedback_snapshot.closeout_depth_summary}"
+        )
     )
     overall_score = (
         int(checkpoint_state.get("overall_score"))
@@ -730,7 +756,10 @@ def build_phase_six_completion_review(
         else "先看基礎是否齊"
     )
     checkpoint_summary = (
-        f"最近一次 checkpoint 由 {checkpoint_state.get('checkpointed_by_label') or 'owner'} 記錄，當時總分 {overall_score}。"
+        (
+            f"最近一次 checkpoint 由 {checkpoint_state.get('checkpointed_by_label') or 'owner'} 記錄，"
+            f"當時總分 {overall_score}，{effective_feedback_snapshot.closeout_depth_summary}。"
+        )
         if checkpointed
         else "目前還沒有 recorded checkpoint，可先用這次 scorecard 做第一筆 completion review snapshot。"
     )
