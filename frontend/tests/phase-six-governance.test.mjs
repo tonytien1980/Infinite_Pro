@@ -22,6 +22,7 @@ import {
   summarizePhaseSixClosureCriteria,
   summarizePhaseSixDistanceItems,
   summarizePhaseSixGuidanceItems,
+  summarizePhaseSixWorkGuidance,
   summarizePhaseSixHandoffItems,
   summarizePhaseSixHostWeighting,
   summarizePhaseSixMaturityMilestones,
@@ -216,6 +217,14 @@ test("phase 6 guidance posture labels stay low-noise and readable", () => {
       "窄情境來源若有其他較穩替代，先留背景校正。",
     ]),
     "先把 shared intelligence 當校正主線，不要直接當成定論。｜窄情境來源若有其他較穩替代，先留背景校正。",
+  );
+  assert.equal(
+    summarizePhaseSixWorkGuidance({
+      workGuidanceSummary:
+        "目前工作 guidance 可維持低噪音，只在需要時補 reusable boundary。",
+      guidanceItems: [],
+    }),
+    "目前工作 guidance 可維持低噪音，只在需要時補 reusable boundary。",
   );
 });
 

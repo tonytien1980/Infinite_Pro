@@ -43,6 +43,8 @@ import {
 import { buildCommonRiskLibraryView } from "@/lib/common-risk-libraries";
 import { buildDeliverableTemplateView } from "@/lib/deliverable-templates";
 import { buildDeliverableShapeHintView } from "@/lib/deliverable-shape-hints";
+import { buildDomainPlaybookView } from "@/lib/domain-playbooks";
+import { buildOrganizationMemoryView } from "@/lib/organization-memory";
 import { buildPrecedentReferenceView } from "@/lib/precedent-reference";
 import { buildResearchDetailView } from "@/lib/research-lane";
 import { buildReviewLensView } from "@/lib/review-lenses";
@@ -550,6 +552,24 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const continuationFocusSummary = buildContinuationFocusSummary(continuationSurface);
   const continuationDetailView = buildContinuationDetailView(continuationSurface);
   const researchDetailView = buildResearchDetailView(null, workspace?.research_runs[0] ?? null);
+  const organizationMemoryView = task
+    ? buildOrganizationMemoryView(
+        task.organization_memory_guidance,
+        task.generalist_guidance_posture,
+        task.reuse_confidence_signal,
+        task.confidence_calibration_signal,
+        task.calibration_aware_weighting_signal,
+      )
+    : null;
+  const domainPlaybookView = task
+    ? buildDomainPlaybookView(
+        task.domain_playbook_guidance,
+        task.generalist_guidance_posture,
+        task.reuse_confidence_signal,
+        task.confidence_calibration_signal,
+        task.calibration_aware_weighting_signal,
+      )
+    : null;
   const precedentReferenceView = task
     ? buildPrecedentReferenceView(task.precedent_reference_guidance)
     : null;
@@ -1579,6 +1599,157 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                     </ul>
                   </div>
                 ) : null}
+              </div>
+            ) : null}
+            {organizationMemoryView?.shouldShow ? (
+              <div className="detail-list" style={{ marginTop: "18px" }}>
+                <div className="detail-item">
+                  <h3>{organizationMemoryView.sectionTitle}</h3>
+                  <p className="content-block">{organizationMemoryView.summary}</p>
+                  {organizationMemoryView.organizationLabel ? (
+                    <p className="muted-text">{organizationMemoryView.organizationLabel}</p>
+                  ) : null}
+                  {organizationMemoryView.sourceLifecycleSummary ? (
+                    <p className="muted-text">{organizationMemoryView.sourceLifecycleSummary}</p>
+                  ) : null}
+                  {organizationMemoryView.lifecyclePostureLabel ? (
+                    <p className="muted-text">來源姿態：{organizationMemoryView.lifecyclePostureLabel}</p>
+                  ) : null}
+                  {organizationMemoryView.freshnessSummary ? (
+                    <p className="muted-text">{organizationMemoryView.freshnessSummary}</p>
+                  ) : null}
+                  {organizationMemoryView.reactivationSummary ? (
+                    <p className="muted-text">{organizationMemoryView.reactivationSummary}</p>
+                  ) : null}
+                  {organizationMemoryView.stableContextItems.length > 0 ? (
+                    <ul className="list-content" style={{ marginTop: "12px" }}>
+                      {organizationMemoryView.stableContextItems.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  {organizationMemoryView.crossMatterSummary ? (
+                    <p className="muted-text" style={{ marginTop: "12px" }}>
+                      {organizationMemoryView.crossMatterSummary}
+                    </p>
+                  ) : null}
+                  {organizationMemoryView.crossMatterItems.length > 0 ? (
+                    <div className="summary-grid" style={{ marginTop: "16px" }}>
+                      {organizationMemoryView.crossMatterItems.map((item) => (
+                        <div
+                          className="section-card"
+                          key={`deliverable-cross-memory-${item.matterWorkspaceId}`}
+                        >
+                          <h4>{item.title}</h4>
+                          <p className="content-block">{item.summary}</p>
+                          <p className="muted-text">{item.meta}</p>
+                          <Link
+                            className="button-secondary"
+                            href={`/matters/${item.matterWorkspaceId}`}
+                            style={{ marginTop: "12px" }}
+                          >
+                            打開相關案件
+                          </Link>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                  {organizationMemoryView.knownConstraints.length > 0 ? (
+                    <>
+                      <h4 style={{ marginTop: "16px" }}>已知限制</h4>
+                      <ul className="list-content" style={{ marginTop: "12px" }}>
+                        {organizationMemoryView.knownConstraints.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    </>
+                  ) : null}
+                  {organizationMemoryView.continuityAnchor ? (
+                    <p className="muted-text" style={{ marginTop: "12px" }}>
+                      {organizationMemoryView.continuityAnchor}
+                    </p>
+                  ) : null}
+                  {organizationMemoryView.phaseSixSignalNote ? (
+                    <p className="muted-text" style={{ marginTop: "12px" }}>
+                      {organizationMemoryView.phaseSixSignalNote}
+                    </p>
+                  ) : null}
+                  <p className="muted-text" style={{ marginTop: "12px" }}>
+                    {organizationMemoryView.boundaryNote}
+                  </p>
+                </div>
+              </div>
+            ) : null}
+            {domainPlaybookView?.shouldShow ? (
+              <div className="detail-list" style={{ marginTop: "18px" }}>
+                <div className="detail-item">
+                  <h3>{domainPlaybookView.sectionTitle}</h3>
+                  <p className="content-block">{domainPlaybookView.summary}</p>
+                  {domainPlaybookView.playbookLabel ? (
+                    <p className="muted-text">{domainPlaybookView.playbookLabel}</p>
+                  ) : null}
+                  {domainPlaybookView.fitSummary ? (
+                    <p className="muted-text">{domainPlaybookView.fitSummary}</p>
+                  ) : null}
+                  {domainPlaybookView.sourceMixSummary ? (
+                    <p className="muted-text">{domainPlaybookView.sourceMixSummary}</p>
+                  ) : null}
+                  {domainPlaybookView.sourceLifecycleSummary ? (
+                    <p className="muted-text">{domainPlaybookView.sourceLifecycleSummary}</p>
+                  ) : null}
+                  {domainPlaybookView.lifecyclePostureLabel ? (
+                    <p className="muted-text">來源姿態：{domainPlaybookView.lifecyclePostureLabel}</p>
+                  ) : null}
+                  {domainPlaybookView.freshnessSummary ? (
+                    <p className="muted-text">{domainPlaybookView.freshnessSummary}</p>
+                  ) : null}
+                  {domainPlaybookView.recoveryBalanceSummary ? (
+                    <p className="muted-text">{domainPlaybookView.recoveryBalanceSummary}</p>
+                  ) : null}
+                  {domainPlaybookView.reactivationSummary ? (
+                    <p className="muted-text">{domainPlaybookView.reactivationSummary}</p>
+                  ) : null}
+                  {domainPlaybookView.decaySummary ? (
+                    <p className="muted-text">{domainPlaybookView.decaySummary}</p>
+                  ) : null}
+                  {domainPlaybookView.currentStageLabel ? (
+                    <p className="muted-text">
+                      目前這輪：{domainPlaybookView.currentStageLabel}
+                    </p>
+                  ) : null}
+                  {domainPlaybookView.nextStageLabel ? (
+                    <p className="muted-text">
+                      下一步通常接：{domainPlaybookView.nextStageLabel}
+                    </p>
+                  ) : null}
+                  <div className="summary-grid" style={{ marginTop: "16px" }}>
+                    {domainPlaybookView.cards.map((card) => (
+                      <div className="section-card" key={`deliverable-domain-playbook-${card.title}`}>
+                        <h4>{card.title}</h4>
+                        <p className="content-block">{card.summary}</p>
+                        <p className="muted-text">{card.meta}</p>
+                      </div>
+                    ))}
+                  </div>
+                  {domainPlaybookView.listItems.length > 0 ? (
+                    <>
+                      <h4 style={{ marginTop: "16px" }}>{domainPlaybookView.listTitle}</h4>
+                      <ul className="list-content" style={{ marginTop: "12px" }}>
+                        {domainPlaybookView.listItems.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    </>
+                  ) : null}
+                  {domainPlaybookView.phaseSixSignalNote ? (
+                    <p className="muted-text" style={{ marginTop: "12px" }}>
+                      {domainPlaybookView.phaseSixSignalNote}
+                    </p>
+                  ) : null}
+                  <p className="muted-text" style={{ marginTop: "12px" }}>
+                    {domainPlaybookView.boundaryNote}
+                  </p>
+                </div>
               </div>
             ) : null}
             {precedentReferenceView?.shouldShow ? (

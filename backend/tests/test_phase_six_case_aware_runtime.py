@@ -154,3 +154,50 @@ def test_task_and_matter_phase_six_signals_follow_case_context(client: TestClien
         "light_guidance",
     }
     assert rich_matter["generalist_guidance_posture"]["summary"]
+
+
+def test_deliverable_workspace_phase_six_signals_follow_case_context(
+    client: TestClient,
+) -> None:
+    prior_task = _create_case_task(
+        client,
+        title="Deliverable parity prior legal task",
+        client_stage="制度化階段",
+        client_type="中小企業",
+        domain_lenses=["法務"],
+        upload_bytes=b"Termination and liability clauses were the main gaps in the prior review.",
+    )
+    client.post(
+        f"/api/v1/tasks/{prior_task['id']}/recommendations/"
+        f"{client.get(f'/api/v1/tasks/{prior_task['id']}').json()['recommendations'][0]['id']}/feedback",
+        json={
+            "feedback_status": "template_candidate",
+            "reason_codes": ["reusable_action_pattern"],
+            "note": "這條工作主線值得保留成模式。",
+        },
+    )
+
+    current_task = _create_case_task(
+        client,
+        title="Deliverable parity current legal task",
+        client_stage="制度化階段",
+        client_type="中小企業",
+        domain_lenses=["法務"],
+        upload_bytes=b"Renewal pricing and liability carve-outs still need review in the current round.",
+    )
+    current_aggregate = client.get(f"/api/v1/tasks/{current_task['id']}").json()
+    deliverable_id = current_aggregate["deliverables"][0]["id"]
+
+    workspace_response = client.get(f"/api/v1/deliverables/{deliverable_id}")
+    assert workspace_response.status_code == 200
+    workspace = workspace_response.json()
+
+    assert workspace["task"]["generalist_guidance_posture"]["guidance_posture"] in {
+        "balanced_guidance",
+        "light_guidance",
+    }
+    assert workspace["task"]["reuse_confidence_signal"]["distance_items"]
+    assert workspace["task"]["confidence_calibration_signal"]["calibration_items"]
+    assert workspace["task"]["calibration_aware_weighting_signal"]["weighting_items"]
+    assert workspace["task"]["organization_memory_guidance"]["status"] == "available"
+    assert workspace["task"]["domain_playbook_guidance"]["status"] == "available"
