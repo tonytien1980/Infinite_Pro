@@ -58,6 +58,7 @@ import {
   summarizePhaseSixGovernanceItems,
   summarizePhaseSixHandoffItems,
   summarizePhaseSixMaturityMilestones,
+  summarizePhaseSixPhaseLevelAlignment,
   summarizePhaseSixWorkGuidance,
   summarizePhaseSixReuseBoundaryItems,
 } from "@/lib/phase-six-governance";
@@ -436,6 +437,18 @@ export function WorkbenchHome() {
     void refreshPhaseSixGuidance();
   }, []);
   const phaseFiveClosureView = buildPhaseFiveClosureView(phaseFiveClosureReview);
+  const phaseSixAlignmentSummary =
+    phaseSixMaturity && phaseSixCompletionReview
+      ? summarizePhaseSixPhaseLevelAlignment({
+          phasePostureLabel: labelForPhaseSixMaturityStage(phaseSixMaturity.maturityStage),
+          workSurfaceSummary:
+            phaseSixCloseoutReview?.foundationSnapshot || "三個正式工作面已正式落地。",
+          remainingNextStep:
+            phaseSixCompletionReview.recommendedNextStep ||
+            phaseSixClosureCriteria?.recommendedNextStep ||
+            "",
+        })
+      : "";
 
   async function handlePhaseFiveSignOff() {
     try {
@@ -996,7 +1009,9 @@ export function WorkbenchHome() {
               <div className="panel-header">
                 <div>
                   <h2 className="panel-title">Generalist Governance</h2>
-                  <p className="panel-copy">低噪音回答 shared intelligence 目前有沒有開始偏科。</p>
+                  <p className="panel-copy">
+                    低噪音回答 Phase 6 現在在哪、工作面已落地到哪、下一刀還差什麼。
+                  </p>
                 </div>
                 {firmOperating?.role === "owner" && phaseSixCompletionReview ? (
                   phaseSixCompletionReview.canSignOff ? (
@@ -1025,6 +1040,13 @@ export function WorkbenchHome() {
               {phaseSixCompletionFeedback ? <p className="success-text">{phaseSixCompletionFeedback}</p> : null}
               {!phaseSixAuditLoading && phaseSixAudit ? (
                 <>
+                  {phaseSixAlignmentSummary ? (
+                    <div className="section-card" style={{ marginBottom: "16px" }}>
+                      <h3>目前階段姿態</h3>
+                      <p className="muted-text">{phaseSixAlignmentSummary}</p>
+                    </div>
+                  ) : null}
+
                   {phaseSixCloseoutReviewLoading ? (
                     <p className="status-text" style={{ marginBottom: "16px" }}>
                       正在整理 Phase 6 closeout review...

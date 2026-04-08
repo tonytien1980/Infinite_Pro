@@ -22,6 +22,7 @@ import {
   summarizePhaseSixClosureCriteria,
   summarizePhaseSixDistanceItems,
   summarizePhaseSixGuidanceItems,
+  summarizePhaseSixPhaseLevelAlignment,
   summarizePhaseSixWorkGuidance,
   summarizePhaseSixHandoffItems,
   summarizePhaseSixHostWeighting,
@@ -225,6 +226,17 @@ test("phase 6 guidance posture labels stay low-noise and readable", () => {
       guidanceItems: [],
     }),
     "目前工作 guidance 可維持低噪音，只在需要時補 reusable boundary。",
+  );
+});
+
+test("phase 6 phase-level alignment summary stays low-noise and readable", () => {
+  assert.equal(
+    summarizePhaseSixPhaseLevelAlignment({
+      phasePostureLabel: "已進入收斂深化",
+      workSurfaceSummary: "三個正式工作面已正式落地。",
+      remainingNextStep: "下一刀先補治理評分深度。",
+    }),
+    "已進入收斂深化｜三個正式工作面已正式落地。｜下一刀先補治理評分深度。",
   );
 });
 

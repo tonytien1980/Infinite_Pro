@@ -237,6 +237,18 @@ export function summarizePhaseSixWorkGuidance(
   return summarizePhaseSixGuidanceItems(posture.guidanceItems);
 }
 
+export function summarizePhaseSixPhaseLevelAlignment(input: {
+  phasePostureLabel: string;
+  workSurfaceSummary: string;
+  remainingNextStep: string;
+}) {
+  return [input.phasePostureLabel, input.workSurfaceSummary, input.remainingNextStep]
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 3)
+    .join("｜");
+}
+
 export function labelForPhaseSixContextDistance(
   distance: "close" | "moderate" | "far",
 ) {
