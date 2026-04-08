@@ -563,6 +563,14 @@ class PhaseSixFeedbackLinkedScoringSnapshotRead(BaseModel):
     deliverable_candidate_count: int = 0
     governed_deliverable_candidate_count: int = 0
     closeout_depth_summary: str = ""
+    outcome_record_count: int = 0
+    deliverable_outcome_record_count: int = 0
+    follow_up_outcome_count: int = 0
+    writeback_generated_event_count: int = 0
+    review_required_execution_count: int = 0
+    planned_execution_count: int = 0
+    writeback_expected_task_count: int = 0
+    writeback_depth_summary: str = ""
     summary: str = ""
 
 

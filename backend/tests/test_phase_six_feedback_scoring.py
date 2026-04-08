@@ -81,6 +81,39 @@ def test_phase_six_feedback_snapshot_reads_deliverable_linked_closeout_depth() -
     assert snapshot.closeout_depth_summary
 
 
+def test_phase_six_feedback_snapshot_reads_outcome_and_writeback_evidence() -> None:
+    snapshot = build_phase_six_feedback_linked_scoring_snapshot(
+        adopted_count=2,
+        needs_revision_count=1,
+        not_adopted_count=1,
+        template_candidate_count=2,
+        governed_candidate_count=3,
+        promoted_candidate_count=2,
+        dismissed_candidate_count=1,
+        override_signal_count=2,
+        top_asset_codes=["domain_playbook", "review_lens"],
+        deliverable_feedback_count=3,
+        deliverable_adopted_count=2,
+        published_deliverable_count=1,
+        published_adopted_count=1,
+        deliverable_candidate_count=2,
+        governed_deliverable_candidate_count=1,
+        outcome_record_count=2,
+        deliverable_outcome_record_count=1,
+        follow_up_outcome_count=1,
+        writeback_generated_event_count=4,
+        review_required_execution_count=1,
+        planned_execution_count=2,
+        writeback_expected_task_count=1,
+    )
+
+    assert snapshot.outcome_record_count == 2
+    assert snapshot.writeback_generated_event_count == 4
+    assert snapshot.review_required_execution_count == 1
+    assert snapshot.writeback_expected_task_count == 1
+    assert snapshot.writeback_depth_summary
+
+
 def test_phase_six_completion_review_persists_feedback_linked_snapshot(
     client: TestClient,
 ) -> None:

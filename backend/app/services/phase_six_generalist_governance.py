@@ -248,6 +248,13 @@ def build_phase_six_feedback_linked_scoring_snapshot(
     published_adopted_count: int = 0,
     deliverable_candidate_count: int = 0,
     governed_deliverable_candidate_count: int = 0,
+    outcome_record_count: int = 0,
+    deliverable_outcome_record_count: int = 0,
+    follow_up_outcome_count: int = 0,
+    writeback_generated_event_count: int = 0,
+    review_required_execution_count: int = 0,
+    planned_execution_count: int = 0,
+    writeback_expected_task_count: int = 0,
 ) -> schemas.PhaseSixFeedbackLinkedScoringSnapshotRead:
     normalized_top_asset_codes: list[str] = []
     for code in top_asset_codes:
@@ -269,6 +276,14 @@ def build_phase_six_feedback_linked_scoring_snapshot(
         f"交付回饋 {deliverable_feedback_count}｜已 publish {published_deliverable_count}"
         f"｜deliverable governed {governed_deliverable_candidate_count}"
     )
+    writeback_depth_summary = (
+        "目前多為 one-off / minimal 案件，沒有 writeback 不算負訊號。"
+        if writeback_expected_task_count == 0
+        else (
+            f"outcome {outcome_record_count}｜writeback events {writeback_generated_event_count}"
+            f"｜review-required executions {review_required_execution_count}"
+        )
+    )
     return schemas.PhaseSixFeedbackLinkedScoringSnapshotRead(
         adopted_count=adopted_count,
         needs_revision_count=needs_revision_count,
@@ -287,6 +302,14 @@ def build_phase_six_feedback_linked_scoring_snapshot(
         deliverable_candidate_count=deliverable_candidate_count,
         governed_deliverable_candidate_count=governed_deliverable_candidate_count,
         closeout_depth_summary=closeout_depth_summary,
+        outcome_record_count=outcome_record_count,
+        deliverable_outcome_record_count=deliverable_outcome_record_count,
+        follow_up_outcome_count=follow_up_outcome_count,
+        writeback_generated_event_count=writeback_generated_event_count,
+        review_required_execution_count=review_required_execution_count,
+        planned_execution_count=planned_execution_count,
+        writeback_expected_task_count=writeback_expected_task_count,
+        writeback_depth_summary=writeback_depth_summary,
         summary=summary,
     )
 

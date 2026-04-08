@@ -48,6 +48,7 @@ from app.services.phase_six_generalist_governance import (
     build_phase_six_generalist_guidance_posture,
     build_phase_six_reuse_boundary_governance,
 )
+from app.services.tasks import resolve_continuity_policy_for_task
 from app.workbench import schemas
 
 DEFAULT_WORKBENCH_PROFILE = "single_consultant_default"
@@ -111,6 +112,39 @@ def _build_phase_six_feedback_linked_snapshot(
     feedback_rows = db.scalars(select(models.AdoptionFeedback)).all()
     candidate_rows = db.scalars(select(models.PrecedentCandidate)).all()
     publish_rows = db.scalars(select(models.DeliverablePublishRecord)).all()
+    task_ids = {row.task_id for row in feedback_rows} | {row.task_id for row in candidate_rows}
+    task_rows = (
+        db.scalars(
+            select(models.Task)
+            .options(
+                selectinload(models.Task.matter_workspace_links).selectinload(
+                    models.MatterWorkspaceTaskLink.matter_workspace
+                )
+            )
+            .where(models.Task.id.in_(task_ids))
+        ).all()
+        if task_ids
+        else []
+    )
+    outcome_rows = (
+        db.scalars(select(models.OutcomeRecord).where(models.OutcomeRecord.task_id.in_(task_ids))).all()
+        if task_ids
+        else []
+    )
+    execution_rows = (
+        db.scalars(select(models.ActionExecution).where(models.ActionExecution.task_id.in_(task_ids))).all()
+        if task_ids
+        else []
+    )
+    writeback_events = (
+        db.scalars(
+            select(models.AuditEvent)
+            .where(models.AuditEvent.task_id.in_(task_ids))
+            .where(models.AuditEvent.event_type == "writeback_generated")
+        ).all()
+        if task_ids
+        else []
+    )
 
     adopted_count = sum(1 for row in feedback_rows if row.feedback_status == "adopted")
     needs_revision_count = sum(1 for row in feedback_rows if row.feedback_status == "needs_revision")
@@ -150,6 +184,19 @@ def _build_phase_six_feedback_linked_snapshot(
         for row in deliverable_candidate_rows
         if row.candidate_status in {"promoted", "dismissed"}
     )
+    writeback_expected_task_count = sum(
+        1
+        for row in task_rows
+        if resolve_continuity_policy_for_task(row)[1].value == "full"
+    )
+    outcome_record_count = len(outcome_rows)
+    deliverable_outcome_record_count = sum(1 for row in outcome_rows if row.deliverable_id)
+    follow_up_outcome_count = sum(1 for row in outcome_rows if row.signal_type == "follow_up_run")
+    review_required_execution_count = sum(
+        1 for row in execution_rows if row.status == "review_required"
+    )
+    planned_execution_count = sum(1 for row in execution_rows if row.status == "planned")
+    writeback_generated_event_count = len(writeback_events)
 
     asset_counter: Counter[str] = Counter()
     for row in feedback_rows:
@@ -177,6 +224,13 @@ def _build_phase_six_feedback_linked_snapshot(
         published_adopted_count=published_adopted_count,
         deliverable_candidate_count=deliverable_candidate_count,
         governed_deliverable_candidate_count=governed_deliverable_candidate_count,
+        outcome_record_count=outcome_record_count,
+        deliverable_outcome_record_count=deliverable_outcome_record_count,
+        follow_up_outcome_count=follow_up_outcome_count,
+        writeback_generated_event_count=writeback_generated_event_count,
+        review_required_execution_count=review_required_execution_count,
+        planned_execution_count=planned_execution_count,
+        writeback_expected_task_count=writeback_expected_task_count,
     )
 
 
