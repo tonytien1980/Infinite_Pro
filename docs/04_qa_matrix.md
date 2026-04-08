@@ -5147,3 +5147,40 @@ Environment used:
 - KPI / business outcome attribution
 - correctness ranking
 - enterprise outcome dashboard family
+
+---
+
+## Entry: 2026-04-09 generalist coverage proof baseline v1
+
+Scope:
+- start `7.3` with a dedicated `generalist_coverage_proof_v1` suite family
+- keep `p0_full_regression_suite` as hardening regression instead of mislabeling it as generalist proof
+- let benchmark runs return `covered / thin / missing` coverage summary for `client_stage / client_type / continuity / cross_domain`
+
+Environment used:
+- local backend verification only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `PYTHONPATH=backend .venv312/bin/pytest backend/tests/test_benchmark_scaffolding.py -q` | Passed (`22 passed`) |
+| `PYTHONPATH=backend .venv312/bin/python backend/scripts/run_pack_benchmark_scaffold.py --suite coverage` | Passed |
+
+### Generalist coverage-proof verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | `backend/app/benchmarks/schemas.py` | Extend benchmark schema with continuity metadata and suite-level coverage summary contracts | Verified | benchmark pytest confirms the new suite manifest and result schema can load and execute without breaking the existing scaffold |
+| Backend | `backend/app/benchmarks/runner.py` | Add `coverage_summary` output with `covered / thin / missing / counts` across the 4 generalist axes | Verified | live CLI output now returns `coverage_summary` for `client_stage`, `client_type`, `continuity`, and `cross_domain` |
+| Backend | `backend/app/benchmarks/manifests/g1_*` | Add representative stage/type, continuity, and cross-domain seed cases | Verified | pytest confirms all 3 manifest families load and the expected representative values are present |
+| Backend | `backend/app/benchmarks/suites/generalist_coverage_proof_v1.json` | Keep coverage proof separate from `p0_full_regression_suite` and run it under advisory-first posture | Verified | suite JSON now groups the 3 new manifest families without mutating the existing P0 hardening suite |
+| CLI | `backend/scripts/run_pack_benchmark_scaffold.py --suite coverage` | Add a coverage suite alias so the proof baseline can be run without a long suite-manifest path | Verified | local CLI run returned `gate_status=pass`, `total_case_count=12`, and non-empty `coverage_summary` |
+| Coverage posture | coverage summary readout | Show current thin/missing coverage instead of relying only on product description | Verified | current live output reports no missing values and flags `自媒體` as a thin client-type lane with count `1` |
+
+### Explicitly not shipped in this pass
+
+- large benchmark platform
+- dashboard-first evaluation console
+- weighted consultant score wall
+- hard-fail generalist gate policy

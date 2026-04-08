@@ -329,6 +329,21 @@ Infinite Pro 已正式承接：
 - cross-domain representative cases
 - one-off / follow-up / continuous representative cases
 
+目前進度：
+
+- 第一刀已正式落地成 `generalist_coverage_proof_v1`
+- 保留 `p0_full_regression_suite` 作為 hardening regression，不把它誤寫成 generalist proof
+- 新增專屬 coverage-proof manifest family：
+  - `g1_stage_type_coverage`
+  - `g1_continuity_coverage`
+  - `g1_cross_domain_coverage`
+- suite run result 現在可正式回讀：
+  - `covered_values`
+  - `thin_values`
+  - `missing_values`
+  - `counts`
+- 目前仍維持 advisory-first posture，尚未擴成大型 benchmark platform 或 weighted score wall
+
 完成判準：
 
 - 每一大類 client stage / type / domain 都至少有正式 seed cases

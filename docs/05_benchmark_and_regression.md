@@ -2,14 +2,15 @@
 
 > 文件狀態：Active quality doc
 >
-> 本文件定義 Infinite Pro 目前的 benchmark scaffolding、full regression suite、manifest family、gate modes 與 runner runbook。
+> 本文件定義 Infinite Pro 目前的 benchmark scaffolding、full regression suite、coverage-proof suite、manifest family、gate modes 與 runner runbook。
 
 ## 1. 文件目的
 
-本文件用於正式定義 Infinite Pro 進入下一階段 hardening / extension 前的 benchmark scaffolding baseline。
+本文件用於正式定義 Infinite Pro 目前已 shipped 的 benchmark scaffolding baseline。
 
 它的角色是：
 - 建立後續 pack hardening 的 before / after 對照骨架
+- 建立 `7.3 Generalist coverage proof` 的 repeatable baseline
 - 明確 benchmark baseline 與 living QA matrix 的分工
 - 提供最小但真實的 manifest / result schema / runner runbook
 
@@ -29,6 +30,7 @@
 - pack hardening / extension
 - object / evidence / deliverable runtime regression observation
 - 後續 hardening checkpoint 的前後對照
+- `7.3` generalist coverage proof baseline
 
 ### 2.2 這一份 baseline 不做什麼
 
@@ -62,6 +64,7 @@
 目前正式 baseline 包含：
 - 本文件：`docs/05_benchmark_and_regression.md`
 - suite：`backend/app/benchmarks/suites/p0_full_regression_suite.json`
+- suite：`backend/app/benchmarks/suites/generalist_coverage_proof_v1.json`
 - manifest：`backend/app/benchmarks/manifests/p0_domain_pack_contracts.json`
 - manifest：`backend/app/benchmarks/manifests/p0_industry_batch1.json`
 - manifest：`backend/app/benchmarks/manifests/p0_industry_batch2.json`
@@ -69,6 +72,9 @@
 - manifest：`backend/app/benchmarks/manifests/p0_operations_process.json`
 - manifest：`backend/app/benchmarks/manifests/p0_deliverable_hardening.json`
 - manifest：`backend/app/benchmarks/manifests/p0_ingestion_hardening.json`
+- manifest：`backend/app/benchmarks/manifests/g1_stage_type_coverage.json`
+- manifest：`backend/app/benchmarks/manifests/g1_continuity_coverage.json`
+- manifest：`backend/app/benchmarks/manifests/g1_cross_domain_coverage.json`
 - result schema：`backend/app/benchmarks/schemas.py`
 - runner：`backend/app/benchmarks/runner.py`
 - CLI run path：`backend/scripts/run_pack_benchmark_scaffold.py`
@@ -151,6 +157,22 @@ P0-H 之後，這份 baseline 再往前一步：
   - `advisory`
   - `observation_only`（保留給未來擴充）
 
+`7.3` 第一刀之後，這份 baseline 再往前一步：
+- 保留 `p0_full_regression_suite` 作為 hardening regression
+- 額外新增 `generalist_coverage_proof_v1`
+- 正式回讀四個 coverage 軸：
+  - `client_stage`
+  - `client_type`
+  - `continuity`
+  - `cross_domain`
+- 正式以 `covered / thin / missing` 的 suite-level summary 回答 coverage posture
+- gate posture 採 `advisory-first`
+
+這代表：
+- hardening regression 與 coverage proof 現在已正式分開
+- `generalist_coverage_proof_v1` 回答的是 coverage 薄弱區
+- `p0_full_regression_suite` 回答的仍是 hardening / contract / marker regression safety
+
 ### 3.3 目前 formalized 的 result schema
 
 每筆 benchmark result 至少表達：
@@ -179,9 +201,18 @@ P0-H 之後，suite-level schema 還應正式表達：
 - suite run result
   - `suite_id`
   - `category_results`
+  - `coverage_summary`
   - `total_case_count`
   - `gate_status`
   - `failing_categories / warning_categories`
+
+`7.3` 第一刀之後，coverage-proof suite summary 還應正式表達：
+- `axis`
+- `expected_values`
+- `covered_values`
+- `thin_values`
+- `missing_values`
+- `counts`
 
 目前設計重點是：
 - 先保留結構化 observation
@@ -218,6 +249,13 @@ python3 backend/scripts/run_pack_benchmark_scaffold.py --suite full
 python3 backend/scripts/run_pack_benchmark_scaffold.py --suite-manifest backend/app/benchmarks/suites/p0_full_regression_suite.json
 ```
 
+`7.3` 第一刀之後，coverage-proof run path 還包括：
+
+```bash
+python3 backend/scripts/run_pack_benchmark_scaffold.py --suite coverage
+python3 backend/scripts/run_pack_benchmark_scaffold.py --suite-manifest backend/app/benchmarks/suites/generalist_coverage_proof_v1.json
+```
+
 ### 4.2 pytest baseline
 
 目前也有最小 pytest baseline：
@@ -231,6 +269,7 @@ PYTHONPATH=backend .venv/bin/python -m pytest backend/tests/test_benchmark_scaff
 - 驗證 seed case 覆蓋
 - 驗證 runner 至少可對目前 pack stack 執行
 - 驗證 full suite category coverage 與 gate mode baseline
+- 驗證 `generalist_coverage_proof_v1` 可正式回讀 `coverage_summary`
 
 ### 4.3 何時更新
 
