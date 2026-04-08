@@ -2339,10 +2339,15 @@ completion pass 後，deliverable work surface 也已正式把：
 - 這層是 phase-level maturity read model，不是假裝 phase 6 已正式收口
 - 第一版只允許把目前 Phase 6 的真實位置讀成：
   - `refinement_lane`
+- roadmap-side `7.15` 補強後，這層也應明確把：
+  - `task / matter / deliverable` 三個正式工作面已落地
+  一起帶進 summary，而不再只剩 phase-level foundation 敘述
 - 這層應回答：
   - 現在是在打基礎、收斂深化，還是可準備收口
   - 目前哪幾個 milestone clusters 已站穩
   - 還剩哪些真正值得投入的 focus items
+- `recommended_next_step` 在這一輪也應優先指向：
+  - 把採用回饋證據更正式接回治理評分
 - 這層不可長成：
   - sign-off flow
   - release dashboard
@@ -2398,6 +2403,9 @@ completion pass 後，deliverable work surface 也已正式把：
 - 第一版可低風險吃的 runtime evidence 包括：
   - `AdoptionFeedback`
   - `PrecedentCandidate` governed outcomes
+- roadmap-side `7.15` 補強後，這層的 summary 也應明確回答：
+  - phase-level review 現在是在讀什麼
+  - 哪些 work-surface runtime 已正式 landed
 - 這層不是 sign-off flow，也不是 hard release gate
 - 第一版只允許作為 low-noise phase-level review，不允許長成 owner console
 
@@ -2468,6 +2476,9 @@ completion pass 後，deliverable work surface 也已正式把：
 - `feedback-linked persisted scoring` 第一刀目前只吃：
   - explicit `AdoptionFeedback`
   - `PrecedentCandidate` governance outcomes
+- roadmap-side `7.15` 補強後，這層的 `recommended_next_step` 也應延續同一條 alignment：
+  - 先補治理評分深度
+  - 不要直接跳 sign-off
 - 第一刀目前還不把：
   - deliverable publish / release evidence
   - action execution / outcome writeback evidence
@@ -2583,6 +2594,13 @@ completion pass 後，deliverable work surface 也已正式把：
 
 - 這層是 phase-level closeout read model，不是新的 phase dashboard
 - UI 只允許低噪音掛在既有首頁 `Generalist Governance`
+- roadmap-side `7.15` 補強後，這層應把：
+  - 「這裡是階段層 review」
+  - 「工作面已正式落地」
+  一起保持可見，而不是只剩 closeout 狀態句
+- signed-off 前的 `recommended_next_step` 應優先回答：
+  - 先完成 phase 6 sign-off
+  - 再把治理基礎轉成顧問工作面更直接感受到的 operating leverage
 - signed-off 後可以正式回讀 handoff，但不代表 phase 7 已開始施工
 
 因此這一層現在應被理解為：
@@ -2594,6 +2612,13 @@ completion pass 後，deliverable work surface 也已正式把：
 - roadmap shell
 - release workflow console
 - new governance dashboard family
+
+roadmap-side `7.15` 在這一輪只代表：
+
+- `7.1` 與 `7.2` 之間的 phase-level governance strengthening
+- 這一刀只補 `Generalist Governance` 與既有 `phase-6-*` route family 的 alignment
+- `7.1` 已正式成立於 `task / matter / deliverable`
+- 這一刀不是新的 dashboard family，也不是 `7.2` scoring expansion
 
 ---
 

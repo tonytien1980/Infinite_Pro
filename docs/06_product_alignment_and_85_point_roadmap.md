@@ -133,6 +133,10 @@ Infinite Pro 的正式產品想像應理解為：
   - 現在都已正式吃 `client_stage / client_type / domain_lenses / evidence_thickness / pack context`
   - 工作面層的 `7.1 completion pass` 已收口
   - phase-level governance 補強則留給後續 `7.15`
+- `7.15` 也已開始正式落地：
+  - 首頁 `Generalist Governance` 現在會先回答 phase posture、再回答工作面已落地到哪、最後回答下一刀還差什麼
+  - phase-level `maturity / closure / completion / closeout` 也開始共用同一條 alignment 語意
+  - 但這一刀仍只做 phase-level governance strengthening，不算 `7.2`
 - `7.2` 的第一刀也已開始正式落地：
   - `completion review / checkpoint` 現在開始正式保存 explicit feedback-linked evidence snapshot
   - 但目前仍只先吃 `AdoptionFeedback` 與 candidate governance outcomes
@@ -153,7 +157,9 @@ Infinite Pro 的正式產品想像應理解為：
 - 已有 `generalist governance read layer`
 - 已有 `low-noise work-surface guidance signals`
 - 已有 `completion review / sign-off / closeout foundation`
-- `7.1 case-aware runtime` 已在工作面層收口，但 phase-level governance summary 仍不是 fully adaptive engine
+- `7.1 case-aware runtime` 已在工作面層收口
+- `7.15` 已把 phase-level governance summary 與 work-surface landed status 對齊
+- 但 phase-level governance 仍不是 fully adaptive engine，也還不是 `7.2` 的 persisted scoring depth
 
 尚未完全成立的是：
 
@@ -256,6 +262,24 @@ Infinite Pro 已正式承接：
 - 同一類 reusable asset 在不同案件中可得到不同判讀
 - second-layer phase-6 note 真正反映當前案件，而不是 phase-level 全域 posture
 - Host 的 reusable ordering 能明確吃到 case-aware calibration
+
+### 7.15 Inserted Pass: Phase-level governance strengthening
+
+目標：
+
+- 在 `7.1` 與 `7.2` 之間，把 phase-level `Phase 6` review layer 與已落地的 work-surface runtime 正式對齊
+
+正式應補：
+
+- 首頁 `Generalist Governance` 先回答 phase posture、再回答工作面 landed status、再回答 remaining next-step
+- `maturity / closure / completion / closeout` 這幾條 phase-level route 共享一致的 alignment 語意
+- 明確把 phase-level review、`7.1` landed runtime、以及 `7.2` pending scoring depth 分開
+
+完成判準：
+
+- phase-level route 不再像彼此分離的靜態治理摘要
+- 首頁可以低噪音說清楚 `7.1` 已成立到哪、`7.2` 還差什麼
+- 不新增 dashboard family，也不把這一刀誤寫成 `7.2`
 
 ### 7.2 Priority 2: Feedback-linked persisted scoring
 

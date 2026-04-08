@@ -5027,3 +5027,42 @@ Environment used:
 - phase-level `/workbench/phase-6-*` route rewrite
 - new governance dashboard family
 - `7.15` phase-level governance strengthening
+
+---
+
+## Entry: 2026-04-08 phase-6 phase-level governance strengthening
+
+Scope:
+- inserted `7.15` pass between `7.1` and `7.2`
+- align phase-level `Generalist Governance` review language with `7.1` landed work surfaces
+- keep `7.2` scoring depth explicitly out of scope
+
+Environment used:
+- local backend and frontend verification only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `PYTHONPATH=backend .venv312/bin/python -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/pytest backend/tests/test_phase_six_phase_level_governance_alignment.py -q` | Passed (`2 passed`) |
+| `PYTHONPATH=backend .venv312/bin/pytest backend/tests/test_mvp_slice.py -q` | Passed (`245 passed`) |
+| `cd frontend && node --test tests/phase-six-governance.test.mjs tests/intake-progress.test.mjs` | Passed (`47 passed`) |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && mkdir -p .next/types && npx next typegen && npm run typecheck` | Passed |
+| `cd frontend && npm run build` | Passed |
+
+### Phase-6 phase-level alignment verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | `phase-6-maturity-review` / `phase-6-closure-criteria` / `phase-6-completion-review` | Share one internal alignment layer so phase-level summaries now explicitly mention work-surface landed status and next-step scoring depth | Verified | targeted backend tests confirm phase-level review copy no longer reads like isolated static governance snapshots |
+| Backend | `phase-6-closeout-review` | Keep phase-level review boundary visible and point unsigned next-step toward sign-off then operating leverage | Verified | targeted backend tests confirm closeout review now keeps the stage-level boundary visible instead of only reporting closeout status |
+| Frontend | homepage `Generalist Governance` | Add one low-noise alignment summary that answers current phase posture, landed work-surface status, and remaining next step | Verified | targeted node tests confirm the new helper stays compact and consultant-readable |
+| Frontend | homepage governance panel | Keep the phase-level alignment pass inside the existing governance surface without creating a new dashboard family | Verified | homepage panel now reuses the existing section and only adds one alignment card rather than another route or console |
+| Regression | backend / frontend shared verification | Preserve existing Phase 6 routes, work-surface runtime, typecheck, and production build | Verified | targeted backend tests, full backend regression, targeted frontend tests, typecheck, and build all remain green after the 7.15 pass |
+
+### Explicitly not shipped in this pass
+
+- `7.2` feedback-linked persisted scoring expansion
+- deliverable / outcome / writeback evidence scoring
+- new governance dashboard family
