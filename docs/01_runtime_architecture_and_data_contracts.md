@@ -2071,6 +2071,10 @@ work-surface case-aware 第一版現在也已正式吃：
 
 因此同一類 reusable asset 在不同 task / matter 中，現在可得到不同的 `context distance / reuse confidence` 判讀，而不再只剩 phase-level 固定輸出。
 
+在後續 completion pass 後，deliverable workspace 也已正式沿用既有 `task: TaskAggregateResponse`，
+把同一套 case-aware `reuse confidence` 契約帶進 deliverable work surface；
+這代表 `task / matter / deliverable` 三個正式工作面，現在都已能回讀同一條 case-aware runtime。
+
 正式規則：
 
 - 第一波只做 read model，不直接改寫 Host weighting
@@ -2275,6 +2279,14 @@ work-surface case-aware 第一版現在也已正式把：
 - `organization memory`
 - `domain playbook`
 - `deliverable template`
+
+completion pass 後，deliverable work surface 也已正式把：
+
+- `organization memory`
+- `domain playbook`
+- `deliverable template`
+
+一起納入同一條低噪音 reading chain，而不再只剩 template-side 的 case-aware 讀法。
 
 正式規則：
 

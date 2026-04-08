@@ -130,8 +130,9 @@ Infinite Pro 的正式產品想像應理解為：
 - task / matter / deliverable 也已能回讀 condensed `Phase 6` second-layer note
 - `7.1` 的第一刀也已開始正式落地：
   - task / matter / deliverable work-surface 讀到的 `guidance / confidence / calibration / weighting`
-  - 現在已開始吃 `client_stage / client_type / domain_lenses / evidence_thickness / pack context`
-  - 不再完全只是 phase-level 固定輸出
+  - 現在都已正式吃 `client_stage / client_type / domain_lenses / evidence_thickness / pack context`
+  - 工作面層的 `7.1 completion pass` 已收口
+  - phase-level governance 補強則留給後續 `7.15`
 - `7.2` 的第一刀也已開始正式落地：
   - `completion review / checkpoint` 現在開始正式保存 explicit feedback-linked evidence snapshot
   - 但目前仍只先吃 `AdoptionFeedback` 與 candidate governance outcomes
@@ -152,7 +153,7 @@ Infinite Pro 的正式產品想像應理解為：
 - 已有 `generalist governance read layer`
 - 已有 `low-noise work-surface guidance signals`
 - 已有 `completion review / sign-off / closeout foundation`
-- `7.1 case-aware runtime` 已有第一版 work-surface grounding，但仍屬 first pass
+- `7.1 case-aware runtime` 已在工作面層收口，但 phase-level governance summary 仍不是 fully adaptive engine
 
 尚未完全成立的是：
 

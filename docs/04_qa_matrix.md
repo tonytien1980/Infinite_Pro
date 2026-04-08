@@ -4989,3 +4989,41 @@ Environment used:
 - deliverable publish / release evidence scoring
 - action execution / outcome writeback scoring
 - scoring dashboard family
+
+---
+
+## Entry: 2026-04-08 phase-6 case-aware governance runtime completion pass
+
+Scope:
+- `docs/06` `7.1 case-aware governance runtime` work-surface completion pass
+- close parity across `task / matter / deliverable`
+- leave phase-level governance route strengthening to later `7.15`
+
+Environment used:
+- local backend and frontend verification only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `PYTHONPATH=backend .venv312/bin/python -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/pytest backend/tests/test_phase_six_case_aware_runtime.py -q` | Passed (`3 passed`) |
+| `PYTHONPATH=backend .venv312/bin/pytest backend/tests/test_mvp_slice.py -q` | Passed (`245 passed`) |
+| `cd frontend && node --test tests/phase-six-governance.test.mjs tests/intake-progress.test.mjs` | Passed (`46 passed`) |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && mkdir -p .next/types && npx next typegen && npm run typecheck` | Passed |
+| `cd frontend && npm run build` | Passed |
+
+### Phase-6 work-surface completion verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | `/api/v1/deliverables/{deliverableId}` | Re-read case-aware `Phase 6` signals through deliverable workspace `task` aggregate | Verified | targeted backend tests confirm deliverable workspace now formally participates in the same case-aware runtime verification chain |
+| Frontend | deliverable workspace | Bring `organization memory` and `domain playbook` into the same deliverable-side reading chain as `deliverable template` | Verified | deliverable panel now reads the same low-noise case-aware support surfaces instead of only template-side signals |
+| Frontend | shared phase-six helpers | Keep cross-surface work guidance summary reusable and compact | Verified | node tests confirm shared `Phase 6` guidance summary helper remains consultant-readable |
+| Cross-surface | `task / matter / deliverable` | Keep work-surface completion aligned without introducing new dashboard family | Verified | backend regression, frontend node tests, typecheck, and build all remain green after deliverable parity pass |
+
+### Explicitly not shipped in this pass
+
+- phase-level `/workbench/phase-6-*` route rewrite
+- new governance dashboard family
+- `7.15` phase-level governance strengthening
