@@ -148,9 +148,44 @@ Build and typecheck:
 ```bash
 cd frontend
 npm run build
+npm run typecheck
+```
+
+If `typecheck` fails because `.next/types` is missing or stale, run:
+
+```bash
+cd frontend
+rm -f .next/cache/.tsbuildinfo
+mkdir -p .next/types
 npx next typegen
 npm run typecheck
 ```
+
+## Release Readiness Baseline
+
+Repo-native static gate:
+
+```bash
+PYTHONPATH=backend .venv312/bin/python backend/scripts/run_release_readiness.py --tier static
+```
+
+If local frontend/backend runtime is already up:
+
+```bash
+PYTHONPATH=backend .venv312/bin/python backend/scripts/run_release_readiness.py \
+  --tier runtime \
+  --frontend-base-url http://127.0.0.1:3000 \
+  --backend-base-url http://127.0.0.1:8000/api/v1
+```
+
+Verification tiers:
+
+- `static`
+  - backend compile / pytest, frontend node tests, build, typecheck
+- `runtime`
+  - backend health plus core frontend route reachability
+- `browser smoke`
+  - operator-assisted browser flow checks recorded separately in `docs/04_qa_matrix.md`
 
 ---
 
@@ -206,6 +241,7 @@ Current verification posture includes:
 
 - backend compile / pytest coverage
 - frontend build / typecheck coverage
+- repo-native release-readiness baseline for static / runtime tiers
 - workbench smoke coverage
 - benchmark regression suite coverage for shipped hardening families
 

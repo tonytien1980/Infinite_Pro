@@ -5223,3 +5223,41 @@ Environment used:
 - onboarding wizard
 - new dashboard family
 - `task detail` usability rewrite
+
+---
+
+## Entry: 2026-04-09 product reliability and release discipline v1
+
+Scope:
+- add a repo-native release-readiness script baseline
+- separate verification into `static`, `runtime`, and `browser smoke`
+- clarify canonical frontend verification order and `.next/types` fallback handling
+
+Environment used:
+- static verification in local repo
+- runtime verification against standalone local backend/frontend
+- Docker compose runtime was not used in this pass because Docker daemon was not running on this machine
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `PYTHONPATH=backend .venv312/bin/python backend/scripts/run_release_readiness.py --tier static` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python backend/scripts/run_release_readiness.py --tier runtime --frontend-base-url http://127.0.0.1:3000 --backend-base-url http://127.0.0.1:8000/api/v1` | Passed |
+
+### Release-readiness verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Repo-native script | `backend/scripts/run_release_readiness.py --tier static` | Run canonical static gate in one entrypoint | Verified | command output now records backend compile, backend pytest, frontend node tests, build, and typecheck in one JSON summary |
+| Repo-native script | `backend/scripts/run_release_readiness.py --tier runtime` | Run minimal local runtime smoke baseline | Verified | command output now records backend health and core frontend route reachability without requiring a browser automation platform |
+| Frontend verification | `build -> typecheck` | Clarify canonical order and keep `typegen` as fallback rather than default ritual | Verified | README, script logic, and QA evidence now agree on the real order for this checkout |
+| Runtime posture | standalone local runtime | Verify backend health and core frontend routes without Docker dependency | Verified | standalone `uvicorn` and `next dev` were enough to prove the repo-native runtime gate works even when Docker daemon is unavailable |
+| Browser smoke posture | operator-assisted lane | Keep browser smoke visible as a third tier without pretending it is fully automated yet | Not run | this pass formalized the tier distinction but did not run a browser-driven smoke flow through the new baseline |
+
+### Explicitly not shipped in this pass
+
+- CI platform
+- deploy dashboard
+- browser automation lab
+- full browser smoke suite

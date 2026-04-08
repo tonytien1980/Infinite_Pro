@@ -402,6 +402,19 @@ Infinite Pro 已正式承接：
 - shipped claim 與 QA evidence 更少落差
 - 發版前的 readiness 不再主要靠人工印象
 
+目前進度：
+
+- 第一刀已正式落地成 `repo-native release-readiness baseline v1`
+- repo 內現在已有明確的方向要把 verification 分成：
+  - `static`
+  - `runtime`
+  - `browser smoke`
+- 第一刀聚焦：
+  - release-readiness script baseline
+  - canonical frontend verification order
+  - local runtime health / route reachability baseline
+- 但這一刀仍不是 CI platform，也不是 full browser automation suite
+
 ---
 
 ## 8. What We Should Not Do Next
