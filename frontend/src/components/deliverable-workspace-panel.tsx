@@ -87,6 +87,7 @@ import {
   persistDeliverableWorkspace,
 } from "@/lib/workspace-persistence";
 import { WorkspaceSectionGuide } from "@/components/workspace-section-guide";
+import { buildDeliverableUsabilityView } from "@/lib/consultant-usability";
 
 function CompactList({
   items,
@@ -734,6 +735,13 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
       : deliverableStatus === "archived"
         ? "這份交付物目前以歷史回看為主；若要繼續推進，通常會回到較新的版本或原始工作紀錄。"
         : "先把版本標記、摘要與正文整理乾淨，再做正式發布；這樣會比直接在長頁面裡來回找區塊順手很多。";
+  const deliverableUsabilityView = buildDeliverableUsabilityView({
+    deliverableStatus,
+    hasPendingFormalSave,
+    hasLinkedEvidence: (workspace?.linked_evidence.length ?? 0) > 0,
+    hasHighImpactGaps: (workspace?.high_impact_gaps.length ?? 0) > 0,
+    hasMatterWorkspace: Boolean(workspace?.matter_workspace),
+  });
   const deliverableActionChecklist = [
     "先確認這份交付物的標題、版本標記與狀態，避免在未整理版本時就直接發布。",
     hasPendingFormalSave
@@ -748,32 +756,21 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const deliverableSectionGuideItems = workspace
     ? [
         {
-          href: "#deliverable-management",
-          eyebrow: "先整理版本",
-          title: "管理版本與正式內容",
-          copy: "先把標題、版本標記、摘要與正文整理乾淨，再做發布或匯出。",
+          ...deliverableUsabilityView.guideItems[0],
           meta: hasPendingFormalSave
             ? "系統已整理正式草稿，尚未落盤。"
             : hasUnsavedChanges
               ? "目前有未儲存修改。"
               : "目前沒有未儲存修改。",
-          tone: requiresSaveBeforeFormalActions ? ("warm" as const) : ("accent" as const),
+          tone: requiresSaveBeforeFormalActions ? ("warm" as const) : deliverableUsabilityView.guideItems[0]?.tone,
         },
         {
-          href: "#deliverable-reading",
-          eyebrow: "先看結果",
-          title: "交付摘要",
-          copy: "用正式交付物口徑回看結論、建議、風險與行動，而不是只看原任務結果。",
+          ...deliverableUsabilityView.guideItems[1],
           meta: decisionSnapshot?.conclusion || effectiveExecutiveSummary || "先看這份交付物的核心結論。",
-          tone: "accent" as const,
         },
         {
-          href: "#deliverable-evidence",
-          eyebrow: "回看依據",
-          title: "依據來源與工作回鏈",
-          copy: "當你要確認這份交付物憑什麼成立，就回到這裡看來源、工作物件與證據。",
+          ...deliverableUsabilityView.guideItems[2],
           meta: `${workspace.linked_source_materials.length} 份來源材料 / ${workspace.linked_evidence.length} 則證據`,
-          tone: "default" as const,
         },
         ...(objectSetHighlights.length > 0
           ? [
@@ -1452,7 +1449,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
             </div>
           </section>
 
-          <section className="panel">
+          <section className="panel section-anchor" id="deliverable-publish-check">
             <div className="panel-header">
               <div>
                 <h2 className="panel-title">發布前快速檢查</h2>
@@ -1477,14 +1474,15 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
           </section>
 
           <WorkspaceSectionGuide
-            title="這份交付物怎麼讀最快"
-            description="先決定你現在要整理版本、回看結果、檢查依據，還是確認可發布程度。歷史與 artifact registry 放在較後面，需要時再下鑽。"
+            title={deliverableUsabilityView.sectionGuideTitle}
+            description={deliverableUsabilityView.sectionGuideDescription}
             items={deliverableSectionGuideItems}
           />
 
           <DisclosurePanel
+            id="deliverable-writeback-context"
             title="連續性、研究與寫回紀錄"
-            description="只有在你要確認這份交付物會怎麼寫回案件世界、外部研究怎麼進鏈，以及目前有哪些決策／結果紀錄時，再展開這層。"
+            description={deliverableUsabilityView.writebackDisclosureDescription}
           >
             <div className="summary-grid">
               <div className="section-card">
@@ -2386,8 +2384,9 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
           </DisclosurePanel>
 
           <DisclosurePanel
+            id="deliverable-context"
             title="交付脈絡與工作面背景"
-            description="當你要理解這份交付物在整個案件世界中的定位時，再展開這層；日常閱讀先看結論本身。"
+            description={deliverableUsabilityView.contextDisclosureDescription}
           >
             <div className="summary-grid">
               <div className="section-card">

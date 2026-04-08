@@ -95,6 +95,8 @@ import {
 import {
   isLocalFallbackMatterRecord,
 } from "@/lib/workspace-persistence";
+import { WorkspaceSectionGuide } from "@/components/workspace-section-guide";
+import { buildOverviewUsabilityView } from "@/lib/consultant-usability";
 
 function collectTopItems(
   items: string[],
@@ -594,6 +596,16 @@ export function WorkbenchHome() {
         : primaryMatter
           ? "前往案件頁"
           : "建立新案件";
+  const overviewUsabilityView = buildOverviewUsabilityView({
+    homepageDisplayPreference: settings.homepageDisplayPreference,
+    focusTitle,
+    focusCopy,
+    focusHref,
+    focusActionLabel,
+    hasPrimaryMatter: Boolean(primaryMatter),
+    hasPrimaryDeliverable: Boolean(primaryDeliverable?.latest_deliverable_id),
+    hasPendingEvidenceTask: Boolean(primaryEvidenceTask),
+  });
 
   return (
     <main className="page-shell home-page-shell">
@@ -629,8 +641,9 @@ export function WorkbenchHome() {
             <div className="hero-focus-card hero-focus-card-warm">
               <p className="hero-focus-label">這頁先看什麼</p>
               <ul className="hero-focus-list">
-                <li>先回到你現在最需要處理的案件、交付物或補件工作。</li>
-                <li>若有新客戶需求，再從這裡直接建立新案件。</li>
+                {overviewUsabilityView.checklist.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
               </ul>
             </div>
           </div>
@@ -736,9 +749,36 @@ export function WorkbenchHome() {
       ) : null}
 
       {!loading && !matterLoading ? (
+        <>
+        <section className="panel section-anchor" id="home-primary-focus">
+          <div className="panel-header">
+            <div>
+              <h2 className="panel-title">{overviewUsabilityView.primaryLabel}</h2>
+              <p className="panel-copy">{overviewUsabilityView.primaryCopy}</p>
+            </div>
+          </div>
+          <div className="detail-item">
+            <h3>{overviewUsabilityView.primaryTitle}</h3>
+            <p className="content-block">
+              先把這件事接回來，通常比先停在首頁來回看 metrics 或 governance 摘要更有效。
+            </p>
+            <div className="button-row" style={{ marginTop: "12px" }}>
+              <Link className="button-primary" href={overviewUsabilityView.primaryHref}>
+                {overviewUsabilityView.primaryActionLabel}
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        <WorkspaceSectionGuide
+          title={overviewUsabilityView.guideTitle}
+          description={overviewUsabilityView.guideDescription}
+          items={overviewUsabilityView.guideItems}
+        />
+
         <div className="detail-grid">
           <div className="detail-stack">
-            <section className="panel">
+            <section className="panel section-anchor" id="home-matters">
               <div className="panel-header">
                 <div>
                   <h2 className="panel-title">繼續工作</h2>
@@ -788,7 +828,7 @@ export function WorkbenchHome() {
               </div>
             </section>
 
-            <section className="panel">
+            <section className="panel section-anchor" id="home-deliverables">
               <div className="panel-header">
                 <div>
                   <h2 className="panel-title">最近交付物</h2>
@@ -835,7 +875,7 @@ export function WorkbenchHome() {
               </div>
             </section>
 
-            <section className="panel">
+            <section className="panel section-anchor" id="home-evidence">
               <div className="panel-header">
                 <div>
                   <h2 className="panel-title">待補資料 / 證據</h2>
@@ -1480,6 +1520,7 @@ export function WorkbenchHome() {
             ) : null}
           </div>
         </div>
+        </>
       ) : null}
     </main>
   );

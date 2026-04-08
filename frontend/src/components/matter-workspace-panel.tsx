@@ -66,6 +66,8 @@ import {
   persistMatterWorkspace,
   syncMatterWorkspaceFallback,
 } from "@/lib/workspace-persistence";
+import { WorkspaceSectionGuide } from "@/components/workspace-section-guide";
+import { buildMatterUsabilityView } from "@/lib/consultant-usability";
 
 type MatterTab = "overview" | "decision" | "evidence" | "deliverables" | "history";
 
@@ -629,6 +631,34 @@ export function MatterWorkspacePanel({
   const latestCaseWorldDraft = matter?.case_world_drafts[0] ?? null;
   const openEvidenceGaps =
     matter?.evidence_gaps.filter((item) => item.status !== "resolved").slice(0, 5) ?? [];
+  const matterUsabilityView = matter
+    ? buildMatterUsabilityView({
+        evidenceCount,
+        deliverableCount: matter.summary.deliverable_count,
+        activeTaskCount: matter.summary.active_task_count,
+        hasCaseWorldState: Boolean(caseWorldState || latestCaseWorldDraft),
+        hasOpenEvidenceGaps: openEvidenceGaps.length > 0,
+        hasRecentDeliverable: Boolean(latestDeliverable),
+      })
+    : null;
+  const matterGuideItems =
+    matter && matterUsabilityView
+      ? matterUsabilityView.guideItems.map((item) => {
+          if (item.href === "#matter-deliverables-overview" && latestDeliverable) {
+            return {
+              ...item,
+              href: `/deliverables/${latestDeliverable.deliverable_id}`,
+            };
+          }
+          if (item.href === "#matter-evidence-overview") {
+            return {
+              ...item,
+              href: `/matters/${matterId}/evidence`,
+            };
+          }
+          return item;
+        })
+      : [];
   const recentDecisionRecords = matter?.decision_records.slice(0, 3) ?? [];
   const recentOutcomeRecords = matter?.outcome_records.slice(0, 3) ?? [];
   const pendingApprovalCount =
@@ -1386,11 +1416,22 @@ export function MatterWorkspacePanel({
               id={MATTER_TAB_PANEL_IDS.overview}
               aria-labelledby="matter-tab-overview"
             >
-              <section className="panel">
+              {matterUsabilityView ? (
+                <WorkspaceSectionGuide
+                  title={matterUsabilityView.sectionGuideTitle}
+                  description={matterUsabilityView.sectionGuideDescription}
+                  items={matterGuideItems}
+                />
+              ) : null}
+
+              <section className="panel section-anchor" id="matter-mainline">
                 <div className="panel-header">
                   <div>
                     <h2 className="panel-title">主線補充</h2>
-                    <p className="panel-copy">第一屏已經告訴你這個案件現在要做什麼；這裡只補充真正會影響判斷的背景、限制與工作脈絡。</p>
+                    <p className="panel-copy">
+                      {matterUsabilityView?.mainlineCopy ||
+                        "第一屏已經告訴你這個案件現在要做什麼；這裡只補充真正會影響判斷的背景、限制與工作脈絡。"}
+                    </p>
                   </div>
                 </div>
 
@@ -1549,8 +1590,12 @@ export function MatterWorkspacePanel({
               </section>
 
               <DisclosurePanel
+                id="matter-world-state"
                 title="案件世界狀態與寫回策略"
-                description="只有在你要確認案件世界層的 identity authority、有哪些 task slices，以及會寫回到多深時，再展開這層。"
+                description={
+                  matterUsabilityView?.worldStateDisclosureDescription ||
+                  "只有在你要確認案件世界層的 identity authority、有哪些 task slices，以及會寫回到多深時，再展開這層。"
+                }
               >
                 <div className="summary-grid">
                   <div className="section-card">
@@ -1942,7 +1987,7 @@ export function MatterWorkspacePanel({
               aria-labelledby="matter-tab-decision"
             >
               <div className="detail-stack">
-                <section className="panel">
+                <section className="panel section-anchor" id="matter-evidence-overview">
                   <div className="panel-header">
                     <div>
                       <h2 className="panel-title">核心問題</h2>
@@ -2070,7 +2115,7 @@ export function MatterWorkspacePanel({
               </div>
 
               <div className="detail-stack">
-                <section className="panel">
+                <section className="panel section-anchor" id="matter-deliverables-overview">
                   <div className="panel-header">
                     <div>
                       <h2 className="panel-title">決策脈絡</h2>
