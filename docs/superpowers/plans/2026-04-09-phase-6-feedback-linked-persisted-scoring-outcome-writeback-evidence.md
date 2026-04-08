@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 把 `7.2` 下一刀推進成 `outcome / writeback evidence`：讓 `completion review / checkpoint / sign-off foundation` 不只讀 explicit feedback 與 deliverable closeout depth，也開始讀 Host 已持久化的 `OutcomeRecord / ActionExecution / WRITEBACK_GENERATED audit`。
+**Goal:** 把 `7.2` 下一刀推進成 `outcome / writeback evidence`：讓 `completion review / checkpoint / sign-off foundation` 在既有 explicit feedback 與 deliverable closeout depth 之外，也開始讀 Host 已持久化的 `OutcomeRecord / ActionExecution / WRITEBACK_GENERATED audit`，但不錯罰 `one_off / minimal` 案件。
 
-**Architecture:** 沿用既有 `PhaseSixFeedbackLinkedScoringSnapshotRead`，不新開第四套 snapshot family。backend 在既有 snapshot builder 與 completion-review scoring 上補 writeback-evidence counts、expectation boundary、以及 low-noise writeback-depth summary；frontend 只在既有首頁 `Generalist Governance` completion-review card 再補一條 outcome/writeback depth readout；active docs 與 QA evidence 只在真實驗證完成後同步更新。
+**Architecture:** 沿用既有 `PhaseSixFeedbackLinkedScoringSnapshotRead`，不新開第四套 snapshot family。backend 在既有 snapshot builder 與 completion-review scoring 上補 writeback-evidence counts、`writeback_expected_task_count` 邊界、以及 low-noise writeback-depth summary；frontend 只在既有首頁 `Generalist Governance` completion-review card 補一條 outcome/writeback depth readout；active docs 與 QA evidence 只在真實驗證完成後同步更新。
 
 **Tech Stack:** FastAPI, SQLAlchemy, Pydantic, pytest, Next.js, node test, active docs under `docs/`
 
@@ -25,7 +25,7 @@
 - Modify: `/Users/oldtien_base/Desktop/Infinite Pro/frontend/src/lib/types.ts`
   - Extend frontend snapshot type
 - Modify: `/Users/oldtien_base/Desktop/Infinite Pro/frontend/src/lib/api.ts`
-  - Parse writeback-evidence payload fields
+  - Parse outcome/writeback payload fields
 - Modify: `/Users/oldtien_base/Desktop/Infinite Pro/frontend/src/lib/phase-six-governance.ts`
   - Add helper for low-noise outcome/writeback summary
 - Modify: `/Users/oldtien_base/Desktop/Infinite Pro/frontend/src/components/workbench-home.tsx`
@@ -90,7 +90,7 @@ def test_phase_six_feedback_snapshot_reads_outcome_and_writeback_evidence() -> N
 Run: `PYTHONPATH=backend .venv312/bin/pytest backend/tests/test_phase_six_feedback_scoring.py -q`
 
 Expected:
-- FAIL because the current snapshot schema / builder do not expose outcome/writeback-evidence fields yet
+- FAIL because the current snapshot schema / builder does not expose outcome/writeback-evidence fields yet
 
 - [ ] **Step 3: Extend the snapshot schema**
 
@@ -239,9 +239,7 @@ writeback_events = (
     else []
 )
 
-writeback_expected_task_count = sum(
-    1 for row in task_rows if row.writeback_depth == "full"
-)
+writeback_expected_task_count = sum(1 for row in task_rows if row.writeback_depth == "full")
 outcome_record_count = len(outcome_rows)
 deliverable_outcome_record_count = sum(1 for row in outcome_rows if row.deliverable_id)
 follow_up_outcome_count = sum(1 for row in outcome_rows if row.signal_type == "follow_up_run")
