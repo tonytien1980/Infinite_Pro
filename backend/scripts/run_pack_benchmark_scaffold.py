@@ -38,6 +38,7 @@ def _find_fallback_python(current_executable: str | Path) -> Path | None:
 def _load_runner():
     try:
         from app.benchmarks.runner import (
+            DEFAULT_GENERALIST_COVERAGE_PROOF_V1_SUITE_MANIFEST,
             DEFAULT_P0_FULL_REGRESSION_SUITE_MANIFEST,
             DEFAULT_P0_INDUSTRY_BATCH1_MANIFEST,
             load_manifest,
@@ -60,6 +61,7 @@ def _load_runner():
     return (
         DEFAULT_P0_INDUSTRY_BATCH1_MANIFEST,
         DEFAULT_P0_FULL_REGRESSION_SUITE_MANIFEST,
+        DEFAULT_GENERALIST_COVERAGE_PROOF_V1_SUITE_MANIFEST,
         load_manifest,
         load_suite,
         run_manifest,
@@ -71,6 +73,7 @@ def main() -> int:
     (
         default_manifest_path,
         default_suite_path,
+        default_coverage_suite_path,
         load_manifest,
         load_suite,
         run_manifest,
@@ -91,7 +94,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--suite",
-        choices=["full"],
+        choices=["full", "coverage"],
         default=None,
         help="Run a named benchmark suite instead of a single manifest.",
     )
@@ -100,8 +103,32 @@ def main() -> int:
     if args.suite and args.suite_manifest:
         parser.error("--suite and --suite-manifest cannot be used together.")
 
-    if args.suite == "full" or args.suite_manifest:
-        suite = load_suite(args.suite_manifest or default_suite_path)
+    if args.suite == "full":
+        suite = load_suite(default_suite_path)
+        result = run_suite(suite)
+        print(
+            json.dumps(
+                result.model_dump(mode="json"),
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+        return 0
+
+    if args.suite == "coverage":
+        suite = load_suite(default_coverage_suite_path)
+        result = run_suite(suite)
+        print(
+            json.dumps(
+                result.model_dump(mode="json"),
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+        return 0
+
+    if args.suite_manifest:
+        suite = load_suite(args.suite_manifest)
         result = run_suite(suite)
         print(
             json.dumps(

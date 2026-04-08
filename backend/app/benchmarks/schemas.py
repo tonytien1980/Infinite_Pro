@@ -33,6 +33,16 @@ class BenchmarkCategoryId(str, Enum):
     OPERATIONS_PROCESS = "operations_process"
     DELIVERABLE_HARDENING = "deliverable_hardening"
     INGESTION_HARDENING = "ingestion_hardening"
+    GENERALIST_STAGE_TYPE = "generalist_stage_type"
+    GENERALIST_CONTINUITY = "generalist_continuity"
+    GENERALIST_CROSS_DOMAIN = "generalist_cross_domain"
+
+
+class BenchmarkCoverageAxis(str, Enum):
+    CLIENT_STAGE = "client_stage"
+    CLIENT_TYPE = "client_type"
+    CONTINUITY = "continuity"
+    CROSS_DOMAIN = "cross_domain"
 
 
 class RegressionGateMode(str, Enum):
@@ -47,6 +57,9 @@ class BenchmarkCase(FrozenModel):
     description: str
     client_stage: str
     client_type: str
+    engagement_continuity_mode: str = "one_off"
+    writeback_depth: str = "minimal"
+    coverage_bundle_id: str = ""
     domain_lenses: list[str] = Field(default_factory=list)
     industry_hints: list[str] = Field(default_factory=list)
     decision_context_summary: str
@@ -69,6 +82,21 @@ class BenchmarkManifest(FrozenModel):
     cases: list[BenchmarkCase] = Field(default_factory=list)
 
 
+class BenchmarkCoverageTarget(FrozenModel):
+    axis: BenchmarkCoverageAxis
+    expected_values: list[str] = Field(default_factory=list)
+    thin_threshold: int = 1
+
+
+class BenchmarkCoverageSummary(FrozenModel):
+    axis: BenchmarkCoverageAxis
+    expected_values: list[str] = Field(default_factory=list)
+    covered_values: list[str] = Field(default_factory=list)
+    thin_values: list[str] = Field(default_factory=list)
+    missing_values: list[str] = Field(default_factory=list)
+    counts: dict[str, int] = Field(default_factory=dict)
+
+
 class BenchmarkObservation(FrozenModel):
     dimension: str
     status: BenchmarkStatus
@@ -79,6 +107,11 @@ class BenchmarkObservation(FrozenModel):
 class BenchmarkResultRecord(FrozenModel):
     category_id: BenchmarkCategoryId | None = None
     case_id: str
+    client_stage: str = ""
+    client_type: str = ""
+    engagement_continuity_mode: str = "one_off"
+    writeback_depth: str = "minimal"
+    coverage_bundle_id: str = ""
     target_domain_pack_ids: list[str] = Field(default_factory=list)
     target_industry_pack_ids: list[str] = Field(default_factory=list)
     selected_domain_pack_ids: list[str] = Field(default_factory=list)
@@ -108,6 +141,7 @@ class BenchmarkSuiteManifest(FrozenModel):
     title: str
     purpose: str
     update_policy: list[str] = Field(default_factory=list)
+    coverage_targets: list[BenchmarkCoverageTarget] = Field(default_factory=list)
     categories: list[BenchmarkSuiteCategory] = Field(default_factory=list)
 
 
@@ -130,6 +164,7 @@ class BenchmarkSuiteRunResult(FrozenModel):
     suite_id: str
     title: str
     category_results: list[BenchmarkCategoryGateResult] = Field(default_factory=list)
+    coverage_summary: list[BenchmarkCoverageSummary] = Field(default_factory=list)
     total_case_count: int = 0
     gate_status: BenchmarkStatus = BenchmarkStatus.PASS
     failing_categories: list[BenchmarkCategoryId] = Field(default_factory=list)

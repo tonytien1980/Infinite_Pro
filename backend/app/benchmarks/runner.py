@@ -5,6 +5,8 @@ from pathlib import Path
 
 from app.benchmarks.schemas import (
     BenchmarkCase,
+    BenchmarkCoverageAxis,
+    BenchmarkCoverageSummary,
     BenchmarkCategoryGateResult,
     BenchmarkCategoryId,
     BenchmarkHintArea,
@@ -49,6 +51,9 @@ DEFAULT_P0_INGESTION_HARDENING_MANIFEST = (
 )
 DEFAULT_P0_FULL_REGRESSION_SUITE_MANIFEST = (
     Path(__file__).resolve().parent / "suites" / "p0_full_regression_suite.json"
+)
+DEFAULT_GENERALIST_COVERAGE_PROOF_V1_SUITE_MANIFEST = (
+    Path(__file__).resolve().parent / "suites" / "generalist_coverage_proof_v1.json"
 )
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
@@ -240,6 +245,11 @@ def run_benchmark_case(
     return BenchmarkResultRecord(
         category_id=category_id,
         case_id=case.case_id,
+        client_stage=case.client_stage,
+        client_type=case.client_type,
+        engagement_continuity_mode=case.engagement_continuity_mode,
+        writeback_depth=case.writeback_depth,
+        coverage_bundle_id=case.coverage_bundle_id,
         target_domain_pack_ids=case.target_domain_pack_ids,
         target_industry_pack_ids=case.target_industry_pack_ids,
         selected_domain_pack_ids=resolution.selected_domain_pack_ids,
@@ -297,15 +307,65 @@ def run_suite(
     elif warning_categories:
         overall_gate_status = BenchmarkStatus.WARN
 
+    coverage_summary = build_suite_coverage_summary(suite, category_results)
+
     return BenchmarkSuiteRunResult(
         suite_id=suite.suite_id,
         title=suite.title,
         category_results=category_results,
+        coverage_summary=coverage_summary,
         total_case_count=sum(item.case_count for item in category_results),
         gate_status=overall_gate_status,
         failing_categories=failing_categories,
         warning_categories=warning_categories,
     )
+
+
+def build_suite_coverage_summary(
+    suite: BenchmarkSuiteManifest,
+    category_results: list[BenchmarkCategoryGateResult],
+) -> list[BenchmarkCoverageSummary]:
+    results = [record for category in category_results for record in category.results]
+    summaries: list[BenchmarkCoverageSummary] = []
+
+    for target in suite.coverage_targets:
+        if target.axis == BenchmarkCoverageAxis.CLIENT_STAGE:
+            values = [record.client_stage for record in results if record.client_stage]
+        elif target.axis == BenchmarkCoverageAxis.CLIENT_TYPE:
+            values = [record.client_type for record in results if record.client_type]
+        elif target.axis == BenchmarkCoverageAxis.CONTINUITY:
+            values = [
+                record.engagement_continuity_mode
+                for record in results
+                if record.engagement_continuity_mode
+            ]
+        else:
+            values = [record.coverage_bundle_id for record in results if record.coverage_bundle_id]
+
+        counts: dict[str, int] = {}
+        for value in values:
+            counts[value] = counts.get(value, 0) + 1
+
+        covered_values = sorted(counts.keys())
+        missing_values = [value for value in target.expected_values if value not in counts]
+        thin_values = [
+            value
+            for value in target.expected_values
+            if value in counts and counts[value] <= target.thin_threshold
+        ]
+
+        summaries.append(
+            BenchmarkCoverageSummary(
+                axis=target.axis,
+                expected_values=target.expected_values,
+                covered_values=covered_values,
+                thin_values=thin_values,
+                missing_values=missing_values,
+                counts=counts,
+            )
+        )
+
+    return summaries
 
 
 def build_category_gate_result(

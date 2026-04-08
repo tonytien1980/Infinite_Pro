@@ -1,0 +1,60 @@
+{
+  "suite_id": "generalist_coverage_proof_v1",
+  "title": "Generalist coverage proof v1",
+  "purpose": "Provide a repeatable advisory-first baseline for client-stage, client-type, continuity, and cross-domain representative coverage without turning benchmark scaffolding into a new product layer.",
+  "update_policy": [
+    "Only update this suite when shipped generalist coverage scope changes.",
+    "Keep coverage proof separate from hardening regression suites.",
+    "Prefer advisory-first coverage reporting before introducing hard fail gates."
+  ],
+  "coverage_targets": [
+    {
+      "axis": "client_stage",
+      "expected_values": ["創業階段", "制度化階段", "規模化階段"],
+      "thin_threshold": 1
+    },
+    {
+      "axis": "client_type",
+      "expected_values": ["中小企業", "大型企業", "個人品牌與服務", "自媒體"],
+      "thin_threshold": 1
+    },
+    {
+      "axis": "continuity",
+      "expected_values": ["one_off", "follow_up", "continuous"],
+      "thin_threshold": 1
+    },
+    {
+      "axis": "cross_domain",
+      "expected_values": [
+        "legal_plus_finance",
+        "operations_plus_org_people",
+        "marketing_sales_plus_product_service",
+        "research_plus_domain_advisory"
+      ],
+      "thin_threshold": 1
+    }
+  ],
+  "categories": [
+    {
+      "category_id": "generalist_stage_type",
+      "title": "Stage / type coverage",
+      "manifest_path": "backend/app/benchmarks/manifests/g1_stage_type_coverage.json",
+      "gate_mode": "advisory",
+      "purpose": "Answer whether stage and type coverage is still biased toward a narrow operating band."
+    },
+    {
+      "category_id": "generalist_continuity",
+      "title": "Continuity coverage",
+      "manifest_path": "backend/app/benchmarks/manifests/g1_continuity_coverage.json",
+      "gate_mode": "advisory",
+      "purpose": "Answer whether one-off, follow-up, and continuous lanes all have representative benchmark coverage."
+    },
+    {
+      "category_id": "generalist_cross_domain",
+      "title": "Cross-domain representative coverage",
+      "manifest_path": "backend/app/benchmarks/manifests/g1_cross_domain_coverage.json",
+      "gate_mode": "advisory",
+      "purpose": "Answer whether key cross-domain consultant bundles have representative benchmark cases."
+    }
+  ]
+}

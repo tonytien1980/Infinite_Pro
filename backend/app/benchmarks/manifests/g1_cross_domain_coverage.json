@@ -1,0 +1,83 @@
+{
+  "manifest_id": "g1_cross_domain_coverage_baseline",
+  "title": "G1 cross-domain coverage baseline",
+  "purpose": "Provide representative cross-domain bundles for generalist coverage proof without inflating the benchmark system into a full matrix platform.",
+  "update_policy": [
+    "Only update this manifest when shipped cross-domain coverage scope changes.",
+    "Prefer a small set of high-signal representative bundles over a full combinatorial matrix."
+  ],
+  "cases": [
+    {
+      "case_id": "legal_finance_bundle",
+      "title": "Legal + finance bundle",
+      "description": "Contract and financing bundle representative case.",
+      "client_stage": "制度化階段",
+      "client_type": "中小企業",
+      "engagement_continuity_mode": "one_off",
+      "writeback_depth": "minimal",
+      "coverage_bundle_id": "legal_plus_finance",
+      "domain_lenses": ["法務", "財務"],
+      "industry_hints": [],
+      "decision_context_summary": "Need a contract and financing recommendation where legal and finance must both shape the answer.",
+      "source_mix_summary": ["term sheet", "agreement note", "cash summary"],
+      "target_domain_pack_ids": ["legal_risk_pack", "finance_fundraising_pack"],
+      "target_industry_pack_ids": [],
+      "expected_contract_interface_ids": ["evidence_readiness_v1", "decision_framing_v1", "deliverable_shaping_v1"],
+      "expected_hint_areas": ["evidence_expectations", "decision_patterns", "readiness"]
+    },
+    {
+      "case_id": "operations_org_people_bundle",
+      "title": "Operations + org/people bundle",
+      "description": "Cross-functional operating + org case.",
+      "client_stage": "制度化階段",
+      "client_type": "中小企業",
+      "engagement_continuity_mode": "follow_up",
+      "writeback_depth": "milestone",
+      "coverage_bundle_id": "operations_plus_org_people",
+      "domain_lenses": ["營運", "組織人力"],
+      "industry_hints": [],
+      "decision_context_summary": "Need an operating recommendation where owner gaps and org design affect process stability.",
+      "source_mix_summary": ["owner map", "handoff report", "manager scope note"],
+      "target_domain_pack_ids": ["operations_pack", "organization_people_pack"],
+      "target_industry_pack_ids": [],
+      "expected_contract_interface_ids": ["evidence_readiness_v1", "decision_framing_v1", "deliverable_shaping_v1"],
+      "expected_hint_areas": ["evidence_expectations", "decision_patterns", "readiness"]
+    },
+    {
+      "case_id": "marketing_product_bundle",
+      "title": "Marketing/sales + product/service bundle",
+      "description": "Demand and offer-shaping bundle representative case.",
+      "client_stage": "制度化階段",
+      "client_type": "個人品牌與服務",
+      "engagement_continuity_mode": "follow_up",
+      "writeback_depth": "milestone",
+      "coverage_bundle_id": "marketing_sales_plus_product_service",
+      "domain_lenses": ["行銷", "產品服務"],
+      "industry_hints": ["online course"],
+      "decision_context_summary": "Need a recommendation where offer architecture and demand quality must be solved together.",
+      "source_mix_summary": ["offer map", "campaign note", "customer confusion summary"],
+      "target_domain_pack_ids": ["marketing_sales_pack", "product_service_pack"],
+      "target_industry_pack_ids": ["online_education_pack"],
+      "expected_contract_interface_ids": ["evidence_readiness_v1", "decision_framing_v1", "deliverable_shaping_v1"],
+      "expected_hint_areas": ["evidence_expectations", "decision_patterns", "readiness"]
+    },
+    {
+      "case_id": "research_domain_bundle",
+      "title": "Research + domain advisory bundle",
+      "description": "Research-led but still domain-specific representative case.",
+      "client_stage": "創業階段",
+      "client_type": "中小企業",
+      "engagement_continuity_mode": "one_off",
+      "writeback_depth": "minimal",
+      "coverage_bundle_id": "research_plus_domain_advisory",
+      "domain_lenses": ["研究", "營運"],
+      "industry_hints": ["saas"],
+      "decision_context_summary": "Need a recommendation where research uncertainty and domain actionability both matter.",
+      "source_mix_summary": ["research note", "market summary", "operator interview"],
+      "target_domain_pack_ids": ["research_intelligence_pack", "operations_pack"],
+      "target_industry_pack_ids": ["saas_pack"],
+      "expected_contract_interface_ids": ["evidence_readiness_v1", "decision_framing_v1", "deliverable_shaping_v1"],
+      "expected_hint_areas": ["evidence_expectations", "decision_patterns", "readiness"]
+    }
+  ]
+}

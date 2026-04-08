@@ -1,4 +1,5 @@
 from app.benchmarks.runner import (
+    DEFAULT_GENERALIST_COVERAGE_PROOF_V1_SUITE_MANIFEST,
     DEFAULT_P0_DOMAIN_PACK_CONTRACTS_MANIFEST,
     DEFAULT_P0_INDUSTRY_BATCH1_MANIFEST,
     DEFAULT_P0_INDUSTRY_BATCH2_MANIFEST,
@@ -15,6 +16,9 @@ from app.benchmarks.runner import (
 )
 from app.benchmarks.schemas import (
     BenchmarkCase,
+    BenchmarkCoverageAxis,
+    BenchmarkCoverageSummary,
+    BenchmarkCoverageTarget,
     BenchmarkCategoryGateResult,
     BenchmarkCategoryId,
     BenchmarkHintArea,
@@ -30,6 +34,9 @@ from app.benchmarks.schemas import (
 
 __all__ = [
     "BenchmarkCase",
+    "BenchmarkCoverageAxis",
+    "BenchmarkCoverageSummary",
+    "BenchmarkCoverageTarget",
     "BenchmarkCategoryGateResult",
     "BenchmarkCategoryId",
     "BenchmarkHintArea",
@@ -41,6 +48,7 @@ __all__ = [
     "BenchmarkSuiteManifest",
     "BenchmarkSuiteRunResult",
     "RegressionGateMode",
+    "DEFAULT_GENERALIST_COVERAGE_PROOF_V1_SUITE_MANIFEST",
     "DEFAULT_P0_DOMAIN_PACK_CONTRACTS_MANIFEST",
     "DEFAULT_P0_INDUSTRY_BATCH1_MANIFEST",
     "DEFAULT_P0_INDUSTRY_BATCH2_MANIFEST",

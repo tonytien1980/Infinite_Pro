@@ -1,0 +1,65 @@
+{
+  "manifest_id": "g1_continuity_coverage_baseline",
+  "title": "G1 continuity coverage baseline",
+  "purpose": "Provide representative one-off, follow-up, and continuous cases for generalist continuity coverage proof.",
+  "update_policy": [
+    "Only update this manifest when shipped continuity coverage scope changes.",
+    "Keep one representative case per major continuity lane before expanding."
+  ],
+  "cases": [
+    {
+      "case_id": "one_off_contract_review",
+      "title": "One-off contract review",
+      "description": "Closure-first one-off consultant case.",
+      "client_stage": "制度化階段",
+      "client_type": "中小企業",
+      "engagement_continuity_mode": "one_off",
+      "writeback_depth": "minimal",
+      "coverage_bundle_id": "legal_plus_finance",
+      "domain_lenses": ["法務", "財務"],
+      "industry_hints": [],
+      "decision_context_summary": "Need a one-off contract review that should not be mistaken for a continuous writeback case.",
+      "source_mix_summary": ["agreement note", "approval email", "obligation summary"],
+      "target_domain_pack_ids": ["legal_risk_pack", "finance_fundraising_pack"],
+      "target_industry_pack_ids": [],
+      "expected_contract_interface_ids": ["evidence_readiness_v1", "decision_framing_v1", "deliverable_shaping_v1"],
+      "expected_hint_areas": ["evidence_expectations", "decision_patterns", "readiness"]
+    },
+    {
+      "case_id": "follow_up_operating_checkpoint",
+      "title": "Follow-up operating checkpoint",
+      "description": "Checkpoint-oriented follow-up case.",
+      "client_stage": "制度化階段",
+      "client_type": "中小企業",
+      "engagement_continuity_mode": "follow_up",
+      "writeback_depth": "milestone",
+      "coverage_bundle_id": "operations_plus_org_people",
+      "domain_lenses": ["營運", "組織人力"],
+      "industry_hints": [],
+      "decision_context_summary": "Need a follow-up checkpoint case where milestone writeback matters but full outcome loops are not yet expected.",
+      "source_mix_summary": ["checkpoint note", "handoff log", "next-step summary"],
+      "target_domain_pack_ids": ["operations_pack", "organization_people_pack"],
+      "target_industry_pack_ids": [],
+      "expected_contract_interface_ids": ["evidence_readiness_v1", "decision_framing_v1", "deliverable_shaping_v1"],
+      "expected_hint_areas": ["evidence_expectations", "decision_patterns", "readiness"]
+    },
+    {
+      "case_id": "continuous_progression_case",
+      "title": "Continuous progression case",
+      "description": "Continuous case with full writeback expectations.",
+      "client_stage": "規模化階段",
+      "client_type": "大型企業",
+      "engagement_continuity_mode": "continuous",
+      "writeback_depth": "full",
+      "coverage_bundle_id": "operations_plus_org_people",
+      "domain_lenses": ["營運", "財務"],
+      "industry_hints": ["manufacturing"],
+      "decision_context_summary": "Need a continuous case where progression, action execution, and full writeback are part of the expected operating model.",
+      "source_mix_summary": ["progression report", "capacity note", "execution review"],
+      "target_domain_pack_ids": ["operations_pack", "finance_fundraising_pack"],
+      "target_industry_pack_ids": ["manufacturing_pack"],
+      "expected_contract_interface_ids": ["evidence_readiness_v1", "decision_framing_v1", "deliverable_shaping_v1"],
+      "expected_hint_areas": ["evidence_expectations", "decision_patterns", "readiness"]
+    }
+  ]
+}

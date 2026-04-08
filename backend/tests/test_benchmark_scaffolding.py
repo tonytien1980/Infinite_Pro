@@ -273,6 +273,78 @@ def test_p0_h_full_regression_suite_executes_against_current_stack() -> None:
     assert deliverable_gate.gate_status == BenchmarkStatus.PASS
 
 
+def test_generalist_stage_type_manifest_covers_representative_seed_cases() -> None:
+    manifest = load_manifest("backend/app/benchmarks/manifests/g1_stage_type_coverage.json")
+
+    assert manifest.manifest_id == "g1_stage_type_coverage_baseline"
+    assert len(manifest.cases) >= 4
+    assert {"創業階段", "制度化階段", "規模化階段"} <= {case.client_stage for case in manifest.cases}
+    assert {"中小企業", "大型企業", "個人品牌與服務", "自媒體"} <= {
+        case.client_type for case in manifest.cases
+    }
+
+
+def test_generalist_continuity_manifest_covers_expected_lanes() -> None:
+    manifest = load_manifest("backend/app/benchmarks/manifests/g1_continuity_coverage.json")
+
+    assert manifest.manifest_id == "g1_continuity_coverage_baseline"
+    assert {case.engagement_continuity_mode for case in manifest.cases} == {
+        "one_off",
+        "follow_up",
+        "continuous",
+    }
+
+
+def test_generalist_cross_domain_manifest_covers_expected_bundles() -> None:
+    manifest = load_manifest("backend/app/benchmarks/manifests/g1_cross_domain_coverage.json")
+
+    assert manifest.manifest_id == "g1_cross_domain_coverage_baseline"
+    assert {case.coverage_bundle_id for case in manifest.cases} == {
+        "legal_plus_finance",
+        "operations_plus_org_people",
+        "marketing_sales_plus_product_service",
+        "research_plus_domain_advisory",
+    }
+
+
+def test_generalist_coverage_suite_manifest_covers_expected_categories() -> None:
+    suite = load_suite("backend/app/benchmarks/suites/generalist_coverage_proof_v1.json")
+
+    assert suite.suite_id == "generalist_coverage_proof_v1"
+    assert [category.category_id for category in suite.categories] == [
+        BenchmarkCategoryId.GENERALIST_STAGE_TYPE,
+        BenchmarkCategoryId.GENERALIST_CONTINUITY,
+        BenchmarkCategoryId.GENERALIST_CROSS_DOMAIN,
+    ]
+    assert {target.axis for target in suite.coverage_targets} == {
+        "client_stage",
+        "client_type",
+        "continuity",
+        "cross_domain",
+    }
+    assert all(category.gate_mode == RegressionGateMode.ADVISORY for category in suite.categories)
+
+
+def test_generalist_coverage_suite_returns_coverage_summary() -> None:
+    suite = load_suite("backend/app/benchmarks/suites/generalist_coverage_proof_v1.json")
+    result = run_suite(suite)
+
+    assert result.gate_status == BenchmarkStatus.PASS
+    assert result.total_case_count == 12
+    assert len(result.category_results) == 3
+    assert result.coverage_summary
+    stage_summary = next(item for item in result.coverage_summary if item.axis == "client_stage")
+    continuity_summary = next(item for item in result.coverage_summary if item.axis == "continuity")
+    cross_domain_summary = next(item for item in result.coverage_summary if item.axis == "cross_domain")
+
+    assert "創業階段" in stage_summary.expected_values
+    assert "one_off" in continuity_summary.expected_values
+    assert "research_plus_domain_advisory" in cross_domain_summary.expected_values
+    assert not stage_summary.missing_values
+    assert not continuity_summary.missing_values
+    assert not cross_domain_summary.missing_values
+
+
 def test_benchmark_script_prefers_standard_dot_venv_before_workstation_specific_name(
     tmp_path: Path,
     monkeypatch,
