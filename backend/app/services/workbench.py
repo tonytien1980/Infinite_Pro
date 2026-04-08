@@ -41,6 +41,7 @@ from app.services.phase_six_generalist_governance import (
     build_phase_six_closure_criteria_review,
     build_phase_six_feedback_linked_scoring_snapshot,
     build_phase_six_maturity_review,
+    build_phase_six_phase_level_alignment_snapshot,
     build_phase_six_calibration_aware_weighting,
     build_phase_six_confidence_calibration,
     build_phase_six_context_distance_audit,
@@ -141,6 +142,35 @@ def _build_phase_six_feedback_linked_snapshot(
         dismissed_candidate_count=dismissed_candidate_count,
         override_signal_count=override_signal_count,
         top_asset_codes=[code for code, _ in asset_counter.most_common(3)],
+    )
+
+
+def _get_phase_six_feedback_loop_counts(
+    db: Session,
+) -> tuple[int, int]:
+    feedback_signal_count = int(
+        db.scalar(select(func.count()).select_from(models.AdoptionFeedback)) or 0
+    )
+    governed_outcome_count = int(
+        db.scalar(
+            select(func.count())
+            .select_from(models.PrecedentCandidate)
+            .where(models.PrecedentCandidate.candidate_status.in_(["promoted", "dismissed"]))
+        )
+        or 0
+    )
+    return feedback_signal_count, governed_outcome_count
+
+
+def _build_phase_six_phase_level_alignment(
+    db: Session,
+):
+    feedback_signal_count, governed_outcome_count = _get_phase_six_feedback_loop_counts(db)
+    feedback_snapshot = _build_phase_six_feedback_linked_snapshot(db)
+    return build_phase_six_phase_level_alignment_snapshot(
+        feedback_signal_count=feedback_signal_count,
+        governed_outcome_count=governed_outcome_count,
+        feedback_snapshot=feedback_snapshot,
     )
 
 
@@ -530,31 +560,19 @@ def get_phase_six_capability_coverage_audit(
 def get_phase_six_maturity_review(
     db: Session,
 ) -> schemas.PhaseSixMaturityReviewResponse:
-    del db
-    return build_phase_six_maturity_review()
+    alignment = _build_phase_six_phase_level_alignment(db)
+    return build_phase_six_maturity_review(alignment=alignment)
 
 
 def get_phase_six_closure_criteria_review(
     db: Session,
 ) -> schemas.PhaseSixClosureCriteriaReviewResponse:
-    feedback_signal_count = int(
-        db.scalar(select(func.count()).select_from(models.AdoptionFeedback)) or 0
-    )
-    governed_outcome_count = int(
-        db.scalar(
-            select(func.count())
-            .select_from(models.PrecedentCandidate)
-            .where(
-                models.PrecedentCandidate.candidate_status.in_(
-                    ["promoted", "dismissed"]
-                )
-            )
-        )
-        or 0
-    )
+    feedback_signal_count, governed_outcome_count = _get_phase_six_feedback_loop_counts(db)
+    alignment = _build_phase_six_phase_level_alignment(db)
     return build_phase_six_closure_criteria_review(
         feedback_signal_count=feedback_signal_count,
         governed_outcome_count=governed_outcome_count,
+        alignment=alignment,
     )
 
 
@@ -563,6 +581,7 @@ def get_phase_six_completion_review(
 ) -> schemas.PhaseSixCompletionReviewResponse:
     closure_review = get_phase_six_closure_criteria_review(db)
     feedback_snapshot = _build_phase_six_feedback_linked_snapshot(db)
+    alignment = _build_phase_six_phase_level_alignment(db)
     checkpoint_state = (
         _get_phase_review_row(db, extension_id=PHASE_6_GENERALIST_GOVERNANCE_ID).payload
         if _get_phase_review_row(db, extension_id=PHASE_6_GENERALIST_GOVERNANCE_ID)
@@ -572,14 +591,17 @@ def get_phase_six_completion_review(
         closure_review=closure_review,
         feedback_snapshot=feedback_snapshot,
         checkpoint_state=checkpoint_state,
+        alignment=alignment,
     )
 
 
 def get_phase_six_closeout_review(
     db: Session,
 ) -> schemas.PhaseSixCloseoutReviewResponse:
+    alignment = _build_phase_six_phase_level_alignment(db)
     return build_phase_six_closeout_review(
         completion_review=get_phase_six_completion_review(db),
+        alignment=alignment,
     )
 
 

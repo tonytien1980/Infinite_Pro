@@ -26,6 +26,13 @@ class PhaseSixCaseContext:
     selected_industry_pack_ids: list[str] = field(default_factory=list)
 
 
+@dataclass(frozen=True)
+class PhaseSixPhaseLevelAlignmentSnapshot:
+    phase_level_boundary_note: str
+    work_surface_landed_summary: str
+    scoring_pending_summary: str
+
+
 def _has_explicit_value(value: str | None) -> bool:
     normalized = (value or "").strip()
     return bool(normalized and normalized != UNSPECIFIED_LABEL)
@@ -270,7 +277,12 @@ def build_phase_six_feedback_linked_scoring_snapshot(
 def build_phase_six_closeout_review(
     *,
     completion_review: schemas.PhaseSixCompletionReviewResponse,
+    alignment: PhaseSixPhaseLevelAlignmentSnapshot | None = None,
 ) -> schemas.PhaseSixCloseoutReviewResponse:
+    source_alignment = alignment or build_phase_six_phase_level_alignment_snapshot(
+        feedback_signal_count=0,
+        governed_outcome_count=0,
+    )
     signed_off = completion_review.sign_off_status == "signed_off"
     asset_audits = [
         schemas.PhaseSixAssetAuditItemResponse(
@@ -328,9 +340,13 @@ def build_phase_six_closeout_review(
         closure_status="signed_off" if signed_off else "ready_to_close",
         closure_status_label="已正式收口" if signed_off else "可準備收口",
         summary=(
-            "phase 6 已正式收口，下一階段 handoff 已整理。"
+            f"{source_alignment.phase_level_boundary_note} phase 6 已正式收口，下一階段 handoff 已整理。"
             if signed_off
-            else "phase 6 的 governance runtime、completion review foundation 與 sign-off foundation 已站穩，目前主要剩 explicit sign-off。"
+            else (
+                f"{source_alignment.phase_level_boundary_note}"
+                " phase 6 的 governance runtime、completion review foundation 與 sign-off foundation 已站穩；"
+                f"{source_alignment.work_surface_landed_summary}"
+            )
         ),
         foundation_snapshot=(
             "Generalist governance 主線已完成並正式收口。"
@@ -345,7 +361,7 @@ def build_phase_six_closeout_review(
         recommended_next_step=(
             "下一階段先做 consultant operating leverage framing。"
             if signed_off
-            else "若沒有新的 regression，就可準備做 phase 6 sign-off 與下一階段 handoff。"
+            else "先完成 phase 6 sign-off，再把這些治理基礎轉成顧問工作面更直接感受到的 operating leverage。"
         ),
         signed_off_at=completion_review.signed_off_at,
         signed_off_by_label=completion_review.signed_off_by_label,
@@ -355,7 +371,40 @@ def build_phase_six_closeout_review(
     )
 
 
-def build_phase_six_maturity_review() -> schemas.PhaseSixMaturityReviewResponse:
+def build_phase_six_phase_level_alignment_snapshot(
+    *,
+    feedback_signal_count: int,
+    governed_outcome_count: int,
+    feedback_snapshot: schemas.PhaseSixFeedbackLinkedScoringSnapshotRead | None = None,
+) -> PhaseSixPhaseLevelAlignmentSnapshot:
+    source_snapshot = feedback_snapshot
+    has_feedback_depth = (
+        bool(source_snapshot)
+        and (
+            source_snapshot.adopted_count > 0
+            or source_snapshot.needs_revision_count > 0
+            or source_snapshot.governed_candidate_count > 0
+        )
+    ) or feedback_signal_count > 0 or governed_outcome_count > 0
+    return PhaseSixPhaseLevelAlignmentSnapshot(
+        phase_level_boundary_note="這裡是 Phase 6 的階段層 review，不是案件計分引擎。",
+        work_surface_landed_summary="三個正式工作面已正式落地。",
+        scoring_pending_summary=(
+            "下一刀應把採用回饋證據更正式接回治理評分。"
+            if not has_feedback_depth
+            else "下一刀應把已形成的採用回饋證據更正式接回治理評分。"
+        ),
+    )
+
+
+def build_phase_six_maturity_review(
+    *,
+    alignment: PhaseSixPhaseLevelAlignmentSnapshot | None = None,
+) -> schemas.PhaseSixMaturityReviewResponse:
+    source_alignment = alignment or build_phase_six_phase_level_alignment_snapshot(
+        feedback_signal_count=0,
+        governed_outcome_count=0,
+    )
     milestone_audits = [
         schemas.PhaseSixMaturityMilestoneRead(
             milestone_code="coverage_boundary",
@@ -405,17 +454,15 @@ def build_phase_six_maturity_review() -> schemas.PhaseSixMaturityReviewResponse:
         maturity_stage_label="已進入收斂深化",
         summary=(
             "Phase 6 已不再只是 foundation 起步，而是進入 generalist governance 的收斂深化期："
-            "coverage、boundary、weighting、propagation 與 second-layer guardrails 都已站穩。"
+            "coverage、boundary、weighting、propagation 與 second-layer guardrails 都已站穩；"
+            f"{source_alignment.work_surface_landed_summary}"
         ),
         maturity_snapshot="已完成 17 個 slice｜目前屬於 refinement lane，不是新的基礎施工期。",
         completed_count=17,
         remaining_count=len(remaining_focus_items),
         milestone_audits=milestone_audits,
         remaining_focus_items=remaining_focus_items,
-        recommended_next_step=(
-            "下一刀應優先處理 Phase 6 的 runtime feedback loop / closure criteria，"
-            "而不是再繼續往 note wording 微調。"
-        ),
+        recommended_next_step=source_alignment.scoring_pending_summary,
     )
 
 
@@ -423,7 +470,12 @@ def build_phase_six_closure_criteria_review(
     *,
     feedback_signal_count: int,
     governed_outcome_count: int,
+    alignment: PhaseSixPhaseLevelAlignmentSnapshot | None = None,
 ) -> schemas.PhaseSixClosureCriteriaReviewResponse:
+    source_alignment = alignment or build_phase_six_phase_level_alignment_snapshot(
+        feedback_signal_count=feedback_signal_count,
+        governed_outcome_count=governed_outcome_count,
+    )
     runtime_feedback_status = (
         "landed"
         if feedback_signal_count >= 3 and governed_outcome_count >= 2
@@ -518,7 +570,7 @@ def build_phase_six_closure_criteria_review(
         closure_posture_label=closure_posture_label,
         summary=(
             "Phase 6 現在已能正式回答 closure criteria：目前已站穩的不是 note 文案，而是 runtime governance layer；"
-            "真正還差的是 feedback loop depth 與 completion review flow。"
+            f"{source_alignment.work_surface_landed_summary}"
         ),
         closure_snapshot=(
             f"feedback signals {feedback_signal_count}｜governed outcomes {governed_outcome_count}｜"
@@ -529,10 +581,7 @@ def build_phase_six_closure_criteria_review(
         governed_outcome_count=governed_outcome_count,
         criteria_items=criteria_items,
         remaining_blockers=remaining_blockers,
-        recommended_next_step=(
-            "下一刀應優先把 feedback-linked evidence 更正式接回 persisted scoring / completion review，"
-            "而不是再新增新的 note micro-slice。"
-        ),
+        recommended_next_step=source_alignment.scoring_pending_summary,
     )
 
 
@@ -541,7 +590,13 @@ def build_phase_six_completion_review(
     closure_review: schemas.PhaseSixClosureCriteriaReviewResponse,
     feedback_snapshot: schemas.PhaseSixFeedbackLinkedScoringSnapshotRead | None = None,
     checkpoint_state: dict | None = None,
+    alignment: PhaseSixPhaseLevelAlignmentSnapshot | None = None,
 ) -> schemas.PhaseSixCompletionReviewResponse:
+    source_alignment = alignment or build_phase_six_phase_level_alignment_snapshot(
+        feedback_signal_count=0,
+        governed_outcome_count=0,
+        feedback_snapshot=feedback_snapshot,
+    )
     runtime_score = 84
     propagation_score = 86
     computed_feedback_snapshot = feedback_snapshot or build_phase_six_feedback_linked_scoring_snapshot(
@@ -710,9 +765,9 @@ def build_phase_six_completion_review(
         handoff_summary=handoff_summary,
         handoff_items=handoff_items,
         recommended_next_step=(
-            "下一刀應把這份 checkpoint 與 feedback-linked evidence 更正式接回 persisted governance scoring / next-phase handoff。"
+            f"{source_alignment.scoring_pending_summary} 之後再把這份 checkpoint 接回 next-phase handoff。"
             if signed_off
-            else "下一刀應把這份 checkpoint 與 feedback-linked evidence 更正式接回 persisted governance scoring，而不是直接跳 sign-off。"
+            else f"{source_alignment.scoring_pending_summary} 不要直接跳 sign-off。"
         ),
     )
 
