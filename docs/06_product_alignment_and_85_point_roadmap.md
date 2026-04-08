@@ -145,6 +145,10 @@ Infinite Pro 的正式產品想像應理解為：
   - feedback-linked scoring 開始正式區分 deliverable-linked evidence
   - `completion review / checkpoint` 現在也開始看 deliverable feedback / publish / deliverable-linked governed candidate
   - 但仍未進到 outcome / writeback scoring
+- `7.2` 的第三刀目前也已開始正式落地：
+  - feedback-linked scoring 開始正式讀 Host-generated outcome / writeback evidence
+  - `completion review / checkpoint` 現在也開始看 `OutcomeRecord` / `ActionExecution` / `WRITEBACK_GENERATED` audit
+  - 但仍未進到 KPI / business outcome attribution
 
 ---
 
@@ -302,7 +306,9 @@ Infinite Pro 已正式承接：
 
 - 第一刀已正式吃到 explicit feedback 與 candidate governance outcomes
 - 第二刀已開始正式吃到 deliverable-linked feedback / publish / governed candidate outcome
-- 但 outcome / writeback evidence 仍未接滿
+- 第三刀已開始正式吃到 Host-generated outcome / writeback evidence
+- 並且明確保留 `one_off / minimal` 案件不應被 absence of writeback 錯罰的邊界
+- 但 KPI / business outcome attribution 仍未接滿
 
 完成判準：
 

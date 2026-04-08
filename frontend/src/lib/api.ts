@@ -1193,6 +1193,29 @@ function parsePhaseSixCompletionReviewPayload(payload: any): PhaseSixCompletionR
       ),
       closeoutDepthSummary:
         payload.feedback_linked_scoring_snapshot?.closeout_depth_summary || "",
+      outcomeRecordCount: Number(
+        payload.feedback_linked_scoring_snapshot?.outcome_record_count ?? 0,
+      ),
+      deliverableOutcomeRecordCount: Number(
+        payload.feedback_linked_scoring_snapshot?.deliverable_outcome_record_count ?? 0,
+      ),
+      followUpOutcomeCount: Number(
+        payload.feedback_linked_scoring_snapshot?.follow_up_outcome_count ?? 0,
+      ),
+      writebackGeneratedEventCount: Number(
+        payload.feedback_linked_scoring_snapshot?.writeback_generated_event_count ?? 0,
+      ),
+      reviewRequiredExecutionCount: Number(
+        payload.feedback_linked_scoring_snapshot?.review_required_execution_count ?? 0,
+      ),
+      plannedExecutionCount: Number(
+        payload.feedback_linked_scoring_snapshot?.planned_execution_count ?? 0,
+      ),
+      writebackExpectedTaskCount: Number(
+        payload.feedback_linked_scoring_snapshot?.writeback_expected_task_count ?? 0,
+      ),
+      writebackDepthSummary:
+        payload.feedback_linked_scoring_snapshot?.writeback_depth_summary || "",
       summary: payload.feedback_linked_scoring_snapshot?.summary || "",
     },
     closurePosture: payload.closure_posture || "",

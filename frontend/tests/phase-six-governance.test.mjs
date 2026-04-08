@@ -18,6 +18,7 @@ import {
   summarizePhaseSixCalibrationAwareWeightingItems,
   summarizePhaseSixCompletionScorecard,
   summarizePhaseSixFeedbackCloseoutDepth,
+  summarizePhaseSixFeedbackWritebackDepth,
   summarizePhaseSixFeedbackLinkedScoring,
   summarizePhaseSixCloseoutAudits,
   summarizePhaseSixClosureCriteria,
@@ -171,6 +172,39 @@ test("phase 6 completion review labels stay low-noise and readable", () => {
       },
     }),
     "交付回饋 3｜已 publish 1｜deliverable governed 1",
+  );
+  assert.equal(
+    summarizePhaseSixFeedbackWritebackDepth({
+      feedbackLinkedScoringSnapshot: {
+        adoptedCount: 2,
+        needsRevisionCount: 1,
+        notAdoptedCount: 1,
+        templateCandidateCount: 2,
+        governedCandidateCount: 3,
+        promotedCandidateCount: 2,
+        dismissedCandidateCount: 1,
+        overrideSignalCount: 2,
+        topAssetCodes: ["domain_playbook"],
+        topAssetLabels: ["工作主線"],
+        deliverableFeedbackCount: 3,
+        deliverableAdoptedCount: 2,
+        publishedDeliverableCount: 1,
+        publishedAdoptedCount: 1,
+        deliverableCandidateCount: 2,
+        governedDeliverableCandidateCount: 1,
+        closeoutDepthSummary: "交付回饋 3｜已 publish 1｜deliverable governed 1",
+        outcomeRecordCount: 2,
+        deliverableOutcomeRecordCount: 1,
+        followUpOutcomeCount: 1,
+        writebackGeneratedEventCount: 4,
+        reviewRequiredExecutionCount: 1,
+        plannedExecutionCount: 2,
+        writebackExpectedTaskCount: 1,
+        writebackDepthSummary: "outcome 2｜writeback events 4｜review-required executions 1",
+        summary: "summary",
+      },
+    }),
+    "outcome 2｜writeback events 4｜review-required executions 1",
   );
 });
 

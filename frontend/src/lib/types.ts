@@ -451,6 +451,14 @@ export interface PhaseSixFeedbackLinkedScoringSnapshot {
   deliverableCandidateCount: number;
   governedDeliverableCandidateCount: number;
   closeoutDepthSummary: string;
+  outcomeRecordCount: number;
+  deliverableOutcomeRecordCount: number;
+  followUpOutcomeCount: number;
+  writebackGeneratedEventCount: number;
+  reviewRequiredExecutionCount: number;
+  plannedExecutionCount: number;
+  writebackExpectedTaskCount: number;
+  writebackDepthSummary: string;
   summary: string;
 }
 

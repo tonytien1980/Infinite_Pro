@@ -5107,3 +5107,43 @@ Environment used:
 - action execution / writeback scoring
 - business outcome attribution
 - new governance dashboard family
+
+---
+
+## Entry: 2026-04-09 phase-6 feedback-linked persisted scoring outcome and writeback evidence
+
+Scope:
+- extend `7.2` from deliverable closeout depth to Host-generated outcome/writeback evidence
+- let `completion review / checkpoint / sign-off foundation` read `OutcomeRecord`, `ActionExecution`, and `WRITEBACK_GENERATED` audit evidence
+- keep KPI / business outcome attribution explicitly out of scope
+
+Environment used:
+- local backend and frontend verification only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `PYTHONPATH=backend .venv312/bin/python -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/pytest backend/tests/test_phase_six_feedback_scoring.py -q` | Passed (`7 passed`) |
+| `PYTHONPATH=backend .venv312/bin/pytest backend/tests/test_mvp_slice.py -q` | Passed (`245 passed`) |
+| `cd frontend && node --test tests/phase-six-governance.test.mjs tests/intake-progress.test.mjs` | Passed (`47 passed`) |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && mkdir -p .next/types && npx next typegen && npm run typecheck` | Passed |
+| `cd frontend && npm run build` | Passed |
+
+### Phase-6 writeback-evidence verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | feedback-linked snapshot builder | Extend snapshot from deliverable closeout depth to Host-generated outcome/writeback evidence | Verified | targeted backend tests confirm the snapshot now records `OutcomeRecord`, `WRITEBACK_GENERATED` events, execution states, and whether full writeback was actually expected |
+| Backend | `/workbench/phase-6-completion-review` | Rewrite `feedback_loop` score and summary to add a writeback bonus only when writeback was expected and evidence exists | Verified | targeted backend tests confirm full-writeback tasks now surface writeback/outcome depth while one-off/minimal tasks explicitly show that absence is not a negative signal |
+| Backend | `/workbench/phase-6-completion-review/checkpoint` | Persist writeback-depth evidence into checkpoint payload and summary | Verified | targeted backend tests confirm checkpoint summary now preserves both closeout depth and writeback depth evidence |
+| Backend | phase-six / continuity / sign-off regression | Preserve existing deliverable feedback, continuous writeback, checkpoint, and sign-off behavior | Verified | full `backend/tests/test_mvp_slice.py` regression remains green after the writeback scoring rewrite |
+| Frontend | homepage `Generalist Governance` completion-review card | Add a low-noise outcome/writeback depth readout without creating a new dashboard family | Verified | targeted node tests confirm the new helper stays compact and consultant-readable while homepage continues to use the existing completion-review card |
+| Cross-layer | writeback boundary reading | Protect one-off / minimal cases from false penalties while still rewarding full-writeback evidence | Verified | runtime summary, docs, and score logic now all agree that writeback is a bonus when expected, not a universal hard gate |
+
+### Explicitly not shipped in this pass
+
+- KPI / business outcome attribution
+- correctness ranking
+- enterprise outcome dashboard family

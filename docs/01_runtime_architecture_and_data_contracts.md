@@ -2480,6 +2480,11 @@ completion pass 後，deliverable work surface 也已正式把：
   - deliverable-linked adoption feedback
   - publish evidence
   - deliverable-linked governed candidate outcome
+- 再下一刀現在正式補到：
+  - Host-generated outcome / writeback evidence
+  - `OutcomeRecord`
+  - `ActionExecution`
+  - `WRITEBACK_GENERATED` audit events
 - roadmap-side `7.15` 補強後，這層的 `recommended_next_step` 也應延續同一條 alignment：
   - 先補治理評分深度
   - 不要直接跳 sign-off
@@ -2530,6 +2535,12 @@ completion pass 後，deliverable work surface 也已正式把：
   - 這些 feedback 有多少掛在真實 deliverable
   - 其中多少已進 publish
   - 其中多少已形成 deliverable-linked governed candidate outcome
+- `feedback_linked_scoring_snapshot` 在 writeback-evidence slice 後，現在也應能回答：
+  - 這次交付之後，有沒有 outcome / writeback 痕跡
+  - 其中哪些是 Host 自動建立的 writeback records
+  - 這案是否本來就應該期待 full writeback
+- 這一刀也必須明確保留一條邊界：
+  - `one_off / minimal` 案件若本來不期待 full writeback，absence 不應被直接算成失敗
 - completion review 的 `review_posture` 應優先讀 persisted checkpoint snapshot，而不是只看當下即時計算
 - persisted snapshot 現在也應能回答：這次 checkpoint 的 feedback loop 分數主要是被哪些 explicit feedback evidence 推動
 - sign-off 只允許：
@@ -2539,6 +2550,7 @@ completion pass 後，deliverable work surface 也已正式把：
 - 但這一刀仍不等於：
   - outcome scoring
   - writeback scoring
+  - KPI / business outcome attribution
 - sign-off 後仍不代表已有 next-phase handoff
 
 因此這一層現在應被理解為：
