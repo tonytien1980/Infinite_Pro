@@ -556,6 +556,13 @@ class PhaseSixFeedbackLinkedScoringSnapshotRead(BaseModel):
     override_signal_count: int = 0
     top_asset_codes: list[str] = Field(default_factory=list)
     top_asset_labels: list[str] = Field(default_factory=list)
+    deliverable_feedback_count: int = 0
+    deliverable_adopted_count: int = 0
+    published_deliverable_count: int = 0
+    published_adopted_count: int = 0
+    deliverable_candidate_count: int = 0
+    governed_deliverable_candidate_count: int = 0
+    closeout_depth_summary: str = ""
     summary: str = ""
 
 

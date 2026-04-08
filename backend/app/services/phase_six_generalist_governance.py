@@ -242,6 +242,12 @@ def build_phase_six_feedback_linked_scoring_snapshot(
     dismissed_candidate_count: int,
     override_signal_count: int,
     top_asset_codes: list[str],
+    deliverable_feedback_count: int = 0,
+    deliverable_adopted_count: int = 0,
+    published_deliverable_count: int = 0,
+    published_adopted_count: int = 0,
+    deliverable_candidate_count: int = 0,
+    governed_deliverable_candidate_count: int = 0,
 ) -> schemas.PhaseSixFeedbackLinkedScoringSnapshotRead:
     normalized_top_asset_codes: list[str] = []
     for code in top_asset_codes:
@@ -259,6 +265,10 @@ def build_phase_six_feedback_linked_scoring_snapshot(
         f"已採用 {adopted_count}｜需改寫 {needs_revision_count}｜不採用 {not_adopted_count}"
         f"｜主要影響 {'、'.join(top_asset_labels[:2]) or '既有 reusable assets'}。"
     )
+    closeout_depth_summary = (
+        f"交付回饋 {deliverable_feedback_count}｜已 publish {published_deliverable_count}"
+        f"｜deliverable governed {governed_deliverable_candidate_count}"
+    )
     return schemas.PhaseSixFeedbackLinkedScoringSnapshotRead(
         adopted_count=adopted_count,
         needs_revision_count=needs_revision_count,
@@ -270,6 +280,13 @@ def build_phase_six_feedback_linked_scoring_snapshot(
         override_signal_count=override_signal_count,
         top_asset_codes=normalized_top_asset_codes[:3],
         top_asset_labels=top_asset_labels[:3],
+        deliverable_feedback_count=deliverable_feedback_count,
+        deliverable_adopted_count=deliverable_adopted_count,
+        published_deliverable_count=published_deliverable_count,
+        published_adopted_count=published_adopted_count,
+        deliverable_candidate_count=deliverable_candidate_count,
+        governed_deliverable_candidate_count=governed_deliverable_candidate_count,
+        closeout_depth_summary=closeout_depth_summary,
         summary=summary,
     )
 

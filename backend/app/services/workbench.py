@@ -110,6 +110,7 @@ def _build_phase_six_feedback_linked_snapshot(
 ) -> schemas.PhaseSixFeedbackLinkedScoringSnapshotRead:
     feedback_rows = db.scalars(select(models.AdoptionFeedback)).all()
     candidate_rows = db.scalars(select(models.PrecedentCandidate)).all()
+    publish_rows = db.scalars(select(models.DeliverablePublishRecord)).all()
 
     adopted_count = sum(1 for row in feedback_rows if row.feedback_status == "adopted")
     needs_revision_count = sum(1 for row in feedback_rows if row.feedback_status == "needs_revision")
@@ -121,6 +122,34 @@ def _build_phase_six_feedback_linked_snapshot(
     promoted_candidate_count = sum(1 for row in candidate_rows if row.candidate_status == "promoted")
     dismissed_candidate_count = sum(1 for row in candidate_rows if row.candidate_status == "dismissed")
     override_signal_count = needs_revision_count + not_adopted_count + dismissed_candidate_count
+
+    deliverable_feedback_rows = [row for row in feedback_rows if row.deliverable_id]
+    deliverable_feedback_count = len(deliverable_feedback_rows)
+    deliverable_adopted_count = sum(
+        1 for row in deliverable_feedback_rows if row.feedback_status == "adopted"
+    )
+
+    published_deliverable_ids = {
+        row.deliverable_id for row in publish_rows if getattr(row, "deliverable_id", None)
+    }
+    published_deliverable_count = len(published_deliverable_ids)
+    published_adopted_count = len(
+        {
+            row.deliverable_id
+            for row in deliverable_feedback_rows
+            if row.deliverable_id
+            and row.feedback_status == "adopted"
+            and row.deliverable_id in published_deliverable_ids
+        }
+    )
+
+    deliverable_candidate_rows = [row for row in candidate_rows if row.source_deliverable_id]
+    deliverable_candidate_count = len(deliverable_candidate_rows)
+    governed_deliverable_candidate_count = sum(
+        1
+        for row in deliverable_candidate_rows
+        if row.candidate_status in {"promoted", "dismissed"}
+    )
 
     asset_counter: Counter[str] = Counter()
     for row in feedback_rows:
@@ -142,6 +171,12 @@ def _build_phase_six_feedback_linked_snapshot(
         dismissed_candidate_count=dismissed_candidate_count,
         override_signal_count=override_signal_count,
         top_asset_codes=[code for code, _ in asset_counter.most_common(3)],
+        deliverable_feedback_count=deliverable_feedback_count,
+        deliverable_adopted_count=deliverable_adopted_count,
+        published_deliverable_count=published_deliverable_count,
+        published_adopted_count=published_adopted_count,
+        deliverable_candidate_count=deliverable_candidate_count,
+        governed_deliverable_candidate_count=governed_deliverable_candidate_count,
     )
 
 
