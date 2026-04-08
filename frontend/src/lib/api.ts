@@ -1173,6 +1173,26 @@ function parsePhaseSixCompletionReviewPayload(payload: any): PhaseSixCompletionR
       topAssetLabels: Array.isArray(payload.feedback_linked_scoring_snapshot?.top_asset_labels)
         ? payload.feedback_linked_scoring_snapshot.top_asset_labels
         : [],
+      deliverableFeedbackCount: Number(
+        payload.feedback_linked_scoring_snapshot?.deliverable_feedback_count ?? 0,
+      ),
+      deliverableAdoptedCount: Number(
+        payload.feedback_linked_scoring_snapshot?.deliverable_adopted_count ?? 0,
+      ),
+      publishedDeliverableCount: Number(
+        payload.feedback_linked_scoring_snapshot?.published_deliverable_count ?? 0,
+      ),
+      publishedAdoptedCount: Number(
+        payload.feedback_linked_scoring_snapshot?.published_adopted_count ?? 0,
+      ),
+      deliverableCandidateCount: Number(
+        payload.feedback_linked_scoring_snapshot?.deliverable_candidate_count ?? 0,
+      ),
+      governedDeliverableCandidateCount: Number(
+        payload.feedback_linked_scoring_snapshot?.governed_deliverable_candidate_count ?? 0,
+      ),
+      closeoutDepthSummary:
+        payload.feedback_linked_scoring_snapshot?.closeout_depth_summary || "",
       summary: payload.feedback_linked_scoring_snapshot?.summary || "",
     },
     closurePosture: payload.closure_posture || "",

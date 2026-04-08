@@ -49,6 +49,7 @@ import {
   summarizePhaseSixCalibrationAwareWeightingItems,
   summarizePhaseSixCalibrationItems,
   summarizePhaseSixCompletionScorecard,
+  summarizePhaseSixFeedbackCloseoutDepth,
   summarizePhaseSixFeedbackLinkedScoring,
   summarizePhaseSixCloseoutAudits,
   summarizePhaseSixCoverageAreas,
@@ -1089,6 +1090,11 @@ export function WorkbenchHome() {
                       </p>
                       <p className="muted-text" style={{ marginTop: "8px" }}>
                         {summarizePhaseSixFeedbackLinkedScoring(
+                          phaseSixCompletionReview,
+                        )}
+                      </p>
+                      <p className="muted-text" style={{ marginTop: "8px" }}>
+                        {summarizePhaseSixFeedbackCloseoutDepth(
                           phaseSixCompletionReview,
                         )}
                       </p>

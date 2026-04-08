@@ -2476,6 +2476,10 @@ completion pass 後，deliverable work surface 也已正式把：
 - `feedback-linked persisted scoring` 第一刀目前只吃：
   - explicit `AdoptionFeedback`
   - `PrecedentCandidate` governance outcomes
+- 下一刀現在正式補到：
+  - deliverable-linked adoption feedback
+  - publish evidence
+  - deliverable-linked governed candidate outcome
 - roadmap-side `7.15` 補強後，這層的 `recommended_next_step` 也應延續同一條 alignment：
   - 先補治理評分深度
   - 不要直接跳 sign-off
@@ -2522,12 +2526,19 @@ completion pass 後，deliverable work surface 也已正式把：
   - `closure_posture`
   - `feedback_linked_summary`
   - `feedback_linked_scoring_snapshot`
+- `feedback_linked_scoring_snapshot` 在 closeout-depth slice 後，現在也應能回答：
+  - 這些 feedback 有多少掛在真實 deliverable
+  - 其中多少已進 publish
+  - 其中多少已形成 deliverable-linked governed candidate outcome
 - completion review 的 `review_posture` 應優先讀 persisted checkpoint snapshot，而不是只看當下即時計算
 - persisted snapshot 現在也應能回答：這次 checkpoint 的 feedback loop 分數主要是被哪些 explicit feedback evidence 推動
 - sign-off 只允許：
   - owner
   - 已有 checkpoint
   - persisted review posture 已達 `review_ready`
+- 但這一刀仍不等於：
+  - outcome scoring
+  - writeback scoring
 - sign-off 後仍不代表已有 next-phase handoff
 
 因此這一層現在應被理解為：

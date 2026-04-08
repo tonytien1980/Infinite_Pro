@@ -5066,3 +5066,44 @@ Environment used:
 - `7.2` feedback-linked persisted scoring expansion
 - deliverable / outcome / writeback evidence scoring
 - new governance dashboard family
+
+---
+
+## Entry: 2026-04-08 phase-6 feedback-linked persisted scoring closeout depth
+
+Scope:
+- extend `7.2` from explicit feedback rows to deliverable-linked closeout depth
+- let `completion review / checkpoint / sign-off foundation` see deliverable feedback, publish evidence, and deliverable-linked governed candidate outcome
+- keep outcome / writeback scoring explicitly out of scope
+
+Environment used:
+- local backend and frontend verification only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `PYTHONPATH=backend .venv312/bin/python -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/pytest backend/tests/test_phase_six_feedback_scoring.py -q` | Passed (`4 passed`) |
+| `PYTHONPATH=backend .venv312/bin/pytest backend/tests/test_mvp_slice.py -q` | Passed (`245 passed`) |
+| `cd frontend && node --test tests/phase-six-governance.test.mjs tests/intake-progress.test.mjs` | Passed (`47 passed`) |
+| `cd frontend && rm -f .next/cache/.tsbuildinfo && mkdir -p .next/types && npx next typegen && npm run typecheck` | Passed |
+| `cd frontend && npm run build` | Passed |
+
+### Phase-6 closeout-depth verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | feedback-linked snapshot builder | Extend snapshot from explicit feedback rows to deliverable-linked closeout depth counts | Verified | targeted backend tests confirm the snapshot now records deliverable feedback, published deliverables, published adopted deliverables, and deliverable-linked governed candidates |
+| Backend | `/workbench/phase-6-completion-review` | Rewrite `feedback_loop` score and summary to read deliverable-linked closeout depth | Verified | targeted backend tests confirm completion-review scorecard now surfaces `closeout_depth_summary` rather than treating all feedback rows as the same generic signal |
+| Backend | `/workbench/phase-6-completion-review/checkpoint` | Persist deliverable-linked closeout depth into checkpoint payload and summary | Verified | targeted backend tests confirm checkpoint payload and checkpoint summary now preserve closeout-depth evidence |
+| Backend | phase-six / deliverable feedback / sign-off regression | Preserve existing deliverable feedback, publish, completion-review, and sign-off behavior | Verified | targeted `test_mvp_slice` subset and full `test_mvp_slice.py` regression remain green after the scoring rewrite |
+| Frontend | homepage `Generalist Governance` completion-review card | Add low-noise closeout-depth readout without creating a new dashboard family | Verified | targeted node tests confirm the new helper stays compact and consultant-readable while homepage continues to render inside the existing completion-review card |
+| Cross-layer | phase-level next-step reading | Let `7.15` alignment and `7.2` progress stop claiming only generic feedback foundation | Verified | completion-review and phase-level summaries now move the next-step framing toward outcome / writeback evidence, matching the new closeout-depth position |
+
+### Explicitly not shipped in this pass
+
+- `OutcomeRecord` scoring
+- action execution / writeback scoring
+- business outcome attribution
+- new governance dashboard family

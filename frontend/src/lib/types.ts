@@ -444,6 +444,13 @@ export interface PhaseSixFeedbackLinkedScoringSnapshot {
   overrideSignalCount: number;
   topAssetCodes: string[];
   topAssetLabels: string[];
+  deliverableFeedbackCount: number;
+  deliverableAdoptedCount: number;
+  publishedDeliverableCount: number;
+  publishedAdoptedCount: number;
+  deliverableCandidateCount: number;
+  governedDeliverableCandidateCount: number;
+  closeoutDepthSummary: string;
   summary: string;
 }
 

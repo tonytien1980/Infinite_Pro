@@ -141,6 +141,10 @@ Infinite Pro 的正式產品想像應理解為：
   - `completion review / checkpoint` 現在開始正式保存 explicit feedback-linked evidence snapshot
   - 但目前仍只先吃 `AdoptionFeedback` 與 candidate governance outcomes
   - 還沒有把 deliverable / outcome writeback evidence 一次做滿
+- `7.2` 的第二刀目前也已開始正式落地：
+  - feedback-linked scoring 開始正式區分 deliverable-linked evidence
+  - `completion review / checkpoint` 現在也開始看 deliverable feedback / publish / deliverable-linked governed candidate
+  - 但仍未進到 outcome / writeback scoring
 
 ---
 
@@ -172,7 +176,7 @@ Infinite Pro 的正式產品想像應理解為：
 
 ### 5.2 Completion review scoring is still foundation-level
 
-目前 `completion review / persisted checkpoint / sign-off foundation` 已成立。
+目前 `completion review / persisted checkpoint / sign-off foundation` 已成立，而且 `7.2` 已開始往 deliverable-linked closeout depth 推進。
 
 但它更準確的產品理解是：
 
@@ -293,6 +297,12 @@ Infinite Pro 已正式承接：
 - 是否被 override
 - 是否真的幫到 deliverable / outcome
 - 如何把這些 evidence 回寫到 persisted governance scoring
+
+目前進度：
+
+- 第一刀已正式吃到 explicit feedback 與 candidate governance outcomes
+- 第二刀已開始正式吃到 deliverable-linked feedback / publish / governed candidate outcome
+- 但 outcome / writeback evidence 仍未接滿
 
 完成判準：
 
