@@ -112,7 +112,6 @@ def _build_phase_six_feedback_linked_snapshot(
     feedback_rows = db.scalars(select(models.AdoptionFeedback)).all()
     candidate_rows = db.scalars(select(models.PrecedentCandidate)).all()
     publish_rows = db.scalars(select(models.DeliverablePublishRecord)).all()
-    task_ids = {row.task_id for row in feedback_rows} | {row.task_id for row in candidate_rows}
     task_rows = (
         db.scalars(
             select(models.Task)
@@ -121,30 +120,13 @@ def _build_phase_six_feedback_linked_snapshot(
                     models.MatterWorkspaceTaskLink.matter_workspace
                 )
             )
-            .where(models.Task.id.in_(task_ids))
         ).all()
-        if task_ids
-        else []
     )
-    outcome_rows = (
-        db.scalars(select(models.OutcomeRecord).where(models.OutcomeRecord.task_id.in_(task_ids))).all()
-        if task_ids
-        else []
-    )
-    execution_rows = (
-        db.scalars(select(models.ActionExecution).where(models.ActionExecution.task_id.in_(task_ids))).all()
-        if task_ids
-        else []
-    )
-    writeback_events = (
-        db.scalars(
-            select(models.AuditEvent)
-            .where(models.AuditEvent.task_id.in_(task_ids))
-            .where(models.AuditEvent.event_type == "writeback_generated")
-        ).all()
-        if task_ids
-        else []
-    )
+    outcome_rows = db.scalars(select(models.OutcomeRecord)).all()
+    execution_rows = db.scalars(select(models.ActionExecution)).all()
+    writeback_events = db.scalars(
+        select(models.AuditEvent).where(models.AuditEvent.event_type == "writeback_generated")
+    ).all()
 
     adopted_count = sum(1 for row in feedback_rows if row.feedback_status == "adopted")
     needs_revision_count = sum(1 for row in feedback_rows if row.feedback_status == "needs_revision")

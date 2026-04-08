@@ -675,7 +675,7 @@ def build_phase_six_completion_review(
         computed_feedback_snapshot.deliverable_feedback_count > 0
         or computed_feedback_snapshot.deliverable_candidate_count > 0
     )
-    feedback_loop_score = (
+    base_feedback_loop_score = (
         84
         if has_strong_deliverable_closeout_depth
         or computed_feedback_snapshot.governed_deliverable_candidate_count > 0
@@ -685,6 +685,17 @@ def build_phase_six_completion_review(
         or computed_feedback_snapshot.needs_revision_count > 0
         or computed_feedback_snapshot.governed_candidate_count > 0
         else 42
+    )
+    has_writeback_depth = (
+        computed_feedback_snapshot.writeback_expected_task_count > 0
+        and (
+            computed_feedback_snapshot.outcome_record_count > 0
+            or computed_feedback_snapshot.writeback_generated_event_count > 0
+            or computed_feedback_snapshot.review_required_execution_count > 0
+        )
+    )
+    feedback_loop_score = (
+        min(94, base_feedback_loop_score + 6) if has_writeback_depth else base_feedback_loop_score
     )
     completion_foundation_score = (
         88 if closure_review.closure_posture == "ready_for_completion_review" else 72
@@ -712,6 +723,7 @@ def build_phase_six_completion_review(
             summary=(
                 f"{computed_feedback_snapshot.summary}"
                 f"｜{computed_feedback_snapshot.closeout_depth_summary}"
+                f"｜{computed_feedback_snapshot.writeback_depth_summary}"
                 f"｜governed candidates {computed_feedback_snapshot.governed_candidate_count}。"
             ),
         ),
@@ -755,6 +767,7 @@ def build_phase_six_completion_review(
         else (
             f"{effective_feedback_snapshot.summary}"
             f"｜{effective_feedback_snapshot.closeout_depth_summary}"
+            f"｜{effective_feedback_snapshot.writeback_depth_summary}"
         )
     )
     overall_score = (
@@ -781,7 +794,8 @@ def build_phase_six_completion_review(
     checkpoint_summary = (
         (
             f"最近一次 checkpoint 由 {checkpoint_state.get('checkpointed_by_label') or 'owner'} 記錄，"
-            f"當時總分 {overall_score}，{effective_feedback_snapshot.closeout_depth_summary}。"
+            f"當時總分 {overall_score}，{effective_feedback_snapshot.closeout_depth_summary}｜"
+            f"{effective_feedback_snapshot.writeback_depth_summary}。"
         )
         if checkpointed
         else "目前還沒有 recorded checkpoint，可先用這次 scorecard 做第一筆 completion review snapshot。"
