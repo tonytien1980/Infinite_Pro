@@ -369,6 +369,20 @@ Infinite Pro 已正式承接：
 - 高階顧問不覺得系統過度吵雜或像教學平台
 - 同一套 surface 能支撐不同成熟度而不分裂成 training shell
 
+目前進度：
+
+- 第一刀已正式落地在：
+  - `overview`
+  - `matter workspace`
+  - `deliverable workspace`
+- 首頁現在先用更明確的 primary-action block 與 section guide 回答：
+  - 現在先做什麼
+  - 如果不是這件事，下一個路徑在哪
+- `matter workspace` 現在把主線補充、案件世界 / 寫回策略、以及 evidence / deliverable fallback path 分得更清楚
+- `deliverable workspace` 現在把 publish / reading / evidence / context 幾條閱讀路徑與 explanation-on-demand 語意拉齊
+- `task detail` 仍不在這一刀範圍內
+- 這一刀仍維持 low-noise default，沒有滑向 training shell 或新 dashboard family
+
 ### 7.5 Priority 5: Product reliability and release discipline
 
 目標：

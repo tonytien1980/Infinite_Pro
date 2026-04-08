@@ -575,6 +575,16 @@ Primary action：
 
 - 打開最值得回去的工作面
 
+`7.4 v1` 之後，首頁還應正式成立：
+
+- 第一屏先用一個更明確的 primary-action block 回答：
+  - `現在先做這件事`
+- 首頁的 section guide 只應回答：
+  - 若要接回主工作，去哪裡
+  - 若卡在依據偏薄，先走哪條補件路徑
+  - 若不是延續工作，何時才直接建立新案件
+- 首頁不應承接整個案件背景，也不應把 metrics 區讀成主線
+
 ### 7.2 `/new`
 
 主任務：
@@ -684,6 +694,16 @@ Primary action 應隨 continuity mode 分流：
 - 目前是回來更新，還是持續推進
 - 最近最重要的變化是什麼
 - 下次回看節奏與下一步先做什麼
+
+`7.4 v1` 之後，`matter workspace` 還應正式成立：
+
+- overview tab 先用 section guide 回答：
+  - `先看案件主線與下一步`
+  - `何時才需要確認案件世界與寫回策略`
+  - `何時應直接回來源與證據或交付物工作面`
+- `案件世界狀態與寫回策略` 必須維持 second-layer disclosure：
+  - 只有在要確認 world authority / task slices / writeback depth 時才展開
+- `matter workspace` 不可把 organization memory、domain playbook、continuity 細節一起擠回首屏 hero
 
 ### 7.4 `/matters/[matterId]/evidence`
 
@@ -824,6 +844,17 @@ Primary action 應隨 continuity mode / status 分流：
 若要在 deliverable surface 補第二層旗艦閱讀，應優先放在較低噪音的 continuity / research / writeback disclosure 中，而不是讓這層與交付摘要主線搶首屏。
 
 若這份交付物已進入 precedent candidate pool，也應優先掛在 adoption feedback 區塊附近，而不是在交付 hero 額外開一條 precedent 主線。
+
+`7.4 v1` 之後，`deliverable workspace` 還應正式成立：
+
+- `發布前快速檢查` 應作為首個明確的 publish / save decision block
+- section guide 應先分清：
+  - 先決定這一步
+  - 要先看內容時回交付摘要
+  - 需要確認依據或背景時再下鑽
+- `連續性、研究與寫回紀錄` 與 `交付脈絡與工作面背景` 都必須維持 explanation-on-demand：
+  - 只有在要確認 writeback / context 時才展開
+  - 日常閱讀先看交付摘要與建議 / 風險 / 行動
 
 ### 7.7 `/agents`
 

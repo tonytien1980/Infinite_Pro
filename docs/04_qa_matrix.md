@@ -5184,3 +5184,42 @@ Environment used:
 - dashboard-first evaluation console
 - weighted consultant score wall
 - hard-fail generalist gate policy
+
+---
+
+## Entry: 2026-04-09 consultant usability layer v1
+
+Scope:
+- start `7.4` with a usability pass across `overview`, `matter workspace`, and `deliverable workspace`
+- clarify first-action hierarchy without creating a training shell
+- keep second-layer reading and disclosure explanation low-noise and on-demand
+
+Environment used:
+- local frontend and backend verification only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `cd frontend && node --test tests/consultant-usability.test.mjs tests/intake-progress.test.mjs tests/phase-six-governance.test.mjs` | Passed (`53 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && npm run typecheck` | Passed |
+| `PYTHONPATH=backend .venv312/bin/pytest backend/tests/test_mvp_slice.py -q` | Passed (`245 passed`) |
+
+### Consultant-usability verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Frontend | `/` overview | Add a clearer `現在先做這件事` block and a route-oriented section guide | Verified | homepage now answers the primary action more directly and keeps fallback paths low-noise instead of relying on hero metrics alone |
+| Frontend | `/` overview | Preserve the same overview route and shell while improving first-action hierarchy | Verified | build output confirms homepage remains on `/` and does not create a new onboarding or dashboard surface |
+| Frontend | `/matters/[matterId]` overview tab | Add a calmer reading guide and keep world-authority / writeback guidance in second-layer disclosure | Verified | matter workspace now separates `主線補充` from `案件世界狀態與寫回策略`, while evidence / deliverable fallback paths are easier to reach |
+| Frontend | `/deliverables/[deliverableId]` | Re-align publish, reading, evidence, and context lanes through one section guide | Verified | deliverable workspace now treats `發布前快速檢查` as the first decision block and keeps deeper context/writeback layers clearly on-demand |
+| Frontend | helper contract | Introduce pure consultant-usability view models for overview / matter / deliverable reading hierarchy | Verified | targeted node tests lock low-noise copy, route hierarchy, and disclosure descriptions without adding runtime coupling |
+| Regression | frontend / backend shared verification | Preserve shipped workbench flows while refining usability only | Verified | targeted frontend tests, production build, typecheck, and full `test_mvp_slice.py` regression all remain green after the usability pass |
+
+### Explicitly not shipped in this pass
+
+- training shell
+- onboarding wizard
+- new dashboard family
+- `task detail` usability rewrite
