@@ -182,6 +182,15 @@ P0-H 之後，這份 baseline 再往前一步：
 - 這一刀是 density patch，不是 full matrix expansion
 - continuity 與 cross-domain density 留待後續 slices
 
+`T2-A` 第二刀之後，`個人品牌與服務` 也從 stage-concentrated baseline 往跨 stage density 推進：
+- 補上 `創業階段 + 個人品牌與服務`
+- 補上 `規模化階段 + 個人品牌與服務`
+- 讓 `個人品牌與服務` 不再幾乎只被制度化階段代表
+
+正式規則仍維持：
+- 這一刀仍是 density patch，不是 pair-level summary platform
+- 大型企業 density、continuity density 與 cross-domain density 仍留待後續 slices
+
 ### 3.3 目前 formalized 的 result schema
 
 每筆 benchmark result 至少表達：

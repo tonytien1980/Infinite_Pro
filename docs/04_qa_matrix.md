@@ -5222,6 +5222,41 @@ Environment used:
 
 ---
 
+## Entry: 2026-04-09 T2-A personal-brand density v1
+
+Scope:
+- deepen `T2-A` by spreading `個人品牌與服務` across startup and scaled stages
+- keep the same `generalist_coverage_proof_v1` suite instead of introducing a pair-level summary platform
+- make personal-brand/service coverage look less制度化-only
+
+Environment used:
+- local backend verification only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `PYTHONPATH=backend .venv312/bin/pytest backend/tests/test_benchmark_scaffolding.py -q` | Passed (`22 passed`) |
+| `PYTHONPATH=backend .venv312/bin/python backend/scripts/run_pack_benchmark_scaffold.py --suite coverage` | Passed |
+
+### T2-A personal-brand density verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | `backend/app/benchmarks/manifests/g1_stage_type_coverage.json` | Add startup and scaled `個人品牌與服務` representative cases | Verified | stage/type manifest now carries `9` cases, and personal-brand/service no longer stays制度化-only |
+| Backend | `backend/tests/test_benchmark_scaffolding.py` | Tighten manifest and suite-level count expectations around personal-brand/service density | Verified | pytest now asserts `個人品牌與服務 = 4`, while suite-level stage counts become `創業階段 = 4 / 制度化階段 = 8 / 規模化階段 = 4` |
+| CLI | `backend/scripts/run_pack_benchmark_scaffold.py --suite coverage` | Re-run live coverage suite after the density patch | Verified | live output now returns `total_case_count = 16`, `client_type.個人品牌與服務 = 4`, and keeps `client_type.thin_values = []` |
+| Coverage posture | personal-brand/service stage spread | Confirm the suite stays advisory-first while making `個人品牌與服務` less stage-concentrated | Verified | `個人品牌與服務` now spans startup,制度化, and scaled stages without adding a new suite family or pair-level score wall |
+
+### Explicitly not shipped in this pass
+
+- large-enterprise density deepen
+- continuity density deepen
+- cross-domain density deepen
+- pair-level summary schema
+
+---
+
 ## Entry: 2026-04-09 consultant usability layer v1
 
 Scope:

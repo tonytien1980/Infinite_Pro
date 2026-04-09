@@ -277,14 +277,15 @@ def test_generalist_stage_type_manifest_covers_representative_seed_cases() -> No
     manifest = load_manifest("backend/app/benchmarks/manifests/g1_stage_type_coverage.json")
 
     assert manifest.manifest_id == "g1_stage_type_coverage_baseline"
-    assert len(manifest.cases) == 7
+    assert len(manifest.cases) == 9
     assert {"創業階段", "制度化階段", "規模化階段"} <= {case.client_stage for case in manifest.cases}
     assert {"中小企業", "大型企業", "個人品牌與服務", "自媒體"} <= {
         case.client_type for case in manifest.cases
     }
     assert sum(case.client_type == "自媒體" for case in manifest.cases) == 3
-    assert sum(case.client_stage == "創業階段" for case in manifest.cases) == 2
-    assert sum(case.client_stage == "規模化階段" for case in manifest.cases) == 2
+    assert sum(case.client_type == "個人品牌與服務" for case in manifest.cases) == 3
+    assert sum(case.client_stage == "創業階段" for case in manifest.cases) == 3
+    assert sum(case.client_stage == "規模化階段" for case in manifest.cases) == 3
 
 
 def test_generalist_continuity_manifest_covers_expected_lanes() -> None:
@@ -333,7 +334,7 @@ def test_generalist_coverage_suite_returns_coverage_summary() -> None:
     result = run_suite(suite)
 
     assert result.gate_status == BenchmarkStatus.PASS
-    assert result.total_case_count == 14
+    assert result.total_case_count == 16
     assert len(result.category_results) == 3
     assert result.coverage_summary
     stage_summary = next(item for item in result.coverage_summary if item.axis == "client_stage")
@@ -342,12 +343,13 @@ def test_generalist_coverage_suite_returns_coverage_summary() -> None:
     cross_domain_summary = next(item for item in result.coverage_summary if item.axis == "cross_domain")
 
     assert "創業階段" in stage_summary.expected_values
-    assert stage_summary.counts["創業階段"] == 3
-    assert stage_summary.counts["規模化階段"] == 3
+    assert stage_summary.counts["創業階段"] == 4
+    assert stage_summary.counts["規模化階段"] == 4
 
-    assert "自媒體" in type_summary.expected_values
+    assert "個人品牌與服務" in type_summary.expected_values
+    assert type_summary.counts["個人品牌與服務"] == 4
     assert type_summary.counts["自媒體"] == 3
-    assert "自媒體" not in type_summary.thin_values
+    assert "個人品牌與服務" not in type_summary.thin_values
     assert not type_summary.missing_values
 
     assert "one_off" in continuity_summary.expected_values

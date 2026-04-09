@@ -773,6 +773,9 @@ phase close review 的結論只能落在以下四種：
 - `g1_stage_type_coverage` 已補上兩個 `自媒體` representative cases
 - `generalist_coverage_proof_v1` 的 `client_type=self_media` 不再只靠單點代表
 - `創業階段 / 規模化階段` 的 suite-level counts 也較 baseline 略為改善
+- 第二刀也已正式落地成 `personal-brand density v1`
+- `個人品牌與服務` 現在已不再只由制度化階段代表
+- `創業階段 + 個人品牌與服務` 與 `規模化階段 + 個人品牌與服務` 都已有正式 seed cases
 - 但 continuity density 與 cross-domain density 仍未進入這一刀
 
 ### 11.2 T2-B Reusable intelligence effectiveness deepen
