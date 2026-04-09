@@ -306,12 +306,14 @@ def test_generalist_cross_domain_manifest_covers_expected_bundles() -> None:
     manifest = load_manifest("backend/app/benchmarks/manifests/g1_cross_domain_coverage.json")
 
     assert manifest.manifest_id == "g1_cross_domain_coverage_baseline"
+    assert len(manifest.cases) == 6
     assert {case.coverage_bundle_id for case in manifest.cases} == {
         "legal_plus_finance",
         "operations_plus_org_people",
         "marketing_sales_plus_product_service",
         "research_plus_domain_advisory",
     }
+    assert sum(case.coverage_bundle_id == "legal_plus_finance" for case in manifest.cases) == 3
 
 
 def test_generalist_coverage_suite_manifest_covers_expected_categories() -> None:
@@ -337,7 +339,7 @@ def test_generalist_coverage_suite_returns_coverage_summary() -> None:
     result = run_suite(suite)
 
     assert result.gate_status == BenchmarkStatus.PASS
-    assert result.total_case_count == 18
+    assert result.total_case_count == 20
     assert len(result.category_results) == 3
     assert result.coverage_summary
     stage_summary = next(item for item in result.coverage_summary if item.axis == "client_stage")
@@ -345,24 +347,26 @@ def test_generalist_coverage_suite_returns_coverage_summary() -> None:
     continuity_summary = next(item for item in result.coverage_summary if item.axis == "continuity")
     cross_domain_summary = next(item for item in result.coverage_summary if item.axis == "cross_domain")
 
-    assert "創業階段" in stage_summary.expected_values
-    assert stage_summary.counts["創業階段"] == 4
-    assert stage_summary.counts["制度化階段"] == 9
+    assert stage_summary.counts["創業階段"] == 5
+    assert stage_summary.counts["制度化階段"] == 10
     assert stage_summary.counts["規模化階段"] == 5
 
-    assert "個人品牌與服務" in type_summary.expected_values
-    assert type_summary.counts["個人品牌與服務"] == 5
+    assert type_summary.counts["中小企業"] == 8
+    assert type_summary.counts["個人品牌與服務"] == 6
     assert type_summary.counts["自媒體"] == 4
-    assert "個人品牌與服務" not in type_summary.thin_values
+    assert not type_summary.thin_values
     assert not type_summary.missing_values
 
-    assert "one_off" in continuity_summary.expected_values
-    assert continuity_summary.counts["one_off"] == 7
-    assert continuity_summary.counts["follow_up"] == 6
+    assert continuity_summary.counts["one_off"] == 8
+    assert continuity_summary.counts["follow_up"] == 7
     assert continuity_summary.counts["continuous"] == 5
     assert not continuity_summary.thin_values
     assert not continuity_summary.missing_values
-    assert "research_plus_domain_advisory" in cross_domain_summary.expected_values
+
+    assert cross_domain_summary.counts["legal_plus_finance"] == 5
+    assert cross_domain_summary.counts["operations_plus_org_people"] == 4
+    assert cross_domain_summary.counts["research_plus_domain_advisory"] == 4
+    assert "legal_plus_finance" not in cross_domain_summary.thin_values
     assert not stage_summary.missing_values
     assert not cross_domain_summary.missing_values
 

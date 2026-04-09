@@ -200,6 +200,15 @@ P0-H 之後，這份 baseline 再往前一步：
 - 這一刀仍是 continuity density patch，不是 writeback-depth platform
 - cross-domain density 與其他更細的 summary contract 留待後續 slices
 
+`T2-A` 第四刀之後，cross-domain proof 也從最薄 bundle baseline 往 representative density 推進：
+- `legal_plus_finance` 補上了 `startup SMB SaaS` 與 `institutional personal-brand / online-education` 兩個 legal/finance representative cases
+- live coverage output 現在已回到 `legal_plus_finance = 5`
+- `cross_domain.thin_values = []`，代表最薄 bundle 已不再靠單一 SMB contract/finance pattern 撐住
+
+正式規則仍維持：
+- 這一刀仍是 cross-domain density patch，不是新的 coverage schema
+- 不開新 suite family，也不把 benchmark system 擴成 full matrix platform
+
 ### 3.3 目前 formalized 的 result schema
 
 每筆 benchmark result 至少表達：

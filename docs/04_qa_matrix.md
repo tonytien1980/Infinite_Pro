@@ -5292,6 +5292,41 @@ Environment used:
 
 ---
 
+## Entry: 2026-04-10 T2-A cross-domain density v1
+
+Scope:
+- deepen `T2-A` by thickening the thinnest cross-domain bundle in `generalist_coverage_proof_v1`
+- keep the same coverage suite instead of introducing a cross-domain platform
+- make `legal_plus_finance` less dependent on a single SMB contract/finance pattern
+
+Environment used:
+- local backend verification only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `PYTHONPATH=backend .venv312/bin/pytest backend/tests/test_benchmark_scaffolding.py -q` | Passed (`22 passed`) |
+| `PYTHONPATH=backend .venv312/bin/python backend/scripts/run_pack_benchmark_scaffold.py --suite coverage` | Passed |
+
+### T2-A cross-domain density verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | `backend/app/benchmarks/manifests/g1_cross_domain_coverage.json` | Add one startup legal/finance case and one personal-brand legal/finance case | Verified | cross-domain manifest now carries `6` cases, and `legal_plus_finance` is represented by `3` manifest cases instead of `1` |
+| Backend | `backend/tests/test_benchmark_scaffolding.py` | Tighten cross-domain manifest and suite-level count expectations | Verified | pytest now asserts `total_case_count = 20`, `legal_plus_finance = 5`, `中小企業 = 8`, `個人品牌與服務 = 6`, `one_off = 8`, and `follow_up = 7` |
+| CLI | `backend/scripts/run_pack_benchmark_scaffold.py --suite coverage` | Re-run live coverage suite after the cross-domain patch | Verified | live output now returns `total_case_count = 20`, `cross_domain.counts.legal_plus_finance = 5`, and `cross_domain.thin_values = []` |
+| Coverage posture | cross-domain representative density | Confirm the thinnest legal/finance bundle is no longer carried by a single SMB-centric pattern | Verified | `legal_plus_finance` now spans startup SMB SaaS, institutional SMB, scaled enterprise, and institutional personal-brand contexts while remaining advisory-first |
+
+### Explicitly not shipped in this pass
+
+- other cross-domain bundle density deepen
+- cross-domain summary schema
+- new suite family
+- full matrix platform
+
+---
+
 ## Entry: 2026-04-09 consultant usability layer v1
 
 Scope:

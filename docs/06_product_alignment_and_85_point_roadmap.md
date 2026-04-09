@@ -779,7 +779,9 @@ phase close review 的結論只能落在以下四種：
 - 第三刀也已正式落地成 `continuity density v1`
 - `follow_up` 現在不再只由 SMB operations checkpoint 代表
 - `continuous` 現在不再只由 scaled enterprise operations case 代表
-- 但 cross-domain density 仍未進入這一刀
+- 第四刀也已正式落地成 `cross-domain density v1`
+- `legal_plus_finance` 已從 `3` 補到 `5`
+- `generalist_coverage_proof_v1` 的 `cross_domain.thin_values` 現在已為空
 
 ### 11.2 T2-B Reusable intelligence effectiveness deepen
 
