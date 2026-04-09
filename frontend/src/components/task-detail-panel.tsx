@@ -50,6 +50,7 @@ import {
   buildResearchDetailView,
   buildResearchGuidanceView,
 } from "@/lib/research-lane";
+import { buildTaskDetailUsabilityView } from "@/lib/task-detail-usability";
 import { buildDomainPlaybookView } from "@/lib/domain-playbooks";
 import { buildOrganizationMemoryView } from "@/lib/organization-memory";
 import {
@@ -864,6 +865,24 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
         task.pack_resolution.selected_industry_packs.length
       : 0;
   const selectedAgentCount = task?.agent_selection.selected_agent_names.length ?? 0;
+  const taskDetailUsabilityView = task
+    ? buildTaskDetailUsabilityView({
+        hasThinTaskEvidence,
+        hasLatestDeliverable: Boolean(latestDeliverable),
+        latestDeliverableTitle: latestDeliverable?.title || "",
+        hasMatterWorkspace: Boolean(task.matter_workspace),
+        runButtonLabel: runMeta?.buttonIdle ?? "執行分析",
+        runDestinationLabel: latestDeliverable
+          ? `最新結果已整理成「${latestDeliverable.title}」，可以直接回看正式交付結果。`
+          : taskActionSummary,
+        laneTitle: taskHeroLaneTitle,
+        laneSummary: taskHeroLaneSummary,
+        readinessLabel: readinessGovernance?.label || "待確認",
+        readinessSummary: readinessGovernance?.summary || "先判斷這輪工作的就緒度。",
+        evidenceCount: task.evidence.length,
+        sourceMaterialCount: task.source_materials.length,
+      })
+    : null;
 
   return (
     <main className="page-shell decision-page-shell">
@@ -938,35 +957,44 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
               </div>
 
               <div className="hero-aside">
-                <div className="hero-focus-card">
-                  <p className="hero-focus-label">{taskActionTitle}</p>
-                  <h3 className="hero-focus-title">{taskHeroActionTitle}</h3>
-                  <p className="hero-focus-copy">{taskActionSummary}</p>
-                </div>
                 <div className="hero-focus-card hero-focus-card-warm">
-                  <p className="hero-focus-label">這頁先做什麼</p>
+                  <p className="hero-focus-label">
+                    {taskDetailUsabilityView?.primaryLabel || "現在先做這件事"}
+                  </p>
+                  <h3 className="hero-focus-title">
+                    {taskDetailUsabilityView?.primaryTitle || taskHeroActionTitle}
+                  </h3>
+                  <p className="hero-focus-copy">
+                    {taskDetailUsabilityView?.primaryCopy || taskActionSummary}
+                  </p>
                   <ul className="hero-focus-list">
-                    {taskActionChecklist.slice(0, 3).map((item) => (
+                    {(taskDetailUsabilityView?.checklist || taskActionChecklist)
+                      .slice(0, 3)
+                      .map((item) => (
                       <li key={item}>{item}</li>
                     ))}
                   </ul>
                 </div>
                 <div className="hero-focus-card">
                   <p className="hero-focus-label">
-                    {researchGuidance?.shouldShow
-                      ? researchGuidance.label
-                      : continuationFocusSummary.shouldShow
-                        ? continuationFocusSummary.label
-                        : taskHeroLaneTitle}
+                    {taskDetailUsabilityView?.railEyebrow ||
+                      (researchGuidance?.shouldShow
+                        ? researchGuidance.label
+                        : continuationFocusSummary.shouldShow
+                          ? continuationFocusSummary.label
+                          : taskHeroLaneTitle)}
                   </p>
                   <h3 className="hero-focus-title">
-                    {researchGuidance?.shouldShow
-                      ? `${researchGuidance.depthLabel}｜${researchGuidance.firstQuestion}`
-                      : continuationFocusSummary.shouldShow
-                        ? continuationFocusSummary.title
-                        : taskHeroLaneSummary}
+                    {taskDetailUsabilityView?.railTitle ||
+                      (researchGuidance?.shouldShow
+                        ? `${researchGuidance.depthLabel}｜${researchGuidance.firstQuestion}`
+                        : continuationFocusSummary.shouldShow
+                          ? continuationFocusSummary.title
+                          : taskHeroActionTitle)}
                   </h3>
-                  {researchGuidance?.shouldShow ? (
+                  {taskDetailUsabilityView ? (
+                    <p className="hero-focus-copy">{taskDetailUsabilityView.railSummary}</p>
+                  ) : researchGuidance?.shouldShow ? (
                     <p className="hero-focus-copy">
                       {researchGuidance.executionOwnerLabel}｜
                       {researchGuidance.sourceQualitySummary || researchGuidance.stopCondition || researchGuidance.handoffSummary}
@@ -1022,9 +1050,12 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
           </section>
 
           <WorkspaceSectionGuide
-            title="這頁怎麼讀最快"
-            description="不要整頁一路往下刷。先選你現在要做的是對齊判斷、確認能不能跑、還是直接回看結果。"
-            items={taskSectionGuideItems}
+            title={taskDetailUsabilityView?.guideTitle || "這頁怎麼讀最快"}
+            description={
+              taskDetailUsabilityView?.guideDescription ||
+              "不要整頁一路往下刷。先選你現在要做的是對齊判斷、確認能不能跑、還是直接回看結果。"
+            }
+            items={taskDetailUsabilityView?.guideItems || taskSectionGuideItems}
           />
 
           <DisclosurePanel
