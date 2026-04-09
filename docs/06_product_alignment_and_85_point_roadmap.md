@@ -809,6 +809,9 @@ phase close review 的結論只能落在以下四種：
   - `adoption_supported`
   - `closeout_supported`
   - `writeback_supported`
+- 第二刀已正式落地成 `effectiveness evidence composition v1`
+- system 現在不只知道目前是 `adoption_supported / closeout_supported / writeback_supported`
+- system 也開始正式回讀目前主要支撐 evidence 與最大 caution
 - 這一刀仍未進入 KPI / business outcome attribution
 
 ### 11.3 T2-C Consultant operating leverage and task-surface usability
