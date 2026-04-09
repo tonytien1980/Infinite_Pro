@@ -467,6 +467,27 @@ export interface PhaseSixFeedbackLinkedScoringSnapshot {
   effectivenessPostureLabel: string;
   effectivenessPostureSummary: string;
   effectivenessCaveatSummary: string;
+  primarySupportSignal:
+    | "explicit_feedback"
+    | "deliverable_closeout"
+    | "writeback_evidence"
+    | "mixed_support";
+  primarySupportSignalLabel: string;
+  secondarySupportSignal:
+    | "none"
+    | "explicit_feedback"
+    | "deliverable_closeout"
+    | "writeback_evidence"
+    | "mixed_support";
+  secondarySupportSignalLabel: string;
+  currentCaveatSignal:
+    | "thin_deliverable_evidence"
+    | "thin_writeback_evidence"
+    | "minimal_writeback_expected"
+    | "narrow_asset_concentration"
+    | "none";
+  currentCaveatSignalLabel: string;
+  effectivenessCompositionSummary: string;
   summary: string;
 }
 

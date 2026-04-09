@@ -1224,6 +1224,20 @@ function parsePhaseSixCompletionReviewPayload(payload: any): PhaseSixCompletionR
         payload.feedback_linked_scoring_snapshot?.effectiveness_posture_summary || "",
       effectivenessCaveatSummary:
         payload.feedback_linked_scoring_snapshot?.effectiveness_caveat_summary || "",
+      primarySupportSignal:
+        payload.feedback_linked_scoring_snapshot?.primary_support_signal || "explicit_feedback",
+      primarySupportSignalLabel:
+        payload.feedback_linked_scoring_snapshot?.primary_support_signal_label || "",
+      secondarySupportSignal:
+        payload.feedback_linked_scoring_snapshot?.secondary_support_signal || "none",
+      secondarySupportSignalLabel:
+        payload.feedback_linked_scoring_snapshot?.secondary_support_signal_label || "",
+      currentCaveatSignal:
+        payload.feedback_linked_scoring_snapshot?.current_caveat_signal || "none",
+      currentCaveatSignalLabel:
+        payload.feedback_linked_scoring_snapshot?.current_caveat_signal_label || "",
+      effectivenessCompositionSummary:
+        payload.feedback_linked_scoring_snapshot?.effectiveness_composition_summary || "",
       summary: payload.feedback_linked_scoring_snapshot?.summary || "",
     },
     closurePosture: payload.closure_posture || "",
