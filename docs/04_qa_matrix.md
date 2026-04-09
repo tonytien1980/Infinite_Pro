@@ -5485,6 +5485,44 @@ Environment used:
 
 ---
 
+## Entry: 2026-04-10 T2-C task detail usability v1
+
+Scope:
+- start `T2-C` with a task-detail first-screen usability pass
+- keep the same `/tasks/[taskId]` surface instead of creating a new dashboard family
+- keep run flow, deliverable surface, extension manager, and supporting disclosures intact
+
+Environment used:
+- local frontend and backend verification
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `cd frontend && node --test tests/task-detail-usability.test.mjs tests/consultant-usability.test.mjs tests/intake-progress.test.mjs tests/phase-six-governance.test.mjs` | Passed (`56 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && npm run typecheck` | Passed |
+| `PYTHONPATH=backend .venv312/bin/pytest backend/tests/test_mvp_slice.py -q` | Passed (`245 passed`) |
+
+### T2-C task detail usability verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Frontend | `/tasks/[taskId]` hero | Reframe the first screen so it answers `能不能跑 / 缺什麼 / 跑完去哪裡` more directly | Verified | task hero now uses a dedicated usability view to keep the mainline, primary action, and next destination aligned instead of scattering those signals across several unrelated cards |
+| Frontend | `/tasks/[taskId]` section guide | Keep the route-oriented guide focused on readiness, run decision, and result/evidence destination | Verified | targeted helper tests confirm the guide stays capped at three task-first lanes instead of expanding into a dense card wall |
+| Frontend | `/tasks/[taskId]` right rail | Turn the hero-side summary into a clearer operating-leverage cue instead of a generic info card | Verified | the rail now prioritizes current posture, immediate next step, and result destination without turning into a training shell |
+| Regression | frontend / backend shared verification | Preserve existing task flow, run action, deliverable backlink, extension manager, and broader MVP behavior | Verified | targeted frontend tests, production build, typecheck, and full `test_mvp_slice.py` regression all remain green after the task-detail pass |
+
+### Explicitly not shipped in this pass
+
+- training shell
+- onboarding wizard
+- new dashboard family
+- task page full rewrite
+- matter / deliverable surface redesign
+
+---
+
 ## Entry: 2026-04-09 product reliability and release discipline v1
 
 Scope:

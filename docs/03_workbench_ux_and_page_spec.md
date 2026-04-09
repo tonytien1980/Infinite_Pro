@@ -767,6 +767,24 @@ Primary action：
 
 - 執行分析
 
+第一刀現在正式把 task hero / first-screen summary 收成：
+
+- 先看能不能跑
+- 若不能跑，最缺什麼
+- 若能跑，跑完去哪裡
+
+`WorkspaceSectionGuide` 第一波現在只保留三條主線：
+
+- readiness
+- run decision
+- result / evidence destination
+
+task hero 右側 rail 現在也應優先承接：
+
+- 現在先做這件事
+- 目前工作姿態 / 下一步
+- 若結果已形成，先回哪個正式交付物
+
 首屏也應明示：
 
 - 這筆工作現在屬於哪個 flagship lane

@@ -834,6 +834,12 @@ phase close review 的結論只能落在以下四種：
 - G
 - F
 
+目前進度：
+
+- 第一刀已正式落地成 `task detail usability pass v1`
+- `/tasks/[taskId]` 第一屏現在更直接回答：能不能跑、缺什麼、跑完去哪裡
+- task detail 目前已開始更像 consultant operating surface，而不是只有資訊堆疊頁
+
 ### 11.4 T2-D Runtime and release confidence deepen
 
 目標：
