@@ -488,6 +488,12 @@ export interface PhaseSixFeedbackLinkedScoringSnapshot {
     | "none";
   currentCaveatSignalLabel: string;
   effectivenessCompositionSummary: string;
+  attributionBoundary:
+    | "not_claimable"
+    | "outcome_adjacent"
+    | "cautious_attribution_candidate";
+  attributionBoundaryLabel: string;
+  attributionBoundarySummary: string;
   summary: string;
 }
 

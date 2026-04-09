@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  summarizePhaseSixAttributionBoundary,
   labelForPhaseSixAuditStatus,
   labelForPhaseSixCalibrationStatus,
   labelForPhaseSixCompletionReviewPosture,
@@ -290,6 +291,55 @@ test("phase 6 completion review labels stay low-noise and readable", () => {
       },
     }),
     "主要靠 writeback evidence｜次要靠 deliverable closeout｜目前仍集中在少數 reusable asset",
+  );
+  assert.equal(
+    summarizePhaseSixAttributionBoundary({
+      feedbackLinkedScoringSnapshot: {
+        adoptedCount: 2,
+        needsRevisionCount: 1,
+        notAdoptedCount: 0,
+        templateCandidateCount: 1,
+        governedCandidateCount: 2,
+        promotedCandidateCount: 1,
+        dismissedCandidateCount: 0,
+        overrideSignalCount: 1,
+        topAssetCodes: ["domain_playbook"],
+        topAssetLabels: ["工作主線"],
+        deliverableFeedbackCount: 2,
+        deliverableAdoptedCount: 1,
+        publishedDeliverableCount: 1,
+        publishedAdoptedCount: 1,
+        deliverableCandidateCount: 1,
+        governedDeliverableCandidateCount: 1,
+        closeoutDepthSummary: "交付回饋 2｜已 publish 1｜deliverable governed 1",
+        outcomeRecordCount: 1,
+        deliverableOutcomeRecordCount: 1,
+        followUpOutcomeCount: 1,
+        writebackGeneratedEventCount: 2,
+        reviewRequiredExecutionCount: 1,
+        plannedExecutionCount: 1,
+        writebackExpectedTaskCount: 1,
+        writebackDepthSummary: "outcome 1｜writeback events 2｜review-required executions 1",
+        effectivenessPosture: "writeback_supported",
+        effectivenessPostureLabel: "已到 writeback 支撐",
+        effectivenessPostureSummary: "已到 writeback 支撐｜主要看工作主線。",
+        effectivenessCaveatSummary: "目前仍集中在少數 reusable asset。",
+        primarySupportSignal: "writeback_evidence",
+        primarySupportSignalLabel: "主要靠 writeback evidence",
+        secondarySupportSignal: "deliverable_closeout",
+        secondarySupportSignalLabel: "次要靠 deliverable closeout",
+        currentCaveatSignal: "narrow_asset_concentration",
+        currentCaveatSignalLabel: "目前仍集中在少數 reusable asset",
+        effectivenessCompositionSummary:
+          "主要靠 writeback evidence｜次要靠 deliverable closeout｜目前仍集中在少數 reusable asset",
+        attributionBoundary: "cautious_attribution_candidate",
+        attributionBoundaryLabel: "可保守視為 attribution 候選",
+        attributionBoundarySummary:
+          "目前已到 closeout + writeback depth，但仍不是正式 attribution，只能保守視為候選。",
+        summary: "summary",
+      },
+    }),
+    "可保守視為 attribution 候選",
   );
 });
 

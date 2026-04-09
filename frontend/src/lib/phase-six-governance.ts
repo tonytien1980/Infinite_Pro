@@ -191,6 +191,22 @@ export function summarizePhaseSixEffectivenessComposition(
   );
 }
 
+export function summarizePhaseSixAttributionBoundary(
+  review: Pick<
+    {
+      feedbackLinkedScoringSnapshot: {
+        attributionBoundaryLabel: string;
+      };
+    },
+    "feedbackLinkedScoringSnapshot"
+  >,
+) {
+  return (
+    review.feedbackLinkedScoringSnapshot.attributionBoundaryLabel ||
+    "目前還沒有可讀取的 attribution boundary。"
+  );
+}
+
 export function summarizePhaseSixCoverageAreas(areas: PhaseSixCoverageArea[]) {
   if (areas.length === 0) {
     return "目前還沒有可讀取的 coverage signal。";

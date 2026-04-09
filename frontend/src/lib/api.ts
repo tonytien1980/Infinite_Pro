@@ -1238,6 +1238,12 @@ function parsePhaseSixCompletionReviewPayload(payload: any): PhaseSixCompletionR
         payload.feedback_linked_scoring_snapshot?.current_caveat_signal_label || "",
       effectivenessCompositionSummary:
         payload.feedback_linked_scoring_snapshot?.effectiveness_composition_summary || "",
+      attributionBoundary:
+        payload.feedback_linked_scoring_snapshot?.attribution_boundary || "not_claimable",
+      attributionBoundaryLabel:
+        payload.feedback_linked_scoring_snapshot?.attribution_boundary_label || "",
+      attributionBoundarySummary:
+        payload.feedback_linked_scoring_snapshot?.attribution_boundary_summary || "",
       summary: payload.feedback_linked_scoring_snapshot?.summary || "",
     },
     closurePosture: payload.closure_posture || "",
