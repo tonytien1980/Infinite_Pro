@@ -276,6 +276,41 @@ def build_phase_six_feedback_linked_scoring_snapshot(
         f"交付回饋 {deliverable_feedback_count}｜已 publish {published_deliverable_count}"
         f"｜deliverable governed {governed_deliverable_candidate_count}"
     )
+    positive_feedback_count = adopted_count + template_candidate_count + promoted_candidate_count
+    has_strong_deliverable_closeout_depth = (
+        deliverable_adopted_count > 0 and published_adopted_count > 0
+    )
+    has_deliverable_closeout_depth = (
+        deliverable_feedback_count > 0 or governed_deliverable_candidate_count > 0
+    )
+    has_writeback_depth = (
+        writeback_expected_task_count > 0
+        and (
+            outcome_record_count > 0
+            or writeback_generated_event_count > 0
+            or review_required_execution_count > 0
+        )
+    )
+    if has_writeback_depth:
+        effectiveness_posture = "writeback_supported"
+        effectiveness_posture_label = "已到 writeback 支撐"
+    elif has_strong_deliverable_closeout_depth or has_deliverable_closeout_depth:
+        effectiveness_posture = "closeout_supported"
+        effectiveness_posture_label = "已到 closeout 支撐"
+    elif positive_feedback_count > 0 or governed_candidate_count > 0:
+        effectiveness_posture = "adoption_supported"
+        effectiveness_posture_label = "已有 adoption 支撐"
+    else:
+        effectiveness_posture = "evidence_thin"
+        effectiveness_posture_label = "證據仍薄"
+    effectiveness_posture_summary = (
+        f"{effectiveness_posture_label}｜主要看 {'、'.join(top_asset_labels[:2]) or '既有 reusable assets'}。"
+    )
+    effectiveness_caveat_summary = (
+        "目前多為 one-off / minimal 案件，沒有 writeback 不算負訊號。"
+        if writeback_expected_task_count == 0
+        else "已有 full writeback expectation，若後續沒有 outcome / writeback evidence，就不要過度解讀 effectiveness。"
+    )
     writeback_depth_summary = (
         "目前多為 one-off / minimal 案件，沒有 writeback 不算負訊號。"
         if writeback_expected_task_count == 0
@@ -310,6 +345,10 @@ def build_phase_six_feedback_linked_scoring_snapshot(
         planned_execution_count=planned_execution_count,
         writeback_expected_task_count=writeback_expected_task_count,
         writeback_depth_summary=writeback_depth_summary,
+        effectiveness_posture=effectiveness_posture,
+        effectiveness_posture_label=effectiveness_posture_label,
+        effectiveness_posture_summary=effectiveness_posture_summary,
+        effectiveness_caveat_summary=effectiveness_caveat_summary,
         summary=summary,
     )
 

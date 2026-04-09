@@ -571,6 +571,15 @@ class PhaseSixFeedbackLinkedScoringSnapshotRead(BaseModel):
     planned_execution_count: int = 0
     writeback_expected_task_count: int = 0
     writeback_depth_summary: str = ""
+    effectiveness_posture: Literal[
+        "evidence_thin",
+        "adoption_supported",
+        "closeout_supported",
+        "writeback_supported",
+    ] = "evidence_thin"
+    effectiveness_posture_label: str = ""
+    effectiveness_posture_summary: str = ""
+    effectiveness_caveat_summary: str = ""
     summary: str = ""
 
 
