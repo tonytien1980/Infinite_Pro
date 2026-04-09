@@ -236,6 +236,11 @@ def test_phase_six_completion_review_persists_feedback_linked_snapshot(
     assert snapshot["dismissed_candidate_count"] == 1
     assert snapshot["override_signal_count"] == 3
     assert "工作主線" in snapshot["top_asset_labels"]
+    assert snapshot["effectiveness_posture"] == "adoption_supported"
+    assert snapshot["effectiveness_posture_label"] == "已有 adoption 支撐"
+    assert snapshot["effectiveness_posture_summary"]
+    assert snapshot["effectiveness_caveat_summary"]
+    assert "已有 adoption 支撐" in review_payload["feedback_linked_summary"]
 
     checkpoint = client.post(
         "/api/v1/workbench/phase-6-completion-review/checkpoint",
@@ -247,6 +252,10 @@ def test_phase_six_completion_review_persists_feedback_linked_snapshot(
     assert (
         checkpoint_payload["feedback_linked_scoring_snapshot"]["override_signal_count"]
         == review_payload["feedback_linked_scoring_snapshot"]["override_signal_count"]
+    )
+    assert (
+        checkpoint_payload["feedback_linked_scoring_snapshot"]["effectiveness_posture"]
+        == review_payload["feedback_linked_scoring_snapshot"]["effectiveness_posture"]
     )
 
     with SessionLocal() as db:

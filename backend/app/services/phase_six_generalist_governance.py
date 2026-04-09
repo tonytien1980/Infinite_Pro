@@ -763,6 +763,8 @@ def build_phase_six_completion_review(
                 f"{computed_feedback_snapshot.summary}"
                 f"｜{computed_feedback_snapshot.closeout_depth_summary}"
                 f"｜{computed_feedback_snapshot.writeback_depth_summary}"
+                f"｜{computed_feedback_snapshot.effectiveness_posture_summary}"
+                f"｜{computed_feedback_snapshot.effectiveness_caveat_summary}"
                 f"｜governed candidates {computed_feedback_snapshot.governed_candidate_count}。"
             ),
         ),
@@ -807,6 +809,7 @@ def build_phase_six_completion_review(
             f"{effective_feedback_snapshot.summary}"
             f"｜{effective_feedback_snapshot.closeout_depth_summary}"
             f"｜{effective_feedback_snapshot.writeback_depth_summary}"
+            f"｜{effective_feedback_snapshot.effectiveness_posture_summary}"
         )
     )
     overall_score = (
