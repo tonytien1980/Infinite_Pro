@@ -96,6 +96,42 @@
       "target_industry_pack_ids": ["media_creator_pack"],
       "expected_contract_interface_ids": ["evidence_readiness_v1", "decision_framing_v1", "deliverable_shaping_v1"],
       "expected_hint_areas": ["evidence_expectations", "decision_patterns", "readiness"]
+    },
+    {
+      "case_id": "startup_media_creator_offer_reset",
+      "title": "Startup media creator offer reset",
+      "description": "創業階段的自媒體，需要 research + product/service framing 來決定先收斂哪種內容與服務組合。",
+      "client_stage": "創業階段",
+      "client_type": "自媒體",
+      "engagement_continuity_mode": "one_off",
+      "writeback_depth": "minimal",
+      "coverage_bundle_id": "research_plus_domain_advisory",
+      "domain_lenses": ["研究", "產品服務"],
+      "industry_hints": ["creator"],
+      "decision_context_summary": "Need a startup creator recommendation on whether to narrow the current content-plus-service mix before scaling more channels or sponsors.",
+      "source_mix_summary": ["content performance note", "audience question log", "offer draft"],
+      "target_domain_pack_ids": ["research_intelligence_pack", "product_service_pack"],
+      "target_industry_pack_ids": ["media_creator_pack"],
+      "expected_contract_interface_ids": ["evidence_readiness_v1", "decision_framing_v1", "deliverable_shaping_v1"],
+      "expected_hint_areas": ["evidence_expectations", "decision_patterns", "readiness"]
+    },
+    {
+      "case_id": "scaled_media_creator_revenue_mix_reset",
+      "title": "Scaled media creator revenue-mix reset",
+      "description": "規模化階段的自媒體，需要 marketing + product/service framing 來重整多收入線組合。",
+      "client_stage": "規模化階段",
+      "client_type": "自媒體",
+      "engagement_continuity_mode": "continuous",
+      "writeback_depth": "full",
+      "coverage_bundle_id": "marketing_sales_plus_product_service",
+      "domain_lenses": ["行銷", "產品服務"],
+      "industry_hints": ["creator"],
+      "decision_context_summary": "Need a scaled creator recommendation on sponsor dependence, owned audience leverage, and whether to rebalance productized revenue before further expansion.",
+      "source_mix_summary": ["revenue mix review", "sponsor dependence note", "audience retention summary"],
+      "target_domain_pack_ids": ["marketing_sales_pack", "product_service_pack"],
+      "target_industry_pack_ids": ["media_creator_pack"],
+      "expected_contract_interface_ids": ["evidence_readiness_v1", "decision_framing_v1", "deliverable_shaping_v1"],
+      "expected_hint_areas": ["evidence_expectations", "decision_patterns", "readiness"]
     }
   ]
 }
