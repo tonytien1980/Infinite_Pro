@@ -17,7 +17,7 @@
 
 - [ ] **Step 1: Add a startup-stage self-media representative case**
 
-Append this case object after the existing `media_creator_audience_dependency` case:
+Insert this case object immediately after the existing `media_creator_audience_dependency` case, keeping valid JSON commas:
 
 ```json
 {
@@ -42,7 +42,7 @@ Append this case object after the existing `media_creator_audience_dependency` c
 
 - [ ] **Step 2: Add a scaled-stage self-media representative case**
 
-Append this second case immediately after the startup self-media case:
+Insert this second case immediately after the startup self-media case:
 
 ```json
 {
@@ -65,7 +65,7 @@ Append this second case immediately after the startup self-media case:
 }
 ```
 
-- [ ] **Step 3: Keep the manifest valid JSON**
+- [ ] **Step 3: Check the manifest is valid JSON and has 7 cases**
 
 Run:
 
@@ -105,7 +105,7 @@ Expected:
 
 - [ ] **Step 1: Strengthen the stage/type manifest test**
 
-Replace `test_generalist_stage_type_manifest_covers_representative_seed_cases()` with this version:
+Replace `test_generalist_stage_type_manifest_covers_representative_seed_cases()` with:
 
 ```python
 def test_generalist_stage_type_manifest_covers_representative_seed_cases() -> None:
@@ -124,7 +124,7 @@ def test_generalist_stage_type_manifest_covers_representative_seed_cases() -> No
 
 - [ ] **Step 2: Strengthen the suite coverage-summary test**
 
-Update `test_generalist_coverage_suite_returns_coverage_summary()` to add `client_type` checks and new count expectations:
+Update `test_generalist_coverage_suite_returns_coverage_summary()` to this version:
 
 ```python
 def test_generalist_coverage_suite_returns_coverage_summary() -> None:
@@ -253,7 +253,7 @@ Expected:
 
 - [ ] **Step 1: Update `docs/05` benchmark baseline wording**
 
-Add a short paragraph under the existing `7.3` coverage-proof baseline section explaining:
+Add this paragraph immediately after the existing `7.3` first-slice coverage-proof baseline block in `docs/05_benchmark_and_regression.md`:
 
 ```md
 `T2-A` 第一刀之後，`g1_stage_type_coverage` 已從 existence baseline 往 density baseline 推進：
@@ -268,7 +268,7 @@ Add a short paragraph under the existing `7.3` coverage-proof baseline section e
 
 - [ ] **Step 2: Update `docs/06` T2-A progress**
 
-Under `### 11.1 T2-A Coverage density and proof deepen` in `docs/06_product_alignment_and_85_point_roadmap.md`, append a `目前進度` block:
+Under `### 11.1 T2-A Coverage density and proof deepen` in `docs/06_product_alignment_and_85_point_roadmap.md`, append:
 
 ```md
 目前進度：
@@ -282,7 +282,7 @@ Under `### 11.1 T2-A Coverage density and proof deepen` in `docs/06_product_alig
 
 - [ ] **Step 3: Append a new `docs/04` QA entry**
 
-Add a new QA matrix entry after the existing `2026-04-09 generalist coverage proof baseline v1` section using this structure:
+Add a new QA matrix entry immediately after `## Entry: 2026-04-09 generalist coverage proof baseline v1` and its `Explicitly not shipped` list:
 
 ```md
 ## Entry: 2026-04-09 T2-A stage/type density v1
@@ -307,7 +307,7 @@ Environment used:
 | Area | Page / Flow | Action | Status | Notes |
 | --- | --- | --- | --- | --- |
 | Backend | `backend/app/benchmarks/manifests/g1_stage_type_coverage.json` | Add two new `自媒體` representative cases across startup and scaled stages | Verified | stage/type manifest now carries `7` cases instead of `5` without creating a new suite family |
-| Backend | `backend/tests/test_benchmark_scaffolding.py` | Tighten manifest and suite-level count expectations around self-media density | Verified | pytest now asserts `自媒體 = 3`, `創業階段 = 3`, and `規模化階段 = 3` at suite level |
+| Backend | `backend/tests/test_benchmark_scaffolding.py` | Tighten manifest and suite-level count expectations around self-media density | Verified | pytest now asserts `自媒體 = 3`, while `創業階段` and `規模化階段` each rise to `3` at suite level |
 | CLI | `backend/scripts/run_pack_benchmark_scaffold.py --suite coverage` | Re-run live coverage suite after the density patch | Verified | live output now returns `total_case_count = 14` and no longer flags `自媒體` as a thin client-type lane |
 | Coverage posture | stage/type density readout | Confirm the suite still stays advisory-first while becoming less thin | Verified | no missing values were introduced, and the pass remains a density deepen rather than a hard-gate expansion |
 
