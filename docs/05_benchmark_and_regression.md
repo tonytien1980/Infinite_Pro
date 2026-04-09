@@ -173,6 +173,15 @@ P0-H 之後，這份 baseline 再往前一步：
 - `generalist_coverage_proof_v1` 回答的是 coverage 薄弱區
 - `p0_full_regression_suite` 回答的仍是 hardening / contract / marker regression safety
 
+`T2-A` 第一刀之後，`g1_stage_type_coverage` 已從 existence baseline 往 density baseline 推進：
+- 補上兩個 `自媒體` representative cases
+- 讓 `自媒體` 不再只是單點 thin lane
+- 同時微幅改善 `創業階段 / 規模化階段` 相對於 `制度化階段` 的不對稱
+
+正式規則仍維持：
+- 這一刀是 density patch，不是 full matrix expansion
+- continuity 與 cross-domain density 留待後續 slices
+
 ### 3.3 目前 formalized 的 result schema
 
 每筆 benchmark result 至少表達：

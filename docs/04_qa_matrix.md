@@ -5187,6 +5187,41 @@ Environment used:
 
 ---
 
+## Entry: 2026-04-09 T2-A stage/type density v1
+
+Scope:
+- start `T2-A` with a narrow stage/type density patch
+- deepen `g1_stage_type_coverage` without introducing a new suite family
+- remove the single-case `自媒體` thin-lane posture from live coverage-proof output
+
+Environment used:
+- local backend verification only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `PYTHONPATH=backend .venv312/bin/pytest backend/tests/test_benchmark_scaffolding.py -q` | Passed (`22 passed`) |
+| `PYTHONPATH=backend .venv312/bin/python backend/scripts/run_pack_benchmark_scaffold.py --suite coverage` | Passed |
+
+### T2-A stage/type density verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | `backend/app/benchmarks/manifests/g1_stage_type_coverage.json` | Add two new `自媒體` representative cases across startup and scaled stages | Verified | stage/type manifest now carries `7` cases instead of `5` without creating a new suite family |
+| Backend | `backend/tests/test_benchmark_scaffolding.py` | Tighten manifest and suite-level count expectations around self-media density | Verified | pytest now asserts `自媒體 = 3`, while `創業階段` and `規模化階段` each rise to `3` at suite level |
+| CLI | `backend/scripts/run_pack_benchmark_scaffold.py --suite coverage` | Re-run live coverage suite after the density patch | Verified | live output now returns `total_case_count = 14` and no longer flags `自媒體` as a thin client-type lane |
+| Coverage posture | stage/type density readout | Confirm the suite still stays advisory-first while becoming less thin | Verified | `client_stage` counts are now `創業階段 = 3 / 制度化階段 = 8 / 規模化階段 = 3`, `client_type` counts are now `中小企業 = 7 / 大型企業 = 2 / 個人品牌與服務 = 2 / 自媒體 = 3`, and no thin values were introduced |
+
+### Explicitly not shipped in this pass
+
+- continuity density deepen
+- cross-domain density deepen
+- weighted score wall
+- new benchmark suite family
+
+---
+
 ## Entry: 2026-04-09 consultant usability layer v1
 
 Scope:
