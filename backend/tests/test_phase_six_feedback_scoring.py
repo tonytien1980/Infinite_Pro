@@ -307,8 +307,12 @@ def test_phase_six_completion_review_persists_feedback_linked_snapshot(
         "narrow_asset_concentration",
     }
     assert snapshot["effectiveness_composition_summary"]
+    assert snapshot["attribution_boundary"] == "not_claimable"
+    assert snapshot["attribution_boundary_label"] == "目前不可 claim attribution"
+    assert snapshot["attribution_boundary_summary"]
     assert "已有 adoption 支撐" in review_payload["feedback_linked_summary"]
     assert "主要靠 explicit feedback" in review_payload["feedback_linked_summary"]
+    assert "目前不可 claim attribution" in review_payload["feedback_linked_summary"]
 
     checkpoint = client.post(
         "/api/v1/workbench/phase-6-completion-review/checkpoint",
@@ -328,6 +332,10 @@ def test_phase_six_completion_review_persists_feedback_linked_snapshot(
     assert (
         checkpoint_payload["feedback_linked_scoring_snapshot"]["effectiveness_composition_summary"]
         == review_payload["feedback_linked_scoring_snapshot"]["effectiveness_composition_summary"]
+    )
+    assert (
+        checkpoint_payload["feedback_linked_scoring_snapshot"]["attribution_boundary"]
+        == review_payload["feedback_linked_scoring_snapshot"]["attribution_boundary"]
     )
 
     with SessionLocal() as db:
