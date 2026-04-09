@@ -776,7 +776,10 @@ phase close review 的結論只能落在以下四種：
 - 第二刀也已正式落地成 `personal-brand density v1`
 - `個人品牌與服務` 現在已不再只由制度化階段代表
 - `創業階段 + 個人品牌與服務` 與 `規模化階段 + 個人品牌與服務` 都已有正式 seed cases
-- 但 continuity density 與 cross-domain density 仍未進入這一刀
+- 第三刀也已正式落地成 `continuity density v1`
+- `follow_up` 現在不再只由 SMB operations checkpoint 代表
+- `continuous` 現在不再只由 scaled enterprise operations case 代表
+- 但 cross-domain density 仍未進入這一刀
 
 ### 11.2 T2-B Reusable intelligence effectiveness deepen
 

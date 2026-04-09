@@ -191,6 +191,15 @@ P0-H 之後，這份 baseline 再往前一步：
 - 這一刀仍是 density patch，不是 pair-level summary platform
 - 大型企業 density、continuity density 與 cross-domain density 仍留待後續 slices
 
+`T2-A` 第三刀之後，continuity proof 也從單點 lane baseline 往 lane diversity 推進：
+- `follow_up` 不再只由 SMB operations checkpoint 代表
+- `continuous` 不再只由 scaled enterprise operations case 代表
+- continuity counts 現在已能更誠實回答 `one_off / follow_up / continuous` 的 representative depth
+
+正式規則仍維持：
+- 這一刀仍是 continuity density patch，不是 writeback-depth platform
+- cross-domain density 與其他更細的 summary contract 留待後續 slices
+
 ### 3.3 目前 formalized 的 result schema
 
 每筆 benchmark result 至少表達：

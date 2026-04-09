@@ -5257,6 +5257,41 @@ Environment used:
 
 ---
 
+## Entry: 2026-04-09 T2-A continuity density v1
+
+Scope:
+- deepen `T2-A` by adding follow-up and continuous lane diversity
+- keep the same `generalist_coverage_proof_v1` suite instead of introducing a continuity platform
+- make continuity proof less dependent on single representative cases
+
+Environment used:
+- local backend verification only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `PYTHONPATH=backend .venv312/bin/pytest backend/tests/test_benchmark_scaffolding.py -q` | Passed (`22 passed`) |
+| `PYTHONPATH=backend .venv312/bin/python backend/scripts/run_pack_benchmark_scaffold.py --suite coverage` | Passed |
+
+### T2-A continuity density verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | `backend/app/benchmarks/manifests/g1_continuity_coverage.json` | Add one new `follow_up` case and one new `continuous` case | Verified | continuity manifest now carries `5` cases and no longer leaves those lanes with only one representative case each |
+| Backend | `backend/tests/test_benchmark_scaffolding.py` | Tighten continuity manifest and suite-level count expectations | Verified | pytest now asserts `follow_up = 6` and `continuous = 5` at suite level while keeping the benchmark scaffold advisory-first |
+| CLI | `backend/scripts/run_pack_benchmark_scaffold.py --suite coverage` | Re-run live coverage suite after the continuity patch | Verified | live output now returns `total_case_count = 18` and `continuity_thin_values = []` |
+| Coverage posture | continuity lane diversity | Confirm `follow_up` and `continuous` are no longer anchored by single representative cases | Verified | continuity proof now covers both SMB/personal-brand follow-up and enterprise/creator-style continuous work without adding a new suite family |
+
+### Explicitly not shipped in this pass
+
+- one_off density deepen
+- cross-domain density deepen
+- writeback-depth platform
+- pair-level summary schema
+
+---
+
 ## Entry: 2026-04-09 consultant usability layer v1
 
 Scope:
