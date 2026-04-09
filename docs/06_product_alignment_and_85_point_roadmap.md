@@ -83,17 +83,107 @@ Infinite Pro 的正式產品想像應理解為：
 - 這不是 benchmark 分數
 - 不是 runtime evaluator 輸出
 - 是根據 active docs、repo code、當前測試與 shipped evidence 做出的產品成熟度判讀
+- 分數本質上是：
+  - `產品想像對齊度`
+  - `真實落地深度`
+  - `跨層整合程度`
+  - `驗證信心`
+  - `成熟產品感`
+  的綜合盤點分，而不是數學化評分器輸出
 
-| 項目 | 目標 | 目前分數 | 判讀 |
-| --- | --- | ---: | --- |
-| A | ontology-first 顧問分析工具 | 85 | 大方向已成立 |
-| B | 支援創業 / 制度化 / 規模化 | 70 | 邊界成立，深度不平均 |
-| C | 適用中小企業 / 大企業 / 個人品牌 / 自媒體 | 68 | 邊界成立，覆蓋證據仍薄 |
-| D | 覆蓋營運 / 財務 / 商務 / 法務 / 行銷 / 銷售 / 策略 | 65 | 架構可承接，等深度能力未完成 |
-| E | 支援一次性報告與持續深化案件 | 84 | 已有正式 baseline，接近達標 |
-| F | 成熟產品度 | 60 | 骨架很強，但仍未達成熟產品感 |
-| G | 初階到高階顧問都能輕易使用 | 52 | low-noise workbench 已有，但 experience layer 明顯不足 |
-| H | 接收回饋與自我優化 | 58 | feedback / governance foundation 已有，但真正 adaptive runtime 仍不足 |
+目前最新 checkpoint 應理解為：
+
+- 前一輪基準：`fa79b4f`
+- 目前基準：`93b61e2`
+
+| 項目 | 目標 | 前一輪 | 目前分數 | 變化 | 判讀 |
+| --- | --- | ---: | ---: | ---: | --- |
+| A | ontology-first 顧問分析工具 | 85 | 86 | +1 | 大方向已成立，case-aware runtime 讓 ontology-first 更進一步進到工作面 |
+| B | 支援創業 / 制度化 / 規模化 | 70 | 78 | +8 | 邊界已成立，且 stage-aware / coverage-proof 證據明顯增加 |
+| C | 適用中小企業 / 大企業 / 個人品牌 / 自媒體 | 68 | 76 | +8 | type-aware / coverage-proof 已進 code 與 benchmark，但還未達等深度成熟 |
+| D | 覆蓋營運 / 財務 / 商務 / 法務 / 行銷 / 銷售 / 策略 | 65 | 74 | +9 | cross-domain coverage 與 domain-lens runtime 已前進，但仍未達 every-domain-equal-depth |
+| E | 支援一次性報告與持續深化案件 | 84 | 86 | +2 | one-off / follow-up / continuous 的工作主鏈與 deliverable parity 更穩 |
+| F | 成熟產品度 | 60 | 72 | +12 | release-readiness baseline、coverage suite、usability layer 都加分，但 live runtime / smoke 仍不足 |
+| G | 初階到高階顧問都能輕易使用 | 52 | 69 | +17 | consultant usability layer 明顯改善主行動、導讀與 second-layer disclosure |
+| H | 接收回饋與自我優化 | 58 | 76 | +18 | feedback-linked scoring 已開始讀 deliverable、outcome、writeback evidence，但尚未到成熟 adaptive system |
+
+目前平均分數應理解為：
+
+- 前一輪平均：約 `67.8`
+- 目前平均：約 `77.1`
+- 整體提升：約 `+9.3`
+
+### 3.1 Scoring rubric
+
+每一項 A 到 H 的判讀，至少要交叉看以下五類證據：
+
+1. `產品對齊度`
+   - 是否仍忠於本文件第 2 節的 canonical product vision
+   - 是否仍忠於 `Single-Consultant Full-Scope Edition`
+   - 是否沒有滑向 training shell、admin console、multi-tenant shell 或窄化 specialist product
+
+2. `真實落地深度`
+   - 是否不只存在於 spec / plan
+   - backend route / service / schema 是否真實存在
+   - frontend surface / helper / page contract 是否真實存在
+
+3. `跨層整合程度`
+   - 是否真的從 backend 到 frontend 接起來
+   - 是否真的進到正式 work surfaces，而不是停在 phase-level read model
+   - 是否真的影響 task / matter / deliverable / history / settings 等正式工作面
+
+4. `驗證信心`
+   - pytest / node tests / typecheck / build / benchmark / QA evidence 是否真實存在
+   - 是否有 append 到 `docs/04_qa_matrix.md`
+   - 是否有 live runtime / smoke / release-readiness 級證據
+
+5. `成熟產品感`
+   - workbench 是否更順手、低噪音、可持續
+   - 產品是否更像成熟顧問軟體，而不是更多 read model 的集合
+   - readiness / release discipline 是否更站穩
+
+### 3.2 Item weighting guidance
+
+不同項目的評分重點不同：
+
+- `A ontology-first`
+  - 更重 `產品對齊度` 與 `runtime spine`
+- `B / C / D generalist coverage`
+  - 更重 `client_stage / client_type / domain_lens` 是否真的進 runtime、benchmark、coverage proof
+- `E one-off / continuous`
+  - 更重 continuity、follow-up、deliverable 主鏈與 work-surface 落地
+- `F product maturity`
+  - 更重 typecheck / build / release-readiness / live runtime / smoke / regression discipline
+- `G consultant usability`
+  - 更重 first action、導讀、progressive disclosure、low-noise default、explanation-on-demand
+- `H feedback / self-optimization`
+  - 更重 feedback-linked evidence、persisted scoring、deliverable / outcome / writeback evidence 是否真的進系統
+
+### 3.3 Score band interpretation
+
+- `90-100`
+  - 已非常強，剩下主要是規模化、效能或運營層問題
+- `80-89`
+  - 明顯高於平均，已接近成熟，但仍有幾個實質缺口
+- `70-79`
+  - 已不是雛形，真的能用，也已明顯往產品化推進，但短板仍清楚可見
+- `60-69`
+  - 骨架不錯，但還不能說成熟
+- `50-59`
+  - 方向有了，但在體驗、深度或驗證信心上仍有明顯不足
+- `50 以下`
+  - 仍偏早期，很多敘述尚停在概念層
+
+### 3.4 Scoring discipline
+
+後續若要在新對話重新評分，正式規則是：
+
+- 不因 commit 數量多而直接加分
+- 不因 spec / plan 很完整就假設 runtime 已完成
+- 不因新增 read model 或首頁摘要就假設產品成熟度已明顯提升
+- 若缺少 live runtime / browser smoke / release-readiness evidence，`F` 不應被高估
+- 若缺少 task-aware / matter-aware / deliverable-aware runtime evidence，`H` 不應被高估成成熟 adaptive system
+- 若只是邊界宣言成立而 coverage proof 未補齊，`B / C / D` 只能給中高分，不應直接給 85+
 
 ---
 
