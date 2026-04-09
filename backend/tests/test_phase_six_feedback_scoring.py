@@ -144,6 +144,37 @@ def test_phase_six_feedback_snapshot_reads_effectiveness_posture() -> None:
     assert snapshot.effectiveness_caveat_summary
 
 
+def test_phase_six_feedback_snapshot_reads_effectiveness_composition() -> None:
+    snapshot = build_phase_six_feedback_linked_scoring_snapshot(
+        adopted_count=2,
+        needs_revision_count=1,
+        not_adopted_count=0,
+        template_candidate_count=1,
+        governed_candidate_count=2,
+        promoted_candidate_count=1,
+        dismissed_candidate_count=0,
+        override_signal_count=1,
+        top_asset_codes=["domain_playbook", "review_lens"],
+        deliverable_feedback_count=2,
+        deliverable_adopted_count=1,
+        published_deliverable_count=1,
+        published_adopted_count=1,
+        deliverable_candidate_count=1,
+        governed_deliverable_candidate_count=1,
+        outcome_record_count=1,
+        writeback_generated_event_count=2,
+        review_required_execution_count=1,
+        planned_execution_count=1,
+        writeback_expected_task_count=1,
+    )
+
+    assert snapshot.primary_support_signal == "writeback_evidence"
+    assert snapshot.primary_support_signal_label == "主要靠 writeback evidence"
+    assert snapshot.secondary_support_signal == "deliverable_closeout"
+    assert snapshot.current_caveat_signal == "narrow_asset_concentration"
+    assert snapshot.effectiveness_composition_summary
+
+
 def test_phase_six_completion_review_persists_feedback_linked_snapshot(
     client: TestClient,
 ) -> None:

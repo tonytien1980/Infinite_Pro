@@ -311,6 +311,58 @@ def build_phase_six_feedback_linked_scoring_snapshot(
         if writeback_expected_task_count == 0
         else "已有 full writeback expectation，若後續沒有 outcome / writeback evidence，就不要過度解讀 effectiveness。"
     )
+    if has_writeback_depth:
+        primary_support_signal = "writeback_evidence"
+        primary_support_signal_label = "主要靠 writeback evidence"
+        secondary_support_signal = (
+            "deliverable_closeout" if has_deliverable_closeout_depth else "explicit_feedback"
+        )
+        secondary_support_signal_label = (
+            "次要靠 deliverable closeout"
+            if has_deliverable_closeout_depth
+            else "次要靠 explicit feedback"
+        )
+    elif has_strong_deliverable_closeout_depth or has_deliverable_closeout_depth:
+        primary_support_signal = "deliverable_closeout"
+        primary_support_signal_label = "主要靠 deliverable closeout"
+        secondary_support_signal = (
+            "explicit_feedback" if positive_feedback_count > 0 or governed_candidate_count > 0 else "none"
+        )
+        secondary_support_signal_label = (
+            "次要靠 explicit feedback" if secondary_support_signal != "none" else ""
+        )
+    elif positive_feedback_count > 0 or governed_candidate_count > 0:
+        primary_support_signal = "explicit_feedback"
+        primary_support_signal_label = "主要靠 explicit feedback"
+        secondary_support_signal = "none"
+        secondary_support_signal_label = ""
+    else:
+        primary_support_signal = "explicit_feedback"
+        primary_support_signal_label = "目前仍以顯性回饋為主"
+        secondary_support_signal = "none"
+        secondary_support_signal_label = ""
+
+    if writeback_expected_task_count == 0:
+        current_caveat_signal = "minimal_writeback_expected"
+        current_caveat_signal_label = "目前本來就不期待 full writeback"
+    elif has_writeback_depth and len(normalized_top_asset_codes[:2]) <= 2:
+        current_caveat_signal = "narrow_asset_concentration"
+        current_caveat_signal_label = "目前仍集中在少數 reusable asset"
+    elif has_deliverable_closeout_depth and not has_writeback_depth:
+        current_caveat_signal = "thin_writeback_evidence"
+        current_caveat_signal_label = "writeback evidence 仍薄"
+    elif (positive_feedback_count > 0 or governed_candidate_count > 0) and not has_deliverable_closeout_depth:
+        current_caveat_signal = "thin_deliverable_evidence"
+        current_caveat_signal_label = "deliverable evidence 仍薄"
+    else:
+        current_caveat_signal = "none"
+        current_caveat_signal_label = ""
+
+    effectiveness_composition_summary = primary_support_signal_label
+    if secondary_support_signal != "none" and secondary_support_signal_label:
+        effectiveness_composition_summary += f"｜{secondary_support_signal_label}"
+    if current_caveat_signal != "none" and current_caveat_signal_label:
+        effectiveness_composition_summary += f"｜{current_caveat_signal_label}"
     writeback_depth_summary = (
         "目前多為 one-off / minimal 案件，沒有 writeback 不算負訊號。"
         if writeback_expected_task_count == 0
@@ -349,6 +401,13 @@ def build_phase_six_feedback_linked_scoring_snapshot(
         effectiveness_posture_label=effectiveness_posture_label,
         effectiveness_posture_summary=effectiveness_posture_summary,
         effectiveness_caveat_summary=effectiveness_caveat_summary,
+        primary_support_signal=primary_support_signal,
+        primary_support_signal_label=primary_support_signal_label,
+        secondary_support_signal=secondary_support_signal,
+        secondary_support_signal_label=secondary_support_signal_label,
+        current_caveat_signal=current_caveat_signal,
+        current_caveat_signal_label=current_caveat_signal_label,
+        effectiveness_composition_summary=effectiveness_composition_summary,
         summary=summary,
     )
 

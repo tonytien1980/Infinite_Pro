@@ -580,6 +580,30 @@ class PhaseSixFeedbackLinkedScoringSnapshotRead(BaseModel):
     effectiveness_posture_label: str = ""
     effectiveness_posture_summary: str = ""
     effectiveness_caveat_summary: str = ""
+    primary_support_signal: Literal[
+        "explicit_feedback",
+        "deliverable_closeout",
+        "writeback_evidence",
+        "mixed_support",
+    ] = "explicit_feedback"
+    primary_support_signal_label: str = ""
+    secondary_support_signal: Literal[
+        "none",
+        "explicit_feedback",
+        "deliverable_closeout",
+        "writeback_evidence",
+        "mixed_support",
+    ] = "none"
+    secondary_support_signal_label: str = ""
+    current_caveat_signal: Literal[
+        "thin_deliverable_evidence",
+        "thin_writeback_evidence",
+        "minimal_writeback_expected",
+        "narrow_asset_concentration",
+        "none",
+    ] = "none"
+    current_caveat_signal_label: str = ""
+    effectiveness_composition_summary: str = ""
     summary: str = ""
 
 
