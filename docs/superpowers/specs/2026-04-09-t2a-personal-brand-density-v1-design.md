@@ -166,11 +166,20 @@
 這個 case 應偏向：
 
 - `professional_services_pack`
-- `product_service_pack` 或 `business_development_pack`
+- `product_service_pack`
+- `business_development_pack`
 
 應回答的問題類型像是：
 
 - 創業階段的個人品牌 / 顧問服務，是否該先收斂 hero offer、報價邏輯與服務包裝
+
+目前較穩定的 target 組合應直接固定為：
+
+- target domain packs
+  - `product_service_pack`
+  - `business_development_pack`
+- target industry pack
+  - `professional_services_pack`
 
 正式要求：
 
@@ -184,11 +193,19 @@
 
 - `online_education_pack`
 - `marketing_sales_pack`
-- `operations_pack` 或 `product_service_pack`
+- `operations_pack`
 
 應回答的問題類型像是：
 
 - 規模化的個人品牌 / 教育 / 服務 hybrid，是否該重整課程、服務、retainer 或會員產品組合
+
+目前較穩定的 target 組合應直接固定為：
+
+- target domain packs
+  - `marketing_sales_pack`
+  - `operations_pack`
+- target industry pack
+  - `online_education_pack`
 
 正式要求：
 
@@ -271,4 +288,3 @@
 
 - `T2-A` 在 `個人品牌與服務` 這個 type 上，又往前補厚一段
 - `stage/type` proof 變得更像跨 stage 顧問 workbench，而不是只在單一 operating band 成立
-
