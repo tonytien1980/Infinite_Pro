@@ -527,7 +527,152 @@ Infinite Pro 已正式承接：
 
 ---
 
-## 9. How Future Sessions Must Use This Doc
+## 9. Phase Close Review Framework
+
+本節正式定義：在 `7.1` 到 `7.5` 這一輪主線做完後，什麼叫做「可收工」。
+
+### 9.1 Phase close is not the same as reaching 85
+
+未來 session 必須先分清楚兩個問題：
+
+1. `本階段是否可收工`
+   - `7.1` 到 `7.5` 這一輪主線，是否已到可交接、可結案、可開新 decision phase 的程度
+
+2. `產品是否已達 85-point target state`
+   - 整體產品成熟度是否已接近或達到長期 target
+
+正式規則：
+
+- `可收工` 不等於 `已達 85`
+- `v1 完成` 不等於 `終局完成`
+- 本階段可以先誠實收口，再把剩餘 gap 轉進下一階段
+
+### 9.2 Allowed line statuses
+
+未來 close review 只允許使用以下狀態：
+
+- `未開始`
+- `僅有規劃`
+- `進行中`
+- `v1 完成`
+- `本階段完成`
+- `轉入下一階段 backlog`
+
+正式理解：
+
+- `v1 完成`
+  - 第一個真實、可驗證、可 handoff 的完成點已成立
+  - 但不代表長期成熟度已到位
+- `本階段完成`
+  - 依本階段批准範圍，這一條已可收口
+- `轉入下一階段 backlog`
+  - 不代表沒做
+  - 代表剩餘 gap 已被明確記帳，且不再算本階段 blocker
+
+### 9.3 Phase-close gates
+
+本階段要被判定為可收尾，至少要通過六個 gate：
+
+1. `方向 gate`
+   - 仍忠於本文件第 2 節的 canonical product vision
+   - 沒有滑向 training shell、dashboard family、admin console、multi-tenant shell
+
+2. `主線 gate`
+   - `7.1` 到 `7.5` 每一條都必須至少達到：
+     - `v1 完成`
+     - 或 `本階段完成`
+   - 不允許仍停在 `未開始`、`僅有規劃` 或早期 `進行中`
+
+3. `落地 gate`
+   - 不能只存在於 spec / plan
+   - 必須在 code、正式工作面、或明確授權的 quality / benchmark baseline 中真實成立
+
+4. `文件與證據 gate`
+   - active docs 必須與 shipped behavior 對齊
+   - 有 shipped behavior 變化時，`docs/04_qa_matrix.md` 必須有對應 evidence
+   - 有 benchmark / coverage 變化時，`docs/05_benchmark_and_regression.md` 必須有對應 evidence
+
+5. `同步 gate`
+   - local / branch / GitHub / `main` 的狀態必須說得清楚
+   - 不可在 local 與 GitHub 長期失配時宣稱 phase 已結束
+
+6. `carry-forward gate`
+   - 尚未做到終局成熟度的 gap，必須明確寫成下一階段 backlog
+   - 並回答：
+     - 還差什麼
+     - 為什麼不是本階段 blocker
+     - 下一階段應掛到哪條新主線
+
+### 9.4 Closeout outcomes
+
+phase close review 的結論只能落在以下四種：
+
+- `不可收工`
+  - 仍有主線停在 `未開始`、`僅有規劃` 或關鍵 blocker 未排除
+
+- `可進收尾審查`
+  - 各主線都已有真實 implementation
+  - 但 remaining gap 還沒有被正式記帳或分流
+
+- `條件式可收工`
+  - 各主線至少都到 `v1 完成`
+  - 剩餘 gap 已正式轉入下一階段 backlog
+  - 但仍有少量同步或 close memo 沒補完
+
+- `正式收工`
+  - 所有 gate 均通過
+  - 這一輪可以合法結束
+  - 下一個 decision phase 可正式啟動，不需再把新方向硬掛在 `7.1` 到 `7.5`
+
+### 9.5 Close review record
+
+每次正式收尾，至少要有一筆 close review 記錄回答：
+
+- 本階段 scope 是什麼
+- `7.1` 到 `7.5` 各自目前狀態是什麼
+- 哪些是 `v1 完成`
+- 哪些是 `本階段完成`
+- 哪些 gap 被轉進下一階段 backlog
+- 最後結論是：
+  - `不可收工`
+  - `可進收尾審查`
+  - `條件式可收工`
+  - `正式收工`
+
+### 9.6 Closure rule for the current roadmap tranche
+
+針對目前 `7.1` 到 `7.5` 這一輪，正式規則是：
+
+- 本階段要能收工，不要求所有項目都已達 `85-point target state`
+- 但要求每一條主線都至少到第一個誠實的可 handoff 完成點
+
+因此本輪正確的 close rule 應是：
+
+- `7.1`
+  - 應達到 `本階段完成`
+- `7.15`
+  - 若插段被採用，應達到 `本階段完成`
+- `7.2`
+  - 應達到本階段批准範圍內的完成點
+  - KPI / business outcome attribution 可轉進下一階段 backlog
+- `7.3`
+  - 至少要 `v1 完成`
+  - coverage suite、manifest family、thin / missing posture 必須真實存在
+- `7.4`
+  - 至少要 `v1 完成`
+  - `task detail` 可轉進下一階段 backlog
+- `7.5`
+  - 至少要 `v1 完成`
+  - browser smoke automation 或 Docker-specific runtime gate 可轉進下一階段 backlog
+
+正式規則：
+
+- 若所有主線都達到上述狀態，且 docs / evidence / git sync gate 全部通過，本階段即可正式收工
+- 一旦正式收工，後續新方向不需再硬掛 `7.1` 到 `7.5`
+
+---
+
+## 10. How Future Sessions Must Use This Doc
 
 下一個新對話或未來 session 若要繼續推 Infinite Pro，正式讀取順序應至少是：
 
@@ -542,6 +687,7 @@ Infinite Pro 已正式承接：
 2. 這次工作是在推進 `7.1` 到 `7.5` 哪一條主線
 3. 它會把哪一格從多少分推到多少分
 4. 它有沒有讓 system 更接近你要的全面型顧問 operating system，而不是只是更會自我描述
+5. 若要宣告本階段收尾，是否已通過第 9 節的 phase close review framework
 
 正式規則：
 
@@ -551,7 +697,7 @@ Infinite Pro 已正式承接：
 
 ---
 
-## 10. Relationship To Other Active Docs
+## 11. Relationship To Other Active Docs
 
 - `docs/00_product_definition_and_current_state.md`
   承接產品正式身份、能力邊界、目前 phase 與 active product truth

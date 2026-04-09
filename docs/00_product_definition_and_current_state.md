@@ -947,6 +947,9 @@ Infinite Pro 目前沒有也不應硬對齊於：
     - 已完成哪些主線與 asset families
     - signed-off 後的 next-phase handoff
   - 也就是說，Phase 6 這整段現在已經不只是散落的 review / sign-off / handoff，而是 system 已能正式回讀整段 closeout 狀態
+  - 但正式規則仍要分清楚：
+    - 這裡的 `phase-6 closeout review` 是 system runtime 內部 read model
+    - repo / product 層面目前 `7.1` 到 `7.5` 這一輪是否可正式收工，仍由 `docs/06_product_alignment_and_85_point_roadmap.md` 的 phase close review framework 判定
 
 ---
 
