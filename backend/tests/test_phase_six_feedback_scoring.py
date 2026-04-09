@@ -271,7 +271,15 @@ def test_phase_six_completion_review_persists_feedback_linked_snapshot(
     assert snapshot["effectiveness_posture_label"] == "已有 adoption 支撐"
     assert snapshot["effectiveness_posture_summary"]
     assert snapshot["effectiveness_caveat_summary"]
+    assert snapshot["primary_support_signal"] == "explicit_feedback"
+    assert snapshot["primary_support_signal_label"] == "主要靠 explicit feedback"
+    assert snapshot["current_caveat_signal"] in {
+        "minimal_writeback_expected",
+        "narrow_asset_concentration",
+    }
+    assert snapshot["effectiveness_composition_summary"]
     assert "已有 adoption 支撐" in review_payload["feedback_linked_summary"]
+    assert "主要靠 explicit feedback" in review_payload["feedback_linked_summary"]
 
     checkpoint = client.post(
         "/api/v1/workbench/phase-6-completion-review/checkpoint",
@@ -287,6 +295,10 @@ def test_phase_six_completion_review_persists_feedback_linked_snapshot(
     assert (
         checkpoint_payload["feedback_linked_scoring_snapshot"]["effectiveness_posture"]
         == review_payload["feedback_linked_scoring_snapshot"]["effectiveness_posture"]
+    )
+    assert (
+        checkpoint_payload["feedback_linked_scoring_snapshot"]["effectiveness_composition_summary"]
+        == review_payload["feedback_linked_scoring_snapshot"]["effectiveness_composition_summary"]
     )
 
     with SessionLocal() as db:
