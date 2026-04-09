@@ -604,6 +604,13 @@ class PhaseSixFeedbackLinkedScoringSnapshotRead(BaseModel):
     ] = "none"
     current_caveat_signal_label: str = ""
     effectiveness_composition_summary: str = ""
+    attribution_boundary: Literal[
+        "not_claimable",
+        "outcome_adjacent",
+        "cautious_attribution_candidate",
+    ] = "not_claimable"
+    attribution_boundary_label: str = ""
+    attribution_boundary_summary: str = ""
     summary: str = ""
 
 

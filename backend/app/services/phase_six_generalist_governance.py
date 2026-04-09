@@ -363,6 +363,28 @@ def build_phase_six_feedback_linked_scoring_snapshot(
         effectiveness_composition_summary += f"｜{secondary_support_signal_label}"
     if current_caveat_signal != "none" and current_caveat_signal_label:
         effectiveness_composition_summary += f"｜{current_caveat_signal_label}"
+    if (
+        has_writeback_depth
+        and has_strong_deliverable_closeout_depth
+        and current_caveat_signal not in {"thin_writeback_evidence", "thin_deliverable_evidence"}
+    ):
+        attribution_boundary = "cautious_attribution_candidate"
+        attribution_boundary_label = "可保守視為 attribution 候選"
+        attribution_boundary_summary = (
+            "目前已到 closeout + writeback depth，但仍不是正式 attribution，只能保守視為候選。"
+        )
+    elif has_deliverable_closeout_depth or has_writeback_depth:
+        attribution_boundary = "outcome_adjacent"
+        attribution_boundary_label = "目前只到 outcome-adjacent"
+        attribution_boundary_summary = (
+            "目前已有 outcome / closeout 關聯 evidence，但還不足以 claim business outcome attribution。"
+        )
+    else:
+        attribution_boundary = "not_claimable"
+        attribution_boundary_label = "目前不可 claim attribution"
+        attribution_boundary_summary = (
+            "目前仍以 feedback / adoption signal 為主，還不能把 business outcome 歸因給 system。"
+        )
     writeback_depth_summary = (
         "目前多為 one-off / minimal 案件，沒有 writeback 不算負訊號。"
         if writeback_expected_task_count == 0
@@ -408,6 +430,9 @@ def build_phase_six_feedback_linked_scoring_snapshot(
         current_caveat_signal=current_caveat_signal,
         current_caveat_signal_label=current_caveat_signal_label,
         effectiveness_composition_summary=effectiveness_composition_summary,
+        attribution_boundary=attribution_boundary,
+        attribution_boundary_label=attribution_boundary_label,
+        attribution_boundary_summary=attribution_boundary_summary,
         summary=summary,
     )
 
