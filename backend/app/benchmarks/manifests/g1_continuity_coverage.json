@@ -44,6 +44,24 @@
       "expected_hint_areas": ["evidence_expectations", "decision_patterns", "readiness"]
     },
     {
+      "case_id": "follow_up_personal_brand_checkpoint",
+      "title": "Follow-up personal-brand checkpoint",
+      "description": "個人品牌與服務的 follow-up checkpoint case。",
+      "client_stage": "制度化階段",
+      "client_type": "個人品牌與服務",
+      "engagement_continuity_mode": "follow_up",
+      "writeback_depth": "milestone",
+      "coverage_bundle_id": "marketing_sales_plus_product_service",
+      "domain_lenses": ["行銷", "產品服務"],
+      "industry_hints": ["online course", "service package", "offer"],
+      "decision_context_summary": "Need a follow-up personal-brand checkpoint on whether the current offer ladder, acquisition mix, and delivery scope should be tightened before the next enrollment push.",
+      "source_mix_summary": ["checkpoint note", "offer revision summary", "lead-quality update"],
+      "target_domain_pack_ids": ["product_service_pack", "marketing_sales_pack"],
+      "target_industry_pack_ids": ["online_education_pack"],
+      "expected_contract_interface_ids": ["evidence_readiness_v1", "decision_framing_v1", "deliverable_shaping_v1"],
+      "expected_hint_areas": ["evidence_expectations", "decision_patterns", "readiness"]
+    },
+    {
       "case_id": "continuous_progression_case",
       "title": "Continuous progression case",
       "description": "Continuous case with full writeback expectations.",
@@ -58,6 +76,24 @@
       "source_mix_summary": ["progression report", "capacity note", "execution review"],
       "target_domain_pack_ids": ["operations_pack", "finance_fundraising_pack"],
       "target_industry_pack_ids": ["manufacturing_pack"],
+      "expected_contract_interface_ids": ["evidence_readiness_v1", "decision_framing_v1", "deliverable_shaping_v1"],
+      "expected_hint_areas": ["evidence_expectations", "decision_patterns", "readiness"]
+    },
+    {
+      "case_id": "continuous_creator_operating_case",
+      "title": "Continuous creator operating case",
+      "description": "自媒體型 continuous case with full writeback expectations.",
+      "client_stage": "規模化階段",
+      "client_type": "自媒體",
+      "engagement_continuity_mode": "continuous",
+      "writeback_depth": "full",
+      "coverage_bundle_id": "marketing_sales_plus_product_service",
+      "domain_lenses": ["營運", "行銷"],
+      "industry_hints": ["creator", "membership", "content cadence", "sponsor"],
+      "decision_context_summary": "Need a continuous creator operating recommendation on sponsor load, content cadence, and whether the current delivery model can support another growth push without breaking quality.",
+      "source_mix_summary": ["operating cadence note", "sponsor pipeline summary", "delivery capacity review"],
+      "target_domain_pack_ids": ["operations_pack", "marketing_sales_pack"],
+      "target_industry_pack_ids": ["media_creator_pack"],
       "expected_contract_interface_ids": ["evidence_readiness_v1", "decision_framing_v1", "deliverable_shaping_v1"],
       "expected_hint_areas": ["evidence_expectations", "decision_patterns", "readiness"]
     }

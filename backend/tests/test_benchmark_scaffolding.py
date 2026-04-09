@@ -292,11 +292,14 @@ def test_generalist_continuity_manifest_covers_expected_lanes() -> None:
     manifest = load_manifest("backend/app/benchmarks/manifests/g1_continuity_coverage.json")
 
     assert manifest.manifest_id == "g1_continuity_coverage_baseline"
+    assert len(manifest.cases) == 5
     assert {case.engagement_continuity_mode for case in manifest.cases} == {
         "one_off",
         "follow_up",
         "continuous",
     }
+    assert sum(case.engagement_continuity_mode == "follow_up" for case in manifest.cases) == 2
+    assert sum(case.engagement_continuity_mode == "continuous" for case in manifest.cases) == 2
 
 
 def test_generalist_cross_domain_manifest_covers_expected_bundles() -> None:
@@ -334,7 +337,7 @@ def test_generalist_coverage_suite_returns_coverage_summary() -> None:
     result = run_suite(suite)
 
     assert result.gate_status == BenchmarkStatus.PASS
-    assert result.total_case_count == 16
+    assert result.total_case_count == 18
     assert len(result.category_results) == 3
     assert result.coverage_summary
     stage_summary = next(item for item in result.coverage_summary if item.axis == "client_stage")
@@ -344,18 +347,23 @@ def test_generalist_coverage_suite_returns_coverage_summary() -> None:
 
     assert "創業階段" in stage_summary.expected_values
     assert stage_summary.counts["創業階段"] == 4
-    assert stage_summary.counts["規模化階段"] == 4
+    assert stage_summary.counts["制度化階段"] == 9
+    assert stage_summary.counts["規模化階段"] == 5
 
     assert "個人品牌與服務" in type_summary.expected_values
-    assert type_summary.counts["個人品牌與服務"] == 4
-    assert type_summary.counts["自媒體"] == 3
+    assert type_summary.counts["個人品牌與服務"] == 5
+    assert type_summary.counts["自媒體"] == 4
     assert "個人品牌與服務" not in type_summary.thin_values
     assert not type_summary.missing_values
 
     assert "one_off" in continuity_summary.expected_values
+    assert continuity_summary.counts["one_off"] == 7
+    assert continuity_summary.counts["follow_up"] == 6
+    assert continuity_summary.counts["continuous"] == 5
+    assert not continuity_summary.thin_values
+    assert not continuity_summary.missing_values
     assert "research_plus_domain_advisory" in cross_domain_summary.expected_values
     assert not stage_summary.missing_values
-    assert not continuity_summary.missing_values
     assert not cross_domain_summary.missing_values
 
 
