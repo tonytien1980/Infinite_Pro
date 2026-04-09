@@ -2478,6 +2478,9 @@ completion pass 後，deliverable work surface 也已正式把：
 - `current_caveat_signal`
 - `current_caveat_signal_label`
 - `effectiveness_composition_summary`
+- `attribution_boundary`
+- `attribution_boundary_label`
+- `attribution_boundary_summary`
 - `summary`
 
 正式規則：
@@ -2507,6 +2510,10 @@ completion pass 後，deliverable work surface 也已正式把：
   - 主要支撐 evidence 類型
   - 次要支撐 evidence 類型
   - 最大 caution 類型
+- 第二 tranche 的 `T2-B slice 3` 現在正式補到：
+  - attribution boundary reading
+  - 目前最多只能 claim 到哪個 attribution 邊界
+  - 保守區分 `not_claimable / outcome_adjacent / cautious_attribution_candidate`
 - roadmap-side `7.15` 補強後，這層的 `recommended_next_step` 也應延續同一條 alignment：
   - 先補治理評分深度
   - 不要直接跳 sign-off
@@ -2573,6 +2580,10 @@ completion pass 後，deliverable work surface 也已正式把：
   - 目前主要是 explicit feedback、deliverable closeout，還是 writeback evidence 在支撐這個 posture
   - 目前是否還需要保留 `thin_deliverable_evidence / thin_writeback_evidence / minimal_writeback_expected / narrow_asset_concentration`
   - 這次 review-ready 的 reusable-intelligence reading，到底是靠單一 evidence 還是 mixed support 撐起來
+- `feedback_linked_scoring_snapshot` 在 `T2-B slice 3` 後，現在也應能回答：
+  - 目前最多只能 claim 到哪個 attribution 邊界
+  - 現在是 `not_claimable`、`outcome_adjacent`，還是 `cautious_attribution_candidate`
+  - 為什麼 system 仍不能把這次結果直接寫成 business outcome attribution
 - 這一刀也必須明確保留一條邊界：
   - `one_off / minimal` 案件若本來不期待 full writeback，absence 不應被直接算成失敗
 - completion review 的 `review_posture` 應優先讀 persisted checkpoint snapshot，而不是只看當下即時計算

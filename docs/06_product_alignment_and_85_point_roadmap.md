@@ -812,6 +812,9 @@ phase close review 的結論只能落在以下四種：
 - 第二刀已正式落地成 `effectiveness evidence composition v1`
 - system 現在不只知道目前是 `adoption_supported / closeout_supported / writeback_supported`
 - system 也開始正式回讀目前主要支撐 evidence 與最大 caution
+- 第三刀已正式落地成 `attribution boundary reading v1`
+- system 現在不只知道有效性證據有多深，也開始正式回讀目前最多只能 claim 到哪個 attribution boundary
+- 第一版 boundary 目前只保守區分 `not_claimable / outcome_adjacent / cautious_attribution_candidate`
 - 這一刀仍未進入 KPI / business outcome attribution
 
 ### 11.3 T2-C Consultant operating leverage and task-surface usability
