@@ -459,6 +459,14 @@ export interface PhaseSixFeedbackLinkedScoringSnapshot {
   plannedExecutionCount: number;
   writebackExpectedTaskCount: number;
   writebackDepthSummary: string;
+  effectivenessPosture:
+    | "evidence_thin"
+    | "adoption_supported"
+    | "closeout_supported"
+    | "writeback_supported";
+  effectivenessPostureLabel: string;
+  effectivenessPostureSummary: string;
+  effectivenessCaveatSummary: string;
   summary: string;
 }
 

@@ -18,6 +18,7 @@ import {
   summarizePhaseSixCalibrationAwareWeightingItems,
   summarizePhaseSixCompletionScorecard,
   summarizePhaseSixFeedbackCloseoutDepth,
+  summarizePhaseSixEffectivenessReading,
   summarizePhaseSixFeedbackWritebackDepth,
   summarizePhaseSixFeedbackLinkedScoring,
   summarizePhaseSixCloseoutAudits,
@@ -205,6 +206,44 @@ test("phase 6 completion review labels stay low-noise and readable", () => {
       },
     }),
     "outcome 2｜writeback events 4｜review-required executions 1",
+  );
+  assert.equal(
+    summarizePhaseSixEffectivenessReading({
+      feedbackLinkedScoringSnapshot: {
+        adoptedCount: 2,
+        needsRevisionCount: 1,
+        notAdoptedCount: 0,
+        templateCandidateCount: 1,
+        governedCandidateCount: 2,
+        promotedCandidateCount: 1,
+        dismissedCandidateCount: 0,
+        overrideSignalCount: 1,
+        topAssetCodes: ["domain_playbook"],
+        topAssetLabels: ["工作主線"],
+        deliverableFeedbackCount: 2,
+        deliverableAdoptedCount: 1,
+        publishedDeliverableCount: 1,
+        publishedAdoptedCount: 1,
+        deliverableCandidateCount: 1,
+        governedDeliverableCandidateCount: 1,
+        closeoutDepthSummary: "交付回饋 2｜已 publish 1｜deliverable governed 1",
+        outcomeRecordCount: 1,
+        deliverableOutcomeRecordCount: 1,
+        followUpOutcomeCount: 1,
+        writebackGeneratedEventCount: 2,
+        reviewRequiredExecutionCount: 1,
+        plannedExecutionCount: 1,
+        writebackExpectedTaskCount: 1,
+        writebackDepthSummary: "outcome 1｜writeback events 2｜review-required executions 1",
+        effectivenessPosture: "writeback_supported",
+        effectivenessPostureLabel: "已到 writeback 支撐",
+        effectivenessPostureSummary: "已到 writeback 支撐｜主要看工作主線。",
+        effectivenessCaveatSummary:
+          "已有 full writeback expectation，若後續沒有 outcome / writeback evidence，就不要過度解讀 effectiveness。",
+        summary: "summary",
+      },
+    }),
+    "已到 writeback 支撐｜主要看工作主線。",
   );
 });
 

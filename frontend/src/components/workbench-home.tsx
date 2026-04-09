@@ -50,6 +50,7 @@ import {
   summarizePhaseSixCalibrationItems,
   summarizePhaseSixCompletionScorecard,
   summarizePhaseSixFeedbackCloseoutDepth,
+  summarizePhaseSixEffectivenessReading,
   summarizePhaseSixFeedbackWritebackDepth,
   summarizePhaseSixFeedbackLinkedScoring,
   summarizePhaseSixCloseoutAudits,
@@ -1141,6 +1142,11 @@ export function WorkbenchHome() {
                       </p>
                       <p className="muted-text" style={{ marginTop: "8px" }}>
                         {summarizePhaseSixFeedbackWritebackDepth(
+                          phaseSixCompletionReview,
+                        )}
+                      </p>
+                      <p className="muted-text" style={{ marginTop: "8px" }}>
+                        {summarizePhaseSixEffectivenessReading(
                           phaseSixCompletionReview,
                         )}
                       </p>

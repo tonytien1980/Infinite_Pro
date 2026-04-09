@@ -159,6 +159,22 @@ export function summarizePhaseSixFeedbackWritebackDepth(
   );
 }
 
+export function summarizePhaseSixEffectivenessReading(
+  review: Pick<
+    {
+      feedbackLinkedScoringSnapshot: {
+        effectivenessPostureSummary: string;
+      };
+    },
+    "feedbackLinkedScoringSnapshot"
+  >,
+) {
+  return (
+    review.feedbackLinkedScoringSnapshot.effectivenessPostureSummary ||
+    "目前還沒有可讀取的 effectiveness reading。"
+  );
+}
+
 export function summarizePhaseSixCoverageAreas(areas: PhaseSixCoverageArea[]) {
   if (areas.length === 0) {
     return "目前還沒有可讀取的 coverage signal。";

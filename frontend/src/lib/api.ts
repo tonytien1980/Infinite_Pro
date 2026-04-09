@@ -1216,6 +1216,14 @@ function parsePhaseSixCompletionReviewPayload(payload: any): PhaseSixCompletionR
       ),
       writebackDepthSummary:
         payload.feedback_linked_scoring_snapshot?.writeback_depth_summary || "",
+      effectivenessPosture:
+        payload.feedback_linked_scoring_snapshot?.effectiveness_posture || "evidence_thin",
+      effectivenessPostureLabel:
+        payload.feedback_linked_scoring_snapshot?.effectiveness_posture_label || "",
+      effectivenessPostureSummary:
+        payload.feedback_linked_scoring_snapshot?.effectiveness_posture_summary || "",
+      effectivenessCaveatSummary:
+        payload.feedback_linked_scoring_snapshot?.effectiveness_caveat_summary || "",
       summary: payload.feedback_linked_scoring_snapshot?.summary || "",
     },
     closurePosture: payload.closure_posture || "",
