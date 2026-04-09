@@ -119,7 +119,7 @@ def test_generalist_stage_type_manifest_covers_representative_seed_cases() -> No
     }
     assert sum(case.client_type == "自媒體" for case in manifest.cases) == 3
     assert sum(case.client_type == "個人品牌與服務" for case in manifest.cases) == 4
-    assert sum(case.client_stage == "創業階段" for case in manifest.cases) == 3
+    assert sum(case.client_stage == "創業階段" for case in manifest.cases) == 4
     assert sum(case.client_stage == "規模化階段" for case in manifest.cases) == 4
 ```
 
