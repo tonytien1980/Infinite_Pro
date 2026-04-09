@@ -970,7 +970,7 @@ Infinite Pro 目前沒有也不應硬對齊於：
 ## 17. Relationship To Other Active Docs
 
 - `docs/06_product_alignment_and_85_point_roadmap.md`
-  承接創辦人產品想像、目前 attainment 對照、85 分補強順序與下一輪 anti-drift execution rule
+  承接創辦人產品想像、目前 attainment 對照、85 分補強順序、第一 tranche close review 與第二 tranche active roadmap handoff
 - `docs/01_runtime_architecture_and_data_contracts.md`
   承接 runtime shape、persistence、ingestion、provider 與 bridge semantics
 - `docs/02_host_agents_packs_and_extension_system.md`

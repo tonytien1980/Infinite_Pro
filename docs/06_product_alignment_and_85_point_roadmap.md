@@ -672,7 +672,159 @@ phase close review 的結論只能落在以下四種：
 
 ---
 
-## 10. How Future Sessions Must Use This Doc
+## 10. First Tranche Close Review
+
+依第 9 節的 framework，第一 tranche 現在可正式判定為：
+
+- `正式收工`
+
+正式理由是：
+
+- `7.1`
+  - 已達 `本階段完成`
+- `7.15`
+  - 已達 `本階段完成`
+- `7.2`
+  - 已達本階段批准範圍內的完成點
+- `7.3`
+  - 已達 `v1 完成`
+- `7.4`
+  - 已達 `v1 完成`
+- `7.5`
+  - 已達 `v1 完成`
+
+### 10.1 What first tranche actually completed
+
+第一 tranche 的正式成果應理解為：
+
+- `7.1`
+  - `task / matter / deliverable` 的 case-aware governance runtime 已收口
+- `7.15`
+  - phase-level governance summary 已與 work-surface landed status 對齊
+- `7.2`
+  - feedback-linked persisted scoring 已從 explicit feedback 推進到 deliverable、outcome、writeback evidence
+- `7.3`
+  - `generalist_coverage_proof_v1` 已成立
+- `7.4`
+  - `overview / matter / deliverable workspace` 的 consultant usability v1 已成立
+- `7.5`
+  - repo-native release-readiness baseline v1 已成立
+
+### 10.2 What first tranche did not claim
+
+第一 tranche 雖已正式收工，但沒有宣告以下事項已全部完成：
+
+- `7.2`
+  - KPI / business outcome attribution
+- `7.3`
+  - coverage density fully matured
+- `7.4`
+  - `task detail` usability completion
+- `7.5`
+  - browser smoke automation completion
+  - Docker-specific runtime gate completion
+
+### 10.3 Carry-forward backlog
+
+第一 tranche 留給下一輪的 backlog 至少包括：
+
+- KPI / business outcome attribution 是否值得做、如何做才不失真
+- coverage thin lanes 補厚
+- `task detail` 的 consultant usability
+- browser smoke automation 與更穩的 runtime confidence
+
+---
+
+## 11. Second Tranche To 85
+
+第二 tranche 的正式理解是：
+
+- 仍屬於本文件的問題域
+- 仍服務於整體成熟度往平均 `85` 分以上推進
+- 但不再沿用第一 tranche 的 `7.1` 到 `7.5` 當唯一主分類
+
+正式規則：
+
+- 第二 tranche 仍以 `docs/06_product_alignment_and_85_point_roadmap.md` 為唯一 active roadmap
+- 不提早開新的 active top-level doc
+- 新工作應優先掛到第二 tranche 的主線，而不是回頭硬掛第一 tranche 的 `7.1` 到 `7.5`
+
+### 11.1 T2-A Coverage density and proof deepen
+
+目標：
+
+- 把 `generalist_coverage_proof_v1` 從 baseline 推進到更有說服力的 proof posture
+
+正式應補：
+
+- `client_stage / client_type / continuity / cross-domain` 的 thin lane 補厚
+- representative seed cases 增密
+- benchmark / regression 能更誠實回答 coverage depth，而不只是 coverage existence
+
+主要對應：
+
+- B
+- C
+- D
+
+### 11.2 T2-B Reusable intelligence effectiveness deepen
+
+目標：
+
+- 把 feedback-linked persisted scoring 從 foundation deepen 成更可信的 reusable intelligence effectiveness reading
+
+正式應補：
+
+- KPI / business outcome attribution 是否成立、成立到哪個安全邊界
+- reusable asset 的 effectiveness posture 如何更可信
+- feedback / deliverable / outcome / writeback 的回寫邏輯如何避免失真
+
+主要對應：
+
+- H
+- F
+
+### 11.3 T2-C Consultant operating leverage and task-surface usability
+
+目標：
+
+- 把 usability 從 `overview / matter / deliverable` 延伸到更高槓桿的 consultant operating layer
+
+正式應補：
+
+- `task detail` usability pass
+- consultant operating leverage framing
+- 同一套工作面如何同時支撐初階不迷路與高階高槓桿
+
+主要對應：
+
+- G
+- F
+
+### 11.4 T2-D Runtime and release confidence deepen
+
+目標：
+
+- 把 release-readiness baseline 往更高信心的 runtime / smoke posture 推進
+
+正式應補：
+
+- browser smoke 常態化
+- Docker-specific runtime gate
+- live runtime verification confidence uplift
+
+主要對應：
+
+- F
+
+正式規則：
+
+- 第二 tranche 的提案若無法明顯推進 `T2-A` 到 `T2-D` 其中一條，應先降優先級
+- 若某個提案已明顯脫離 `85-point alignment` 的問題域，才考慮另開新的 active top-level roadmap doc
+
+---
+
+## 12. How Future Sessions Must Use This Doc
 
 下一個新對話或未來 session 若要繼續推 Infinite Pro，正式讀取順序應至少是：
 
@@ -684,20 +836,23 @@ phase close review 的結論只能落在以下四種：
 未來對話若要提案、實作或盤點，必須先回答：
 
 1. 這次工作在 A 到 H 的哪一格
-2. 這次工作是在推進 `7.1` 到 `7.5` 哪一條主線
+2. 這次工作是在處理：
+   - 第一 tranche 的 close review
+   - 或第二 tranche 的 `T2-A` 到 `T2-D` 哪一條主線
 3. 它會把哪一格從多少分推到多少分
 4. 它有沒有讓 system 更接近你要的全面型顧問 operating system，而不是只是更會自我描述
-5. 若要宣告本階段收尾，是否已通過第 9 節的 phase close review framework
+5. 若某提案不再屬於 `85-point alignment` 的問題域，是否已準備好另開新的 active roadmap doc
 
 正式規則：
 
 - 不可跳過本文件直接開始下一波新功能
 - 不可把本文件視為 brainstorming memo；它是 active SSOT handoff
 - 不可在未對照本文件前，把局部優化誤寫成產品主線進展
+- 第一 tranche 已正式收工後，不應再把第二 tranche 的新工作機械地回掛到舊 `7.1` 到 `7.5`
 
 ---
 
-## 11. Relationship To Other Active Docs
+## 13. Relationship To Other Active Docs
 
 - `docs/00_product_definition_and_current_state.md`
   承接產品正式身份、能力邊界、目前 phase 與 active product truth
