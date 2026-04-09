@@ -2465,6 +2465,12 @@ completion pass 後，deliverable work surface 也已正式把：
 - `override_signal_count`
 - `top_asset_codes`
 - `top_asset_labels`
+- `closeout_depth_summary`
+- `writeback_depth_summary`
+- `effectiveness_posture`
+- `effectiveness_posture_label`
+- `effectiveness_posture_summary`
+- `effectiveness_caveat_summary`
 - `summary`
 
 正式規則：
@@ -2485,6 +2491,10 @@ completion pass 後，deliverable work surface 也已正式把：
   - `OutcomeRecord`
   - `ActionExecution`
   - `WRITEBACK_GENERATED` audit events
+- 第二 tranche 的 `T2-B slice 1` 現在正式補到：
+  - effectiveness reading baseline
+  - reusable intelligence 的 low-noise effectiveness posture
+  - 保守區分 `evidence_thin / adoption_supported / closeout_supported / writeback_supported`
 - roadmap-side `7.15` 補強後，這層的 `recommended_next_step` 也應延續同一條 alignment：
   - 先補治理評分深度
   - 不要直接跳 sign-off
@@ -2497,6 +2507,10 @@ completion pass 後，deliverable work surface 也已正式把：
   - score dashboard
   - release manager shell
   - consultant ranking
+- 也不可把這一刀誤寫成：
+  - KPI attribution
+  - ROI scoring
+  - business outcome dashboard
 
 因此這一層現在應被理解為：
 
@@ -2539,6 +2553,10 @@ completion pass 後，deliverable work surface 也已正式把：
   - 這次交付之後，有沒有 outcome / writeback 痕跡
   - 其中哪些是 Host 自動建立的 writeback records
   - 這案是否本來就應該期待 full writeback
+- `feedback_linked_scoring_snapshot` 在 `T2-B slice 1` 後，現在也應能回答：
+  - 這些 evidence 目前只到 early signal，還是已形成較可信的 reusable-intelligence effectiveness posture
+  - 目前是 `adoption_supported`、`closeout_supported`，還是 `writeback_supported`
+  - 目前是否仍要保留「不要過度解讀」的 caveat
 - 這一刀也必須明確保留一條邊界：
   - `one_off / minimal` 案件若本來不期待 full writeback，absence 不應被直接算成失敗
 - completion review 的 `review_posture` 應優先讀 persisted checkpoint snapshot，而不是只看當下即時計算

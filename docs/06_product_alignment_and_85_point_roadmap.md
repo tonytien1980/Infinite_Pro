@@ -800,6 +800,17 @@ phase close review 的結論只能落在以下四種：
 - H
 - F
 
+目前進度：
+
+- 第一刀已正式落地成 `effectiveness reading baseline v1`
+- `Phase 6 feedback-linked persisted scoring` 現在不只回報 feedback / closeout / writeback evidence counts，也開始正式回讀 reusable intelligence 的 effectiveness posture
+- 第一版 posture 目前只保守區分：
+  - `evidence_thin`
+  - `adoption_supported`
+  - `closeout_supported`
+  - `writeback_supported`
+- 這一刀仍未進入 KPI / business outcome attribution
+
 ### 11.3 T2-C Consultant operating leverage and task-surface usability
 
 目標：

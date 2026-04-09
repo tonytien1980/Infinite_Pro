@@ -5327,6 +5327,45 @@ Environment used:
 
 ---
 
+## Entry: 2026-04-10 T2-B effectiveness reading baseline v1
+
+Scope:
+- deepen `T2-B` by turning existing feedback / closeout / writeback evidence into a reusable-intelligence effectiveness reading
+- keep the same `Phase 6 completion review` surface instead of creating a new analytics family
+- keep KPI / business outcome attribution explicitly out of scope
+
+Environment used:
+- local backend and frontend verification
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `PYTHONPATH=backend .venv312/bin/pytest backend/tests/test_phase_six_feedback_scoring.py -q` | Passed (`8 passed`) |
+| `PYTHONPATH=backend .venv312/bin/pytest backend/tests/test_mvp_slice.py -q` | Passed (`245 passed`) |
+| `cd frontend && node --test tests/phase-six-governance.test.mjs tests/intake-progress.test.mjs` | Passed (`47 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && npm run typecheck` | Passed |
+
+### T2-B effectiveness reading verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | `build_phase_six_feedback_linked_scoring_snapshot(...)` | Add conservative `effectiveness_posture` fields on top of existing feedback / closeout / writeback evidence | Verified | targeted backend tests confirm the snapshot now distinguishes `evidence_thin / adoption_supported / closeout_supported / writeback_supported` without creating a new scoring family |
+| Backend | `/api/v1/workbench/phase-6-completion-review` | Fold the new effectiveness posture into low-noise completion-review summaries | Verified | targeted backend tests confirm completion review now surfaces the posture summary while preserving the existing score logic and checkpoint round-trip |
+| Frontend | homepage `Generalist Governance` completion-review card | Render a low-noise effectiveness readout inside the existing card | Verified | node tests confirm the new helper stays compact and the homepage keeps the same completion-review surface instead of introducing a new dashboard page |
+| Regression | backend / frontend shared verification | Preserve existing Phase 6 routes, homepage contract, type parsing, and broader MVP behavior | Verified | targeted backend tests, backend regression, frontend node tests, build, and typecheck all remain green after the T2-B baseline pass |
+
+### Explicitly not shipped in this pass
+
+- KPI / business outcome attribution
+- ROI scoring
+- reusable asset ranking wall
+- new analytics page family
+- six-layer architecture change
+
+---
+
 ## Entry: 2026-04-09 consultant usability layer v1
 
 Scope:
