@@ -16,6 +16,11 @@ export type TaskDetailUsabilityView = {
   primaryCopy: string;
   primaryHref: string;
   primaryActionLabel: string;
+  handoffTarget: "task" | "matter" | "deliverable";
+  handoffHref: string;
+  handoffTitle: string;
+  handoffSummary: string;
+  handoffReasonLabel: string;
   checklist: string[];
   guideTitle: string;
   guideDescription: string;
@@ -48,18 +53,36 @@ export function buildTaskDetailUsabilityView(input: {
 }): TaskDetailUsabilityView {
   const primaryActionLabel = input.hasLatestDeliverable ? "打開正式交付物" : input.runButtonLabel;
   const primaryHref = input.hasLatestDeliverable ? "#deliverable-surface" : "#run-panel";
-  const thirdHref =
+  const handoffTarget =
     input.hasThinTaskEvidence && input.hasMatterWorkspace
+      ? "matter"
+      : input.hasLatestDeliverable
+        ? "deliverable"
+        : "task";
+  const handoffHref =
+    handoffTarget === "matter"
       ? "#workspace-lane"
-      : "#deliverable-surface";
-  const thirdTitle =
-    input.hasThinTaskEvidence && input.hasMatterWorkspace
-      ? "先補來源與證據"
-      : "直接回正式交付結果";
-  const thirdCopy =
-    input.hasThinTaskEvidence && input.hasMatterWorkspace
-      ? "若現在卡在依據偏薄，先回來源與證據工作面通常比空看頁面更有效。"
-      : "如果最新結果已形成，先回正式交付結果最快。";
+      : handoffTarget === "deliverable"
+        ? "#deliverable-surface"
+        : "#run-panel";
+  const handoffTitle =
+    handoffTarget === "matter"
+      ? "先回案件工作面"
+      : handoffTarget === "deliverable"
+        ? "先回正式交付物"
+        : "先留在 task 判斷";
+  const handoffReasonLabel =
+    handoffTarget === "matter"
+      ? "主因是補脈絡 / 證據 / continuity"
+      : handoffTarget === "deliverable"
+        ? "主因是閱讀 / 修訂 / 發布結果"
+        : "主因是先決定要不要執行";
+  const handoffSummary =
+    handoffTarget === "matter"
+      ? "先回案件工作面補脈絡與證據，再決定這輪要不要直接推進。"
+      : handoffTarget === "deliverable"
+        ? "先回正式交付物閱讀、修訂或發布，不要只停在 task 摘要。"
+        : "現在先留在 task，先判斷是否直接執行或先補局部缺口。";
   const guideItems: ConsultantGuideItem[] = [
     {
       href: "#readiness-governance",
@@ -80,24 +103,23 @@ export function buildTaskDetailUsabilityView(input: {
       tone: "accent",
     },
     {
-      href: thirdHref,
+      href: handoffHref,
       eyebrow: "要接續工作時",
-      title: thirdTitle,
-      copy: thirdCopy,
+      title: handoffTitle,
+      copy: handoffSummary,
       meta: `${input.sourceMaterialCount} 份來源材料 / ${input.evidenceCount} 則證據`,
       tone: input.hasThinTaskEvidence ? "warm" : "default",
     },
   ];
-  const fallbackHref =
-    input.hasThinTaskEvidence && input.hasMatterWorkspace
-      ? "#workspace-lane"
-      : "#deliverable-surface";
+  const fallbackHref = handoffHref;
   const fallbackCopy =
-    input.hasThinTaskEvidence && input.hasMatterWorkspace
-      ? "現在最有槓桿的回退路徑是先補來源與證據，不要只停在 task 摘要。"
-      : input.hasLatestDeliverable
-        ? `最新結果「${input.latestDeliverableTitle}」已形成，先回正式交付物通常最快。`
-        : "若不直接執行，先回正式交付結果或案件工作面確認脈絡。";
+    handoffTarget === "matter"
+      ? "現在最有槓桿的回退路徑是先補來源與證據，並回案件工作面補脈絡，不要只停在 task 摘要。"
+      : handoffTarget === "deliverable"
+        ? input.hasLatestDeliverable
+          ? `最新結果「${input.latestDeliverableTitle}」已形成，先回正式交付物通常最快。`
+          : "若這輪已接近正式結果閱讀，先回正式交付物比繼續停在 task 更有效。"
+        : "現在最有槓桿的是先留在 task，先決定要不要直接執行。";
   const operatingNotes: TaskOperatingNote[] = [
     {
       href: fallbackHref,
@@ -139,6 +161,11 @@ export function buildTaskDetailUsabilityView(input: {
       : input.runDestinationLabel,
     primaryHref,
     primaryActionLabel,
+    handoffTarget,
+    handoffHref,
+    handoffTitle,
+    handoffSummary,
+    handoffReasonLabel,
     checklist: [
       "先確認這輪到底在判斷什麼。",
       input.hasThinTaskEvidence

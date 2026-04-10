@@ -3,6 +3,56 @@ import assert from "node:assert/strict";
 
 import { buildTaskDetailUsabilityView } from "../src/lib/task-detail-usability.ts";
 
+test("task detail usability view prefers matter handoff when evidence is thin", () => {
+  const view = buildTaskDetailUsabilityView({
+    hasThinTaskEvidence: true,
+    hasLatestDeliverable: false,
+    latestDeliverableTitle: "",
+    hasMatterWorkspace: true,
+    runButtonLabel: "執行分析",
+    runDestinationLabel: "分析後會先形成正式交付結果",
+    laneTitle: "材料審閱姿態",
+    laneSummary: "目前更像 review memo / assessment，不是最終決策版本。",
+    readinessLabel: "需補強",
+    readinessSummary: "目前資料仍偏薄，但不用卡住。",
+    evidenceCount: 1,
+    sourceMaterialCount: 1,
+    hasResearchGuidance: false,
+    researchSummary: "",
+    hasContinuationSummary: false,
+    continuationSummary: "",
+  });
+
+  assert.equal(view.handoffTarget, "matter");
+  assert.equal(view.handoffHref, "#workspace-lane");
+  assert.match(view.handoffSummary, /先回案件工作面補脈絡與證據/);
+});
+
+test("task detail usability view prefers deliverable handoff when a formal result exists", () => {
+  const view = buildTaskDetailUsabilityView({
+    hasThinTaskEvidence: false,
+    hasLatestDeliverable: true,
+    latestDeliverableTitle: "季度風險掃描 memo",
+    hasMatterWorkspace: true,
+    runButtonLabel: "執行分析",
+    runDestinationLabel: "最新結果已經形成，可直接回看正式交付物。",
+    laneTitle: "目前交付等級",
+    laneSummary: "已形成正式交付結果。",
+    readinessLabel: "可直接推進",
+    readinessSummary: "這筆工作已具備基本分析條件。",
+    evidenceCount: 5,
+    sourceMaterialCount: 4,
+    hasResearchGuidance: false,
+    researchSummary: "",
+    hasContinuationSummary: true,
+    continuationSummary: "最近 checkpoint 已形成，可直接回看成果或續推下一輪。",
+  });
+
+  assert.equal(view.handoffTarget, "deliverable");
+  assert.equal(view.handoffHref, "#deliverable-surface");
+  assert.match(view.handoffSummary, /先回正式交付物閱讀、修訂或發布/);
+});
+
 test("task detail usability view makes the first action explicit when evidence is thin", () => {
   const view = buildTaskDetailUsabilityView({
     hasThinTaskEvidence: true,
