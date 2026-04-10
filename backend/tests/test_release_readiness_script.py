@@ -142,9 +142,24 @@ def test_browser_smoke_targets_define_a_small_consultant_facing_contract() -> No
         "deliverables_list",
         "task_detail_operating_surface",
     ]
-    assert targets[0]["path"] == "/"
-    assert targets[-1]["path"] == "/tasks/[taskId]"
-    assert targets[-1]["mode"] == "operator-assisted"
+    assert [item["required"] for item in targets] == [True, True, True, True, False]
+    assert [item["entry_kind"] for item in targets] == [
+        "direct-route",
+        "direct-route",
+        "direct-route",
+        "direct-route",
+        "list-to-detail",
+    ]
+
+
+def test_browser_smoke_targets_record_dynamic_entry_for_task_detail() -> None:
+    task_target = release_readiness.build_browser_smoke_targets("standalone")[-1]
+
+    assert task_target["label"] == "task_detail_operating_surface"
+    assert task_target["path_template"] == "/tasks/[taskId]"
+    assert task_target["entry_path"] == "/matters"
+    assert task_target["mode"] == "operator-assisted"
+    assert "operating summary" in task_target["evidence_expectation"]
 
 
 def test_browser_smoke_targets_reject_unknown_profile() -> None:

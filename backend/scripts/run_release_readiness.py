@@ -153,7 +153,7 @@ def build_runtime_smoke_targets_for_profile(profile: str) -> RuntimeProfileTarge
     )
 
 
-def build_browser_smoke_targets(profile: str) -> list[dict[str, str]]:
+def build_browser_smoke_targets(profile: str) -> list[dict[str, object]]:
     normalized = profile.strip().lower()
     if normalized not in {"standalone", "docker-compose"}:
         raise ValueError(f"Unsupported browser smoke profile: {profile}")
@@ -161,32 +161,52 @@ def build_browser_smoke_targets(profile: str) -> list[dict[str, str]]:
     return [
         {
             "label": "overview_focus_return",
-            "path": "/",
+            "required": True,
+            "entry_kind": "direct-route",
+            "path_template": "/",
+            "entry_path": "/",
             "intent": "確認首頁仍能把顧問送回主工作面",
+            "evidence_expectation": "記錄首頁 primary action block 與 section guide 仍可讀。",
             "mode": "operator-assisted",
         },
         {
             "label": "new_matter_entry",
-            "path": "/new",
+            "required": True,
+            "entry_kind": "direct-route",
+            "path_template": "/new",
+            "entry_path": "/new",
             "intent": "確認正式進件入口仍可進入 canonical intake",
+            "evidence_expectation": "記錄 intake 首屏可見且可進入正式進件主線。",
             "mode": "operator-assisted",
         },
         {
             "label": "matters_list",
-            "path": "/matters",
+            "required": True,
+            "entry_kind": "direct-route",
+            "path_template": "/matters",
+            "entry_path": "/matters",
             "intent": "確認案件列表仍可作為主工作面入口",
+            "evidence_expectation": "記錄案件列表可見且可進入案件工作面。",
             "mode": "operator-assisted",
         },
         {
             "label": "deliverables_list",
-            "path": "/deliverables",
+            "required": True,
+            "entry_kind": "direct-route",
+            "path_template": "/deliverables",
+            "entry_path": "/deliverables",
             "intent": "確認交付物主工作面仍可進入正式結果閱讀",
+            "evidence_expectation": "記錄交付物列表可見且能作為正式結果入口。",
             "mode": "operator-assisted",
         },
         {
             "label": "task_detail_operating_surface",
-            "path": "/tasks/[taskId]",
+            "required": False,
+            "entry_kind": "list-to-detail",
+            "path_template": "/tasks/[taskId]",
+            "entry_path": "/matters",
             "intent": "確認 task detail 仍維持 operating summary 與低噪音主線",
+            "evidence_expectation": "若列表中有可進入的 task，記錄 operating summary 與 condensed notes 是否仍成立。",
             "mode": "operator-assisted",
         },
     ]
