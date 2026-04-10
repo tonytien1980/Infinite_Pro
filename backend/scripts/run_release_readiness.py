@@ -26,6 +26,13 @@ class RuntimeSmokeTarget(NamedTuple):
     expect_json_status_ok: bool = False
 
 
+class RuntimeProfileTargets(NamedTuple):
+    profile: str
+    frontend_base_url: str
+    backend_base_url: str
+    targets: list[RuntimeSmokeTarget]
+
+
 def build_static_checks(
     *,
     repo_root: Path,
@@ -122,6 +129,28 @@ def build_runtime_smoke_targets(
         RuntimeSmokeTarget(label="frontend_matters", url=f"{frontend_root}/matters"),
         RuntimeSmokeTarget(label="frontend_deliverables", url=f"{frontend_root}/deliverables"),
     ]
+
+
+def build_runtime_smoke_targets_for_profile(profile: str) -> RuntimeProfileTargets:
+    normalized = profile.strip().lower()
+    if normalized == "standalone":
+        frontend_base_url = "http://127.0.0.1:3000"
+        backend_base_url = "http://127.0.0.1:8000/api/v1"
+    elif normalized == "docker-compose":
+        frontend_base_url = "http://127.0.0.1:3000"
+        backend_base_url = "http://127.0.0.1:8000/api/v1"
+    else:
+        raise ValueError(f"Unsupported runtime profile: {profile}")
+
+    return RuntimeProfileTargets(
+        profile=normalized,
+        frontend_base_url=frontend_base_url,
+        backend_base_url=backend_base_url,
+        targets=build_runtime_smoke_targets(
+            backend_base_url=backend_base_url,
+            frontend_base_url=frontend_base_url,
+        ),
+    )
 
 
 def run_command_checks(checks: list[ReleaseCheck]) -> dict[str, object]:
@@ -240,6 +269,7 @@ def main() -> int:
         description="Run Infinite Pro release-readiness baseline checks.",
     )
     parser.add_argument("--tier", choices=["static", "runtime", "all"], default="static")
+    parser.add_argument("--runtime-profile", choices=["standalone", "docker-compose"], default=None)
     parser.add_argument("--frontend-base-url", default="http://127.0.0.1:3000")
     parser.add_argument("--backend-base-url", default="http://127.0.0.1:8000/api/v1")
     parser.add_argument("--json", action="store_true")
@@ -267,12 +297,22 @@ def main() -> int:
             exit_code = 1
 
     if args.tier in {"runtime", "all"}:
-        runtime_results = run_runtime_smoke(
-            build_runtime_smoke_targets(
-                backend_base_url=args.backend_base_url,
-                frontend_base_url=args.frontend_base_url,
+        if args.runtime_profile:
+            runtime_profile = build_runtime_smoke_targets_for_profile(args.runtime_profile)
+            runtime_results = run_runtime_smoke(runtime_profile.targets)
+            runtime_results["profile"] = runtime_profile.profile
+            runtime_results["frontend_base_url"] = runtime_profile.frontend_base_url
+            runtime_results["backend_base_url"] = runtime_profile.backend_base_url
+        else:
+            runtime_results = run_runtime_smoke(
+                build_runtime_smoke_targets(
+                    backend_base_url=args.backend_base_url,
+                    frontend_base_url=args.frontend_base_url,
+                )
             )
-        )
+            runtime_results["profile"] = "custom"
+            runtime_results["frontend_base_url"] = args.frontend_base_url
+            runtime_results["backend_base_url"] = args.backend_base_url
         payload["runtime"] = runtime_results
         if runtime_results["status"] != "pass":
             exit_code = 1

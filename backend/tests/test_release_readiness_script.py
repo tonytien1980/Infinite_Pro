@@ -101,3 +101,32 @@ def test_runtime_smoke_reports_pass_for_health_and_frontend_routes() -> None:
     assert len(result["checks"]) == 5
     assert "/api/v1/health" in events
     assert "/deliverables" in events
+
+
+def test_runtime_profile_targets_support_standalone_and_docker_compose() -> None:
+    standalone = release_readiness.build_runtime_smoke_targets_for_profile("standalone")
+    docker = release_readiness.build_runtime_smoke_targets_for_profile("docker-compose")
+
+    assert standalone.profile == "standalone"
+    assert standalone.frontend_base_url == "http://127.0.0.1:3000"
+    assert standalone.backend_base_url == "http://127.0.0.1:8000/api/v1"
+
+    assert docker.profile == "docker-compose"
+    assert docker.frontend_base_url == "http://127.0.0.1:3000"
+    assert docker.backend_base_url == "http://127.0.0.1:8000/api/v1"
+    assert [item.label for item in docker.targets] == [
+        "backend_health",
+        "frontend_overview",
+        "frontend_new",
+        "frontend_matters",
+        "frontend_deliverables",
+    ]
+
+
+def test_runtime_profile_builder_rejects_unknown_profile() -> None:
+    try:
+        release_readiness.build_runtime_smoke_targets_for_profile("legacy-8010")
+    except ValueError as exc:
+        assert "Unsupported runtime profile" in str(exc)
+    else:
+        raise AssertionError("expected runtime profile builder to reject unknown profile")
