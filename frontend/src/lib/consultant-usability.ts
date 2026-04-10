@@ -97,6 +97,16 @@ export type MatterUsabilityView = {
   guideItems: ConsultantGuideItem[];
 };
 
+export type MatterSectionGuideAssemblyInput = {
+  matterId: string;
+  latestDeliverableId: string | null;
+  matterUsabilityView: MatterUsabilityView | null;
+  matterCommandView: {
+    blockerCopy: string;
+    nextStepCopy: string;
+  } | null;
+};
+
 export function buildMatterUsabilityView(input: {
   evidenceCount: number;
   deliverableCount: number;
@@ -150,6 +160,48 @@ export function buildMatterUsabilityView(input: {
       },
     ],
   };
+}
+
+export function buildMatterSectionGuideItems(
+  input: MatterSectionGuideAssemblyInput,
+): ConsultantGuideItem[] {
+  if (!input.matterUsabilityView) {
+    return [];
+  }
+
+  const [firstItem, ...restItems] = input.matterUsabilityView.guideItems;
+  if (!firstItem) {
+    return [];
+  }
+
+  return [
+    {
+      ...firstItem,
+      href: "#matter-mainline",
+      eyebrow: "先抓案件指揮",
+      title: firstItem.title,
+      copy: input.matterCommandView?.blockerCopy ?? firstItem.copy,
+      meta: input.matterCommandView?.nextStepCopy,
+      tone: "accent",
+    },
+    ...restItems.map((item) => {
+      if (item.href === "#matter-deliverables-overview" && input.latestDeliverableId) {
+        return {
+          ...item,
+          href: `/deliverables/${input.latestDeliverableId}`,
+        };
+      }
+
+      if (item.href === "#matter-evidence-overview") {
+        return {
+          ...item,
+          href: `/matters/${input.matterId}/evidence`,
+        };
+      }
+
+      return item;
+    }),
+  ];
 }
 
 export type DeliverableUsabilityView = {

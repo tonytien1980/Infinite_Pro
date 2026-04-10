@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   buildOverviewUsabilityView,
   buildMatterUsabilityView,
+  buildMatterSectionGuideItems,
   buildDeliverableUsabilityView,
 } from "../src/lib/consultant-usability.ts";
 
@@ -77,6 +78,33 @@ test("matter usability view keeps the first guide item focused on command, not s
     view.sectionGuideDescription,
     "先抓這輪主線、最大 blocker 與最值得先推的 task，再看 authority 或背景層。",
   );
+});
+
+test("matter section guide assembly keeps the command-first title stable", () => {
+  const matterUsabilityView = buildMatterUsabilityView({
+    evidenceCount: 1,
+    deliverableCount: 1,
+    activeTaskCount: 2,
+    hasCaseWorldState: true,
+    hasOpenEvidenceGaps: true,
+    hasRecentDeliverable: true,
+  });
+
+  const items = buildMatterSectionGuideItems({
+    matterId: "matter-alpha",
+    latestDeliverableId: "deliverable-beta",
+    matterUsabilityView,
+    matterCommandView: {
+      blockerCopy: "目前還卡在證據厚度不夠。",
+      nextStepCopy: "先回來源與證據，再看是否直接補件。",
+    },
+  });
+
+  assert.equal(items[0]?.title, "先看案件主線與指揮判斷");
+  assert.equal(items[0]?.copy, "目前還卡在證據厚度不夠。");
+  assert.equal(items[0]?.meta, "先回來源與證據，再看是否直接補件。");
+  assert.equal(items[1]?.href, "#matter-world-state");
+  assert.equal(items[2]?.href, "/deliverables/deliverable-beta");
 });
 
 test("matter usability view points the first guide item at the mainline and keeps authority work second-layer", () => {

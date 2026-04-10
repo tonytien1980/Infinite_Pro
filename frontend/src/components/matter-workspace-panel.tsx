@@ -68,7 +68,10 @@ import {
   syncMatterWorkspaceFallback,
 } from "@/lib/workspace-persistence";
 import { WorkspaceSectionGuide } from "@/components/workspace-section-guide";
-import { buildMatterUsabilityView } from "@/lib/consultant-usability";
+import {
+  buildMatterSectionGuideItems,
+  buildMatterUsabilityView,
+} from "@/lib/consultant-usability";
 
 type MatterTab = "overview" | "decision" | "evidence" | "deliverables" | "history";
 
@@ -643,6 +646,12 @@ export function MatterWorkspacePanel({
         hasRecentDeliverable: Boolean(latestDeliverable),
       })
     : null;
+  const matterGuideItems = buildMatterSectionGuideItems({
+    matterId,
+    latestDeliverableId: latestDeliverable?.deliverable_id ?? null,
+    matterUsabilityView,
+    matterCommandView,
+  });
   const recentDecisionRecords = matter?.decision_records.slice(0, 3) ?? [];
   const recentOutcomeRecords = matter?.outcome_records.slice(0, 3) ?? [];
   const pendingApprovalCount =
@@ -1007,7 +1016,7 @@ export function MatterWorkspacePanel({
                 <div className="deliverable-focus-card workspace-focus-card">
                   <span className="pill">目前主線</span>
                   <p className="deliverable-focus-lead">
-                    {matterCommandView ? matterCommandView.primaryCopy : matterAdvanceGuide.summary}
+                    {matterCommandView ? matterCommandView.primaryCopy : advanceGuide.summary}
                   </p>
                 </div>
               </div>
@@ -1411,39 +1420,7 @@ export function MatterWorkspacePanel({
                 <WorkspaceSectionGuide
                   title={matterUsabilityView.sectionGuideTitle}
                   description={matterUsabilityView.sectionGuideDescription}
-                  items={
-                    matter
-                      ? [
-                          {
-                            href: "#matter-mainline",
-                            eyebrow: "先抓案件指揮",
-                            title: matterCommandView
-                              ? matterCommandView.primaryTitle
-                              : "先看案件主線與下一步",
-                            copy: matterCommandView
-                              ? matterCommandView.blockerCopy
-                              : matterUsabilityView.guideItems[0]?.copy ?? "",
-                            meta: matterCommandView?.nextStepCopy,
-                            tone: "accent",
-                          },
-                          ...matterUsabilityView.guideItems.slice(1).map((item) => {
-                            if (item.href === "#matter-deliverables-overview" && latestDeliverable) {
-                              return {
-                                ...item,
-                                href: `/deliverables/${latestDeliverable.deliverable_id}`,
-                              };
-                            }
-                            if (item.href === "#matter-evidence-overview") {
-                              return {
-                                ...item,
-                                href: `/matters/${matterId}/evidence`,
-                              };
-                            }
-                            return item;
-                          }),
-                        ]
-                      : matterUsabilityView.guideItems
-                  }
+                  items={matterGuideItems}
                 />
               ) : null}
 
