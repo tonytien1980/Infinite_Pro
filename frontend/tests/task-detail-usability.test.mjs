@@ -124,3 +124,29 @@ test("task detail usability view builds a result-first operating summary when a 
   assert.match(view.operatingNotes[1]?.copy, /checkpoint/);
   assert.match(view.operatingNotes[2]?.copy, /可直接推進/);
 });
+
+test("task detail usability view condenses operating notes into three low-noise lanes", () => {
+  const view = buildTaskDetailUsabilityView({
+    hasThinTaskEvidence: false,
+    hasLatestDeliverable: false,
+    latestDeliverableTitle: "",
+    hasMatterWorkspace: true,
+    runButtonLabel: "執行分析",
+    runDestinationLabel: "執行後會先寫回正式交付結果。",
+    laneTitle: "目前交付等級",
+    laneSummary: "這筆工作已具備基本分析條件。",
+    readinessLabel: "可直接推進",
+    readinessSummary: "目前資料已達基本可運作狀態。",
+    evidenceCount: 3,
+    sourceMaterialCount: 2,
+    hasResearchGuidance: false,
+    researchSummary: "",
+    hasContinuationSummary: false,
+    continuationSummary: "",
+  });
+
+  assert.equal(view.operatingNotes.length, 3);
+  assert.equal(view.operatingNotes[0]?.label, "最有槓桿的下一步");
+  assert.equal(view.operatingNotes[1]?.label, "主線限制");
+  assert.equal(view.operatingNotes[2]?.href, "#run-panel");
+});

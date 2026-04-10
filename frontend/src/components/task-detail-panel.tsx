@@ -881,6 +881,18 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
         readinessSummary: readinessGovernance?.summary || "先判斷這輪工作的就緒度。",
         evidenceCount: task.evidence.length,
         sourceMaterialCount: task.source_materials.length,
+        hasResearchGuidance: Boolean(researchGuidance?.shouldShow),
+        researchSummary: researchGuidance?.shouldShow
+          ? [
+              researchGuidance.firstQuestion,
+              researchGuidance.stopCondition,
+              researchGuidance.freshnessSummary,
+            ]
+              .filter(Boolean)
+              .join("｜")
+          : "",
+        hasContinuationSummary: continuationFocusSummary.shouldShow,
+        continuationSummary: continuationFocusSummary.copy || "",
       })
     : null;
 
@@ -1057,6 +1069,29 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
             }
             items={taskDetailUsabilityView?.guideItems || taskSectionGuideItems}
           />
+
+          {taskDetailUsabilityView ? (
+            <section className="panel">
+              <div className="panel-header">
+                <div>
+                  <h2 className="panel-title">{taskDetailUsabilityView.operatingSummaryTitle}</h2>
+                  <p className="panel-copy">{taskDetailUsabilityView.operatingSummaryCopy}</p>
+                </div>
+              </div>
+              <div className="section-guide-grid">
+                {taskDetailUsabilityView.operatingNotes.map((item) => (
+                  <Link
+                    key={`${item.href}-${item.label}`}
+                    className={`section-guide-card section-guide-card-${item.tone ?? "default"}`}
+                    href={item.href}
+                  >
+                    <span className="section-guide-eyebrow">{item.label}</span>
+                    <p className="section-guide-copy">{item.copy}</p>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          ) : null}
 
           <DisclosurePanel
             title="案件世界草稿與寫回策略"
@@ -1795,7 +1830,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
               <DisclosurePanel
                 id="workspace-lane"
                 title="工作鏈與來源 / 證據"
-                description="當你要追查這輪判斷憑什麼成立，或需要補件時，再展開這層；平常先看主問題、可信度與交付結果。"
+                description="當你要補件或追查這輪判斷憑什麼成立時，再打開這層。"
               >
                 <div className="panel-header">
                   <div>
@@ -2298,9 +2333,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                 <div className="panel-header">
                   <div>
                     <h2 className="panel-title">判斷可信度與資料缺口</h2>
-                    <p className="panel-copy">
-                      先看這輪判斷目前有多穩、還缺哪些資料，以及這些缺口會怎麼影響結論可信度。
-                    </p>
+                    <p className="panel-copy">這裡只回答這輪目前站不站得住，以及最大的缺口在哪裡。</p>
                   </div>
                   {readinessGovernance ? (
                     <span className={`status-badge status-${readinessGovernance.level}`}>
@@ -2500,9 +2533,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                 <div className="panel-header">
                   <div>
                     <h2 className="panel-title">正式交付結果</h2>
-                    <p className="panel-copy">
-                      這是目前最接近正式顧問交付物的主閱讀主線：先看決策快照，再往下讀執行摘要、核心判斷與後續建議。
-                    </p>
+                    <p className="panel-copy">若結果已形成，這裡就是最接近正式顧問交付物的主閱讀主線。</p>
                   </div>
                   {latestDeliverable ? (
                     <Link className="button-secondary" href={`/deliverables/${latestDeliverable.id}`}>
