@@ -859,6 +859,12 @@ phase close review 的結論只能落在以下四種：
 
 - F
 
+目前進度：
+
+- 第一刀已正式落地成 `runtime confidence baseline v1`
+- repo-native release-readiness baseline 現在可明確區分 `standalone` 與 `docker-compose` runtime profile
+- browser smoke 仍維持 operator-assisted，但 repo 內已建立可重複參照的 canonical smoke target contract
+
 正式規則：
 
 - 第二 tranche 的提案若無法明顯推進 `T2-A` 到 `T2-D` 其中一條，應先降優先級

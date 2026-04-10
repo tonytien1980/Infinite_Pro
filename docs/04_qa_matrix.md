@@ -5597,3 +5597,43 @@ Environment used:
 - deploy dashboard
 - browser automation lab
 - full browser smoke suite
+
+---
+
+## Entry: 2026-04-10 T2-D runtime confidence baseline v1
+
+Scope:
+- deepen release-readiness from generic runtime smoke into explicit runtime profiles
+- add a canonical operator-assisted browser smoke target contract
+- align README, script output, and QA evidence to the same runtime-confidence vocabulary
+
+Environment used:
+- local repo verification
+- standalone runtime verification
+- Docker Compose runtime verification against the currently running compose services
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `PYTHONPATH=backend .venv312/bin/pytest backend/tests/test_release_readiness_script.py -q` | Passed (`8 passed`) |
+| `PYTHONPATH=backend .venv312/bin/python backend/scripts/run_release_readiness.py --tier static` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python backend/scripts/run_release_readiness.py --tier runtime --runtime-profile standalone` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python backend/scripts/run_release_readiness.py --tier runtime --runtime-profile docker-compose` | Passed |
+
+### T2-D runtime confidence verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Repo-native script | `backend/scripts/run_release_readiness.py` runtime profile contract | Distinguish `standalone`, `docker-compose`, and `custom` runtime invocation paths | Verified | the script now emits explicit runtime profile metadata instead of leaving every runtime run as an unlabeled URL probe |
+| Repo-native script | browser smoke target contract | Expose a canonical operator-assisted smoke target set for consultant-facing routes | Verified | the runtime JSON payload now includes `browser_smoke.profile`, `mode`, and five canonical smoke targets without pretending those flows are fully automated |
+| Runtime posture | `standalone` profile | Run repo-native HTTP smoke against the standard local profile | Verified | the standalone profile passed against `http://127.0.0.1:3000` and `http://127.0.0.1:8000/api/v1`, with backend health and core frontend routes all returning pass |
+| Runtime posture | `docker-compose` profile | Run repo-native HTTP smoke against the compose profile | Verified | Docker daemon and `docker compose` were available, and the currently running compose services on `3000 / 8000` passed the same backend health and core route checks under the explicit `docker-compose` profile |
+| Browser smoke posture | operator-assisted lane | Keep browser smoke visible and canonical without overclaiming automation | Not run | this pass shipped the canonical smoke-target contract and profile vocabulary, but no browser-driven smoke flow was executed through Playwright or QA automation |
+
+### Explicitly not shipped in this pass
+
+- full browser automation lab
+- deploy pipeline / CI platform
+- release dashboard
+- runtime admin console

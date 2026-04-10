@@ -169,13 +169,20 @@ Repo-native static gate:
 PYTHONPATH=backend .venv312/bin/python backend/scripts/run_release_readiness.py --tier static
 ```
 
-If local frontend/backend runtime is already up:
+Repo-native runtime gate (standalone local runtime):
 
 ```bash
 PYTHONPATH=backend .venv312/bin/python backend/scripts/run_release_readiness.py \
   --tier runtime \
-  --frontend-base-url http://127.0.0.1:3000 \
-  --backend-base-url http://127.0.0.1:8000/api/v1
+  --runtime-profile standalone
+```
+
+Repo-native runtime gate (Docker Compose profile):
+
+```bash
+PYTHONPATH=backend .venv312/bin/python backend/scripts/run_release_readiness.py \
+  --tier runtime \
+  --runtime-profile docker-compose
 ```
 
 Verification tiers:
@@ -183,9 +190,9 @@ Verification tiers:
 - `static`
   - backend compile / pytest, frontend node tests, build, typecheck
 - `runtime`
-  - backend health plus core frontend route reachability
+  - repo-native HTTP smoke, with explicit `standalone` or `docker-compose` profile
 - `browser smoke`
-  - operator-assisted browser flow checks recorded separately in `docs/04_qa_matrix.md`
+  - operator-assisted consultant-facing flow checks against the canonical smoke-target contract
 
 ---
 
