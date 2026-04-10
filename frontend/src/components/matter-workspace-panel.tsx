@@ -19,6 +19,7 @@ import {
   buildContinuationAdvisoryView,
   buildContinuationDetailView,
 } from "@/lib/continuation-advisory";
+import { buildMatterCommandView } from "@/lib/case-command-loop";
 import { describeRuntimeMaterialHandling } from "@/lib/intake";
 import { buildContinuationPostureView } from "@/lib/continuity-ux";
 import {
@@ -599,6 +600,7 @@ export function MatterWorkspacePanel({
   const researchDetailView = matter
     ? buildResearchDetailView(researchGuidance, matter.research_runs[0] ?? null)
     : null;
+  const matterCommandView = matter ? buildMatterCommandView(matter.matter_command) : null;
   const resolvedContentSections = matter
     ? buildResolvedMatterContentSections(matter, fallbackRecord)
     : draftContentSections;
@@ -641,24 +643,6 @@ export function MatterWorkspacePanel({
         hasRecentDeliverable: Boolean(latestDeliverable),
       })
     : null;
-  const matterGuideItems =
-    matter && matterUsabilityView
-      ? matterUsabilityView.guideItems.map((item) => {
-          if (item.href === "#matter-deliverables-overview" && latestDeliverable) {
-            return {
-              ...item,
-              href: `/deliverables/${latestDeliverable.deliverable_id}`,
-            };
-          }
-          if (item.href === "#matter-evidence-overview") {
-            return {
-              ...item,
-              href: `/matters/${matterId}/evidence`,
-            };
-          }
-          return item;
-        })
-      : [];
   const recentDecisionRecords = matter?.decision_records.slice(0, 3) ?? [];
   const recentOutcomeRecords = matter?.outcome_records.slice(0, 3) ?? [];
   const pendingApprovalCount =
@@ -1022,7 +1006,9 @@ export function MatterWorkspacePanel({
 
                 <div className="deliverable-focus-card workspace-focus-card">
                   <span className="pill">目前主線</span>
-                  <p className="deliverable-focus-lead">{coreQuestion}</p>
+                  <p className="deliverable-focus-lead">
+                    {matterCommandView ? matterCommandView.primaryCopy : matterAdvanceGuide.summary}
+                  </p>
                 </div>
               </div>
 
@@ -1229,6 +1215,11 @@ export function MatterWorkspacePanel({
                       </div>
                     ) : null}
                   </div>
+                  <div className="section-card" id="matter-command-surface">
+                    <h3>{matterCommandView?.blockerTitle ?? "這案目前最卡的地方"}</h3>
+                    <p className="content-block">{matterCommandView?.blockerCopy}</p>
+                    <p className="muted-text">{matterCommandView?.deliverableCopy}</p>
+                  </div>
                   {continuationSurface?.primary_action?.action_id === "record_checkpoint" ? (
                     <div className="field" style={{ marginTop: "12px" }}>
                       <label htmlFor="matter-checkpoint-note">這輪檢查點要留下什麼？</label>
@@ -1420,7 +1411,39 @@ export function MatterWorkspacePanel({
                 <WorkspaceSectionGuide
                   title={matterUsabilityView.sectionGuideTitle}
                   description={matterUsabilityView.sectionGuideDescription}
-                  items={matterGuideItems}
+                  items={
+                    matter
+                      ? [
+                          {
+                            href: "#matter-mainline",
+                            eyebrow: "先抓案件指揮",
+                            title: matterCommandView
+                              ? matterCommandView.primaryTitle
+                              : "先看案件主線與下一步",
+                            copy: matterCommandView
+                              ? matterCommandView.blockerCopy
+                              : matterUsabilityView.guideItems[0]?.copy ?? "",
+                            meta: matterCommandView?.nextStepCopy,
+                            tone: "accent",
+                          },
+                          ...matterUsabilityView.guideItems.slice(1).map((item) => {
+                            if (item.href === "#matter-deliverables-overview" && latestDeliverable) {
+                              return {
+                                ...item,
+                                href: `/deliverables/${latestDeliverable.deliverable_id}`,
+                              };
+                            }
+                            if (item.href === "#matter-evidence-overview") {
+                              return {
+                                ...item,
+                                href: `/matters/${matterId}/evidence`,
+                              };
+                            }
+                            return item;
+                          }),
+                        ]
+                      : matterUsabilityView.guideItems
+                  }
                 />
               ) : null}
 

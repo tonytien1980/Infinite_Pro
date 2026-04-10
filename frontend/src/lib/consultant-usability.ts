@@ -119,7 +119,7 @@ export function buildMatterUsabilityView(input: {
   return {
     sectionGuideTitle: "案件頁怎麼看最快",
     sectionGuideDescription:
-      "先抓這輪主線，再決定要不要下鑽背景補充、案件世界 authority、來源與交付物。",
+      "先抓這輪主線、最大 blocker 與最值得先推的 task，再看 authority 或背景層。",
     mainlineCopy:
       input.activeTaskCount > 1
         ? "先抓主線：這一屏只回答案件目前在處理什麼、下一步做什麼，以及多條工作紀錄中現在最該先看的那一條。"
@@ -131,7 +131,7 @@ export function buildMatterUsabilityView(input: {
       {
         href: "#matter-mainline",
         eyebrow: "先抓主線",
-        title: "先看案件主線與下一步",
+        title: "先看案件主線與指揮判斷",
         copy: "不要先掉進 continuity、research 或 organization memory 的細節。",
         tone: "accent",
       },

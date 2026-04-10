@@ -59,6 +59,26 @@ test("matter usability view keeps the mainline first and pushes world-state to s
   assert.match(view.worldStateDisclosureDescription, /只有在你要確認案件世界層/);
 });
 
+test("matter usability view keeps the first guide item focused on command, not structure", () => {
+  const view = buildMatterUsabilityView({
+    evidenceCount: 1,
+    deliverableCount: 1,
+    activeTaskCount: 2,
+    hasCaseWorldState: true,
+    hasOpenEvidenceGaps: true,
+    hasRecentDeliverable: true,
+  });
+
+  assert.equal(view.guideItems[0]?.href, "#matter-mainline");
+  assert.match(view.guideItems[0]?.title, /案件主線/);
+  assert.match(view.guideItems[2]?.copy, /交付物|來源與證據/);
+  assert.equal(view.guideItems[0]?.title, "先看案件主線與指揮判斷");
+  assert.equal(
+    view.sectionGuideDescription,
+    "先抓這輪主線、最大 blocker 與最值得先推的 task，再看 authority 或背景層。",
+  );
+});
+
 test("matter usability view points the first guide item at the mainline and keeps authority work second-layer", () => {
   const view = buildMatterUsabilityView({
     evidenceCount: 4,
