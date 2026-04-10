@@ -179,10 +179,13 @@ export function buildTaskDetailUsabilityView(input: {
     guideDescription: "先判斷能不能跑，再決定是直接執行、先補依據，還是回看正式結果。",
     guideItems,
     railEyebrow: input.laneTitle,
-    railTitle: input.hasLatestDeliverable ? "結果已形成，可先回看" : "這筆工作接下來往哪裡",
-    railSummary: input.hasLatestDeliverable
-      ? `最新結果是「${input.latestDeliverableTitle}」，先回正式交付結果通常最快。`
-      : input.laneSummary,
+    railTitle: handoffTitle,
+    railSummary:
+      handoffTarget === "deliverable" && input.latestDeliverableTitle
+        ? `${handoffSummary}｜最新結果是「${input.latestDeliverableTitle}」。`
+        : handoffTarget === "task"
+        ? `${handoffSummary}｜${input.laneSummary}`
+        : handoffSummary,
     operatingSummaryTitle: "這頁現在怎麼推最快",
     operatingSummaryCopy: input.hasThinTaskEvidence
       ? `${input.readinessSummary} 先承認目前還有缺口，再決定是先補 evidence、先讓系統跑第一版，還是先回看已形成的結果。`

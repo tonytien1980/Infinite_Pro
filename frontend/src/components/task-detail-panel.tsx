@@ -1005,7 +1005,12 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                           : taskHeroActionTitle)}
                   </h3>
                   {taskDetailUsabilityView ? (
-                    <p className="hero-focus-copy">{taskDetailUsabilityView.railSummary}</p>
+                    <>
+                      <p className="hero-focus-copy">
+                        {`${taskDetailUsabilityView.handoffTitle}｜${taskDetailUsabilityView.handoffReasonLabel}`}
+                      </p>
+                      <p className="hero-focus-copy">{taskDetailUsabilityView.railSummary}</p>
+                    </>
                   ) : researchGuidance?.shouldShow ? (
                     <p className="hero-focus-copy">
                       {researchGuidance.executionOwnerLabel}｜

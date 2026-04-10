@@ -200,3 +200,28 @@ test("task detail usability view condenses operating notes into three low-noise 
   assert.equal(view.operatingNotes[1]?.label, "主線限制");
   assert.equal(view.operatingNotes[2]?.href, "#run-panel");
 });
+
+test("task detail usability view aligns the rail with the same handoff contract", () => {
+  const view = buildTaskDetailUsabilityView({
+    hasThinTaskEvidence: true,
+    hasLatestDeliverable: false,
+    latestDeliverableTitle: "",
+    hasMatterWorkspace: true,
+    runButtonLabel: "執行分析",
+    runDestinationLabel: "分析後會先形成正式交付結果",
+    laneTitle: "材料審閱姿態",
+    laneSummary: "目前更像 review memo / assessment，不是最終決策版本。",
+    readinessLabel: "需補強",
+    readinessSummary: "目前資料仍偏薄，但不用卡住。",
+    evidenceCount: 1,
+    sourceMaterialCount: 1,
+    hasResearchGuidance: false,
+    researchSummary: "",
+    hasContinuationSummary: false,
+    continuationSummary: "",
+  });
+
+  assert.match(view.railTitle, /案件工作面/);
+  assert.match(view.railSummary, /先回案件工作面補脈絡與證據/);
+  assert.match(view.handoffReasonLabel, /脈絡/);
+});
