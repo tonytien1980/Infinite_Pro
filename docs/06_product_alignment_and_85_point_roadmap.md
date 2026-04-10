@@ -876,6 +876,9 @@ phase close review 的結論只能落在以下四種：
 - 第二刀已正式落地成 `browser smoke normalization v1`
 - `browser_smoke` 現在不再只是抽象 target list，而是有 `required/optional`、`entry_kind`、`entry_path`、`evidence_expectation` 的 normalized smoke manifest
 - operator-assisted smoke evidence 也開始有較一致的記錄格式，而不是只寫「有跑 / 沒跑」
+- 第三刀已正式落地成 `authenticated browser smoke baseline v1`
+- browser smoke 現在已正式分出 unauthenticated 與 authenticated 兩層 evidence
+- authenticated smoke 的正式進場方式為真實 session reuse 或 cookie import，而不是 auth bypass
 
 正式規則：
 
