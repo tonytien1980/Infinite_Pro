@@ -353,6 +353,15 @@ def test_phase_six_completion_review_persists_feedback_linked_snapshot(
     assert snapshot["effectiveness_posture_label"] == "已有 adoption 支撐"
     assert snapshot["effectiveness_posture_summary"]
     assert snapshot["effectiveness_caveat_summary"]
+    assert snapshot["one_off_task_count"] >= 0
+    assert snapshot["follow_up_task_count"] >= 0
+    assert snapshot["continuous_task_count"] >= 0
+    assert snapshot["continuity_interpretation"] in {
+        "one_off_minimal",
+        "follow_up_present",
+        "continuous_expected",
+        "mixed_continuity",
+    }
     assert snapshot["primary_support_signal"] == "explicit_feedback"
     assert snapshot["primary_support_signal_label"] == "主要靠 explicit feedback"
     assert snapshot["current_caveat_signal"] in {
@@ -360,11 +369,21 @@ def test_phase_six_completion_review_persists_feedback_linked_snapshot(
         "narrow_asset_concentration",
     }
     assert snapshot["effectiveness_composition_summary"]
+    assert snapshot["distortion_guard_signal"] in {
+        "normal_writeback_absence",
+        "follow_up_not_retained",
+        "continuous_writeback_gap",
+        "mixed_continuity_requires_context",
+        "none",
+    }
+    assert snapshot["distortion_guard_signal_label"]
+    assert snapshot["distortion_guard_summary"]
     assert snapshot["attribution_boundary"] == "not_claimable"
     assert snapshot["attribution_boundary_label"] == "目前不可 claim attribution"
     assert snapshot["attribution_boundary_summary"]
     assert "已有 adoption 支撐" in review_payload["feedback_linked_summary"]
     assert "主要靠 explicit feedback" in review_payload["feedback_linked_summary"]
+    assert snapshot["distortion_guard_signal_label"] in review_payload["feedback_linked_summary"]
     assert "目前不可 claim attribution" in review_payload["feedback_linked_summary"]
 
     checkpoint = client.post(
@@ -389,6 +408,10 @@ def test_phase_six_completion_review_persists_feedback_linked_snapshot(
     assert (
         checkpoint_payload["feedback_linked_scoring_snapshot"]["attribution_boundary"]
         == review_payload["feedback_linked_scoring_snapshot"]["attribution_boundary"]
+    )
+    assert (
+        checkpoint_payload["feedback_linked_scoring_snapshot"]["distortion_guard_signal"]
+        == review_payload["feedback_linked_scoring_snapshot"]["distortion_guard_signal"]
     )
 
     with SessionLocal() as db:
