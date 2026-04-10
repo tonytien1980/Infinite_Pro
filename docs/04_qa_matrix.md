@@ -5650,3 +5650,26 @@ Scope:
 Environment used:
 - repo-native release-readiness verification
 - operator-assisted local browser smoke
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `PYTHONPATH=backend .venv312/bin/pytest backend/tests/test_release_readiness_script.py -q` | Passed (`9 passed`) |
+| `PYTHONPATH=backend .venv312/bin/python backend/scripts/run_release_readiness.py --tier runtime --runtime-profile docker-compose` | Passed |
+| `git diff --check` | Passed |
+
+### T2-D browser smoke normalization verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Browser smoke manifest | required direct-route targets | Verify `/`, `/new`, `/matters`, `/deliverables` against the normalized manifest | Limited | all four required targets were reached through a real browser session, but the current smoke browser was unauthenticated so each protected route redirected to `/login?next=...`; the login shell rendered consistently with `登入 Infinite Pro` and `使用 Google 登入`, but the intended consultant-facing mainline for those protected routes was not visible in this pass |
+| Browser smoke manifest | optional dynamic-entry target | Attempt `/tasks/[taskId]` through `/matters` list-to-detail entry | Limited | `/matters` redirected to `/login?next=%2Fmatters`, so no visible matter row or task link was available; no task id was fabricated and the optional target was not forced |
+| Runtime posture | docker-compose profile | Confirm browser smoke is being recorded against the same compose runtime profile used by the script gate | Verified | the browser observations were taken against the same local `3000 / 8000` Docker Compose runtime that passed the repo-native `docker-compose` runtime profile check |
+
+### Explicitly not shipped in this pass
+
+- authenticated browser smoke baseline
+- full Playwright automation suite
+- deploy / CI browser infrastructure
+- release dashboard
