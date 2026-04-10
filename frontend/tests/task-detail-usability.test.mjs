@@ -70,3 +70,57 @@ test("task detail usability view keeps the guide focused on readiness, run decis
   assert.equal(view.guideItems[1]?.href, "#run-panel");
   assert.match(view.guideDescription, /先判斷能不能跑/);
 });
+
+test("task detail usability view builds an operating summary when the best next move is to fill evidence gaps", () => {
+  const view = buildTaskDetailUsabilityView({
+    hasThinTaskEvidence: true,
+    hasLatestDeliverable: false,
+    latestDeliverableTitle: "",
+    hasMatterWorkspace: true,
+    runButtonLabel: "執行分析",
+    runDestinationLabel: "執行後會先形成正式交付結果。",
+    laneTitle: "材料審閱姿態",
+    laneSummary: "目前更像 review memo / assessment，不是最終決策版本。",
+    readinessLabel: "需補強",
+    readinessSummary: "目前資料仍偏薄，但不用卡住。",
+    evidenceCount: 1,
+    sourceMaterialCount: 1,
+    hasResearchGuidance: true,
+    researchSummary: "先確認第一個 research question 與 stop condition。",
+    hasContinuationSummary: false,
+    continuationSummary: "",
+  });
+
+  assert.equal(view.operatingSummaryTitle, "這頁現在怎麼推最快");
+  assert.match(view.operatingSummaryCopy, /資料仍偏薄/);
+  assert.equal(view.operatingNotes[0]?.href, "#workspace-lane");
+  assert.match(view.operatingNotes[0]?.copy, /先補來源與證據/);
+  assert.match(view.operatingNotes[1]?.copy, /research question/);
+});
+
+test("task detail usability view builds a result-first operating summary when a deliverable already exists", () => {
+  const view = buildTaskDetailUsabilityView({
+    hasThinTaskEvidence: false,
+    hasLatestDeliverable: true,
+    latestDeliverableTitle: "季度風險掃描 memo",
+    hasMatterWorkspace: true,
+    runButtonLabel: "執行分析",
+    runDestinationLabel: "最新結果已經形成，可直接回看正式交付物。",
+    laneTitle: "目前交付等級",
+    laneSummary: "已形成正式交付結果。",
+    readinessLabel: "可直接推進",
+    readinessSummary: "這筆工作已具備基本分析條件。",
+    evidenceCount: 5,
+    sourceMaterialCount: 4,
+    hasResearchGuidance: false,
+    researchSummary: "",
+    hasContinuationSummary: true,
+    continuationSummary: "最近 checkpoint 已形成，可直接回看成果或續推下一輪。",
+  });
+
+  assert.equal(view.operatingNotes.length, 3);
+  assert.equal(view.operatingNotes[0]?.href, "#deliverable-surface");
+  assert.match(view.operatingNotes[0]?.copy, /季度風險掃描 memo/);
+  assert.match(view.operatingNotes[1]?.copy, /checkpoint/);
+  assert.match(view.operatingNotes[2]?.copy, /可直接推進/);
+});
