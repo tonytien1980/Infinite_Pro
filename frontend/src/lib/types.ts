@@ -1179,6 +1179,39 @@ export interface MatterWorkspaceSummary {
   precedent_candidate_summary: PrecedentCandidateSummary;
 }
 
+export interface MatterCommand {
+  command_posture: "push_task" | "fill_evidence" | "review_deliverable";
+  command_posture_label: string;
+  focus_summary: string;
+  primary_task_id: string | null;
+  primary_task_title: string;
+  primary_task_reason: string;
+  blocker_summary: string;
+  deliverable_direction_summary: string;
+  next_step_summary: string;
+}
+
+export interface DecisionBrief {
+  posture: "draft" | "decision_ready" | "publish_ready";
+  posture_label: string;
+  question_summary: string;
+  options_summary: string;
+  risk_summary: string;
+  recommendation_summary: string;
+  next_action_summary: string;
+  boundary_note: string;
+}
+
+export interface WritebackApproval {
+  posture: "minimal" | "candidate_review" | "formal_approval" | "completed";
+  posture_label: string;
+  summary: string;
+  primary_action_label: string;
+  primary_action_summary: string;
+  candidate_summary: string;
+  boundary_note: string;
+}
+
 export interface FlagshipLane {
   lane_id: string;
   label: string;
@@ -2328,6 +2361,8 @@ export interface TaskAggregate {
   input_entry_mode: InputEntryMode;
   engagement_continuity_mode: EngagementContinuityMode;
   writeback_depth: WritebackDepth;
+  decision_brief: DecisionBrief;
+  writeback_approval: WritebackApproval;
   deliverable_class_hint: DeliverableClass;
   external_research_heavy_candidate: boolean;
   flagship_lane: FlagshipLane;
@@ -2426,6 +2461,7 @@ export interface MatterWorkspace {
   workstream: Workstream | null;
   current_decision_context: DecisionContext | null;
   case_world_state: CaseWorldState | null;
+  matter_command: MatterCommand;
   content_sections: MatterWorkspaceContentSections;
   content_revisions: MatterContentRevision[];
   decision_trajectory: MatterDecisionPoint[];
