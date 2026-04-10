@@ -298,7 +298,19 @@ deepen 後，首屏還應能回答：
 - `task / deliverable` 可把同一套閱讀放在較低噪音的 detail / disclosure surface
 - 不可每一頁各自重寫 lane detail copy，導致同一案件在不同工作面講成不同意思
 
-### 3.2.4 Research guidance
+### 3.2.4 Case command readouts
+
+在現有 detail workspace 與 writeback/context layer 內，以下讀法應正式成為低噪音的首屏或次屏 readout：
+
+- `matter workspace` first-screen should answer the current case command:
+  - 主目標
+  - 最大 blocker
+  - 最值得先推的 task
+  - 正式結果收斂方向
+- `task workspace` should expose one low-noise `Decision Brief` reading, not only readiness and handoff
+- `deliverable workspace` should expose one low-noise `writeback approval` reading inside the existing writeback/context layer
+
+### 3.2.5 Research guidance
 
 當案件需要補 research / investigation 時，工作面也應低噪音回答：
 

@@ -5790,3 +5790,32 @@ Environment used:
 - fake session injection
 - full Google OAuth automation
 - Playwright automation suite
+
+## Entry: 2026-04-11 T2-C case command loop v1
+
+Scope:
+- matter command surface
+- decision brief posture
+- writeback approval loop
+
+Environment used:
+- frontend: `http://127.0.0.1:3000`
+- backend: `http://127.0.0.1:8000/api/v1`
+- runtime database: current local runtime
+
+### Build / Typecheck / Runtime checks
+
+| Check | Result |
+| --- | --- |
+| `PYTHONPATH=backend .venv312/bin/pytest backend/tests/test_mvp_slice.py -q` | Passed |
+| `source ~/.nvm/nvm.sh && cd frontend && node --test tests/case-command-loop.test.mjs tests/task-detail-usability.test.mjs tests/consultant-usability.test.mjs tests/phase-six-governance.test.mjs` | Passed |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run build` | Passed |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run typecheck` | Passed |
+
+### Case command loop verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Matter | `/matters/[matterId]` | Import the available local Chrome cookies and open the protected matter route | Limited | cookie import succeeded for `localhost` and `127.0.0.1`, but the headless browser still redirected to `/login?next=%2Fmatters`, so the first-screen matter command surface was not reachable in this session |
+| Task | `/tasks/[taskId]` | Try the protected task route from the same browser session | Limited | the browser remained on the login shell, so the `Decision Brief` surface could not be visually confirmed here |
+| Deliverable | `/deliverables/[deliverableId]` | Try the protected deliverable route from the same browser session | Limited | the browser remained on the login shell, so the `writeback approval` surface could not be visually confirmed here |

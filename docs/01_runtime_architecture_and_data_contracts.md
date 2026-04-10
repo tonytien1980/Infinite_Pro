@@ -279,6 +279,19 @@ Ontology 在 Infinite Pro 中是：
 - `upgrade_ready`
 - `boundary_note`
 
+### 4.5.1 Case command runtime read models
+
+目前 shipped 的 read-model / runtime discussion 也應明確記錄 case command 這一層的 consultant-facing runtime read models：
+
+- `MatterWorkspaceResponse.matter_command`
+  - tells the workbench what the current case command posture is
+- `TaskAggregateResponse.decision_brief`
+  - tells task and deliverable surfaces what the current formal decision posture is
+- `TaskAggregateResponse.writeback_approval`
+  - tells task and deliverable surfaces whether this round is mainly about formal approval, candidate review, or minimal writeback
+
+這些都是 consultant-facing runtime read models inside the existing Host-governed boundary, not a new architecture layer and not UI-only orchestration。
+
 ### 4.6 Research-guidance read model
 
 目前 research / investigation lane 的第一波產品化，也以 derived read model 方式成立。

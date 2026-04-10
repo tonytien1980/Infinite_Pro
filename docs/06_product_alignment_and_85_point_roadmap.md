@@ -852,6 +852,11 @@ phase close review 的結論只能落在以下四種：
   - 現在先留 task、回 matter，還是回 deliverable
   - 這次 handoff 的主因是什麼
 
+- 第四刀已正式落地成 `case command loop v1`
+- matter 現在更清楚回答案件目前最值得推的主線、最大 blocker 與交付方向
+- task / deliverable 之間現在已有較正式的 `Decision Brief` 主鏈
+- writeback 也開始從 background record 走向較自然的 approval / candidate review loop
+
 ### 11.4 T2-D Runtime and release confidence deepen
 
 目標：
