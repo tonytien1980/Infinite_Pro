@@ -192,7 +192,14 @@ Verification tiers:
 - `runtime`
   - repo-native HTTP smoke, with explicit `standalone` or `docker-compose` profile
 - `browser smoke`
-  - operator-assisted consultant-facing flow checks against the canonical smoke-target contract
+  - operator-assisted consultant-facing flow checks against the normalized smoke manifest
+  - required direct-route targets:
+    - `/`
+    - `/new`
+    - `/matters`
+    - `/deliverables`
+  - optional dynamic-entry target:
+    - `/tasks/[taskId]`, entered from `/matters` when a visible task row is available
 
 ---
 

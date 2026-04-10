@@ -864,6 +864,9 @@ phase close review 的結論只能落在以下四種：
 - 第一刀已正式落地成 `runtime confidence baseline v1`
 - repo-native release-readiness baseline 現在可明確區分 `standalone` 與 `docker-compose` runtime profile
 - browser smoke 仍維持 operator-assisted，但 repo 內已建立可重複參照的 canonical smoke target contract
+- 第二刀已正式落地成 `browser smoke normalization v1`
+- `browser_smoke` 現在不再只是抽象 target list，而是有 `required/optional`、`entry_kind`、`entry_path`、`evidence_expectation` 的 normalized smoke manifest
+- operator-assisted smoke evidence 也開始有較一致的記錄格式，而不是只寫「有跑 / 沒跑」
 
 正式規則：
 

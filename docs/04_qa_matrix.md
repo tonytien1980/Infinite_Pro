@@ -5637,3 +5637,16 @@ Environment used:
 - deploy pipeline / CI platform
 - release dashboard
 - runtime admin console
+
+---
+
+## Entry: 2026-04-10 T2-D browser smoke normalization v1
+
+Scope:
+- deepen `browser_smoke` from a flat target list into a normalized smoke manifest
+- standardize required vs optional smoke lanes and dynamic-entry expectations
+- record at least one real operator-assisted browser smoke pass using the new manifest language
+
+Environment used:
+- repo-native release-readiness verification
+- operator-assisted local browser smoke
