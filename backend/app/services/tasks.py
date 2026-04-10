@@ -8519,6 +8519,7 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
         related_tasks=related_task_items,
         related_deliverables=related_deliverables,
         evidence_gap_records=evidence_gap_records,
+        latest_deliverable=latest_related_deliverable,
     )
     canonicalization_summary, canonicalization_candidates = build_matter_canonicalization_contract(
         db,
@@ -11528,7 +11529,6 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         follow_up_lane=follow_up_lane,
         progression_lane=progression_lane,
     )
-    latest_deliverable = deliverables[0] if deliverables else None
     decision_brief_task = SimpleNamespace(
         title=task.title,
         description=task.description,
@@ -11541,12 +11541,17 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         linked_risks=risks,
         linked_recommendations=recommendations,
         linked_action_items=action_items,
-        latest_deliverable=latest_deliverable,
+        latest_deliverable=latest_task_deliverable,
+        evidence_gap_records=evidence_gap_rows,
+        decision_records=task.decision_records,
+        action_plans=task.action_plans,
+        outcome_records=task.outcome_records,
     )
     writeback_approval = build_writeback_approval(
         decision_records=task.decision_records,
         action_plans=task.action_plans,
         outcome_records=task.outcome_records,
+        evidence_gap_records=evidence_gap_rows,
         precedent_candidate_summary=(
             matter_workspace_summary.precedent_candidate_summary
             if matter_workspace_summary is not None

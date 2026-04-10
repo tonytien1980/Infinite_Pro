@@ -8931,6 +8931,69 @@ def test_continuous_writeback_creates_decision_and_outcome_records(
     assert second_aggregate["audit_events"]
 
 
+def test_single_run_keeps_writeback_approval_conservative_when_approvals_are_pending(
+    client: TestClient,
+) -> None:
+    payload = create_task_payload("Pending approval posture")
+    payload["external_data_strategy"] = "strict"
+    payload["engagement_continuity_mode"] = "continuous"
+    payload["writeback_depth"] = "full"
+    task = client.post("/api/v1/tasks", json=payload).json()
+
+    upload_response = client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("pending.txt", b"Pending approvals should not be treated as formal approval.", "text/plain"))],
+    )
+    assert upload_response.status_code == 200
+
+    run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
+    assert run_response.status_code == 200
+
+    aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
+    assert aggregate["decision_records"][0]["approval_status"] == "pending"
+    assert aggregate["action_plans"][0]["approval_status"] == "pending"
+    assert aggregate["writeback_approval"]["posture"] in {"minimal", "candidate_review"}
+    assert aggregate["writeback_approval"]["posture"] != "formal_approval"
+
+
+def test_case_command_loop_decision_brief_tracks_latest_deliverable_version_after_second_run(
+    client: TestClient,
+) -> None:
+    payload = create_task_payload("Latest deliverable version tracking")
+    payload["external_data_strategy"] = "strict"
+    payload["engagement_continuity_mode"] = "continuous"
+    payload["writeback_depth"] = "full"
+    task = client.post("/api/v1/tasks", json=payload).json()
+
+    first_upload = client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("version-a.txt", b"First run should produce the first deliverable version.", "text/plain"))],
+    )
+    assert first_upload.status_code == 200
+
+    first_run = client.post(f"/api/v1/tasks/{task['id']}/run")
+    assert first_run.status_code == 200
+    first_aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
+    first_version_tag = first_aggregate["latest_deliverable_version_tag"]
+    assert first_version_tag
+    assert first_version_tag in first_aggregate["decision_brief"]["options_summary"]
+
+    second_upload = client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("version-b.txt", b"Second run should produce a newer deliverable version.", "text/plain"))],
+    )
+    assert second_upload.status_code == 200
+
+    second_run = client.post(f"/api/v1/tasks/{task['id']}/run")
+    assert second_run.status_code == 200
+    second_aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
+    second_version_tag = second_aggregate["latest_deliverable_version_tag"]
+    assert second_version_tag
+    assert second_version_tag in second_aggregate["decision_brief"]["options_summary"]
+    assert second_version_tag != first_version_tag
+    assert first_version_tag not in second_aggregate["decision_brief"]["options_summary"]
+
+
 def test_case_command_loop_contract_surfaces_matter_command_decision_brief_and_writeback(
     client: TestClient,
 ) -> None:

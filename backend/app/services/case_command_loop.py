@@ -70,18 +70,41 @@ def _summarize_titles(items: list[Any], *, attr: str, limit: int = 3) -> str:
     return "、".join(item for item in titles if item)
 
 
+def _version_label_for_deliverable(deliverable: Any) -> str:
+    version = getattr(deliverable, "version", None)
+    fallback_version = f"v{version}" if version not in (None, "") else ""
+    return _first_text(
+        _text_attr(deliverable, "version_tag"),
+        fallback_version,
+    )
+
+
+def _has_open_evidence_gaps(evidence_gap_records: list[Any]) -> bool:
+    return any(_clean_text(getattr(item, "status", "")) != "resolved" for item in evidence_gap_records)
+
+
+def _has_pending_approvals(records: list[Any]) -> bool:
+    return any(_clean_text(getattr(item, "approval_status", "")) == "pending" for item in records)
+
+
+def _approval_statuses_complete(records: list[Any]) -> bool:
+    statuses = [_clean_text(getattr(item, "approval_status", "")) for item in records]
+    if not statuses:
+        return False
+    return all(status in {"approved", "not_required"} for status in statuses)
+
+
 def build_matter_command(
     *,
     summary: Any,
     related_tasks: list[Any],
     related_deliverables: list[Any],
     evidence_gap_records: list[Any],
+    latest_deliverable: Any | None,
 ) -> MatterCommandModel:
     primary_task = related_tasks[0] if related_tasks else None
-    has_open_gaps = any(
-        _clean_text(getattr(item, "status", "")) != "resolved" for item in evidence_gap_records
-    )
-    has_deliverable = bool(related_deliverables)
+    has_open_gaps = _has_open_evidence_gaps(evidence_gap_records)
+    has_deliverable = latest_deliverable is not None
 
     if has_open_gaps:
         posture = "fill_evidence"
@@ -101,7 +124,8 @@ def build_matter_command(
         _text_attr(summary, "workspace_summary"),
         "目前案件世界尚未形成可直接回看的摘要。",
     )
-    latest_deliverable_title = _text_attr(related_deliverables[0], "title") if has_deliverable else ""
+    latest_deliverable_title = _text_attr(latest_deliverable, "title")
+    latest_deliverable_version = _version_label_for_deliverable(latest_deliverable)
 
     return MatterCommandModel(
         command_posture=posture,
@@ -119,7 +143,7 @@ def build_matter_command(
         ),
         blocker_summary=blocker_summary,
         deliverable_direction_summary=(
-            f"下一個正式結果應收斂到「{latest_deliverable_title}」。"
+            f"下一個正式結果應收斂到「{latest_deliverable_title}」（{latest_deliverable_version}）。"
             if latest_deliverable_title
             else "目前應先把 task 收成第一版正式結果，再決定交付物版本。"
         ),
@@ -134,6 +158,10 @@ def build_decision_brief(
     linked_recommendations: list[Any],
     linked_action_items: list[Any],
     latest_deliverable: Any,
+    evidence_gap_records: list[Any],
+    decision_records: list[Any],
+    action_plans: list[Any],
+    outcome_records: list[Any],
 ) -> DecisionBriefModel:
     decision_context = _first_non_none(
         getattr(task, "world_decision_context", None),
@@ -148,32 +176,45 @@ def build_decision_brief(
     )
     latest_deliverable_title = _text_attr(latest_deliverable, "title")
     latest_deliverable_summary = _text_attr(latest_deliverable, "summary")
+    latest_deliverable_version = _version_label_for_deliverable(latest_deliverable)
     recommendation_summary_text = _summarize_titles(linked_recommendations, attr="summary")
     action_summary_text = _summarize_titles(linked_action_items, attr="description")
     risk_summary_text = _summarize_titles(linked_risks, attr="title")
+    has_open_gaps = _has_open_evidence_gaps(evidence_gap_records)
+    has_decision_material = bool(latest_deliverable or linked_recommendations or linked_action_items)
+    approvals_complete = _approval_statuses_complete(decision_records) and _approval_statuses_complete(
+        action_plans
+    )
+    approvals_pending = _has_pending_approvals(decision_records) or _has_pending_approvals(action_plans)
 
-    if latest_deliverable and linked_recommendations and linked_action_items:
-        posture = "publish_ready"
-        posture_label = "可發布"
-    elif latest_deliverable or linked_recommendations or linked_action_items:
-        posture = "decision_ready"
-        posture_label = "可決策"
-    else:
+    if has_open_gaps or not has_decision_material:
         posture = "draft"
         posture_label = "草稿"
+    elif approvals_complete and outcome_records:
+        posture = "publish_ready"
+        posture_label = "可發布"
+    else:
+        posture = "decision_ready"
+        posture_label = "可決策"
 
     options_parts = [
         part
         for part in (
             f"建議主軸：{recommendation_summary_text}" if recommendation_summary_text else "",
             f"接續動作：{action_summary_text}" if action_summary_text else "",
-            f"目前交付物：{latest_deliverable_title}" if latest_deliverable_title else "",
+            (
+                f"目前交付物：{latest_deliverable_title}｜{latest_deliverable_version}"
+                if latest_deliverable_title
+                else ""
+            ),
         )
         if part
     ]
     options_summary = "；".join(options_parts) or "目前仍以收斂 decision brief 為主。"
 
-    if risk_summary_text:
+    if has_open_gaps:
+        risk_summary = "目前仍有未解決的 evidence gap，先補依據再推進 decision brief。"
+    elif risk_summary_text:
         risk_summary = f"高風險項目集中在：{risk_summary_text}。"
     elif latest_deliverable_summary:
         risk_summary = (
@@ -202,6 +243,8 @@ def build_decision_brief(
         next_action_summary = (
             f"{next_action_summary} 目前可接續的動作有：{action_summary_text}。"
         )
+    if approvals_pending and posture == "decision_ready":
+        next_action_summary = f"{next_action_summary} 目前仍有 pending approval，需要先完成正式核可。"
 
     return DecisionBriefModel(
         posture=posture,
@@ -220,11 +263,17 @@ def build_writeback_approval(
     decision_records: list[Any],
     action_plans: list[Any],
     outcome_records: list[Any],
+    evidence_gap_records: list[Any],
     precedent_candidate_summary: Any,
 ) -> WritebackApprovalModel:
     latest_decision_record = decision_records[0] if decision_records else None
     latest_action_plan = action_plans[0] if action_plans else None
     latest_outcome_record = outcome_records[0] if outcome_records else None
+    has_open_gaps = _has_open_evidence_gaps(evidence_gap_records)
+    approvals_pending = _has_pending_approvals(decision_records) or _has_pending_approvals(action_plans)
+    approvals_complete = _approval_statuses_complete(decision_records) and _approval_statuses_complete(
+        action_plans
+    )
 
     total_candidates = getattr(precedent_candidate_summary, "total_candidates", 0) or 0
     deliverable_candidate_count = (
@@ -238,10 +287,16 @@ def build_writeback_approval(
         "目前沒有可用的 precedent 候選摘要。",
     )
 
-    if latest_outcome_record and latest_action_plan and latest_decision_record:
+    if has_open_gaps:
+        posture = "minimal"
+        posture_label = "最小寫回"
+    elif approvals_pending:
+        posture = "candidate_review"
+        posture_label = "候選檢視"
+    elif latest_outcome_record and approvals_complete:
         posture = "completed"
         posture_label = "已完成"
-    elif latest_action_plan or latest_decision_record:
+    elif approvals_complete:
         posture = "formal_approval"
         posture_label = "正式核可"
     elif total_candidates > 0:
