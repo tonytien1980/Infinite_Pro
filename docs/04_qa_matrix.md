@@ -5446,6 +5446,47 @@ Environment used:
 
 ---
 
+## Entry: 2026-04-10 T2-B effectiveness distortion guard v1
+
+Scope:
+- deepen `T2-B` by turning existing posture / composition / attribution reading into a continuity-aware distortion guard
+- keep the same `Phase 6 completion review` surface instead of creating a new analytics family
+- keep KPI / business outcome attribution explicitly out of scope
+
+Environment used:
+- local backend and frontend verification
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `PYTHONPATH=backend .venv312/bin/pytest backend/tests/test_phase_six_feedback_scoring.py -q` | Passed (`12 passed`) |
+| `PYTHONPATH=backend .venv312/bin/pytest backend/tests/test_mvp_slice.py -q` | Passed (`245 passed`) |
+| `cd frontend && node --test tests/phase-six-governance.test.mjs tests/intake-progress.test.mjs` | Passed (`47 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && npm run typecheck` | Passed |
+| `git diff --check` | Passed |
+
+### T2-B distortion guard verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | `build_phase_six_feedback_linked_scoring_snapshot(...)` | Add continuity-aware distortion fields without creating a new scoring family | Verified | targeted backend tests confirm the snapshot now distinguishes normal one-off absence, follow-up caution, continuous writeback gap, and mixed continuity conservatively |
+| Backend | `/api/v1/workbench/phase-6-completion-review` | Fold distortion guard wording into the existing completion-review summary and checkpoint payload | Verified | targeted backend tests confirm completion review now carries the distortion-guard reading while keeping score math unchanged |
+| Frontend | homepage `Generalist Governance` completion-review card | Render one extra low-noise distortion-guard line inside the existing card | Verified | node tests confirm the helper stays compact and the homepage still uses the same completion-review surface |
+| Regression | backend / frontend shared verification | Preserve existing Phase 6 routes, homepage contract, type parsing, and broader MVP behavior | Verified | targeted backend tests, backend regression, frontend node tests, build, and typecheck all remain green after the distortion-guard pass |
+
+### Explicitly not shipped in this pass
+
+- KPI / business outcome dashboard
+- ROI scoring
+- formal attribution engine
+- task / matter / deliverable surface propagation
+- new analytics page family
+- six-layer architecture change
+
+---
+
 ## Entry: 2026-04-09 consultant usability layer v1
 
 Scope:

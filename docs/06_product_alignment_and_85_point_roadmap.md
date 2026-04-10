@@ -815,6 +815,11 @@ phase close review 的結論只能落在以下四種：
 - 第三刀已正式落地成 `attribution boundary reading v1`
 - system 現在不只知道有效性證據有多深，也開始正式回讀目前最多只能 claim 到哪個 attribution boundary
 - 第一版 boundary 目前只保守區分 `not_claimable / outcome_adjacent / cautious_attribution_candidate`
+- 第四刀已正式落地成 `effectiveness distortion guard v1`
+- system 現在也會正式回讀：
+  - 哪些缺口屬正常 one-off / minimal absence
+  - 哪些 follow-up / continuous lane 仍不能高估
+  - 目前最該避免的 distortion risk 是什麼
 - 這一刀仍未進入 KPI / business outcome attribution
 
 ### 11.3 T2-C Consultant operating leverage and task-surface usability

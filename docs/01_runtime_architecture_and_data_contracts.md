@@ -2465,8 +2465,13 @@ completion pass 後，deliverable work surface 也已正式把：
 - `override_signal_count`
 - `top_asset_codes`
 - `top_asset_labels`
+- `one_off_task_count`
+- `follow_up_task_count`
+- `continuous_task_count`
 - `closeout_depth_summary`
 - `writeback_depth_summary`
+- `continuity_interpretation`
+- `continuity_interpretation_label`
 - `effectiveness_posture`
 - `effectiveness_posture_label`
 - `effectiveness_posture_summary`
@@ -2478,6 +2483,9 @@ completion pass 後，deliverable work surface 也已正式把：
 - `current_caveat_signal`
 - `current_caveat_signal_label`
 - `effectiveness_composition_summary`
+- `distortion_guard_signal`
+- `distortion_guard_signal_label`
+- `distortion_guard_summary`
 - `attribution_boundary`
 - `attribution_boundary_label`
 - `attribution_boundary_summary`
@@ -2514,6 +2522,10 @@ completion pass 後，deliverable work surface 也已正式把：
   - attribution boundary reading
   - 目前最多只能 claim 到哪個 attribution 邊界
   - 保守區分 `not_claimable / outcome_adjacent / cautious_attribution_candidate`
+- 第二 tranche 的 `T2-B slice 4` 現在正式補到：
+  - continuity-aware distortion guard
+  - normalized missing-evidence reading
+  - reusable-intelligence effectiveness anti-overread summary
 - roadmap-side `7.15` 補強後，這層的 `recommended_next_step` 也應延續同一條 alignment：
   - 先補治理評分深度
   - 不要直接跳 sign-off
@@ -2584,6 +2596,10 @@ completion pass 後，deliverable work surface 也已正式把：
   - 目前最多只能 claim 到哪個 attribution 邊界
   - 現在是 `not_claimable`、`outcome_adjacent`，還是 `cautious_attribution_candidate`
   - 為什麼 system 仍不能把這次結果直接寫成 business outcome attribution
+- `feedback_linked_scoring_snapshot` 在 `T2-B slice 4` 後，現在也應能回答：
+  - 目前 continuity 是 `one_off / follow_up / continuous` 哪種 interpretation
+  - 哪些缺口屬正常 absence，哪些屬 continuity-aware distortion risk
+  - 目前最該避免把哪種 evidence 過度高估
 - 這一刀也必須明確保留一條邊界：
   - `one_off / minimal` 案件若本來不期待 full writeback，absence 不應被直接算成失敗
 - completion review 的 `review_posture` 應優先讀 persisted checkpoint snapshot，而不是只看當下即時計算
