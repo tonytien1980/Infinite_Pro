@@ -5673,3 +5673,16 @@ Environment used:
 - full Playwright automation suite
 - deploy / CI browser infrastructure
 - release dashboard
+
+---
+
+## Entry: 2026-04-10 T2-D authenticated browser smoke baseline v1
+
+Scope:
+- establish an authenticated operator-assisted browser smoke baseline
+- keep the auth path honest by relying on real session reuse or cookie import
+- record the difference between unauthenticated auth-gate smoke and authenticated workbench smoke
+
+Environment used:
+- repo-native release-readiness verification
+- operator-assisted authenticated browser smoke

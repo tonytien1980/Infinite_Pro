@@ -201,6 +201,12 @@ Verification tiers:
   - optional dynamic-entry target:
     - `/tasks/[taskId]`, entered from `/matters` when a visible task row is available
 
+Authenticated browser smoke baseline:
+
+- use an existing authenticated browser session, or import cookies from a real local Chromium browser
+- do not use auth bypass or fake session injection
+- record the auth entry method together with the smoke evidence
+
 ---
 
 ## Environment Notes
