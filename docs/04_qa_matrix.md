@@ -5603,6 +5603,45 @@ Environment used:
 
 ---
 
+## Entry: 2026-04-10 T2-C task handoff deepen v1
+
+Scope:
+- deepen `T2-C` by turning task detail into a clearer task-to-matter / deliverable operating handoff
+- keep the same `/tasks/[taskId]` surface instead of creating a new dashboard family
+- keep matter / deliverable pages intact while making the handoff reason more explicit
+
+Environment used:
+- local frontend and backend verification
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `source ~/.nvm/nvm.sh && cd frontend && node --test tests/task-detail-usability.test.mjs tests/consultant-usability.test.mjs tests/intake-progress.test.mjs tests/phase-six-governance.test.mjs` | Passed (`62 passed`) |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run build` | Passed |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run typecheck` | Passed |
+| `PYTHONPATH=backend .venv312/bin/pytest backend/tests/test_mvp_slice.py -q` | Passed (`245 passed`) |
+| `git diff --check` | Passed |
+
+### T2-C task handoff verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Frontend | `buildTaskDetailUsabilityView(...)` | Add explicit `stay on task / go to matter / go to deliverable` handoff reading | Verified | helper tests confirm the view now distinguishes handoff target, reason, and summary without creating a new page family |
+| Frontend | `/tasks/[taskId]` right rail / guide / operating summary | Keep the same task-detail surface while aligning it around a single handoff contract | Verified | task detail now reuses the same handoff target across the rail, section guide, and operating notes instead of letting each area imply a different next move |
+| Regression | frontend / backend shared verification | Preserve current task surface, consultant usability, intake progress, phase-6 homepage, and MVP behavior | Verified | targeted frontend node tests, production build, typecheck, backend regression, and `git diff --check` all remain green after the handoff pass |
+
+### Explicitly not shipped in this pass
+
+- task page full rewrite
+- matter workspace redesign
+- deliverable workspace redesign
+- new dashboard family
+- training shell / onboarding shell
+- runtime confidence / Docker gate / browser smoke
+
+---
+
 ## Entry: 2026-04-09 product reliability and release discipline v1
 
 Scope:

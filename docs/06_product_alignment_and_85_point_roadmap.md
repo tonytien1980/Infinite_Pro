@@ -847,6 +847,10 @@ phase close review 的結論只能落在以下四種：
 - 第二刀已正式落地成 `task detail operating leverage v1`
 - `/tasks/[taskId]` 現在在首屏之後會補一層低噪音 operating summary，回答這頁怎麼推最快、最大的限制在哪裡、以及不直接執行時最有槓桿的回退路徑
 - task detail 的 second-layer notes 已開始做 condensation，而不是讓 readiness / evidence / deliverable 各自重講一遍主線
+- 第三刀已正式落地成 `task handoff deepen v1`
+- `/tasks/[taskId]` 現在不只會回答這頁怎麼看，也開始正式回讀：
+  - 現在先留 task、回 matter，還是回 deliverable
+  - 這次 handoff 的主因是什麼
 
 ### 11.4 T2-D Runtime and release confidence deepen
 

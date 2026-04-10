@@ -825,6 +825,13 @@ task hero 右側 rail 現在也應優先承接：
 - 這層應優先使用 condensed notes，不可重新長成第二條 hero summary 牆
 - `工作鏈與來源 / 證據`、`判斷可信度與資料缺口`、`正式交付結果` 的區塊文案應縮短，避免每區都重講一次主線
 
+`T2-C slice 3` 之後，task detail 還應正式回答：
+
+- 現在應先留在 task、回 `matter`，還是回 `deliverable`
+- 這次 handoff 的主因是補脈絡 / 證據 / continuity，還是回正式交付結果
+- `WorkspaceSectionGuide` 的第三條主線不應再只是 generic destination，而應更清楚回答現在為什麼要回 `matter` 或 `deliverable`
+- 右側 rail 與 operating summary 也應沿用同一個 handoff contract，不可各自講不同下一步
+
 ### 7.6 `/deliverables/[deliverableId]`
 
 主任務：
