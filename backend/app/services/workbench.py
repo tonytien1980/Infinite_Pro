@@ -166,11 +166,13 @@ def _build_phase_six_feedback_linked_snapshot(
         for row in deliverable_candidate_rows
         if row.candidate_status in {"promoted", "dismissed"}
     )
-    writeback_expected_task_count = sum(
-        1
-        for row in task_rows
-        if resolve_continuity_policy_for_task(row)[1].value == "full"
-    )
+    continuity_counter: Counter[str] = Counter()
+    writeback_expected_task_count = 0
+    for row in task_rows:
+        continuity_mode, writeback_depth = resolve_continuity_policy_for_task(row)
+        continuity_counter[continuity_mode.value] += 1
+        if writeback_depth.value == "full":
+            writeback_expected_task_count += 1
     outcome_record_count = len(outcome_rows)
     deliverable_outcome_record_count = sum(1 for row in outcome_rows if row.deliverable_id)
     follow_up_outcome_count = sum(1 for row in outcome_rows if row.signal_type == "follow_up_run")
@@ -213,6 +215,9 @@ def _build_phase_six_feedback_linked_snapshot(
         review_required_execution_count=review_required_execution_count,
         planned_execution_count=planned_execution_count,
         writeback_expected_task_count=writeback_expected_task_count,
+        one_off_task_count=continuity_counter["one_off"],
+        follow_up_task_count=continuity_counter["follow_up"],
+        continuous_task_count=continuity_counter["continuous"],
     )
 
 

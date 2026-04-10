@@ -255,6 +255,9 @@ def build_phase_six_feedback_linked_scoring_snapshot(
     review_required_execution_count: int = 0,
     planned_execution_count: int = 0,
     writeback_expected_task_count: int = 0,
+    one_off_task_count: int = 0,
+    follow_up_task_count: int = 0,
+    continuous_task_count: int = 0,
 ) -> schemas.PhaseSixFeedbackLinkedScoringSnapshotRead:
     normalized_top_asset_codes: list[str] = []
     for code in top_asset_codes:
@@ -290,6 +293,13 @@ def build_phase_six_feedback_linked_scoring_snapshot(
             or writeback_generated_event_count > 0
             or review_required_execution_count > 0
         )
+    )
+    has_mixed_continuity = (
+        sum(
+            count > 0
+            for count in (one_off_task_count, follow_up_task_count, continuous_task_count)
+        )
+        > 1
     )
     if has_writeback_depth:
         effectiveness_posture = "writeback_supported"
@@ -363,6 +373,52 @@ def build_phase_six_feedback_linked_scoring_snapshot(
         effectiveness_composition_summary += f"｜{secondary_support_signal_label}"
     if current_caveat_signal != "none" and current_caveat_signal_label:
         effectiveness_composition_summary += f"｜{current_caveat_signal_label}"
+    if has_mixed_continuity:
+        continuity_interpretation = "mixed_continuity"
+        continuity_interpretation_label = "目前是 mixed continuity"
+        distortion_guard_signal = "mixed_continuity_requires_context"
+        distortion_guard_signal_label = "不能把不同 continuity 用同一把尺看"
+        distortion_guard_summary = (
+            "目前 continuity lane 混合，不能把 missing writeback、follow-up signal、與 retained effectiveness 用同一把尺看。"
+        )
+    elif continuous_task_count > 0:
+        continuity_interpretation = "continuous_expected"
+        continuity_interpretation_label = "目前已有 continuous expectation"
+        if not has_writeback_depth:
+            distortion_guard_signal = "continuous_writeback_gap"
+            distortion_guard_signal_label = "continuous writeback gap 仍在"
+            distortion_guard_summary = (
+                "目前已有 continuous / full writeback expectation，但 writeback depth 仍薄，不要把 adoption 或 closeout 直接高估成 retained effectiveness。"
+            )
+        else:
+            distortion_guard_signal = "none"
+            distortion_guard_signal_label = "目前未見主要 continuity distortion"
+            distortion_guard_summary = (
+                "目前已有 continuous / full writeback evidence，但仍只能保守看 reusable effectiveness，不可直接升格成 KPI attribution。"
+            )
+    elif follow_up_task_count > 0:
+        continuity_interpretation = "follow_up_present"
+        continuity_interpretation_label = "目前已有 follow-up continuity"
+        if not has_writeback_depth:
+            distortion_guard_signal = "follow_up_not_retained"
+            distortion_guard_signal_label = "follow-up 仍不能當 retained effectiveness"
+            distortion_guard_summary = (
+                "目前已有 follow-up continuity，但仍缺少足夠 writeback depth；最多只能先當 checkpoint signal，不要高估成 retained effectiveness。"
+            )
+        else:
+            distortion_guard_signal = "none"
+            distortion_guard_signal_label = "目前未見主要 continuity distortion"
+            distortion_guard_summary = (
+                "目前已有 follow-up continuity 與 writeback evidence，但仍只應保守視為延續 signal，不可直接跳成 business outcome attribution。"
+            )
+    else:
+        continuity_interpretation = "one_off_minimal"
+        continuity_interpretation_label = "目前以 one-off / minimal 為主"
+        distortion_guard_signal = "normal_writeback_absence"
+        distortion_guard_signal_label = "absence 不算負訊號"
+        distortion_guard_summary = (
+            "目前以 one-off / minimal 為主，沒有 writeback 屬正常，不要把 absence 當成 effectiveness 失敗。"
+        )
     if (
         has_writeback_depth
         and has_strong_deliverable_closeout_depth
@@ -418,7 +474,12 @@ def build_phase_six_feedback_linked_scoring_snapshot(
         review_required_execution_count=review_required_execution_count,
         planned_execution_count=planned_execution_count,
         writeback_expected_task_count=writeback_expected_task_count,
+        one_off_task_count=one_off_task_count,
+        follow_up_task_count=follow_up_task_count,
+        continuous_task_count=continuous_task_count,
         writeback_depth_summary=writeback_depth_summary,
+        continuity_interpretation=continuity_interpretation,
+        continuity_interpretation_label=continuity_interpretation_label,
         effectiveness_posture=effectiveness_posture,
         effectiveness_posture_label=effectiveness_posture_label,
         effectiveness_posture_summary=effectiveness_posture_summary,
@@ -430,6 +491,9 @@ def build_phase_six_feedback_linked_scoring_snapshot(
         current_caveat_signal=current_caveat_signal,
         current_caveat_signal_label=current_caveat_signal_label,
         effectiveness_composition_summary=effectiveness_composition_summary,
+        distortion_guard_signal=distortion_guard_signal,
+        distortion_guard_signal_label=distortion_guard_signal_label,
+        distortion_guard_summary=distortion_guard_summary,
         attribution_boundary=attribution_boundary,
         attribution_boundary_label=attribution_boundary_label,
         attribution_boundary_summary=attribution_boundary_summary,

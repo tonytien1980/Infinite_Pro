@@ -204,6 +204,59 @@ def test_phase_six_feedback_snapshot_reads_attribution_boundary() -> None:
     assert "目前已到 closeout + writeback depth" in snapshot.attribution_boundary_summary
 
 
+def test_phase_six_feedback_snapshot_treats_one_off_absence_as_normal() -> None:
+    snapshot = build_phase_six_feedback_linked_scoring_snapshot(
+        adopted_count=1,
+        needs_revision_count=0,
+        not_adopted_count=0,
+        template_candidate_count=1,
+        governed_candidate_count=1,
+        promoted_candidate_count=1,
+        dismissed_candidate_count=0,
+        override_signal_count=0,
+        top_asset_codes=["domain_playbook"],
+        one_off_task_count=2,
+        follow_up_task_count=0,
+        continuous_task_count=0,
+        writeback_expected_task_count=0,
+    )
+
+    assert snapshot.continuity_interpretation == "one_off_minimal"
+    assert snapshot.distortion_guard_signal == "normal_writeback_absence"
+    assert "沒有 writeback 屬正常" in snapshot.distortion_guard_summary
+
+
+def test_phase_six_feedback_snapshot_flags_continuous_writeback_gap() -> None:
+    snapshot = build_phase_six_feedback_linked_scoring_snapshot(
+        adopted_count=2,
+        needs_revision_count=1,
+        not_adopted_count=0,
+        template_candidate_count=1,
+        governed_candidate_count=2,
+        promoted_candidate_count=1,
+        dismissed_candidate_count=0,
+        override_signal_count=1,
+        top_asset_codes=["domain_playbook", "review_lens"],
+        deliverable_feedback_count=2,
+        deliverable_adopted_count=1,
+        published_deliverable_count=1,
+        published_adopted_count=1,
+        deliverable_candidate_count=1,
+        governed_deliverable_candidate_count=1,
+        one_off_task_count=0,
+        follow_up_task_count=0,
+        continuous_task_count=2,
+        follow_up_outcome_count=0,
+        writeback_expected_task_count=2,
+    )
+
+    assert snapshot.continuity_interpretation == "continuous_expected"
+    assert snapshot.distortion_guard_signal == "continuous_writeback_gap"
+    assert "不要把 adoption 或 closeout 直接高估成 retained effectiveness" in (
+        snapshot.distortion_guard_summary
+    )
+
+
 def test_phase_six_completion_review_persists_feedback_linked_snapshot(
     client: TestClient,
 ) -> None:

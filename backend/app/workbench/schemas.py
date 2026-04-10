@@ -570,7 +570,17 @@ class PhaseSixFeedbackLinkedScoringSnapshotRead(BaseModel):
     review_required_execution_count: int = 0
     planned_execution_count: int = 0
     writeback_expected_task_count: int = 0
+    one_off_task_count: int = 0
+    follow_up_task_count: int = 0
+    continuous_task_count: int = 0
     writeback_depth_summary: str = ""
+    continuity_interpretation: Literal[
+        "one_off_minimal",
+        "follow_up_present",
+        "continuous_expected",
+        "mixed_continuity",
+    ] = "one_off_minimal"
+    continuity_interpretation_label: str = ""
     effectiveness_posture: Literal[
         "evidence_thin",
         "adoption_supported",
@@ -604,6 +614,15 @@ class PhaseSixFeedbackLinkedScoringSnapshotRead(BaseModel):
     ] = "none"
     current_caveat_signal_label: str = ""
     effectiveness_composition_summary: str = ""
+    distortion_guard_signal: Literal[
+        "normal_writeback_absence",
+        "follow_up_not_retained",
+        "continuous_writeback_gap",
+        "mixed_continuity_requires_context",
+        "none",
+    ] = "none"
+    distortion_guard_signal_label: str = ""
+    distortion_guard_summary: str = ""
     attribution_boundary: Literal[
         "not_claimable",
         "outcome_adjacent",
