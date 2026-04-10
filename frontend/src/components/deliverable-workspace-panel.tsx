@@ -34,6 +34,10 @@ import {
   buildContinuationDetailView,
   buildContinuationFocusSummary,
 } from "@/lib/continuation-advisory";
+import {
+  buildDecisionBriefView,
+  buildWritebackApprovalView,
+} from "@/lib/case-command-loop";
 import { buildContinuationPostureView } from "@/lib/continuity-ux";
 import { buildMaterialReviewPostureView } from "@/lib/material-review-ux";
 import {
@@ -600,6 +604,8 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
     task && deliverable && readiness ? buildReadinessGovernance(task, deliverable, readiness) : null;
   const executiveSummary = task && deliverable ? buildExecutiveSummary(task, deliverable) : null;
   const decisionSnapshot = task && deliverable ? buildDecisionSnapshot(task, deliverable) : null;
+  const decisionBriefView = task ? buildDecisionBriefView(task.decision_brief) : null;
+  const writebackApprovalView = task ? buildWritebackApprovalView(task.writeback_approval) : null;
   const preferredWorldDecisionContext = task?.world_decision_context || task?.decision_context || null;
   const sliceDecisionContext = task?.slice_decision_context || null;
   const sharedEvidenceParticipationCount = workspace
@@ -1492,6 +1498,14 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                   {labelForWritebackDepth(task.writeback_depth)}
                 </p>
               </div>
+              {writebackApprovalView ? (
+                <div className="section-card">
+                  <h4>{writebackApprovalView.primaryTitle}</h4>
+                  <p className="content-block">{writebackApprovalView.primaryCopy}</p>
+                  <p className="muted-text">{writebackApprovalView.candidateCopy}</p>
+                  <p className="muted-text">{writebackApprovalView.boundaryNote}</p>
+                </div>
+              ) : null}
               {continuationSurface ? (
                 <div className="section-card">
                   <h4>後續工作流</h4>
@@ -1955,6 +1969,13 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
             <div className="detail-list" style={{ marginTop: "18px" }}>
               <div className="detail-item">
                 <h3>最近 decision / outcome</h3>
+                {decisionBriefView ? (
+                  <div className="section-card">
+                    <h3>Decision Brief</h3>
+                    <p className="content-block">{decisionBriefView.summary}</p>
+                    <p className="muted-text">{decisionBriefView.boundaryNote}</p>
+                  </div>
+                ) : null}
                 {workspace.decision_records.length > 0 || workspace.outcome_records.length > 0 ? (
                   <ul className="list-content">
                     {workspace.decision_records.slice(0, 3).map((item) => (

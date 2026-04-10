@@ -57,3 +57,34 @@ test("writeback approval view keeps candidate review separate from formal approv
   assert.match(view.candidateCopy, /precedent candidates/);
   assert.match(view.boundaryNote, /不是每次案件結果都應該被泛化/);
 });
+
+test("decision brief view keeps one formal recommendation summary", () => {
+  const view = buildDecisionBriefView({
+    posture: "publish_ready",
+    posture_label: "可收成正式交付結果",
+    question_summary: "先判斷要不要把這輪結論發布給客戶。",
+    options_summary: "主 option 是直接發布，次 option 是先補一輪風險說明。",
+    risk_summary: "若直接發布而未補邊界，容易被過度解讀。",
+    recommendation_summary: "先補邊界說明後發布正式版本。",
+    next_action_summary: "回交付物完成最後修訂與發布。",
+    boundary_note: "這份 brief 不等於 admin approval console。",
+  });
+
+  assert.equal(view.checklist.length, 4);
+  assert.match(view.summary, /先補邊界說明後發布正式版本/);
+});
+
+test("writeback approval view keeps approval and candidate review in the same loop", () => {
+  const view = buildWritebackApprovalView({
+    posture: "candidate_review",
+    posture_label: "先看哪些值得留下",
+    summary: "目前正式核可不是唯一重點，這輪更重要的是先分辨哪些東西值得寫回。",
+    primary_action_label: "先做 writeback 判斷",
+    primary_action_summary: "先看這次結果哪些值得留 precedent、哪些適合 playbook 或 template。",
+    candidate_summary: "目前有 3 筆候選，其中 1 筆更適合 template。",
+    boundary_note: "個案成功不等於一定適合變成共享規則。",
+  });
+
+  assert.match(view.primaryCopy, /prece.*template/i);
+  assert.match(view.boundaryNote, /個案成功不等於一定適合變成共享規則/);
+});

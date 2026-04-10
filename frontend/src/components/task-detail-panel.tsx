@@ -44,6 +44,7 @@ import {
   buildContinuationDetailView,
   buildContinuationFocusSummary,
 } from "@/lib/continuation-advisory";
+import { buildDecisionBriefView } from "@/lib/case-command-loop";
 import { buildContinuationPostureView } from "@/lib/continuity-ux";
 import { buildMaterialReviewPostureView } from "@/lib/material-review-ux";
 import {
@@ -558,6 +559,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
   const structuredFindings = getStructuredStringList(latestDeliverable, "findings");
   const participatingAgents = getStructuredStringList(latestDeliverable, "participating_agents");
   const readiness = task ? assessTaskReadiness(task) : null;
+  const decisionBriefView = task ? buildDecisionBriefView(task.decision_brief) : null;
   const originalProblem = task
     ? [task.description.trim(), task.title.trim()].filter(Boolean).join("\n\n")
     : "";
@@ -1009,7 +1011,11 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                       <p className="hero-focus-copy">
                         {`${taskDetailUsabilityView.handoffTitle}｜${taskDetailUsabilityView.handoffReasonLabel}`}
                       </p>
-                      <p className="hero-focus-copy">{taskDetailUsabilityView.railSummary}</p>
+                      <p className="hero-focus-copy">
+                        {decisionBriefView
+                          ? `${decisionBriefView.railTitle}｜${decisionBriefView.summary}`
+                          : taskDetailUsabilityView.railSummary}
+                      </p>
                     </>
                   ) : researchGuidance?.shouldShow ? (
                     <p className="hero-focus-copy">
@@ -1935,40 +1941,54 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                 </div>
 
                 {taskFraming && capabilityFrame ? (
-                  <div className="summary-grid">
-                    <div className="section-card">
-                      <h4>原始問題</h4>
-                      <ExpandableText
-                        text={originalProblem}
-                        emptyText="尚未提供可供分析的原始問題。"
-                        previewChars={240}
-                      />
+                  <>
+                    <div className="summary-grid">
+                      <div className="section-card">
+                        <h4>原始問題</h4>
+                        <ExpandableText
+                          text={originalProblem}
+                          emptyText="尚未提供可供分析的原始問題。"
+                          previewChars={240}
+                        />
+                      </div>
+                      <div className="section-card">
+                        <h4>決策問題</h4>
+                        <ExpandableText
+                          text={taskFraming.decisionContextSummary}
+                          emptyText="尚未整理本輪決策問題。"
+                          previewChars={200}
+                        />
+                      </div>
+                      <div className="section-card">
+                        <h4>這次要幫你做什麼判斷</h4>
+                        <ExpandableText
+                          text={capabilityFrame.judgmentToMake}
+                          emptyText="尚未明確整理本輪判斷目標。"
+                          previewChars={200}
+                        />
+                      </div>
+                      <div className="section-card">
+                        <h4>這次分析重點</h4>
+                        <ExpandableText
+                          text={taskFraming.analysisFocus}
+                          emptyText="尚未整理本輪分析重點。"
+                          previewChars={200}
+                        />
+                      </div>
                     </div>
-                    <div className="section-card">
-                      <h4>決策問題</h4>
-                      <ExpandableText
-                        text={taskFraming.decisionContextSummary}
-                        emptyText="尚未整理本輪決策問題。"
-                        previewChars={200}
-                      />
-                    </div>
-                    <div className="section-card">
-                      <h4>這次要幫你做什麼判斷</h4>
-                      <ExpandableText
-                        text={capabilityFrame.judgmentToMake}
-                        emptyText="尚未明確整理本輪判斷目標。"
-                        previewChars={200}
-                      />
-                    </div>
-                    <div className="section-card">
-                      <h4>這次分析重點</h4>
-                      <ExpandableText
-                        text={taskFraming.analysisFocus}
-                        emptyText="尚未整理本輪分析重點。"
-                        previewChars={200}
-                      />
-                    </div>
-                  </div>
+                    {decisionBriefView ? (
+                      <div className="section-card" id="task-decision-brief">
+                        <h3>{decisionBriefView.railEyebrow}</h3>
+                        <p className="content-block">{decisionBriefView.summary}</p>
+                        <ul className="list-content">
+                          {decisionBriefView.checklist.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                        <p className="muted-text">{decisionBriefView.boundaryNote}</p>
+                      </div>
+                    ) : null}
+                  </>
                 ) : (
                   <p className="empty-text">尚未形成可讀的任務 framing。</p>
                 )}
