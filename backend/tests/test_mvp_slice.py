@@ -8956,6 +8956,62 @@ def test_single_run_keeps_writeback_approval_conservative_when_approvals_are_pen
     assert aggregate["writeback_approval"]["posture"] != "formal_approval"
 
 
+def test_case_command_loop_writeback_approval_candidate_summary_stays_task_scoped(
+    client: TestClient,
+) -> None:
+    shared_payload = create_contract_review_payload("Sibling leakage source task")
+    shared_payload.update(
+        {
+            "client_name": "Northwind Studio",
+            "engagement_name": "Northwind Decision Loop",
+            "workstream_name": "通路與毛利決策",
+            "decision_title": "Northwind precedent source",
+            "judgment_to_make": "先確認這輪是否應把通路與毛利調整作為可重用模式。",
+        }
+    )
+    first_task = client.post("/api/v1/tasks", json=shared_payload).json()
+    first_run = client.post(f"/api/v1/tasks/{first_task['id']}/run")
+    assert first_run.status_code == 200
+    first_deliverable_id = first_run.json()["deliverable"]["id"]
+    first_feedback = client.post(
+        f"/api/v1/deliverables/{first_deliverable_id}/feedback",
+        json={"feedback_status": "adopted", "note": "這份交付可保留成模式候選。"},
+    )
+    assert first_feedback.status_code == 200
+    matter_id = first_feedback.json()["matter_workspace"]["id"]
+    matter_workspace = client.get(f"/api/v1/matters/{matter_id}").json()
+    assert matter_workspace["summary"]["precedent_candidate_summary"]["total_candidates"] == 1
+    assert "1 個可重用候選" in matter_workspace["summary"]["precedent_candidate_summary"]["summary"]
+
+    sibling_payload = create_contract_review_payload("Sibling leakage follow-up task")
+    sibling_payload.update(
+        {
+            "client_name": "Northwind Studio",
+            "engagement_name": "Northwind Decision Loop",
+            "workstream_name": "通路與毛利決策",
+            "decision_title": "Northwind follow-up precedents",
+            "judgment_to_make": "再確認這個 task 自己是否也有候選模式。",
+        }
+    )
+    sibling_task = client.post("/api/v1/tasks", json=sibling_payload).json()
+    assert sibling_task["matter_workspace"]["id"] == matter_id
+    assert sibling_task["writeback_approval"]["candidate_summary"] == "目前沒有可用的 precedent 候選摘要。"
+    assert "1 個可重用候選" not in sibling_task["writeback_approval"]["candidate_summary"]
+
+
+def test_case_command_loop_minimal_posture_uses_conservative_cta(
+    client: TestClient,
+) -> None:
+    payload = create_task_payload("Minimal posture CTA")
+    task = client.post("/api/v1/tasks", json=payload).json()
+
+    writeback_approval = task["writeback_approval"]
+    assert writeback_approval["posture"] == "minimal"
+    assert writeback_approval["primary_action_label"] == "保持最小寫回"
+    assert "先核" not in writeback_approval["primary_action_label"]
+    assert "先核" not in writeback_approval["primary_action_summary"]
+
+
 def test_case_command_loop_decision_brief_tracks_latest_deliverable_version_after_second_run(
     client: TestClient,
 ) -> None:

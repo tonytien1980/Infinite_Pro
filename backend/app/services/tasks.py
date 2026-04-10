@@ -11546,16 +11546,13 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         action_plans=task.action_plans,
         outcome_records=task.outcome_records,
     )
+    task_precedent_candidate_summary = _build_precedent_candidate_summary_from_tasks([task])
     writeback_approval = build_writeback_approval(
         decision_records=task.decision_records,
         action_plans=task.action_plans,
         outcome_records=task.outcome_records,
         evidence_gap_records=evidence_gap_rows,
-        precedent_candidate_summary=(
-            matter_workspace_summary.precedent_candidate_summary
-            if matter_workspace_summary is not None
-            else None
-        ),
+        task_candidate_summary=task_precedent_candidate_summary,
     )
     flagship_lane = _build_flagship_lane_read(
         input_entry_mode,

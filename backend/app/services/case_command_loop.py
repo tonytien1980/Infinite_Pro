@@ -94,6 +94,84 @@ def _approval_statuses_complete(records: list[Any]) -> bool:
     return all(status in {"approved", "not_required"} for status in statuses)
 
 
+def _build_writeback_primary_action(
+    *,
+    posture: str,
+    latest_decision_record: Any | None,
+    latest_action_plan: Any | None,
+    candidate_summary: Any,
+) -> tuple[str, str]:
+    if posture == "minimal":
+        return (
+            "保持最小寫回",
+            _first_text(
+                _text_attr(candidate_summary, "summary"),
+                "目前仍維持最小寫回，先補依據再考慮正式核可。",
+            ),
+        )
+    if posture == "candidate_review":
+        if latest_action_plan is not None:
+            return (
+                "先看候選寫回",
+                _first_text(
+                    _text_attr(latest_action_plan, "summary"),
+                    "目前已有候選 action plan，可先檢視是否值得升級。",
+                ),
+            )
+        if latest_decision_record is not None:
+            return (
+                "先看候選寫回",
+                _first_text(
+                    _text_attr(latest_decision_record, "decision_summary"),
+                    "目前已有候選 decision record，可先檢視是否值得升級。",
+                ),
+            )
+        return (
+            "先看候選寫回",
+            _first_text(
+                _text_attr(candidate_summary, "summary"),
+                "目前已有候選寫回資訊，可先檢視是否值得升級。",
+            ),
+        )
+    if posture == "completed":
+        return (
+            "已完成寫回",
+            _first_text(
+                _text_attr(latest_action_plan, "summary"),
+                _text_attr(latest_decision_record, "decision_summary"),
+                "這輪 writeback 已完成，可保留作為正式回看基底。",
+            ),
+        )
+    if posture == "formal_approval":
+        if latest_action_plan is not None:
+            return (
+                "先核 action plan",
+                _first_text(
+                    _text_attr(latest_action_plan, "summary"),
+                    "目前 action plan 已形成，等待正式核可。",
+                ),
+            )
+        if latest_decision_record is not None:
+            return (
+                "先核 decision record",
+                _first_text(
+                    _text_attr(latest_decision_record, "decision_summary"),
+                    "目前 decision record 已形成，等待正式核可。",
+                ),
+            )
+        return (
+            "先核寫回",
+            "目前已可進入正式核可，但尚未選定具體核可項目。",
+        )
+    return (
+        "保持最小寫回",
+        _first_text(
+            _text_attr(candidate_summary, "summary"),
+            "目前仍維持最小寫回，先補依據再考慮正式核可。",
+        ),
+    )
+
+
 def build_matter_command(
     *,
     summary: Any,
@@ -263,7 +341,7 @@ def build_writeback_approval(
     action_plans: list[Any],
     outcome_records: list[Any],
     evidence_gap_records: list[Any],
-    precedent_candidate_summary: Any,
+    task_candidate_summary: Any,
 ) -> WritebackApprovalModel:
     latest_decision_record = decision_records[0] if decision_records else None
     latest_action_plan = action_plans[0] if action_plans else None
@@ -274,15 +352,15 @@ def build_writeback_approval(
         action_plans
     )
 
-    total_candidates = getattr(precedent_candidate_summary, "total_candidates", 0) or 0
+    total_candidates = getattr(task_candidate_summary, "total_candidates", 0) or 0
     deliverable_candidate_count = (
-        getattr(precedent_candidate_summary, "deliverable_candidate_count", 0) or 0
+        getattr(task_candidate_summary, "deliverable_candidate_count", 0) or 0
     )
     recommendation_candidate_count = (
-        getattr(precedent_candidate_summary, "recommendation_candidate_count", 0) or 0
+        getattr(task_candidate_summary, "recommendation_candidate_count", 0) or 0
     )
     candidate_summary = _first_text(
-        _text_attr(precedent_candidate_summary, "summary"),
+        _text_attr(task_candidate_summary, "summary"),
         "目前沒有可用的 precedent 候選摘要。",
     )
 
@@ -311,31 +389,14 @@ def build_writeback_approval(
         f"{len(outcome_records)} 筆 outcome record。"
     )
 
-    if latest_action_plan:
-        primary_action_label = "先核 action plan"
-        primary_action_summary = _first_text(
-            _text_attr(latest_action_plan, "summary"),
-            _text_attr(latest_action_plan, "title"),
-            "目前 action plan 已形成，但仍待正式核可。",
-        )
-    elif latest_decision_record:
-        primary_action_label = "先核 decision record"
-        primary_action_summary = _first_text(
-            _text_attr(latest_decision_record, "decision_summary"),
-            _text_attr(latest_decision_record, "title"),
-            "目前 decision record 已形成，但仍待正式核可。",
-        )
-    elif total_candidates > 0:
-        primary_action_label = "先看候選寫回"
-        primary_action_summary = (
-            f"目前有 {total_candidates} 個 precedent 候選，其中交付物候選 {deliverable_candidate_count} 個、"
-            f"建議候選 {recommendation_candidate_count} 個。"
-        )
-    else:
-        primary_action_label = "先建立最小寫回"
-        primary_action_summary = "目前還沒有可直接核對的 writeback 候選。"
+    primary_action_label, primary_action_summary = _build_writeback_primary_action(
+        posture=posture,
+        latest_decision_record=latest_decision_record,
+        latest_action_plan=latest_action_plan,
+        candidate_summary=task_candidate_summary,
+    )
 
-    if total_candidates > 0 and not _text_attr(precedent_candidate_summary, "summary"):
+    if total_candidates > 0 and not _text_attr(task_candidate_summary, "summary"):
         candidate_summary = (
             f"目前有 {total_candidates} 個 precedent 候選，其中交付物候選 {deliverable_candidate_count} 個、"
             f"建議候選 {recommendation_candidate_count} 個。"
