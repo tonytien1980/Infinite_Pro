@@ -5523,6 +5523,45 @@ Environment used:
 
 ---
 
+## Entry: 2026-04-10 T2-C task detail operating leverage v1
+
+Scope:
+- deepen `T2-C` from first-screen clarity into task-detail operating leverage
+- add one low-noise operating summary block instead of a second hero wall
+- condense repeated second-layer task notes without rewriting the full task page
+
+Environment used:
+- local frontend and backend verification
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `cd frontend && node --test tests/task-detail-usability.test.mjs tests/consultant-usability.test.mjs tests/intake-progress.test.mjs tests/phase-six-governance.test.mjs` | Passed (`59 passed`) |
+| `cd frontend && npm run build` | Passed |
+| `cd frontend && npm run typecheck` | Passed |
+| `PYTHONPATH=backend .venv312/bin/pytest backend/tests/test_mvp_slice.py -q` | Passed (`245 passed`) |
+| `git diff --check` | Passed |
+
+### T2-C task detail operating leverage verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Frontend | `/tasks/[taskId]` operating summary | Add one low-noise panel between the section guide and deeper disclosures | Verified | task detail now inserts a compact operating summary that answers how to push the page forward, the biggest limitation, and the highest-leverage fallback route without turning the hero into a second summary wall |
+| Frontend | `/tasks/[taskId]` condensed notes | Keep task operating guidance capped at three condensed lanes | Verified | helper tests confirm the surface now condenses the reading into three low-noise notes for next move, caution or continuation, and the immediate handoff path |
+| Frontend | `/tasks/[taskId]` second-layer section intros | Shorten repeated intros in evidence, readiness, and deliverable sections | Verified | the deeper sections now stop re-explaining the whole page and instead focus on why that specific section matters, leaving the new operating summary to carry the shared mainline |
+| Regression | frontend / backend shared verification | Preserve task flow, run action, deliverable backlink, anchors, and broader MVP behavior | Verified | the targeted frontend tests, production build, typecheck, full `test_mvp_slice.py` regression, and `git diff --check` all remain green after the operating-leverage pass |
+
+### Explicitly not shipped in this pass
+
+- task page full rewrite
+- matter / deliverable surface redesign
+- new dashboard family
+- training shell / onboarding shell
+- runtime confidence / Docker gate / browser smoke
+
+---
+
 ## Entry: 2026-04-09 product reliability and release discipline v1
 
 Scope:

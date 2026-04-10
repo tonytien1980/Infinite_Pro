@@ -816,6 +816,15 @@ task hero 右側 rail 現在也應優先承接：
 - 這輪最重要的變化
 - 回看節奏與下一步建議
 
+`T2-C slice 2` 之後，task detail 還應正式成立：
+
+- 第一屏下方可補一層低噪音 operating summary，只回答：
+  - 現在這頁怎麼推最快
+  - 目前最大的限制在哪裡
+  - 若不直接執行，最有槓桿的回退路徑是什麼
+- 這層應優先使用 condensed notes，不可重新長成第二條 hero summary 牆
+- `工作鏈與來源 / 證據`、`判斷可信度與資料缺口`、`正式交付結果` 的區塊文案應縮短，避免每區都重講一次主線
+
 ### 7.6 `/deliverables/[deliverableId]`
 
 主任務：

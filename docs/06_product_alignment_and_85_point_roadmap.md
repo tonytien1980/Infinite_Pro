@@ -839,6 +839,9 @@ phase close review 的結論只能落在以下四種：
 - 第一刀已正式落地成 `task detail usability pass v1`
 - `/tasks/[taskId]` 第一屏現在更直接回答：能不能跑、缺什麼、跑完去哪裡
 - task detail 目前已開始更像 consultant operating surface，而不是只有資訊堆疊頁
+- 第二刀已正式落地成 `task detail operating leverage v1`
+- `/tasks/[taskId]` 現在在首屏之後會補一層低噪音 operating summary，回答這頁怎麼推最快、最大的限制在哪裡、以及不直接執行時最有槓桿的回退路徑
+- task detail 的 second-layer notes 已開始做 condensation，而不是讓 readiness / evidence / deliverable 各自重講一遍主線
 
 ### 11.4 T2-D Runtime and release confidence deepen
 
