@@ -5766,3 +5766,27 @@ Scope:
 Environment used:
 - repo-native release-readiness verification
 - operator-assisted authenticated browser smoke
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `PYTHONPATH=backend .venv312/bin/pytest backend/tests/test_release_readiness_script.py -q` | Passed (`11 passed`) |
+| `PYTHONPATH=backend .venv312/bin/python backend/scripts/run_release_readiness.py --tier runtime --runtime-profile docker-compose` | Passed |
+
+### T2-D authenticated browser smoke verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Backend | `build_browser_smoke_targets(...)` | Mark authenticated-smoke targets with `auth_requirement / auth_entry_method / unauthenticated_expected_behavior` | Verified | targeted backend tests confirm the normalized smoke manifest now distinguishes authenticated smoke from unauthenticated auth-gate smoke without introducing auth bypass |
+| Runtime | release-readiness runtime profile | Re-run the repo-native `docker-compose` runtime gate before authenticated smoke | Verified | the same local `3000 / 8000` compose runtime profile passed again before the authenticated browser observations were recorded |
+| Browser | existing authenticated Google Chrome session | Open required protected routes using a real signed-in browser session instead of fake auth or bypass | Verified | `/`, `/new`, `/matters`, and `/deliverables` all stayed on their intended routes with `200` access in the existing Chrome session, rather than redirecting to `/login` |
+| Browser | cookie import fallback | Keep cookie import as an allowed baseline path, but do not overclaim it as the source of final evidence | Limited | direct `cookie-import-browser` still triggered a macOS `Chrome Safe Storage` Keychain permission wait on this machine, so the final authenticated evidence was recorded via the existing signed-in Chrome session instead |
+
+### Explicitly not shipped in this pass
+
+- auth bypass
+- local dev login
+- fake session injection
+- full Google OAuth automation
+- Playwright automation suite
