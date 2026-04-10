@@ -130,3 +130,27 @@ def test_runtime_profile_builder_rejects_unknown_profile() -> None:
         assert "Unsupported runtime profile" in str(exc)
     else:
         raise AssertionError("expected runtime profile builder to reject unknown profile")
+
+
+def test_browser_smoke_targets_define_a_small_consultant_facing_contract() -> None:
+    targets = release_readiness.build_browser_smoke_targets("docker-compose")
+
+    assert [item["label"] for item in targets] == [
+        "overview_focus_return",
+        "new_matter_entry",
+        "matters_list",
+        "deliverables_list",
+        "task_detail_operating_surface",
+    ]
+    assert targets[0]["path"] == "/"
+    assert targets[-1]["path"] == "/tasks/[taskId]"
+    assert targets[-1]["mode"] == "operator-assisted"
+
+
+def test_browser_smoke_targets_reject_unknown_profile() -> None:
+    try:
+        release_readiness.build_browser_smoke_targets("legacy-8010")
+    except ValueError as exc:
+        assert "Unsupported browser smoke profile" in str(exc)
+    else:
+        raise AssertionError("expected browser smoke targets to reject unknown profile")

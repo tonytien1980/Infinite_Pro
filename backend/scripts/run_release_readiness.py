@@ -153,6 +153,45 @@ def build_runtime_smoke_targets_for_profile(profile: str) -> RuntimeProfileTarge
     )
 
 
+def build_browser_smoke_targets(profile: str) -> list[dict[str, str]]:
+    normalized = profile.strip().lower()
+    if normalized not in {"standalone", "docker-compose"}:
+        raise ValueError(f"Unsupported browser smoke profile: {profile}")
+
+    return [
+        {
+            "label": "overview_focus_return",
+            "path": "/",
+            "intent": "確認首頁仍能把顧問送回主工作面",
+            "mode": "operator-assisted",
+        },
+        {
+            "label": "new_matter_entry",
+            "path": "/new",
+            "intent": "確認正式進件入口仍可進入 canonical intake",
+            "mode": "operator-assisted",
+        },
+        {
+            "label": "matters_list",
+            "path": "/matters",
+            "intent": "確認案件列表仍可作為主工作面入口",
+            "mode": "operator-assisted",
+        },
+        {
+            "label": "deliverables_list",
+            "path": "/deliverables",
+            "intent": "確認交付物主工作面仍可進入正式結果閱讀",
+            "mode": "operator-assisted",
+        },
+        {
+            "label": "task_detail_operating_surface",
+            "path": "/tasks/[taskId]",
+            "intent": "確認 task detail 仍維持 operating summary 與低噪音主線",
+            "mode": "operator-assisted",
+        },
+    ]
+
+
 def run_command_checks(checks: list[ReleaseCheck]) -> dict[str, object]:
     results: list[dict[str, object]] = []
     overall_status = "pass"
@@ -303,6 +342,11 @@ def main() -> int:
             runtime_results["profile"] = runtime_profile.profile
             runtime_results["frontend_base_url"] = runtime_profile.frontend_base_url
             runtime_results["backend_base_url"] = runtime_profile.backend_base_url
+            payload["browser_smoke"] = {
+                "profile": args.runtime_profile,
+                "mode": "operator-assisted",
+                "targets": build_browser_smoke_targets(args.runtime_profile),
+            }
         else:
             runtime_results = run_runtime_smoke(
                 build_runtime_smoke_targets(
