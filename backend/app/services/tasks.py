@@ -8517,7 +8517,6 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
     matter_command = build_matter_command(
         summary=summary,
         related_tasks=related_task_items,
-        related_deliverables=related_deliverables,
         evidence_gap_records=evidence_gap_records,
         latest_deliverable=latest_related_deliverable,
     )

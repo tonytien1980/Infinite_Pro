@@ -98,7 +98,6 @@ def build_matter_command(
     *,
     summary: Any,
     related_tasks: list[Any],
-    related_deliverables: list[Any],
     evidence_gap_records: list[Any],
     latest_deliverable: Any | None,
 ) -> MatterCommandModel:

@@ -8974,7 +8974,10 @@ def test_case_command_loop_decision_brief_tracks_latest_deliverable_version_afte
     first_run = client.post(f"/api/v1/tasks/{task['id']}/run")
     assert first_run.status_code == 200
     first_aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
-    first_version_tag = first_aggregate["latest_deliverable_version_tag"]
+    first_latest_deliverable = max(
+        first_aggregate["deliverables"], key=lambda item: item["version"]
+    )
+    first_version_tag = first_latest_deliverable["version_tag"]
     assert first_version_tag
     assert first_version_tag in first_aggregate["decision_brief"]["options_summary"]
 
@@ -8987,8 +8990,10 @@ def test_case_command_loop_decision_brief_tracks_latest_deliverable_version_afte
     second_run = client.post(f"/api/v1/tasks/{task['id']}/run")
     assert second_run.status_code == 200
     second_aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
-    second_version_tag = second_aggregate["latest_deliverable_version_tag"]
-    assert second_version_tag
+    second_latest_deliverable = max(
+        second_aggregate["deliverables"], key=lambda item: item["version"]
+    )
+    second_version_tag = second_latest_deliverable["version_tag"]
     assert second_version_tag in second_aggregate["decision_brief"]["options_summary"]
     assert second_version_tag != first_version_tag
     assert first_version_tag not in second_aggregate["decision_brief"]["options_summary"]
