@@ -93,25 +93,25 @@ Infinite Pro 的正式產品想像應理解為：
 
 目前最新 checkpoint 應理解為：
 
-- 前一輪基準：`fa79b4f`
-- 目前基準：`93b61e2`
+- 前一輪基準：`93b61e2`
+- 目前基準：`6208b0c`
 
 | 項目 | 目標 | 前一輪 | 目前分數 | 變化 | 判讀 |
 | --- | --- | ---: | ---: | ---: | --- |
-| A | ontology-first 顧問分析工具 | 85 | 86 | +1 | 大方向已成立，case-aware runtime 讓 ontology-first 更進一步進到工作面 |
-| B | 支援創業 / 制度化 / 規模化 | 70 | 78 | +8 | 邊界已成立，且 stage-aware / coverage-proof 證據明顯增加 |
-| C | 適用中小企業 / 大企業 / 個人品牌 / 自媒體 | 68 | 76 | +8 | type-aware / coverage-proof 已進 code 與 benchmark，但還未達等深度成熟 |
-| D | 覆蓋營運 / 財務 / 商務 / 法務 / 行銷 / 銷售 / 策略 | 65 | 74 | +9 | cross-domain coverage 與 domain-lens runtime 已前進，但仍未達 every-domain-equal-depth |
-| E | 支援一次性報告與持續深化案件 | 84 | 86 | +2 | one-off / follow-up / continuous 的工作主鏈與 deliverable parity 更穩 |
-| F | 成熟產品度 | 60 | 72 | +12 | release-readiness baseline、coverage suite、usability layer 都加分，但 live runtime / smoke 仍不足 |
-| G | 初階到高階顧問都能輕易使用 | 52 | 69 | +17 | consultant usability layer 明顯改善主行動、導讀與 second-layer disclosure |
-| H | 接收回饋與自我優化 | 58 | 76 | +18 | feedback-linked scoring 已開始讀 deliverable、outcome、writeback evidence，但尚未到成熟 adaptive system |
+| A | ontology-first 顧問分析工具 | 86 | 86 | +0 | ontology-first 主線維持穩定，第二 tranche 的 proof / usability / runtime deepening 沒有讓產品邊界漂移 |
+| B | 支援創業 / 制度化 / 規模化 | 78 | 80 | +2 | stage density、continuity density 與 coverage proof 已補厚，創業 / 規模化不再只靠薄代表 |
+| C | 適用中小企業 / 大企業 / 個人品牌 / 自媒體 | 76 | 79 | +3 | self-media 與 personal-brand 的 coverage 已更站穩，但 large-enterprise lane 仍未到等深成熟 |
+| D | 覆蓋營運 / 財務 / 商務 / 法務 / 行銷 / 銷售 / 策略 | 74 | 77 | +3 | cross-domain bundle 與 domain-lens posture 更可信，但離 every-domain-equal-depth 仍有距離 |
+| E | 支援一次性報告與持續深化案件 | 86 | 87 | +1 | one-off / follow-up / continuous 的 runtime parity 與 task-surface handoff reading 再穩一層 |
+| F | 成熟產品度 | 72 | 79 | +7 | runtime profile、browser smoke normalization、authenticated smoke baseline 都已成立，release-readiness 信心明顯提升 |
+| G | 初階到高階顧問都能輕易使用 | 69 | 74 | +5 | usability 已從 overview / matter / deliverable 延伸到 task detail operating handoff，整體更像正式顧問工作台 |
+| H | 接收回饋與自我優化 | 76 | 80 | +4 | effectiveness reading 已補 posture / composition / boundary / distortion guard，但仍未進 KPI / business outcome attribution |
 
 目前平均分數應理解為：
 
-- 前一輪平均：約 `67.8`
-- 目前平均：約 `77.1`
-- 整體提升：約 `+9.3`
+- 前一輪平均：約 `77.1`
+- 目前平均：約 `80.3`
+- 整體提升：約 `+3.2`
 
 ### 3.1 Scoring rubric
 
