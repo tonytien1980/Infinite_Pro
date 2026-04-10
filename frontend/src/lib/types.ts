@@ -458,7 +458,16 @@ export interface PhaseSixFeedbackLinkedScoringSnapshot {
   reviewRequiredExecutionCount: number;
   plannedExecutionCount: number;
   writebackExpectedTaskCount: number;
+  oneOffTaskCount: number;
+  followUpTaskCount: number;
+  continuousTaskCount: number;
   writebackDepthSummary: string;
+  continuityInterpretation:
+    | "one_off_minimal"
+    | "follow_up_present"
+    | "continuous_expected"
+    | "mixed_continuity";
+  continuityInterpretationLabel: string;
   effectivenessPosture:
     | "evidence_thin"
     | "adoption_supported"
@@ -488,6 +497,14 @@ export interface PhaseSixFeedbackLinkedScoringSnapshot {
     | "none";
   currentCaveatSignalLabel: string;
   effectivenessCompositionSummary: string;
+  distortionGuardSignal:
+    | "normal_writeback_absence"
+    | "follow_up_not_retained"
+    | "continuous_writeback_gap"
+    | "mixed_continuity_requires_context"
+    | "none";
+  distortionGuardSignalLabel: string;
+  distortionGuardSummary: string;
   attributionBoundary:
     | "not_claimable"
     | "outcome_adjacent"

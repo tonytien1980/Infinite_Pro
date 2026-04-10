@@ -20,6 +20,7 @@ import {
   summarizePhaseSixCompletionScorecard,
   summarizePhaseSixFeedbackCloseoutDepth,
   summarizePhaseSixEffectivenessComposition,
+  summarizePhaseSixEffectivenessDistortionGuard,
   summarizePhaseSixEffectivenessReading,
   summarizePhaseSixFeedbackWritebackDepth,
   summarizePhaseSixFeedbackLinkedScoring,
@@ -340,6 +341,15 @@ test("phase 6 completion review labels stay low-noise and readable", () => {
       },
     }),
     "可保守視為 attribution 候選",
+  );
+  assert.equal(
+    summarizePhaseSixEffectivenessDistortionGuard({
+      feedbackLinkedScoringSnapshot: {
+        distortionGuardSummary:
+          "目前已有 continuous / full writeback expectation，但 writeback depth 仍薄，不要把 adoption 或 closeout 直接高估成 retained effectiveness。",
+      },
+    }),
+    "目前已有 continuous / full writeback expectation，但 writeback depth 仍薄，不要把 adoption 或 closeout 直接高估成 retained effectiveness。",
   );
 });
 

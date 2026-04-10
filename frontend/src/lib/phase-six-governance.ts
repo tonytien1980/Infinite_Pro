@@ -207,6 +207,22 @@ export function summarizePhaseSixAttributionBoundary(
   );
 }
 
+export function summarizePhaseSixEffectivenessDistortionGuard(
+  review: Pick<
+    {
+      feedbackLinkedScoringSnapshot: {
+        distortionGuardSummary: string;
+      };
+    },
+    "feedbackLinkedScoringSnapshot"
+  >,
+) {
+  return (
+    review.feedbackLinkedScoringSnapshot.distortionGuardSummary ||
+    "目前還沒有可讀取的 distortion guard。"
+  );
+}
+
 export function summarizePhaseSixCoverageAreas(areas: PhaseSixCoverageArea[]) {
   if (areas.length === 0) {
     return "目前還沒有可讀取的 coverage signal。";

@@ -1214,8 +1214,21 @@ function parsePhaseSixCompletionReviewPayload(payload: any): PhaseSixCompletionR
       writebackExpectedTaskCount: Number(
         payload.feedback_linked_scoring_snapshot?.writeback_expected_task_count ?? 0,
       ),
+      oneOffTaskCount: Number(
+        payload.feedback_linked_scoring_snapshot?.one_off_task_count ?? 0,
+      ),
+      followUpTaskCount: Number(
+        payload.feedback_linked_scoring_snapshot?.follow_up_task_count ?? 0,
+      ),
+      continuousTaskCount: Number(
+        payload.feedback_linked_scoring_snapshot?.continuous_task_count ?? 0,
+      ),
       writebackDepthSummary:
         payload.feedback_linked_scoring_snapshot?.writeback_depth_summary || "",
+      continuityInterpretation:
+        payload.feedback_linked_scoring_snapshot?.continuity_interpretation || "one_off_minimal",
+      continuityInterpretationLabel:
+        payload.feedback_linked_scoring_snapshot?.continuity_interpretation_label || "",
       effectivenessPosture:
         payload.feedback_linked_scoring_snapshot?.effectiveness_posture || "evidence_thin",
       effectivenessPostureLabel:
@@ -1238,6 +1251,12 @@ function parsePhaseSixCompletionReviewPayload(payload: any): PhaseSixCompletionR
         payload.feedback_linked_scoring_snapshot?.current_caveat_signal_label || "",
       effectivenessCompositionSummary:
         payload.feedback_linked_scoring_snapshot?.effectiveness_composition_summary || "",
+      distortionGuardSignal:
+        payload.feedback_linked_scoring_snapshot?.distortion_guard_signal || "none",
+      distortionGuardSignalLabel:
+        payload.feedback_linked_scoring_snapshot?.distortion_guard_signal_label || "",
+      distortionGuardSummary:
+        payload.feedback_linked_scoring_snapshot?.distortion_guard_summary || "",
       attributionBoundary:
         payload.feedback_linked_scoring_snapshot?.attribution_boundary || "not_claimable",
       attributionBoundaryLabel:
