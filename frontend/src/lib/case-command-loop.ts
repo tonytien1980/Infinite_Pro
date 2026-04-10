@@ -1,14 +1,10 @@
-export function buildMatterCommandView(input: {
-  command_posture: "push_task" | "fill_evidence" | "review_deliverable";
-  command_posture_label: string;
-  focus_summary: string;
-  primary_task_id: string | null;
-  primary_task_title: string;
-  primary_task_reason: string;
-  blocker_summary: string;
-  deliverable_direction_summary: string;
-  next_step_summary: string;
-}) {
+import type {
+  DecisionBrief,
+  MatterCommand,
+  WritebackApproval,
+} from "./types";
+
+export function buildMatterCommandView(input: MatterCommand) {
   return {
     eyebrow: "案件指揮",
     primaryHref: input.primary_task_id ? `/tasks/${input.primary_task_id}` : "/matters",
@@ -21,16 +17,7 @@ export function buildMatterCommandView(input: {
   };
 }
 
-export function buildDecisionBriefView(input: {
-  posture: "draft" | "decision_ready" | "publish_ready";
-  posture_label: string;
-  question_summary: string;
-  options_summary: string;
-  risk_summary: string;
-  recommendation_summary: string;
-  next_action_summary: string;
-  boundary_note: string;
-}) {
+export function buildDecisionBriefView(input: DecisionBrief) {
   const checklist = [
     input.question_summary,
     input.options_summary,
@@ -47,15 +34,7 @@ export function buildDecisionBriefView(input: {
   };
 }
 
-export function buildWritebackApprovalView(input: {
-  posture: "minimal" | "candidate_review" | "formal_approval" | "completed";
-  posture_label: string;
-  summary: string;
-  primary_action_label: string;
-  primary_action_summary: string;
-  candidate_summary: string;
-  boundary_note: string;
-}) {
+export function buildWritebackApprovalView(input: WritebackApproval) {
   return {
     primaryTitle: input.primary_action_label,
     primaryCopy: input.primary_action_summary,
