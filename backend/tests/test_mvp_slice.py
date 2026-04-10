@@ -8931,6 +8931,71 @@ def test_continuous_writeback_creates_decision_and_outcome_records(
     assert second_aggregate["audit_events"]
 
 
+def test_case_command_loop_contract_surfaces_matter_command_decision_brief_and_writeback(
+    client: TestClient,
+) -> None:
+    payload = create_task_payload("Case command loop baseline")
+    payload.update(
+        {
+            "engagement_continuity_mode": "continuous",
+            "writeback_depth": "full",
+            "client_name": "Atlas Advisory",
+            "client_type": "中小企業",
+            "client_stage": "制度化階段",
+            "engagement_name": "Atlas Growth Ops",
+            "workstream_name": "營運與銷售收斂",
+            "decision_title": "Atlas command loop decision",
+            "judgment_to_make": "先判斷這輪應先補證據、先收斂正式建議，還是直接回交付物改版。",
+            "domain_lenses": ["營運", "銷售", "綜合策略"],
+        }
+    )
+    task = client.post("/api/v1/tasks", json=payload).json()
+    matter_id = task["matter_workspace"]["id"]
+
+    upload_response = client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[
+            (
+                "files",
+                (
+                    "command-loop.txt",
+                    b"Need one command surface, one decision brief posture, and one writeback approval loop.",
+                    "text/plain",
+                ),
+            )
+        ],
+    )
+    assert upload_response.status_code == 200
+
+    run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
+    assert run_response.status_code == 200
+
+    matter_workspace = client.get(f"/api/v1/matters/{matter_id}").json()
+    task_aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
+
+    assert matter_workspace["matter_command"]["command_posture"] in {
+        "push_task",
+        "fill_evidence",
+        "review_deliverable",
+    }
+    assert matter_workspace["matter_command"]["focus_summary"]
+    assert matter_workspace["matter_command"]["primary_task_id"] == task["id"]
+    assert matter_workspace["matter_command"]["primary_task_title"]
+
+    assert task_aggregate["decision_brief"]["posture"] in {
+        "draft",
+        "decision_ready",
+        "publish_ready",
+    }
+    assert task_aggregate["decision_brief"]["question_summary"]
+    assert task_aggregate["decision_brief"]["recommendation_summary"]
+    assert task_aggregate["decision_brief"]["next_action_summary"]
+
+    assert task_aggregate["writeback_approval"]["summary"]
+    assert task_aggregate["writeback_approval"]["primary_action_label"]
+    assert task_aggregate["writeback_approval"]["candidate_summary"]
+
+
 def test_one_off_case_can_close_and_reopen_without_continuous_records(
     client: TestClient,
 ) -> None:

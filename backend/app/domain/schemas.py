@@ -1663,6 +1663,39 @@ class MatterWorkspaceSummaryRead(BaseModel):
     )
 
 
+class MatterCommandRead(BaseModel):
+    command_posture: Literal["push_task", "fill_evidence", "review_deliverable"] = "push_task"
+    command_posture_label: str = ""
+    focus_summary: str = ""
+    primary_task_id: str | None = None
+    primary_task_title: str = ""
+    primary_task_reason: str = ""
+    blocker_summary: str = ""
+    deliverable_direction_summary: str = ""
+    next_step_summary: str = ""
+
+
+class DecisionBriefRead(BaseModel):
+    posture: Literal["draft", "decision_ready", "publish_ready"] = "draft"
+    posture_label: str = ""
+    question_summary: str = ""
+    options_summary: str = ""
+    risk_summary: str = ""
+    recommendation_summary: str = ""
+    next_action_summary: str = ""
+    boundary_note: str = ""
+
+
+class WritebackApprovalRead(BaseModel):
+    posture: Literal["minimal", "candidate_review", "formal_approval", "completed"] = "minimal"
+    posture_label: str = ""
+    summary: str = ""
+    primary_action_label: str = ""
+    primary_action_summary: str = ""
+    candidate_summary: str = ""
+    boundary_note: str = ""
+
+
 class TaskListItemResponse(BaseModel):
     id: str
     title: str
@@ -1807,6 +1840,7 @@ class MatterWorkspaceResponse(BaseModel):
     calibration_aware_weighting_signal: CalibrationAwareWeightingSignalRead = Field(
         default_factory=CalibrationAwareWeightingSignalRead
     )
+    matter_command: MatterCommandRead = Field(default_factory=MatterCommandRead)
     readiness_hint: str = ""
     continuity_notes: list[str] = Field(default_factory=list)
     continuation_surface: ContinuationSurfaceRead | None = None
@@ -1923,6 +1957,8 @@ class TaskAggregateResponse(BaseModel):
     input_entry_mode: InputEntryMode = InputEntryMode.ONE_LINE_INQUIRY
     engagement_continuity_mode: EngagementContinuityMode = EngagementContinuityMode.ONE_OFF
     writeback_depth: WritebackDepth = WritebackDepth.MINIMAL
+    decision_brief: DecisionBriefRead = Field(default_factory=DecisionBriefRead)
+    writeback_approval: WritebackApprovalRead = Field(default_factory=WritebackApprovalRead)
     deliverable_class_hint: DeliverableClass = DeliverableClass.EXPLORATORY_BRIEF
     external_research_heavy_candidate: bool = False
     flagship_lane: FlagshipLaneRead = Field(default_factory=FlagshipLaneRead)

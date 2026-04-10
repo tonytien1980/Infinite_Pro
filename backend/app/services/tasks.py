@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 import hashlib
 import logging
 import re
 from io import BytesIO
+from types import SimpleNamespace
 
 from fastapi import HTTPException
 from sqlalchemy import select
@@ -51,6 +52,11 @@ from app.services.adoption_feedback_intelligence import (
     summarize_adoption_feedback_reason,
 )
 from app.services.canonicalization import build_matter_canonicalization_contract
+from app.services.case_command_loop import (
+    build_decision_brief,
+    build_matter_command,
+    build_writeback_approval,
+)
 from app.services.common_risk_intelligence import build_common_risk_guidance
 from app.services.content_revisions import (
     CONTENT_REVISION_SOURCE_MANUAL_EDIT,
@@ -8508,6 +8514,12 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
         follow_up_lane=follow_up_lane,
         progression_lane=progression_lane,
     )
+    matter_command = build_matter_command(
+        summary=summary,
+        related_tasks=related_task_items,
+        related_deliverables=related_deliverables,
+        evidence_gap_records=evidence_gap_records,
+    )
     canonicalization_summary, canonicalization_candidates = build_matter_canonicalization_contract(
         db,
         matter_workspace_id=matter_workspace.id,
@@ -8740,6 +8752,7 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
                 for item in calibration_aware_weighting_signal.weighting_items
             ],
         ),
+        matter_command=schemas.MatterCommandRead(**asdict(matter_command)),
         readiness_hint=readiness_hint,
         continuity_notes=continuity_notes,
         continuation_surface=continuation_surface,
@@ -11515,6 +11528,31 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         follow_up_lane=follow_up_lane,
         progression_lane=progression_lane,
     )
+    latest_deliverable = deliverables[0] if deliverables else None
+    decision_brief_task = SimpleNamespace(
+        title=task.title,
+        description=task.description,
+        world_decision_context=world_decision_context,
+        decision_context=preferred_decision_context,
+        slice_decision_context=slice_decision_context,
+    )
+    decision_brief = build_decision_brief(
+        task=decision_brief_task,
+        linked_risks=risks,
+        linked_recommendations=recommendations,
+        linked_action_items=action_items,
+        latest_deliverable=latest_deliverable,
+    )
+    writeback_approval = build_writeback_approval(
+        decision_records=task.decision_records,
+        action_plans=task.action_plans,
+        outcome_records=task.outcome_records,
+        precedent_candidate_summary=(
+            matter_workspace_summary.precedent_candidate_summary
+            if matter_workspace_summary is not None
+            else None
+        ),
+    )
     flagship_lane = _build_flagship_lane_read(
         input_entry_mode,
         deliverable_class_hint,
@@ -11729,6 +11767,8 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         input_entry_mode=input_entry_mode,
         engagement_continuity_mode=continuity_mode,
         writeback_depth=writeback_depth,
+        decision_brief=schemas.DecisionBriefRead(**asdict(decision_brief)),
+        writeback_approval=schemas.WritebackApprovalRead(**asdict(writeback_approval)),
         deliverable_class_hint=deliverable_class_hint,
         external_research_heavy_candidate=external_research_heavy_candidate,
         flagship_lane=flagship_lane,
