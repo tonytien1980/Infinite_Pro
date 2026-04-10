@@ -162,6 +162,32 @@ def test_browser_smoke_targets_record_dynamic_entry_for_task_detail() -> None:
     assert "operating summary" in task_target["evidence_expectation"]
 
 
+def test_browser_smoke_targets_mark_authenticated_requirement_and_entry_method() -> None:
+    targets = release_readiness.build_browser_smoke_targets("docker-compose")
+
+    assert [item["auth_requirement"] for item in targets] == [
+        "authenticated",
+        "authenticated",
+        "authenticated",
+        "authenticated",
+        "authenticated",
+    ]
+    assert [item["auth_entry_method"] for item in targets] == [
+        "existing-session-or-cookie-import",
+        "existing-session-or-cookie-import",
+        "existing-session-or-cookie-import",
+        "existing-session-or-cookie-import",
+        "existing-session-or-cookie-import",
+    ]
+
+
+def test_browser_smoke_targets_explain_unauthenticated_fallback_behavior() -> None:
+    targets = release_readiness.build_browser_smoke_targets("standalone")
+
+    assert targets[0]["unauthenticated_expected_behavior"] == "redirect-to-login"
+    assert targets[-1]["unauthenticated_expected_behavior"] == "redirect-to-login"
+
+
 def test_browser_smoke_targets_reject_unknown_profile() -> None:
     try:
         release_readiness.build_browser_smoke_targets("legacy-8010")
