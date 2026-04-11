@@ -33,7 +33,11 @@ from app.ingestion.remote import RemoteSourceContent
 from app.model_router.base import PackContractSynthesisRequest
 from app.model_router.structured_tasks import build_pack_contract_synthesis_spec
 from app.services import extension_contract_synthesis
-from app.services.case_command_loop import build_decision_brief, build_writeback_approval
+from app.services.case_command_loop import (
+    _build_writeback_primary_action,
+    build_decision_brief,
+    build_writeback_approval,
+)
 from app.services.deliverable_shape_intelligence import build_deliverable_shape_guidance
 from app.services.external_search import SearchResult
 from app.services.tasks import get_loaded_task
@@ -8954,8 +8958,10 @@ def test_single_run_keeps_writeback_approval_conservative_when_approvals_are_pen
     aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
     assert aggregate["decision_records"][0]["approval_status"] == "pending"
     assert aggregate["action_plans"][0]["approval_status"] == "pending"
-    assert aggregate["writeback_approval"]["posture"] in {"minimal", "candidate_review"}
-    assert aggregate["writeback_approval"]["posture"] != "formal_approval"
+    assert aggregate["writeback_approval"]["posture"] == "minimal"
+    assert aggregate["writeback_approval"]["primary_action_label"] == "保持最小寫回"
+    assert "approve" not in aggregate["writeback_approval"]["primary_action_summary"].lower()
+    assert "approval" not in aggregate["writeback_approval"]["primary_action_summary"].lower()
 
 
 def test_case_command_loop_writeback_approval_candidate_summary_stays_task_scoped(
@@ -9414,6 +9420,18 @@ def test_task_writeback_approval_marks_pending_records_approved(
 
 
 def test_case_command_loop_marks_formal_approval_complete_without_post_approval_cta() -> None:
+    pending_decision_record = SimpleNamespace(approval_status="pending")
+    pending_action_plan = SimpleNamespace(approval_status="pending")
+    pending_writeback_approval = build_writeback_approval(
+        decision_records=[pending_decision_record],
+        action_plans=[pending_action_plan],
+        outcome_records=[],
+        evidence_gap_records=[],
+        task_candidate_summary=SimpleNamespace(total_candidates=0, summary=""),
+    )
+    assert pending_writeback_approval.posture == "formal_approval"
+    assert pending_writeback_approval.posture_label == "正式核可中"
+
     deliverable = SimpleNamespace(
         title="Final decision memo",
         summary="Decision memo ready for circulation.",
@@ -9428,6 +9446,20 @@ def test_case_command_loop_marks_formal_approval_complete_without_post_approval_
         approval_status="approved",
         summary="Approve the proposed action plan.",
     )
+
+    completed_label, completed_summary = _build_writeback_primary_action(
+        posture="completed",
+        latest_decision_record=decision_record,
+        latest_action_plan=action_plan,
+        candidate_summary=SimpleNamespace(summary=""),
+    )
+    assert completed_label == "已完成寫回"
+    assert completed_summary.startswith("這輪 writeback 已完成")
+    assert "正式回看基底" in completed_summary
+    assert "approve" not in completed_label.lower()
+    assert "approval" not in completed_label.lower()
+    assert "approve" not in completed_summary.lower()
+    assert "approval" not in completed_summary.lower()
 
     decision_brief = build_decision_brief(
         task=SimpleNamespace(

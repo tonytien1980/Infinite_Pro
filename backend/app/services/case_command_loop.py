@@ -136,11 +136,7 @@ def _build_writeback_primary_action(
     if posture == "completed":
         return (
             "已完成寫回",
-            _first_text(
-                _text_attr(latest_action_plan, "summary"),
-                _text_attr(latest_decision_record, "decision_summary"),
-                "這輪 writeback 已完成，可保留作為正式回看基底。",
-            ),
+            "這輪 writeback 已完成，可直接作為正式回看基底。",
         )
     if posture == "formal_approval":
         if latest_action_plan is not None:
