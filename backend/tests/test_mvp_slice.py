@@ -33,7 +33,7 @@ from app.ingestion.remote import RemoteSourceContent
 from app.model_router.base import PackContractSynthesisRequest
 from app.model_router.structured_tasks import build_pack_contract_synthesis_spec
 from app.services import extension_contract_synthesis
-from app.services.case_command_loop import build_writeback_approval
+from app.services.case_command_loop import build_decision_brief, build_writeback_approval
 from app.services.deliverable_shape_intelligence import build_deliverable_shape_guidance
 from app.services.external_search import SearchResult
 from app.services.tasks import get_loaded_task
@@ -9434,6 +9434,10 @@ def test_task_writeback_approval_marks_pending_records_approved(
     aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
     assert aggregate["decision_records"][0]["approval_status"] == "approved"
     assert aggregate["action_plans"][0]["approval_status"] == "approved"
+    # This live aggregate still stays conservative after approvals because the runtime
+    # flow has unresolved evidence/readiness work; the public task response does not
+    # expose raw gap rows directly, so we assert the surfaced posture instead.
+    assert aggregate["writeback_approval"]["posture"] == "minimal"
     assert aggregate["writeback_approval"]["boundary_note"] == "這個 writeback approval read model 只描述狀態，正式核可仍需 Host / 顧問操作。"
 
 
@@ -9478,6 +9482,58 @@ def test_case_command_loop_marks_completed_writeback_without_approval_cta() -> N
     assert "approval" not in completed_writeback_approval.primary_action_summary.lower()
     assert "正式核可" not in completed_writeback_approval.boundary_note
     assert "仍需" not in completed_writeback_approval.boundary_note
+
+
+def test_case_command_loop_marks_publish_ready_only_for_final_deliverable_without_open_gaps() -> None:
+    task = SimpleNamespace(
+        title="Publish-ready gate",
+        description="Confirm decision brief publish posture only unlocks for final deliverables without open gaps.",
+        world_decision_context=None,
+        decision_context=None,
+        slice_decision_context=None,
+    )
+    approved_decision_record = SimpleNamespace(approval_status="approved")
+    approved_action_plan = SimpleNamespace(approval_status="approved")
+
+    publish_ready_brief = build_decision_brief(
+        task=task,
+        linked_risks=[],
+        linked_recommendations=[],
+        linked_action_items=[],
+        latest_deliverable=SimpleNamespace(
+            title="Final decision memo",
+            summary="Decision memo ready for circulation.",
+            version=3,
+            version_tag="v3",
+            status="final",
+        ),
+        evidence_gap_records=[],
+        decision_records=[approved_decision_record],
+        action_plans=[approved_action_plan],
+        outcome_records=[],
+    )
+    assert publish_ready_brief.posture == "publish_ready"
+    assert publish_ready_brief.posture_label == "可發布"
+
+    pending_confirmation_brief = build_decision_brief(
+        task=task,
+        linked_risks=[],
+        linked_recommendations=[],
+        linked_action_items=[],
+        latest_deliverable=SimpleNamespace(
+            title="Pending confirmation memo",
+            summary="Still waiting on confirmation.",
+            version=3,
+            version_tag="v3",
+            status="pending_confirmation",
+        ),
+        evidence_gap_records=[],
+        decision_records=[approved_decision_record],
+        action_plans=[approved_action_plan],
+        outcome_records=[],
+    )
+    assert pending_confirmation_brief.posture == "decision_ready"
+    assert pending_confirmation_brief.posture_label == "可決策"
 
 
 def test_case_command_loop_keeps_pending_confirmation_deliverable_out_of_publish_ready(
