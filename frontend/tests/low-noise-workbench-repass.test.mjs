@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
+import { labelForMembershipStatus } from "../src/lib/ui-labels.ts";
 import { SURFACE_LABELS } from "../src/lib/workbench-surface-labels.ts";
 
 test("surface labels use consultant-facing Traditional Chinese on high-visibility surfaces", () => {
@@ -106,4 +107,40 @@ test("history cleanup copy makes hiding separate from deleting", () => {
   assert.doesNotMatch(historySource, /不會硬刪除正式工作紀錄/);
   assert.match(historySource, /隱藏全部歷史入口/);
   assert.match(historySource, /只會把目前所有歷史入口標記為隱藏/);
+});
+
+test("membership status labels cover invite rows as well as active members", () => {
+  assert.equal(labelForMembershipStatus("pending"), "待接受");
+  assert.equal(labelForMembershipStatus("accepted"), "已接受");
+  assert.equal(labelForMembershipStatus("revoked"), "已撤回");
+});
+
+test("second-layer continuity copy avoids raw internal ontology English", () => {
+  const matterSecondarySource = readFileSync(
+    new URL("../src/components/matter-secondary-panel-bodies.tsx", import.meta.url),
+    "utf8",
+  );
+  const taskDetailSource = readFileSync(
+    new URL("../src/components/task-detail-panel.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.doesNotMatch(matterSecondarySource, /目前已確認的 facts/);
+  assert.doesNotMatch(matterSecondarySource, /目前沒有額外 facts/);
+  assert.doesNotMatch(matterSecondarySource, /仍在沿用的 assumptions/);
+  assert.doesNotMatch(matterSecondarySource, /目前沒有額外 assumptions/);
+  assert.doesNotMatch(taskDetailSource, /DecisionContext 與工作鏈/);
+  assert.doesNotMatch(taskDetailSource, /當前主要 DecisionContext/);
+});
+
+test("qa matrix keeps evidence upload claims aligned with actual verification depth", () => {
+  const qaMatrixSource = readFileSync(
+    new URL("../../docs/04_qa_matrix.md", import.meta.url),
+    "utf8",
+  );
+
+  assert.doesNotMatch(
+    qaMatrixSource,
+    /\| Evidence supplement UI \| source verification \+ mirrored implementation \| .* \| Verified \|/,
+  );
 });

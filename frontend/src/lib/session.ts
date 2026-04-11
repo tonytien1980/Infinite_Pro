@@ -5,6 +5,10 @@ export function isAuthError(error: unknown) {
   return status === 401 || status === 403;
 }
 
+export function shouldRedirectToLoginAfterLogout(error: unknown) {
+  return error == null || isAuthError(error);
+}
+
 export function getLoginPath(nextPath?: string) {
   if (!nextPath || nextPath === "/login") {
     return "/login";

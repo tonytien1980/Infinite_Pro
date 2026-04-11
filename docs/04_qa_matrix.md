@@ -6373,10 +6373,50 @@ Environment used:
 | App shell | authenticated header | verify `登出` button renders next to `建立新案件` | Verified | authenticated shell now exposes an explicit logout control instead of forcing the user to rely on session expiry |
 | App shell | authenticated header -> `/login` | click `登出` | Verified | browser returned to `/login`, confirming the frontend now wires the existing backend logout route |
 | Intake UI | `/new` | click `選擇檔案` and attach a local text file | Verified | file chooser opened, the upload succeeded, and the selected filename appeared in the pending-material list |
-| Evidence supplement UI | source verification + mirrored implementation | confirm the evidence supplement flow uses the same explicit upload-trigger pattern as `/new` | Verified | code and regression tests confirm `/matters/[matterId]/evidence` now uses the same explicit button-triggered hidden file input pattern |
+| Evidence supplement UI | protected evidence route | click the visible `選擇檔案` trigger on `/matters/[matterId]/evidence` and inspect the browser chooser state | Limited | the visible trigger did open a real file chooser in browser automation, but this pass did not complete a reliable end-to-end filename appearance check on the protected evidence route; implementation parity and regression tests still cover the shared control pattern |
 
 ### Explicitly not shipped in this pass
 
 - a user-account dropdown or profile menu
 - a broader redesign of account/session controls
 - drag-and-drop upload enhancements
+
+---
+
+## Entry: 2026-04-11 code-review finding closure pass
+
+Scope:
+- close the highest-signal findings from the full code review on logout behavior, mixed-language membership labels, intake reference-retention copy, second-layer continuity wording, and QA-matrix honesty
+
+Environment used:
+- local Docker runtime
+- frontend: `http://127.0.0.1:3000`
+- backend: `http://127.0.0.1:8000/api/v1`
+- operator-side authenticated owner session for protected-route browser checks
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `source ~/.nvm/nvm.sh && cd frontend && node --test tests/*.test.mjs` | Passed (`116 passed`) |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run build` | Passed |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run typecheck` | Passed |
+| `git diff --check` | Passed |
+
+### Code-review closure verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Frontend | authenticated shell logout logic | verify the redirect decision only treats `success / already-invalid-session` as a real logout | Verified | logout now keeps the current shell and shows an error when the revoke call fails for non-auth reasons, instead of always redirecting to `/login` |
+| Frontend | membership labels | re-check member rows and invite rows against the shared status label map | Verified | `pending / accepted / revoked` are now covered, so invite rows no longer fall back to raw English status values |
+| Frontend | intake progress copy | re-check preview and runtime progress labels for limited-support reference retention | Verified | visible labels now use `將保留參照 / 可保留參照 / 已保留參照` instead of leaking raw `reference` |
+| Frontend | second-layer continuity surfaces | re-read matter/task continuity disclosures after the wording pass | Verified | visible continuity copy now prefers `已知事實 / 假設 / 案件判斷主軸 / 工作切片 / 決策寫回紀錄` instead of raw internal English |
+| Browser smoke | `/matters/[matterId]/evidence` upload trigger | click the visible `選擇檔案` trigger on a protected evidence route | Limited | the visible trigger opened a real browser file chooser; however, this pass still did not produce a reliable end-to-end filename appearance check on the evidence page, so the matrix intentionally keeps this as limited rather than overclaiming a full verified upload |
+
+### Important honesty note
+
+- this pass intentionally downgrades the earlier evidence-upload claim from `Verified` to `Limited`
+- the reason is not that the visible trigger disappeared; it is that protected-route browser automation only confirmed chooser opening, not a stable end-to-end pending-material list update
+- implementation parity and regression tests still confirm that `/new` and `/matters/[matterId]/evidence` share the same explicit upload-trigger structure
+- as in earlier passes, the stable verification order for this repo remains `build -> typecheck`; running them in parallel can still transiently fail on regenerated `.next/types`

@@ -153,6 +153,34 @@ test("runtime handling distinguishes retryable and non-retryable failures", () =
   assert.equal(nonRetryable.retryable, false);
 });
 
+test("reference-retention progress labels stay fully Traditional Chinese", () => {
+  const imageItems = buildIntakePreviewItems({
+    files: [new File(["img"], "diagram.png", { type: "image/png" })],
+    urls: [],
+    pastedText: "",
+    context: { lane: "intake" },
+  });
+  const referenceCandidate = imageItems[0];
+
+  const previewProgress = defaultProgressInfoForPreviewItem(referenceCandidate, {
+    keepAsReference: true,
+  });
+  assert.equal(previewProgress.label, "將保留參照");
+
+  const runtimeProgress = progressInfoFromRuntimeHandling(
+    describeRuntimeMaterialHandling({
+      supportLevel: "limited",
+      ingestStatus: "processed",
+      ingestStrategy: "reference_image",
+      metadataOnly: true,
+      ingestionError: null,
+      context: { lane: "workspace" },
+    }),
+    { keepAsReference: true },
+  );
+  assert.equal(runtimeProgress.label, "已保留參照");
+});
+
 test("preview items expose clearer diagnostic category and usable scope", () => {
   const items = buildIntakePreviewItems({
     files: [

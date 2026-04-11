@@ -1094,6 +1094,8 @@ Primary action：
 - Google 登入成功後，應直接返回 frontend 首頁，由既有 session gate 接手，不可停在 backend callback JSON
 - 不可在這頁暴露 firm 管理、權限矩陣或 provider technical details
 - 已登入後的正式 shell 必須提供清楚可達的 `登出` 入口；不能只有登入、沒有退出控制
+- `登出` 只可在 session 已成功撤銷，或系統已確認目前 session 本來就失效時，才把人送回 `/login`
+- 若 `登出` 請求只是暫時性失敗，shell 不可假裝已成功退出；應保留目前畫面並清楚顯示錯誤
 
 ### 7.12 `/members`
 
@@ -1654,6 +1656,7 @@ Primary action：
 - 高可見度的 workbench 標題、導覽標籤、hero labels 與治理 / 設定 / demo surface 標題，預設也應使用繁體中文
 - 若某些內部概念仍暫時保留英文實作名，第一層可見 UI 也應先轉成顧問可讀的繁體中文，不應直接把內部英文詞丟給使用者
 - `系統設定`、`代理管理`、`模組包管理`、`成員管理` 等管理頁第一層說明，不應再直接使用 `firm-level provider`、`agent contract`、`pack contract`、`owner`、`consultant`、`demo account` 這類混語
+- 第二層 continuity / case-world disclosure 也不可直接暴露 `facts`、`assumptions`、`DecisionContext`、`task slices`、`decision records` 這類內部英文；即使留在 disclosure，也要先轉成顧問可讀的繁體中文
 - 正式偏好用語應優先採：
   - `事務所模型來源`
   - `個人模型設定`

@@ -2,9 +2,19 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
+import { shouldRedirectToLoginAfterLogout } from "../src/lib/session.ts";
+
 function readSource(relativePath) {
   return readFileSync(new URL(relativePath, import.meta.url), "utf8");
 }
+
+test("logout redirect only happens on success or an already-invalid session", () => {
+  assert.equal(shouldRedirectToLoginAfterLogout(null), true);
+  assert.equal(shouldRedirectToLoginAfterLogout({ status: 401 }), true);
+  assert.equal(shouldRedirectToLoginAfterLogout({ status: 403 }), true);
+  assert.equal(shouldRedirectToLoginAfterLogout({ status: 500 }), false);
+  assert.equal(shouldRedirectToLoginAfterLogout(new Error("network timeout")), false);
+});
 
 test("authenticated app shell exposes a logout control", () => {
   const source = readSource("../src/components/app-shell.tsx");

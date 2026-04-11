@@ -91,6 +91,7 @@ import {
   formatDisplayDate,
   labelForAgentId,
   labelForAgentName,
+  labelForCaseWorldItemTitle,
   labelForEngagementContinuityMode,
   labelForExternalDataStrategy,
   labelForEvidenceType,
@@ -111,6 +112,7 @@ import {
   labelForTaskStatus,
   labelForTaskType,
   labelForWritebackDepth,
+  normalizeCaseWorldDisplayCopy,
   translateStructuredValue,
 } from "@/lib/ui-labels";
 import { WorkspaceSectionGuide } from "@/components/workspace-section-guide";
@@ -1232,7 +1234,8 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                   <h3>已知事實</h3>
                   <ExpandableList
                     items={(caseWorldState?.facts ?? latestCaseWorldDraft?.facts ?? []).map(
-                      (item) => `${item.title}：${item.detail}`,
+                      (item) =>
+                        `${labelForCaseWorldItemTitle(item.title)}：${normalizeCaseWorldDisplayCopy(item.detail)}`,
                     )}
                     emptyText="目前沒有額外已知事實。"
                   />
@@ -1241,7 +1244,8 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                   <h3>假設</h3>
                   <ExpandableList
                     items={(caseWorldState?.assumptions ?? latestCaseWorldDraft?.assumptions ?? []).map(
-                      (item) => `${item.title}：${item.detail}`,
+                      (item) =>
+                        `${labelForCaseWorldItemTitle(item.title)}：${normalizeCaseWorldDisplayCopy(item.detail)}`,
                     )}
                     emptyText="目前沒有額外假設。"
                   />
@@ -1775,7 +1779,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
           {matterWorkspaceCard ? (
             <DisclosurePanel
               title="案件世界連續性"
-              description="只有在你要確認這筆工作掛在哪個案件、DecisionContext 與工作鏈上時，再展開這層。"
+              description="只有在你要確認這筆工作掛在哪個案件、案件判斷主軸與工作鏈上時，再展開這層。"
             >
               <div className="panel-header">
                 <div>
@@ -1794,7 +1798,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                   <p className="content-block">{matterWorkspaceCard.objectPath}</p>
                 </div>
                 <div className="section-card">
-                  <h4>當前主要 DecisionContext</h4>
+                  <h4>當前主要案件判斷主軸</h4>
                   <ExpandableText
                     text={matterWorkspaceCard.decisionContext}
                     emptyText="目前沒有可顯示的案件判斷主軸。"

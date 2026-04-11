@@ -400,7 +400,7 @@ export function defaultProgressInfoForPreviewItem(
   if (item.status === "limited" && options?.keepAsReference) {
     return {
       phase: "ready",
-      label: isLimitedExtract ? "將保留有限抽取" : "將保留 reference",
+      label: isLimitedExtract ? "將保留有限抽取" : "將保留參照",
       detail: isLimitedExtract
         ? `這份材料目前屬「${item.usableScopeLabel}」，不擋送出，會先保留有限抽取結果與補充提示。`
         : `這份材料目前屬「${item.usableScopeLabel}」，不擋送出，會以參照層方式保留。`,
@@ -422,7 +422,7 @@ export function defaultProgressInfoForPreviewItem(
   if (item.status === "limited") {
     return {
       phase: "ready",
-      label: isLimitedExtract ? "可保留有限抽取" : "可保留 reference",
+      label: isLimitedExtract ? "可保留有限抽取" : "可保留參照",
       detail: isLimitedExtract
         ? `這份材料目前屬「${item.usableScopeLabel}」，不擋送出，但後續判讀最適合同時補欄位說明或摘要。`
         : `這份材料目前屬「${item.usableScopeLabel}」，不擋送出，但最適合先當參照層來源。`,
@@ -475,7 +475,7 @@ export function progressInfoFromRuntimeHandling(
       phase: "done",
       label:
         options?.keepAsReference && !isLimitedExtract
-          ? "已保留 reference"
+          ? "已保留參照"
           : isLimitedExtract
             ? "有限抽取 / 已保留"
             : "有限支援 / 已保留",
@@ -632,7 +632,7 @@ function buildFilePreviewItem(
       statusLabel: "有限支援",
       statusDetail: "目前只會建立參照層記錄，不預設 OCR 或完整全文理解。",
       impactDetail: appendLaneImpact(
-        "這份材料可被保留為 reference，但不能直接假裝成完整文字證據或完整抽文來源。",
+        "這份材料可被保留為參照，但不能直接假裝成完整文字證據或完整抽文來源。",
         context,
       ),
       recommendedNextStep: laneAwareNextStep(context, {
@@ -709,11 +709,11 @@ function buildFilePreviewItem(
         context,
       ),
       recommendedNextStep: laneAwareNextStep(context, {
-        intake: "可以先建立案件，但建立後要回工作面確認最終解析結果；若降成 metadata-only，請補文字版或摘要。",
+        intake: "可以先建立案件，但建立後要回工作面確認最終解析結果；若最後只剩中繼資料，請補文字版或摘要。",
         oneOff: "若這份 PDF 是交付物主依據，建立後請先確認是否成功抽文；若沒有，請立刻補文字版或重點摘要。",
         followUp: "可先補進來，但若這輪 checkpoint 需要引用內容，請在解析後確認是否成功抽文；若沒有，補文字版或摘要。",
         continuous: "可先補進來，但若這輪 progression 要靠它驗證 action / outcome，請在解析後確認是否成功抽文；若沒有，補文字版或摘要。",
-        workspace: "先等實際解析結果；若最後只有 metadata-only，請補文字版、OCR 後文字或摘要。",
+        workspace: "先等實際解析結果；若最後只剩中繼資料，請補文字版、OCR 後文字或摘要。",
       }),
       fallbackStrategy: "最保守的替代方式是提供 text-first PDF、DOCX、TXT，或直接整理一段可讀摘要。",
     };
@@ -765,14 +765,14 @@ function buildFilePreviewItem(
     diagnosticLabel: "正式可用",
     likelyCauseDetail: "這份材料落在正式支援邊界內，會沿正式內容擷取流程進主鏈。",
     usableScopeLabel: "可直接進正式主鏈",
-    usableScopeDetail: "可直接進來源、證據與交付物主鏈，不需要另外降成 metadata-only。",
+    usableScopeDetail: "可直接進來源、證據與交付物主鏈，不需要另外降成只留中繼資料。",
     retryabilityLabel: "不需要重試",
     retryabilityDetail: "目前沒有 ingest 問題，直接沿正式主鏈使用即可。",
     status: "accepted",
     statusLabel: "已接受",
     statusDetail: "建立案件後會走正式文字或表格擷取流程，並掛回同一個案件世界。",
     impactDetail: appendLaneImpact(
-      "可直接進來源、證據與交付物主鏈，不需要另外降級成 metadata-only。",
+      "可直接進來源、證據與交付物主鏈，不需要另外降級成只留中繼資料。",
       context,
     ),
     recommendedNextStep: laneAwareNextStep(context, {
@@ -1097,14 +1097,14 @@ export function describeRuntimeMaterialHandling({
           : "已接受，但擷取受限",
       likelyCauseDetail:
         ingestStrategy === "reference_image" || ingestStrategy === "image_reference"
-          ? "這類來源目前只做影像 reference / metadata intake，不預設 OCR 或完整全文理解。"
+          ? "這類來源目前只做影像參照層進件，不預設 OCR 或完整全文理解。"
           : ingestStrategy === "pdf_metadata_only" || ingestStrategy === "scanned_pdf_reference"
             ? "這份 PDF 目前更接近掃描 / 圖像來源，只保留參照層回鏈，不預設 OCR。"
           : "來源已被接收，但目前擷取層級受限，不能把它當成完整正文來源。",
       usableScopeLabel: "僅可參照保留",
       usableScopeDetail:
         ingestStrategy === "reference_image" || ingestStrategy === "image_reference"
-          ? "這份材料可作 reference，但不能直接當成完整文字證據或完整全文來源。"
+          ? "這份材料可作參照，但不能直接當成完整文字證據或完整全文來源。"
           : ingestStrategy === "pdf_metadata_only" || ingestStrategy === "scanned_pdf_reference"
             ? "這份掃描 / 圖像型 PDF 目前只能作來源層級引用，不能直接當成完整文字證據。"
           : "這份材料可保留在案件世界內，但不能假裝已完整抽文，也不應直接當成穩定 evidence extraction 來源。",
@@ -1161,7 +1161,7 @@ export function describeRuntimeMaterialHandling({
         oneOff: "若這份材料是本次交付依據，請優先確認最終解析結果；若沒有正文，補文字版或摘要。",
         followUp: "若這份材料是這輪 checkpoint 依據，請先確認最終解析結果；若沒有正文，補文字版或摘要。",
         continuous: "若這份材料是這輪 progression 依據，請先確認最終解析結果；若沒有正文，補文字版或摘要。",
-        workspace: "先確認最終解析結果；若最後只有 metadata-only 或失敗，請補文字版、摘要或替代來源。",
+        workspace: "先確認最終解析結果；若最後只剩中繼資料或失敗，請補文字版、摘要或替代來源。",
       }),
       fallbackStrategy: "最保守的替代方式是 text-first PDF、DOCX、TXT、可讀 URL，或直接補文字摘要。",
       retryable: false,
@@ -1176,12 +1176,12 @@ export function describeRuntimeMaterialHandling({
       diagnosticLabel: "正式可用",
       likelyCauseDetail: "這份材料已走正式內容擷取流程，擷取邊界目前足以直接參與主鏈。",
       usableScopeLabel: "可直接進正式主鏈",
-      usableScopeDetail: "可直接進來源、證據與交付物主鏈，不需要另外降成 metadata-only。",
+      usableScopeDetail: "可直接進來源、證據與交付物主鏈，不需要另外降成只留中繼資料。",
       retryabilityLabel: "不需要重試",
       retryabilityDetail: "目前沒有 ingest 問題，直接沿正式主鏈使用即可。",
       statusDetail: "這份材料已走正式內容擷取流程，後續會以正式來源與證據鏈回看。",
       impactDetail: appendLaneImpact(
-        "它可直接進來源、證據與交付物主鏈，不需要另外降成 metadata-only。",
+        "它可直接進來源、證據與交付物主鏈，不需要另外降成只留中繼資料。",
         context,
       ),
       recommendedNextStep: laneAwareNextStep(context, {
@@ -1244,7 +1244,7 @@ export function describeRuntimeMaterialHandling({
       oneOff: "若這份材料是本次交付依據，請優先確認最終解析結果；若沒有正文，補文字版或摘要。",
       followUp: "若這份材料是這輪 checkpoint 依據，請先確認最終解析結果；若沒有正文，補文字版或摘要。",
       continuous: "若這份材料是這輪 progression 依據，請先確認最終解析結果；若沒有正文，補文字版或摘要。",
-      workspace: "先確認最終解析結果；若最後只有 metadata-only 或失敗，請補文字版、摘要或替代來源。",
+      workspace: "先確認最終解析結果；若最後只剩中繼資料或失敗，請補文字版、摘要或替代來源。",
     }),
     fallbackStrategy: "最保守的替代方式是 text-first PDF、DOCX、TXT、可讀 URL，或直接補文字摘要。",
     retryable: false,

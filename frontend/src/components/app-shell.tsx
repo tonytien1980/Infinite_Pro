@@ -10,7 +10,12 @@ import {
   isPublicAppPath,
   resolveProtectedPathForMembershipRole,
 } from "@/lib/permissions";
-import { getLoginPath, getSessionDisplayName, isAuthError } from "@/lib/session";
+import {
+  getLoginPath,
+  getSessionDisplayName,
+  isAuthError,
+  shouldRedirectToLoginAfterLogout,
+} from "@/lib/session";
 import { hydrateWorkbenchPreferences } from "@/lib/workbench-persistence";
 import { useWorkbenchSettings } from "@/lib/workbench-store";
 import type { SessionState } from "@/lib/types";
@@ -31,6 +36,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<SessionState | null>(null);
   const [authResolved, setAuthResolved] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
@@ -135,17 +141,26 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [redirectTarget]);
 
   async function handleLogout() {
+    let logoutError: unknown = null;
+
     try {
       setLoggingOut(true);
+      setLogoutError(null);
       await logoutCurrentSession();
     } catch (error) {
+      logoutError = error;
       if (!isAuthError(error)) {
         console.error("logout failed", error);
+        setLogoutError(error instanceof Error ? error.message : "目前無法登出，請稍後再試。");
       }
     } finally {
-      setSession(null);
-      setAuthResolved(true);
-      window.location.href = "/login";
+      if (shouldRedirectToLoginAfterLogout(logoutError)) {
+        setSession(null);
+        setAuthResolved(true);
+        window.location.href = "/login";
+        return;
+      }
+      setLoggingOut(false);
     }
   }
 
@@ -227,6 +242,13 @@ export function AppShell({ children }: { children: ReactNode }) {
             ) : null}
           </div>
         </div>
+        {!publicPath && logoutError ? (
+          <div className="app-header-inner" style={{ paddingTop: 0 }}>
+            <p className="error-text" role="alert" style={{ margin: 0, width: "100%" }}>
+              {logoutError}
+            </p>
+          </div>
+        ) : null}
       </header>
 
       <div className="app-content" id="app-main-content" tabIndex={-1}>

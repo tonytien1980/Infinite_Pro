@@ -128,8 +128,8 @@ const SOURCE_INGEST_STRATEGY_LABELS: Record<string, string> = {
 
 const STORAGE_AVAILABILITY_LABELS: Record<string, string> = {
   available: "可用",
-  metadata_only: "只有 metadata",
-  reference_only: "僅保留 reference",
+  metadata_only: "只有中繼資料",
+  reference_only: "僅保留參照",
   pending_purge: "待清理",
   purged: "已清理",
 };
@@ -518,6 +518,24 @@ const MEMBERSHIP_STATUS_LABELS: Record<string, string> = {
   active: "啟用中",
   disabled: "停用中",
   inactive: "停用中",
+  pending: "待接受",
+  accepted: "已接受",
+  revoked: "已撤回",
+};
+
+const CASE_WORLD_ITEM_LABELS: Record<string, string> = {
+  Client: "客戶",
+  Engagement: "合作主題",
+  Workstream: "工作主軸",
+  DecisionContext: "案件判斷主軸",
+  DomainLens: "問題視角",
+  SourceMaterial: "來源材料",
+  Artifact: "工作物件",
+  Evidence: "證據",
+  "Domain Packs": "問題面向模組包",
+  "Industry Packs": "產業模組包",
+  "Planned file intake": "預計補入的檔案",
+  "Planned URL intake": "預計補入的網址",
 };
 
 const STRUCTURED_FIELD_LABELS: Record<string, string> = {
@@ -662,6 +680,40 @@ export function labelForMembershipRole(value: string) {
 
 export function labelForMembershipStatus(value: string) {
   return MEMBERSHIP_STATUS_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function normalizeCaseWorldDisplayCopy(value: string | null | undefined) {
+  if (!value) {
+    return "";
+  }
+
+  return value
+    .replaceAll("DecisionContext", "案件判斷主軸")
+    .replaceAll("DomainLens", "問題視角")
+    .replaceAll("Client stage", "客戶階段")
+    .replaceAll("Domain Packs", "問題面向模組包")
+    .replaceAll("Industry Packs", "產業模組包")
+    .replaceAll("SourceMaterial", "來源材料")
+    .replaceAll("Artifact", "工作物件")
+    .replaceAll("Evidence", "證據")
+    .replaceAll("task slices", "工作切片")
+    .replaceAll("decision records", "決策寫回紀錄")
+    .replaceAll("outcome records", "結果寫回紀錄")
+    .replaceAll("writeback records", "寫回紀錄")
+    .replaceAll("writeback / approval", "寫回 / 核可")
+    .replaceAll("evidence gaps", "證據缺口")
+    .replaceAll("provisional framing", "暫定判斷框架")
+    .replaceAll("provisional", "暫定")
+    .replaceAll("judgment_to_make", "核心判斷")
+    .replaceAll("Host", "主控代理")
+    .replaceAll("stage-specific heuristics", "分階段啟發");
+}
+
+export function labelForCaseWorldItemTitle(value: string | null | undefined) {
+  if (!value) {
+    return "未命名項目";
+  }
+  return CASE_WORLD_ITEM_LABELS[value] ?? normalizeCaseWorldDisplayCopy(value);
 }
 
 export function labelForSourceType(value: string) {

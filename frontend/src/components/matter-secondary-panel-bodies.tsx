@@ -17,7 +17,9 @@ import type {
 import {
   labelForApprovalStatus,
   labelForAuditEventType,
+  labelForCaseWorldItemTitle,
   formatDisplayDate,
+  normalizeCaseWorldDisplayCopy,
 } from "@/lib/ui-labels";
 import type {
   MatterLifecycleStatus,
@@ -78,19 +80,19 @@ export function MatterWorldStatePanelBody({
           <p className="content-block">{continuityStrategySummary || "未設定"}</p>
         </div>
         <div className="section-card">
-          <h4>World authority / task slices</h4>
+          <h4>案件世界狀態</h4>
           <p className="content-block">
             {caseWorldState
-              ? `${caseWorldState.compiler_status}｜目前共有 ${caseWorldState.active_task_ids.length} 個 task slices`
+              ? `已完成案件世界編成｜目前共有 ${caseWorldState.active_task_ids.length} 個工作切片`
               : "目前尚未形成正式案件世界狀態。"}
           </p>
         </div>
         <div className="section-card">
-          <h4>世界身份 authority</h4>
-          <p className="content-block">{worldAuthoritySummary}</p>
+          <h4>案件世界權威</h4>
+          <p className="content-block">{normalizeCaseWorldDisplayCopy(worldAuthoritySummary)}</p>
         </div>
         <div className="section-card">
-          <h4>Case world 主問題</h4>
+          <h4>案件主問題</h4>
           <p className="content-block">
             {String(
               caseWorldState?.canonical_intake_summary.problem_statement ||
@@ -110,7 +112,7 @@ export function MatterWorldStatePanelBody({
         <div className="section-card">
           <h4>寫回紀錄</h4>
           <p className="content-block">
-            {decisionRecordCount} 筆 decision records / {outcomeRecordCount} 筆 outcome records
+            {decisionRecordCount} 筆決策寫回紀錄 / {outcomeRecordCount} 筆結果寫回紀錄
           </p>
         </div>
         <div className="section-card">
@@ -134,31 +136,35 @@ export function MatterWorldStatePanelBody({
       {caseWorldState || latestCaseWorldDraft ? (
         <div className="detail-list" style={{ marginTop: "18px" }}>
           <div className="detail-item">
-            <h3>目前已確認的 facts</h3>
+            <h3>目前已確認的已知事實</h3>
             {facts.length > 0 ? (
               <ul className="list-content">
                 {facts.slice(0, 5).map((item) => (
-                  <li key={`${item.title}-${item.detail}`}>{item.title}：{item.detail}</li>
+                  <li key={`${item.title}-${item.detail}`}>
+                    {labelForCaseWorldItemTitle(item.title)}：{normalizeCaseWorldDisplayCopy(item.detail)}
+                  </li>
                 ))}
               </ul>
             ) : (
-              <p className="empty-text">目前沒有額外 facts。</p>
+              <p className="empty-text">目前沒有額外已知事實。</p>
             )}
           </div>
           <div className="detail-item">
-            <h3>仍在沿用的 assumptions</h3>
+            <h3>仍在沿用的假設</h3>
             {assumptions.length > 0 ? (
               <ul className="list-content">
                 {assumptions.slice(0, 5).map((item) => (
-                  <li key={`${item.title}-${item.detail}`}>{item.title}：{item.detail}</li>
+                  <li key={`${item.title}-${item.detail}`}>
+                    {labelForCaseWorldItemTitle(item.title)}：{normalizeCaseWorldDisplayCopy(item.detail)}
+                  </li>
                 ))}
               </ul>
             ) : (
-              <p className="empty-text">目前沒有額外 assumptions。</p>
+              <p className="empty-text">目前沒有額外假設。</p>
             )}
           </div>
           <div className="detail-item">
-            <h3>目前 evidence gaps</h3>
+            <h3>目前證據缺口</h3>
             {openEvidenceGaps.length > 0 ? (
               <ul className="list-content">
                 {openEvidenceGaps.map((item) => (
@@ -168,30 +174,31 @@ export function MatterWorldStatePanelBody({
                 ))}
               </ul>
             ) : (
-              <p className="empty-text">目前沒有高優先 evidence gaps。</p>
+              <p className="empty-text">目前沒有高優先證據缺口。</p>
             )}
           </div>
           {caseWorldState?.last_supplement_summary ? (
             <div className="detail-item">
-              <h3>最近 world update</h3>
+              <h3>最近案件世界更新</h3>
               <p className="content-block">
-                這個案件世界最近一次補件先更新了 world state：{caseWorldState.last_supplement_summary}
+                這個案件世界最近一次補件先更新了案件世界狀態：
+                {normalizeCaseWorldDisplayCopy(caseWorldState.last_supplement_summary)}
               </p>
             </div>
           ) : null}
           <div className="detail-item">
-            <h3>最近 decision / outcome</h3>
+            <h3>最近決策 / 結果寫回</h3>
             {recentDecisionRecords.length > 0 || recentOutcomeRecords.length > 0 ? (
               <ul className="list-content">
                 {recentDecisionRecords.map((item) => (
-                  <li key={item.id}>Decision：{item.decision_summary}</li>
+                  <li key={item.id}>決策：{item.decision_summary}</li>
                 ))}
                 {recentOutcomeRecords.map((item) => (
-                  <li key={item.id}>Outcome：{item.summary}</li>
+                  <li key={item.id}>結果：{item.summary}</li>
                 ))}
               </ul>
             ) : (
-              <p className="empty-text">目前還沒有可回看的 writeback records。</p>
+              <p className="empty-text">目前還沒有可回看的寫回紀錄。</p>
             )}
           </div>
           <div className="detail-item">
@@ -206,7 +213,7 @@ export function MatterWorldStatePanelBody({
                 ))}
               </ul>
             ) : (
-              <p className="empty-text">目前還沒有額外的 writeback / approval 稽核事件。</p>
+              <p className="empty-text">目前還沒有額外的寫回 / 核可稽核事件。</p>
             )}
           </div>
           {canonicalizationCandidates.length > 0 ? (
