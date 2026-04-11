@@ -361,7 +361,6 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
   >({});
   const [replaceTargetId, setReplaceTargetId] = useState<string | null>(null);
   const [sessionItemStates, setSessionItemStates] = useState<IntakeSessionItemState[]>([]);
-  const sourceFilesInputRef = useRef<HTMLInputElement | null>(null);
   const fileReplaceInputRef = useRef<HTMLInputElement | null>(null);
   const urlFieldRef = useRef<HTMLTextAreaElement | null>(null);
   const pastedTextFieldRef = useRef<HTMLTextAreaElement | null>(null);
@@ -1075,20 +1074,15 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
 
           <div className="field">
             <label>上傳檔案</label>
-            <button
-              className="button-secondary"
-              type="button"
-              onClick={() => sourceFilesInputRef.current?.click()}
-            >
+            <label className="button-secondary" htmlFor="source-files">
               選擇檔案
-            </button>
+            </label>
             <input
-              ref={sourceFilesInputRef}
               id="source-files"
+              className="visually-hidden-file-input"
               type="file"
               multiple
               accept=".md,.txt,.docx,.xlsx,.csv,.pdf,.jpg,.jpeg,.png,.webp,text/plain,text/markdown,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/jpeg,image/png,image/webp"
-              style={{ display: "none" }}
               onChange={(event) => {
                 setFiles((previous) =>
                   appendSelectedFiles(previous, Array.from(event.target.files ?? [])),
@@ -1104,9 +1098,9 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
             />
             <input
               ref={fileReplaceInputRef}
+              className="visually-hidden-file-input"
               type="file"
               accept=".md,.txt,.docx,.xlsx,.csv,.pdf,.jpg,.jpeg,.png,.webp,text/plain,text/markdown,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/jpeg,image/png,image/webp"
-              style={{ display: "none" }}
               onChange={handleReplaceFileSelection}
             />
             <small>檔案與 URL / 補充文字一起共用同一個 10 份上限；若超過，請先建立案件後再分批補件。</small>

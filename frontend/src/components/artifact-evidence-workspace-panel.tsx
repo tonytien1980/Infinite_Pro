@@ -198,7 +198,6 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
   const [resolvingCanonicalizationKey, setResolvingCanonicalizationKey] = useState<string | null>(null);
   const [canonicalizationMessage, setCanonicalizationMessage] = useState<string | null>(null);
   const [canonicalizationError, setCanonicalizationError] = useState<string | null>(null);
-  const matterFilesInputRef = useRef<HTMLInputElement | null>(null);
   const fileReplaceInputRef = useRef<HTMLInputElement | null>(null);
   const urlFieldRef = useRef<HTMLTextAreaElement | null>(null);
   const pastedTextFieldRef = useRef<HTMLTextAreaElement | null>(null);
@@ -1173,27 +1172,22 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
 
               <div className="field">
                 <label>上傳檔案</label>
-                <button
-                  className="button-secondary"
-                  type="button"
-                  onClick={() => matterFilesInputRef.current?.click()}
-                >
+                <label className="button-secondary" htmlFor="matter-files">
                   選擇檔案
-                </button>
+                </label>
                 <input
-                  ref={matterFilesInputRef}
                   id="matter-files"
+                  className="visually-hidden-file-input"
                   type="file"
                   multiple
                   accept=".md,.txt,.docx,.xlsx,.csv,.pdf,.jpg,.jpeg,.png,.webp,text/plain,text/markdown,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/jpeg,image/png,image/webp"
-                  style={{ display: "none" }}
                   onChange={handleFileChange}
                 />
                 <input
                   ref={fileReplaceInputRef}
+                  className="visually-hidden-file-input"
                   type="file"
                   accept=".md,.txt,.docx,.xlsx,.csv,.pdf,.jpg,.jpeg,.png,.webp,text/plain,text/markdown,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/jpeg,image/png,image/webp"
-                  style={{ display: "none" }}
                   onChange={handleReplaceFileSelection}
                 />
                 <small>支援一次掛多份材料；若同一內容重複上傳，系統會先用內容指紋判斷是否重複。</small>
