@@ -9435,8 +9435,8 @@ def test_task_writeback_approval_marks_pending_records_approved(
     assert aggregate["decision_records"][0]["approval_status"] == "approved"
     assert aggregate["action_plans"][0]["approval_status"] == "approved"
     # This live aggregate still stays conservative after approvals because the runtime
-    # flow has unresolved evidence/readiness work; the public task response does not
-    # expose raw gap rows directly, so we assert the surfaced posture instead.
+    # flow still has unresolved evidence/readiness work.
+    assert any(item["status"] != "resolved" for item in aggregate["evidence_gaps"])
     assert aggregate["writeback_approval"]["posture"] == "minimal"
     assert aggregate["writeback_approval"]["boundary_note"] == "這個 writeback approval read model 只描述狀態，正式核可仍需 Host / 顧問操作。"
 
