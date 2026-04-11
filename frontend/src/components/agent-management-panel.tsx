@@ -102,7 +102,7 @@ function getAgentQualityChecks(agent: AgentCatalogEntry): AgentQualityCheck[] {
     { label: "輸出契約", ready: agent.output_contract.length > 0 },
     { label: "handoff", ready: agent.handoff_targets.length > 0 },
     { label: "評估焦點", ready: agent.evaluation_focus.length > 0 },
-    { label: "trace 要求", ready: agent.trace_requirements.length > 0 },
+    { label: "追溯要求", ready: agent.trace_requirements.length > 0 },
   ];
 }
 
@@ -229,13 +229,13 @@ export function AgentManagementPanel() {
   const editingAgent =
     editingAgentId ? managedAgents.find((agent) => agent.agent_id === editingAgentId) ?? null : null;
   const agentActionTitle =
-    editingAgentId ? "現在正處於代理編輯模式" : "先看 agent contract 是否真的完整";
+    editingAgentId ? "現在正處於代理編輯模式" : "先看代理定義是否真的完整";
   const agentActionSummary = editingAgentId
-    ? "這一輪會用最少必要資訊重新生成 agent contract，而不是要求你逐欄微調技術規格。"
-    : "先確認現有代理是否已經具備足夠完整的 contract，再決定是否新增。這頁的重點不是 catalog 數量，而是 agent spec 是否扎實。";
+    ? "這一輪會用最少必要資訊重新生成代理定義，而不是要求你逐欄微調技術規格。"
+    : "先確認現有代理是否已經具備足夠完整的定義，再決定是否新增。這頁的重點不是代理數量，而是定義是否扎實。";
   const agentActionChecklist = [
     `目前共有 ${managedAgents.length} 個代理，其中 ${activeCount} 個啟用中，${hostCount} 個主控代理。`,
-    `其中 ${completeSpecCount} 個代理已補齊核心 contract。`,
+    `其中 ${completeSpecCount} 個代理已補齊核心定義。`,
     editingAgent
       ? `正在編輯「${getAgentCatalogDisplay(editingAgent).primaryName}」。`
       : "若只是查看現況，先搜尋與篩選縮小列表，不要直接進入新增。",
@@ -310,7 +310,7 @@ export function AgentManagementPanel() {
       setGuidedResult(result);
       await saveAgentPayload(result.draft);
       setSaveMessage(
-        `已用目前系統模型與 ${result.sources.length} 筆外部來源補完「${result.draft.agent_name}」的正式 agent contract，並寫入管理狀態。`,
+        `已用目前系統模型與 ${result.sources.length} 筆外部來源補完「${result.draft.agent_name}」的正式代理定義，並寫入管理狀態。`,
       );
     } catch (saveError) {
       setSaveMessage(
@@ -407,7 +407,7 @@ export function AgentManagementPanel() {
           <div className="section-card hero-metric-card">
             <h3>核心定義完整</h3>
             <p className="workbench-metric">{completeSpecCount}</p>
-            <p className="muted-text">已補齊責任、邊界、交接與 trace 要求的代理。</p>
+            <p className="muted-text">已補齊責任、邊界、交接與追溯要求的代理。</p>
           </div>
         </div>
       </section>
@@ -430,7 +430,7 @@ export function AgentManagementPanel() {
               <div className="panel-header">
                 <div>
                   <h2 className="panel-title">代理列表</h2>
-                  <p className="panel-copy">先判斷 agent contract 是否完整，再決定要新增、編輯或停用哪一個。</p>
+                  <p className="panel-copy">先判斷代理定義是否完整，再決定要新增、編輯或停用哪一個。</p>
                 </div>
                 <button className="button-primary" type="button" onClick={startCreate}>
                   新增代理
@@ -515,10 +515,10 @@ export function AgentManagementPanel() {
                         </p>
                         <p className="muted-text">
                           核心定義：{readyCount}/{qualityChecks.length} 已補齊
-                          {missingChecks ? `；尚待補強：${missingChecks}` : "；目前已可作為完整 agent contract 使用"}
+                          {missingChecks ? `；尚待補強：${missingChecks}` : "；目前已可作為完整代理定義使用"}
                         </p>
                         <details className="inline-disclosure">
-                          <summary className="inline-disclosure-summary">查看 agent contract</summary>
+                          <summary className="inline-disclosure-summary">查看代理定義</summary>
                           <div className="detail-list" style={{ marginTop: "12px" }}>
                             <AgentListSection
                               title="主要責任"
@@ -644,7 +644,7 @@ export function AgentManagementPanel() {
                 <div>
                   <h2 className="panel-title">{editingAgentId ? "編輯代理" : "新增代理"}</h2>
                   <p className="panel-copy">
-                    這裡只收最少必要資訊。你不用先決定 capability、pack 綁定或技術欄位，系統會用目前啟用的 AI 模型搭配外部搜尋補成正式 agent contract，再交給 Host 之後判斷要不要拉進案件流程。
+                    這裡只收最少必要資訊。你不用先決定能力面、模組包綁定或技術欄位，系統會用目前啟用的 AI 模型搭配外部搜尋補成正式代理定義，再交給主控代理之後判斷要不要拉進案件流程。
                   </p>
                   {editingAgent ? (
                     <p className="muted-text">
@@ -665,7 +665,7 @@ export function AgentManagementPanel() {
                   <h4>系統會自己推導</h4>
                   <ul className="list-content">
                     <li>這個代理比較像推理代理還是專家代理</li>
-                    <li>適用能力面、責任邊界、輸出契約與 trace 要求</li>
+                    <li>適用能力面、責任邊界、輸出契約與追溯要求</li>
                     <li>必要時才補 pack hints；若它應該是通用型代理，就不會先綁死在特定 pack</li>
                   </ul>
                 </div>
@@ -727,7 +727,7 @@ export function AgentManagementPanel() {
                     disabled={guidedSaving}
                     onClick={handleGuidedSave}
                   >
-                    {guidedSaving ? "正在用 AI 補完代理..." : "建立代理，並讓系統自動補完正式 contract"}
+                    {guidedSaving ? "正在用 AI 補完代理..." : "建立代理，並讓系統自動補完正式定義"}
                   </button>
                 </div>
                 {saveMessage ? (

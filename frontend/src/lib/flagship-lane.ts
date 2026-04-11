@@ -40,21 +40,25 @@ export const CONSULTANT_START_OPTIONS: Array<{
   value: ConsultantStartMode;
   label: string;
   description: string;
+  nextStepHint: string;
 }> = [
   {
     value: "diagnostic_start",
     label: "先快速看清問題與下一步",
     description: "適合少資訊起手，先形成第一輪診斷、主要缺口與建議下一步。",
+    nextStepHint: "建立後會先回案件頁，看清主線、缺口與下一步。",
   },
   {
     value: "material_review_start",
     label: "先審閱手上已有材料",
     description: "適合你已經有文件、合約、提案或草稿，先圍繞材料做審閱、評估或重整。",
+    nextStepHint: "建立後會先把材料掛回同一個案件，再開始審閱與重整。",
   },
   {
     value: "decision_convergence_start",
     label: "先比較方案並收斂決策",
     description: "適合材料與問題已相對完整，要直接收斂判斷、比較方案與整理建議。",
+    nextStepHint: "建立後會先整理可比較的方案與依據，再收斂建議。",
   },
 ];
 

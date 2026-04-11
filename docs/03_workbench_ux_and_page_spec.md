@@ -518,7 +518,7 @@ Infinite Pro 正式採：
 
 角色：
 
-- extension catalog 與 task-level overrides 的正式管理面
+- 代理定義、模組包定義與任務層覆寫的正式管理面
 
 ### `歷史紀錄`
 
@@ -530,7 +530,7 @@ Infinite Pro 正式採：
 
 角色：
 
-- workbench preferences 與 system-level provider settings 的正式管理面
+- 工作台偏好、事務所模型來源與個人模型設定的正式管理面
 
 ---
 
@@ -616,11 +616,11 @@ Primary action：
 
 首屏必顯：
 
-- canonical intake pipeline 說明
-- inferred intake pattern
-- unified material area
-- item-level preview / remove / warning
-- item-level status / diagnostics / remediation
+- 正式進件主線說明
+- 目前判讀到的起手方式
+- 統一材料區
+- 材料逐項預覽 / 移除 / 提示
+- 材料逐項狀態 / 診斷 / 補救建議
 - continuity mode / writeback depth 進階設定
 
 Primary action：
@@ -630,8 +630,10 @@ Primary action：
 第一屏也應維持：
 
 - 先用顧問工作語言決定這次怎麼開始
-- internal workflow labels 留在 disclosure / advanced settings
+- 首屏卡片不應直接暴露 internal workflow labels
+- internal workflow labels 只留在 disclosure / advanced settings，且應清楚標示這是系統內部執行方式
 - 不讓使用者在第一步就被迫理解 specialist / multi-agent 等系統實作詞
+- `少資訊起手`、`單材料起手`、`多來源案件` 等顧問語言應優先於 `sparse inquiry`、`multi-source case` 等內部英文名
 
 ### 7.3 `/matters/[matterId]`
 
@@ -1646,6 +1648,16 @@ Primary action：
 - UI 可見語言與內容輸出語言不得各自漂移
 - 高可見度的 workbench 標題、導覽標籤、hero labels 與治理 / 設定 / demo surface 標題，預設也應使用繁體中文
 - 若某些內部概念仍暫時保留英文實作名，第一層可見 UI 也應先轉成顧問可讀的繁體中文，不應直接把內部英文詞丟給使用者
+- `系統設定`、`代理管理`、`模組包管理`、`成員管理` 等管理頁第一層說明，不應再直接使用 `firm-level provider`、`agent contract`、`pack contract`、`owner`、`consultant`、`demo account` 這類混語
+- 正式偏好用語應優先採：
+  - `事務所模型來源`
+  - `個人模型設定`
+  - `API 金鑰`
+  - `代理定義`
+  - `模組包定義`
+  - `負責人`
+  - `顧問`
+  - `示範帳號`
 
 主要正式用語包括：
 

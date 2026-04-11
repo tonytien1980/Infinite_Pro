@@ -23,6 +23,7 @@ import {
   labelForProviderRuntimeSupport,
   labelForProviderSource,
   labelForProviderValidationStatus,
+  normalizeProviderValidationMessage,
   resolveEffectiveDraftModelId,
   type ProviderDraft,
 } from "@/lib/provider-settings";
@@ -155,8 +156,9 @@ export function SettingsFirmProviderPanel() {
   const effectiveModelId = resolveEffectiveDraftModelId(providerDraft, providerSnapshot?.presets || []);
   const latestValidationStatus =
     providerValidation?.validationStatus || currentProvider?.lastValidationStatus || "not_validated";
-  const latestValidationMessage =
-    providerValidation?.message || currentProvider?.lastValidationMessage || "目前尚未驗證正式設定。";
+  const latestValidationMessage = normalizeProviderValidationMessage(
+    providerValidation?.message || currentProvider?.lastValidationMessage || "目前尚未驗證正式設定。",
+  );
 
   function getProviderPreset(providerId: ProviderId) {
     return providerSnapshot?.presets.find((item) => item.providerId === providerId) ?? null;
@@ -349,9 +351,9 @@ export function SettingsFirmProviderPanel() {
       const snapshot = await updateDemoWorkspacePolicy(demoPolicyDraft);
       setDemoPolicySnapshot(snapshot);
       setDemoPolicyDraft(buildDemoPolicyDraft(snapshot));
-      setDemoPolicyFeedback("demo workspace policy 已更新。");
+      setDemoPolicyFeedback("示範工作台規則已更新。");
     } catch (error) {
-      setDemoPolicyError(normalizeError(error, "demo workspace policy 保存失敗。"));
+      setDemoPolicyError(normalizeError(error, "示範工作台規則保存失敗。"));
     } finally {
       setDemoPolicySaving(false);
     }
@@ -363,7 +365,7 @@ export function SettingsFirmProviderPanel() {
         <div>
           <h2 className="panel-title">{SURFACE_LABELS.firmSettings}</h2>
           <p className="panel-copy">
-            這一區只給 owner 管理事務所層的預設模型來源與可用模型來源清單。
+            這一區只給負責人管理事務所層的預設模型來源與可用模型來源清單。
           </p>
         </div>
       </div>
@@ -408,7 +410,7 @@ export function SettingsFirmProviderPanel() {
             <div className="section-card">
               <p className="muted-text">示範工作台版本</p>
               <strong>{demoPolicySnapshot?.seedVersion || "v1"}</strong>
-              <p className="muted-text">slug：{demoPolicySnapshot?.workspaceSlug || "demo"}</p>
+              <p className="muted-text">工作台代號：{demoPolicySnapshot?.workspaceSlug || "demo"}</p>
             </div>
           </div>
 
@@ -430,7 +432,7 @@ export function SettingsFirmProviderPanel() {
               onClick={() => void handleProviderResetToEnv()}
               disabled={providerResetting || currentProvider?.source !== "runtime_config"}
             >
-              {providerResetting ? "回復中..." : "回復 env 預設值"}
+              {providerResetting ? "回復中..." : "回復環境預設值"}
             </button>
           </div>
 
@@ -477,7 +479,7 @@ export function SettingsFirmProviderPanel() {
                       </select>
                     </div>
                     <div className="field">
-                      <label htmlFor="firm-provider-api-key">API key</label>
+                      <label htmlFor="firm-provider-api-key">API 金鑰</label>
                       <input
                         id="firm-provider-api-key"
                         type="password"
@@ -485,8 +487,8 @@ export function SettingsFirmProviderPanel() {
                         onChange={(event) => updateProviderDraft("apiKey", event.target.value)}
                         placeholder={
                           canReuseProviderKey(currentProvider, providerDraft.providerId)
-                            ? "留空即可沿用目前 key"
-                            : "輸入 firm fallback API key"
+                            ? "留空即可沿用目前金鑰"
+                            : "輸入事務所備援 API 金鑰"
                         }
                       />
                     </div>
@@ -584,7 +586,7 @@ export function SettingsFirmProviderPanel() {
                   <div className="panel-header">
                     <div>
                       <h3 className="panel-title">{SURFACE_LABELS.providerAllowlist}</h3>
-                      <p className="panel-copy">定義 consultant 可以選哪些 provider / model。</p>
+                      <p className="panel-copy">定義顧問可以選哪些模型來源與模型。</p>
                     </div>
                   </div>
 
@@ -643,7 +645,7 @@ export function SettingsFirmProviderPanel() {
                         <label className="toggle-row" htmlFor={`allow-custom-${row.key}`}>
                           <div>
                             <strong>允許自訂模型</strong>
-                            <p className="muted-text">若關閉，consultant 只能落在明確列出的 model id。</p>
+                            <p className="muted-text">若關閉，顧問只能選用明確列出的模型識別。</p>
                           </div>
                           <input
                             id={`allow-custom-${row.key}`}
@@ -666,7 +668,7 @@ export function SettingsFirmProviderPanel() {
                       新增允許規則
                     </button>
                     <button className="button-primary" type="button" onClick={() => void handleSaveAllowlist()} disabled={allowlistSaving}>
-                      {allowlistSaving ? "儲存中..." : "儲存 allowlist"}
+                      {allowlistSaving ? "儲存中..." : `儲存${SURFACE_LABELS.providerAllowlist}`}
                     </button>
                   </div>
                 </section>
@@ -674,8 +676,8 @@ export function SettingsFirmProviderPanel() {
                 <section className="panel">
                   <div className="panel-header">
                     <div>
-                      <h3 className="panel-title">demo workspace policy</h3>
-                      <p className="panel-copy">控制 demo workspace 是否開放，以及可啟用 demo 帳號數量。</p>
+                      <h3 className="panel-title">示範工作台規則</h3>
+                      <p className="panel-copy">控制示範工作台是否開放，以及可啟用的示範帳號數量。</p>
                     </div>
                   </div>
 
@@ -700,7 +702,7 @@ export function SettingsFirmProviderPanel() {
                       </select>
                     </div>
                     <div className="field">
-                      <label htmlFor="demo-workspace-max-members">可啟用 demo 帳號數量</label>
+                      <label htmlFor="demo-workspace-max-members">可啟用示範帳號數量</label>
                       <input
                         id="demo-workspace-max-members"
                         type="number"
@@ -720,9 +722,9 @@ export function SettingsFirmProviderPanel() {
                   <div className="setting-note-card" style={{ marginTop: "16px" }}>
                     <h3>目前展示資料</h3>
                     <p className="content-block">
-                      workspace slug：{demoPolicySnapshot?.workspaceSlug || "demo"}
+                      工作台代號：{demoPolicySnapshot?.workspaceSlug || "demo"}
                     </p>
-                    <p className="muted-text">seed version：{demoPolicySnapshot?.seedVersion || "v1"}</p>
+                    <p className="muted-text">展示資料版本：{demoPolicySnapshot?.seedVersion || "v1"}</p>
                     <p className="muted-text">{summarizeDemoWorkspaceCapacity(demoPolicySnapshot)}</p>
                   </div>
 

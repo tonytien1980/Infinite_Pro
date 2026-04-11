@@ -15,6 +15,7 @@ import {
   labelForProviderRuntimeSupport,
   labelForProviderSource,
   labelForProviderValidationStatus,
+  normalizeProviderValidationMessage,
   resolveEffectiveDraftModelId,
   summarizeAllowlistEntry,
   type ProviderDraft,
@@ -102,8 +103,9 @@ export function SettingsPersonalProviderPanel({
   const current = snapshot?.current ?? null;
   const latestValidationStatus =
     validation?.validationStatus || current?.lastValidationStatus || "not_validated";
-  const latestValidationMessage =
-    validation?.message || current?.lastValidationMessage || "目前尚未驗證個人模型設定。";
+  const latestValidationMessage = normalizeProviderValidationMessage(
+    validation?.message || current?.lastValidationMessage || "目前尚未驗證個人模型設定。",
+  );
   const effectiveModelId = resolveEffectiveDraftModelId(draft, snapshot?.presets || []);
 
   function getProviderPreset(providerId: ProviderId) {
@@ -199,7 +201,7 @@ export function SettingsPersonalProviderPanel({
           <h2 className="panel-title">{SURFACE_LABELS.personalProviderSettings}</h2>
           <p className="panel-copy">
             {membershipRole === "owner"
-              ? "負責人也可以用自己的個人 key 工作；若未設定，才回退到事務所預設模型來源。"
+              ? "負責人也可以用自己的個人模型金鑰工作；若未設定，才回退到事務所預設模型來源。"
               : "顧問需要先完成自己的個人模型設定，才能正式執行分析。"}
           </p>
         </div>
@@ -226,14 +228,14 @@ export function SettingsPersonalProviderPanel({
               </p>
             </div>
             <div className="section-card">
-              <p className="muted-text">個人 API key</p>
+              <p className="muted-text">個人 API 金鑰</p>
               <strong>
                 {current?.apiKeyConfigured
                   ? `已設定${current.apiKeyMasked ? `（${current.apiKeyMasked}）` : ""}`
                   : "未設定"}
               </strong>
               <p className="muted-text">
-                顧問沒有個人 key 時，系統會直接停止這次分析，不會偷偷改走其他來源。
+                顧問沒有個人模型金鑰時，系統會直接停止這次分析，不會偷偷改走其他來源。
               </p>
             </div>
             <div className="section-card">
@@ -264,7 +266,7 @@ export function SettingsPersonalProviderPanel({
                   <div className="panel-header">
                     <div>
                       <h3 className="panel-title">編輯個人模型設定</h3>
-                      <p className="panel-copy">這裡只存你自己的 provider / model / key，不會改到 firm default。</p>
+                      <p className="panel-copy">這裡只存你自己的模型來源、模型與金鑰，不會改到事務所預設值。</p>
                     </div>
                   </div>
 
@@ -298,7 +300,7 @@ export function SettingsPersonalProviderPanel({
                       </select>
                     </div>
                     <div className="field">
-                      <label htmlFor="personal-provider-api-key">API key</label>
+                      <label htmlFor="personal-provider-api-key">API 金鑰</label>
                       <input
                         id="personal-provider-api-key"
                         type="password"
@@ -306,8 +308,8 @@ export function SettingsPersonalProviderPanel({
                         onChange={(event) => updateDraft("apiKey", event.target.value)}
                         placeholder={
                           canReuseProviderKey(current, draft.providerId)
-                            ? "留空即可沿用目前 key"
-                            : "輸入你自己的 API key"
+                            ? "留空即可沿用目前金鑰"
+                            : "輸入你自己的 API 金鑰"
                         }
                       />
                     </div>
@@ -396,7 +398,7 @@ export function SettingsPersonalProviderPanel({
                   <div className="panel-header">
                     <div>
                       <h3 className="panel-title">目前 allowlist 範圍</h3>
-                      <p className="panel-copy">consultant 只能落在 owner 已允許的 provider / model 範圍內。</p>
+                      <p className="panel-copy">顧問只能落在負責人已允許的模型來源 / 模型範圍內。</p>
                     </div>
                   </div>
                   {allowlist?.entries.length ? (
@@ -414,7 +416,7 @@ export function SettingsPersonalProviderPanel({
                     <div className="setting-note-card">
                       <h3>目前還沒有 allowlist 規則</h3>
                       <p className="content-block">
-                        若你現在是 consultant，這代表你先不能保存可執行的個人模型設定；請 owner 先補上 allowlist。
+                        若你現在是顧問，這代表你暫時不能保存可執行的個人模型設定；請先請負責人補上可用清單。
                       </p>
                     </div>
                   )}

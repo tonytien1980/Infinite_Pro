@@ -6,6 +6,7 @@ import { getCurrentSession } from "@/lib/api";
 import { getSettingsProviderVisibility } from "@/lib/provider-settings";
 import { normalizeOperatorDisplayName } from "@/lib/operator-identity";
 import { buildWorkbenchPreferenceFeedback, persistWorkbenchPreferences } from "@/lib/workbench-persistence";
+import { labelForMembershipRole } from "@/lib/ui-labels";
 import {
   DEFAULT_OPERATOR_IDENTITY_SETTINGS,
   DEFAULT_WORKBENCH_SETTINGS,
@@ -26,7 +27,7 @@ const THEME_OPTIONS: Array<{
 }> = [
   { value: "light", label: "淺色", description: "以高可讀性與穩定結構作為預設工作台外觀。" },
   { value: "dark", label: "深色", description: "保留專業工作台感，但用較低眩光的深色結構承接長時間使用。" },
-  { value: "system", label: "跟隨系統", description: "依作業系統主題自動切換 light / dark mode。" },
+  { value: "system", label: "跟隨系統", description: "依作業系統主題自動切換淺色 / 深色模式。" },
 ];
 
 export function SettingsPagePanel() {
@@ -116,18 +117,18 @@ export function SettingsPagePanel() {
   const providerVisibility = role ? getSettingsProviderVisibility(role) : { showFirmSettings: false, showPersonalSettings: false };
   const settingsActionTitle =
     role === "owner"
-      ? "先分清楚：你是在調 firm-level provider，還是在調自己的工作偏好"
+      ? "先分清楚：你是在調事務所模型來源，還是在調自己的工作偏好"
       : "先分清楚：你是在調自己的模型設定，還是在調工作台偏好";
   const settingsActionSummary =
     role === "owner"
-      ? `owner 需要同時管理${SURFACE_LABELS.firmSettings}與自己的${SURFACE_LABELS.personalProviderSettings}；這兩者的責任不能混在一起。`
-      : `consultant 主要要完成自己的${SURFACE_LABELS.personalProviderSettings}，${SURFACE_LABELS.firmSettings}則只讀不改。`;
+      ? `負責人需要同時管理${SURFACE_LABELS.firmSettings}與自己的${SURFACE_LABELS.personalProviderSettings}；這兩者的責任不能混在一起。`
+      : `顧問主要要完成自己的${SURFACE_LABELS.personalProviderSettings}，${SURFACE_LABELS.firmSettings}則只讀不改。`;
   const settingsActionChecklist = [
     providerVisibility.showFirmSettings
-      ? `${SURFACE_LABELS.firmSettings}只影響事務所備援與可用模型來源清單，不代表每位顧問都共用同一把 key。`
+      ? `${SURFACE_LABELS.firmSettings}只影響事務所備援與可用模型來源清單，不代表每位顧問都共用同一把模型金鑰。`
       : `你這一頁真正要先完成的是自己的${SURFACE_LABELS.personalProviderSettings}。`,
-    `${SURFACE_LABELS.personalProviderSettings}決定你是否能正式執行分析；consultant 沒有自己的 key 時，run path 會 fail-closed。`,
-    "介面偏好與本機顧問署名仍是獨立層，不要和 provider 設定混成同一個成功心智。",
+    `${SURFACE_LABELS.personalProviderSettings}決定你是否能正式執行分析；顧問沒有自己的模型金鑰時，這次分析會直接停止，不會偷偷改走其他來源。`,
+    "介面偏好與本機顧問署名仍是獨立層，不要和模型來源設定混成同一個成功心智。",
   ];
 
   return (
@@ -138,7 +139,7 @@ export function SettingsPagePanel() {
             <span className="eyebrow">系統設定</span>
             <h1 className="page-title">系統設定</h1>
             <p className="page-subtitle">
-              Phase 5 之後，這一頁不再只是一個單人版設定區，而是正式拆成{SURFACE_LABELS.firmSettings}、{SURFACE_LABELS.personalProviderSettings}與工作台偏好。
+              第五階段之後，這一頁不再只是一個單人版設定區，而是正式拆成{SURFACE_LABELS.firmSettings}、{SURFACE_LABELS.personalProviderSettings}與工作台偏好。
             </p>
             <div className="hero-actions">
               {providerVisibility.showFirmSettings ? (
@@ -159,7 +160,7 @@ export function SettingsPagePanel() {
           <div className="hero-aside">
             <div className="hero-focus-card">
               <p className="hero-focus-label">{settingsActionTitle}</p>
-              <h3 className="hero-focus-title">先分清楚是 firm 層，還是個人層</h3>
+              <h3 className="hero-focus-title">先分清楚是事務所層，還是個人層</h3>
               <p className="hero-focus-copy">{settingsActionSummary}</p>
             </div>
             <div className="hero-focus-card hero-focus-card-warm">
@@ -195,9 +196,9 @@ export function SettingsPagePanel() {
               <p className="content-block">
                 {sessionResolved
                   ? role === "owner"
-                  ? `你目前是 owner，因此同時看得到${SURFACE_LABELS.firmSettings}與${SURFACE_LABELS.personalProviderSettings}。`
+                  ? `你目前是${labelForMembershipRole(role)}，因此同時看得到${SURFACE_LABELS.firmSettings}與${SURFACE_LABELS.personalProviderSettings}。`
                   : role === "consultant"
-                    ? `你目前是 consultant，因此只能修改自己的${SURFACE_LABELS.personalProviderSettings}。`
+                    ? `你目前是${labelForMembershipRole(role)}，因此只能修改自己的${SURFACE_LABELS.personalProviderSettings}。`
                     : "目前還在確認登入身份。"
                 : "正在確認目前身份..."}
               </p>
@@ -234,7 +235,7 @@ export function SettingsPagePanel() {
                   }
                 >
                   <option value="zh-Hant">繁體中文</option>
-                  <option value="en">English（測試中）</option>
+                  <option value="en">英文（測試中）</option>
                 </select>
                 <small>目前正式頁面仍以繁體中文為主，英文選項先保存你的語言偏好。</small>
               </div>
@@ -371,7 +372,7 @@ export function SettingsPagePanel() {
             <div className="panel-header">
               <div>
                 <h2 className="panel-title">本機顧問署名</h2>
-                <p className="panel-copy">這個署名只保存在目前瀏覽器；之後在採納回饋與 precedent 治理時，系統會寫回是由誰做了這次判斷。</p>
+                <p className="panel-copy">這個署名只保存在目前瀏覽器；之後在採納回饋與先例治理時，系統會寫回是由誰做了這次判斷。</p>
               </div>
             </div>
 
@@ -385,13 +386,13 @@ export function SettingsPagePanel() {
                   placeholder="例如：王顧問"
                   maxLength={120}
                 />
-                <small>先用輕量署名支援 shared intelligence attribution，不等於正式帳號或權限系統。</small>
+                <small>先用輕量署名支援共享判斷的歸屬記錄，不等於正式帳號或權限系統。</small>
               </div>
 
               <div className="setting-note-card">
                 <h3>這一輪的邊界</h3>
                 <p className="content-block">
-                  本機顧問署名仍只處理 attribution；正式身份、{SURFACE_LABELS.firmSettings}、{SURFACE_LABELS.personalProviderSettings}已分流到 phase 5 的雲端帳號層。
+                  本機顧問署名仍只處理歸屬記錄；正式身份、{SURFACE_LABELS.firmSettings}、{SURFACE_LABELS.personalProviderSettings}已分流到第五階段建立的雲端帳號層。
                 </p>
               </div>
             </div>
@@ -403,7 +404,7 @@ export function SettingsPagePanel() {
             <div className="panel-header">
               <div>
                 <h2 className="panel-title">統一進件入口</h2>
-                <p className="panel-copy">`/new` 現在只保留一個可見 intake surface，系統會依主問題與材料組成自動判讀 sparse inquiry、單材料起手或 multi-source case。</p>
+                <p className="panel-copy">`/new` 現在只保留一個可見進件入口，系統會依主問題與材料組成自動判讀少資訊起手、單材料起手或多來源案件。</p>
               </div>
             </div>
 
@@ -411,21 +412,21 @@ export function SettingsPagePanel() {
               <div className="setting-note-card">
                 <h3>系統判讀規則</h3>
                 <p className="content-block">
-                  只有主問題時會以 sparse inquiry 起手；加入 1 份材料時會變成單材料起手；加入 2 到 10 份混合材料時會變成 multi-source case。
+                  只有主問題時會以少資訊起手；加入 1 份材料時會變成單材料起手；加入 2 到 10 份混合材料時會變成多來源案件。
                 </p>
               </div>
 
               <div className="setting-note-card">
                 <h3>材料區邊界</h3>
                 <p className="content-block">
-                  新案件頁與後續補件都把檔案、URL、補充文字視為 source material inputs。單次最多 10 份，但同一案件可分批補件。
+                  新案件頁與後續補件都把檔案、URL、補充文字視為來源材料。單次最多 10 份，但同一案件可分批補件。
                 </p>
               </div>
 
               <div className="setting-note-card">
                 <h3>保存方式</h3>
                 <p className="content-block">
-                  workbench preferences 與雲端身份 / provider 設定現在已分成不同層；一邊是個人工作習慣，一邊是可執行分析的正式運行設定。
+                  工作台偏好與雲端身份 / 模型來源設定現在已分成不同層；一邊是個人工作習慣，一邊是可執行分析的正式運行設定。
                 </p>
               </div>
             </div>

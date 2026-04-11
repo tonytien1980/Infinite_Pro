@@ -26,7 +26,7 @@ export function DemoPagePanel() {
         }
       } catch (loadError) {
         if (!cancelled) {
-          setError(loadError instanceof Error ? loadError.message : "目前無法載入 demo workspace。");
+          setError(loadError instanceof Error ? loadError.message : "目前無法載入示範工作台。");
         }
       }
     })();

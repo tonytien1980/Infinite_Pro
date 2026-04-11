@@ -173,7 +173,7 @@ test("preview items expose clearer diagnostic category and usable scope", () => 
   const text = items.find((item) => item.kind === "text");
 
   assert.equal(png?.diagnosticCategory, "reference_only");
-  assert.equal(png?.usableScopeLabel, "僅可 reference-level 保留");
+  assert.equal(png?.usableScopeLabel, "僅可參照保留");
   assert.match(png?.impactDetail ?? "", /checkpoint/i);
 
   assert.equal(pdf?.diagnosticCategory, "parse_pending");
@@ -210,7 +210,7 @@ test("runtime handling exposes diagnostic category, retryability explanation, an
     context: { lane: "follow_up", updateGoal: "補強 latest checkpoint" },
   });
   assert.equal(limited.diagnosticCategory, "reference_only");
-  assert.equal(limited.usableScopeLabel, "僅可 reference-level 保留");
+  assert.equal(limited.usableScopeLabel, "僅可參照保留");
   assert.equal(limited.retryabilityLabel, "重試通常沒有幫助");
   assert.match(limited.retryabilityDetail, /不是暫時性失敗/);
 

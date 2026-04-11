@@ -6,21 +6,21 @@ import type {
 
 export function buildDemoEntryCopy(snapshot: DemoWorkspaceSnapshot | null) {
   if (!snapshot) {
-    return "這裡是固定展示資料的唯讀 demo workspace。";
+    return "這裡是固定展示資料的唯讀示範工作台。";
   }
   return snapshot.entryMessage;
 }
 
 export function summarizeDemoShowcaseHighlights(highlights: string[]) {
   if (highlights.length === 0) {
-    return "這裡會展示 Infinite Pro 的典型案件、交付物與 shared intelligence 讀法。";
+    return "這裡會展示 Infinite Pro 的典型案件、交付物與共享判斷讀法。";
   }
   return `你可以先看 ${highlights.join("、")}。`;
 }
 
 export function buildFormalWorkspaceExplainer(snapshot: DemoWorkspaceSnapshot | null) {
   if (!snapshot?.formalWorkspaceExplainer) {
-    return "正式版 workspace 會讓 consultant 進入自己的辦案路徑；demo 則只展示產品如何工作，不提供操作權限。";
+    return "正式版工作台會讓顧問進入自己的辦案路徑；示範工作台只展示產品如何工作，不提供操作權限。";
   }
   return snapshot.formalWorkspaceExplainer;
 }
@@ -42,10 +42,10 @@ export function labelForDemoWorkspacePolicyStatus(status: "active" | "inactive")
 
 export function summarizeDemoWorkspaceCapacity(policy: DemoWorkspacePolicySnapshot | null) {
   if (!policy) {
-    return "尚未載入 demo workspace policy。";
+    return "尚未載入示範工作台規則。";
   }
   if (policy.maxActiveDemoMembers <= 0) {
-    return "目前不開放啟用 demo 帳號。";
+    return "目前不開放啟用示範帳號。";
   }
-  return `最多可啟用 ${policy.maxActiveDemoMembers} 個 demo 帳號。`;
+  return `最多可啟用 ${policy.maxActiveDemoMembers} 個示範帳號。`;
 }

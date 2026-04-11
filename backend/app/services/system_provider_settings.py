@@ -298,7 +298,7 @@ def resolve_effective_provider_config_for_member(
     firm_id: str,
 ) -> ResolvedProviderConfig:
     if role == "demo":
-        raise ModelProviderAccessError("demo 帳號不可執行分析。")
+        raise ModelProviderAccessError("示範帳號不可執行分析。")
 
     credential = db.scalar(
         select(models.PersonalProviderCredential).where(
@@ -368,11 +368,11 @@ def resolve_secret_for_validation_payload(
     if current_provider_id and current_provider_id != payload.provider_id:
         raise HTTPException(
             status_code=400,
-            detail="更換供應商時不可沿用不同供應商的既有 key，請重新輸入對應 API key。",
+            detail="更換供應商時不可沿用不同供應商的既有金鑰，請重新輸入對應 API 金鑰。",
         )
 
     if not current_secret:
-        raise HTTPException(status_code=400, detail="目前沒有可沿用的 API key。")
+        raise HTTPException(status_code=400, detail="目前沒有可沿用的 API 金鑰。")
 
     return current_secret
 
@@ -383,13 +383,13 @@ def _classify_http_error(
 ) -> tuple[schemas.ProviderValidationStatus, str]:
     normalized = body.lower()
     if status_code in {401, 403}:
-        return "invalid_api_key", "API key 無效，或目前沒有權限存取指定模型。"
+        return "invalid_api_key", "API 金鑰無效，或目前沒有權限存取指定模型。"
     if status_code == 408:
         return "timeout", "請求逾時，供應商在限定時間內沒有回應。"
     if status_code in {400, 404, 422}:
         if "model" in normalized or "not found" in normalized or "unsupported" in normalized:
-            return "model_unavailable", "目前模型不可用，請改用推薦模型或自訂其他 model id。"
-        return "base_url_unreachable", "Base URL 可達性異常，請確認 endpoint 是否正確。"
+            return "model_unavailable", "目前模型不可用，請改用推薦模型或自訂其他模型識別。"
+        return "base_url_unreachable", "基礎網址可達性異常，請確認端點是否正確。"
     return "unknown_error", f"供應商回傳 HTTP {status_code}。"
 
 
@@ -436,7 +436,7 @@ def _validate_openai_compatible_provider(
         choices = raw_payload.get("choices")
         if not isinstance(choices, list):
             return "unknown_error", "供應商回傳格式不符合預期。", json.dumps(raw_payload)[:500]
-        return "success", "測試連線成功，key、Base URL 與 model 目前可用。", ""
+        return "success", "測試連線成功，金鑰、基礎網址與模型目前可用。", ""
     except error.HTTPError as exc:
         try:
             body = exc.read().decode("utf-8")
@@ -448,7 +448,7 @@ def _validate_openai_compatible_provider(
         reason = getattr(exc, "reason", exc)
         if isinstance(reason, socket.timeout):
             return "timeout", "請求逾時，供應商在限定時間內沒有回應。", str(reason)
-        return "base_url_unreachable", "Base URL 無法連線，請確認 endpoint 與網路狀態。", str(reason)
+        return "base_url_unreachable", "基礎網址無法連線，請確認端點與網路狀態。", str(reason)
     except TimeoutError as exc:
         return "timeout", "請求逾時，供應商在限定時間內沒有回應。", str(exc)
     except json.JSONDecodeError as exc:
@@ -486,7 +486,7 @@ def _validate_anthropic_native_provider(
         content = raw_payload.get("content")
         if not isinstance(content, list):
             return "unknown_error", "Anthropic 回傳格式不符合預期。", json.dumps(raw_payload)[:500]
-        return "success", "測試連線成功，key、Base URL 與 model 目前可用。", ""
+        return "success", "測試連線成功，金鑰、基礎網址與模型目前可用。", ""
     except error.HTTPError as exc:
         try:
             body = exc.read().decode("utf-8")
@@ -498,7 +498,7 @@ def _validate_anthropic_native_provider(
         reason = getattr(exc, "reason", exc)
         if isinstance(reason, socket.timeout):
             return "timeout", "請求逾時，供應商在限定時間內沒有回應。", str(reason)
-        return "base_url_unreachable", "Base URL 無法連線，請確認 endpoint 與網路狀態。", str(reason)
+        return "base_url_unreachable", "基礎網址無法連線，請確認端點與網路狀態。", str(reason)
     except TimeoutError as exc:
         return "timeout", "請求逾時，供應商在限定時間內沒有回應。", str(exc)
     except json.JSONDecodeError as exc:
@@ -534,7 +534,7 @@ def _validate_gemini_native_provider(
         candidates = raw_payload.get("candidates")
         if not isinstance(candidates, list):
             return "unknown_error", "Gemini 回傳格式不符合預期。", json.dumps(raw_payload)[:500]
-        return "success", "測試連線成功，key、Base URL 與 model 目前可用。", ""
+        return "success", "測試連線成功，金鑰、基礎網址與模型目前可用。", ""
     except error.HTTPError as exc:
         try:
             body = exc.read().decode("utf-8")
@@ -546,7 +546,7 @@ def _validate_gemini_native_provider(
         reason = getattr(exc, "reason", exc)
         if isinstance(reason, socket.timeout):
             return "timeout", "請求逾時，供應商在限定時間內沒有回應。", str(reason)
-        return "base_url_unreachable", "Base URL 無法連線，請確認 endpoint 與網路狀態。", str(reason)
+        return "base_url_unreachable", "基礎網址無法連線，請確認端點與網路狀態。", str(reason)
     except TimeoutError as exc:
         return "timeout", "請求逾時，供應商在限定時間內沒有回應。", str(exc)
     except json.JSONDecodeError as exc:

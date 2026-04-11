@@ -508,6 +508,18 @@ const DELIVERABLE_STATUS_LABELS: Record<string, string> = {
   archived: "封存",
 };
 
+const MEMBERSHIP_ROLE_LABELS: Record<string, string> = {
+  owner: "負責人",
+  consultant: "顧問",
+  demo: "示範帳號",
+};
+
+const MEMBERSHIP_STATUS_LABELS: Record<string, string> = {
+  active: "啟用中",
+  disabled: "停用中",
+  inactive: "停用中",
+};
+
 const STRUCTURED_FIELD_LABELS: Record<string, string> = {
   executive_summary: "執行摘要",
   core_judgment: "核心判斷",
@@ -642,6 +654,14 @@ export function labelForMatterStatus(value: string) {
 
 export function labelForDeliverableStatus(value: string) {
   return DELIVERABLE_STATUS_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForMembershipRole(value: string) {
+  return MEMBERSHIP_ROLE_LABELS[value] ?? fallbackLabel(value);
+}
+
+export function labelForMembershipStatus(value: string) {
+  return MEMBERSHIP_STATUS_LABELS[value] ?? fallbackLabel(value);
 }
 
 export function labelForSourceType(value: string) {

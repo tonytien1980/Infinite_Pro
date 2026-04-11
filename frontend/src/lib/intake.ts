@@ -403,7 +403,7 @@ export function defaultProgressInfoForPreviewItem(
       label: isLimitedExtract ? "將保留有限抽取" : "將保留 reference",
       detail: isLimitedExtract
         ? `這份材料目前屬「${item.usableScopeLabel}」，不擋送出，會先保留有限抽取結果與補充提示。`
-        : `這份材料目前屬「${item.usableScopeLabel}」，不擋送出，會以 metadata / reference-level 方式保留。`,
+        : `這份材料目前屬「${item.usableScopeLabel}」，不擋送出，會以參照層方式保留。`,
       blocksSubmit: false,
       retryable: false,
       referenceOnly: !isLimitedExtract,
@@ -425,7 +425,7 @@ export function defaultProgressInfoForPreviewItem(
       label: isLimitedExtract ? "可保留有限抽取" : "可保留 reference",
       detail: isLimitedExtract
         ? `這份材料目前屬「${item.usableScopeLabel}」，不擋送出，但後續判讀最適合同時補欄位說明或摘要。`
-        : `這份材料目前屬「${item.usableScopeLabel}」，不擋送出，但最適合先當 reference-level 來源。`,
+        : `這份材料目前屬「${item.usableScopeLabel}」，不擋送出，但最適合先當參照層來源。`,
       blocksSubmit: false,
       retryable: false,
       referenceOnly: !isLimitedExtract,
@@ -622,22 +622,22 @@ function buildFilePreviewItem(
       metadata,
       preview: "",
       diagnosticCategory: "reference_only",
-      diagnosticLabel: "有限支援 / reference-only",
-      likelyCauseDetail: "目前只做 metadata / reference-level intake，不預設 OCR 或完整全文理解。",
-      usableScopeLabel: "僅可 reference-level 保留",
-      usableScopeDetail: "可保留為 metadata / reference-level 材料，但不能直接當成完整文字證據。",
+      diagnosticLabel: "有限支援 / 僅保留參照",
+      likelyCauseDetail: "目前只做參照層進件，不預設 OCR 或完整全文理解。",
+      usableScopeLabel: "僅可參照保留",
+      usableScopeDetail: "可保留為參照層材料，但不能直接當成完整文字證據。",
       retryabilityLabel: "重試通常沒有幫助",
       retryabilityDetail: "這不是暫時性失敗；若要做文字分析，較適合改補文字版、OCR 後文字或摘要。",
       status: "limited",
       statusLabel: "有限支援",
-      statusDetail: "目前只會建立 metadata / reference-level 記錄，不預設 OCR 或完整全文理解。",
+      statusDetail: "目前只會建立參照層記錄，不預設 OCR 或完整全文理解。",
       impactDetail: appendLaneImpact(
         "這份材料可被保留為 reference，但不能直接假裝成完整文字證據或完整抽文來源。",
         context,
       ),
       recommendedNextStep: laneAwareNextStep(context, {
         intake: "若你需要正式文字分析，建議補文字版、OCR 後文字、可讀 URL，或至少貼重點摘要。",
-        oneOff: "若這份材料要支撐這次交付物，建議補文字版或人工摘要，避免只剩 reference-level 依據。",
+        oneOff: "若這份材料要支撐這次交付物，建議補文字版或人工摘要，避免只剩參照層依據。",
         followUp: "若這份材料要支撐這輪 checkpoint，建議補文字版、OCR 後文字或人工摘要。",
         continuous: "若這份材料要支撐這輪 progression 判斷，建議補文字版、OCR 後文字或人工摘要。",
         workspace: "若你希望它真的進 evidence chain，建議補文字版、OCR 後文字或手動摘要。",
@@ -696,14 +696,14 @@ function buildFilePreviewItem(
       preview: "",
       diagnosticCategory: "parse_pending",
       diagnosticLabel: "解析尚未完成",
-      likelyCauseDetail: "PDF 要等實際判斷是否為 text-first；若是掃描型 PDF，後續會降成 reference-level。",
+      likelyCauseDetail: "PDF 要等實際判斷是否為可擷取文字版本；若是掃描型 PDF，後續會降成參照層保留。",
       usableScopeLabel: "暫不可先當正文引用",
       usableScopeDetail: "建立前不能先假設一定能抽出可用正文；最終可用範圍要看實際解析結果。",
       retryabilityLabel: "先等解析，不必先重試",
       retryabilityDetail: "這不是失敗；先看最終解析結果，比立刻 retry 更合理。",
       status: "pending",
       statusLabel: "待解析",
-      statusDetail: "PDF 會在匯入時判斷是否為 text-first；若是掃描型 PDF，會降成 metadata / reference-level，不預設 OCR。",
+      statusDetail: "PDF 會在匯入時判斷是否為可擷取文字版本；若是掃描型 PDF，會降成參照層保留，不預設 OCR。",
       impactDetail: appendLaneImpact(
         "建立前不能先假設它一定能抽出可用正文；最終可用範圍要看實際解析結果。",
         context,
@@ -804,14 +804,14 @@ function buildUrlPreviewItem(
       diagnosticLabel: "網址格式不完整",
       likelyCauseDetail: "目前不是完整可讀的 http(s) 網址，所以系統無法可靠判斷要抓哪個來源。",
       usableScopeLabel: "目前不可直接用",
-      usableScopeDetail: "若直接送出，後續很可能無法抓取正文，也無法穩定形成可用 source material。",
+      usableScopeDetail: "若直接送出，後續很可能無法抓取正文，也無法穩定形成可用來源材料。",
       retryabilityLabel: "重試沒有意義",
       retryabilityDetail: "這不是暫時性失敗；先把網址修正完整，比直接 retry 更有幫助。",
       status: "issue",
       statusLabel: "待修正",
       statusDetail: "這個網址格式目前不完整，系統無法可靠判斷要抓哪個來源。",
       impactDetail: appendLaneImpact(
-        "若直接送出，後續很可能無法抓取正文，也無法穩定形成可用 source material。",
+        "若直接送出，後續很可能無法抓取正文，也無法穩定形成可用來源材料。",
         context,
       ),
       recommendedNextStep: laneAwareNextStep(context, {
@@ -882,7 +882,7 @@ function buildTextPreviewItem(
     retryabilityDetail: "目前沒有 ingest 問題，直接沿正式主鏈使用即可。",
     status: "accepted",
     statusLabel: "已接受",
-    statusDetail: "這段內容會直接作為正式 source material 掛回同一個案件，不需另外轉格式。",
+    statusDetail: "這段內容會直接作為正式來源材料掛回同一個案件，不需另外轉格式。",
     impactDetail: appendLaneImpact(
       "它可直接進來源與證據主鏈，通常是最穩定的 fallback material strategy。",
       context,
@@ -1093,15 +1093,15 @@ export function describeRuntimeMaterialHandling({
         ingestStrategy === "pdf_metadata_only" ||
         ingestStrategy === "scanned_pdf_reference" ||
         metadataOnly
-          ? "有限支援 / reference-only"
+          ? "有限支援 / 僅保留參照"
           : "已接受，但擷取受限",
       likelyCauseDetail:
         ingestStrategy === "reference_image" || ingestStrategy === "image_reference"
           ? "這類來源目前只做影像 reference / metadata intake，不預設 OCR 或完整全文理解。"
           : ingestStrategy === "pdf_metadata_only" || ingestStrategy === "scanned_pdf_reference"
-            ? "這份 PDF 目前更接近掃描 / 圖像來源，只保留 reference-level 回鏈，不預設 OCR。"
+            ? "這份 PDF 目前更接近掃描 / 圖像來源，只保留參照層回鏈，不預設 OCR。"
           : "來源已被接收，但目前擷取層級受限，不能把它當成完整正文來源。",
-      usableScopeLabel: "僅可 reference-level 保留",
+      usableScopeLabel: "僅可參照保留",
       usableScopeDetail:
         ingestStrategy === "reference_image" || ingestStrategy === "image_reference"
           ? "這份材料可作 reference，但不能直接當成完整文字證據或完整全文來源。"
@@ -1112,13 +1112,13 @@ export function describeRuntimeMaterialHandling({
       retryabilityDetail: "這不是暫時性失敗；若要升級成文字可用，較適合補文字版、OCR 後文字或摘要。",
       statusDetail:
         ingestStrategy === "reference_image" || ingestStrategy === "image_reference"
-          ? "目前只建立影像 reference / metadata，不預設 OCR 或完整全文理解。"
+          ? "目前只建立影像參照資訊，不預設 OCR 或完整全文理解。"
           : ingestStrategy === "pdf_metadata_only" || ingestStrategy === "scanned_pdf_reference"
-            ? "目前只建立掃描 / 圖像型 PDF 的 reference-level 記錄，不預設 OCR 或完整全文抽取。"
-          : "目前只建立 metadata / reference-level 記錄；若是掃描型 PDF 或低文字密度來源，不會假裝成完整全文支援。",
+            ? "目前只建立掃描 / 圖像型 PDF 的參照層記錄，不預設 OCR 或完整全文抽取。"
+          : "目前只建立參照層記錄；若是掃描型 PDF 或低文字密度來源，不會假裝成完整全文支援。",
       impactDetail: appendLaneImpact(
         ingestStrategy === "reference_image" || ingestStrategy === "image_reference"
-          ? "這份材料可作 reference，但不能直接當成完整文字證據或完整全文來源。"
+          ? "這份材料可作參照，但不能直接當成完整文字證據或完整全文來源。"
           : ingestStrategy === "pdf_metadata_only" || ingestStrategy === "scanned_pdf_reference"
             ? "這份材料目前只能作來源層級引用，不能直接假裝成已可正文引用的文字證據。"
           : "這份材料可保留在案件世界內，但不能假裝已完整抽文，也不應直接當成穩定 evidence extraction 來源。",
@@ -1126,7 +1126,7 @@ export function describeRuntimeMaterialHandling({
       ),
       recommendedNextStep: laneAwareNextStep(context, {
         intake: "若你需要正式文字分析，建議補文字版、OCR 後文字、可讀 URL，或至少貼重點摘要。",
-        oneOff: "若這份材料是本次交付依據，建議補文字版或摘要，避免交付物只剩 reference-level 依據。",
+        oneOff: "若這份材料是本次交付依據，建議補文字版或摘要，避免交付物只剩參照層依據。",
         followUp: "若這份材料要支撐這輪 checkpoint，建議補文字版、OCR 後文字或人工摘要。",
         continuous: "若這份材料要支撐這輪 progression 判斷，建議補文字版、OCR 後文字或人工摘要。",
         workspace: "若你希望它真的參與 evidence chain，請補文字版、OCR 後文字或人工摘要。",

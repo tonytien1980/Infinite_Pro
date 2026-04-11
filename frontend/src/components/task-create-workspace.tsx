@@ -29,7 +29,7 @@ export function TaskCreateWorkspace() {
             <span className="eyebrow">建立新案件</span>
             <h1 className="page-title">建立新案件</h1>
             <p className="page-subtitle">
-              這裡只保留一個統一進件入口。你先說清楚想釐清的問題，再視需要補檔案、網址或補充文字；系統會自動判讀這次是簡短需求、單材料起手，還是多來源案件。
+              這裡只保留一個統一進件入口。你先說清楚想釐清的問題，再視需要補檔案、網址或補充文字；系統會自動判讀這次是少資訊起手、單材料起手，還是多來源案件。
             </p>
           </div>
 
@@ -55,7 +55,7 @@ export function TaskCreateWorkspace() {
           <div className="section-card hero-metric-card">
             <h3>單一入口</h3>
             <p className="workbench-metric">1</p>
-            <p className="muted-text">不拆成不同模式，全部都走同一條正式 intake 主鏈。</p>
+            <p className="muted-text">不拆成不同模式，全部都走同一條正式進件主線。</p>
           </div>
           <div className="section-card hero-metric-card">
             <h3>單次材料上限</h3>
@@ -65,7 +65,7 @@ export function TaskCreateWorkspace() {
           <div className="section-card hero-metric-card">
             <h3>建立後主頁</h3>
             <p className="workbench-metric">案件頁</p>
-            <p className="muted-text">建立完成後不會卡在 intake，而是直接回主工作面繼續推進。</p>
+            <p className="muted-text">建立完成後不會卡在進件頁，而是直接回主工作面繼續推進。</p>
           </div>
         </div>
       </section>

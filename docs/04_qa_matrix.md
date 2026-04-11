@@ -6246,3 +6246,47 @@ Important verification note:
 - The first authenticated run (`supplemental` external-search posture) logged an external-search timeout before continuing and eventually persisted the result.
 - The second authenticated run (`不用，我只想用我提供的資料`) skipped the external-search branch, produced structured outputs, and reached the deliverable workspace in the browser.
 - No browser console errors were observed on the authenticated overview, matter, or deliverable surfaces during the validated paths.
+
+---
+
+## Entry: 2026-04-11 product-language and behavior sweep
+
+Scope:
+- re-check high-visibility product text across the main workbench and management surfaces
+- remove mixed-language first-screen copy that still leaked internal workflow or contract jargon
+- fix the `/new` consultant-start card behavior that made all cards mirror the currently selected internal workflow label
+
+Environment used:
+- local Docker runtime
+- frontend: `http://127.0.0.1:3000`
+- backend: `http://127.0.0.1:8000/api/v1`
+- authenticated local owner browser session
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `source ~/.nvm/nvm.sh && cd frontend && node --test tests/*.test.mjs` | Passed (`107 passed`) |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run build` | Passed |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run typecheck` | Passed |
+| `git diff --check` | Passed |
+
+### Product sweep verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Frontend | `/new` consultant-start cards | switch among the three starting modes and verify the cards no longer mirror one shared internal workflow label | Verified | the card footer now stays action-first and mode-specific instead of reusing one global `flow.label` across all cards |
+| Frontend | `/new` first screen | re-read hero, intake intro, material area, pending-material summary, and reference-retention wording | Verified | first-screen copy now prefers `少資訊起手 / 多來源案件 / 正式進件主線 / 參照保留` instead of `sparse inquiry / multi-source case / canonical intake pipeline / reference-only` |
+| Frontend | `/settings` | re-read hero, provider summaries, allowlist/demo policy cards, and the intake explainer notes | Verified | highest-visibility settings copy now prefers `事務所模型來源 / 個人模型設定 / API 金鑰 / 示範工作台規則` and no longer leads with `firm-level provider`, `owner`, `consultant`, `English`, or `light / dark mode` helper copy |
+| Frontend | `/agents` | re-read hero, checklist, management summary, and guided-create copy | Verified | first-screen language now uses `代理定義` / `追溯要求` instead of `agent contract` / `trace` wording |
+| Frontend | `/packs` | re-read hero, checklist, catalog summary, and guided-create copy | Verified | first-screen language now uses `模組包定義` / `切換分類` instead of `pack contract` / `tab` wording |
+| Frontend | `/members` | re-read management hero, invite role selector, member rows, and invite rows | Verified | visible role/status copy now reads as `負責人 / 顧問 / 示範帳號 / 啟用中` instead of `Firm`, `owner`, `Consultant`, `Demo`, or raw `active` |
+| Frontend + backend-visible messages | `/settings` provider validation feedback | verify older stored validation messages still render in consultant-facing Chinese on read | Verified | front-end normalization now rewrites legacy `key / Base URL / model` feedback into `金鑰 / 基礎網址 / 模型` without requiring a forced re-save |
+| Frontend + backend-visible messages | `/matters/[matterId]/evidence` | re-read evidence gap / supplement copy after the sweep | Verified with residual legacy data | source-driven summaries now use `來源材料 / 工作物件 / 支撐證據 / 決策 / 行動交付物`; one pre-existing persisted case still showed `pasted text` inside an older stored supplement action line, indicating a legacy-data regeneration follow-up may still be needed for previously saved records |
+
+### Explicitly not shipped in this pass
+
+- a historical data migration to rewrite every previously persisted mixed-language summary
+- a full browser sweep of every below-fold disclosure and every archived historical record
+- changes to the architecture, Host boundary, or provider boundary

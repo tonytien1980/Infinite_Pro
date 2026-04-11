@@ -61,7 +61,7 @@ test("demo workspace capacity summary handles zero and positive limits", () => {
       seedVersion: "v1",
       maxActiveDemoMembers: 3,
     }),
-    "最多可啟用 3 個 demo 帳號。",
+    "最多可啟用 3 個示範帳號。",
   );
   assert.equal(
     summarizeDemoWorkspaceCapacity({
@@ -70,7 +70,7 @@ test("demo workspace capacity summary handles zero and positive limits", () => {
       seedVersion: "v1",
       maxActiveDemoMembers: 0,
     }),
-    "目前不開放啟用 demo 帳號。",
+    "目前不開放啟用示範帳號。",
   );
 });
 
@@ -88,6 +88,6 @@ test("demo showcase summary keeps highlights consultant-readable", () => {
 test("formal workspace explainer falls back to a safe default", () => {
   assert.equal(
     buildFormalWorkspaceExplainer(null),
-    "正式版 workspace 會讓 consultant 進入自己的辦案路徑；demo 則只展示產品如何工作，不提供操作權限。",
+    "正式版工作台會讓顧問進入自己的辦案路徑；示範工作台只展示產品如何工作，不提供操作權限。",
   );
 });

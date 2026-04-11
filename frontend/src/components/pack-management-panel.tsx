@@ -365,17 +365,17 @@ export function PackManagementPanel() {
   const packActionTitle =
     editingPackId ? "現在正處於模組包編輯模式" : "先決定是問題面向，還是產業模組包";
   const packActionSummary = editingPackId
-    ? "這一輪會用最少必要資訊重新生成 pack contract，而不是要求你逐欄微調技術規格。"
-    : "先確認你要查看的是哪一類 pack，再檢查它的核心 contract 是否完整，而不是一開始就落進新增表單。";
+    ? "這一輪會用最少必要資訊重新生成模組包定義，而不是要求你逐欄微調技術規格。"
+    : "先確認你要查看的是哪一類模組包，再檢查它的核心定義是否完整，而不是一開始就落進新增表單。";
   const packActionChecklist = [
     `目前共有 ${domainPacks.length} 個問題面向模組包、${industryPacks.length} 個產業模組包。`,
-    `其中 ${completeCoreContractCount} 個模組包已補齊核心 contract。`,
+    `其中 ${completeCoreContractCount} 個模組包已補齊核心定義。`,
     activeTab === "domain"
       ? "現在正在看問題面向模組包；先看它是否把工作邊界、證據期待與交付形狀講清楚。"
       : "現在正在看產業模組包；先看它是否把商業模式、指標、常見決策模式講清楚。",
     editingPackId
       ? `正在編輯「${guidedDraft.pack_name || editingPackId}」。`
-      : "若只是查看現況，先搜尋與切換 tab，不要直接進入新增。",
+      : "若只是查看現況，先搜尋與切換分類，不要直接進入新增。",
   ];
 
   function startCreate() {
@@ -443,7 +443,7 @@ export function PackManagementPanel() {
       setGuidedResult(result);
       await savePackPayload(result.draft);
       setSaveMessage(
-        `已用目前系統模型與 ${result.sources.length} 筆外部來源補完「${result.draft.pack_name}」的正式 pack contract，並寫入管理狀態。`,
+        `已用目前系統模型與 ${result.sources.length} 筆外部來源補完「${result.draft.pack_name}」的正式模組包定義，並寫入管理狀態。`,
       );
     } catch (saveError) {
       setSaveMessage(
@@ -532,7 +532,7 @@ export function PackManagementPanel() {
             <p className="workbench-metric">
               {managedPacks.filter((pack) => pack.status === "active").length}
             </p>
-            <p className="muted-text">目前可被 Host 與工作流程選入的模組包。</p>
+            <p className="muted-text">目前可被主控代理與工作流程選入的模組包。</p>
           </div>
           <div className="section-card hero-metric-card">
             <h3>核心定義完整</h3>
@@ -561,7 +561,7 @@ export function PackManagementPanel() {
                 <div>
                   <h2 className="panel-title">模組包目錄</h2>
                   <p className="panel-copy">
-                    維持兩大分類管理，並把 pack contract 的強弱直接攤開，而不是只顯示名稱與版本。
+                    維持兩大分類管理，並把模組包定義的強弱直接攤開，而不是只顯示名稱與版本。
                   </p>
                 </div>
                 <button className="button-primary" type="button" onClick={startCreate}>
@@ -665,7 +665,7 @@ export function PackManagementPanel() {
                         </p>
                         <p className="muted-text">
                           核心定義：{readyCount}/{qualityChecks.length} 已補齊
-                          {missingChecks ? `；尚待補強：${missingChecks}` : "；目前已可作為完整 pack contract 使用"}
+                          {missingChecks ? `；尚待補強：${missingChecks}` : "；目前已可作為完整模組包定義使用"}
                         </p>
                         {pack.contract_baseline ? (
                           <p className="muted-text">
@@ -681,7 +681,7 @@ export function PackManagementPanel() {
                           </p>
                         ) : null}
                         <details className="inline-disclosure">
-                          <summary className="inline-disclosure-summary">查看 pack contract</summary>
+                          <summary className="inline-disclosure-summary">查看模組包定義</summary>
                           <div className="detail-list" style={{ marginTop: "12px" }}>
                             {pack.contract_baseline ? (
                               <div className="detail-item">
@@ -837,7 +837,7 @@ export function PackManagementPanel() {
                 <div>
                   <h2 className="panel-title">{editingPackId ? "編輯模組包" : "新增模組包"}</h2>
                   <p className="panel-copy">
-                    這裡只收最少必要資訊。你不用先列商業模式、問題型態、指標與證據欄位，系統會用目前啟用的 AI 模型搭配外部搜尋補成正式 pack contract。
+                    這裡只收最少必要資訊。你不用先列商業模式、問題型態、指標與證據欄位，系統會用目前啟用的 AI 模型搭配外部搜尋補成正式模組包定義。
                   </p>
                   {editingPackId ? (
                     <p className="muted-text">
@@ -863,7 +863,7 @@ export function PackManagementPanel() {
                   <ul className="list-content">
                     <li>問題型態、關鍵指標、證據期待、風險與決策模式</li>
                     <li>deliverable presets、routing hints、scope boundaries 與 pack rationale</li>
-                    <li>只要你先把範圍講清楚，其餘 contract 都由 AI + 外部搜尋補完</li>
+                    <li>只要你先把範圍講清楚，其餘定義都由 AI + 外部搜尋補完</li>
                   </ul>
                 </div>
               </div>
@@ -950,7 +950,7 @@ export function PackManagementPanel() {
                     disabled={guidedSaving}
                     onClick={handleGuidedSave}
                   >
-                    {guidedSaving ? "正在用 AI 補完模組包..." : "建立模組包，並讓系統自動補完正式 contract"}
+                    {guidedSaving ? "正在用 AI 補完模組包..." : "建立模組包，並讓系統自動補完正式定義"}
                   </button>
                 </div>
                 {saveMessage ? (

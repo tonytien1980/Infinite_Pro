@@ -32,7 +32,7 @@ export function labelForProviderValidationStatus(status: ProviderValidationResul
     case "success":
       return "驗證成功";
     case "invalid_api_key":
-      return "API key 無效";
+      return "API 金鑰無效";
     case "base_url_unreachable":
       return "基礎網址無法連線";
     case "model_unavailable":
@@ -44,6 +44,20 @@ export function labelForProviderValidationStatus(status: ProviderValidationResul
     default:
       return "未驗證";
   }
+}
+
+export function normalizeProviderValidationMessage(message: string | null | undefined) {
+  if (!message) {
+    return "目前尚未驗證。";
+  }
+
+  return message
+    .replaceAll("API key", "API 金鑰")
+    .replaceAll("key", "金鑰")
+    .replaceAll("Base URL", "基礎網址")
+    .replaceAll("endpoint", "端點")
+    .replaceAll("model id", "模型識別")
+    .replaceAll("model", "模型");
 }
 
 export function labelForProviderSource(config: CurrentProviderConfig | null) {

@@ -64,7 +64,7 @@ const FLOW_OPTIONS = [
     label: "多代理收斂",
     mode: "multi_agent",
     taskType: "complex_convergence",
-    description: "適合把複雜決策問題交給 Host 協調多個核心代理一起收斂。",
+    description: "適合把複雜決策問題交給系統協調多個核心代理一起收斂。",
   },
 ] as const;
 
@@ -79,17 +79,17 @@ const EXTERNAL_DATA_STRATEGY_OPTIONS: Array<{
   {
     value: "strict",
     label: "不用，我只想用我提供的資料",
-    description: "Host 不會主動補外部搜尋，只使用你手動附加的內容、網址與檔案。",
+    description: "系統不會主動補外部搜尋，只使用你手動附加的內容、網址與檔案。",
   },
   {
     value: "supplemental",
     label: "可以補充資料",
-    description: "由 Host 判斷目前證據是否不足，必要時再補外部搜尋來源。",
+    description: "由系統判斷目前證據是否不足，必要時再補外部搜尋來源。",
   },
   {
     value: "latest",
     label: "幫我找最新的資訊",
-    description: "Host 會優先補外部搜尋來源，適合需要最新公開資訊的研究任務。",
+    description: "系統會優先補外部搜尋來源，適合需要最新公開資訊的研究任務。",
   },
 ];
 
@@ -101,7 +101,7 @@ const INPUT_MODE_OPTIONS: Array<{
   {
     value: "one_line_inquiry",
     label: "一句話起手",
-    description: "只有主問題、沒有材料時，系統會先以 sparse inquiry 起手。",
+    description: "只有主問題、沒有材料時，系統會先用少資訊起手。",
   },
   {
     value: "single_document_intake",
@@ -111,7 +111,7 @@ const INPUT_MODE_OPTIONS: Array<{
   {
     value: "multi_material_case",
     label: "多來源案件",
-    description: "已有 2 到 10 份材料或混合來源時，系統會以 multi-source case 起手。",
+    description: "已有 2 到 10 份材料或混合來源時，系統會先用多來源案件起手。",
   },
 ];
 
@@ -169,8 +169,8 @@ const INPUT_MODE_GUIDANCE: Record<
   }
 > = {
   one_line_inquiry: {
-    requirement: "目前只有主問題，系統會先以 sparse inquiry 起手。",
-    workflowNote: "這輪會先建立正式 task / matter / decision context 主鏈，不要求你先準備材料。",
+    requirement: "目前只有主問題，系統會先用少資訊起手。",
+    workflowNote: "這輪會先建立正式案件主線，不要求你先準備材料。",
     materialHint: "你可以先空手開案，之後再到案件世界補檔案、網址或補充文字。",
     submitLabel: "建立案件",
   },
@@ -181,7 +181,7 @@ const INPUT_MODE_GUIDANCE: Record<
     submitLabel: "建立案件",
   },
   multi_material_case: {
-    requirement: `目前偵測到多份材料，會先以 multi-source case 起手。單次最多 ${MAX_INTAKE_MATERIAL_UNITS} 份。`,
+    requirement: `目前偵測到多份材料，會先用多來源案件起手。單次最多 ${MAX_INTAKE_MATERIAL_UNITS} 份。`,
     workflowNote: "所有材料都會進到同一個案件世界，不拆成互不相容的子流程。",
     materialHint: "可混合檔案、網址與補充文字；如果超過 10 份，請分批補件。",
     submitLabel: "建立案件並掛接材料",
@@ -773,23 +773,23 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
     setError(null);
     setSuccess(
       keepAsReferenceByItemId[item.id]
-        ? "已取消這份材料的 reference 保留標記。"
-        : "已標記這份材料可先以 reference-level 保留。",
+        ? "已取消這份材料的參照保留標記。"
+        : "已標記這份材料可先以參照層保留。",
     );
     const progress = {
       ...progressByItemId[item.id],
       ...(progressByItemId[item.id] ?? {
         phase: "ready" as const,
-        label: "將保留 reference",
-        detail: "這份材料不擋送出，會以 metadata / reference-level 方式保留。",
+        label: "將保留參照",
+        detail: "這份材料不擋送出，會以參照層方式保留。",
         blocksSubmit: false,
         retryable: false,
       }),
       referenceOnly: !keepAsReferenceByItemId[item.id],
-      latestAttemptLabel: !keepAsReferenceByItemId[item.id] ? "已標記保留為 reference" : "已取消保留為 reference",
+      latestAttemptLabel: !keepAsReferenceByItemId[item.id] ? "已標記保留為參照" : "已取消保留為參照",
       latestAttemptDetail: !keepAsReferenceByItemId[item.id]
-        ? "這份材料這輪會先保留為 reference-level。"
-        : "這份材料已取消 reference 標記，將回到一般處理判斷。",
+        ? "這份材料這輪會先保留為參照層。"
+        : "這份材料已取消參照標記，將回到一般處理判斷。",
       lastUpdatedAt: Date.now(),
     } satisfies IntakeItemProgressInfo;
     rememberSessionItemState(item, progress);
@@ -948,7 +948,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
         <div>
           <h2 className="panel-title">統一進件入口</h2>
           <p className="panel-copy">
-            先說明你要釐清的問題，再視需要補材料。系統會自動判讀這次是 sparse inquiry、單材料起手，還是 multi-source case，並統一落到同一條 canonical intake pipeline。
+            先說明你要釐清的問題，再視需要補材料。系統會自動判讀這次是少資訊起手、單材料起手，還是多來源案件，全部都走同一條正式進件主線。
           </p>
         </div>
       </div>
@@ -957,7 +957,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
         <section className="intake-section">
           <div className="section-heading">
             <h3>統一進件入口</h3>
-            <p>這裡只有一個可見 intake surface。你先用顧問語言決定這次想怎麼開始，系統再把它對應到內部執行流程。</p>
+            <p>這裡只有一個可見進件入口。你先用顧問語言決定這次想怎麼開始，系統再安排較合適的分析起手方式。</p>
           </div>
 
           <div className="summary-grid">
@@ -990,7 +990,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
 
           <div className="section-heading" style={{ marginTop: "18px" }}>
             <h3>這次想怎麼開始</h3>
-            <p>先選顧問工作上的起手方式，不需要先理解系統內部 workflow 名稱。</p>
+            <p>先選顧問工作上的起手方式，不需要先理解系統內部流程怎麼命名。</p>
           </div>
 
           <div className="summary-grid">
@@ -1017,7 +1017,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
                 />
                 <h4>{option.label}</h4>
                 <p className="content-block">{option.description}</p>
-                <p className="muted-text">目前會對應到系統內部流程「{flow.label}」。</p>
+                <p className="muted-text">{option.nextStepHint}</p>
               </label>
             ))}
           </div>
@@ -1048,7 +1048,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
           <div className="section-heading">
             <h3 style={{ fontSize: "1rem", marginBottom: "6px" }}>統一材料區</h3>
             <p style={{ marginTop: 0 }}>
-              同一個區域可同時接收檔案、URL 與補充文字。正式支援：MD、TXT、DOCX、XLSX、CSV、text-based PDF、URL、補充文字。XLSX / CSV 目前先做表格快照式抽取；若要判斷公式、欄位關係與脈絡，仍建議補欄位說明或文字摘要。有限支援：JPG / JPEG、PNG、WEBP、掃描型 PDF 目前只建立 metadata / reference，不預設 OCR。
+              同一個區域可同時接收檔案、URL 與補充文字。正式支援：MD、TXT、DOCX、XLSX、CSV、可擷取文字的 PDF、URL、補充文字。XLSX / CSV 目前先做表格快照式抽取；若要判斷公式、欄位關係與脈絡，仍建議補欄位說明或文字摘要。有限支援：JPG / JPEG、PNG、WEBP、掃描型 PDF 目前只建立參照資訊，不預設 OCR。
             </p>
           </div>
 
@@ -1119,7 +1119,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
               ref={pastedTextFieldRef}
               placeholder="直接貼上會議摘要、研究摘錄、內部筆記或任何可供分析的原始內容"
             />
-            <small>補充文字會算 1 份材料，並作為正式 source material 掛回同一個案件。</small>
+            <small>補充文字會算 1 份材料，並作為正式來源材料掛回同一個案件。</small>
           </div>
 
           <div className="field">
@@ -1138,7 +1138,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
               onKeepAsReference={toggleKeepAsReference}
               emptyText="你可以先只輸入一句問題；如果要帶材料，這裡會逐項列出檔案、URL 與補充文字。"
             />
-            <small>每一份材料都會逐項顯示限制、影響、blocking 與下一步動作；若送出後有 retryable failure，也可直接在 item 上重試。</small>
+            <small>每一份材料都會逐項顯示限制、影響、阻擋原因與下一步動作；若送出後有可重試失敗，也可直接在項目上重試。</small>
           </div>
 
           <div className="summary-grid">
@@ -1163,11 +1163,11 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
               </p>
             </div>
             <div className="section-card">
-              <h4>Reference 保留</h4>
+              <h4>參照保留</h4>
               <p className="content-block">
                 {batchSummary.referenceOnly > 0
-                  ? `${batchSummary.referenceOnly} 份目前會以 reference-level 保留`
-                  : "目前沒有 reference-only 材料。"}
+                  ? `${batchSummary.referenceOnly} 份目前會以參照層保留`
+                  : "目前沒有僅保留參照的材料。"}
               </p>
             </div>
             <div className="section-card">
@@ -1176,7 +1176,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
             </div>
             <div className="section-card">
               <h4>原始檔保留</h4>
-              <p className="content-block">原始進件檔預設短期保存；正式 artifact 保留較久，但 publish / audit record 不會跟著 raw file 一起消失。</p>
+              <p className="content-block">原始進件檔預設短期保存；正式工作物件保留較久，但發布與稽核紀錄不會跟著原始檔一起消失。</p>
             </div>
           </div>
 

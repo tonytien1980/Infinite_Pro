@@ -641,24 +641,24 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
     });
     setSupplementMessage(
       keepAsReferenceByItemId[item.id]
-        ? "已取消這份材料的 reference 保留標記。"
-        : "已標記這份材料可先以 reference-level 保留。",
+        ? "已取消這份材料的參照保留標記。"
+        : "已標記這份材料可先以參照層保留。",
     );
     setSupplementError(null);
     const progress = {
       ...progressByItemId[item.id],
       ...(progressByItemId[item.id] ?? {
         phase: "ready" as const,
-        label: "將保留 reference",
-        detail: "這份材料不擋送出，會以 metadata / reference-level 方式保留。",
+        label: "將保留參照",
+        detail: "這份材料不擋送出，會以參照層方式保留。",
         blocksSubmit: false,
         retryable: false,
       }),
       referenceOnly: !keepAsReferenceByItemId[item.id],
-      latestAttemptLabel: !keepAsReferenceByItemId[item.id] ? "已標記保留為 reference" : "已取消保留為 reference",
+      latestAttemptLabel: !keepAsReferenceByItemId[item.id] ? "已標記保留為參照" : "已取消保留為參照",
       latestAttemptDetail: !keepAsReferenceByItemId[item.id]
-        ? "這份材料這輪會先保留為 reference-level。"
-        : "這份材料已取消 reference 標記，將回到一般處理判斷。",
+        ? "這份材料這輪會先保留為參照層。"
+        : "這份材料已取消參照標記，將回到一般處理判斷。",
       lastUpdatedAt: Date.now(),
     } satisfies IntakeItemProgressInfo;
     rememberSessionItemState(item, progress);
@@ -1186,7 +1186,7 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                   style={{ display: "none" }}
                   onChange={handleReplaceFileSelection}
                 />
-                <small>支援一次掛多份材料；若同一內容重複上傳，storage 會先走 digest 邊界。</small>
+                <small>支援一次掛多份材料；若同一內容重複上傳，系統會先用內容指紋判斷是否重複。</small>
               </div>
 
               <div className="field">
@@ -1258,7 +1258,7 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                   </p>
                 )}
                 <small>
-                  補件材料會逐項顯示限制、影響、blocking 與下一步動作；若這輪有 retryable failure，也可直接在 item 上重試。
+                  補件材料會逐項顯示限制、影響、阻擋原因與下一步動作；若這輪有可重試失敗，也可直接在項目上重試。
                 </small>
               </div>
 
@@ -1272,19 +1272,19 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                   </p>
                 </div>
                 <div className="section-card">
-                  <h4>Reference 保留</h4>
+                  <h4>參照保留</h4>
                   <p className="content-block">
                     {batchSummary.referenceOnly > 0
-                      ? `${batchSummary.referenceOnly} 份目前會以 reference-level 保留`
-                      : "目前沒有 reference-only 材料。"}
+                      ? `${batchSummary.referenceOnly} 份目前會以參照層保留`
+                      : "目前沒有僅保留參照的材料。"}
                   </p>
                 </div>
                 <div className="section-card">
                   <h4>這輪是否可送出</h4>
                   <p className="content-block">
                     {batchSummary.blocking > 0
-                      ? `還不行，仍有 ${batchSummary.blocking} 份 blocking item。`
-                      : "可以，這輪目前沒有 blocking item。"}
+                      ? `還不行，仍有 ${batchSummary.blocking} 份阻擋材料。`
+                      : "可以，這輪目前沒有阻擋材料。"}
                   </p>
                 </div>
               </div>
@@ -1343,19 +1343,19 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                   <div className="section-card">
                     <h4>正式支援</h4>
                     <p className="content-block">
-                      MD、TXT、DOCX、XLSX、CSV、text-based PDF、URL、補充文字。XLSX / CSV 目前先做表格快照式抽取；若要判斷公式、欄位關係與脈絡，仍建議補欄位說明或文字摘要。
+                      MD、TXT、DOCX、XLSX、CSV、可擷取文字的 PDF、URL、補充文字。XLSX / CSV 目前先做表格快照式抽取；若要判斷公式、欄位關係與脈絡，仍建議補欄位說明或文字摘要。
                     </p>
                   </div>
                   <div className="section-card">
                     <h4>有限支援</h4>
                     <p className="content-block">
-                      JPG / JPEG、PNG、WEBP、掃描型 PDF 目前只建立 metadata / reference，不預設 OCR。
+                      JPG / JPEG、PNG、WEBP、掃描型 PDF 目前只建立參照資訊，不預設 OCR。
                     </p>
                   </div>
                   <div className="section-card">
                     <h4>原始檔保留</h4>
                     <p className="content-block">
-                      原始進件檔預設短期保存；正式 artifact 保留較久，但 publish / audit record 不會跟著 raw file 一起消失。
+                      原始進件檔預設短期保存；正式工作物件保留較久，但發布與稽核紀錄不會跟著原始檔一起消失。
                     </p>
                   </div>
                 </div>
@@ -1398,7 +1398,7 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
 
               <DisclosurePanel
                 title={evidenceArtifactsPanel?.title || "工作物件"}
-                description="這些是已正式進入來源 / 證據工作面的工作物件，不是原始附件清單。需要核對 artifact 角色時再展開。"
+                description="這些是已正式進入來源 / 證據工作面的工作物件，不是原始附件清單。需要核對工作物件角色時再展開。"
               >
                 <DeferredEvidenceArtifactsPanelBody artifactCards={workspace.artifact_cards} />
               </DisclosurePanel>

@@ -2718,16 +2718,16 @@ def _build_sparse_input_summary(
 ) -> str:
     if external_research_heavy_candidate:
         return (
-            "目前屬於高時效外部事件導向案例，內部資料仍偏稀疏；系統應先產出 exploratory brief，"
-            "避免假裝已具備 company-specific certainty。"
+            "目前屬於高時效外部事件導向案例，內部資料仍偏稀疏；系統應先產出探索級簡報，"
+            "避免假裝已具備特定公司的完整確定性。"
         )
     if input_entry_mode == InputEntryMode.ONE_LINE_INQUIRY:
-        return "目前屬於一句話起手；Host 會先建立 provisional world，再以 exploratory brief 形成第一輪判斷。"
+        return "目前屬於一句話起手；主控代理會先建立暫定案件世界，再以探索級簡報形成第一輪判斷。"
     if input_entry_mode == InputEntryMode.SINGLE_DOCUMENT_INTAKE:
-        return "目前屬於單材料起手；系統可先圍繞這份正式材料形成 assessment / review memo。"
+        return "目前屬於單材料起手；系統可先圍繞這份正式材料形成評估 / 審閱備忘。"
     if deliverable_class_hint == DeliverableClass.DECISION_ACTION_DELIVERABLE:
-        return "目前屬於多來源案件，資料密度已開始接近 decision / action deliverable 所需的工作鏈。"
-    return "目前屬於多來源案件，但仍建議先以 assessment / review memo 收斂關鍵判斷。"
+        return "目前屬於多來源案件，資料密度已開始接近決策 / 行動交付物所需的工作鏈。"
+    return "目前屬於多來源案件，但仍建議先以評估 / 審閱備忘收斂關鍵判斷。"
 
 
 def _resolve_flagship_lane_id(
@@ -4108,15 +4108,15 @@ def compile_case_world_seed_from_payload(
     if material_snapshot.pasted_text_present:
         facts.append(
             {
-                "title": "Planned pasted text",
-                "detail": "建立後預計掛入一段正式 pasted text。",
+                "title": "預計補入的補充文字",
+                "detail": "建立後預計掛入一段正式補充文字。",
                 "source": "entry_preset",
             }
         )
     if pack_resolution.selected_domain_packs:
         facts.append(
             {
-                "title": "Domain Packs",
+                "title": "問題面向模組包",
                 "detail": join_natural_list([item.pack_name for item in pack_resolution.selected_domain_packs]),
                 "source": "pack_resolver",
             }
@@ -4124,7 +4124,7 @@ def compile_case_world_seed_from_payload(
     if pack_resolution.selected_industry_packs:
         facts.append(
             {
-                "title": "Industry Packs",
+                "title": "產業模組包",
                 "detail": join_natural_list([item.pack_name for item in pack_resolution.selected_industry_packs]),
                 "source": "pack_resolver",
             }
@@ -4136,8 +4136,8 @@ def compile_case_world_seed_from_payload(
     if client_stage == UNSPECIFIED_LABEL:
         assumptions_payload.append(
             {
-                "title": "Client stage 尚未明確",
-                "detail": "目前案件世界仍缺少更明確的 client stage，因此 stage-specific heuristics 只能先保守套用。",
+                "title": "客戶階段尚未明確",
+                "detail": "目前案件世界仍缺少更明確的客戶階段，因此分階段啟發只能先保守套用。",
                 "source": "host_inference",
             }
         )
@@ -4146,8 +4146,8 @@ def compile_case_world_seed_from_payload(
         evidence_gaps_payload.append(
             {
                 "gap_key": "decision-context",
-                "title": "DecisionContext 仍不夠穩定",
-                "description": "這輪仍缺清楚的 judgment_to_make，因此案件世界只能先以 provisional framing 運作。",
+                "title": "決策情境仍不夠穩定",
+                "description": "這輪仍缺清楚的核心判斷，因此案件世界只能先以暫定 framing 運作。",
                 "priority": "high",
                 "related_pack_ids": [],
             }
@@ -4157,7 +4157,7 @@ def compile_case_world_seed_from_payload(
             {
                 "gap_key": "source-materials",
                 "title": "尚缺正式來源材料",
-                "description": "目前仍沒有規劃中的檔案、網址或 pasted text，建立後建議先補材料再推進分析。",
+                "description": "目前仍沒有規劃中的檔案、網址或補充文字，建立後建議先補材料再推進分析。",
                 "priority": "high",
                 "related_pack_ids": [],
             }
@@ -4167,7 +4167,7 @@ def compile_case_world_seed_from_payload(
             {
                 "gap_key": "evidence-thickness",
                 "title": "世界證據基礎仍偏薄",
-                "description": "目前這個案件世界還是稀疏輸入，建立後應先補件或先以 exploratory / assessment 交付收斂。",
+                "description": "目前這個案件世界仍是稀疏輸入，建立後應先補件，或先用探索 / 評估級交付收斂。",
                 "priority": "high" if material_snapshot.total_count == 0 else "medium",
                 "related_pack_ids": [],
             }
@@ -4177,7 +4177,7 @@ def compile_case_world_seed_from_payload(
             {
                 "gap_key": "research-needed",
                 "title": "需要正式外部補完",
-                "description": "這輪屬於 external-research-heavy sparse case，Host 應先補 public research，再回到 evidence chain。",
+                "description": "這輪屬於外部研究需求很重的稀疏案件，主控代理應先補公開研究，再回到證據鏈。",
                 "priority": "high",
                 "related_pack_ids": [
                     *[item.pack_id for item in pack_resolution.selected_domain_packs],
@@ -4203,9 +4203,9 @@ def compile_case_world_seed_from_payload(
     if material_snapshot.total_count > 0:
         next_best_actions.append("建立後先把目前材料掛回同一個案件世界，再檢查 evidence readiness。")
     else:
-        next_best_actions.append("建立後可先補檔案、網址或 pasted text，或直接讓 Host 先做 exploratory framing。")
+        next_best_actions.append("建立後可先補檔案、網址或補充文字，或直接讓主控代理先做探索式 framing。")
     if external_research_heavy_candidate:
-        next_best_actions.append("允許 Host 先補正式外部 research，再回到 evidence chain。")
+        next_best_actions.append("允許主控代理先補正式外部研究，再回到證據鏈。")
     if payload.engagement_continuity_mode != EngagementContinuityMode.ONE_OFF:
         next_best_actions.append("這輪結果應保留在同一個案件世界內，作為後續 follow-up 的 writeback 基底。")
     task_interpretation = {
@@ -5730,14 +5730,14 @@ def _build_progression_evidence_update_goal(
     latest_outcome_record: models.OutcomeRecord | None,
 ) -> str:
     if any(item.state == "blocked" for item in action_states):
-        return "這次補件主要是為了釐清哪些 action 為什麼卡住，以及還缺哪份 supporting evidence 才能解卡。"
+        return "這次補件主要是為了釐清哪些行動為什麼卡住，以及還缺哪份支撐證據才能解卡。"
     if any(item.state == "review_required" for item in action_states):
-        return "這次補件主要是為了確認哪些 action 需要重開，並補強重新判斷所需的 evidence。"
+        return "這次補件主要是為了確認哪些行動需要重開，並補強重新判斷所需的證據。"
     if any(item.state == "completed" for item in action_states):
-        return "這次補件主要是為了確認已完成 action 是否真的產生新的 outcome 訊號，是否需要刷新 deliverable。"
+        return "這次補件主要是為了確認已完成的行動是否真的產生新的結果訊號，是否需要刷新交付物。"
     if latest_outcome_record is not None:
-        return "這次補件主要是為了驗證最新 outcome 訊號是否足以改寫 recommendation、action priority 或 deliverable。"
-    return "這次補件主要是為了補強 continuous progression 的下一步判斷基礎。"
+        return "這次補件主要是為了驗證最新結果訊號是否足以改寫建議、行動優先順序或交付物。"
+    return "這次補件主要是為了補強持續推進節奏的下一步判斷基礎。"
 
 
 def _build_progression_next_actions(
@@ -6436,13 +6436,13 @@ def _build_continuation_surface(
         current_state="progression_pending",
         title="這案目前屬於持續推進 / outcome 節奏",
         summary=(
-            "這案屬於持續推進節奏，但目前還沒有足夠的 decision / deliverable 基線；"
-            "先完成第一輪分析，之後再定期回看進度與 outcome。"
+            "這案屬於持續推進節奏，但目前還沒有足夠的決策 / 交付基線；"
+            "先完成第一輪分析，之後再定期回看進度與結果。"
         ),
         primary_action=_build_continuation_action(
             "run_analysis",
             "先建立持續推進基線",
-            "先形成第一份 decision / action deliverable，後續才有 progression surface 可回寫。",
+            "先形成第一份決策 / 行動交付物，後續才有推進工作面可回寫。",
         ),
         secondary_actions=[
             _build_continuation_action(
@@ -8453,14 +8453,14 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
     if summary.active_task_count > 0:
         continuity_notes.append(f"目前仍有 {summary.active_task_count} 個 active work item 正在這個案件世界內推進。")
     if summary.artifact_count == 0 and summary.source_material_count == 0:
-        continuity_notes.append("目前案件材料仍偏 sparse，工作面主要依賴 DecisionContext 與 Host framing。")
+        continuity_notes.append("目前案件材料仍偏稀疏，工作面主要依賴決策情境與主控代理 framing。")
     if summary.engagement_continuity_mode == EngagementContinuityMode.ONE_OFF and summary.status == "closed":
         continuity_notes.append("這個 one_off 案件目前已正式結案；若後續又有新資料，應先 reopen 再續推。")
 
     readiness_hint = (
         f"最近一次工作屬於「{summary.current_decision_context_title or latest_task.title}」，"
-        f"目前累積 {summary.deliverable_count} 份 deliverables、{summary.artifact_count} 份 artifacts、"
-        f"{summary.source_material_count} 份 source materials。"
+        f"目前累積 {summary.deliverable_count} 份交付物、{summary.artifact_count} 份工作物件、"
+        f"{summary.source_material_count} 份來源材料。"
     )
     matter_workspace = db.scalars(
         select(models.MatterWorkspace)
@@ -8955,18 +8955,18 @@ def _build_evidence_support_note(
 ) -> str:
     parts: list[str] = []
     if linked_recommendations:
-        parts.append(f"{len(linked_recommendations)} 項 recommendations")
+        parts.append(f"{len(linked_recommendations)} 項建議")
     if linked_risks:
-        parts.append(f"{len(linked_risks)} 項 risks")
+        parts.append(f"{len(linked_risks)} 項風險")
     if linked_action_items:
-        parts.append(f"{len(linked_action_items)} 項 action items")
+        parts.append(f"{len(linked_action_items)} 項行動項目")
     if linked_deliverables:
-        parts.append(f"{len(linked_deliverables)} 份 deliverables")
+        parts.append(f"{len(linked_deliverables)} 份交付物")
 
     if parts:
         return f"這則 evidence 目前已正式支撐 {join_natural_list(parts)}。"
 
-    return "這則 evidence 已被保存，但尚未形成足夠清楚的 recommendation / risk / action 支撐鏈。"
+    return "這則證據已被保存，但尚未形成足夠清楚的建議 / 風險 / 行動支撐鏈。"
 
 
 def get_artifact_evidence_workspace(
@@ -9385,48 +9385,48 @@ def get_artifact_evidence_workspace(
 
         if deliverable_class_hint != DeliverableClass.DECISION_ACTION_DELIVERABLE:
             deliverable_limitations.append(
-                f"任務「{task.title}」目前仍屬 {deliverable_class_hint.value}，代表來源 / 證據鏈尚不足以穩定支撐更高等級的 decision / action deliverable。"
+                f"任務「{task.title}」目前仍屬 {_label_for_deliverable_class_hint(deliverable_class_hint)}，代表來源 / 證據鏈尚不足以穩定支撐更高等級的決策 / 行動交付物。"
             )
         if external_research_heavy_candidate:
             deliverable_limitations.append(
-                f"任務「{task.title}」目前屬 external-research-heavy sparse case，不能假裝已具備 company-specific certainty。"
+                f"任務「{task.title}」目前屬外部研究需求很重的稀疏案件，不能假裝已具備特定公司的完整確定性。"
             )
 
     if not source_material_cards:
-        high_impact_gaps.append("目前案件世界仍缺可直接回看的 source materials。")
+        high_impact_gaps.append("目前案件世界仍缺可直接回看的來源材料。")
     if not artifact_cards:
-        high_impact_gaps.append("目前案件世界仍缺可直接回看的 artifacts。")
+        high_impact_gaps.append("目前案件世界仍缺可直接回看的工作物件。")
     if not evidence_chains:
-        high_impact_gaps.append("目前尚未形成可正式支撐 recommendation / risk / action 的 evidence chain。")
+        high_impact_gaps.append("目前尚未形成可正式支撐建議 / 風險 / 行動的證據鏈。")
     if unsupported_recommendation_count > 0:
         high_impact_gaps.append(
-            f"目前仍有 {unsupported_recommendation_count} 項 recommendations 缺乏正式 supporting evidence。"
+            f"目前仍有 {unsupported_recommendation_count} 項建議缺乏正式支撐證據。"
         )
     if unsupported_risk_count > 0:
         high_impact_gaps.append(
-            f"目前仍有 {unsupported_risk_count} 項 risks 缺乏正式 supporting evidence。"
+            f"目前仍有 {unsupported_risk_count} 項風險缺乏正式支撐證據。"
         )
     if unsupported_action_item_count > 0:
         high_impact_gaps.append(
-            f"目前仍有 {unsupported_action_item_count} 項 action items 缺乏正式 supporting evidence。"
+            f"目前仍有 {unsupported_action_item_count} 項行動項目缺乏正式支撐證據。"
         )
 
     unique_expectations = _unique_preserve_order(evidence_expectations)[:8]
     if unique_expectations and len(evidence_chains) < max(2, len(unique_expectations) // 2):
         high_impact_gaps.append(
-            "目前已選 packs 對 evidence coverage 的期待仍高於現有來源厚度，建議優先補齊核心 source materials 與可引用 evidence。"
+            "目前已選模組包對證據厚度的期待仍高於現有來源，建議優先補齊核心來源材料與可引用證據。"
         )
 
     if evidence_chains:
         sufficiency_summary = (
-            f"目前案件世界共有 {len(source_material_cards)} 份 source materials、"
-            f"{len(artifact_cards)} 份 artifacts、{len(evidence_chains)} 則 evidence；"
-            f"其中 {linked_evidence_count} 則 evidence 已正式支撐 recommendation / risk / action，"
-            f"{linked_deliverable_count} 則 evidence 已被寫回 deliverables。"
+            f"目前案件世界共有 {len(source_material_cards)} 份來源材料、"
+            f"{len(artifact_cards)} 份工作物件、{len(evidence_chains)} 則證據；"
+            f"其中 {linked_evidence_count} 則證據已正式支撐建議 / 風險 / 行動，"
+            f"{linked_deliverable_count} 則證據已被寫回交付物。"
         )
     elif source_material_cards or artifact_cards:
         sufficiency_summary = (
-            "目前已形成來源與材料工作面，但 evidence-to-decision 支撐鏈仍偏薄，這輪較適合做 exploratory / review 等級判斷。"
+            "目前已形成來源與材料工作面，但證據到決策的支撐鏈仍偏薄，這輪較適合做探索 / 審閱等級判斷。"
         )
     else:
         sufficiency_summary = (
@@ -9668,16 +9668,16 @@ def _build_deliverable_confidence_summary(
         )
     if deliverable_class == DeliverableClass.ASSESSMENT_REVIEW_MEMO:
         return (
-            "這份交付物目前屬於 assessment / review memo，判斷主要建立在既有文件、來源材料與可回看的 evidence 上，"
-            "適合支撐 review / challenge，但未必足以直接推進完整行動方案。"
+            "這份交付物目前屬於評估 / 審閱備忘，判斷主要建立在既有文件、來源材料與可回看的證據上，"
+            "適合支撐審閱 / 挑戰，但未必足以直接推進完整行動方案。"
         )
     if high_impact_gaps:
         return (
-            f"這份 decision / action deliverable 已具備 {linked_evidence_count} 則正式 evidence 支撐，"
+            f"這份決策 / 行動交付物已具備 {linked_evidence_count} 則正式證據支撐，"
             f"但仍有 {len(high_impact_gaps)} 項高影響缺口需要在採行前一併考慮。"
         )
     return (
-        f"這份 decision / action deliverable 目前已有 {linked_evidence_count} 則正式 evidence 支撐，"
+        f"這份決策 / 行動交付物目前已有 {linked_evidence_count} 則正式證據支撐，"
         "可作為較完整的決策 / 行動級交付物回看。"
     )
 
@@ -10935,7 +10935,7 @@ def _build_case_world_gap_payloads(
             {
                 "gap_key": "source-materials",
                 "title": "尚缺正式來源材料",
-                "description": "目前仍沒有可掛回案件世界的正式來源材料，建議先補檔案、網址或 pasted text。",
+                "description": "目前仍沒有可掛回案件世界的正式來源材料，建議先補檔案、網址或補充文字。",
                 "priority": "high" if input_entry_mode == InputEntryMode.ONE_LINE_INQUIRY else "medium",
                 "related_pack_ids": [],
             }
@@ -10946,7 +10946,7 @@ def _build_case_world_gap_payloads(
             {
                 "gap_key": "evidence-thickness",
                 "title": "證據鏈仍偏薄",
-                "description": "目前 evidence 仍不足以穩定支撐更高等級的 decision / action deliverable。",
+                "description": "目前證據仍不足以穩定支撐更高等級的決策 / 行動交付物。",
                 "priority": "high" if not artifacts else "medium",
                 "related_pack_ids": [],
             }
@@ -10957,7 +10957,7 @@ def _build_case_world_gap_payloads(
             {
                 "gap_key": "research-needed",
                 "title": "需要正式外部補完",
-                "description": "這輪屬於 external-research-heavy sparse case，Host 應先補 public research，再回到 evidence chain。",
+                "description": "這輪屬於外部研究需求很重的稀疏案件，主控代理應先補公開研究，再回到證據鏈。",
                 "priority": "high",
                 "related_pack_ids": [
                     *[item.pack_id for item in pack_resolution.selected_domain_packs],
@@ -11132,11 +11132,11 @@ def ensure_case_world_draft_for_task(
     ]
     next_best_actions: list[str] = []
     if not source_materials:
-        next_best_actions.append("先補至少一份檔案、網址或 pasted text。")
+        next_best_actions.append("先補至少一份檔案、網址或補充文字。")
     if external_research_heavy_candidate:
-        next_best_actions.append("允許 Host 先補正式外部 research，再回到 evidence chain。")
+        next_best_actions.append("允許主控代理先補正式外部研究，再回到證據鏈。")
     if usable_evidence_count < 2:
-        next_best_actions.append("先執行第一版分析，或補更多 evidence 之後再收斂。")
+        next_best_actions.append("先執行第一版分析，或補更多證據之後再收斂。")
     else:
         next_best_actions.append("直接執行分析並寫回正式交付物。")
     if continuity_mode != EngagementContinuityMode.ONE_OFF:

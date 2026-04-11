@@ -275,7 +275,7 @@ export function WorkbenchHome() {
       setPhaseFiveClosureReview(await getPhaseFiveClosureReview());
     } catch (closureError) {
       setPhaseFiveClosureError(
-        closureError instanceof Error ? closureError.message : "載入 phase 5 收尾狀態失敗。",
+        closureError instanceof Error ? closureError.message : "載入第五階段收尾狀態失敗。",
       );
     } finally {
       setPhaseFiveClosureLoading(false);
@@ -485,10 +485,10 @@ export function WorkbenchHome() {
       setPhaseFiveClosureError(null);
       const next = await signOffPhaseFive({ operator_label: "" });
       setPhaseFiveClosureReview(next);
-      setPhaseFiveClosureFeedback("phase 5 已正式收口，下一階段 handoff 已整理。");
+      setPhaseFiveClosureFeedback("第五階段已正式收口，下一階段交接已整理。");
     } catch (signOffError) {
       setPhaseFiveClosureError(
-        signOffError instanceof Error ? signOffError.message : "目前無法正式收口 phase 5。",
+        signOffError instanceof Error ? signOffError.message : "目前無法正式收口第五階段。",
       );
     } finally {
       setPhaseFiveSignOffLoading(false);
@@ -1008,7 +1008,7 @@ export function WorkbenchHome() {
                 ) : null}
               </div>
 
-              {phaseFiveClosureLoading ? <p className="status-text">正在整理 phase 5 收尾狀態...</p> : null}
+              {phaseFiveClosureLoading ? <p className="status-text">正在整理第五階段收尾狀態...</p> : null}
               {phaseFiveClosureFeedback ? <p className="success-text">{phaseFiveClosureFeedback}</p> : null}
               {!phaseFiveClosureLoading && phaseFiveClosureView.shouldShow ? (
                 <>

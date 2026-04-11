@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { createMemberInvite, listMembers, revokeMemberInvite, updateMemberRole } from "@/lib/api";
 import { buildDemoMemberSummary, canRevokeInvite } from "@/lib/demo-workspace";
+import { labelForMembershipRole, labelForMembershipStatus } from "@/lib/ui-labels";
 import type { MemberListSnapshot } from "@/lib/types";
 
 export function MembersPagePanel() {
@@ -115,9 +116,9 @@ export function MembersPagePanel() {
     <main className="page-shell management-page-shell">
       <section className="section-card">
         <p className="hero-focus-label">成員管理</p>
-        <h1>管理 Firm 成員與邀請</h1>
+        <h1>管理事務所成員與邀請</h1>
         <p className="section-copy">
-          只有 owner 可以在這裡管理成員身份別。consultant 與 demo 帳號都由這裡建立與維護。
+          只有負責人可以在這裡管理成員身份別。顧問與示範帳號都由這裡建立與維護。
         </p>
       </section>
 
@@ -131,8 +132,8 @@ export function MembersPagePanel() {
             aria-label="受邀 email"
           />
           <select value={role} onChange={(event) => setRole(event.target.value as "consultant" | "demo")}>
-            <option value="consultant">Consultant</option>
-            <option value="demo">Demo</option>
+            <option value="consultant">顧問</option>
+            <option value="demo">示範帳號</option>
           </select>
           <button className="button-primary" type="button" onClick={handleInvite} disabled={!email.trim()}>
             送出邀請
@@ -150,11 +151,11 @@ export function MembersPagePanel() {
         <h2>現有成員</h2>
         <div className="summary-grid" style={{ marginBottom: "16px" }}>
           <div className="section-card">
-            <p className="muted-text">已啟用 demo</p>
+            <p className="muted-text">已啟用示範帳號</p>
             <strong>{demoSummary.activeCount}</strong>
           </div>
           <div className="section-card">
-            <p className="muted-text">待接受 demo 邀請</p>
+            <p className="muted-text">待接受示範邀請</p>
             <strong>{demoSummary.pendingCount}</strong>
           </div>
         </div>
@@ -164,8 +165,8 @@ export function MembersPagePanel() {
               <strong>{member.email}</strong>
               <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap", marginTop: "8px" }}>
                 <span>{member.fullName || "未命名成員"}</span>
-                <span>角色：{member.role}</span>
-                <span>狀態：{member.status}</span>
+                <span>角色：{labelForMembershipRole(member.role)}</span>
+                <span>狀態：{labelForMembershipStatus(member.status)}</span>
                 <button
                   type="button"
                   onClick={() => void handleReapply(member.id, member.role, member.status)}
@@ -183,7 +184,7 @@ export function MembersPagePanel() {
         <ul className="detail-list">
           {(snapshot?.pendingInvites ?? []).map((invite) => (
             <li key={invite.id}>
-              <strong>{invite.email}</strong>｜{invite.role}｜{invite.status}
+              <strong>{invite.email}</strong>｜{labelForMembershipRole(invite.role)}｜{labelForMembershipStatus(invite.status)}
               {canRevokeInvite(invite.status) ? (
                 <div style={{ marginTop: "8px" }}>
                   <button type="button" onClick={() => void handleRevokeInvite(invite.id)}>
