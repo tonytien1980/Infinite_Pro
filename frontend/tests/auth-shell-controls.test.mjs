@@ -17,16 +17,16 @@ test("new matter intake uses an explicit upload trigger instead of a bare visibl
   const source = readSource("../src/components/task-create-form.tsx");
 
   assert.match(source, /選擇檔案/);
-  assert.match(source, /htmlFor="source-files"/);
+  assert.match(source, /className="button-secondary file-input-trigger"/);
   assert.match(source, /id="source-files"/);
-  assert.match(source, /className="visually-hidden-file-input"/);
+  assert.match(source, /className="file-input-trigger-control"/);
 });
 
 test("evidence supplement flow also uses an explicit upload trigger", () => {
   const source = readSource("../src/components/artifact-evidence-workspace-panel.tsx");
 
   assert.match(source, /選擇檔案/);
-  assert.match(source, /htmlFor="matter-files"/);
+  assert.match(source, /className="button-secondary file-input-trigger"/);
   assert.match(source, /id="matter-files"/);
-  assert.match(source, /className="visually-hidden-file-input"/);
+  assert.match(source, /className="file-input-trigger-control"/);
 });

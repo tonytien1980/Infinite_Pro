@@ -1172,17 +1172,17 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
 
               <div className="field">
                 <label>上傳檔案</label>
-                <label className="button-secondary" htmlFor="matter-files">
+                <label className="button-secondary file-input-trigger">
                   選擇檔案
+                  <input
+                    id="matter-files"
+                    className="file-input-trigger-control"
+                    type="file"
+                    multiple
+                    accept=".md,.txt,.docx,.xlsx,.csv,.pdf,.jpg,.jpeg,.png,.webp,text/plain,text/markdown,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/jpeg,image/png,image/webp"
+                    onChange={handleFileChange}
+                  />
                 </label>
-                <input
-                  id="matter-files"
-                  className="visually-hidden-file-input"
-                  type="file"
-                  multiple
-                  accept=".md,.txt,.docx,.xlsx,.csv,.pdf,.jpg,.jpeg,.png,.webp,text/plain,text/markdown,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/jpeg,image/png,image/webp"
-                  onChange={handleFileChange}
-                />
                 <input
                   ref={fileReplaceInputRef}
                   className="visually-hidden-file-input"

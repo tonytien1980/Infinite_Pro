@@ -1074,28 +1074,28 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
 
           <div className="field">
             <label>上傳檔案</label>
-            <label className="button-secondary" htmlFor="source-files">
+            <label className="button-secondary file-input-trigger">
               選擇檔案
+              <input
+                id="source-files"
+                className="file-input-trigger-control"
+                type="file"
+                multiple
+                accept=".md,.txt,.docx,.xlsx,.csv,.pdf,.jpg,.jpeg,.png,.webp,text/plain,text/markdown,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/jpeg,image/png,image/webp"
+                onChange={(event) => {
+                  setFiles((previous) =>
+                    appendSelectedFiles(previous, Array.from(event.target.files ?? [])),
+                  );
+                  setProgressByItemId({});
+                  setSessionItemStates((previous) =>
+                    previous.filter((entry) => !entry.itemId.startsWith("file-")),
+                  );
+                  setError(null);
+                  setSuccess(null);
+                  event.currentTarget.value = "";
+                }}
+              />
             </label>
-            <input
-              id="source-files"
-              className="visually-hidden-file-input"
-              type="file"
-              multiple
-              accept=".md,.txt,.docx,.xlsx,.csv,.pdf,.jpg,.jpeg,.png,.webp,text/plain,text/markdown,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/jpeg,image/png,image/webp"
-              onChange={(event) => {
-                setFiles((previous) =>
-                  appendSelectedFiles(previous, Array.from(event.target.files ?? [])),
-                );
-                setProgressByItemId({});
-                setSessionItemStates((previous) =>
-                  previous.filter((entry) => !entry.itemId.startsWith("file-")),
-                );
-                setError(null);
-                setSuccess(null);
-                event.currentTarget.value = "";
-              }}
-            />
             <input
               ref={fileReplaceInputRef}
               className="visually-hidden-file-input"
