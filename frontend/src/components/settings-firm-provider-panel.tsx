@@ -36,6 +36,7 @@ import type {
   SystemProviderSettingsSnapshot,
 } from "@/lib/types";
 import { formatDisplayDate } from "@/lib/ui-labels";
+import { SURFACE_LABELS } from "@/lib/workbench-surface-labels";
 
 const MODEL_LEVEL_OPTIONS: Array<{
   value: ProviderModelLevel;
@@ -134,7 +135,7 @@ export function SettingsFirmProviderPanel() {
         setDemoPolicyDraft(buildDemoPolicyDraft(demoPolicy));
       } catch (error) {
         if (!cancelled) {
-          setProviderError(normalizeError(error, "目前無法載入 Firm Settings。"));
+          setProviderError(normalizeError(error, `目前無法載入${SURFACE_LABELS.firmSettings}。`));
         }
       } finally {
         if (!cancelled) {
@@ -217,7 +218,7 @@ export function SettingsFirmProviderPanel() {
       setProviderFeedback(result.message);
     } catch (error) {
       setProviderValidation(null);
-      setProviderError(normalizeError(error, "Firm Settings 驗證失敗。"));
+      setProviderError(normalizeError(error, `${SURFACE_LABELS.firmSettings}驗證失敗。`));
     } finally {
       setProviderTesting(false);
     }
@@ -246,11 +247,11 @@ export function SettingsFirmProviderPanel() {
       setProviderEditing(false);
       setProviderFeedback(
         forceSaveWithoutValidation
-          ? "已強制儲存 Firm Settings；請盡快重新驗證。"
-          : "Firm Settings 已通過驗證並正式套用。",
+          ? `已強制儲存${SURFACE_LABELS.firmSettings}；請盡快重新驗證。`
+          : `${SURFACE_LABELS.firmSettings}已通過驗證並正式套用。`,
       );
     } catch (error) {
-      setProviderError(normalizeError(error, "Firm Settings 保存失敗。"));
+      setProviderError(normalizeError(error, `${SURFACE_LABELS.firmSettings}保存失敗。`));
     } finally {
       setProviderSaving(false);
     }
@@ -264,9 +265,9 @@ export function SettingsFirmProviderPanel() {
       const snapshot = await revalidateSystemProviderSettings();
       setProviderSnapshot(snapshot);
       setProviderDraft(buildProviderDraftFromCurrent(snapshot));
-      setProviderFeedback("已重新驗證目前 Firm Settings。");
+      setProviderFeedback(`已重新驗證目前${SURFACE_LABELS.firmSettings}。`);
     } catch (error) {
-      setProviderError(normalizeError(error, "重新驗證 Firm Settings 失敗。"));
+      setProviderError(normalizeError(error, `重新驗證${SURFACE_LABELS.firmSettings}失敗。`));
     } finally {
       setProviderRevalidating(false);
     }
@@ -332,9 +333,9 @@ export function SettingsFirmProviderPanel() {
       const snapshot = await updateProviderAllowlist(payload);
       setAllowlistSnapshot(snapshot);
       setAllowlistRows(buildAllowlistRows(snapshot));
-      setAllowlistFeedback("provider allowlist 已更新。");
+      setAllowlistFeedback(`${SURFACE_LABELS.providerAllowlist}已更新。`);
     } catch (error) {
-      setAllowlistError(normalizeError(error, "provider allowlist 保存失敗。"));
+      setAllowlistError(normalizeError(error, `${SURFACE_LABELS.providerAllowlist}保存失敗。`));
     } finally {
       setAllowlistSaving(false);
     }
@@ -360,9 +361,9 @@ export function SettingsFirmProviderPanel() {
     <section className="panel" id="firm-provider-panel">
       <div className="panel-header">
         <div>
-          <h2 className="panel-title">Firm Settings</h2>
+          <h2 className="panel-title">{SURFACE_LABELS.firmSettings}</h2>
           <p className="panel-copy">
-            這一區只給 owner 管理 firm-level provider default 與 provider allowlist。
+            這一區只給 owner 管理事務所層的預設模型來源與可用模型來源清單。
           </p>
         </div>
       </div>
@@ -373,12 +374,12 @@ export function SettingsFirmProviderPanel() {
       ) : null}
 
       {providerLoading ? (
-        <p className="muted-text">正在載入 Firm Settings...</p>
+        <p className="muted-text">正在載入{SURFACE_LABELS.firmSettings}...</p>
       ) : (
         <>
           <div className="summary-grid" style={{ marginTop: "16px" }}>
             <div className="section-card">
-              <p className="muted-text">目前 firm provider</p>
+              <p className="muted-text">目前事務所模型來源</p>
               <strong>{currentProvider?.providerDisplayName || "未設定"}</strong>
               <p className="muted-text">來源：{labelForProviderSource(currentProvider)}</p>
             </div>
@@ -395,17 +396,17 @@ export function SettingsFirmProviderPanel() {
               <p className="muted-text">{latestValidationMessage}</p>
             </div>
             <div className="section-card">
-              <p className="muted-text">目前 allowlist 條目</p>
+              <p className="muted-text">目前可用模型來源條目</p>
               <strong>{allowlistSnapshot?.entries.length || 0}</strong>
-              <p className="muted-text">consultant 只能在這些範圍內保存自己的模型設定。</p>
+              <p className="muted-text">顧問只能在這些範圍內保存自己的模型設定。</p>
             </div>
             <div className="section-card">
-              <p className="muted-text">demo workspace 狀態</p>
+              <p className="muted-text">示範工作台狀態</p>
               <strong>{labelForDemoWorkspacePolicyStatus(demoPolicySnapshot?.status || "active")}</strong>
               <p className="muted-text">{summarizeDemoWorkspaceCapacity(demoPolicySnapshot)}</p>
             </div>
             <div className="section-card">
-              <p className="muted-text">demo workspace seed</p>
+              <p className="muted-text">示範工作台版本</p>
               <strong>{demoPolicySnapshot?.seedVersion || "v1"}</strong>
               <p className="muted-text">slug：{demoPolicySnapshot?.workspaceSlug || "demo"}</p>
             </div>
@@ -413,7 +414,7 @@ export function SettingsFirmProviderPanel() {
 
           <div className="button-row" style={{ marginTop: "16px" }}>
             <button className="button-primary" type="button" onClick={() => setProviderEditing((current) => !current)}>
-              {providerEditing ? "收合 Firm Settings 編輯" : "編輯 Firm Settings"}
+              {providerEditing ? `收合${SURFACE_LABELS.firmSettings}編輯` : `編輯${SURFACE_LABELS.firmSettings}`}
             </button>
             <button
               className="button-secondary"
@@ -439,8 +440,8 @@ export function SettingsFirmProviderPanel() {
                 <section className="panel">
                   <div className="panel-header">
                     <div>
-                      <h3 className="panel-title">firm provider default</h3>
-                      <p className="panel-copy">先決定這間 firm 的 fallback provider 與模型。</p>
+                      <h3 className="panel-title">{SURFACE_LABELS.firmProviderDefault}</h3>
+                      <p className="panel-copy">先決定這間事務所平常要優先用哪個模型來源與模型。</p>
                     </div>
                   </div>
 
@@ -582,7 +583,7 @@ export function SettingsFirmProviderPanel() {
                 <section className="panel">
                   <div className="panel-header">
                     <div>
-                      <h3 className="panel-title">provider allowlist</h3>
+                      <h3 className="panel-title">{SURFACE_LABELS.providerAllowlist}</h3>
                       <p className="panel-copy">定義 consultant 可以選哪些 provider / model。</p>
                     </div>
                   </div>

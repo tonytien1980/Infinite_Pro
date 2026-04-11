@@ -129,7 +129,7 @@ export function buildMatterUsabilityView(input: {
   return {
     sectionGuideTitle: "案件頁怎麼看最快",
     sectionGuideDescription:
-      "先抓這輪主線、最大 blocker 與最值得先推的 task，再看 authority 或背景層。",
+      "先抓這輪主線、最大 blocker 與下一步；研究、組織記憶與 authority 先留第二層。",
     mainlineCopy:
       input.activeTaskCount > 1
         ? "先抓主線：這一屏只回答案件目前在處理什麼、下一步做什麼，以及多條工作紀錄中現在最該先看的那一條。"
@@ -235,8 +235,7 @@ export function buildDeliverableUsabilityView(input: {
 
   return {
     sectionGuideTitle: "這份交付物怎麼讀最快",
-    sectionGuideDescription:
-      "先決定你現在是在整理版本、回看交付摘要、檢查依據，還是確認這份內容怎麼回寫案件世界。",
+    sectionGuideDescription: "先決定這一步，再判斷要回看交付摘要，還是回頭核對依據。",
     contextDisclosureDescription:
       "當你要理解這份交付物在整個案件世界中的定位時，再展開這層；平常先讀交付摘要與建議 / 風險 / 行動即可。",
     writebackDisclosureDescription: input.hasMatterWorkspace
@@ -258,12 +257,70 @@ export function buildDeliverableUsabilityView(input: {
       },
       {
         href: thirdHref,
-        eyebrow: "需要確認依據或背景時",
+        eyebrow: "需要依據時",
         title: thirdTitle,
-        copy: input.hasHighImpactGaps
-          ? "若高影響缺口仍在，先看依據與缺口，不急著下更深的 reusable guidance。"
-          : "當前背景層只在你要確認適用範圍與案件定位時才值得展開。",
+        copy: "只有當你要核對依據或背景，再往下看來源與脈絡。",
         tone: input.hasHighImpactGaps ? "warm" : "default",
+      },
+    ],
+  };
+}
+
+export type EvidenceUsabilityView = {
+  sectionGuideTitle: string;
+  sectionGuideDescription: string;
+  railEyebrow: string;
+  railTitle: string;
+  railCopy: string;
+  guideItems: ConsultantGuideItem[];
+};
+
+export function buildEvidenceWorkspaceUsabilityView(input: {
+  hasHighImpactGaps: boolean;
+  hasFocusTask: boolean;
+  focusTaskTitle: string;
+  sourceMaterialCount: number;
+  evidenceCount: number;
+}): EvidenceUsabilityView {
+  const returnTitle = input.hasFocusTask ? "先回焦點工作紀錄" : "先回案件工作面";
+  const returnCopy = input.hasFocusTask
+    ? `補完後先回「${input.focusTaskTitle}」確認這輪判斷是否已能續推，不必先在來源頁停太久。`
+    : "補完後先回案件工作面確認主線是否已站穩，再決定要不要往 task 或交付物續推。";
+
+  return {
+    sectionGuideTitle: "這個證據工作面怎麼讀最快",
+    sectionGuideDescription: "先看到底缺什麼，再決定補哪種材料；補完後再回主線續推。",
+    railEyebrow: "補完後回哪裡",
+    railTitle: returnTitle,
+    railCopy: returnCopy,
+    guideItems: [
+      {
+        href: "#evidence-sufficiency",
+        eyebrow: "先看缺什麼",
+        title: "充分性摘要與高影響缺口",
+        copy: "先判斷目前缺的是來源、證據，還是仍不夠支撐這輪判斷。",
+        meta: input.hasHighImpactGaps
+          ? "目前仍有高影響缺口，先補這些最有效。"
+          : "目前沒有高影響缺口，可先檢查支撐鏈完整度。",
+        tone: input.hasHighImpactGaps ? "warm" : "accent",
+      },
+      {
+        href: "#evidence-supplement",
+        eyebrow: "真的要補時",
+        title: "補件與新增來源",
+        copy: "補檔案、網址或補充文字時，直接走正式補件主鏈，不要另開新的孤立工作。",
+        meta:
+          input.sourceMaterialCount === 0
+            ? "目前還沒有正式來源材料。"
+            : `${input.sourceMaterialCount} 份來源材料 / ${input.evidenceCount} 則證據可回看。`,
+        tone: "accent",
+      },
+      {
+        href: input.hasFocusTask ? "#evidence-related-tasks" : "#evidence-sufficiency",
+        eyebrow: "補完之後",
+        title: returnTitle,
+        copy: returnCopy,
+        tone: "default",
       },
     ],
   };

@@ -86,6 +86,7 @@ import type {
   PhaseSixReuseBoundaryGovernance,
   TaskListItem,
 } from "@/lib/types";
+import { SURFACE_LABELS } from "@/lib/workbench-surface-labels";
 import {
   formatDisplayDate,
   labelForAgentName,
@@ -96,6 +97,11 @@ import {
   useMatterWorkspaceRecords,
   useWorkbenchSettings,
 } from "@/lib/workbench-store";
+import {
+  runWorkbenchHomeLoadLane,
+  WORKBENCH_HOME_PRIMARY_LOAD_KEYS,
+  WORKBENCH_HOME_SECONDARY_LOAD_KEYS,
+} from "@/lib/workbench-home-load-plan";
 import {
   isLocalFallbackMatterRecord,
 } from "@/lib/workspace-persistence";
@@ -428,21 +434,36 @@ export function WorkbenchHome() {
   }
 
   useEffect(() => {
-    void refreshTasks();
-    void refreshMatters();
-    void refreshExtensionManager();
-    void refreshFirmOperating();
-    void refreshPhaseFiveClosureReview();
-    void refreshPhaseSixAudit();
-    void refreshPhaseSixCloseoutReview();
-    void refreshPhaseSixCompletionReview();
-    void refreshPhaseSixClosureCriteria();
-    void refreshPhaseSixMaturity();
-    void refreshPhaseSixCalibrationWeighting();
-    void refreshPhaseSixCalibration();
-    void refreshPhaseSixDistance();
-    void refreshPhaseSixGovernance();
-    void refreshPhaseSixGuidance();
+    let cancelled = false;
+    const loaders = {
+      tasks: refreshTasks,
+      matters: refreshMatters,
+      extensions: refreshExtensionManager,
+      firmOperating: refreshFirmOperating,
+      phaseFiveClosure: refreshPhaseFiveClosureReview,
+      phaseSixAudit: refreshPhaseSixAudit,
+      phaseSixCloseoutReview: refreshPhaseSixCloseoutReview,
+      phaseSixCompletionReview: refreshPhaseSixCompletionReview,
+      phaseSixClosureCriteria: refreshPhaseSixClosureCriteria,
+      phaseSixMaturity: refreshPhaseSixMaturity,
+      phaseSixCalibrationWeighting: refreshPhaseSixCalibrationWeighting,
+      phaseSixCalibration: refreshPhaseSixCalibration,
+      phaseSixDistance: refreshPhaseSixDistance,
+      phaseSixGovernance: refreshPhaseSixGovernance,
+      phaseSixGuidance: refreshPhaseSixGuidance,
+    } as const;
+
+    void (async () => {
+      await runWorkbenchHomeLoadLane(WORKBENCH_HOME_PRIMARY_LOAD_KEYS, loaders);
+      if (cancelled) {
+        return;
+      }
+      void runWorkbenchHomeLoadLane(WORKBENCH_HOME_SECONDARY_LOAD_KEYS, loaders);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
   const phaseFiveClosureView = buildPhaseFiveClosureView(phaseFiveClosureReview);
   const phaseSixAlignmentSummary =
@@ -918,8 +939,8 @@ export function WorkbenchHome() {
             <section className="panel">
               <div className="panel-header">
                 <div>
-                  <h2 className="panel-title">Firm Operating</h2>
-                  <p className="panel-copy">低噪音回答這間 firm 目前是否已準備好順利工作。</p>
+                  <h2 className="panel-title">{SURFACE_LABELS.firmOperating}</h2>
+                  <p className="panel-copy">低噪音回答這間事務所目前是否已準備好順利工作。</p>
                 </div>
                 {firmOperating?.actionLabel ? (
                   <Link className="button-secondary" href={firmOperating.actionHref}>
@@ -941,7 +962,7 @@ export function WorkbenchHome() {
                       <p className="muted-text">目前重點</p>
                       <strong>{firmOperating.priorityNote}</strong>
                       <p className="muted-text">
-                        {firmOperating.role === "owner" ? "owner view" : "consultant view"}
+                        {firmOperating.role === "owner" ? "負責人視角" : "顧問視角"}
                       </p>
                     </div>
                     <div className="section-card">
@@ -972,7 +993,7 @@ export function WorkbenchHome() {
             <section className="panel">
               <div className="panel-header">
                 <div>
-                  <h2 className="panel-title">Phase 5 Closure Review</h2>
+                  <h2 className="panel-title">{SURFACE_LABELS.phaseFiveClosure}</h2>
                   <p className="panel-copy">低噪音回讀 Single-Firm Cloud Foundation 目前收尾到哪。</p>
                 </div>
                 {firmOperating?.role === "owner" && phaseFiveClosureView.canSignOff ? (
@@ -1034,7 +1055,7 @@ export function WorkbenchHome() {
                     <div className="section-card" style={{ marginTop: "16px" }}>
                       <h3>下一階段 handoff</h3>
                       <p className="muted-text">
-                        收口人：{phaseFiveClosureView.signedOffByLabel || "目前 owner"}
+                        收口人：{phaseFiveClosureView.signedOffByLabel || "目前負責人"}
                       </p>
                       <p className="muted-text">{phaseFiveClosureView.nextPhaseLabel}</p>
                       <p className="content-block">{phaseFiveClosureView.handoffSummary}</p>
@@ -1054,7 +1075,7 @@ export function WorkbenchHome() {
             <section className="panel">
               <div className="panel-header">
                 <div>
-                  <h2 className="panel-title">Generalist Governance</h2>
+                  <h2 className="panel-title">{SURFACE_LABELS.generalistGovernance}</h2>
                   <p className="panel-copy">
                     低噪音回答 Phase 6 現在在哪、工作面已落地到哪、下一刀還差什麼。
                   </p>
@@ -1425,13 +1446,13 @@ export function WorkbenchHome() {
 
                   {phaseSixGuidanceLoading ? (
                     <p className="status-text" style={{ marginTop: "16px" }}>
-                      正在整理 generalist guidance posture...
+                      正在整理全面型顧問治理姿態...
                     </p>
                   ) : null}
 
                   {!phaseSixGuidanceLoading && phaseSixGuidance ? (
                     <div className="section-card" style={{ marginTop: "16px" }}>
-                      <h3>guidance posture</h3>
+                      <h3>治理姿態</h3>
                       <p className="muted-text">
                         {labelForPhaseSixGuidancePosture(phaseSixGuidance.guidancePosture)}
                       </p>

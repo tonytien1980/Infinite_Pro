@@ -28,6 +28,7 @@ import type {
   ProviderValidationResult,
 } from "@/lib/types";
 import { formatDisplayDate } from "@/lib/ui-labels";
+import { SURFACE_LABELS } from "@/lib/workbench-surface-labels";
 
 const MODEL_LEVEL_OPTIONS: Array<{
   value: ProviderModelLevel;
@@ -195,11 +196,11 @@ export function SettingsPersonalProviderPanel({
     <section className="panel" id="personal-provider-panel">
       <div className="panel-header">
         <div>
-          <h2 className="panel-title">Personal Provider Settings</h2>
+          <h2 className="panel-title">{SURFACE_LABELS.personalProviderSettings}</h2>
           <p className="panel-copy">
             {membershipRole === "owner"
-              ? "owner 也可以用自己的個人 key 工作；若未設定，才回退到 firm default。"
-              : "consultant 需要先完成自己的個人模型設定，才能正式執行分析。"}
+              ? "負責人也可以用自己的個人 key 工作；若未設定，才回退到事務所預設模型來源。"
+              : "顧問需要先完成自己的個人模型設定，才能正式執行分析。"}
           </p>
         </div>
       </div>
@@ -232,7 +233,7 @@ export function SettingsPersonalProviderPanel({
                   : "未設定"}
               </strong>
               <p className="muted-text">
-                consultant 沒有個人 key 時，run path 會直接 fail-closed。
+                顧問沒有個人 key 時，系統會直接停止這次分析，不會偷偷改走其他來源。
               </p>
             </div>
             <div className="section-card">

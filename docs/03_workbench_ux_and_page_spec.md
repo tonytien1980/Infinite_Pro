@@ -477,6 +477,10 @@ Infinite Pro 正式採：
   - 只回 closeout status、foundation snapshot、少量 asset-audit summary
   - 不可把這層長成完整的 phase dashboard
 - 不可因此長成 dashboard wall 或第二套管理後台
+- `總覽` 的第一屏載入也必須遵守同一條責任邊界：
+  - 先讓顧問看見 route-defining 的主工作資料
+  - `firm operating`、phase closure、generalist governance 等低噪音摘要不得阻塞首頁主工作入口
+  - 若這些摘要仍需載入，應在主工作入口可用後再補上，而不是把首頁做成要等所有摘要都到齊才可用
 
 ### `建立新案件`
 
@@ -596,6 +600,8 @@ Primary action：
   - 若卡在依據偏薄，先走哪條補件路徑
   - 若不是延續工作，何時才直接建立新案件
 - 首頁不應承接整個案件背景，也不應把 metrics 區讀成主線
+- 首頁不應因 `firm operating`、phase closure、generalist governance 等第二層摘要尚未回來，就阻塞主工作入口
+- 若首頁仍要顯示這些摘要，它們應在 route-defining 的主資料之後載入
 
 ### 7.2 `/new`
 
@@ -653,11 +659,13 @@ Primary action 應隨 continuity mode 分流：
 - 不可把 `follow_up` 寫成縮小版 `continuous`
 - 不可讓 progression / outcome 語言在 `follow_up` 首屏與 checkpoint 同層競爭
 - `continuous` 才應明示這是「持續推進 / outcome」節奏
+- `closure` 姿態只可在案件已形成至少一份正式交付物後出現；不能在剛建立、尚未產出結果的 sparse case 首屏就提早顯示「可正式結案」
 - `follow_up` 也可用共通 advisory surface 回答：
   - 最近 checkpoint 時間線
   - 目前更新節奏穩不穩
   - 下次何時值得回來更新
 - 但這一層不可露出 `outcome tracking` 主語言
+- `overview` 是 `/matters/[matterId]` 的初始主頁；`decision / evidence / deliverables / history` 等非 `overview` tabs 不應在首載 route chunk 內預先掛滿
 
 首屏也應明示：
 
@@ -665,6 +673,15 @@ Primary action 應隨 continuity mode 分流：
 - 目前交付等級與輸出邊界
 - 這輪為什麼還停在這個姿態
 - 下一步要補件、跑分析，還是回交付物
+
+正式補充：
+
+- matter hero rail 應只保留：
+  - 目前主線
+  - 現在最重要的變化
+  - 下一步最建議做什麼
+- `案件健康`、`研究 guidance`、`organization memory`、`domain playbook`、`precedent candidate summary`
+  這些都應退到 `主線補充` 或其他第二層區塊，不應再和 hero rail 的主線判斷同層競爭
 
 第二層旗艦區塊應沿用共用 detail helper，而不是每頁重新拼 sparse-start / material-review 的補充文案。
 
@@ -754,6 +771,20 @@ Primary action：
 
 第二層旗艦區塊也應沿用共用 detail helper，直接把這條主線的姿態、邊界與升級條件講清楚。
 
+正式補充：
+
+- evidence hero 第三張卡應優先回答：
+  - 補完後回哪裡
+  - 先回焦點工作紀錄，還是先回案件工作面
+- `research guidance`、`continuity detail`、完整來源 / 證據導覽都不應再和首屏補件判斷同層競爭
+- section guide 應先收成三條主線：
+  - `充分性摘要與高影響缺口`
+  - `補件與新增來源`
+  - `補完後回主線`
+- `來源材料與工作物件`、`證據支撐鏈`、`相關工作紀錄`
+  這些仍可保留在下方，但不應再和首屏 guide 同層競爭
+- `待補材料列表` 應只在真的有 pending items 時才掛載完整 preview list；空狀態先保留一句簡短導引即可
+
 若 research guidance 為 `recommended`，也應補充：
 
 - 先查哪幾題
@@ -794,8 +825,9 @@ Primary action：
 task hero 右側 rail 現在也應優先承接：
 
 - 現在先做這件事
-- 目前工作姿態 / 下一步
+- 跑完去哪裡
 - 若結果已形成，先回哪個正式交付物
+- 不應再把 `decision brief`、handoff 原因、lane posture 同時塞回首屏同一張摘要卡
 
 首屏也應明示：
 
@@ -835,7 +867,12 @@ task hero 右側 rail 現在也應優先承接：
   - 目前最大的限制在哪裡
   - 若不直接執行，最有槓桿的回退路徑是什麼
 - 這層應優先使用 condensed notes，不可重新長成第二條 hero summary 牆
+- label 也應保持直接：
+  - `最有槓桿的下一步`
+  - `目前最大限制`
+  - `不直接跑時`
 - `工作鏈與來源 / 證據`、`判斷可信度與資料缺口`、`正式交付結果` 的區塊文案應縮短，避免每區都重講一次主線
+- `擴充管理面` 應維持在 disclosure 內，且 closed 狀態不應先掛載完整管理 surface；只有在真的要調整 agent / pack override 時才 on-demand 載入
 
 `T2-C slice 3` 之後，task detail 還應正式回答：
 
@@ -898,6 +935,8 @@ Primary action 應隨 continuity mode / status 分流：
   - 先決定這一步
   - 要先看內容時回交付摘要
   - 需要確認依據或背景時再下鑽
+- 採納回饋、候選狀態與 writeback 細節不應再擠在 deliverable hero rail 與首個主決策同層競爭
+- `採納與寫回` 應退到首屏下方的正式工作區塊，讓第一屏先服務發布 / 修訂 / 依據核對
 - `連續性、研究與寫回紀錄` 與 `交付脈絡與工作面背景` 都必須維持 explanation-on-demand：
   - 只有在要確認 writeback / context 時才展開
   - 日常閱讀先看交付摘要與建議 / 風險 / 行動
@@ -1160,6 +1199,25 @@ Primary action：
 - object-set member metadata
 - support-bundle density detail
 - benchmark / QA style metadata
+
+### 9.3 Performance-aware disclosure
+
+低噪音 disclosure 不只是一種資訊階層規則，也應同時是正式的效能規則。
+
+正式規則：
+
+- closed disclosure 不應在第一屏就 eager-mount 完整 child body
+- disclosure body 應在第一次展開時才掛載，之後可保留 mounted 狀態，以免顧問已輸入的內容或局部工作狀態被重置
+- 放在 disclosure 內的 heavy management surface 應跟著 disclosure on-demand 載入，不應先吃首載 route weight
+- 若某個次級區塊只有在有資料時才有意義，空狀態應先用一句導引，不應先掛完整控制元件
+
+目前已正式套用的第一波原則：
+
+- `task` 的 `擴充管理面` 應只在使用者真的展開時才載入完整管理 surface
+- `evidence` 的待補材料列表應只在真的有 pending items 時才掛載完整 preview list
+- `matter / task / deliverable / evidence` 的 closed disclosure 應優先把首載成本留給主線，而不是第二層詳情
+- `matter` 的非 `overview` tabs 應在第一次切換到該 tab 時才載入，不應長駐在 `overview` 首載 route chunk 內
+- `evidence` 的深層 review disclosures（重複材料確認、來源材料、工作物件、證據支撐鏈、相關工作紀錄）應視為同一族 on-demand review surfaces，而不是首頁級常駐內容
 
 ### 3.4 Minimal adoption feedback
 
@@ -1586,6 +1644,8 @@ Primary action：
 - 若資料來源本身是英文，可在必要處保留原文片段，但主要說明仍應用繁體中文
 - 不應把英文整句直接暴露成預設交付內容，除非任務明確要求英文
 - UI 可見語言與內容輸出語言不得各自漂移
+- 高可見度的 workbench 標題、導覽標籤、hero labels 與治理 / 設定 / demo surface 標題，預設也應使用繁體中文
+- 若某些內部概念仍暫時保留英文實作名，第一層可見 UI 也應先轉成顧問可讀的繁體中文，不應直接把內部英文詞丟給使用者
 
 主要正式用語包括：
 

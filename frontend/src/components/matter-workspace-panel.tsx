@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { ReactNode, useEffect, useMemo, useState } from "react";
 
@@ -20,7 +21,6 @@ import {
   buildContinuationDetailView,
 } from "@/lib/continuation-advisory";
 import { buildMatterCommandView } from "@/lib/case-command-loop";
-import { describeRuntimeMaterialHandling } from "@/lib/intake";
 import { buildContinuationPostureView } from "@/lib/continuity-ux";
 import {
   buildResearchDetailView,
@@ -42,16 +42,9 @@ import type {
 import {
   labelForApprovalStatus,
   labelForAuditEventType,
-  formatFileSize,
   formatDisplayDate,
   labelForEngagementContinuityMode,
-  labelForDeliverableClass,
-  labelForFileExtension,
   labelForMatterStatus,
-  labelForRetentionPolicy,
-  labelForRetentionState,
-  labelForStorageAvailability,
-  labelForTaskStatus,
   labelForWritebackDepth,
 } from "@/lib/ui-labels";
 import {
@@ -72,6 +65,55 @@ import {
   buildMatterSectionGuideItems,
   buildMatterUsabilityView,
 } from "@/lib/consultant-usability";
+import { buildMatterAdvanceGuide } from "@/lib/matter-advance-guide";
+import {
+  buildMatterDeferredTabPlan,
+  buildMatterOnDemandPanelPlan,
+} from "@/lib/workbench-lazy-surface-plan";
+import {
+  noteDisclosureOpened,
+  shouldRenderDisclosureBody,
+} from "@/lib/workbench-performance-gates";
+
+const DeferredMatterWorldStatePanelBody = dynamic(
+  () =>
+    import("@/components/matter-secondary-panel-bodies").then(
+      (module) => module.MatterWorldStatePanelBody,
+    ),
+  {
+    loading: () => <p className="muted-text">正在載入案件世界細節...</p>,
+  },
+);
+
+const DeferredMatterSettingsPanelBody = dynamic(
+  () =>
+    import("@/components/matter-secondary-panel-bodies").then(
+      (module) => module.MatterSettingsPanelBody,
+    ),
+  {
+    loading: () => <p className="muted-text">正在載入案件設定...</p>,
+  },
+);
+
+const DeferredMatterBackgroundPanelBody = dynamic(
+  () =>
+    import("@/components/matter-secondary-panel-bodies").then(
+      (module) => module.MatterBackgroundPanelBody,
+    ),
+  {
+    loading: () => <p className="muted-text">正在載入案件背景...</p>,
+  },
+);
+
+const DeferredMatterNonOverviewTabs = dynamic(
+  () =>
+    import("@/components/matter-nonoverview-tabs").then(
+      (module) => module.MatterNonOverviewTabs,
+    ),
+  {
+    loading: () => <p className="muted-text">正在載入案件分頁內容...</p>,
+  },
+);
 
 type MatterTab = "overview" | "decision" | "evidence" | "deliverables" | "history";
 
@@ -106,14 +148,37 @@ function DisclosurePanel({
   title,
   description,
   children,
+  lazy = true,
 }: {
   id?: string;
   title: string;
   description: string;
   children: ReactNode;
+  lazy?: boolean;
 }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [hasOpenedOnce, setHasOpenedOnce] = useState(false);
+  const shouldRenderBody = shouldRenderDisclosureBody({
+    lazy,
+    isOpen,
+    hasOpenedOnce,
+  });
+
   return (
-    <details className="panel disclosure-panel" id={id}>
+    <details
+      className="panel disclosure-panel"
+      id={id}
+      onToggle={(event) => {
+        const nextOpen = event.currentTarget.open;
+        setIsOpen(nextOpen);
+        setHasOpenedOnce((current) =>
+          noteDisclosureOpened({
+            nextOpen,
+            hasOpenedOnce: current,
+          }),
+        );
+      }}
+    >
       <summary className="disclosure-summary">
         <div>
           <h2 className="section-title">{title}</h2>
@@ -121,7 +186,7 @@ function DisclosurePanel({
         </div>
         <span className="pill">展開</span>
       </summary>
-      <div className="disclosure-body">{children}</div>
+      {shouldRenderBody ? <div className="disclosure-body">{children}</div> : null}
     </details>
   );
 }
@@ -185,13 +250,6 @@ function buildNextStepNotes(matter: MatterWorkspace, evidenceCount: number) {
   return Array.from(new Set(nextSteps)).slice(0, 4);
 }
 
-type MatterAdvanceGuide = {
-  title: string;
-  summary: string;
-  checklist: string[];
-  primaryActionLabel: string | null;
-};
-
 function mapContinuationActionIdToPayloadAction(actionId: string) {
   if (actionId === "close_case") {
     return "close";
@@ -206,118 +264,6 @@ function mapContinuationActionIdToPayloadAction(actionId: string) {
     return "record_outcome";
   }
   return null;
-}
-
-function buildMatterAdvanceGuide({
-  arrivedFromNew,
-  focusTask,
-  latestDeliverable,
-  sourceMaterialCount,
-  evidenceCount,
-  continuationSurface,
-}: {
-  arrivedFromNew: boolean;
-  focusTask: TaskListItem | null;
-  latestDeliverable: MatterDeliverableSummary | null;
-  sourceMaterialCount: number;
-  evidenceCount: number;
-  continuationSurface: ContinuationSurface | null;
-}): MatterAdvanceGuide {
-  const checklist = [
-    "先確認這個案件頁面上的「目前主線」是否就是你真正想要系統幫你收斂的判斷。",
-    sourceMaterialCount === 0
-      ? "如果你手上已有檔案、網址或會議摘要，先到來源與證據補件；如果還沒有，也可以直接先跑第一版骨架。"
-      : evidenceCount < 2
-        ? "目前已有一些材料，但證據仍偏薄；你可以先補件，也可以先產出第一版交付物再回來補強。"
-        : "目前材料與證據已有基本厚度，可以直接執行分析，讓 Host 產出正式交付物。",
-    latestDeliverable
-      ? `最新交付物「${latestDeliverable.title}」已形成，現在可以直接回看摘要、風險與行動項目。`
-      : focusTask
-        ? `真正會產出結果的是工作紀錄「${focusTask.title}」的執行分析；完成後會生成正式交付物。`
-        : "目前尚未找到可直接推進的工作紀錄。",
-  ];
-
-  if (
-    continuationSurface?.primary_action &&
-    continuationSurface.primary_action.action_id !== "run_analysis"
-  ) {
-    if (continuationSurface.workflow_layer === "closure") {
-      return {
-        title: "這案已可正式結案",
-        summary:
-          "這個單次案件已具備基本脈絡、證據與交付結果，下一步應偏向正式結案、發布或匯出，而不是進入持續追蹤。",
-        checklist,
-        primaryActionLabel: continuationSurface.primary_action.label,
-      };
-    }
-    if (continuationSurface.workflow_layer === "checkpoint") {
-      return {
-        title: "這案目前屬於回來更新 / checkpoint 節奏",
-        summary:
-          "這輪重點是回來更新、補件與 checkpoint，不是重新開新案，也不是進入完整長期追蹤。",
-        checklist,
-        primaryActionLabel: continuationSurface.primary_action.label,
-      };
-    }
-    if (continuationSurface.workflow_layer === "progression") {
-      return {
-        title: "這案目前屬於持續推進 / outcome 節奏",
-        summary:
-          "這輪重點是沿著同一個案件世界持續回看進度、action 狀態與結果訊號，不是單次 checkpoint 更新。",
-        checklist,
-        primaryActionLabel: continuationSurface.primary_action.label,
-      };
-    }
-    return {
-      title: continuationSurface.title,
-      summary: continuationSurface.summary,
-      checklist,
-      primaryActionLabel: continuationSurface.primary_action.label,
-    };
-  }
-
-  if (latestDeliverable) {
-    return {
-      title: arrivedFromNew ? "案件已建立，現在已有可回看的結果" : "目前已有可回看的結果",
-      summary: "這個案件已經形成交付物；如果要繼續推進，通常是回看交付物、補件後再改版，或切回工作紀錄重跑分析。",
-      checklist,
-      primaryActionLabel: null,
-    };
-  }
-
-  if (!focusTask) {
-    return {
-      title: arrivedFromNew ? "案件已建立，下一步先回到工作紀錄" : "先回到工作紀錄",
-      summary: "案件骨架已建立，但目前沒有可直接執行的焦點工作。請先打開工作紀錄，確認這輪分析的主線。",
-      checklist,
-      primaryActionLabel: null,
-    };
-  }
-
-  if (sourceMaterialCount === 0 || evidenceCount < 2) {
-    if (continuationSurface?.workflow_layer === "progression") {
-      return {
-        title: "這案目前屬於持續推進 / outcome 節奏",
-        summary:
-          "這個案件後續會持續追進度與結果，但現在還缺第一輪基線。先補件或先跑分析，之後再回到持續推進節奏。",
-        checklist,
-        primaryActionLabel: "先建立持續推進基線",
-      };
-    }
-    return {
-      title: arrivedFromNew ? "案件已建立，現在先補件或先跑第一版" : "現在先補件或先跑第一版",
-      summary: "建立案件只代表主鏈已成立，不代表結果已產出。你可以先補來源與證據，也可以直接讓系統先做一版可回看的交付物骨架。",
-      checklist,
-      primaryActionLabel: "直接產出第一版交付物",
-    };
-  }
-
-  return {
-    title: arrivedFromNew ? "案件已建立，現在可以直接產出結果" : "現在可以直接產出結果",
-    summary: "這個案件已具備基本材料與證據厚度。直接執行分析後，系統會把結果寫成正式交付物並帶你進入交付物工作面。",
-    checklist,
-    primaryActionLabel: "執行分析並打開交付物",
-  };
 }
 
 function splitMultilineContent(value: string) {
@@ -352,26 +298,6 @@ function buildResolvedMatterContentSections(
     next_steps:
       storedSections.next_steps || buildNextStepNotes(matter, evidenceCount).join("\n"),
   };
-}
-
-function labelForContentRevisionSource(source: string) {
-  if (source === "rollback") {
-    return "回退修訂";
-  }
-  if (source === "runtime_backfill") {
-    return "基線回填";
-  }
-  return "手動編修";
-}
-
-function labelForContentDiffChangeType(changeType: string) {
-  if (changeType === "added") {
-    return "新增";
-  }
-  if (changeType === "cleared") {
-    return "清空";
-  }
-  return "更新";
 }
 
 function serializeMatterContentSections(sections: MatterWorkspaceContentSections) {
@@ -682,6 +608,14 @@ export function MatterWorkspacePanel({
       ? `目前有 ${pendingCanonicalizationCount} 組需確認是否同一份材料；若要處理，請到來源 / 證據工作面。`
       : canonicalizationSummary.summary
     : "目前沒有待處理的重複材料候選。";
+  const matterDeferredTabPlan = buildMatterDeferredTabPlan();
+  const activeDeferredMatterTab = (matterDeferredTabPlan.find(
+    (item) => item.key === activeTab && item.lazy,
+  )?.key ?? null) as Exclude<MatterTab, "overview"> | null;
+  const matterOnDemandPanelPlan = buildMatterOnDemandPanelPlan();
+  const matterWorldStatePanel = matterOnDemandPanelPlan.find((item) => item.key === "worldState");
+  const matterSettingsPanel = matterOnDemandPanelPlan.find((item) => item.key === "settings");
+  const matterBackgroundPanel = matterOnDemandPanelPlan.find((item) => item.key === "background");
   const heroStrategySummary = flagshipLane
     ? `案件節奏：${continuityPosture.modeLabel}｜目前工作姿態：${materialReviewPosture.shouldShow ? materialReviewPosture.modeLabel : flagshipLane.label}｜目前交付等級：${flagshipLane.currentOutputLabel}`
     : continuityStrategySummary
@@ -1037,192 +971,6 @@ export function MatterWorkspacePanel({
                       <h3>下一步最建議做什麼</h3>
                       <p className="content-block">{heroNextActionSummary}</p>
                     </div>
-                    {continuationAdvisoryView.shouldShow ? (
-                      <div className="detail-item">
-                        <h3>案件健康</h3>
-                        <p className="content-block">{continuationAdvisoryView.healthLabel}</p>
-                        <p className="muted-text">{continuationAdvisoryView.healthSummary}</p>
-                      </div>
-                    ) : null}
-                    {continuationAdvisoryView.shouldShow && continuationAdvisoryView.reviewRhythmLabel ? (
-                      <div className="detail-item">
-                        <h3>下次回看節奏</h3>
-                        <p className="content-block">{continuationAdvisoryView.reviewRhythmLabel}</p>
-                        <p className="muted-text">
-                          {continuationAdvisoryView.nextReviewPrompt || continuationAdvisoryView.reviewRhythmSummary}
-                        </p>
-                      </div>
-                    ) : null}
-                    {flagshipDetailView.shouldShow ? (
-                      <div className="detail-item">
-                        <h3>{flagshipDetailView.sectionTitle}</h3>
-                        <div className="summary-grid">
-                          {flagshipDetailView.cards.map((card) => (
-                            <div className="section-card" key={`matter-flagship-${card.title}`}>
-                              <h4>{card.title}</h4>
-                              <p className="content-block">{card.summary}</p>
-                            </div>
-                          ))}
-                        </div>
-                        {flagshipDetailView.listItems.length > 0 ? (
-                          <>
-                            <h4 style={{ marginTop: "16px" }}>{flagshipDetailView.listTitle}</h4>
-                            <ul className="list-content" style={{ marginTop: "12px" }}>
-                              {flagshipDetailView.listItems.map((item) => (
-                                <li key={item}>{item}</li>
-                              ))}
-                            </ul>
-                          </>
-                        ) : null}
-                      </div>
-                    ) : null}
-                    {researchGuidance?.shouldShow ? (
-                      <div className="detail-item">
-                        <h3>{researchGuidance.label}</h3>
-                        <p className="content-block">
-                          {researchGuidance.depthLabel}｜{researchGuidance.firstQuestion}
-                        </p>
-                        <p className="muted-text">{researchGuidance.executionOwnerLabel}</p>
-                        {researchGuidance.sourceQualitySummary ? (
-                          <p className="muted-text">{researchGuidance.sourceQualitySummary}</p>
-                        ) : null}
-                        {researchGuidance.freshnessSummary ? (
-                          <p className="muted-text">{researchGuidance.freshnessSummary}</p>
-                        ) : null}
-                      </div>
-                    ) : null}
-                    {organizationMemoryView?.shouldShow ? (
-                      <div className="detail-item">
-                        <h3>{organizationMemoryView.sectionTitle}</h3>
-                        <p className="content-block">{organizationMemoryView.summary}</p>
-                        {organizationMemoryView.organizationLabel ? (
-                          <p className="muted-text">{organizationMemoryView.organizationLabel}</p>
-                        ) : null}
-                        {organizationMemoryView.sourceLifecycleSummary ? (
-                          <p className="muted-text">{organizationMemoryView.sourceLifecycleSummary}</p>
-                        ) : null}
-                        {organizationMemoryView.lifecyclePostureLabel ? (
-                          <p className="muted-text">來源姿態：{organizationMemoryView.lifecyclePostureLabel}</p>
-                        ) : null}
-                        {organizationMemoryView.freshnessSummary ? (
-                          <p className="muted-text">{organizationMemoryView.freshnessSummary}</p>
-                        ) : null}
-                        {organizationMemoryView.reactivationSummary ? (
-                          <p className="muted-text">{organizationMemoryView.reactivationSummary}</p>
-                        ) : null}
-                        {organizationMemoryView.stableContextItems.length > 0 ? (
-                          <ul className="list-content" style={{ marginTop: "12px" }}>
-                            {organizationMemoryView.stableContextItems.map((item) => (
-                              <li key={item}>{item}</li>
-                            ))}
-                          </ul>
-                        ) : null}
-                        {organizationMemoryView.crossMatterSummary ? (
-                          <p className="muted-text" style={{ marginTop: "12px" }}>
-                            {organizationMemoryView.crossMatterSummary}
-                          </p>
-                        ) : null}
-                        {organizationMemoryView.crossMatterItems.length > 0 ? (
-                          <div className="summary-grid" style={{ marginTop: "16px" }}>
-                            {organizationMemoryView.crossMatterItems.map((item) => (
-                              <div
-                                className="section-card"
-                                key={`matter-cross-memory-${item.matterWorkspaceId}`}
-                              >
-                                <h4>{item.title}</h4>
-                                <p className="content-block">{item.summary}</p>
-                                <p className="muted-text">{item.meta}</p>
-                                <Link
-                                  className="button-secondary"
-                                  href={`/matters/${item.matterWorkspaceId}`}
-                                  style={{ marginTop: "12px" }}
-                                >
-                                  打開相關案件
-                                </Link>
-                              </div>
-                            ))}
-                          </div>
-                        ) : null}
-                        {organizationMemoryView.continuityAnchor ? (
-                          <p className="muted-text" style={{ marginTop: "12px" }}>
-                            {organizationMemoryView.continuityAnchor}
-                          </p>
-                        ) : null}
-                        {organizationMemoryView.phaseSixSignalNote ? (
-                          <p className="muted-text" style={{ marginTop: "12px" }}>
-                            {organizationMemoryView.phaseSixSignalNote}
-                          </p>
-                        ) : null}
-                        <p className="muted-text" style={{ marginTop: "12px" }}>
-                          {organizationMemoryView.boundaryNote}
-                        </p>
-                      </div>
-                    ) : null}
-                    {domainPlaybookView?.shouldShow ? (
-                      <div className="detail-item">
-                        <h3>{domainPlaybookView.sectionTitle}</h3>
-                        <p className="content-block">{domainPlaybookView.summary}</p>
-                        {domainPlaybookView.playbookLabel ? (
-                          <p className="muted-text">{domainPlaybookView.playbookLabel}</p>
-                        ) : null}
-                        {domainPlaybookView.fitSummary ? (
-                          <p className="muted-text">{domainPlaybookView.fitSummary}</p>
-                        ) : null}
-                        {domainPlaybookView.sourceMixSummary ? (
-                          <p className="muted-text">{domainPlaybookView.sourceMixSummary}</p>
-                        ) : null}
-                        {domainPlaybookView.sourceLifecycleSummary ? (
-                          <p className="muted-text">{domainPlaybookView.sourceLifecycleSummary}</p>
-                        ) : null}
-                        {domainPlaybookView.lifecyclePostureLabel ? (
-                          <p className="muted-text">來源姿態：{domainPlaybookView.lifecyclePostureLabel}</p>
-                        ) : null}
-                        {domainPlaybookView.freshnessSummary ? (
-                          <p className="muted-text">{domainPlaybookView.freshnessSummary}</p>
-                        ) : null}
-                        {domainPlaybookView.recoveryBalanceSummary ? (
-                          <p className="muted-text">{domainPlaybookView.recoveryBalanceSummary}</p>
-                        ) : null}
-                        {domainPlaybookView.reactivationSummary ? (
-                          <p className="muted-text">{domainPlaybookView.reactivationSummary}</p>
-                        ) : null}
-                        {domainPlaybookView.decaySummary ? (
-                          <p className="muted-text">{domainPlaybookView.decaySummary}</p>
-                        ) : null}
-                        {domainPlaybookView.currentStageLabel ? (
-                          <p className="muted-text">
-                            目前這輪：{domainPlaybookView.currentStageLabel}
-                          </p>
-                        ) : null}
-                        {domainPlaybookView.nextStageLabel ? (
-                          <p className="muted-text">
-                            下一步通常接：{domainPlaybookView.nextStageLabel}
-                          </p>
-                        ) : null}
-                        {domainPlaybookView.listItems.length > 0 ? (
-                          <ul className="list-content" style={{ marginTop: "12px" }}>
-                            {domainPlaybookView.listItems.map((item) => (
-                              <li key={item}>{item}</li>
-                            ))}
-                          </ul>
-                        ) : null}
-                        {domainPlaybookView.phaseSixSignalNote ? (
-                          <p className="muted-text" style={{ marginTop: "12px" }}>
-                            {domainPlaybookView.phaseSixSignalNote}
-                          </p>
-                        ) : null}
-                        <p className="muted-text" style={{ marginTop: "12px" }}>
-                          {domainPlaybookView.boundaryNote}
-                        </p>
-                      </div>
-                    ) : null}
-                    {precedentCandidateSummaryView?.shouldShow ? (
-                      <div className="detail-item">
-                        <h3>{precedentCandidateSummaryView.title}</h3>
-                        <p className="content-block">{precedentCandidateSummaryView.summary}</p>
-                        <p className="muted-text">{precedentCandidateSummaryView.meta}</p>
-                      </div>
-                    ) : null}
                   </div>
                   <div className="section-card" id="matter-command-surface">
                     <h3>{matterCommandView?.blockerTitle ?? "這案目前最卡的地方"}</h3>
@@ -1440,9 +1188,9 @@ export function MatterWorkspacePanel({
                     <div className="detail-item">
                       <h3>案件後續模式</h3>
                       <p className="content-block">
-                        {continuationSurface.workflow_layer === "closure"
+                        {continuationSurface.workflow_layer === "closure" && latestDeliverable
                           ? "這案已可正式結案。這個單次案件已具備基本脈絡、證據與交付結果，下一步應偏向正式結案、發布或匯出，而不是進入持續追蹤。"
-                          : `${continuationSurface.title}。${continuationSurface.summary}`}
+                          : `${advanceGuide.title}。${advanceGuide.summary}`}
                       </p>
                     </div>
                   ) : null}
@@ -1536,6 +1284,188 @@ export function MatterWorkspacePanel({
                       ) : null}
                     </div>
                   ) : null}
+                  {continuationAdvisoryView.shouldShow ? (
+                    <div className="detail-item">
+                      <h3>案件健康</h3>
+                      <p className="content-block">{continuationAdvisoryView.healthLabel}</p>
+                      <p className="muted-text">{continuationAdvisoryView.healthSummary}</p>
+                      {continuationAdvisoryView.reviewRhythmLabel ? (
+                        <p className="muted-text">
+                          下次回看節奏：{continuationAdvisoryView.nextReviewPrompt || continuationAdvisoryView.reviewRhythmSummary}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {flagshipDetailView.shouldShow ? (
+                    <div className="detail-item">
+                      <h3>{flagshipDetailView.sectionTitle}</h3>
+                      <div className="summary-grid">
+                        {flagshipDetailView.cards.map((card) => (
+                          <div className="section-card" key={`matter-flagship-${card.title}`}>
+                            <h4>{card.title}</h4>
+                            <p className="content-block">{card.summary}</p>
+                          </div>
+                        ))}
+                      </div>
+                      {flagshipDetailView.listItems.length > 0 ? (
+                        <>
+                          <h4 style={{ marginTop: "16px" }}>{flagshipDetailView.listTitle}</h4>
+                          <ul className="list-content" style={{ marginTop: "12px" }}>
+                            {flagshipDetailView.listItems.map((item) => (
+                              <li key={item}>{item}</li>
+                            ))}
+                          </ul>
+                        </>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {researchGuidance?.shouldShow ? (
+                    <div className="detail-item">
+                      <h3>{researchGuidance.label}</h3>
+                      <p className="content-block">
+                        {researchGuidance.depthLabel}｜{researchGuidance.firstQuestion}
+                      </p>
+                      <p className="muted-text">{researchGuidance.executionOwnerLabel}</p>
+                      {researchGuidance.sourceQualitySummary ? (
+                        <p className="muted-text">{researchGuidance.sourceQualitySummary}</p>
+                      ) : null}
+                      {researchGuidance.freshnessSummary ? (
+                        <p className="muted-text">{researchGuidance.freshnessSummary}</p>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {organizationMemoryView?.shouldShow ? (
+                    <div className="detail-item">
+                      <h3>{organizationMemoryView.sectionTitle}</h3>
+                      <p className="content-block">{organizationMemoryView.summary}</p>
+                      {organizationMemoryView.organizationLabel ? (
+                        <p className="muted-text">{organizationMemoryView.organizationLabel}</p>
+                      ) : null}
+                      {organizationMemoryView.sourceLifecycleSummary ? (
+                        <p className="muted-text">{organizationMemoryView.sourceLifecycleSummary}</p>
+                      ) : null}
+                      {organizationMemoryView.lifecyclePostureLabel ? (
+                        <p className="muted-text">來源姿態：{organizationMemoryView.lifecyclePostureLabel}</p>
+                      ) : null}
+                      {organizationMemoryView.freshnessSummary ? (
+                        <p className="muted-text">{organizationMemoryView.freshnessSummary}</p>
+                      ) : null}
+                      {organizationMemoryView.reactivationSummary ? (
+                        <p className="muted-text">{organizationMemoryView.reactivationSummary}</p>
+                      ) : null}
+                      {organizationMemoryView.stableContextItems.length > 0 ? (
+                        <ul className="list-content" style={{ marginTop: "12px" }}>
+                          {organizationMemoryView.stableContextItems.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      ) : null}
+                      {organizationMemoryView.crossMatterSummary ? (
+                        <p className="muted-text" style={{ marginTop: "12px" }}>
+                          {organizationMemoryView.crossMatterSummary}
+                        </p>
+                      ) : null}
+                      {organizationMemoryView.crossMatterItems.length > 0 ? (
+                        <div className="summary-grid" style={{ marginTop: "16px" }}>
+                          {organizationMemoryView.crossMatterItems.map((item) => (
+                            <div
+                              className="section-card"
+                              key={`matter-cross-memory-${item.matterWorkspaceId}`}
+                            >
+                              <h4>{item.title}</h4>
+                              <p className="content-block">{item.summary}</p>
+                              <p className="muted-text">{item.meta}</p>
+                              <Link
+                                className="button-secondary"
+                                href={`/matters/${item.matterWorkspaceId}`}
+                                style={{ marginTop: "12px" }}
+                              >
+                                打開相關案件
+                              </Link>
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
+                      {organizationMemoryView.continuityAnchor ? (
+                        <p className="muted-text" style={{ marginTop: "12px" }}>
+                          {organizationMemoryView.continuityAnchor}
+                        </p>
+                      ) : null}
+                      {organizationMemoryView.phaseSixSignalNote ? (
+                        <p className="muted-text" style={{ marginTop: "12px" }}>
+                          {organizationMemoryView.phaseSixSignalNote}
+                        </p>
+                      ) : null}
+                      <p className="muted-text" style={{ marginTop: "12px" }}>
+                        {organizationMemoryView.boundaryNote}
+                      </p>
+                    </div>
+                  ) : null}
+                  {domainPlaybookView?.shouldShow ? (
+                    <div className="detail-item">
+                      <h3>{domainPlaybookView.sectionTitle}</h3>
+                      <p className="content-block">{domainPlaybookView.summary}</p>
+                      {domainPlaybookView.playbookLabel ? (
+                        <p className="muted-text">{domainPlaybookView.playbookLabel}</p>
+                      ) : null}
+                      {domainPlaybookView.fitSummary ? (
+                        <p className="muted-text">{domainPlaybookView.fitSummary}</p>
+                      ) : null}
+                      {domainPlaybookView.sourceMixSummary ? (
+                        <p className="muted-text">{domainPlaybookView.sourceMixSummary}</p>
+                      ) : null}
+                      {domainPlaybookView.sourceLifecycleSummary ? (
+                        <p className="muted-text">{domainPlaybookView.sourceLifecycleSummary}</p>
+                      ) : null}
+                      {domainPlaybookView.lifecyclePostureLabel ? (
+                        <p className="muted-text">來源姿態：{domainPlaybookView.lifecyclePostureLabel}</p>
+                      ) : null}
+                      {domainPlaybookView.freshnessSummary ? (
+                        <p className="muted-text">{domainPlaybookView.freshnessSummary}</p>
+                      ) : null}
+                      {domainPlaybookView.recoveryBalanceSummary ? (
+                        <p className="muted-text">{domainPlaybookView.recoveryBalanceSummary}</p>
+                      ) : null}
+                      {domainPlaybookView.reactivationSummary ? (
+                        <p className="muted-text">{domainPlaybookView.reactivationSummary}</p>
+                      ) : null}
+                      {domainPlaybookView.decaySummary ? (
+                        <p className="muted-text">{domainPlaybookView.decaySummary}</p>
+                      ) : null}
+                      {domainPlaybookView.currentStageLabel ? (
+                        <p className="muted-text">
+                          目前這輪：{domainPlaybookView.currentStageLabel}
+                        </p>
+                      ) : null}
+                      {domainPlaybookView.nextStageLabel ? (
+                        <p className="muted-text">
+                          下一步通常接：{domainPlaybookView.nextStageLabel}
+                        </p>
+                      ) : null}
+                      {domainPlaybookView.listItems.length > 0 ? (
+                        <ul className="list-content" style={{ marginTop: "12px" }}>
+                          {domainPlaybookView.listItems.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      ) : null}
+                      {domainPlaybookView.phaseSixSignalNote ? (
+                        <p className="muted-text" style={{ marginTop: "12px" }}>
+                          {domainPlaybookView.phaseSixSignalNote}
+                        </p>
+                      ) : null}
+                      <p className="muted-text" style={{ marginTop: "12px" }}>
+                        {domainPlaybookView.boundaryNote}
+                      </p>
+                    </div>
+                  ) : null}
+                  {precedentCandidateSummaryView?.shouldShow ? (
+                    <div className="detail-item">
+                      <h3>{precedentCandidateSummaryView.title}</h3>
+                      <p className="content-block">{precedentCandidateSummaryView.summary}</p>
+                      <p className="muted-text">{precedentCandidateSummaryView.meta}</p>
+                    </div>
+                  ) : null}
                   <div className="detail-item">
                     <h3>限制 / 風險</h3>
                     {constraintItems.length > 0 ? (
@@ -1591,912 +1521,136 @@ export function MatterWorkspacePanel({
 
               <DisclosurePanel
                 id="matter-world-state"
-                title="案件世界狀態與寫回策略"
+                title={matterWorldStatePanel?.title || "案件世界狀態與寫回策略"}
                 description={
                   matterUsabilityView?.worldStateDisclosureDescription ||
                   "只有在你要確認案件世界層的 identity authority、有哪些 task slices，以及會寫回到多深時，再展開這層。"
                 }
               >
-                <div className="summary-grid">
-                  <div className="section-card">
-                    <h4>連續性策略</h4>
-                    <p className="content-block">{continuityStrategySummary || "未設定"}</p>
-                  </div>
-                  <div className="section-card">
-                    <h4>World authority / task slices</h4>
-                    <p className="content-block">
-                      {caseWorldState
-                        ? `${caseWorldState.compiler_status}｜目前共有 ${caseWorldState.active_task_ids.length} 個 task slices`
-                        : "目前尚未形成正式案件世界狀態。"}
-                    </p>
-                  </div>
-                  <div className="section-card">
-                    <h4>世界身份 authority</h4>
-                    <p className="content-block">{worldAuthoritySummary}</p>
-                  </div>
-                  <div className="section-card">
-                    <h4>Case world 主問題</h4>
-                    <p className="content-block">
-                      {String(
-                        caseWorldState?.canonical_intake_summary.problem_statement ||
-                          latestCaseWorldDraft?.canonical_intake_summary.problem_statement ||
-                          coreQuestion,
-                      )}
-                    </p>
-                  </div>
-                  <div className="section-card">
-                    <h4>建議下一步</h4>
-                    <p className="content-block">
-                      {caseWorldState?.next_best_actions[0] ||
-                        latestCaseWorldDraft?.next_best_actions[0] ||
-                        "目前沒有額外建議。"}
-                    </p>
-                  </div>
-                  <div className="section-card">
-                    <h4>寫回紀錄</h4>
-                    <p className="content-block">
-                      {matter?.decision_records.length ?? 0} 筆 decision records / {matter?.outcome_records.length ?? 0} 筆 outcome records
-                    </p>
-                  </div>
-                  <div className="section-card">
-                    <h4>正式核可 / 稽核</h4>
-                    <p className="content-block">
-                      {pendingApprovalCount > 0
-                        ? `目前有 ${pendingApprovalCount} 筆待正式核可，另有 ${matter?.audit_events.length ?? 0} 筆稽核事件可回看。`
-                        : `目前沒有待正式核可項目；已留存 ${matter?.audit_events.length ?? 0} 筆稽核事件。`}
-                    </p>
-                  </div>
-                  <div className="section-card">
-                    <h4>共享材料連續性</h4>
-                    <p className="content-block">{sharedContinuitySummary}</p>
-                  </div>
-                  <div className="section-card">
-                    <h4>重複材料確認</h4>
-                    <p className="content-block">{canonicalizationSurfaceSummary}</p>
-                  </div>
-                </div>
-
-                {caseWorldState || latestCaseWorldDraft ? (
-                  <div className="detail-list" style={{ marginTop: "18px" }}>
-                    <div className="detail-item">
-                      <h3>目前已確認的 facts</h3>
-                      {(caseWorldState?.facts.length ?? latestCaseWorldDraft?.facts.length ?? 0) > 0 ? (
-                        <ul className="list-content">
-                          {(caseWorldState?.facts ?? latestCaseWorldDraft?.facts ?? []).slice(0, 5).map((item) => (
-                            <li key={`${item.title}-${item.detail}`}>{item.title}：{item.detail}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="empty-text">目前沒有額外 facts。</p>
-                      )}
-                    </div>
-                    <div className="detail-item">
-                      <h3>仍在沿用的 assumptions</h3>
-                      {(caseWorldState?.assumptions.length ?? latestCaseWorldDraft?.assumptions.length ?? 0) > 0 ? (
-                        <ul className="list-content">
-                          {(caseWorldState?.assumptions ?? latestCaseWorldDraft?.assumptions ?? []).slice(0, 5).map((item) => (
-                            <li key={`${item.title}-${item.detail}`}>{item.title}：{item.detail}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="empty-text">目前沒有額外 assumptions。</p>
-                      )}
-                    </div>
-                    <div className="detail-item">
-                      <h3>目前 evidence gaps</h3>
-                      {openEvidenceGaps.length > 0 ? (
-                        <ul className="list-content">
-                          {openEvidenceGaps.map((item) => (
-                            <li key={item.id}>
-                              {item.title}：{item.description}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="empty-text">目前沒有高優先 evidence gaps。</p>
-                      )}
-                    </div>
-                    {caseWorldState?.last_supplement_summary ? (
-                      <div className="detail-item">
-                        <h3>最近 world update</h3>
-                        <p className="content-block">
-                          這個案件世界最近一次補件先更新了 world state：{caseWorldState.last_supplement_summary}
-                        </p>
-                      </div>
-                    ) : null}
-                    <div className="detail-item">
-                      <h3>最近 decision / outcome</h3>
-                      {recentDecisionRecords.length > 0 || recentOutcomeRecords.length > 0 ? (
-                        <ul className="list-content">
-                          {recentDecisionRecords.map((item) => (
-                            <li key={item.id}>Decision：{item.decision_summary}</li>
-                          ))}
-                          {recentOutcomeRecords.map((item) => (
-                            <li key={item.id}>Outcome：{item.summary}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="empty-text">目前還沒有可回看的 writeback records。</p>
-                      )}
-                    </div>
-                    <div className="detail-item">
-                      <h3>最近正式核可 / 稽核</h3>
-                      {recentAuditEvents.length > 0 ? (
-                        <ul className="list-content">
-                          {recentAuditEvents.map((item) => (
-                            <li key={item.id}>
-                              {labelForAuditEventType(item.event_type)}｜{item.summary}
-                              {item.approval_status ? `｜${labelForApprovalStatus(item.approval_status)}` : ""}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="empty-text">目前還沒有額外的 writeback / approval 稽核事件。</p>
-                      )}
-                    </div>
-                    {canonicalizationCandidates.length > 0 ? (
-                      <div className="detail-item">
-                        <h3>需確認是否同一份材料</h3>
-                        <ul className="list-content">
-                          {canonicalizationCandidates.map((item) => (
-                            <li key={item.review_key}>
-                              {item.consultant_summary}
-                              <div style={{ marginTop: "8px" }}>
-                                <Link
-                                  className="back-link"
-                                  href={`/matters/${matterId}/artifact-evidence#evidence-duplicate-review`}
-                                >
-                                  到來源 / 證據工作面確認這組材料
-                                </Link>
-                              </div>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ) : null}
-                    {followUpLane ? (
-                      <div className="detail-item">
-                        <h3>建議 / 風險 / 行動延續</h3>
-                        <div className="summary-grid">
-                          <div className="section-card">
-                            <h4>建議延續</h4>
-                            {followUpLane.recommendation_changes.length > 0 ? (
-                              <ul className="list-content">
-                                {followUpLane.recommendation_changes.slice(0, 3).map((item) => (
-                                  <li key={`${item.kind}-${item.title}`}>{item.title}：{item.summary}</li>
-                                ))}
-                              </ul>
-                            ) : (
-                              <p className="empty-text">目前沒有額外的建議延續摘要。</p>
-                            )}
-                          </div>
-                          <div className="section-card">
-                            <h4>風險變化</h4>
-                            {followUpLane.risk_changes.length > 0 ? (
-                              <ul className="list-content">
-                                {followUpLane.risk_changes.slice(0, 3).map((item) => (
-                                  <li key={`${item.kind}-${item.title}`}>{item.title}：{item.summary}</li>
-                                ))}
-                              </ul>
-                            ) : (
-                              <p className="empty-text">目前沒有額外的風險變化摘要。</p>
-                            )}
-                          </div>
-                          <div className="section-card">
-                            <h4>行動延續</h4>
-                            {followUpLane.action_changes.length > 0 ? (
-                              <ul className="list-content">
-                                {followUpLane.action_changes.slice(0, 3).map((item) => (
-                                  <li key={`${item.kind}-${item.title}`}>{item.title}：{item.summary}</li>
-                                ))}
-                              </ul>
-                            ) : (
-                              <p className="empty-text">目前沒有額外的行動延續摘要。</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ) : null}
-                    {progressionLane ? (
-                      <div className="detail-item">
-                        <h3>推進延續</h3>
-                        <div className="summary-grid">
-                          <div className="section-card">
-                            <h4>最近推進</h4>
-                            <p className="content-block">
-                              {progressionLane.latest_progression?.summary || "目前還沒有新的推進更新。"}
-                            </p>
-                          </div>
-                          <div className="section-card">
-                            <h4>行動 / 結果摘要</h4>
-                            <ul className="list-content">
-                              {progressionLane.what_changed.map((item) => (
-                                <li key={item}>{item}</li>
-                              ))}
-                            </ul>
-                          </div>
-                          <div className="section-card">
-                            <h4>下一步建議</h4>
-                            <p className="content-block">
-                              {progressionLane.next_progression_actions[0] || "回案件工作面補一筆推進更新。"}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-                ) : (
-                  <p className="empty-text">目前尚未形成 case world draft。</p>
-                )}
+                <DeferredMatterWorldStatePanelBody
+                  matterId={matterId}
+                  continuityStrategySummary={continuityStrategySummary}
+                  caseWorldState={caseWorldState}
+                  latestCaseWorldDraft={latestCaseWorldDraft}
+                  worldAuthoritySummary={worldAuthoritySummary}
+                  coreQuestion={coreQuestion}
+                  decisionRecordCount={matter?.decision_records.length ?? 0}
+                  outcomeRecordCount={matter?.outcome_records.length ?? 0}
+                  pendingApprovalCount={pendingApprovalCount}
+                  auditEventCount={matter?.audit_events.length ?? 0}
+                  sharedContinuitySummary={sharedContinuitySummary}
+                  canonicalizationSurfaceSummary={canonicalizationSurfaceSummary}
+                  openEvidenceGaps={openEvidenceGaps}
+                  recentDecisionRecords={recentDecisionRecords}
+                  recentOutcomeRecords={recentOutcomeRecords}
+                  recentAuditEvents={recentAuditEvents}
+                  canonicalizationCandidates={canonicalizationCandidates}
+                  followUpLane={followUpLane}
+                  progressionLane={progressionLane}
+                />
               </DisclosurePanel>
 
               <DisclosurePanel
-                title="案件設定與同步"
+                title={matterSettingsPanel?.title || "案件設定與同步"}
                 description="只有在你要改案件名稱、狀態、摘要，或處理 fallback / re-sync 時再打開。"
               >
-                <div className="form-grid">
-                  <div className="field-grid">
-                    <div className="field">
-                      <label htmlFor="matter-title">案件名稱</label>
-                      <input
-                        id="matter-title"
-                        value={draftTitle}
-                        onChange={(event) => {
-                          setDraftTitle(event.target.value);
-                          setSaveMessage(null);
-                        }}
-                      />
-                    </div>
-
-                    <div className="field">
-                      <label htmlFor="matter-status">狀態</label>
-                      <select
-                        id="matter-status"
-                        value={draftStatus}
-                        onChange={(event) => {
-                          setDraftStatus(event.target.value as MatterLifecycleStatus);
-                          setSaveMessage(null);
-                        }}
-                      >
-                        <option value="active">進行中</option>
-                        <option value="paused">暫停</option>
-                        <option value="closed">已結案</option>
-                        <option value="archived">封存</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="field">
-                    <label htmlFor="matter-summary">簡短摘要</label>
-                    <textarea
-                      id="matter-summary"
-                      value={draftSummary}
-                      onChange={(event) => {
-                        setDraftSummary(event.target.value);
-                        setSaveMessage(null);
-                      }}
-                      placeholder="這個案件現在的狀態、處理範圍與下一步。"
-                    />
-                  </div>
-                </div>
-
-                <div className="button-row" style={{ marginTop: "16px" }}>
-                  <button className="button-primary" type="button" onClick={handleSave}>
-                    儲存案件資訊
-                  </button>
-                </div>
-                {saveMessage ? (
-                  <p
-                    className={
-                      saveTone === "error"
-                        ? "error-text"
-                        : saveTone === "success"
-                          ? "success-text"
-                        : "muted-text"
-                    }
-                    role={saveTone === "error" ? "alert" : "status"}
-                    aria-live={saveTone === "error" ? "assertive" : "polite"}
-                  >
-                    {saveMessage}
-                  </p>
-                ) : null}
-                {fallbackRecord && matterSyncState ? (
-                  <div className="section-card" style={{ marginTop: "12px" }}>
-                    <h4>同步狀態</h4>
-                    <p className="content-block">{buildMatterSyncFeedback(matterSyncState)}</p>
-                    {fallbackDiffItems.length > 0 && matterSyncState === "needs_review" ? (
-                      <ul className="list-content" style={{ marginTop: "12px" }}>
-                        {fallbackDiffItems.slice(0, 5).map((item) => (
-                          <li key={item.label}>
-                            {item.label}：遠端「{item.remote}」／本機「{item.local}」
-                          </li>
-                        ))}
-                      </ul>
-                    ) : null}
-                    <div className="button-row" style={{ marginTop: "12px" }}>
-                      <button
-                        className="button-secondary"
-                        type="button"
-                        onClick={() => void handleResyncMatterFallback()}
-                        disabled={isResyncing}
-                      >
-                        {isResyncing ? "同步中..." : matterSyncState === "needs_review" ? "以本機內容重新同步" : "重新同步正式資料"}
-                      </button>
-                      <button
-                        className="button-secondary"
-                        type="button"
-                        onClick={handleDiscardLocalFallback}
-                        disabled={isResyncing}
-                      >
-                        放棄本機暫存
-                      </button>
-                    </div>
-                  </div>
-                ) : null}
+                <DeferredMatterSettingsPanelBody
+                  draftTitle={draftTitle}
+                  draftStatus={draftStatus}
+                  draftSummary={draftSummary}
+                  onDraftTitleChange={(value) => {
+                    setDraftTitle(value);
+                    setSaveMessage(null);
+                  }}
+                  onDraftStatusChange={(value) => {
+                    setDraftStatus(value);
+                    setSaveMessage(null);
+                  }}
+                  onDraftSummaryChange={(value) => {
+                    setDraftSummary(value);
+                    setSaveMessage(null);
+                  }}
+                  onSave={handleSave}
+                  saveMessage={saveMessage}
+                  saveTone={saveTone}
+                  fallbackRecord={fallbackRecord}
+                  matterSyncState={matterSyncState}
+                  fallbackDiffItems={fallbackDiffItems}
+                  isResyncing={isResyncing}
+                  onResync={() => void handleResyncMatterFallback()}
+                  onDiscardLocalFallback={handleDiscardLocalFallback}
+                />
               </DisclosurePanel>
 
               <DisclosurePanel
-                title="案件背景與連續性"
+                title={matterBackgroundPanel?.title || "案件背景與連續性"}
                 description="當你需要核對案件路徑、最近更新、關聯代理 / 模組包與工作分布時，再展開這層。"
               >
-                <div className="summary-grid">
-                  <div className="section-card">
-                    <h4>案件路徑</h4>
-                    <p className="content-block">{matter.summary.object_path}</p>
-                  </div>
-                  <div className="section-card">
-                    <h4>最近更新</h4>
-                    <p className="content-block">
-                      {formatDisplayDate(fallbackRecord?.updatedAt || matter.summary.latest_updated_at)}
-                    </p>
-                  </div>
-                  <div className="section-card">
-                    <h4>關聯代理</h4>
-                    <p className="content-block">
-                      {agentNames.length > 0 ? agentNames.slice(0, 5).join("、") : "目前尚未顯示代理。"}
-                    </p>
-                  </div>
-                  <div className="section-card">
-                    <h4>關聯模組包</h4>
-                    <p className="content-block">
-                      {packNames.length > 0 ? packNames.slice(0, 5).join("、") : "目前尚未顯示模組包。"}
-                    </p>
-                  </div>
-                  <div className="section-card">
-                    <h4>來源 / 證據</h4>
-                    <p className="content-block">
-                      {matter.summary.source_material_count} 份來源，{evidenceCount} 則證據。
-                    </p>
-                  </div>
-                  <div className="section-card">
-                    <h4>交付物 / 工作紀錄</h4>
-                    <p className="content-block">
-                      {matter.summary.deliverable_count} 份交付物，{matter.summary.total_task_count} 筆工作紀錄。
-                    </p>
-                  </div>
-                </div>
+                <DeferredMatterBackgroundPanelBody
+                  matter={matter}
+                  fallbackRecord={fallbackRecord}
+                  agentNames={agentNames}
+                  packNames={packNames}
+                  evidenceCount={evidenceCount}
+                />
               </DisclosurePanel>
             </div>
           ) : null}
 
-          {activeTab === "decision" ? (
-            <div
-              className="detail-grid"
-              role="tabpanel"
-              id={MATTER_TAB_PANEL_IDS.decision}
-              aria-labelledby="matter-tab-decision"
-            >
-              <div className="detail-stack">
-                <section className="panel section-anchor" id="matter-evidence-overview">
-                  <div className="panel-header">
-                    <div>
-                      <h2 className="panel-title">核心問題</h2>
-                      <p className="panel-copy">把案件正文穩定寫回正式資料，讓核心問題、分析焦點、限制與下一步不再只停在即時摘要。</p>
-                    </div>
-                  </div>
-
-                  <div className="form-grid">
-                    <div className="field">
-                      <label htmlFor="matter-core-question">目前核心問題</label>
-                      <textarea
-                        id="matter-core-question"
-                        value={draftContentSections.core_question}
-                        onChange={(event) => {
-                          setDraftContentSections((current) => ({
-                            ...current,
-                            core_question: event.target.value,
-                          }));
-                          setSaveMessage(null);
-                        }}
-                        placeholder="這個案件目前真正要回答的核心判斷是什麼？"
-                      />
-                    </div>
-                    <div className="field">
-                      <label htmlFor="matter-analysis-focus">分析焦點</label>
-                      <textarea
-                        id="matter-analysis-focus"
-                        value={draftContentSections.analysis_focus}
-                        onChange={(event) => {
-                          setDraftContentSections((current) => ({
-                            ...current,
-                            analysis_focus: event.target.value,
-                          }));
-                          setSaveMessage(null);
-                        }}
-                        placeholder="可用換行列出分析焦點、工作流與重要 lens。"
-                      />
-                    </div>
-                    <div className="field">
-                      <label htmlFor="matter-constraints-risks">限制 / 風險</label>
-                      <textarea
-                        id="matter-constraints-risks"
-                        value={draftContentSections.constraints_and_risks}
-                        onChange={(event) => {
-                          setDraftContentSections((current) => ({
-                            ...current,
-                            constraints_and_risks: event.target.value,
-                          }));
-                          setSaveMessage(null);
-                        }}
-                        placeholder="目前最需要留意的限制、待補與風險。"
-                      />
-                    </div>
-                    <div className="field">
-                      <label htmlFor="matter-next-steps">下一步建議</label>
-                      <textarea
-                        id="matter-next-steps"
-                        value={draftContentSections.next_steps}
-                        onChange={(event) => {
-                          setDraftContentSections((current) => ({
-                            ...current,
-                            next_steps: event.target.value,
-                          }));
-                          setSaveMessage(null);
-                        }}
-                        placeholder="下一步建議、補件方向、應回看的工作面。"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="button-row" style={{ marginTop: "16px" }}>
-                    <button className="button-primary" type="button" onClick={handleSave}>
-                      儲存案件正文
-                    </button>
-                  </div>
-                  {saveMessage ? (
-                    <p
-                      className={
-                        saveTone === "error"
-                          ? "error-text"
-                          : saveTone === "success"
-                            ? "success-text"
-                            : "muted-text"
-                      }
-                      role={saveTone === "error" ? "alert" : "status"}
-                      aria-live={saveTone === "error" ? "assertive" : "polite"}
-                    >
-                      {saveMessage}
-                    </p>
-                  ) : null}
-                  {fallbackRecord && matterSyncState ? (
-                    <div className="section-card" style={{ marginTop: "12px" }}>
-                      <h4>待同步狀態</h4>
-                      <p className="content-block">{buildMatterSyncFeedback(matterSyncState)}</p>
-                      {fallbackDiffItems.length > 0 && matterSyncState === "needs_review" ? (
-                        <ul className="list-content" style={{ marginTop: "12px" }}>
-                          {fallbackDiffItems.slice(0, 5).map((item) => (
-                            <li key={item.label}>
-                              {item.label}：遠端「{item.remote}」／本機「{item.local}」
-                            </li>
-                          ))}
-                        </ul>
-                      ) : null}
-                      <div className="button-row" style={{ marginTop: "12px" }}>
-                        <button
-                          className="button-secondary"
-                          type="button"
-                          onClick={() => void handleResyncMatterFallback()}
-                          disabled={isResyncing}
-                        >
-                          {isResyncing ? "同步中..." : matterSyncState === "needs_review" ? "以本機內容重新同步" : "重新同步正式資料"}
-                        </button>
-                        <button
-                          className="button-secondary"
-                          type="button"
-                          onClick={handleDiscardLocalFallback}
-                          disabled={isResyncing}
-                        >
-                          放棄本機暫存
-                        </button>
-                      </div>
-                    </div>
-                  ) : null}
-                </section>
-              </div>
-
-              <div className="detail-stack">
-                <section className="panel section-anchor" id="matter-deliverables-overview">
-                  <div className="panel-header">
-                    <div>
-                      <h2 className="panel-title">決策脈絡</h2>
-                      <p className="panel-copy">用最近幾筆 decision trajectory 回看這個案件是怎麼推進過來的。</p>
-                    </div>
-                  </div>
-
-                  <div className="detail-list">
-                    <div className="detail-item">
-                      <h3>目前核心問題</h3>
-                      <p className="content-block">{coreQuestion}</p>
-                    </div>
-                    <div className="detail-item">
-                      <h3>分析焦點</h3>
-                      {analysisFocusItems.length > 0 ? (
-                        <ul className="list-content">
-                          {analysisFocusItems.map((item) => (
-                            <li key={item}>{item}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="empty-text">目前還沒有整理好的分析焦點。</p>
-                      )}
-                    </div>
-                    <div className="detail-item">
-                      <h3>限制 / 風險</h3>
-                      {constraintItems.length > 0 ? (
-                        <ul className="list-content">
-                          {constraintItems.map((item) => (
-                            <li key={item}>{item}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="empty-text">目前還沒有明確限制或風險。</p>
-                      )}
-                    </div>
-                    <div className="detail-item">
-                      <h3>下一步建議</h3>
-                      {nextStepItems.length > 0 ? (
-                        <ul className="list-content">
-                          {nextStepItems.map((item) => (
-                            <li key={item}>{item}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="empty-text">目前沒有額外的下一步建議。</p>
-                      )}
-                    </div>
-                    {matter.decision_trajectory.length > 0 ? (
-                      matter.decision_trajectory.map((item) => (
-                        <div
-                          className="detail-item"
-                          key={`${item.task_id}-${item.decision_context_id ?? item.decision_context_title}`}
-                        >
-                          <div className="meta-row">
-                            <span className="pill">{labelForTaskStatus(item.task_status)}</span>
-                            <span>{labelForDeliverableClass(item.deliverable_class_hint)}</span>
-                            <span>{formatDisplayDate(item.updated_at)}</span>
-                          </div>
-                          <h3>{item.decision_context_title}</h3>
-                          <p className="muted-text">{truncateText(item.judgment_to_make, 108)}</p>
-                          <Link className="back-link" href={`/tasks/${item.task_id}`}>
-                            進入這筆工作紀錄
-                          </Link>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="empty-text">目前還沒有可顯示的決策脈絡。</p>
-                    )}
-                  </div>
-                </section>
-
-                <section className="panel">
-                  <div className="panel-header">
-                    <div>
-                      <h2 className="panel-title">正文修訂</h2>
-                      <p className="panel-copy">這裡只追案件正文的演進、diff 與回退，不會和工作紀錄或發布歷史混在一起。</p>
-                    </div>
-                  </div>
-
-                  {fallbackRecord ? (
-                    <p className="muted-text">本機暫存尚未形成正式 revision；完成重新同步後，才會回到 backend 修訂歷史。</p>
-                  ) : null}
-
-                  {matter.content_revisions.length > 0 ? (
-                    <div className="detail-list">
-                      {matter.content_revisions.map((revision) => (
-                        <div className="detail-item" key={revision.id}>
-                          <div className="meta-row">
-                            <span className="pill">{labelForContentRevisionSource(revision.source)}</span>
-                            <span>{formatDisplayDate(revision.created_at)}</span>
-                          </div>
-                          <h3>{revision.revision_summary}</h3>
-                          {revision.diff_summary.length > 0 ? (
-                            <ul className="list-content">
-                              {revision.diff_summary.map((item) => (
-                                <li key={`${revision.id}-${item.section_key}`}>
-                                  {labelForContentDiffChangeType(item.change_type)} {item.section_label}
-                                  ：{item.previous_preview || "空白"} → {item.current_preview || "空白"}
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <p className="muted-text">這筆修訂目前沒有額外的 diff 摘要。</p>
-                          )}
-                          <div className="button-row" style={{ marginTop: "12px" }}>
-                            <button
-                              className="button-secondary"
-                              type="button"
-                              onClick={() => void handleRollbackRevision(revision)}
-                              disabled={
-                                Boolean(fallbackRecord) ||
-                                rollingBackRevisionId === revision.id ||
-                                revision.id === matter.content_revisions[0]?.id
-                              }
-                            >
-                              {rollingBackRevisionId === revision.id ? "回退中..." : "回退到這一版"}
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="empty-text">目前尚未建立正式正文修訂紀錄。</p>
-                  )}
-                </section>
-              </div>
-            </div>
-          ) : null}
-
-          {activeTab === "evidence" ? (
-            <div
-              className="detail-grid"
-              role="tabpanel"
-              id={MATTER_TAB_PANEL_IDS.evidence}
-              aria-labelledby="matter-tab-evidence"
-            >
-              <div className="detail-stack">
-                <section className="panel">
-                  <div className="panel-header">
-                    <div>
-                      <h2 className="panel-title">來源與證據</h2>
-                      <p className="panel-copy">先掌握目前依據厚度、材料狀態與保留期限，再決定要不要進完整的來源與證據工作面。</p>
-                    </div>
-                    <Link className="button-secondary" href={`/matters/${matterId}/evidence`}>
-                      打開完整來源與證據工作面
-                    </Link>
-                  </div>
-
-                  <div className="summary-grid">
-                    <div className="section-card">
-                      <h4>已掛接來源</h4>
-                      <p className="content-block">{matter.summary.source_material_count} 份來源材料</p>
-                    </div>
-                    <div className="section-card">
-                      <h4>證據摘要</h4>
-                      <p className="content-block">{evidenceCount} 則正式證據</p>
-                    </div>
-                    <div className="section-card">
-                      <h4>是否待補</h4>
-                      <p className="content-block">
-                        {evidenceCount < 2 || matter.summary.source_material_count === 0
-                          ? "是，建議先補齊來源與證據。"
-                          : "目前已有最小可用的依據厚度。"}
-                      </p>
-                    </div>
-                    <div className="section-card">
-                      <h4>補件入口</h4>
-                      <p className="content-block">完整整理、補件與支撐鏈回看，請進來源與證據工作面。</p>
-                    </div>
-                  </div>
-                </section>
-              </div>
-
-              <div className="detail-stack">
-                <section className="panel">
-                  <div className="panel-header">
-                    <div>
-                      <h2 className="panel-title">最近相關材料</h2>
-                      <p className="panel-copy">保留少量最近材料，讓你不用先回整個列表才能抓到依據主線。</p>
-                    </div>
-                  </div>
-                  <div className="detail-list">
-                    {visibleMaterials.length > 0 ? (
-                      visibleMaterials.map((item) => {
-                        const handling = describeRuntimeMaterialHandling({
-                          supportLevel: item.support_level,
-                          ingestStatus: item.ingest_status,
-                          ingestStrategy: item.ingest_strategy,
-                          metadataOnly: item.metadata_only,
-                          ingestionError: item.ingestion_error,
-                          diagnosticCategory: item.diagnostic_category,
-                          extractAvailability: item.extract_availability,
-                          currentUsableScope: item.current_usable_scope,
-                          context: remediationContext,
-                        });
-                        return (
-                          <div className="detail-item" key={`${item.object_type}-${item.object_id}`}>
-                            <div className="meta-row">
-                              <span className="pill">{item.object_type === "artifact" ? "工作物件" : "來源材料"}</span>
-                              {item.support_level ? (
-                                <span className={`intake-status-pill intake-status-${handling.status}`}>
-                                  {handling.statusLabel}
-                                </span>
-                              ) : null}
-                              <span>{formatDisplayDate(item.created_at)}</span>
-                            </div>
-                            <h3>{item.title}</h3>
-                            <p className="muted-text">
-                              {item.task_title}
-                              {item.file_extension ? `｜${labelForFileExtension(item.file_extension)}` : ""}
-                              {item.file_size ? `｜${formatFileSize(item.file_size)}` : ""}
-                            </p>
-                            <p className="content-block">{truncateText(item.summary || "目前沒有額外摘要。", 118)}</p>
-                            {item.object_type !== "artifact" ? (
-                              <>
-                                <p className="muted-text">
-                                  <strong>問題類型：</strong>
-                                  {handling.diagnosticLabel}
-                                </p>
-                                <p className="muted-text">
-                                  <strong>可能原因：</strong>
-                                  {handling.likelyCauseDetail}
-                                </p>
-                                <p
-                                  className={
-                                    handling.status === "accepted"
-                                      ? "success-text"
-                                      : handling.status === "limited" || handling.status === "pending"
-                                        ? "muted-text"
-                                        : "error-text"
-                                  }
-                                >
-                                  {handling.statusDetail}
-                                </p>
-                                <p className="muted-text">
-                                  <strong>目前可用範圍：</strong>
-                                  {handling.usableScopeLabel}｜{handling.usableScopeDetail}
-                                </p>
-                                <p className="muted-text">
-                                  <strong>會影響什麼：</strong>
-                                  {handling.impactDetail}
-                                </p>
-                                <p className="muted-text">
-                                  <strong>retry 判斷：</strong>
-                                  {handling.retryabilityLabel}｜{handling.retryabilityDetail}
-                                </p>
-                                <p className="muted-text">
-                                  <strong>建議下一步：</strong>
-                                  {handling.recommendedNextStep}
-                                </p>
-                                {handling.fallbackStrategy ? (
-                                  <p className="muted-text">
-                                    <strong>較佳替代方式：</strong>
-                                    {handling.fallbackStrategy}
-                                  </p>
-                                ) : null}
-                                <Link className="back-link" href={`/matters/${matterId}/evidence#evidence-supplement`}>
-                                  回補件入口處理這份材料
-                                </Link>
-                                <div className="meta-row">
-                                  {item.availability_state ? (
-                                    <span>{labelForStorageAvailability(item.availability_state)}</span>
-                                  ) : null}
-                                  {item.retention_policy ? (
-                                    <span>{labelForRetentionPolicy(item.retention_policy)}</span>
-                                  ) : null}
-                                  {item.purge_at ? (
-                                    <span>
-                                      {labelForRetentionState(item.purge_at)}｜{formatDisplayDate(item.purge_at)}
-                                    </span>
-                                  ) : null}
-                                </div>
-                              </>
-                            ) : null}
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <p className="empty-text">目前還沒有可顯示的來源或證據材料。</p>
-                    )}
-                  </div>
-                </section>
-              </div>
-            </div>
-          ) : null}
-
-          {activeTab === "deliverables" ? (
-            <div
-              className="detail-grid"
-              role="tabpanel"
-              id={MATTER_TAB_PANEL_IDS.deliverables}
-              aria-labelledby="matter-tab-deliverables"
-            >
-              <div className="detail-stack">
-                <section className="panel">
-                  <div className="panel-header">
-                    <div>
-                      <h2 className="panel-title">交付物</h2>
-                      <p className="panel-copy">從這裡直接進到交付物 detail workspace，不必再回純列表頁找入口。</p>
-                    </div>
-                    <Link className="button-secondary" href="/deliverables">
-                      查看全部交付物
-                    </Link>
-                  </div>
-                  <div className="detail-list">
-                    {matter.related_deliverables.length > 0 ? (
-                      matter.related_deliverables.map((item) => (
-                        <div className="detail-item" key={item.deliverable_id}>
-                          <div className="meta-row">
-                            <span className="pill">{item.status === "final" ? "定稿" : "工作中"}</span>
-                            <span>{item.version_tag}</span>
-                            <span>{formatDisplayDate(item.generated_at)}</span>
-                          </div>
-                          <h3>{item.title}</h3>
-                          <p className="muted-text">{item.task_title}</p>
-                          <p className="content-block">{truncateText(item.summary, 118)}</p>
-                          <div className="button-row" style={{ marginTop: "12px" }}>
-                            <Link className="button-secondary" href={`/deliverables/${item.deliverable_id}`}>
-                              打開交付物工作面
-                            </Link>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="empty-text">目前還沒有可顯示的交付物。</p>
-                    )}
-                  </div>
-                </section>
-              </div>
-            </div>
-          ) : null}
-
-          {activeTab === "history" ? (
-            <div
-              className="detail-grid"
-              role="tabpanel"
-              id={MATTER_TAB_PANEL_IDS.history}
-              aria-labelledby="matter-tab-history"
-            >
-              <div className="detail-stack">
-                <section className="panel">
-                  <div className="panel-header">
-                    <div>
-                      <h2 className="panel-title">工作紀錄</h2>
-                      <p className="panel-copy">這裡只保留案件內高度相關的近端活動摘要，完整整理仍回到歷史紀錄頁。</p>
-                    </div>
-                    <Link className="button-secondary" href="/history">
-                      查看全部歷史紀錄
-                    </Link>
-                  </div>
-                  <div className="detail-list">
-                    {visibleHistoryItems.length > 0 ? (
-                      visibleHistoryItems.map((task) => {
-                        const summary = buildTaskListWorkspaceSummary(task);
-
-                        return (
-                          <article className="detail-item" key={task.id}>
-                            <div className="meta-row">
-                              <span className="pill">{labelForTaskStatus(task.status)}</span>
-                              <span>{formatDisplayDate(task.updated_at)}</span>
-                            </div>
-                            <h3>{task.title}</h3>
-                            <p className="workspace-object-path">{summary.objectPath}</p>
-                            <p className="muted-text">{truncateText(summary.decisionContext, 92)}</p>
-                            <p className="content-block">{truncateText(task.description, 118)}</p>
-                            <div className="button-row" style={{ marginTop: "12px" }}>
-                              <Link className="button-secondary" href={`/tasks/${task.id}`}>
-                                打開工作紀錄
-                              </Link>
-                            </div>
-                          </article>
-                        );
-                      })
-                    ) : (
-                      <p className="empty-text">目前沒有可顯示的工作紀錄。</p>
-                    )}
-                  </div>
-                </section>
-              </div>
-            </div>
+          {activeDeferredMatterTab ? (
+            <DeferredMatterNonOverviewTabs
+              activeTab={activeDeferredMatterTab}
+              matterId={matterId}
+              matter={matter}
+              draftContentSections={draftContentSections}
+              onCoreQuestionChange={(value) => {
+                setDraftContentSections((current) => ({
+                  ...current,
+                  core_question: value,
+                }));
+                setSaveMessage(null);
+              }}
+              onAnalysisFocusChange={(value) => {
+                setDraftContentSections((current) => ({
+                  ...current,
+                  analysis_focus: value,
+                }));
+                setSaveMessage(null);
+              }}
+              onConstraintsAndRisksChange={(value) => {
+                setDraftContentSections((current) => ({
+                  ...current,
+                  constraints_and_risks: value,
+                }));
+                setSaveMessage(null);
+              }}
+              onNextStepsChange={(value) => {
+                setDraftContentSections((current) => ({
+                  ...current,
+                  next_steps: value,
+                }));
+                setSaveMessage(null);
+              }}
+              onSave={handleSave}
+              saveMessage={saveMessage}
+              saveTone={saveTone}
+              fallbackRecord={fallbackRecord}
+              matterSyncState={matterSyncState}
+              fallbackDiffItems={fallbackDiffItems}
+              isResyncing={isResyncing}
+              onResyncMatterFallback={() => void handleResyncMatterFallback()}
+              onDiscardLocalFallback={handleDiscardLocalFallback}
+              coreQuestion={coreQuestion}
+              analysisFocusItems={analysisFocusItems}
+              constraintItems={constraintItems}
+              nextStepItems={nextStepItems}
+              rollingBackRevisionId={rollingBackRevisionId}
+              onRollbackRevision={(revision) => void handleRollbackRevision(revision)}
+              evidenceCount={evidenceCount}
+              visibleMaterials={visibleMaterials}
+              remediationContext={remediationContext}
+              visibleHistoryItems={visibleHistoryItems}
+            />
           ) : null}
         </>
       ) : null}

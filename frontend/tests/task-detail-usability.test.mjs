@@ -96,7 +96,8 @@ test("task detail usability view points to deliverable when a result already exi
   assert.equal(view.primaryActionLabel, "打開正式交付物");
   assert.equal(view.primaryHref, "#deliverable-surface");
   assert.equal(view.guideItems[2]?.href, "#deliverable-surface");
-  assert.match(view.railSummary, /市場風險評估 memo/);
+  assert.equal(view.railEyebrow, "跑完去哪裡");
+  assert.match(view.railSummary, /先回正式交付物閱讀、修訂或發布/);
 });
 
 test("task detail usability view keeps the guide focused on readiness, run decision, and result destination", () => {
@@ -221,7 +222,33 @@ test("task detail usability view aligns the rail with the same handoff contract"
     continuationSummary: "",
   });
 
+  assert.equal(view.railEyebrow, "跑完去哪裡");
   assert.match(view.railTitle, /案件工作面/);
   assert.match(view.railSummary, /先回案件工作面補脈絡與證據/);
   assert.match(view.handoffReasonLabel, /脈絡/);
+});
+
+test("task detail operating notes keep the labels direct and consultant-facing", () => {
+  const view = buildTaskDetailUsabilityView({
+    hasThinTaskEvidence: false,
+    hasLatestDeliverable: false,
+    latestDeliverableTitle: "",
+    hasMatterWorkspace: true,
+    runButtonLabel: "執行分析",
+    runDestinationLabel: "執行後會先寫回正式交付結果。",
+    laneTitle: "目前交付等級",
+    laneSummary: "這筆工作已具備基本分析條件。",
+    readinessLabel: "可直接推進",
+    readinessSummary: "目前資料已達基本可運作狀態。",
+    evidenceCount: 3,
+    sourceMaterialCount: 2,
+    hasResearchGuidance: true,
+    researchSummary: "先確認第一個 research question 與 stop condition。",
+    hasContinuationSummary: false,
+    continuationSummary: "",
+  });
+
+  assert.equal(view.operatingNotes[0]?.label, "最有槓桿的下一步");
+  assert.equal(view.operatingNotes[1]?.label, "目前最大限制");
+  assert.equal(view.operatingNotes[2]?.label, "不直接跑時");
 });

@@ -9,6 +9,7 @@ import {
   summarizeDemoShowcaseHighlights,
 } from "@/lib/demo-workspace";
 import type { DemoWorkspaceSnapshot } from "@/lib/types";
+import { SURFACE_LABELS } from "@/lib/workbench-surface-labels";
 
 export function DemoPagePanel() {
   const [snapshot, setSnapshot] = useState<DemoWorkspaceSnapshot | null>(null);
@@ -38,8 +39,8 @@ export function DemoPagePanel() {
   return (
     <main className="page-shell">
       <section className="section-card">
-        <p className="hero-focus-label">Demo Workspace</p>
-        <h1>{snapshot?.title || "Infinite Pro Demo Workspace"}</h1>
+        <p className="hero-focus-label">{SURFACE_LABELS.demoWorkspace}</p>
+        <h1>{snapshot?.title || `Infinite Pro ${SURFACE_LABELS.demoWorkspace}`}</h1>
         <p className="section-copy">{buildDemoEntryCopy(snapshot)}</p>
         <p className="section-copy">{snapshot?.heroSummary || "這裡展示的是固定 sample dataset 的唯讀工作流。"}</p>
       </section>
@@ -47,21 +48,21 @@ export function DemoPagePanel() {
       <section className="summary-grid">
         <article className="section-card">
           <p className="muted-text">你會看到什麼</p>
-          <strong>固定 showcase highlights</strong>
+          <strong>{SURFACE_LABELS.showcaseHighlights}</strong>
           <p className="section-copy">
             {summarizeDemoShowcaseHighlights(snapshot?.showcaseHighlights || [])}
           </p>
         </article>
         <article className="section-card">
           <p className="muted-text">為何不能操作</p>
-          <strong>read-only boundary</strong>
+          <strong>{SURFACE_LABELS.readOnlyBoundary}</strong>
           <p className="section-copy">
-            這個 demo 只用來展示產品工作流，不是正式辦案 workspace。
+            這個 demo 只用來展示產品工作流，不是正式辦案工作台。
           </p>
         </article>
         <article className="section-card">
           <p className="muted-text">正式版怎麼用</p>
-          <strong>formal workspace</strong>
+          <strong>{SURFACE_LABELS.formalWorkspace}</strong>
           <p className="section-copy">{buildFormalWorkspaceExplainer(snapshot)}</p>
         </article>
       </section>
@@ -69,7 +70,7 @@ export function DemoPagePanel() {
       {error ? <p className="error-text">{error}</p> : null}
 
       <section className="section-card">
-        <h2>Demo 規則</h2>
+        <h2>{SURFACE_LABELS.demoRules}</h2>
         <ul className="detail-list">
           {(snapshot?.readOnlyRules || []).map((rule) => (
             <li key={rule}>{rule}</li>

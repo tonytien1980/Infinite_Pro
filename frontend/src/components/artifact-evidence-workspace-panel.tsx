@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { ChangeEvent, FormEvent, ReactNode, useEffect, useRef, useState } from "react";
 
-import { IntakeMaterialPreviewList } from "@/components/intake-material-preview-list";
 import {
   buildArtifactEvidenceWorkspaceView,
   buildFlagshipDetailView,
@@ -16,10 +16,7 @@ import {
   resolveMatterCanonicalizationReview,
   uploadMatterFiles,
 } from "@/lib/api";
-import {
-  buildContinuationDetailView,
-  buildContinuationFocusSummary,
-} from "@/lib/continuation-advisory";
+import { buildContinuationDetailView } from "@/lib/continuation-advisory";
 import {
   appendSelectedFiles,
   buildIntakePreviewItems,
@@ -37,27 +34,80 @@ import {
   buildResearchDetailView,
   buildResearchGuidanceView,
 } from "@/lib/research-lane";
-import type { ArtifactEvidenceWorkspace, RetrievalProvenance } from "@/lib/types";
+import { buildEvidenceWorkspaceUsabilityView } from "@/lib/consultant-usability";
+import { buildEvidenceOnDemandPanelPlan } from "@/lib/workbench-lazy-surface-plan";
+import type { ArtifactEvidenceWorkspace } from "@/lib/types";
 import {
-  labelForCanonicalizationMatchBasis,
-  labelForCanonicalizationReviewStatus,
-  formatFileSize,
   formatDisplayDate,
   labelForEngagementContinuityMode,
-  labelForEvidenceStrength,
-  labelForEvidenceType,
-  labelForFileExtension,
-  labelForPresenceState,
-  labelForRetentionPolicy,
-  labelForRetentionState,
-  labelForRetrievalSupportKind,
-  labelForSourceIngestStrategy,
-  labelForSourceType,
-  labelForStorageAvailability,
-  labelForTaskStatus,
   labelForWritebackDepth,
 } from "@/lib/ui-labels";
 import { WorkspaceSectionGuide } from "@/components/workspace-section-guide";
+import {
+  noteDisclosureOpened,
+  shouldRenderDisclosureBody,
+  shouldRenderPendingIntakePreviewList,
+} from "@/lib/workbench-performance-gates";
+
+const DeferredIntakeMaterialPreviewList = dynamic(
+  () =>
+    import("@/components/intake-material-preview-list").then(
+      (module) => module.IntakeMaterialPreviewList,
+    ),
+  {
+    loading: () => <p className="muted-text">正在整理待補材料列表...</p>,
+  },
+);
+
+const DeferredEvidenceDuplicateReviewPanelBody = dynamic(
+  () =>
+    import("@/components/evidence-secondary-panel-bodies").then(
+      (module) => module.EvidenceDuplicateReviewPanelBody,
+    ),
+  {
+    loading: () => <p className="muted-text">正在載入重複材料確認...</p>,
+  },
+);
+
+const DeferredEvidenceMaterialsPanelBody = dynamic(
+  () =>
+    import("@/components/evidence-secondary-panel-bodies").then(
+      (module) => module.EvidenceMaterialsPanelBody,
+    ),
+  {
+    loading: () => <p className="muted-text">正在載入來源材料...</p>,
+  },
+);
+
+const DeferredEvidenceArtifactsPanelBody = dynamic(
+  () =>
+    import("@/components/evidence-secondary-panel-bodies").then(
+      (module) => module.EvidenceArtifactsPanelBody,
+    ),
+  {
+    loading: () => <p className="muted-text">正在載入工作物件...</p>,
+  },
+);
+
+const DeferredEvidenceChainsPanelBody = dynamic(
+  () =>
+    import("@/components/evidence-secondary-panel-bodies").then(
+      (module) => module.EvidenceChainsPanelBody,
+    ),
+  {
+    loading: () => <p className="muted-text">正在載入證據支撐鏈...</p>,
+  },
+);
+
+const DeferredEvidenceRelatedTasksPanelBody = dynamic(
+  () =>
+    import("@/components/evidence-secondary-panel-bodies").then(
+      (module) => module.EvidenceRelatedTasksPanelBody,
+    ),
+  {
+    loading: () => <p className="muted-text">正在載入相關工作紀錄...</p>,
+  },
+);
 
 function CompactList({
   items,
@@ -84,14 +134,37 @@ function DisclosurePanel({
   title,
   description,
   children,
+  lazy = true,
 }: {
   id?: string;
   title: string;
   description: string;
   children: ReactNode;
+  lazy?: boolean;
 }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [hasOpenedOnce, setHasOpenedOnce] = useState(false);
+  const shouldRenderBody = shouldRenderDisclosureBody({
+    lazy,
+    isOpen,
+    hasOpenedOnce,
+  });
+
   return (
-    <details className="panel disclosure-panel section-anchor" id={id}>
+    <details
+      className="panel disclosure-panel section-anchor"
+      id={id}
+      onToggle={(event) => {
+        const nextOpen = event.currentTarget.open;
+        setIsOpen(nextOpen);
+        setHasOpenedOnce((current) =>
+          noteDisclosureOpened({
+            nextOpen,
+            hasOpenedOnce: current,
+          }),
+        );
+      }}
+    >
       <summary className="disclosure-summary">
         <div>
           <h2 className="section-title">{title}</h2>
@@ -99,79 +172,8 @@ function DisclosurePanel({
         </div>
         <span className="pill">展開</span>
       </summary>
-      <div className="disclosure-body">{children}</div>
+      {shouldRenderBody ? <div className="disclosure-body">{children}</div> : null}
     </details>
-  );
-}
-
-function buildEvidenceIssueDiagnostic({
-  evidenceType,
-  workflowLayer,
-  updateGoal,
-}: {
-  evidenceType: string;
-  workflowLayer: string | null | undefined;
-  updateGoal?: string | null;
-}) {
-  const isIngestIssue = evidenceType === "source_ingestion_issue" || evidenceType === "uploaded_file_ingestion_issue";
-  const isUnparsed = evidenceType === "source_unparsed" || evidenceType === "uploaded_file_unparsed";
-
-  if (!isIngestIssue && !isUnparsed) {
-    return null;
-  }
-
-  const laneImpact =
-    workflowLayer === "checkpoint"
-      ? updateGoal
-        ? `這會直接影響這輪後續更新想補的缺口：${updateGoal}`
-        : "這會直接影響這輪後續更新能不能站穩。"
-      : workflowLayer === "progression"
-        ? updateGoal
-          ? `這會直接影響這輪 continuous 想驗證的 action / outcome：${updateGoal}`
-          : "這會直接影響這輪 continuous 判斷能不能續推。"
-        : "先把它當成限制提示，而不是正式內容證據。";
-
-  if (isIngestIssue) {
-    return {
-      diagnosticLabel: "來源匯入異常",
-      usableScopeLabel: "目前不可當正式內容證據",
-      usableScopeDetail: "只能視為問題提示，不能直接當成可正式引用的證據。",
-      guidance: `若你還需要它，建議補文字版、可讀 URL 或人工摘要，再回主線續推。${laneImpact}`,
-    };
-  }
-
-  return {
-    diagnosticLabel: "來源仍待解析",
-    usableScopeLabel: "目前不可先當正文引用",
-    usableScopeDetail: "現在不能先假設已成功抽出正文；若後續仍只停在 pending / metadata-only，仍需補替代材料。",
-    guidance: `若後續仍只停在 pending / metadata-only，建議補文字版、可讀 URL 或摘要。${laneImpact}`,
-  };
-}
-
-function RetrievalProvenanceBlock({
-  provenance,
-}: {
-  provenance: RetrievalProvenance | null;
-}) {
-  if (!provenance) {
-    return null;
-  }
-
-  return (
-    <div style={{ marginTop: "12px" }}>
-      <h3>{labelForRetrievalSupportKind(provenance.support_kind)}</h3>
-      <div className="meta-row">
-        {provenance.source_document_title ? <span>{provenance.source_document_title}</span> : null}
-        {provenance.locator_label ? <span>{provenance.locator_label}</span> : null}
-        {provenance.support_level ? <span>支援層級：{provenance.support_level}</span> : null}
-        {provenance.usable_scope ? <span>可用範圍：{provenance.usable_scope}</span> : null}
-      </div>
-      {provenance.excerpt_text ? (
-        <p className="content-block">{provenance.excerpt_text}</p>
-      ) : provenance.preview_text ? (
-        <p className="muted-text">{provenance.preview_text}</p>
-      ) : null}
-    </div>
   );
 }
 
@@ -248,10 +250,21 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
   const continuationSurface = workspace?.continuation_surface ?? null;
   const followUpLane = continuationSurface?.follow_up_lane ?? null;
   const progressionLane = continuationSurface?.progression_lane ?? null;
-  const continuationFocusSummary = buildContinuationFocusSummary(continuationSurface);
   const continuationDetailView = buildContinuationDetailView(continuationSurface);
   const canonicalizationSummary = workspace?.canonicalization_summary ?? null;
   const canonicalizationCandidates = workspace?.canonicalization_candidates ?? [];
+  const evidenceOnDemandPanelPlan = buildEvidenceOnDemandPanelPlan({
+    hasCanonicalizationCandidates: canonicalizationCandidates.length > 0,
+  });
+  const evidenceDuplicateReviewPanel = evidenceOnDemandPanelPlan.find(
+    (item) => item.key === "duplicateReview",
+  );
+  const evidenceMaterialsPanel = evidenceOnDemandPanelPlan.find((item) => item.key === "materials");
+  const evidenceArtifactsPanel = evidenceOnDemandPanelPlan.find((item) => item.key === "artifacts");
+  const evidenceChainsPanel = evidenceOnDemandPanelPlan.find((item) => item.key === "chains");
+  const evidenceRelatedTasksPanel = evidenceOnDemandPanelPlan.find(
+    (item) => item.key === "relatedTasks",
+  );
   const focusTask = workspace?.related_tasks[0] ?? null;
   const evidenceActionTitle =
     workspace?.matter_summary.engagement_continuity_mode === "one_off" &&
@@ -297,90 +310,24 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
       ? `補完之後，下一步建議是：${followUpLane.next_follow_up_actions[0]}`
       : "補完之後再回案件工作面，確認這輪案件主線要怎麼續推。",
   ];
-  const sharedContinuitySummary =
-    workspace && (workspace.source_material_cards.length > 0 || workspace.evidence_chains.length > 0)
-      ? (() => {
-          const sharedCount = new Set(
-            [
-              ...workspace.source_material_cards
-                .filter((item) => item.participation_task_count > 1)
-                .map((item) => item.object_id),
-              ...workspace.evidence_chains
-                .filter((item) => (item.evidence.participation?.participation_task_count ?? 0) > 1)
-                .map((item) => item.evidence.id),
-            ],
-          ).size;
-          return sharedCount > 0
-            ? `補進來的材料與證據會優先掛回同一個案件世界；目前至少有 ${sharedCount} 條 shared chains 已透過正式 participation mapping 被多個 task slices 共用，task 連結只作相容層入口。`
-            : "補進來的材料與證據會優先掛回同一個案件世界，後續 task slices 可直接回看，不必再各自重傳。";
-        })()
-      : "目前還沒有可跨 task slices 連續使用的正式材料 / 證據。";
   const evidenceSectionGuideItems = workspace
-    ? [
-        {
-          href: "#evidence-sufficiency",
-          eyebrow: "先看缺什麼",
-          title: "充分性摘要與高影響缺口",
-          copy: "先判斷目前案件缺的是什麼，再決定要補件、回工作紀錄，還是去看交付物。",
-          meta:
-            workspaceView?.summary ||
-            workspace.sufficiency_summary ||
-            "先確認目前證據是否足以支撐這輪判斷。",
-          tone: workspace.high_impact_gaps.length > 0 ? ("warm" as const) : ("accent" as const),
-        },
-        {
-          href: "#evidence-supplement",
-          eyebrow: "真的要補時",
-          title: "補件與新增來源",
-          copy: "需要補檔案、網址或補充文字時，直接走這條正式補件主鏈，不要另開新的孤立工作。",
-          meta:
-            progressionLane?.evidence_update_goal ||
-            followUpLane?.evidence_update_goal ||
-            (workspace.source_material_cards.length === 0
-              ? "目前尚無正式來源材料。"
-              : "補件後會直接掛回同一個案件世界。"),
-          tone: "accent" as const,
-        },
-        ...(canonicalizationCandidates.length > 0
-          ? [
-              {
-                href: "#evidence-duplicate-review",
-                eyebrow: "只在需要時",
-                title: "重複材料確認",
-                copy: "只有在系統懷疑同一案件世界裡長出近似重複材料時，才需要回到這裡做人工確認。",
-                meta:
-                  canonicalizationSummary?.summary ||
-                  `目前有 ${canonicalizationCandidates.length} 組待確認候選。`,
-                tone: "warm" as const,
-              },
-            ]
-          : []),
-        {
-          href: "#evidence-materials",
-          eyebrow: "回看原始材料",
-          title: "來源材料與工作物件",
-          copy: "要核對材料角色、保留狀態與已連結輸出時，再展開這層詳細列表。",
-          meta: `${workspace.source_material_cards.length} 份來源材料 / ${workspace.artifact_cards.length} 份工作物件`,
-          tone: "default" as const,
-        },
-        {
-          href: "#evidence-chains",
-          eyebrow: "檢查支撐鏈",
-          title: "證據支撐鏈",
-          copy: "當你要確認某個建議、風險或交付物到底由哪些證據支撐，就往這裡下鑽。",
-          meta: `${workspace.evidence_chains.length} 則證據支撐鏈`,
-          tone: "default" as const,
-        },
-        {
-          href: "#evidence-related-tasks",
-          eyebrow: "回主線前",
-          title: "相關工作紀錄",
-          copy: "這些工作紀錄共同構成目前案件的證據世界，需要回主線推進時再回來對照。",
-          meta: `${workspace.related_tasks.length} 筆相關工作紀錄`,
-          tone: "default" as const,
-        },
-      ]
+    ? buildEvidenceWorkspaceUsabilityView({
+        hasHighImpactGaps: workspace.high_impact_gaps.length > 0,
+        hasFocusTask: Boolean(focusTask),
+        focusTaskTitle: focusTask?.title || "",
+        sourceMaterialCount: workspace.source_material_cards.length,
+        evidenceCount: workspace.evidence_chains.length,
+      }).guideItems
     : [];
+  const evidenceUsabilityView = workspace
+    ? buildEvidenceWorkspaceUsabilityView({
+        hasHighImpactGaps: workspace.high_impact_gaps.length > 0,
+        hasFocusTask: Boolean(focusTask),
+        focusTaskTitle: focusTask?.title || "",
+        sourceMaterialCount: workspace.source_material_cards.length,
+        evidenceCount: workspace.evidence_chains.length,
+      })
+    : null;
   const normalizedUrls = urlsText
     .split("\n")
     .map((item) => item.trim())
@@ -451,13 +398,6 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
     ? `${flagshipLane.currentOutputSummary} ${workspaceView?.summary || evidenceHeroSummary}`
     : workspaceView?.summary || evidenceHeroSummary;
   const flagshipDetailView = buildFlagshipDetailView(flagshipLane);
-  const evidenceLaneSummary = followUpLane
-    ? followUpLane.latest_update?.summary || "尚未形成正式檢查點。"
-    : progressionLane
-      ? progressionLane.latest_progression?.summary || "目前還沒有新的推進更新。"
-      : workspace && workspace.high_impact_gaps.length > 0
-        ? `目前仍有 ${workspace.high_impact_gaps.length} 個高影響缺口`
-        : "目前沒有額外的高影響缺口。";
   const recentAttemptItems = [...sessionItemStates]
     .filter((item) => (item.progress.attemptCount ?? 0) > 0 || item.progress.latestAttemptLabel)
     .sort((left, right) => (right.progress.lastUpdatedAt ?? 0) - (left.progress.lastUpdatedAt ?? 0))
@@ -976,44 +916,23 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                 <div className="hero-focus-card hero-focus-card-warm">
                   <p className="hero-focus-label">這頁先做什麼</p>
                   <ul className="hero-focus-list">
-                    {evidenceActionChecklist.map((item) => (
+                    {evidenceActionChecklist.slice(0, 3).map((item) => (
                       <li key={item}>{item}</li>
                     ))}
                   </ul>
                 </div>
                 <div className="hero-focus-card">
                   <p className="hero-focus-label">
-                    {researchGuidance?.shouldShow
-                      ? researchGuidance.label
-                      : continuationFocusSummary.shouldShow
-                        ? continuationFocusSummary.label
-                        : followUpLane
-                          ? "最近檢查點"
-                          : progressionLane
-                            ? "最近推進狀態"
-                          : "目前最要緊的限制"}
+                    {evidenceUsabilityView?.railEyebrow || "補完後回哪裡"}
                   </p>
                   <h3 className="hero-focus-title">
-                    {researchGuidance?.shouldShow
-                      ? `${researchGuidance.depthLabel}｜${researchGuidance.firstQuestion}`
-                      : continuationFocusSummary.shouldShow
-                        ? continuationFocusSummary.title
-                        : evidenceLaneSummary}
+                    {evidenceUsabilityView?.railTitle || (focusTask ? "先回焦點工作紀錄" : "先回案件工作面")}
                   </h3>
                   <p className="hero-focus-copy">
-                    {researchGuidance?.shouldShow
-                      ? `${researchGuidance.executionOwnerLabel}｜${
-                          researchGuidance.sourceQualitySummary || researchGuidance.stopCondition || researchGuidance.handoffSummary
-                        }${researchGuidance.freshnessSummary ? `｜${researchGuidance.freshnessSummary}` : ""}`
-                      : continuationFocusSummary.shouldShow
-                        ? continuationFocusSummary.copy
-                      : followUpLane
-                      ? `下一步：${followUpLane.next_follow_up_actions[0] || "補完後回案件工作面更新檢查點。"}`
-                      : progressionLane
-                        ? `下一步：${progressionLane.next_progression_actions[0] || "回案件工作面更新推進狀態。"}`
-                        : flagshipLane?.upgradeRequirements[0] ||
-                          flagshipLane?.nextStepSummary ||
-                          sharedContinuitySummary}
+                    {evidenceUsabilityView?.railCopy ||
+                      (focusTask
+                        ? `補完後先回「${focusTask.title}」確認這輪判斷是否已能續推。`
+                        : "補完後先回案件工作面確認主線是否已站穩。")}
                   </p>
                 </div>
               </div>
@@ -1046,8 +965,11 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
           </section>
 
           <WorkspaceSectionGuide
-            title="這個證據工作面怎麼讀最快"
-            description="先看充分性與缺口，再決定是否補件。全量來源清單、證據支撐鏈與相關工作紀錄都放在後面，需要時再展開。"
+            title={evidenceUsabilityView?.sectionGuideTitle || "這個證據工作面怎麼讀最快"}
+            description={
+              evidenceUsabilityView?.sectionGuideDescription ||
+              "先看到底缺什麼，再決定補哪種材料；補完後再回主線續推。"
+            }
             items={evidenceSectionGuideItems}
           />
 
@@ -1315,20 +1237,26 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
 
               <div className="field">
                 <label>這次待補的材料</label>
-                <IntakeMaterialPreviewList
-                  items={pendingPreviewItems}
-                  progressByItemId={progressByItemId}
-                  keepAsReferenceByItemId={keepAsReferenceByItemId}
-                  onRemove={(item) => {
-                    handleRemovePendingPreviewItem(item.id);
-                    setSupplementError(null);
-                    setSupplementMessage(null);
-                  }}
-                  onRetry={retryPendingPreviewItem}
-                  onReplace={replacePendingPreviewItem}
-                  onKeepAsReference={toggleKeepAsReference}
-                  emptyText="先補一句明確材料就夠了；這裡會逐項列出待補檔案、URL 與補充文字。"
-                />
+                {shouldRenderPendingIntakePreviewList(pendingPreviewItems.length) ? (
+                  <DeferredIntakeMaterialPreviewList
+                    items={pendingPreviewItems}
+                    progressByItemId={progressByItemId}
+                    keepAsReferenceByItemId={keepAsReferenceByItemId}
+                    onRemove={(item) => {
+                      handleRemovePendingPreviewItem(item.id);
+                      setSupplementError(null);
+                      setSupplementMessage(null);
+                    }}
+                    onRetry={retryPendingPreviewItem}
+                    onReplace={replacePendingPreviewItem}
+                    onKeepAsReference={toggleKeepAsReference}
+                    emptyText="先補一句明確材料就夠了；這裡會逐項列出待補檔案、URL 與補充文字。"
+                  />
+                ) : (
+                  <p className="empty-text">
+                    先補一句明確材料就夠了；這裡會逐項列出待補檔案、URL 與補充文字。
+                  </p>
+                )}
                 <small>
                   補件材料會逐項顯示限制、影響、blocking 與下一步動作；若這輪有 retryable failure，也可直接在 item 上重試。
                 </small>
@@ -1443,458 +1371,58 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
               {canonicalizationCandidates.length > 0 ? (
               <DisclosurePanel
                 id="evidence-duplicate-review"
-                title="需確認是否同一份材料"
+                title={evidenceDuplicateReviewPanel?.title || "需確認是否同一份材料"}
                 description="只有在系統懷疑同一案件世界裡可能長出近似重複材料時，再展開這層。平常不用先處理。"
               >
-                <div className="summary-grid">
-                  <div className="section-card">
-                    <h4>目前狀態</h4>
-                    <p className="content-block">
-                      {canonicalizationSummary?.summary || "目前沒有待處理的重複材料候選。"}
-                    </p>
-                  </div>
-                  <div className="section-card">
-                    <h4>待人工確認</h4>
-                    <p className="content-block">
-                      {canonicalizationSummary?.pending_review_count ?? 0} 組
-                    </p>
-                  </div>
-                  <div className="section-card">
-                    <h4>已掛回同一條材料鏈</h4>
-                    <p className="content-block">
-                      {canonicalizationSummary?.human_confirmed_count ?? 0} 組
-                    </p>
-                  </div>
-                  <div className="section-card">
-                    <h4>已保留分開 / 拆回分開</h4>
-                    <p className="content-block">
-                      {(canonicalizationSummary?.kept_separate_count ?? 0) +
-                        (canonicalizationSummary?.split_count ?? 0)}{" "}
-                      組
-                    </p>
-                  </div>
-                </div>
-
-                {canonicalizationMessage ? (
-                  <p className="success-text" style={{ marginTop: "16px" }}>
-                    {canonicalizationMessage}
-                  </p>
-                ) : null}
-                {canonicalizationError ? (
-                  <p className="error-text" style={{ marginTop: "16px" }}>
-                    {canonicalizationError}
-                  </p>
-                ) : null}
-
-                <div className="detail-list" style={{ marginTop: "18px" }}>
-                  {canonicalizationCandidates.length > 0 ? (
-                    canonicalizationCandidates.map((item) => {
-                      const isResolving = resolvingCanonicalizationKey === item.review_key;
-                      const canConfirmMerge =
-                        item.review_status !== "human_confirmed_canonical_row";
-                      const canKeepSeparate = item.review_status === "pending_review";
-                      const canSplit =
-                        item.review_status === "human_confirmed_canonical_row";
-                      return (
-                        <div className="detail-item" key={item.review_key}>
-                          <div className="meta-row">
-                            <span className="pill">
-                              {labelForCanonicalizationReviewStatus(item.review_status)}
-                            </span>
-                            <span>{labelForCanonicalizationMatchBasis(item.match_basis)}</span>
-                            <span>
-                              {item.confidence_level === "high" ? "高信心候選" : "中信心候選"}
-                            </span>
-                            <span>影響 {item.task_count} 個 work slices</span>
-                          </div>
-                          <h3>{item.canonical_title || "未標示來源材料"}</h3>
-                          <p className="content-block">{item.consultant_summary}</p>
-                          <div className="meta-row">
-                            <span>{item.candidate_count} 份近似材料</span>
-                            <span>canonical owner：案件世界</span>
-                            <span>task 只保留工作切片參與</span>
-                          </div>
-                          {item.affected_task_titles.length > 0 ? (
-                            <p className="muted-text">
-                              <strong>涉及工作：</strong>
-                              {item.affected_task_titles.join("、")}
-                            </p>
-                          ) : null}
-                          {item.resolution_note ? (
-                            <p className="muted-text">
-                              <strong>最近判斷：</strong>
-                              {item.resolution_note}
-                            </p>
-                          ) : null}
-                          <div className="button-row" style={{ marginTop: "12px" }}>
-                            {canConfirmMerge ? (
-                              <button
-                                className="button-secondary"
-                                type="button"
-                                disabled={isResolving}
-                                onClick={() =>
-                                  void handleResolveCanonicalization(
-                                    item.review_key,
-                                    "human_confirmed_canonical_row",
-                                    "這組近似材料已確認掛回同一條正式材料鏈。",
-                                  )
-                                }
-                              >
-                                {isResolving ? "處理中..." : "確認掛回同一份材料"}
-                              </button>
-                            ) : null}
-                            {canKeepSeparate ? (
-                              <button
-                                className="button-secondary"
-                                type="button"
-                                disabled={isResolving}
-                                onClick={() =>
-                                  void handleResolveCanonicalization(
-                                    item.review_key,
-                                    "keep_separate",
-                                    "這組近似材料已先保留分開。",
-                                  )
-                                }
-                              >
-                                {isResolving ? "處理中..." : "先保留分開"}
-                              </button>
-                            ) : null}
-                            {canSplit ? (
-                              <button
-                                className="button-secondary"
-                                type="button"
-                                disabled={isResolving}
-                                onClick={() =>
-                                  void handleResolveCanonicalization(
-                                    item.review_key,
-                                    "split",
-                                    "這組材料已拆回分開，不再共用同一條正式材料鏈。",
-                                  )
-                                }
-                              >
-                                {isResolving ? "處理中..." : "改回分開"}
-                              </button>
-                            ) : null}
-                          </div>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <p className="empty-text">目前沒有待處理的重複材料候選。</p>
-                  )}
-                </div>
+                <DeferredEvidenceDuplicateReviewPanelBody
+                  canonicalizationSummary={canonicalizationSummary}
+                  canonicalizationCandidates={canonicalizationCandidates}
+                  canonicalizationMessage={canonicalizationMessage}
+                  canonicalizationError={canonicalizationError}
+                  resolvingCanonicalizationKey={resolvingCanonicalizationKey}
+                  onResolveCanonicalization={handleResolveCanonicalization}
+                />
               </DisclosurePanel>
               ) : null}
 
               <DisclosurePanel
                 id="evidence-materials"
-                title="來源材料"
+                title={evidenceMaterialsPanel?.title || "來源材料"}
                 description="這裡列出目前案件世界內可直接回看的來源材料。平常先看上方摘要，需要核對材料角色、保留狀態與支撐數量時再展開。"
               >
-                <p className="panel-copy" style={{ marginBottom: "16px" }}>
-                  若卡片上仍顯示某筆 task 連結，那是相容層入口，方便你回到相關工作紀錄；不代表這份材料只屬於那筆 task。
-                </p>
-                <div className="detail-list">
-                  {workspace.source_material_cards.length > 0 ? (
-                    workspace.source_material_cards.map((item) => {
-                      const handling = describeRuntimeMaterialHandling({
-                        supportLevel: item.support_level,
-                        ingestStatus: item.ingest_status,
-                        ingestStrategy: item.ingest_strategy,
-                        metadataOnly: item.metadata_only,
-                        ingestionError: item.ingestion_error,
-                        diagnosticCategory: item.diagnostic_category,
-                        extractAvailability: item.extract_availability,
-                        currentUsableScope: item.current_usable_scope,
-                        context: remediationContext,
-                      });
-                      return (
-                        <div className="detail-item" key={item.object_id}>
-                          <div className="meta-row">
-                            <span className="pill">{item.role_label}</span>
-                            <span>{labelForPresenceState(item.presence_state)}</span>
-                            <span className={`intake-status-pill intake-status-${handling.status}`}>
-                              {handling.statusLabel}
-                            </span>
-                            <span>{formatDisplayDate(item.created_at)}</span>
-                          </div>
-                          <h3>{item.title}</h3>
-                          <p className="muted-text">
-                            {labelForSourceType(item.source_type || "manual_input")}
-                            {item.file_extension ? `｜${labelForFileExtension(item.file_extension)}` : ""}
-                            {item.file_size ? `｜${formatFileSize(item.file_size)}` : ""}
-                            {item.source_ref ? `｜${item.source_ref}` : ""}
-                          </p>
-                          <p className="content-block">{item.summary || "目前沒有可顯示的來源摘要。"}</p>
-                          <p className="muted-text">
-                            <strong>問題類型：</strong>
-                            {handling.diagnosticLabel}
-                          </p>
-                          <p className="muted-text">
-                            <strong>可能原因：</strong>
-                            {handling.likelyCauseDetail}
-                          </p>
-                          <p
-                            className={
-                              handling.status === "accepted"
-                                ? "success-text"
-                                : handling.status === "limited" || handling.status === "pending"
-                                  ? "muted-text"
-                                  : "error-text"
-                            }
-                          >
-                            {handling.statusDetail}
-                          </p>
-                          <p className="muted-text">
-                            <strong>目前可用範圍：</strong>
-                            {handling.usableScopeLabel}｜{handling.usableScopeDetail}
-                          </p>
-                          <p className="muted-text">
-                            <strong>會影響什麼：</strong>
-                            {handling.impactDetail}
-                          </p>
-                          <p className="muted-text">
-                            <strong>retry 判斷：</strong>
-                            {handling.retryabilityLabel}｜{handling.retryabilityDetail}
-                          </p>
-                          <p className="muted-text">
-                            <strong>建議下一步：</strong>
-                            {handling.recommendedNextStep}
-                          </p>
-                          {handling.fallbackStrategy ? (
-                            <p className="muted-text">
-                              <strong>較佳替代方式：</strong>
-                              {handling.fallbackStrategy}
-                            </p>
-                          ) : null}
-                          <Link className="back-link" href="#evidence-supplement">
-                            回補件入口處理這份材料
-                          </Link>
-                          <div className="meta-row">
-                            <span>{item.linked_evidence_count} 則已連結證據</span>
-                            <span>{item.linked_output_count} 項已連結輸出</span>
-                            {item.participation_task_count > 1 ? (
-                              <span>共享於 {item.participation_task_count} 個 work slices</span>
-                            ) : null}
-                            {item.mapping_mode === "explicit_mapping" &&
-                            item.canonical_owner_scope === "world_canonical" ? (
-                              <span>案件世界正式鏈</span>
-                            ) : null}
-                            {item.mapping_mode === "compatibility_task_ref" ? (
-                              <span>相容層 task ref</span>
-                            ) : null}
-                            <span>{labelForSourceIngestStrategy(item.ingest_strategy)}</span>
-                            <span>{labelForStorageAvailability(item.availability_state)}</span>
-                          </div>
-                          <div className="meta-row">
-                            <span>{labelForRetentionPolicy(item.retention_policy)}</span>
-                            <span>{labelForRetentionState(item.purge_at)}</span>
-                            {item.purge_at ? <span>預計清理：{formatDisplayDate(item.purge_at)}</span> : null}
-                          </div>
-                          <Link className="back-link" href={`/tasks/${item.task_id}`}>
-                            打開來源工作紀錄：{item.task_title}
-                          </Link>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <p className="empty-text">目前還沒有可顯示的來源材料。</p>
-                  )}
-                </div>
+                <DeferredEvidenceMaterialsPanelBody
+                  sourceMaterialCards={workspace.source_material_cards}
+                  remediationContext={remediationContext}
+                />
               </DisclosurePanel>
 
               <DisclosurePanel
-                title="工作物件"
+                title={evidenceArtifactsPanel?.title || "工作物件"}
                 description="這些是已正式進入來源 / 證據工作面的工作物件，不是原始附件清單。需要核對 artifact 角色時再展開。"
               >
-                <div className="detail-list">
-                  {workspace.artifact_cards.length > 0 ? (
-                    workspace.artifact_cards.map((item) => (
-                      <div className="detail-item" key={item.object_id}>
-                        <div className="meta-row">
-                          <span className="pill">{item.role_label}</span>
-                          <span>{labelForPresenceState(item.presence_state)}</span>
-                          <span>{formatDisplayDate(item.created_at)}</span>
-                        </div>
-                        <h3>{item.title}</h3>
-                        <p className="content-block">{item.summary || "目前沒有額外工作物件摘要。"}</p>
-                        <div className="meta-row">
-                          <span>{item.linked_evidence_count} 則已連結證據</span>
-                          <span>{item.linked_output_count} 項已連結輸出</span>
-                          {item.participation_task_count > 1 ? (
-                            <span>共享於 {item.participation_task_count} 個 work slices</span>
-                          ) : null}
-                          {item.mapping_mode === "explicit_mapping" &&
-                          item.canonical_owner_scope === "world_canonical" ? (
-                            <span>案件世界正式鏈</span>
-                          ) : null}
-                          {item.mapping_mode === "compatibility_task_ref" ? (
-                            <span>相容層 task ref</span>
-                          ) : null}
-                        </div>
-                        <Link className="back-link" href={`/tasks/${item.task_id}`}>
-                          打開來源工作紀錄：{item.task_title}
-                        </Link>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="empty-text">目前還沒有可顯示的工作物件。</p>
-                  )}
-                </div>
+                <DeferredEvidenceArtifactsPanelBody artifactCards={workspace.artifact_cards} />
               </DisclosurePanel>
             </div>
 
             <div className="detail-stack">
               <DisclosurePanel
                 id="evidence-chains"
-                title="證據支撐鏈"
+                title={evidenceChainsPanel?.title || "證據支撐鏈"}
                 description="這裡正式顯示證據對建議 / 風險 / 行動的支撐鏈。平常先看上方摘要，需要逐條核對支撐關係時再展開。"
               >
-                <div className="detail-list">
-                  {workspace.evidence_chains.length > 0 ? (
-                    workspace.evidence_chains.map((item) => {
-                      const evidenceIssueDiagnostic = buildEvidenceIssueDiagnostic({
-                        evidenceType: item.evidence.evidence_type,
-                        workflowLayer: continuationSurface?.workflow_layer,
-                        updateGoal:
-                          progressionLane?.evidence_update_goal ||
-                          followUpLane?.evidence_update_goal,
-                      });
-
-                      return (
-                      <div className="detail-item" key={item.evidence.id}>
-                        <div className="meta-row">
-                          <span className="pill">{labelForEvidenceType(item.evidence.evidence_type)}</span>
-                          <span>{labelForEvidenceStrength(item.strength_label)}</span>
-                          <span>{item.evidence.reliability_level}</span>
-                          <span>{formatDisplayDate(item.evidence.created_at)}</span>
-                        </div>
-                        <h3>{item.evidence.title}</h3>
-                        <p className="muted-text">
-                          {item.source_material_title ? `來源材料：${item.source_material_title}` : "尚未連到來源材料"}
-                          {"｜"}
-                          {item.artifact_title ? `工作物件：${item.artifact_title}` : "尚未連到工作物件"}
-                        </p>
-                        <p className="content-block">{item.evidence.excerpt_or_summary}</p>
-                        <RetrievalProvenanceBlock provenance={item.evidence.retrieval_provenance} />
-                        <p className="muted-text">{item.sufficiency_note}</p>
-                        {evidenceIssueDiagnostic ? (
-                          <>
-                            <p className="muted-text">
-                              <strong>問題類型：</strong>
-                              {evidenceIssueDiagnostic.diagnosticLabel}
-                            </p>
-                            <p className="muted-text">
-                              <strong>目前可用範圍：</strong>
-                              {evidenceIssueDiagnostic.usableScopeLabel}
-                              ｜
-                              {evidenceIssueDiagnostic.usableScopeDetail}
-                            </p>
-                            <p className="muted-text">
-                              <strong>補救導引：</strong>
-                              {evidenceIssueDiagnostic.guidance}
-                            </p>
-                          </>
-                        ) : null}
-
-                        {item.linked_recommendations.length > 0 ? (
-                          <div style={{ marginTop: "12px" }}>
-                            <h3>支撐的建議</h3>
-                            <ul className="list-content">
-                              {item.linked_recommendations.map((target) => (
-                                <li key={`${item.evidence.id}-recommendation-${target.target_id}`}>
-                                  {target.title}
-                                  {target.note ? `｜${target.note}` : ""}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        ) : null}
-
-                        {item.linked_risks.length > 0 ? (
-                          <div style={{ marginTop: "12px" }}>
-                            <h3>支撐的風險</h3>
-                            <ul className="list-content">
-                              {item.linked_risks.map((target) => (
-                                <li key={`${item.evidence.id}-risk-${target.target_id}`}>
-                                  {target.title}
-                                  {target.note ? `｜${target.note}` : ""}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        ) : null}
-
-                        {item.linked_action_items.length > 0 ? (
-                          <div style={{ marginTop: "12px" }}>
-                            <h3>支撐的行動項目</h3>
-                            <ul className="list-content">
-                              {item.linked_action_items.map((target) => (
-                                <li key={`${item.evidence.id}-action-${target.target_id}`}>
-                                  {target.title}
-                                  {target.note ? `｜${target.note}` : ""}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        ) : null}
-
-                        {item.linked_deliverables.length > 0 ? (
-                          <div style={{ marginTop: "12px" }}>
-                            <h3>用於交付物</h3>
-                            <ul className="list-content">
-                              {item.linked_deliverables.map((target) => (
-                                <li key={`${item.evidence.id}-deliverable-${target.target_id}`}>
-                                  {target.target_id ? (
-                                    <Link className="back-link" href={`/deliverables/${target.target_id}`}>
-                                      {target.title}
-                                    </Link>
-                                  ) : (
-                                    target.title
-                                  )}
-                                  {target.note ? `｜${target.note}` : ""}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        ) : null}
-
-                        <Link className="back-link" href={`/tasks/${item.evidence.task_id}`}>
-                          打開來源工作紀錄：{item.task_title}
-                        </Link>
-                      </div>
-                    );
-                    })
-                  ) : (
-                    <p className="empty-text">目前還沒有可顯示的證據支撐鏈。</p>
-                  )}
-                </div>
+                <DeferredEvidenceChainsPanelBody
+                  evidenceChains={workspace.evidence_chains}
+                  continuationSurface={continuationSurface}
+                  updateGoal={progressionLane?.evidence_update_goal || followUpLane?.evidence_update_goal}
+                />
               </DisclosurePanel>
 
               <DisclosurePanel
                 id="evidence-related-tasks"
-                title="這個工作面中的相關工作紀錄"
+                title={evidenceRelatedTasksPanel?.title || "這個工作面中的相關工作紀錄"}
                 description="這些工作紀錄共同構成目前的來源 / 證據世界。需要回主線推進或對照哪筆工作產出了哪些證據時，再展開。"
               >
-                <div className="history-list">
-                  {workspace.related_tasks.length > 0 ? (
-                    workspace.related_tasks.map((task) => (
-                      <Link href={`/tasks/${task.id}`} key={task.id} className="history-item">
-                        <div className="meta-row">
-                          <span className="pill">{labelForTaskStatus(task.status)}</span>
-                          <span>{task.evidence_count} 則證據</span>
-                          <span>{task.deliverable_count} 份交付物</span>
-                        </div>
-                        <h3>{task.title}</h3>
-                        <p className="muted-text">
-                          {task.decision_context_title || task.description || "目前沒有可顯示的決策問題。"}
-                        </p>
-                      </Link>
-                    ))
-                  ) : (
-                    <p className="empty-text">目前沒有可顯示的相關工作紀錄。</p>
-                  )}
-                </div>
+                <DeferredEvidenceRelatedTasksPanelBody relatedTasks={workspace.related_tasks} />
               </DisclosurePanel>
             </div>
           </div>

@@ -37,7 +37,7 @@ test("decision brief view separates recommendation from publish posture", () => 
     boundary_note: "這仍是第一版正式判斷，不是最終 published version。",
   });
 
-  assert.equal(view.railEyebrow, "Decision Brief");
+  assert.equal(view.railEyebrow, "決策摘要");
   assert.match(view.summary, /先用兩週修營運瓶頸/);
   assert.match(view.boundaryNote, /第一版正式判斷/);
 });

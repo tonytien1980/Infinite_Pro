@@ -136,7 +136,7 @@ export function buildTaskDetailUsabilityView(input: {
       label: input.hasContinuationSummary
         ? "接續工作時"
         : input.hasResearchGuidance
-          ? "目前最大 caution"
+          ? "目前最大限制"
           : "主線限制",
       copy: input.hasContinuationSummary
         ? input.continuationSummary
@@ -146,7 +146,7 @@ export function buildTaskDetailUsabilityView(input: {
     },
     {
       href: input.hasContinuationSummary ? "#readiness-governance" : "#run-panel",
-      label: input.hasContinuationSummary ? "主線限制" : "接續工作時",
+      label: input.hasContinuationSummary ? "目前最大限制" : "不直接跑時",
       copy: input.hasContinuationSummary
         ? `${input.readinessLabel}｜${input.readinessSummary}`
         : input.runDestinationLabel,
@@ -178,14 +178,14 @@ export function buildTaskDetailUsabilityView(input: {
     guideTitle: "這頁怎麼讀最快",
     guideDescription: "先判斷能不能跑，再決定是直接執行、先補依據，還是回看正式結果。",
     guideItems,
-    railEyebrow: input.laneTitle,
+    railEyebrow: "跑完去哪裡",
     railTitle: handoffTitle,
     railSummary:
       handoffTarget === "deliverable" && input.latestDeliverableTitle
-        ? `${handoffSummary}｜最新結果是「${input.latestDeliverableTitle}」。`
+        ? `最新結果「${input.latestDeliverableTitle}」已形成，先回正式交付物閱讀、修訂或發布。`
         : handoffTarget === "task"
-        ? `${handoffSummary}｜${input.laneSummary}`
-        : handoffSummary,
+        ? "這輪還不需要離開 task，先決定要不要直接執行。"
+        : "先回案件工作面補脈絡與證據，再決定這輪要不要直接推進。",
     operatingSummaryTitle: "這頁現在怎麼推最快",
     operatingSummaryCopy: input.hasThinTaskEvidence
       ? `${input.readinessSummary} 先承認目前還有缺口，再決定是先補 evidence、先讓系統跑第一版，還是先回看已形成的結果。`

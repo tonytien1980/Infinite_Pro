@@ -5819,3 +5819,430 @@ Environment used:
 | Matter | `/matters/[matterId]` | Open the protected matter route in the same headless session after injecting a real app session cookie | Verified | URL ended at `http://127.0.0.1:3000/matters/bf46628a-0f8a-4d80-acd3-eff432be6cd1`; visible text confirmed the matter command surface with `案件頁怎麼看最快`, `先抓案件指揮`, `先看案件主線與指揮判斷`, `先補依據`, and `先回來源與證據` |
 | Task | `/tasks/[taskId]` | Open the protected task route in the same headless session after injecting a real app session cookie | Verified | URL ended at `http://127.0.0.1:3000/tasks/9e7fea00-c65d-4259-bacd-00bc6db9a734`; visible text confirmed the Task 4 surface with `Decision Brief` and `先把目前資料收斂成可核對的 decision brief，再決定是否回寫交付物。` |
 | Deliverable | `/deliverables/[deliverableId]` | Open the protected deliverable route in the same headless session after injecting a real app session cookie | Verified | URL ended at `http://127.0.0.1:3000/deliverables/1ee48a4a-b58c-449e-a85b-6afd59cebe2f`; visible text confirmed the writeback approval loop with `保持最小寫回`, `目前仍維持最小寫回，先補依據再考慮正式核可。`, and `這個 writeback approval read model 只描述狀態，正式核可仍需 Host / 顧問操作。` |
+
+---
+
+## Entry: 2026-04-11 T2-C homepage first-load pressure reduction v1
+
+Scope:
+- reduce homepage first-load request pressure
+- keep overview route-defining content usable before lower-priority governance summaries arrive
+- formalize primary vs secondary homepage load lanes without changing the overview route or page family
+
+Environment used:
+- local frontend verification only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `source ~/.nvm/nvm.sh && cd frontend && node --test tests/workbench-home-load-plan.test.mjs` | Passed (`3 passed`) |
+| `source ~/.nvm/nvm.sh && cd frontend && node --test tests/consultant-usability.test.mjs tests/task-detail-usability.test.mjs tests/case-command-loop.test.mjs tests/phase-six-governance.test.mjs` | Passed (`35 passed`) |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run build` | Passed |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run typecheck` | Passed |
+
+Important verification note:
+- this frontend checkout still requires serialized verification order
+- `npm run build` must finish before `npm run typecheck`, otherwise `.next/types` may be incomplete and `tsc --noEmit` can fail for environment reasons rather than code regressions
+
+### Homepage first-load verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Frontend | `/` overview load plan | Add a dedicated primary/secondary load-lane helper | Verified | targeted node tests now lock `tasks / matters / extensions` as the primary lane and keep `firm operating` plus phase/governance summaries in the secondary lane |
+| Frontend | `/` overview mount behavior | Change the first `useEffect` so secondary summaries start only after the primary lane settles | Verified | `WorkbenchHome` no longer fires all route-defining and governance requests together on first mount; primary work data settles first, then lower-priority summaries load in the background |
+| Frontend | `/` overview responsibility | Keep the homepage usable without waiting for low-noise governance panels | Verified | the main overview loading gate still tracks route-defining work data rather than every governance-related loading flag |
+| Frontend | build output | Re-run production build after the orchestration change | Verified | route sizes remained broadly stable (`/` first-load JS ~`152 kB`), confirming this slice targeted request pressure and first usable state rather than bundle-size reduction |
+
+### Explicitly not shipped in this pass
+
+- bundle splitting of the homepage
+- server-component conversion for overview panels
+- browser waterfall measurement
+- Core Web Vitals instrumentation
+- task / matter / deliverable surface performance optimization
+
+---
+
+## Entry: 2026-04-11 T2-C high-visibility workbench language normalization v1
+
+Scope:
+- normalize the most visible English UI labels into consultant-facing Traditional Chinese
+- keep the same workbench surfaces and contracts while reducing visible language drift
+- align demo, governance, settings, and decision-summary labels to one higher-level copy posture
+
+Environment used:
+- local frontend verification only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `source ~/.nvm/nvm.sh && cd frontend && node --test tests/workbench-home-load-plan.test.mjs tests/low-noise-workbench-repass.test.mjs tests/case-command-loop.test.mjs tests/demo-workspace-isolation.test.mjs tests/consultant-usability.test.mjs tests/task-detail-usability.test.mjs tests/phase-six-governance.test.mjs` | Passed (`47 passed`) |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run build` | Passed |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run typecheck` | Passed |
+
+Important verification note:
+- this repo still expects serialized `build -> typecheck`
+- node test output continues to emit `MODULE_TYPELESS_PACKAGE_JSON` warnings for direct ESM test imports, but these are environment warnings rather than product regressions
+
+### High-visibility language verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Frontend | shared surface labels | Add a reusable high-visibility label map | Verified | targeted node tests now lock `決策摘要`, `營運狀態`, `第五階段收尾`, `全面型顧問治理`, `事務所設定`, `個人模型設定`, `可用模型來源清單`, `預設模型來源`, and `示範工作台` as the visible consultant-facing labels |
+| Frontend | `/` overview | Replace the top governance/operating panel titles with Traditional Chinese | Verified | homepage no longer exposes `Firm Operating`, `Phase 5 Closure Review`, or `Generalist Governance` as the panel titles |
+| Frontend | `/settings` | Replace firm/personal provider panel titles and the most visible settings copy with Traditional Chinese | Verified | the settings hero and panel titles now read in one clearer Chinese copy layer instead of mixing `Firm Settings` / `Personal Provider Settings` directly into the first screen |
+| Frontend | `/demo` and demo nav | Replace `Demo Workspace` with a Traditional Chinese title and nav label | Verified | demo users now see `示範工作台` in the primary nav and hero label |
+| Frontend | task decision-summary label | Replace `Decision Brief` on the consultant-facing read model with a Traditional Chinese label | Verified | the task/deliverable-facing summary label now reads `決策摘要` at the view-model layer |
+
+### Explicitly not shipped in this pass
+
+- full zero-English cleanup of every lower-level settings message
+- backend-generated historical text cleanup
+- deeper deliverable / task copy compression pass
+- broader surface-level IA reduction
+
+---
+
+## Entry: 2026-04-11 T2-C deliverable first-screen hierarchy repass v1
+
+Scope:
+- reduce deliverable first-screen competition
+- keep publish / revise / evidence-check as the first-screen job
+- move adoption feedback, candidate state, and version-detail review below the first-screen decision layer
+
+Environment used:
+- local frontend verification only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `source ~/.nvm/nvm.sh && cd frontend && node --test tests/consultant-usability.test.mjs tests/task-detail-usability.test.mjs tests/case-command-loop.test.mjs tests/phase-six-governance.test.mjs tests/workbench-home-load-plan.test.mjs tests/low-noise-workbench-repass.test.mjs tests/demo-workspace-isolation.test.mjs` | Passed (`48 passed`) |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run build` | Passed |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run typecheck` | Passed |
+
+Important verification note:
+- this repo still expects serialized `build -> typecheck`
+- node test output continues to emit `MODULE_TYPELESS_PACKAGE_JSON` warnings for direct ESM test imports, but these are environment warnings rather than product regressions
+
+### Deliverable first-screen verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Frontend | deliverable usability helper | Tighten the first-screen guide so it no longer explains writeback in the route-level guidance | Verified | `buildDeliverableUsabilityView(...)` now keeps the guide focused on `先決定這一步 / 回看交付摘要 / 需要依據時` and removes writeback wording from the first-screen guide description |
+| Frontend | `/deliverables/[deliverableId]` hero rail | Remove adoption feedback and version-detail review from the hero rail | Verified | the first-screen rail now prioritizes the action block plus confidence / scope rather than mixing publish decisions with candidate review and version-detail panels |
+| Frontend | `/deliverables/[deliverableId]` below-fold work area | Add a separate `採納與寫回` section under the first-screen guide | Verified | adoption feedback, candidate state, and version review now live in a dedicated work section after the guide instead of competing with the first-screen publish decision |
+| Frontend | build output | Re-run production build after the hierarchy change | Verified | deliverable route size stayed broadly stable (`/deliverables/[deliverableId]` ~`172 kB` first-load JS), confirming this slice targeted hierarchy and operational clarity rather than bundle-size reduction |
+
+### Explicitly not shipped in this pass
+
+- deeper deliverable copy compression for every lower-level section
+- deliverable route bundle splitting
+- browser-based visual verification for the deliverable route
+- task / matter hierarchy reduction in the same slice
+
+---
+
+## Entry: 2026-04-11 T2-C task detail first-screen simplification v1
+
+Scope:
+- simplify task detail first-screen reading
+- make the right rail answer `跑完去哪裡`
+- keep decision summary and deeper reasoning in the body instead of duplicating them in the hero
+
+Environment used:
+- local frontend verification only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `source ~/.nvm/nvm.sh && cd frontend && node --test tests/workbench-home-load-plan.test.mjs tests/low-noise-workbench-repass.test.mjs tests/case-command-loop.test.mjs tests/demo-workspace-isolation.test.mjs tests/consultant-usability.test.mjs tests/task-detail-usability.test.mjs tests/phase-six-governance.test.mjs` | Passed (`49 passed`) |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run build` | Passed |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run typecheck` | Passed |
+
+Important verification note:
+- this repo still expects serialized `build -> typecheck`
+- node test output continues to emit `MODULE_TYPELESS_PACKAGE_JSON` warnings for direct ESM test imports, but these are environment warnings rather than product regressions
+
+### Task-detail first-screen verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Frontend | task usability helper | Change the rail contract so it now answers `跑完去哪裡` instead of repeating lane posture | Verified | `buildTaskDetailUsabilityView(...)` now returns a route-first rail eyebrow plus a more direct destination summary instead of mixing handoff reason and decision-summary language into the same first-screen card |
+| Frontend | task usability helper | Normalize operating-note labels into more direct consultant-facing wording | Verified | the operating summary now uses `最有槓桿的下一步`, `目前最大限制`, and `不直接跑時` instead of leaving mixed or less direct labels like `目前最大 caution` |
+| Frontend | `/tasks/[taskId]` hero rail | Remove duplicated handoff + decision-summary copy from the right-side focus card | Verified | the second hero card now carries one concise destination summary instead of stacking both handoff reasoning and decision-summary copy on the first screen |
+| Frontend | build output | Re-run production build after the hierarchy change | Verified | route sizes remained broadly stable (`/tasks/[taskId]` ~`174 kB` first-load JS), confirming this slice targeted first-screen hierarchy and readability rather than bundle-size reduction |
+
+### Explicitly not shipped in this pass
+
+- task route bundle splitting
+- browser-based visual verification for the task route
+- deeper section-level copy compression across every task panel
+- matter workspace hierarchy simplification in the same slice
+
+---
+
+## Entry: 2026-04-11 T2-C matter workspace first-screen simplification v1
+
+Scope:
+- simplify matter workspace first-screen reading
+- keep the hero rail focused on `主線 / 變化 / 下一步`
+- move research, organization memory, domain playbook, and other second-layer reading out of the hero rail
+
+Environment used:
+- local frontend verification only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `source ~/.nvm/nvm.sh && cd frontend && node --test tests/workbench-home-load-plan.test.mjs tests/low-noise-workbench-repass.test.mjs tests/case-command-loop.test.mjs tests/demo-workspace-isolation.test.mjs tests/consultant-usability.test.mjs tests/task-detail-usability.test.mjs tests/phase-six-governance.test.mjs` | Passed (`50 passed`) |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run build` | Passed |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run typecheck` | Passed |
+
+Important verification note:
+- this repo still expects serialized `build -> typecheck`
+- node test output continues to emit `MODULE_TYPELESS_PACKAGE_JSON` warnings for direct ESM test imports, but these are environment warnings rather than product regressions
+
+### Matter first-screen verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Frontend | matter usability helper | Tighten the section guide description so it explicitly keeps research / organization memory / authority in the second layer | Verified | `buildMatterUsabilityView(...)` now states the page should first answer `主線 / blocker / 下一步`, while research, organization memory, and authority stay in second-layer reading |
+| Frontend | `/matters/[matterId]` hero rail | Reduce the rail to the main case-command summary, current change, and next-step guidance | Verified | the hero rail no longer stacks health, research, organization memory, domain playbook, and candidate review alongside the first-screen command summary |
+| Frontend | `/matters/[matterId]` mainline section | Move second-layer context into `主線補充` instead of leaving it in the hero rail | Verified | continuity health, flagship detail, research guidance, organization memory, domain playbook, and precedent candidate summary now live in the deeper mainline section rather than competing with the first-screen rail |
+| Frontend | build output | Re-run production build after the hierarchy change | Verified | route sizes remained broadly stable (`/matters/[matterId]` ~`174 kB` first-load JS), confirming this slice targeted first-screen hierarchy and reading clarity rather than bundle-size reduction |
+
+### Explicitly not shipped in this pass
+
+- matter route bundle splitting
+- browser-based visual verification for the matter route
+- deeper section-level copy compression across every matter panel
+- evidence workspace first-screen simplification in the same slice
+
+---
+
+## Entry: 2026-04-11 T2-C evidence workspace first-screen simplification v1
+
+Scope:
+- simplify evidence workspace first-screen reading
+- focus the page on `缺什麼 / 補哪種材料 / 補完回哪裡`
+- move research/continuity/detail-heavy navigation out of the hero and the first-screen guide
+
+Environment used:
+- local frontend verification only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `source ~/.nvm/nvm.sh && cd frontend && node --test tests/workbench-home-load-plan.test.mjs tests/low-noise-workbench-repass.test.mjs tests/case-command-loop.test.mjs tests/demo-workspace-isolation.test.mjs tests/consultant-usability.test.mjs tests/task-detail-usability.test.mjs tests/phase-six-governance.test.mjs` | Passed (`51 passed`) |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run build` | Passed |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run typecheck` | Passed |
+
+Important verification note:
+- this repo still expects serialized `build -> typecheck`
+- node test output continues to emit `MODULE_TYPELESS_PACKAGE_JSON` warnings for direct ESM test imports, but these are environment warnings rather than product regressions
+
+### Evidence first-screen verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Frontend | evidence usability helper | Add a dedicated evidence first-screen helper | Verified | `buildEvidenceWorkspaceUsabilityView(...)` now locks the page around three first-screen guide lanes: `充分性摘要與高影響缺口`, `補件與新增來源`, and `補完後回主線` |
+| Frontend | `/matters/[matterId]/evidence` hero rail | Replace the mixed research/continuity/limitation card with one direct return-destination card | Verified | the third hero card now answers `補完後回哪裡`, instead of mixing research guidance, continuity notes, and fallback limitations into one first-screen summary |
+| Frontend | `/matters/[matterId]/evidence` first-screen guide | Reduce the guide from a dense multi-lane navigator to three task-first lanes | Verified | the section guide now prioritizes gap assessment, supplement path, and return destination, while materials/chains/related-task detail remain available below the fold |
+| Frontend | build output | Re-run production build after the hierarchy change | Verified | route size increased slightly (`/matters/[matterId]/evidence` ~`166 kB` first-load JS), so this slice improved first-screen clarity but did not yet optimize bundle weight |
+
+### Explicitly not shipped in this pass
+
+- evidence route bundle splitting
+- browser-based visual verification for the evidence route
+- deeper section-level copy compression across every evidence panel
+- further bundle/performance optimization for the evidence route
+
+---
+
+## Entry: 2026-04-11 T2-C high-visibility mixed-language cleanup follow-through
+
+Scope:
+- remove a small final batch of high-visibility mixed-language strings from overview, demo, and settings
+- keep the same surfaces and behavior while reducing reading friction on visible labels
+
+Environment used:
+- local frontend verification only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `source ~/.nvm/nvm.sh && cd frontend && node --test tests/low-noise-workbench-repass.test.mjs tests/demo-workspace-isolation.test.mjs tests/consultant-usability.test.mjs tests/workbench-home-load-plan.test.mjs tests/task-detail-usability.test.mjs tests/case-command-loop.test.mjs tests/phase-six-governance.test.mjs` | Passed (`51 passed`) |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run build` | Passed |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run typecheck` | Passed |
+
+Important verification note:
+- this repo still expects serialized `build -> typecheck`
+- node test output continues to emit `MODULE_TYPELESS_PACKAGE_JSON` warnings for direct ESM test imports, but these are environment warnings rather than product regressions
+
+### High-visibility copy verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Frontend | `/demo` | Replace the remaining obvious English sublabels with consultant-facing Traditional Chinese | Verified | demo surface now uses `重點展示`, `唯讀邊界`, `正式工作台`, and `示範工作台規則` in the highest-visibility spots |
+| Frontend | `/settings` personal provider panel | Replace the visible owner/consultant helper copy and the fail-closed explanation with clearer Traditional Chinese | Verified | the panel no longer leads with `owner`, `consultant`, `firm default`, or `run path fail-closed` in the highest-visibility explanatory copy |
+| Frontend | `/settings` firm provider panel | Replace the remaining obvious English summary labels around firm/default/allowlist/demo | Verified | the highest-visibility labels now read as `目前事務所模型來源`, `目前可用模型來源條目`, and `示範工作台狀態 / 版本` instead of mixed English headings |
+| Frontend | `/` overview | Keep the previously normalized governance panel titles while preserving build and route stability | Verified | overview still renders with the Chinese governance/operating labels and no route/compilation regressions were introduced by the cleanup follow-through |
+
+### Explicitly not shipped in this pass
+
+- full zero-English cleanup of every deep settings message and backend-derived string
+- browser-based visual QA for the cleaned surfaces
+- additional structural changes to overview, settings, or demo
+
+---
+
+## Entry: 2026-04-11 T2-C performance second knife v1
+
+Scope:
+- reduce closed-disclosure hydration pressure across the main workbench surfaces
+- move heavy secondary modules behind on-demand loading
+- keep the same consultant-facing workflows and low-noise reading order
+
+Environment used:
+- local frontend verification only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `source ~/.nvm/nvm.sh && cd frontend && node --test tests/workbench-performance-gates.test.mjs` | Passed (`4 passed`) |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run build` | Passed |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run typecheck` | Passed |
+| `git diff --check` | Passed |
+
+Important verification note:
+- this repo still expects serialized `build -> typecheck`
+- node test output continues to emit `MODULE_TYPELESS_PACKAGE_JSON` warnings for direct ESM test imports, but these are environment warnings rather than product regressions
+
+### Performance slice verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Frontend | shared disclosure behavior | closed disclosure bodies now defer child mounting until first open | Verified | `matter / task / deliverable / evidence` disclosure shells now reserve first-load work for the mainline instead of hydrating all secondary detail bodies immediately |
+| Frontend | `/tasks/[taskId]` | `擴充管理面` now loads on demand from the disclosure instead of the route bundle | Verified | `ExtensionManagerSurface` moved behind dynamic import and the closed disclosure gate |
+| Frontend | `/matters/[matterId]/evidence` supplement form | pending preview list now mounts only when there are pending items | Verified | empty state keeps a short guide sentence; the full `IntakeMaterialPreviewList` only loads when the user actually adds material |
+| Frontend | `/tasks/[taskId]`, `/deliverables/[deliverableId]` | adoption feedback controls moved to secondary chunks | Verified | `AdoptionFeedbackControls` no longer needs to live in the main route chunk |
+| Frontend | build output | compare current route sizes against the pre-slice baseline | Verified | task route improved from ~`174 kB` to `170 kB` first-load JS; deliverable returned to `172 kB`; matter remained heavy at `175 kB`; evidence remained `166 kB`, so the main confirmed win in this slice is lower hydration pressure plus targeted task-route bundle reduction |
+
+### Current measured route output
+
+| Route | Current first-load JS |
+| --- | --- |
+| `/` | `153 kB` |
+| `/tasks/[taskId]` | `170 kB` |
+| `/deliverables/[deliverableId]` | `172 kB` |
+| `/matters/[matterId]` | `175 kB` |
+| `/matters/[matterId]/evidence` | `166 kB` |
+
+### Explicitly not shipped in this pass
+
+- browser-based performance trace or authenticated waterfall capture
+- route-level extraction of large below-fold matter/deliverable section trees into dedicated lazy chunks
+- deeper bundle slimming for the still-heavy matter and evidence routes
+
+---
+
+## Entry: 2026-04-11 T2-C performance second knife v2
+
+Scope:
+- continue route-level bundle slimming after v1
+- remove non-`overview` matter tabs from the initial matter route chunk
+- move the heavy evidence review family further behind on-demand chunks
+
+Environment used:
+- local frontend verification only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `source ~/.nvm/nvm.sh && cd frontend && node --test tests/workbench-lazy-surface-plan.test.mjs tests/workbench-performance-gates.test.mjs` | Passed (`8 passed`) |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run build` | Passed |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run typecheck` | Passed |
+| `git diff --check` | Passed |
+
+Important verification note:
+- this repo still prefers serialized verification and the current `.next/types` state must exist before a clean `tsc --noEmit`
+- node test output continues to emit `MODULE_TYPELESS_PACKAGE_JSON` warnings for direct ESM test imports, but these are environment warnings rather than product regressions
+
+### Performance slice verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Frontend | `/matters/[matterId]` | defer non-`overview` tabs behind the first tab switch | Verified | `decision / evidence / deliverables / history` now live in an on-demand tab module instead of the initial matter route chunk |
+| Frontend | `/matters/[matterId]` | keep overview-side deep disclosures in deferred secondary chunks | Verified | `案件世界狀態與寫回策略`、`案件設定與同步`、`案件背景與連續性` now load their heavy bodies only on demand |
+| Frontend | `/matters/[matterId]/evidence` | move the deep review family into deferred secondary chunks | Verified | duplicate review, materials, artifacts, chains, and related-task review now load from a deferred evidence-review module |
+| Frontend | build output | compare current route sizes against the v1 baseline | Verified | matter route improved from `175 kB` to `163 kB`; evidence route improved from `166 kB` to `165 kB`; task stayed at `170 kB`; deliverable stayed `172 kB` |
+
+### Current measured route output
+
+| Route | Current first-load JS |
+| --- | --- |
+| `/` | `153 kB` |
+| `/tasks/[taskId]` | `170 kB` |
+| `/deliverables/[deliverableId]` | `172 kB` |
+| `/matters/[matterId]` | `163 kB` |
+| `/matters/[matterId]/evidence` | `165 kB` |
+
+### Explicitly not shipped in this pass
+
+- browser-based performance trace or authenticated waterfall capture
+- further deliverable route chunk slimming
+- follow-up copy compression inside every deferred matter/evidence secondary section
+
+---
+
+## Entry: 2026-04-11 T2-C authenticated browser smoke and closure-posture fix
+
+Scope:
+- verify the post-repass workbench in a real authenticated browser session
+- validate the mainline `/new -> matter -> run -> deliverable` flow
+- fix the false-closure posture that appeared on newly created sparse matters before any deliverable existed
+
+Environment used:
+- local Docker runtime
+- frontend: `http://127.0.0.1:3000`
+- backend: `http://127.0.0.1:8000/api/v1`
+- authenticated browser session established operator-side from an existing active local owner session token; this was a QA setup step, not a shipped product auth shortcut
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `source ~/.nvm/nvm.sh && cd frontend && node --test tests/matter-advance-guide.test.mjs tests/workbench-home-load-plan.test.mjs tests/workbench-performance-gates.test.mjs tests/workbench-lazy-surface-plan.test.mjs tests/low-noise-workbench-repass.test.mjs tests/case-command-loop.test.mjs tests/demo-workspace-isolation.test.mjs tests/consultant-usability.test.mjs tests/task-detail-usability.test.mjs tests/phase-six-governance.test.mjs` | Passed (`61 passed`) |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run build` | Passed |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run typecheck` | Passed |
+| `git diff --check` | Passed |
+
+Important verification note:
+- node test output continues to emit `MODULE_TYPELESS_PACKAGE_JSON` warnings for direct ESM test imports, but these are environment warnings rather than product regressions
+- authenticated browser validation in this pass depended on an existing local owner session; it did not verify the full live Google sign-in click path end to end
+
+### Authenticated browser verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Browser smoke | `/` after authenticated session restore | open overview with a real local owner session | Verified | overview rendered the real consultant-facing shell and protected API calls returned `200`, instead of redirecting to `/login` |
+| Browser smoke | `/new` | create a new sparse matter from the real browser | Verified | browser redirected into `/matters/[matterId]?createdTaskId=...&from=new` and the newly created matter shell rendered without console errors |
+| Browser smoke | `/new -> /matters/[matterId]` | create a second sparse matter with `不用，我只想用我提供的資料` | Verified | no auth errors or console errors; the no-external-data path produced a clean protected-route create flow |
+| Browser smoke | `/matters/[matterId] -> run -> /deliverables/[deliverableId]` | run a no-external-data sparse case to the deliverable workspace | Verified | the browser ultimately navigated to `/deliverables/0980a2e2-72eb-433d-9db1-712baf20f71c` and the deliverable workspace rendered with the repassed first-screen hierarchy intact |
+| Browser smoke | `/matters/[matterId]` new sparse case | verify the first-screen continuation copy after the closure-guard fix | Verified | newly created sparse matters now show `案件已建立，現在先補件或先跑第一版` in both the primary CTA rail and the `案件後續模式` summary, instead of prematurely claiming `這案已可正式結案` |
+| Browser smoke | `/matters/[matterId]` run timing | compare external-search-enabled vs. no-external-data runs | Verified | the external-search-enabled run degraded on a search timeout before still completing; the no-external-data run avoided the external-search branch and reached the deliverable route faster |
+
+### Runtime observations from the authenticated pass
+
+- The first authenticated run (`supplemental` external-search posture) logged an external-search timeout before continuing and eventually persisted the result.
+- The second authenticated run (`不用，我只想用我提供的資料`) skipped the external-search branch, produced structured outputs, and reached the deliverable workspace in the browser.
+- No browser console errors were observed on the authenticated overview, matter, or deliverable surfaces during the validated paths.

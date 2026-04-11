@@ -16,7 +16,7 @@ import {
 
 test("demo sees only the demo nav entry", () => {
   const nav = buildPrimaryNavForMembershipRole("demo");
-  assert.deepEqual(nav, [{ href: "/demo", label: "Demo Workspace" }]);
+  assert.deepEqual(nav, [{ href: "/demo", label: "示範工作台" }]);
 });
 
 test("demo is redirected away from firm workspace paths", () => {

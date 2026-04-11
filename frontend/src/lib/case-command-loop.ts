@@ -26,7 +26,7 @@ export function buildDecisionBriefView(input: DecisionBrief) {
   ].filter((item): item is string => Boolean(item));
 
   return {
-    railEyebrow: "Decision Brief",
+    railEyebrow: "決策摘要",
     railTitle: input.posture_label,
     summary: input.recommendation_summary || input.question_summary,
     checklist,

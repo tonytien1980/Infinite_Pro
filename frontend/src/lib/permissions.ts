@@ -50,7 +50,7 @@ export function buildPrimaryNavForMembershipRole(role: MembershipRole) {
   }
 
   if (role === "demo") {
-    return [{ href: "/demo", label: "Demo Workspace" }];
+    return [{ href: "/demo", label: "示範工作台" }];
   }
 
   return [];

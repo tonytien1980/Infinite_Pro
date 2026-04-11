@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
@@ -39,7 +40,6 @@ import {
   getVisibleConstraints,
   getStructuredStringList,
 } from "@/lib/advisory-workflow";
-import { AdoptionFeedbackControls } from "@/components/adoption-feedback-controls";
 import {
   buildContinuationDetailView,
   buildContinuationFocusSummary,
@@ -71,7 +71,6 @@ import type {
   TaskAggregate,
   TaskExtensionOverridePayload,
 } from "@/lib/types";
-import { ExtensionManagerSurface } from "@/components/extension-manager-surface";
 import {
   extractModeSpecificAppendix,
   getModeDefinition,
@@ -79,6 +78,10 @@ import {
   getModeSpecificResultSections,
   resolveWorkflowKey,
 } from "@/lib/workflow-modes";
+import {
+  noteDisclosureOpened,
+  shouldRenderDisclosureBody,
+} from "@/lib/workbench-performance-gates";
 import {
   labelForActionStatus,
   labelForAdoptionFeedbackStatus,
@@ -112,6 +115,26 @@ import {
 } from "@/lib/ui-labels";
 import { WorkspaceSectionGuide } from "@/components/workspace-section-guide";
 import { useOperatorIdentitySettings } from "@/lib/workbench-store";
+
+const DeferredExtensionManagerSurface = dynamic(
+  () =>
+    import("@/components/extension-manager-surface").then(
+      (module) => module.ExtensionManagerSurface,
+    ),
+  {
+    loading: () => <p className="muted-text">正在載入擴充管理面...</p>,
+  },
+);
+
+const DeferredAdoptionFeedbackControls = dynamic(
+  () =>
+    import("@/components/adoption-feedback-controls").then(
+      (module) => module.AdoptionFeedbackControls,
+    ),
+  {
+    loading: () => <p className="muted-text">正在載入採納回饋...</p>,
+  },
+);
 
 function buildRunMeta(task: TaskAggregate) {
   if (task.continuation_surface?.workflow_layer === "checkpoint") {
@@ -296,14 +319,37 @@ function DisclosurePanel({
   title,
   description,
   children,
+  lazy = true,
 }: {
   id?: string;
   title: string;
   description: string;
   children: ReactNode;
+  lazy?: boolean;
 }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [hasOpenedOnce, setHasOpenedOnce] = useState(false);
+  const shouldRenderBody = shouldRenderDisclosureBody({
+    lazy,
+    isOpen,
+    hasOpenedOnce,
+  });
+
   return (
-    <details className="panel disclosure-panel" id={id}>
+    <details
+      className="panel disclosure-panel"
+      id={id}
+      onToggle={(event) => {
+        const nextOpen = event.currentTarget.open;
+        setIsOpen(nextOpen);
+        setHasOpenedOnce((current) =>
+          noteDisclosureOpened({
+            nextOpen,
+            hasOpenedOnce: current,
+          }),
+        );
+      }}
+    >
       <summary className="disclosure-summary">
         <div>
           <h2 className="section-title">{title}</h2>
@@ -311,7 +357,7 @@ function DisclosurePanel({
         </div>
         <span className="pill">展開</span>
       </summary>
-      <div className="disclosure-body">{children}</div>
+      {shouldRenderBody ? <div className="disclosure-body">{children}</div> : null}
     </details>
   );
 }
@@ -1007,16 +1053,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                           : taskHeroActionTitle)}
                   </h3>
                   {taskDetailUsabilityView ? (
-                    <>
-                      <p className="hero-focus-copy">
-                        {`${taskDetailUsabilityView.handoffTitle}｜${taskDetailUsabilityView.handoffReasonLabel}`}
-                      </p>
-                      <p className="hero-focus-copy">
-                        {decisionBriefView
-                          ? `${decisionBriefView.railTitle}｜${decisionBriefView.summary}`
-                          : taskDetailUsabilityView.railSummary}
-                      </p>
-                    </>
+                    <p className="hero-focus-copy">{taskDetailUsabilityView.railSummary}</p>
                   ) : researchGuidance?.shouldShow ? (
                     <p className="hero-focus-copy">
                       {researchGuidance.executionOwnerLabel}｜
@@ -2765,7 +2802,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                           </div>
                         ) : null}
                         <div style={{ marginTop: "12px" }}>
-                          <AdoptionFeedbackControls
+                          <DeferredAdoptionFeedbackControls
                             surface="recommendation"
                             feedback={recommendation.adoption_feedback}
                             description="先快速標記這則建議是否真的可用；若再補一個主要原因，系統會更知道這條建議為什麼值得保留。"
@@ -2892,7 +2929,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                     </Link>
                   </div>
                 </div>
-                <ExtensionManagerSurface
+                <DeferredExtensionManagerSurface
                   snapshot={extensionManager}
                   loading={extensionLoading}
                   error={extensionError}

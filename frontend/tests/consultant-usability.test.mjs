@@ -6,6 +6,7 @@ import {
   buildMatterUsabilityView,
   buildMatterSectionGuideItems,
   buildDeliverableUsabilityView,
+  buildEvidenceWorkspaceUsabilityView,
 } from "../src/lib/consultant-usability.ts";
 
 test("overview usability view promotes one primary action and two fallback paths", () => {
@@ -76,7 +77,7 @@ test("matter usability view keeps the first guide item focused on command, not s
   assert.equal(view.guideItems[0]?.title, "先看案件主線與指揮判斷");
   assert.equal(
     view.sectionGuideDescription,
-    "先抓這輪主線、最大 blocker 與最值得先推的 task，再看 authority 或背景層。",
+    "先抓這輪主線、最大 blocker 與下一步；研究、組織記憶與 authority 先留第二層。",
   );
 });
 
@@ -122,6 +123,22 @@ test("matter usability view points the first guide item at the mainline and keep
   assert.match(view.sectionGuideDescription, /先抓這輪主線/);
 });
 
+test("matter usability view keeps research and background in the second layer", () => {
+  const view = buildMatterUsabilityView({
+    evidenceCount: 2,
+    deliverableCount: 1,
+    activeTaskCount: 2,
+    hasCaseWorldState: true,
+    hasOpenEvidenceGaps: true,
+    hasRecentDeliverable: true,
+  });
+
+  assert.equal(
+    view.sectionGuideDescription,
+    "先抓這輪主線、最大 blocker 與下一步；研究、組織記憶與 authority 先留第二層。",
+  );
+});
+
 test("deliverable usability view keeps publish/read/evidence paths separate and low-noise", () => {
   const view = buildDeliverableUsabilityView({
     deliverableStatus: "draft",
@@ -155,5 +172,50 @@ test("deliverable usability view keeps publish, reading, and evidence lanes sepa
   assert.equal(view.guideItems[0]?.href, "#deliverable-publish-check");
   assert.equal(view.guideItems[1]?.href, "#deliverable-reading");
   assert.equal(view.guideItems[2]?.href, "#deliverable-evidence");
-  assert.match(view.sectionGuideDescription, /先決定你現在是在整理版本/);
+  assert.equal(
+    view.sectionGuideDescription,
+    "先決定這一步，再判斷要回看交付摘要，還是回頭核對依據。",
+  );
+});
+
+test("deliverable usability view keeps writeback detail out of the first-screen guide", () => {
+  const view = buildDeliverableUsabilityView({
+    deliverableStatus: "draft",
+    hasPendingFormalSave: false,
+    hasLinkedEvidence: true,
+    hasHighImpactGaps: true,
+    hasMatterWorkspace: true,
+  });
+
+  assert.equal(
+    view.sectionGuideDescription,
+    "先決定這一步，再判斷要回看交付摘要，還是回頭核對依據。",
+  );
+  assert.equal(view.guideItems[2]?.eyebrow, "需要依據時");
+  assert.equal(
+    view.guideItems[2]?.copy,
+    "只有當你要核對依據或背景，再往下看來源與脈絡。",
+  );
+});
+
+test("evidence usability view keeps the first screen focused on gap, supplement path, and return destination", () => {
+  const view = buildEvidenceWorkspaceUsabilityView({
+    hasHighImpactGaps: true,
+    hasFocusTask: true,
+    focusTaskTitle: "補齊營運與銷售證據",
+    sourceMaterialCount: 2,
+    evidenceCount: 3,
+  });
+
+  assert.equal(view.sectionGuideTitle, "這個證據工作面怎麼讀最快");
+  assert.equal(
+    view.sectionGuideDescription,
+    "先看到底缺什麼，再決定補哪種材料；補完後再回主線續推。",
+  );
+  assert.equal(view.guideItems.length, 3);
+  assert.equal(view.guideItems[0]?.title, "充分性摘要與高影響缺口");
+  assert.equal(view.guideItems[1]?.title, "補件與新增來源");
+  assert.equal(view.guideItems[2]?.title, "先回焦點工作紀錄");
+  assert.equal(view.railEyebrow, "補完後回哪裡");
+  assert.match(view.railCopy, /補齊營運與銷售證據/);
 });

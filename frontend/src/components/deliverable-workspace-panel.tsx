@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { ReactNode, useEffect, useState } from "react";
 
 import {
@@ -29,7 +30,6 @@ import {
   buildRecommendationCards,
   buildRiskCards,
 } from "@/lib/advisory-workflow";
-import { AdoptionFeedbackControls } from "@/components/adoption-feedback-controls";
 import {
   buildContinuationDetailView,
   buildContinuationFocusSummary,
@@ -92,6 +92,20 @@ import {
 } from "@/lib/workspace-persistence";
 import { WorkspaceSectionGuide } from "@/components/workspace-section-guide";
 import { buildDeliverableUsabilityView } from "@/lib/consultant-usability";
+import {
+  noteDisclosureOpened,
+  shouldRenderDisclosureBody,
+} from "@/lib/workbench-performance-gates";
+
+const DeferredAdoptionFeedbackControls = dynamic(
+  () =>
+    import("@/components/adoption-feedback-controls").then(
+      (module) => module.AdoptionFeedbackControls,
+    ),
+  {
+    loading: () => <p className="muted-text">正在載入採納回饋...</p>,
+  },
+);
 
 function CompactList({
   items,
@@ -118,14 +132,37 @@ function DisclosurePanel({
   title,
   description,
   children,
+  lazy = true,
 }: {
   id?: string;
   title: string;
   description: string;
   children: ReactNode;
+  lazy?: boolean;
 }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [hasOpenedOnce, setHasOpenedOnce] = useState(false);
+  const shouldRenderBody = shouldRenderDisclosureBody({
+    lazy,
+    isOpen,
+    hasOpenedOnce,
+  });
+
   return (
-    <details className="panel disclosure-panel section-anchor" id={id}>
+    <details
+      className="panel disclosure-panel section-anchor"
+      id={id}
+      onToggle={(event) => {
+        const nextOpen = event.currentTarget.open;
+        setIsOpen(nextOpen);
+        setHasOpenedOnce((current) =>
+          noteDisclosureOpened({
+            nextOpen,
+            hasOpenedOnce: current,
+          }),
+        );
+      }}
+    >
       <summary className="disclosure-summary">
         <div>
           <h2 className="section-title">{title}</h2>
@@ -133,7 +170,7 @@ function DisclosurePanel({
         </div>
         <span className="pill">展開</span>
       </summary>
-      <div className="disclosure-body">{children}</div>
+      {shouldRenderBody ? <div className="disclosure-body">{children}</div> : null}
     </details>
   );
 }
@@ -1318,100 +1355,11 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                 </div>
 
                 <div className="section-card deliverable-rail-card">
-                  <h4>採納回饋</h4>
-                  <AdoptionFeedbackControls
-                    surface="deliverable"
-                    feedback={deliverable?.adoption_feedback}
-                    description="先用很輕的方式標記這份交付物是否可直接採用；若願意再補半拍，系統會更知道這次為什麼可用。"
-                    instanceId={`deliverable-${deliverable?.id ?? deliverableId}`}
-                    isSubmitting={isApplyingDeliverableFeedback}
-                    message={deliverableFeedbackMessage}
-                    onApply={handleDeliverableFeedback}
-                  />
-                  {deliverableCandidateView.shouldShow ? (
-                    <div style={{ marginTop: "12px" }}>
-                      <p className="content-block">{deliverableCandidateView.badgeLabel}</p>
-                      <p className="muted-text">目前狀態：{deliverableCandidateView.statusLabel}</p>
-                      <p className="muted-text">{deliverableCandidateView.summary}</p>
-                      {deliverableCandidateView.attributionSummary ? (
-                        <p className="muted-text">{deliverableCandidateView.attributionSummary}</p>
-                      ) : null}
-                      {deliverableCandidateActions ? (
-                        <div className="button-row" style={{ marginTop: "10px" }}>
-                          {deliverableCandidateActions.actions.map((action) => (
-                            <button
-                              key={`deliverable-candidate-${action.nextStatus}`}
-                              className="button-secondary"
-                              type="button"
-                              disabled={activeDeliverableCandidateStatus === action.nextStatus}
-                              onClick={() => void handleDeliverableCandidateStatus(action.nextStatus)}
-                            >
-                              {activeDeliverableCandidateStatus === action.nextStatus
-                                ? "處理中..."
-                                : action.label}
-                            </button>
-                          ))}
-                        </div>
-                      ) : null}
-                      {deliverableCandidateMessage ? (
-                        <p className="success-text" role="status" aria-live="polite">
-                          {deliverableCandidateMessage}
-                        </p>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
-
-                <div className="section-card deliverable-rail-card workspace-rail-callout">
-                  <h4>目前檢視版本</h4>
-                  <div className="detail-list">
-                    <div className="detail-item">
-                      <h3>版本 / 狀態</h3>
-                      <p className="content-block">
-                        {versionTag}｜{labelForDeliverableStatus(deliverableStatus)}
-                      </p>
-                    </div>
-                    <div className="detail-item">
-                      <h3>版本說明</h3>
-                      <p className="content-block">{buildDeliverableStatusHint(deliverableStatus)}</p>
-                    </div>
-                    <div className="detail-item">
-                      <h3>正式性狀態</h3>
-                      <p className="content-block">
-                        {hasUnpublishedContentChanges
-                          ? "最新正文修訂晚於最近一次正式發布；若要形成新的正式版，需再次發布。"
-                          : "目前正文與最近一次正式發布沒有額外的未發布差異。"}
-                      </p>
-                      <p className="muted-text">{deliverableVersionSummary}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="section-card deliverable-rail-card">
                   <h4>可信度與適用範圍</h4>
                   <p className="content-block">{deliverableConfidenceSurfaceSummary}</p>
                   <p className="muted-text" style={{ marginTop: "12px" }}>
                     {workspace.linked_evidence.length} 則證據 / {workspace.linked_source_materials.length} 份來源材料 / {workspace.high_impact_gaps.length} 個高影響缺口
                   </p>
-                </div>
-
-                <div className="section-card deliverable-rail-card">
-                  <h4>連續性與下一個限制</h4>
-                  <p className="content-block">
-                    {continuationFocusSummary.shouldShow
-                      ? `${continuationFocusSummary.label}｜${continuationFocusSummary.title}`
-                      : deliverableContinuitySummary}
-                  </p>
-                  <p className="muted-text" style={{ marginTop: "12px" }}>
-                    {continuationFocusSummary.shouldShow
-                      ? continuationFocusSummary.copy
-                      : workspace.high_impact_gaps[0] || "目前沒有額外高影響缺口。"}
-                  </p>
-                  {readinessGovernance ? (
-                    <p className="muted-text" style={{ marginTop: "8px" }}>
-                      {readinessGovernance.summary}
-                    </p>
-                  ) : null}
                 </div>
               </aside>
             </div>
@@ -1484,6 +1432,89 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
             description={deliverableUsabilityView.sectionGuideDescription}
             items={deliverableSectionGuideItems}
           />
+
+          <section className="panel" id="deliverable-adoption-loop">
+            <div className="panel-header">
+              <div>
+                <h2 className="panel-title">採納與寫回</h2>
+                <p className="panel-copy">
+                  這一層才處理採納回饋、候選狀態與正式寫回，不把它們擠回第一屏主線。
+                </p>
+              </div>
+            </div>
+            <div className="summary-grid">
+              <div className="section-card">
+                <h4>採納回饋</h4>
+                <DeferredAdoptionFeedbackControls
+                  surface="deliverable"
+                  feedback={deliverable?.adoption_feedback}
+                  description="先用很輕的方式標記這份交付物是否可直接採用；若願意再補半拍，系統會更知道這次為什麼可用。"
+                  instanceId={`deliverable-${deliverable?.id ?? deliverableId}`}
+                  isSubmitting={isApplyingDeliverableFeedback}
+                  message={deliverableFeedbackMessage}
+                  onApply={handleDeliverableFeedback}
+                />
+              </div>
+              <div className="section-card">
+                <h4>目前檢視版本</h4>
+                <div className="detail-list">
+                  <div className="detail-item">
+                    <h3>版本 / 狀態</h3>
+                    <p className="content-block">
+                      {versionTag}｜{labelForDeliverableStatus(deliverableStatus)}
+                    </p>
+                  </div>
+                  <div className="detail-item">
+                    <h3>版本說明</h3>
+                    <p className="content-block">{buildDeliverableStatusHint(deliverableStatus)}</p>
+                  </div>
+                  <div className="detail-item">
+                    <h3>正式性狀態</h3>
+                    <p className="content-block">
+                      {hasUnpublishedContentChanges
+                        ? "最新正文修訂晚於最近一次正式發布；若要形成新的正式版，需再次發布。"
+                        : "目前正文與最近一次正式發布沒有額外的未發布差異。"}
+                    </p>
+                    <p className="muted-text">{deliverableVersionSummary}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {deliverableCandidateView.shouldShow ? (
+              <div className="section-card" style={{ marginTop: "16px" }}>
+                <h4>候選狀態</h4>
+                <p className="content-block">{deliverableCandidateView.badgeLabel}</p>
+                <p className="muted-text">目前狀態：{deliverableCandidateView.statusLabel}</p>
+                <p className="muted-text">{deliverableCandidateView.summary}</p>
+                {deliverableCandidateView.attributionSummary ? (
+                  <p className="muted-text">{deliverableCandidateView.attributionSummary}</p>
+                ) : null}
+                {deliverableCandidateActions ? (
+                  <div className="button-row" style={{ marginTop: "10px" }}>
+                    {deliverableCandidateActions.actions.map((action) => (
+                      <button
+                        key={`deliverable-candidate-${action.nextStatus}`}
+                        className="button-secondary"
+                        type="button"
+                        disabled={activeDeliverableCandidateStatus === action.nextStatus}
+                        onClick={() => void handleDeliverableCandidateStatus(action.nextStatus)}
+                      >
+                        {activeDeliverableCandidateStatus === action.nextStatus
+                          ? "處理中..."
+                          : action.label}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+                {deliverableCandidateMessage ? (
+                  <p className="success-text" role="status" aria-live="polite">
+                    {deliverableCandidateMessage}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+          </section>
 
           <DisclosurePanel
             id="deliverable-writeback-context"

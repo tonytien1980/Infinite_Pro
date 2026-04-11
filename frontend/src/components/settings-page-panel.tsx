@@ -13,6 +13,7 @@ import {
   useOperatorIdentitySettings,
   useWorkbenchSettings,
 } from "@/lib/workbench-store";
+import { SURFACE_LABELS } from "@/lib/workbench-surface-labels";
 import type { MembershipRole, SessionState, ThemePreference } from "@/lib/types";
 import { SettingsFirmProviderPanel } from "@/components/settings-firm-provider-panel";
 import { SettingsPersonalProviderPanel } from "@/components/settings-personal-provider-panel";
@@ -119,13 +120,13 @@ export function SettingsPagePanel() {
       : "先分清楚：你是在調自己的模型設定，還是在調工作台偏好";
   const settingsActionSummary =
     role === "owner"
-      ? "owner 需要同時管理 Firm Settings 與自己的 Personal Provider Settings；這兩者的責任不能混在一起。"
-      : "consultant 主要要完成自己的 Personal Provider Settings，Firm Settings 則只讀不改。";
+      ? `owner 需要同時管理${SURFACE_LABELS.firmSettings}與自己的${SURFACE_LABELS.personalProviderSettings}；這兩者的責任不能混在一起。`
+      : `consultant 主要要完成自己的${SURFACE_LABELS.personalProviderSettings}，${SURFACE_LABELS.firmSettings}則只讀不改。`;
   const settingsActionChecklist = [
     providerVisibility.showFirmSettings
-      ? "Firm Settings 只影響 firm fallback 與 allowlist，不代表每位顧問都共用同一把 key。"
-      : "你這一頁真正要先完成的是自己的 Personal Provider Settings。",
-    "Personal Provider Settings 決定你是否能正式執行分析；consultant 沒有自己的 key 時，run path 會 fail-closed。",
+      ? `${SURFACE_LABELS.firmSettings}只影響事務所備援與可用模型來源清單，不代表每位顧問都共用同一把 key。`
+      : `你這一頁真正要先完成的是自己的${SURFACE_LABELS.personalProviderSettings}。`,
+    `${SURFACE_LABELS.personalProviderSettings}決定你是否能正式執行分析；consultant 沒有自己的 key 時，run path 會 fail-closed。`,
     "介面偏好與本機顧問署名仍是獨立層，不要和 provider 設定混成同一個成功心智。",
   ];
 
@@ -137,12 +138,12 @@ export function SettingsPagePanel() {
             <span className="eyebrow">系統設定</span>
             <h1 className="page-title">系統設定</h1>
             <p className="page-subtitle">
-              Phase 5 之後，這一頁不再只是一個單人版 system settings 區，而是正式拆成 Firm Settings、Personal Provider Settings 與 workbench preferences。
+              Phase 5 之後，這一頁不再只是一個單人版設定區，而是正式拆成{SURFACE_LABELS.firmSettings}、{SURFACE_LABELS.personalProviderSettings}與工作台偏好。
             </p>
             <div className="hero-actions">
               {providerVisibility.showFirmSettings ? (
                 <a className="button-primary" href="#firm-provider-panel">
-                  看 Firm Settings
+                  看{SURFACE_LABELS.firmSettings}
                 </a>
               ) : (
                 <a className="button-primary" href="#personal-provider-panel">
@@ -191,15 +192,15 @@ export function SettingsPagePanel() {
           </div>
           <div className="section-card">
             <h4>目前角色</h4>
-            <p className="content-block">
-              {sessionResolved
-                ? role === "owner"
-                  ? "你目前是 owner，因此同時看得到 Firm Settings 與 Personal Provider Settings。"
+              <p className="content-block">
+                {sessionResolved
+                  ? role === "owner"
+                  ? `你目前是 owner，因此同時看得到${SURFACE_LABELS.firmSettings}與${SURFACE_LABELS.personalProviderSettings}。`
                   : role === "consultant"
-                    ? "你目前是 consultant，因此只能修改自己的 Personal Provider Settings。"
+                    ? `你目前是 consultant，因此只能修改自己的${SURFACE_LABELS.personalProviderSettings}。`
                     : "目前還在確認登入身份。"
                 : "正在確認目前身份..."}
-            </p>
+              </p>
           </div>
         </div>
       </section>
@@ -390,7 +391,7 @@ export function SettingsPagePanel() {
               <div className="setting-note-card">
                 <h3>這一輪的邊界</h3>
                 <p className="content-block">
-                  本機顧問署名仍只處理 attribution；正式身份、Firm Settings、Personal Provider Settings 已分流到 phase 5 的雲端帳號層。
+                  本機顧問署名仍只處理 attribution；正式身份、{SURFACE_LABELS.firmSettings}、{SURFACE_LABELS.personalProviderSettings}已分流到 phase 5 的雲端帳號層。
                 </p>
               </div>
             </div>
