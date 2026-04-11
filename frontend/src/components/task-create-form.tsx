@@ -361,6 +361,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
   >({});
   const [replaceTargetId, setReplaceTargetId] = useState<string | null>(null);
   const [sessionItemStates, setSessionItemStates] = useState<IntakeSessionItemState[]>([]);
+  const sourceFilesInputRef = useRef<HTMLInputElement | null>(null);
   const fileReplaceInputRef = useRef<HTMLInputElement | null>(null);
   const urlFieldRef = useRef<HTMLTextAreaElement | null>(null);
   const pastedTextFieldRef = useRef<HTMLTextAreaElement | null>(null);
@@ -1073,12 +1074,21 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
           </div>
 
           <div className="field">
-            <label htmlFor="source-files">上傳檔案</label>
+            <label>上傳檔案</label>
+            <button
+              className="button-secondary"
+              type="button"
+              onClick={() => sourceFilesInputRef.current?.click()}
+            >
+              選擇檔案
+            </button>
             <input
+              ref={sourceFilesInputRef}
               id="source-files"
               type="file"
               multiple
               accept=".md,.txt,.docx,.xlsx,.csv,.pdf,.jpg,.jpeg,.png,.webp,text/plain,text/markdown,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/jpeg,image/png,image/webp"
+              style={{ display: "none" }}
               onChange={(event) => {
                 setFiles((previous) =>
                   appendSelectedFiles(previous, Array.from(event.target.files ?? [])),

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
-import { getCurrentSession } from "@/lib/api";
+import { getCurrentSession, logoutCurrentSession } from "@/lib/api";
 import {
   buildPrimaryNavForMembershipRole,
   isPublicAppPath,
@@ -30,6 +30,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [systemTheme, setSystemTheme] = useState<"light" | "dark">("light");
   const [session, setSession] = useState<SessionState | null>(null);
   const [authResolved, setAuthResolved] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
@@ -133,6 +134,21 @@ export function AppShell({ children }: { children: ReactNode }) {
     window.location.href = redirectTarget;
   }, [redirectTarget]);
 
+  async function handleLogout() {
+    try {
+      setLoggingOut(true);
+      await logoutCurrentSession();
+    } catch (error) {
+      if (!isAuthError(error)) {
+        console.error("logout failed", error);
+      }
+    } finally {
+      setSession(null);
+      setAuthResolved(true);
+      window.location.href = "/login";
+    }
+  }
+
   if (!publicPath && !authResolved) {
     return (
       <div className="app-shell">
@@ -194,10 +210,20 @@ export function AppShell({ children }: { children: ReactNode }) {
           )}
 
           <div className="app-header-actions">
-            {!publicPath ? (
-              <Link className="button-primary app-header-action" href="/new">
-                建立新案件
-              </Link>
+            {!publicPath && session ? (
+              <>
+                <button
+                  className="button-secondary app-header-action"
+                  type="button"
+                  onClick={() => void handleLogout()}
+                  disabled={loggingOut}
+                >
+                  {loggingOut ? "登出中..." : "登出"}
+                </button>
+                <Link className="button-primary app-header-action" href="/new">
+                  建立新案件
+                </Link>
+              </>
             ) : null}
           </div>
         </div>

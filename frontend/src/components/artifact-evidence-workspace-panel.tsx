@@ -198,6 +198,7 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
   const [resolvingCanonicalizationKey, setResolvingCanonicalizationKey] = useState<string | null>(null);
   const [canonicalizationMessage, setCanonicalizationMessage] = useState<string | null>(null);
   const [canonicalizationError, setCanonicalizationError] = useState<string | null>(null);
+  const matterFilesInputRef = useRef<HTMLInputElement | null>(null);
   const fileReplaceInputRef = useRef<HTMLInputElement | null>(null);
   const urlFieldRef = useRef<HTMLTextAreaElement | null>(null);
   const pastedTextFieldRef = useRef<HTMLTextAreaElement | null>(null);
@@ -1171,12 +1172,21 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
               ) : null}
 
               <div className="field">
-                <label htmlFor="matter-files">上傳檔案</label>
+                <label>上傳檔案</label>
+                <button
+                  className="button-secondary"
+                  type="button"
+                  onClick={() => matterFilesInputRef.current?.click()}
+                >
+                  選擇檔案
+                </button>
                 <input
+                  ref={matterFilesInputRef}
                   id="matter-files"
                   type="file"
                   multiple
                   accept=".md,.txt,.docx,.xlsx,.csv,.pdf,.jpg,.jpeg,.png,.webp,text/plain,text/markdown,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/jpeg,image/png,image/webp"
+                  style={{ display: "none" }}
                   onChange={handleFileChange}
                 />
                 <input

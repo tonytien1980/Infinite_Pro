@@ -150,6 +150,13 @@ export async function startGoogleLogin(): Promise<{ authorizationUrl: string }> 
   return { authorizationUrl: payload.authorization_url };
 }
 
+export async function logoutCurrentSession(): Promise<void> {
+  const response = await apiFetch(`${getApiBaseUrl()}/auth/logout`, {
+    method: "POST",
+  });
+  await parseResponse<{ status: string }>(response);
+}
+
 export async function listMembers(): Promise<MemberListSnapshot> {
   const response = await apiFetch(`${getApiBaseUrl()}/members`, {
     cache: "no-store",

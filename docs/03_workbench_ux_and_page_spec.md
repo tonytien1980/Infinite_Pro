@@ -619,6 +619,7 @@ Primary action：
 - 正式進件主線說明
 - 目前判讀到的起手方式
 - 統一材料區
+- 明確可點的檔案選擇按鈕
 - 材料逐項預覽 / 移除 / 提示
 - 材料逐項狀態 / 診斷 / 補救建議
 - continuity mode / writeback depth 進階設定
@@ -634,6 +635,7 @@ Primary action：
 - internal workflow labels 只留在 disclosure / advanced settings，且應清楚標示這是系統內部執行方式
 - 不讓使用者在第一步就被迫理解 specialist / multi-agent 等系統實作詞
 - `少資訊起手`、`單材料起手`、`多來源案件` 等顧問語言應優先於 `sparse inquiry`、`multi-source case` 等內部英文名
+- 檔案上傳不可只依賴裸露原生 file input；應使用明確可點的 `選擇檔案` 控制來觸發隱藏 input，避免不同瀏覽器下看起來像沒有反應
 
 ### 7.3 `/matters/[matterId]`
 
@@ -1016,6 +1018,8 @@ Primary action：
 - precedent review 應留在 `history / management` family 內，不新增 precedent page family
 - 這條 lane 不可搶走 history hero 的主定位
 - task history list 與 precedent review list 應清楚分隔，但留在同一頁
+- `清理本頁` 與 `隱藏全部歷史入口` 這類操作都只是在整理可見入口，不是刪除正式工作資料
+- 若要做不可逆的本機資料清除，必須走明確的 runtime / operator 操作，不可把它偽裝成一般 history UI 按鈕
 - precedence review 的排序語言應保持可理解：
   - `建議先看`
   - `可安排下一輪`
@@ -1089,6 +1093,7 @@ Primary action：
 - visible copy 應維持 consultant-first，而不是 OAuth debug shell
 - Google 登入成功後，應直接返回 frontend 首頁，由既有 session gate 接手，不可停在 backend callback JSON
 - 不可在這頁暴露 firm 管理、權限矩陣或 provider technical details
+- 已登入後的正式 shell 必須提供清楚可達的 `登出` 入口；不能只有登入、沒有退出控制
 
 ### 7.12 `/members`
 

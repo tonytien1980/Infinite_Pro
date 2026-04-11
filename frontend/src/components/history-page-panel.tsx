@@ -241,7 +241,7 @@ export function HistoryPagePanel() {
   async function handleClearAll() {
     if (typeof window !== "undefined") {
       const confirmed = window.confirm(
-        "這會把目前所有歷史入口標記為隱藏，不會硬刪除正式工作紀錄，確定要繼續嗎？",
+        "這只會把目前所有歷史入口標記為隱藏，不會刪除正式工作紀錄，確定要繼續嗎？",
       );
 
       if (!confirmed) {
@@ -857,7 +857,7 @@ export function HistoryPagePanel() {
               清理本頁
             </button>
             <button className="button-secondary" type="button" onClick={() => void handleClearAll()}>
-              清空全部歷史入口
+              隱藏全部歷史入口
             </button>
           </div>
           {historyMessage ? (

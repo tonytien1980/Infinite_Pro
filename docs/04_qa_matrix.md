@@ -6290,3 +6290,93 @@ Environment used:
 - a historical data migration to rewrite every previously persisted mixed-language summary
 - a full browser sweep of every below-fold disclosure and every archived historical record
 - changes to the architecture, Host boundary, or provider boundary
+
+---
+
+## Entry: 2026-04-11 local runtime cleanup and history-label clarification
+
+Scope:
+- clear local test-created work data from the runtime database while preserving auth and settings
+- clarify that `/history` cleanup actions hide history entries instead of deleting formal records
+
+Environment used:
+- local Docker runtime
+- frontend: `http://127.0.0.1:3000`
+- backend: `http://127.0.0.1:8000/api/v1`
+- database: local Postgres container `infinitepro-db-1`
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `docker exec infinitepro-db-1 psql -U postgres -d ai_advisory_os -c \"select ... counts ...\"` | Passed |
+| `source ~/.nvm/nvm.sh && cd frontend && node --test tests/low-noise-workbench-repass.test.mjs` | Passed (`4 passed`) |
+| `python3 -m compileall backend/app` | Passed |
+| `source ~/.nvm/nvm.sh && cd frontend && node --test tests/*.test.mjs` | Passed (`107 passed`) |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run build` | Passed |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run typecheck` | Passed |
+| `git diff --check` | Passed |
+
+### Runtime cleanup verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Local runtime data | Postgres work tables | truncate `matter_workspaces, tasks` with `CASCADE` while preserving auth/settings tables | Verified | work data dropped to zero while `users`, `firms`, `workbench_preferences`, `system_provider_configs`, and `demo_workspace_policies` remained intact |
+| Frontend | `/history` | relabel the bulk action to `隱藏全部歷史入口` and keep confirmation copy explicit about hiding vs. deleting | Verified | the UI no longer suggests that the button deletes formal records |
+| Browser smoke | `/settings` after cleanup | confirm login/settings state still renders after local data cleanup | Verified | authenticated shell and settings surfaces remained accessible after clearing work data |
+
+### Post-cleanup count snapshot
+
+| Table | Count |
+| --- | --- |
+| `tasks` | `0` |
+| `matter_workspaces` | `0` |
+| `deliverables` | `0` |
+| `evidence` | `0` |
+| `precedent_candidates` | `0` |
+| `task_visibility_states` | `0` |
+| `users` | `1` |
+| `firms` | `1` |
+| `workbench_preferences` | `1` |
+| `system_provider_configs` | `1` |
+| `demo_workspace_policies` | `1` |
+
+---
+
+## Entry: 2026-04-11 logout control and upload-trigger hardening
+
+Scope:
+- add an explicit logout control to the authenticated app shell
+- replace bare visible file inputs with explicit upload buttons on `/new` and the evidence supplement surface
+
+Environment used:
+- local Docker runtime
+- frontend: `http://127.0.0.1:3000`
+- backend: `http://127.0.0.1:8000/api/v1`
+- authenticated local owner browser session created operator-side for smoke verification
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `source ~/.nvm/nvm.sh && cd frontend && node --test tests/auth-shell-controls.test.mjs` | Passed (`3 passed`) |
+| `python3 -m compileall backend/app` | Passed |
+| `source ~/.nvm/nvm.sh && cd frontend && node --test tests/*.test.mjs` | Passed (`111 passed`) |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run build` | Passed |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run typecheck` | Passed |
+| `git diff --check` | Passed |
+
+### Browser verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| App shell | authenticated header | verify `登出` button renders next to `建立新案件` | Verified | authenticated shell now exposes an explicit logout control instead of forcing the user to rely on session expiry |
+| App shell | authenticated header -> `/login` | click `登出` | Verified | browser returned to `/login`, confirming the frontend now wires the existing backend logout route |
+| Intake UI | `/new` | click `選擇檔案` and attach a local text file | Verified | file chooser opened, the upload succeeded, and the selected filename appeared in the pending-material list |
+| Evidence supplement UI | source verification + mirrored implementation | confirm the evidence supplement flow uses the same explicit upload-trigger pattern as `/new` | Verified | code and regression tests confirm `/matters/[matterId]/evidence` now uses the same explicit button-triggered hidden file input pattern |
+
+### Explicitly not shipped in this pass
+
+- a user-account dropdown or profile menu
+- a broader redesign of account/session controls
+- drag-and-drop upload enhancements

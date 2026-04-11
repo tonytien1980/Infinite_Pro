@@ -95,3 +95,15 @@ test("cross-surface visible copy avoids mixed-language contract and membership l
   assert.doesNotMatch(evidenceSource, /artifact 角色/);
   assert.doesNotMatch(evidenceSource, /metadata \/ reference/);
 });
+
+test("history cleanup copy makes hiding separate from deleting", () => {
+  const historySource = readFileSync(
+    new URL("../src/components/history-page-panel.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.doesNotMatch(historySource, /清空全部歷史入口/);
+  assert.doesNotMatch(historySource, /不會硬刪除正式工作紀錄/);
+  assert.match(historySource, /隱藏全部歷史入口/);
+  assert.match(historySource, /只會把目前所有歷史入口標記為隱藏/);
+});
