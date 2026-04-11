@@ -250,12 +250,13 @@ def build_decision_brief(
     latest_deliverable_title = _text_attr(latest_deliverable, "title")
     latest_deliverable_summary = _text_attr(latest_deliverable, "summary")
     latest_deliverable_version = _version_label_for_deliverable(latest_deliverable)
+    latest_deliverable_status = _clean_text(getattr(latest_deliverable, "status", ""))
     recommendation_summary_text = _summarize_titles(linked_recommendations, attr="summary")
     action_summary_text = _summarize_titles(linked_action_items, attr="description")
     risk_summary_text = _summarize_titles(linked_risks, attr="title")
     has_open_gaps = _has_open_evidence_gaps(evidence_gap_records)
     has_decision_material = bool(latest_deliverable or linked_recommendations or linked_action_items)
-    has_publishable_deliverable = latest_deliverable is not None
+    has_publishable_deliverable = latest_deliverable_status == "final"
     approvals_complete = _approval_statuses_complete(decision_records) and _approval_statuses_complete(
         action_plans
     )
@@ -395,6 +396,12 @@ def build_writeback_approval(
             f"建議候選 {recommendation_candidate_count} 個。"
         )
 
+    boundary_note = (
+        "這個 writeback approval read model 只描述完成狀態與回看基底。"
+        if posture == "completed"
+        else "這個 writeback approval read model 只描述狀態，正式核可仍需 Host / 顧問操作。"
+    )
+
     return WritebackApprovalModel(
         posture=posture,
         posture_label=posture_label,
@@ -402,5 +409,5 @@ def build_writeback_approval(
         primary_action_label=primary_action_label,
         primary_action_summary=primary_action_summary,
         candidate_summary=candidate_summary,
-        boundary_note="這個 writeback approval read model 只描述狀態，正式核可仍需 Host / 顧問操作。",
+        boundary_note=boundary_note,
     )

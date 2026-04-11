@@ -33,11 +33,7 @@ from app.ingestion.remote import RemoteSourceContent
 from app.model_router.base import PackContractSynthesisRequest
 from app.model_router.structured_tasks import build_pack_contract_synthesis_spec
 from app.services import extension_contract_synthesis
-from app.services.case_command_loop import (
-    _build_writeback_primary_action,
-    build_decision_brief,
-    build_writeback_approval,
-)
+from app.services.case_command_loop import build_writeback_approval
 from app.services.deliverable_shape_intelligence import build_deliverable_shape_guidance
 from app.services.external_search import SearchResult
 from app.services.tasks import get_loaded_task
@@ -9377,9 +9373,21 @@ def test_task_writeback_approval_marks_pending_records_approved(
     client: TestClient,
 ) -> None:
     payload = create_task_payload("Wave 1 approval")
-    payload["external_data_strategy"] = "strict"
-    payload["engagement_continuity_mode"] = "continuous"
-    payload["writeback_depth"] = "full"
+    payload.update(
+        {
+            "external_data_strategy": "strict",
+            "engagement_continuity_mode": "continuous",
+            "writeback_depth": "full",
+            "client_name": "Atlas Advisory",
+            "client_type": "中小企業",
+            "client_stage": "制度化階段",
+            "engagement_name": "Atlas Approval Loop",
+            "workstream_name": "營運與銷售收斂",
+            "decision_title": "Atlas approval flow",
+            "judgment_to_make": "先判斷這輪應先補證據、先收斂正式建議，還是直接回交付物改版。",
+            "domain_lenses": ["營運", "銷售", "綜合策略"],
+        }
+    )
     task = client.post("/api/v1/tasks", json=payload).json()
 
     upload_response = client.post(
@@ -9387,6 +9395,11 @@ def test_task_writeback_approval_marks_pending_records_approved(
         files=[("files", ("approval.txt", b"Approval contract should distinguish generated writeback from formal confirmation.", "text/plain"))],
     )
     assert upload_response.status_code == 200
+    second_upload = client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("approval-2.txt", b"Second evidence note to keep the command loop grounded.", "text/plain"))],
+    )
+    assert second_upload.status_code == 200
 
     run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
     assert run_response.status_code == 200
@@ -9418,8 +9431,13 @@ def test_task_writeback_approval_marks_pending_records_approved(
         for item in plan_approved["audit_events"]
     )
 
+    aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
+    assert aggregate["decision_records"][0]["approval_status"] == "approved"
+    assert aggregate["action_plans"][0]["approval_status"] == "approved"
+    assert aggregate["writeback_approval"]["boundary_note"] == "這個 writeback approval read model 只描述狀態，正式核可仍需 Host / 顧問操作。"
 
-def test_case_command_loop_marks_formal_approval_complete_without_post_approval_cta() -> None:
+
+def test_case_command_loop_marks_pending_approvals_formal_approval() -> None:
     pending_decision_record = SimpleNamespace(approval_status="pending")
     pending_action_plan = SimpleNamespace(approval_status="pending")
     pending_writeback_approval = build_writeback_approval(
@@ -9432,65 +9450,88 @@ def test_case_command_loop_marks_formal_approval_complete_without_post_approval_
     assert pending_writeback_approval.posture == "formal_approval"
     assert pending_writeback_approval.posture_label == "正式核可中"
 
-    deliverable = SimpleNamespace(
-        title="Final decision memo",
-        summary="Decision memo ready for circulation.",
-        version=3,
-        version_tag="v3",
-    )
-    decision_record = SimpleNamespace(
+
+def test_case_command_loop_marks_completed_writeback_without_approval_cta() -> None:
+    approved_decision_record = SimpleNamespace(
         approval_status="approved",
         decision_summary="Approve the proposed decision record.",
     )
-    action_plan = SimpleNamespace(
+    approved_action_plan = SimpleNamespace(
         approval_status="approved",
         summary="Approve the proposed action plan.",
     )
-
-    completed_label, completed_summary = _build_writeback_primary_action(
-        posture="completed",
-        latest_decision_record=decision_record,
-        latest_action_plan=action_plan,
-        candidate_summary=SimpleNamespace(summary=""),
-    )
-    assert completed_label == "已完成寫回"
-    assert completed_summary.startswith("這輪 writeback 已完成")
-    assert "正式回看基底" in completed_summary
-    assert "approve" not in completed_label.lower()
-    assert "approval" not in completed_label.lower()
-    assert "approve" not in completed_summary.lower()
-    assert "approval" not in completed_summary.lower()
-
-    decision_brief = build_decision_brief(
-        task=SimpleNamespace(
-            title="Formal approval completion",
-            description="Confirm the writeback loop can publish without downstream outcome logging.",
-            world_decision_context=None,
-            decision_context=None,
-            slice_decision_context=None,
-        ),
-        linked_risks=[],
-        linked_recommendations=[],
-        linked_action_items=[],
-        latest_deliverable=deliverable,
-        evidence_gap_records=[],
-        decision_records=[decision_record],
-        action_plans=[action_plan],
-        outcome_records=[],
-    )
-    assert decision_brief.posture == "publish_ready"
-
-    writeback_approval = build_writeback_approval(
-        decision_records=[decision_record],
-        action_plans=[action_plan],
+    completed_writeback_approval = build_writeback_approval(
+        decision_records=[approved_decision_record],
+        action_plans=[approved_action_plan],
         outcome_records=[],
         evidence_gap_records=[],
         task_candidate_summary=SimpleNamespace(total_candidates=0, summary=""),
     )
-    assert writeback_approval.posture == "completed"
-    assert writeback_approval.primary_action_label == "已完成寫回"
-    assert "先核" not in writeback_approval.primary_action_label
-    assert "先核" not in writeback_approval.primary_action_summary
+    assert completed_writeback_approval.posture == "completed"
+    assert completed_writeback_approval.posture_label == "已完成"
+    assert completed_writeback_approval.primary_action_label == "已完成寫回"
+    assert completed_writeback_approval.primary_action_summary == "這輪 writeback 已完成，可直接作為正式回看基底。"
+    assert completed_writeback_approval.boundary_note == "這個 writeback approval read model 只描述完成狀態與回看基底。"
+    assert "approve" not in completed_writeback_approval.primary_action_label.lower()
+    assert "approval" not in completed_writeback_approval.primary_action_label.lower()
+    assert "approve" not in completed_writeback_approval.primary_action_summary.lower()
+    assert "approval" not in completed_writeback_approval.primary_action_summary.lower()
+    assert "正式核可" not in completed_writeback_approval.boundary_note
+    assert "仍需" not in completed_writeback_approval.boundary_note
+
+
+def test_case_command_loop_keeps_pending_confirmation_deliverable_out_of_publish_ready(
+    client: TestClient,
+) -> None:
+    payload = create_task_payload("Pending confirmation publish gate")
+    payload["external_data_strategy"] = "strict"
+    payload["engagement_continuity_mode"] = "continuous"
+    payload["writeback_depth"] = "full"
+    task = client.post("/api/v1/tasks", json=payload).json()
+
+    upload_response = client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("pending-confirmation.txt", b"Pending confirmation should not become publish ready.", "text/plain"))],
+    )
+    assert upload_response.status_code == 200
+
+    run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
+    assert run_response.status_code == 200
+
+    deliverable_id = run_response.json()["deliverable"]["id"]
+    update_response = client.put(
+        f"/api/v1/deliverables/{deliverable_id}/metadata",
+        json={
+            "title": "Pending confirmation decision memo",
+            "summary": "This deliverable is waiting on confirmation.",
+            "status": "pending_confirmation",
+            "version_tag": "v1.1",
+        },
+    )
+    assert update_response.status_code == 200
+
+    aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
+    decision_record = aggregate["decision_records"][0]
+    action_plan = aggregate["action_plans"][0]
+
+    approve_decision = client.post(
+        f"/api/v1/tasks/{task['id']}/writeback-approval",
+        json={"target_type": "decision_record", "target_id": decision_record["id"], "note": ""},
+    )
+    assert approve_decision.status_code == 200
+
+    approve_plan = client.post(
+        f"/api/v1/tasks/{task['id']}/writeback-approval",
+        json={"target_type": "action_plan", "target_id": action_plan["id"], "note": ""},
+    )
+    assert approve_plan.status_code == 200
+
+    final_aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
+    assert final_aggregate["decision_records"][0]["approval_status"] == "approved"
+    assert final_aggregate["action_plans"][0]["approval_status"] == "approved"
+    assert final_aggregate["deliverables"][0]["status"] == "pending_confirmation"
+    assert final_aggregate["decision_brief"]["posture"] != "publish_ready"
+    assert final_aggregate["decision_brief"]["posture_label"] != "可發布"
 
 
 def test_continuous_surfaces_show_latest_previous_progression_and_guidance(
