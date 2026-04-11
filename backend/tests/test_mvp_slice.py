@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from io import BytesIO
 import json
+from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 import pytest
@@ -32,6 +33,7 @@ from app.ingestion.remote import RemoteSourceContent
 from app.model_router.base import PackContractSynthesisRequest
 from app.model_router.structured_tasks import build_pack_contract_synthesis_spec
 from app.services import extension_contract_synthesis
+from app.services.case_command_loop import build_decision_brief, build_writeback_approval
 from app.services.deliverable_shape_intelligence import build_deliverable_shape_guidance
 from app.services.external_search import SearchResult
 from app.services.tasks import get_loaded_task
@@ -9409,6 +9411,54 @@ def test_task_writeback_approval_marks_pending_records_approved(
         item["event_type"] == "approval_recorded" and item["action_plan_id"] == action_plan["id"]
         for item in plan_approved["audit_events"]
     )
+
+
+def test_case_command_loop_marks_formal_approval_complete_without_post_approval_cta() -> None:
+    deliverable = SimpleNamespace(
+        title="Final decision memo",
+        summary="Decision memo ready for circulation.",
+        version=3,
+        version_tag="v3",
+    )
+    decision_record = SimpleNamespace(
+        approval_status="approved",
+        decision_summary="Approve the proposed decision record.",
+    )
+    action_plan = SimpleNamespace(
+        approval_status="approved",
+        summary="Approve the proposed action plan.",
+    )
+
+    decision_brief = build_decision_brief(
+        task=SimpleNamespace(
+            title="Formal approval completion",
+            description="Confirm the writeback loop can publish without downstream outcome logging.",
+            world_decision_context=None,
+            decision_context=None,
+            slice_decision_context=None,
+        ),
+        linked_risks=[],
+        linked_recommendations=[],
+        linked_action_items=[],
+        latest_deliverable=deliverable,
+        evidence_gap_records=[],
+        decision_records=[decision_record],
+        action_plans=[action_plan],
+        outcome_records=[],
+    )
+    assert decision_brief.posture == "publish_ready"
+
+    writeback_approval = build_writeback_approval(
+        decision_records=[decision_record],
+        action_plans=[action_plan],
+        outcome_records=[],
+        evidence_gap_records=[],
+        task_candidate_summary=SimpleNamespace(total_candidates=0, summary=""),
+    )
+    assert writeback_approval.posture == "completed"
+    assert writeback_approval.primary_action_label == "已完成寫回"
+    assert "先核" not in writeback_approval.primary_action_label
+    assert "先核" not in writeback_approval.primary_action_summary
 
 
 def test_continuous_surfaces_show_latest_previous_progression_and_guidance(

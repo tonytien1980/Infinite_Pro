@@ -259,6 +259,7 @@ def build_decision_brief(
     risk_summary_text = _summarize_titles(linked_risks, attr="title")
     has_open_gaps = _has_open_evidence_gaps(evidence_gap_records)
     has_decision_material = bool(latest_deliverable or linked_recommendations or linked_action_items)
+    has_publishable_deliverable = latest_deliverable is not None
     approvals_complete = _approval_statuses_complete(decision_records) and _approval_statuses_complete(
         action_plans
     )
@@ -267,7 +268,7 @@ def build_decision_brief(
     if has_open_gaps or not has_decision_material:
         posture = "draft"
         posture_label = "草稿"
-    elif approvals_complete and outcome_records:
+    elif has_publishable_deliverable and approvals_complete:
         posture = "publish_ready"
         posture_label = "可發布"
     else:
@@ -345,7 +346,6 @@ def build_writeback_approval(
 ) -> WritebackApprovalModel:
     latest_decision_record = decision_records[0] if decision_records else None
     latest_action_plan = action_plans[0] if action_plans else None
-    latest_outcome_record = outcome_records[0] if outcome_records else None
     has_open_gaps = _has_open_evidence_gaps(evidence_gap_records)
     approvals_pending = _has_pending_approvals(decision_records) or _has_pending_approvals(action_plans)
     approvals_complete = _approval_statuses_complete(decision_records) and _approval_statuses_complete(
@@ -368,14 +368,11 @@ def build_writeback_approval(
         posture = "minimal"
         posture_label = "最小寫回"
     elif approvals_pending:
-        posture = "candidate_review"
-        posture_label = "候選檢視"
-    elif latest_outcome_record and approvals_complete:
+        posture = "formal_approval"
+        posture_label = "正式核可中"
+    elif approvals_complete:
         posture = "completed"
         posture_label = "已完成"
-    elif approvals_complete:
-        posture = "formal_approval"
-        posture_label = "正式核可"
     elif total_candidates > 0:
         posture = "candidate_review"
         posture_label = "候選檢視"
