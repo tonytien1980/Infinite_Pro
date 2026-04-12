@@ -414,28 +414,17 @@ Infinite Pro 正式採：
 
 正式規則補充：
 
-- `總覽` 現在可正式承接一塊 `firm operating snapshot`
+- `總覽` 現在正式先當 launcher / primary work return 入口
 - 這塊只回答：
+  - 現在最值得先回哪個工作面
+  - 如果卡在補件或回結果，該走哪條路徑
+  - 首屏要先把顧問送回主工作，而不是先看治理摘要
+- `firm operating`、`phase 5 closure review`、`Generalist Governance` 仍可存在
+ 但它們應改放到第二層 disclosure，再低噪音回讀：
   - 目前運作姿態
-  - 最值得先處理的 operating note
-  - 低噪音 operating signals
-- `總覽` 現在也可正式承接一塊 `phase 5 closure review`
-- 這塊只回答：
   - 第 5 階段收尾狀態
-  - 已完成幾條子線
-  - 還剩哪個收尾項目
-- `總覽` 現在也可正式承接一塊 `Generalist Governance`
-- 這塊只回答：
-  - shared intelligence 目前有沒有開始偏科
-  - Phase 6 目前是處於 foundation、refinement，還是可準備收斂
-  - runtime feedback loop 到底有沒有開始形成
-  - 距離 completion review 還差哪些真正 blocker
-  - 目前 completion review overall score 大概到哪
-  - 最近是否已有 recorded checkpoint
-  - 覆蓋目前偏穩、偏薄，還是過重的能力區塊
-  - 哪些 reusable assets 目前只適合局部情境
-  - 哪些 reusable assets 可擴大重用、維持局部參考，或不要擴大套用
-  - Host 目前傾向把哪類 reusable assets 排前面、哪類先留背景校正
+  - shared intelligence / Phase 6 的成熟與收斂狀態
+  - completion review、checkpoint、reuse boundary、guidance posture 等延伸訊號
 - 若 phase 5 已開始支援 explicit sign-off，第一波也只可低噪音補：
   - `正式收口 Phase 5`
   - `下一階段 handoff`
@@ -595,13 +584,14 @@ Primary action：
 
 - 第一屏先用一個更明確的 primary-action block 回答：
   - `現在先做這件事`
+- hero 應維持 launcher-only posture，不把 metrics 或治理摘要塞進首屏主視覺
 - 首頁的 section guide 只應回答：
   - 若要接回主工作，去哪裡
   - 若卡在依據偏薄，先走哪條補件路徑
   - 若不是延續工作，何時才直接建立新案件
 - 首頁不應承接整個案件背景，也不應把 metrics 區讀成主線
-- 首頁不應因 `firm operating`、phase closure、generalist governance 等第二層摘要尚未回來，就阻塞主工作入口
-- 若首頁仍要顯示這些摘要，它們應在 route-defining 的主資料之後載入
+- `firm operating`、phase closure、generalist governance 等第二層摘要不得阻塞首頁主工作入口
+- 若首頁仍要顯示這些摘要，它們應放在 second-layer disclosure，並在 route-defining 的主資料之後載入
 
 ### 7.2 `/new`
 

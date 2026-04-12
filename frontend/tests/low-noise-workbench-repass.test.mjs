@@ -21,6 +21,24 @@ test("surface labels use consultant-facing Traditional Chinese on high-visibilit
   assert.equal(SURFACE_LABELS.demoRules, "示範工作台規則");
 });
 
+test("overview source keeps firm operating and governance summaries behind a second layer", () => {
+  const source = readFileSync(
+    new URL("../src/components/workbench-home.tsx", import.meta.url),
+    "utf8",
+  );
+  const heroBlock = source.match(/<section className="hero-card overview-hero">[\s\S]*?<\/section>/)?.[0] ?? "";
+  const governanceBlock =
+    source.match(
+      /<details className="panel disclosure-panel home-governance-disclosure">[\s\S]*?<\/details>/,
+    )?.[0] ?? "";
+
+  assert.match(governanceBlock, /查看低噪音營運與治理摘要/);
+  assert.match(governanceBlock, /hero-metrics-grid/);
+  assert.match(governanceBlock, /error-text/);
+  assert.doesNotMatch(heroBlock, /hero-metrics-grid/);
+  assert.doesNotMatch(heroBlock, /error-text/);
+});
+
 test("new matter intake first screen avoids leaking internal workflow jargon", () => {
   const source = readFileSync(
     new URL("../src/components/task-create-form.tsx", import.meta.url),

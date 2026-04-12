@@ -631,6 +631,20 @@ export function WorkbenchHome() {
     hasPrimaryDeliverable: Boolean(primaryDeliverable?.latest_deliverable_id),
     hasPendingEvidenceTask: Boolean(primaryEvidenceTask),
   });
+  const governanceErrorItems = [
+    { label: "營運狀態", error: firmOperatingError },
+    { label: "第五階段收尾", error: phaseFiveClosureError },
+    { label: SURFACE_LABELS.generalistGovernance, error: phaseSixAuditError },
+    { label: "Phase 6 closeout", error: phaseSixCloseoutReviewError },
+    { label: "Phase 6 completion review", error: phaseSixCompletionReviewError },
+    { label: "Phase 6 closure criteria", error: phaseSixClosureCriteriaError },
+    { label: "Phase 6 maturity", error: phaseSixMaturityError },
+    { label: "confidence calibration", error: phaseSixCalibrationError },
+    { label: "Host weighting", error: phaseSixCalibrationWeightingError },
+    { label: "reuse confidence", error: phaseSixDistanceError },
+    { label: "reuse-boundary governance", error: phaseSixGovernanceError },
+    { label: "全面型顧問治理姿態", error: phaseSixGuidanceError },
+  ].filter((item) => Boolean(item.error));
 
   return (
     <main className="page-shell home-page-shell">
@@ -673,32 +687,6 @@ export function WorkbenchHome() {
             </div>
           </div>
         </div>
-
-        <div className="hero-metrics-grid">
-          <div className="section-card hero-metric-card">
-            <h3>進行中案件</h3>
-            <p className="workbench-metric">{activeMatters.length}</p>
-            <p className="muted-text">
-              {primaryMatter?.title || "目前還沒有進行中的案件。"}
-            </p>
-          </div>
-
-          <div className="section-card hero-metric-card">
-            <h3>最近交付物</h3>
-            <p className="workbench-metric">{recentDeliverables.length}</p>
-            <p className="muted-text">
-              {primaryDeliverable?.latest_deliverable_title || "目前還沒有正式交付成果。"}
-            </p>
-          </div>
-
-          <div className="section-card hero-metric-card">
-            <h3>待補資料</h3>
-            <p className="workbench-metric">{pendingEvidenceTasks.length}</p>
-            <p className="muted-text">
-              {primaryEvidenceTask ? buildGapNote(primaryEvidenceTask) : "目前沒有急需補齊的資料缺口。"}
-            </p>
-          </div>
-        </div>
       </section>
 
       {loading || matterLoading ? <p className="status-text">正在載入總覽...</p> : null}
@@ -715,61 +703,6 @@ export function WorkbenchHome() {
       {extensionError ? (
         <p className="error-text" role="alert" aria-live="assertive">
           {extensionError}
-        </p>
-      ) : null}
-      {firmOperatingError ? (
-        <p className="error-text" role="alert" aria-live="assertive">
-          {firmOperatingError}
-        </p>
-      ) : null}
-      {phaseSixAuditError ? (
-        <p className="error-text" role="alert" aria-live="assertive">
-          {phaseSixAuditError}
-        </p>
-      ) : null}
-      {phaseSixCloseoutReviewError ? (
-        <p className="error-text" role="alert" aria-live="assertive">
-          {phaseSixCloseoutReviewError}
-        </p>
-      ) : null}
-      {phaseSixCompletionReviewError ? (
-        <p className="error-text" role="alert" aria-live="assertive">
-          {phaseSixCompletionReviewError}
-        </p>
-      ) : null}
-      {phaseSixClosureCriteriaError ? (
-        <p className="error-text" role="alert" aria-live="assertive">
-          {phaseSixClosureCriteriaError}
-        </p>
-      ) : null}
-      {phaseSixMaturityError ? (
-        <p className="error-text" role="alert" aria-live="assertive">
-          {phaseSixMaturityError}
-        </p>
-      ) : null}
-      {phaseSixCalibrationError ? (
-        <p className="error-text" role="alert" aria-live="assertive">
-          {phaseSixCalibrationError}
-        </p>
-      ) : null}
-      {phaseSixCalibrationWeightingError ? (
-        <p className="error-text" role="alert" aria-live="assertive">
-          {phaseSixCalibrationWeightingError}
-        </p>
-      ) : null}
-      {phaseSixDistanceError ? (
-        <p className="error-text" role="alert" aria-live="assertive">
-          {phaseSixDistanceError}
-        </p>
-      ) : null}
-      {phaseSixGovernanceError ? (
-        <p className="error-text" role="alert" aria-live="assertive">
-          {phaseSixGovernanceError}
-        </p>
-      ) : null}
-      {phaseFiveClosureError ? (
-        <p className="error-text" role="alert" aria-live="assertive">
-          {phaseFiveClosureError}
         </p>
       ) : null}
 
@@ -936,6 +869,49 @@ export function WorkbenchHome() {
           </div>
 
           <div className="detail-stack">
+            <details className="panel disclosure-panel home-governance-disclosure">
+              <summary className="disclosure-summary">查看低噪音營運與治理摘要</summary>
+              <div className="disclosure-body">
+                {governanceErrorItems.length > 0 ? (
+                  <div className="section-card" style={{ marginBottom: "16px" }}>
+                    <h3>載入異常</h3>
+                    <ul className="detail-list">
+                      {governanceErrorItems.map((item) => (
+                        <li className="error-text" key={item.label} role="alert" aria-live="assertive">
+                          {item.label}：{item.error}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+                <div className="hero-metrics-grid">
+                  <div className="section-card hero-metric-card">
+                    <h3>進行中案件</h3>
+                    <p className="workbench-metric">{activeMatters.length}</p>
+                    <p className="muted-text">
+                      {primaryMatter?.title || "目前還沒有進行中的案件。"}
+                    </p>
+                  </div>
+
+                  <div className="section-card hero-metric-card">
+                    <h3>最近交付物</h3>
+                    <p className="workbench-metric">{recentDeliverables.length}</p>
+                    <p className="muted-text">
+                      {primaryDeliverable?.latest_deliverable_title || "目前還沒有正式交付成果。"}
+                    </p>
+                  </div>
+
+                  <div className="section-card hero-metric-card">
+                    <h3>待補資料</h3>
+                    <p className="workbench-metric">{pendingEvidenceTasks.length}</p>
+                    <p className="muted-text">
+                      {primaryEvidenceTask
+                        ? buildGapNote(primaryEvidenceTask)
+                        : "目前沒有急需補齊的資料缺口。"}
+                    </p>
+                  </div>
+                </div>
+
             <section className="panel">
               <div className="panel-header">
                 <div>
@@ -1471,8 +1447,11 @@ export function WorkbenchHome() {
                 </>
               ) : null}
             </section>
+              </div>
+            </details>
+          </div>
 
-            {settings.showRecentActivity ? (
+          {settings.showRecentActivity ? (
               <section className="panel">
                 <div className="panel-header">
                   <div>
@@ -1564,7 +1543,6 @@ export function WorkbenchHome() {
               </section>
             ) : null}
           </div>
-        </div>
         </>
       ) : null}
     </main>

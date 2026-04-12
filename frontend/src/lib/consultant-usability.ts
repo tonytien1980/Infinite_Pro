@@ -36,7 +36,7 @@ export function buildOverviewUsabilityView(input: {
       href: input.focusHref,
       eyebrow: "先接回主工作",
       title: input.focusTitle,
-      copy: "先回到現在最值得接續的一件事，不先在首頁停太久。",
+      copy: "先回到現在最值得接續的一件事，首頁只做入口，不先停在治理摘要。",
       tone: "accent",
     },
   ];
@@ -79,12 +79,13 @@ export function buildOverviewUsabilityView(input: {
     primaryHref: input.focusHref,
     primaryActionLabel: input.focusActionLabel,
     checklist: [
-      "先回到目前最值得處理的一件事。",
+      "先回到目前最值得接續的工作面。",
       "若卡在依據偏薄，再改走補件路徑。",
-      "只有不是延續工作時，才直接建立新案件。",
+      "治理摘要留在第二層，不在首屏搶主線。",
     ],
-    guideTitle: "總覽怎麼用最快",
-    guideDescription: "首頁只負責把你送回正確工作面，不負責承接整個案件背景。",
+    guideTitle: "先回主工作",
+    guideDescription:
+      "總覽現在只做入口：先把你送回現在最值得接續的一件事；firm operating、phase closure、generalist governance 都留到第二層再看。",
     guideItems: guideItems.slice(0, 3),
   };
 }

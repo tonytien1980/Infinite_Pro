@@ -40,9 +40,30 @@ test("overview usability view keeps homepage guidance low-noise and route-orient
     hasPendingEvidenceTask: false,
   });
 
-  assert.equal(view.guideTitle, "總覽怎麼用最快");
+  assert.equal(view.guideTitle, "先回主工作");
   assert.equal(view.guideItems[0]?.tone, "accent");
-  assert.match(view.guideDescription, /首頁只負責把你送回正確工作面/);
+  assert.match(view.guideDescription, /總覽現在只做入口/);
+});
+
+test("overview usability view keeps launcher guidance ahead of governance summaries", () => {
+  const view = buildOverviewUsabilityView({
+    homepageDisplayPreference: "matters",
+    focusTitle: "回到案件 Alpha",
+    focusCopy: "這是目前最值得接續的一件事。",
+    focusHref: "/matters/matter-alpha",
+    focusActionLabel: "前往案件頁",
+    hasPrimaryMatter: true,
+    hasPrimaryDeliverable: true,
+    hasPendingEvidenceTask: true,
+  });
+
+  assert.equal(view.primaryLabel, "現在先做這件事");
+  assert.equal(view.guideTitle, "先回主工作");
+  assert.equal(
+    view.guideDescription,
+    "總覽現在只做入口：先把你送回現在最值得接續的一件事；firm operating、phase closure、generalist governance 都留到第二層再看。",
+  );
+  assert.equal(view.checklist[2], "治理摘要留在第二層，不在首屏搶主線。");
 });
 
 test("matter usability view keeps the mainline first and pushes world-state to second layer", () => {
