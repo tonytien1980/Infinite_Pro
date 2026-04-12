@@ -1375,6 +1375,63 @@ a.detail-item:hover {
   line-height: 1.62;
 }
 
+.workspace-shell-v2 {
+  display: grid;
+  gap: 24px;
+}
+
+.workspace-local-rail {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: linear-gradient(180deg, var(--panel-surface-start) 0%, var(--panel-surface-end) 100%);
+  box-shadow: var(--shadow-soft);
+}
+
+.workspace-local-rail-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.03em;
+}
+
+.workspace-local-rail-list {
+  display: grid;
+  gap: 10px;
+}
+
+.workspace-local-rail-item {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: var(--panel-strong);
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.workspace-local-rail-item:hover {
+  transform: translateY(-1px);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-soft);
+}
+
+.workspace-local-rail-item-title {
+  font-size: 0.98rem;
+  letter-spacing: -0.01em;
+}
+
+.workspace-local-rail-item-role,
+.workspace-local-rail-item-cue {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
 .object-strip-card h3 {
   margin: 0;
   font-size: 1rem;

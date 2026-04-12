@@ -1,15 +1,9 @@
-"use client";
-
 import Link from "next/link";
 
-type WorkspaceSectionGuideItem = {
-  href: string;
-  eyebrow: string;
-  title: string;
-  copy: string;
-  meta?: string;
-  tone?: "default" | "accent" | "warm";
-};
+import {
+  compressGuideItemsForShellV2,
+  type WorkspaceSectionGuideItem,
+} from "@/lib/workspace-local-rail";
 
 export function WorkspaceSectionGuide({
   title = "先選閱讀路徑",
@@ -20,6 +14,8 @@ export function WorkspaceSectionGuide({
   description: string;
   items: WorkspaceSectionGuideItem[];
 }) {
+  const compressedItems = compressGuideItemsForShellV2(items);
+
   return (
     <section className="panel section-guide-panel">
       <div className="panel-header">
@@ -30,7 +26,7 @@ export function WorkspaceSectionGuide({
       </div>
 
       <div className="section-guide-grid">
-        {items.map((item) => (
+        {compressedItems.map((item) => (
           <Link
             key={`${item.href}-${item.title}`}
             className={`section-guide-card section-guide-card-${item.tone ?? "default"}`}
