@@ -30,16 +30,11 @@ import {
   buildRecommendationCards,
   buildRiskCards,
 } from "@/lib/advisory-workflow";
-import {
-  buildContinuationDetailView,
-  buildContinuationFocusSummary,
-} from "@/lib/continuation-advisory";
+import { buildContinuationDetailView } from "@/lib/continuation-advisory";
 import {
   buildDecisionBriefView,
   buildWritebackApprovalView,
 } from "@/lib/case-command-loop";
-import { buildContinuationPostureView } from "@/lib/continuity-ux";
-import { buildMaterialReviewPostureView } from "@/lib/material-review-ux";
 import {
   buildPrecedentCandidateActionView,
   buildPrecedentCandidateView,
@@ -91,7 +86,10 @@ import {
   persistDeliverableWorkspace,
 } from "@/lib/workspace-persistence";
 import { WorkspaceSectionGuide } from "@/components/workspace-section-guide";
-import { buildDeliverableUsabilityView } from "@/lib/consultant-usability";
+import {
+  buildDeliverablePrimaryActionView,
+  buildDeliverableUsabilityView,
+} from "@/lib/consultant-usability";
 import {
   noteDisclosureOpened,
   shouldRenderDisclosureBody,
@@ -589,9 +587,6 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
     ? buildPrecedentCandidateActionView(deliverable.precedent_candidate)
     : null;
   const continuationSurface = workspace?.continuation_surface ?? null;
-  const followUpLane = continuationSurface?.follow_up_lane ?? null;
-  const progressionLane = continuationSurface?.progression_lane ?? null;
-  const continuationFocusSummary = buildContinuationFocusSummary(continuationSurface);
   const continuationDetailView = buildContinuationDetailView(continuationSurface);
   const researchDetailView = buildResearchDetailView(null, workspace?.research_runs[0] ?? null);
   const organizationMemoryView = task
@@ -627,15 +622,13 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
         task.deliverable_template_guidance,
         task.generalist_guidance_posture,
         task.reuse_confidence_signal,
-        task.confidence_calibration_signal,
-        task.calibration_aware_weighting_signal,
-      )
+      task.confidence_calibration_signal,
+      task.calibration_aware_weighting_signal,
+    )
     : null;
-  const continuityPosture = buildContinuationPostureView(continuationSurface);
   const workspaceView = workspace ? buildDeliverableWorkspaceView(workspace) : null;
   const flagshipLane = task ? buildFlagshipLaneView(task.flagship_lane) : null;
   const flagshipDetailView = buildFlagshipDetailView(flagshipLane);
-  const materialReviewPosture = buildMaterialReviewPostureView(flagshipLane);
   const readiness = task ? assessTaskReadiness(task) : null;
   const readinessGovernance =
     task && deliverable && readiness ? buildReadinessGovernance(task, deliverable, readiness) : null;
@@ -671,16 +664,12 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const packSelection = task && deliverable ? buildPackSelectionView(task, deliverable) : null;
   const deliverableBacklink = task && deliverable ? buildDeliverableBacklinkView(task, deliverable) : null;
   const objectSets = workspace?.object_sets ?? [];
-  const objectSetHighlights = buildObjectSetViewList(objectSets);
   const deliverableStatus =
     ((deliverable?.status as DeliverableLifecycleStatus | undefined) ??
       (task?.status === "completed" ? "final" : "pending_confirmation"));
   const versionTag = deliverable?.version_tag || (deliverable ? `v${deliverable.version}` : "v1");
   const displayTitle = deliverable?.title || "";
   const displaySummary = deliverable?.summary || "";
-  const selectedPackNames = packSelection
-    ? [...packSelection.domainPacks, ...packSelection.industryPacks]
-    : [];
   const resolvedSections = workspace
     ? buildResolvedDeliverableSections(
         workspace,
@@ -741,43 +730,42 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
         draftContentSections.evidence_basis !== joinLineItems(resolvedSections.evidence_basis)
       )
   );
+  const deliverablePrimaryActionView = buildDeliverablePrimaryActionView({
+    deliverableStatus,
+    hasPendingFormalSave,
+    hasUnsavedChanges,
+    continuityActionId: continuationSurface?.primary_action?.action_id ?? null,
+    continuityActionLabel: continuationSurface?.primary_action?.label ?? null,
+  });
   const requiresSaveBeforeFormalActions = hasPendingFormalSave || hasUnsavedChanges;
   const deliverableActionTitle =
     requiresSaveBeforeFormalActions
-      ? "先把正式內容落盤，再匯出或發布"
+      ? hasPendingFormalSave
+        ? "先把正式草稿落盤，再發布"
+        : "先整理版本，再發布"
       : continuationSurface?.workflow_layer === "checkpoint"
-      ? "這份交付物屬於回來更新 / checkpoint 版本"
-      : continuationSurface?.workflow_layer === "progression"
-        ? "這份交付物承接持續推進 / outcome 節奏"
-      : materialReviewPosture.shouldShow
-        ? "這份交付物屬於材料審閱 / review memo"
+        ? "這份交付物屬於回來更新 / checkpoint 版本"
+        : continuationSurface?.workflow_layer === "progression"
+          ? "這份交付物承接持續推進 / outcome 節奏"
       : deliverableStatus === "final"
-      ? "這份交付物已可匯出與回看"
-      : deliverableStatus === "archived"
-        ? "這是歷史版本，主要用來回看"
-        : "先整理版本，再決定是否正式發布";
+        ? "這份交付物已可匯出正式版本"
+        : deliverableStatus === "archived"
+          ? "這是歷史版本，先回看再決定"
+          : "先整理版本，再決定是否正式發布";
   const deliverableActionSummary =
     requiresSaveBeforeFormalActions
       ? hasPendingFormalSave
-        ? "系統已先幫你整理出一版可用的正式草稿，但這些內容還沒正式寫回交付物工作面。先儲存，之後再匯出或發布會比較安全。"
-        : "你目前有尚未儲存的修改。先把正式內容落盤，再做匯出、發布或版本比對，整體工作流會更穩。"
-      : continuationSurface?.workflow_layer === "closure"
-        ? continuationSurface.summary
+        ? "系統已先幫你整理出可用的正式草稿，但內容還沒正式落盤。先儲存，後面再匯出或發布會比較穩。"
+        : "你目前有尚未儲存的修改。先把版本整理好，再做匯出或發布。"
       : continuationSurface?.workflow_layer === "checkpoint"
-        ? followUpLane?.latest_update?.summary
-            ? `${continuityPosture.primarySummary} 這份交付物目前對應這輪 checkpoint「${followUpLane.latest_update.summary}」。先確認這輪更新重點，再決定是回案件工作面補 checkpoint，還是先補件重跑。`
-            : `${continuityPosture.primarySummary} 先回看結果，再決定要不要回案件工作面補一筆 checkpoint。`
-          : continuationSurface?.workflow_layer === "progression"
-            ? progressionLane?.latest_progression?.summary
-              ? `${continuityPosture.primarySummary} 這份交付物目前承接持續推進狀態「${progressionLane.latest_progression.summary}」。先確認進度與 outcome 的最新變化，再決定要不要刷新交付物。`
-              : `${continuityPosture.primarySummary} 先回看結論與依據，再回案件工作面記錄進度或結果。`
-      : materialReviewPosture.shouldShow
-        ? `${materialReviewPosture.primarySummary} 這份交付物目前更像 review memo / assessment 結果。若要升級成決策 / 行動交付，先補更多背景、來源或決策條件。`
+        ? `${continuationSurface.summary} 先回案件工作面把這輪更新收斂成 checkpoint。`
+        : continuationSurface?.workflow_layer === "progression"
+          ? `${continuationSurface.summary} 先確認進度與 outcome，再決定要不要刷新交付物。`
       : deliverableStatus === "final"
-        ? "現在最有效率的做法是匯出正式版本，或回到下方檢查依據來源、版本紀錄與連續性。"
+        ? "現在已是定稿版本，先決定要匯出正式版本，還是回看版本紀錄。"
       : deliverableStatus === "archived"
-        ? "這份交付物目前以歷史回看為主；若要繼續推進，通常會回到較新的版本或原始工作紀錄。"
-        : "先把版本標記、摘要與正文整理乾淨，再做正式發布；這樣會比直接在長頁面裡來回找區塊順手很多。";
+        ? "這份交付物目前以歷史回看為主，先回看版本與摘要，再決定後續是否重整。"
+        : "先把版本標記、摘要與正文整理乾淨，再做正式發布。";
   const deliverableUsabilityView = buildDeliverableUsabilityView({
     deliverableStatus,
     hasPendingFormalSave,
@@ -788,45 +776,31 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const deliverableActionChecklist = [
     "先確認這份交付物的標題、版本標記與狀態，避免在未整理版本時就直接發布。",
     hasPendingFormalSave
-      ? "系統已先幫你整理出正式草稿，但還沒寫回正式內容；先儲存，再考慮匯出或發布。"
+      ? "系統已先幫你整理出正式草稿；先儲存，再考慮匯出或發布。"
       : hasUnsavedChanges
         ? "你目前有尚未儲存的修改；先儲存，再考慮發布或匯出。"
-        : "目前沒有尚未儲存的修改，可以直接回看依據來源、版本紀錄或做發布動作。",
-    workspace
-      ? `目前關聯 ${workspace.linked_evidence.length} 則證據、${workspace.high_impact_gaps.length} 個高影響缺口；發布前最好先看一眼依據鏈與限制。`
-      : "目前沒有可讀的交付脈絡。",
+        : "目前沒有尚未儲存的修改；可以直接回看版本紀錄或做發布動作。",
+    "如果要補讀依據或限制，再往下展開第二層。",
   ];
   const deliverableSectionGuideItems = workspace
     ? [
         {
           ...deliverableUsabilityView.guideItems[0],
           meta: hasPendingFormalSave
-            ? "系統已整理正式草稿，尚未落盤。"
+            ? "先把正式草稿落盤。"
             : hasUnsavedChanges
-              ? "目前有未儲存修改。"
-              : "目前沒有未儲存修改。",
+              ? "先把版本整理好。"
+              : "版本已整理好。",
           tone: requiresSaveBeforeFormalActions ? ("warm" as const) : deliverableUsabilityView.guideItems[0]?.tone,
         },
         {
           ...deliverableUsabilityView.guideItems[1],
-          meta: decisionSnapshot?.conclusion || effectiveExecutiveSummary || "先看這份交付物的核心結論。",
+          meta: "需要時再看摘要。",
         },
         {
           ...deliverableUsabilityView.guideItems[2],
-          meta: `${workspace.linked_source_materials.length} 份來源材料 / ${workspace.linked_evidence.length} 則證據`,
+          meta: "需要時再核對依據。",
         },
-        ...(objectSetHighlights.length > 0
-          ? [
-              {
-                href: "#deliverable-object-sets",
-                eyebrow: "整理範圍",
-                title: "證據集與風險群組",
-                copy: "需要集中查看這次交付真正採用的證據或已納入範圍的風險時，從這裡進入集合視角。",
-                meta: objectSetHighlights.map((item) => item.meta).join("｜"),
-                tone: "default" as const,
-              },
-            ]
-          : []),
         {
           href: "#deliverable-confidence",
           eyebrow: "核對適用範圍",
@@ -835,7 +809,10 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
           meta:
             workspaceView?.confidenceSummary ||
             "先確認這份交付物目前憑什麼成立，以及還有哪些限制與缺口。",
-          tone: workspace.high_impact_gaps.length > 0 ? ("warm" as const) : ("default" as const),
+          tone:
+            deliverableUsabilityView.guideItems[2]?.tone === "warm"
+              ? ("warm" as const)
+              : ("default" as const),
         },
         {
           href: "#deliverable-history",
@@ -853,16 +830,6 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const deliverableConfidenceSurfaceSummary =
     workspaceView?.confidenceSummary ||
     "先確認這份交付物目前憑什麼成立，以及還有哪些限制與缺口。";
-  const deliverableContinuitySummary = followUpLane?.latest_update?.summary
-    ? `回來更新 / checkpoint｜${followUpLane.latest_update.summary}`
-    : progressionLane?.latest_progression?.summary
-      ? `持續推進 / outcome｜${progressionLane.latest_progression.summary}`
-      : materialReviewPosture.shouldShow
-        ? `材料審閱 / review memo｜${materialReviewPosture.boundaryNote}`
-      : continuationSurface?.workflow_layer === "closure"
-        ? "這個單次案件已具備基本脈絡、證據與交付結果，下一步應偏向正式結案、發布或匯出。"
-      : continuationSurface?.summary
-        || "這份交付物目前沒有額外的連續性提示。";
 
   async function handleSaveWorkspace(nextStatus?: DeliverableLifecycleStatus) {
     if (!deliverable) {
@@ -907,6 +874,33 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
       setIsSaving(false);
     }
     setExportMessage(null);
+  }
+
+  async function handleMatterContinuationAction(action: "close" | "reopen") {
+    if (!workspace?.matter_workspace) {
+      return;
+    }
+
+    try {
+      setIsApplyingContinuation(true);
+      await applyMatterContinuationAction(workspace.matter_workspace.id, { action });
+      setWorkspace(await getDeliverableWorkspace(deliverableId));
+      setSaveTone("success");
+      setSaveMessage(
+        action === "close"
+          ? "案件已正式結案。"
+          : "案件已重新開啟，可回到同一個案件世界續推。",
+      );
+    } catch (continuationError) {
+      setSaveTone("error");
+      setSaveMessage(
+        continuationError instanceof Error
+          ? continuationError.message
+          : "執行 continuation action 失敗。",
+      );
+    } finally {
+      setIsApplyingContinuation(false);
+    }
   }
 
   async function handleDeliverableFeedback(payload: AdoptionFeedbackPayload) {
@@ -1054,33 +1048,6 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
     }
   }
 
-  async function handleMatterContinuationAction(action: "close" | "reopen") {
-    if (!workspace?.matter_workspace) {
-      return;
-    }
-
-    try {
-      setIsApplyingContinuation(true);
-      await applyMatterContinuationAction(workspace.matter_workspace.id, { action });
-      setWorkspace(await getDeliverableWorkspace(deliverableId));
-      setSaveTone("success");
-      setSaveMessage(
-        action === "close"
-          ? "案件已正式結案。"
-          : "案件已重新開啟，可回到同一個案件世界續推。",
-      );
-    } catch (continuationError) {
-      setSaveTone("error");
-      setSaveMessage(
-        continuationError instanceof Error
-          ? continuationError.message
-          : "執行 continuation action 失敗。",
-      );
-    } finally {
-      setIsApplyingContinuation(false);
-    }
-  }
-
   async function handleRollbackRevision(revision: DeliverableContentRevision) {
     if (hasUnsavedChanges) {
       setSaveTone("error");
@@ -1225,90 +1192,34 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                       .filter(Boolean)
                       .join(" / ")}
                 </p>
-                <div className="meta-row deliverable-meta-row" style={{ marginTop: "16px" }}>
-                  <span className="pill">{workspaceView.deliverableClassLabel}</span>
-                  {flagshipLane ? <span>{flagshipLane.currentOutputLabel}</span> : null}
-                  <span>{workspaceView.deliverableTypeLabel}</span>
-                  <span>{labelForDeliverableStatus(deliverableStatus)}</span>
-                  <span>{workspaceView.workspaceStatusLabel}</span>
-                  <span>{versionTag}</span>
-                  <span>更新於 {formatDisplayDate(task.updated_at)}</span>
-                </div>
+                <section className="section-card hero-metric-card" style={{ marginTop: "16px" }}>
+                  <h3>目前版本</h3>
+                  <p className="workbench-metric">{versionTag}</p>
+                  <p className="muted-text">{deliverableVersionSummary}</p>
+                </section>
 
-                {decisionSnapshot ? (
-                  <div className="deliverable-focus-card">
-                    <span className="pill">一句話結論</span>
-                    <p className="deliverable-focus-lead">{decisionSnapshot.conclusion}</p>
-                  </div>
-                ) : null}
-
-                <div className="hero-focus-card">
-                  <p className="hero-focus-label">{flagshipLane?.label || "這份交付物在回答什麼"}</p>
-                  <h3 className="hero-focus-title">
-                    {preferredWorldDecisionContext?.judgment_to_make ||
-                      preferredWorldDecisionContext?.title ||
-                      "目前尚未形成清楚的決策問題。"}
-                  </h3>
-                  <p className="hero-focus-copy">
-                    {truncateText(
-                      displaySummary ||
-                        effectiveExecutiveSummary ||
-                        flagshipLane?.currentOutputSummary ||
-                        flagshipLane?.summary ||
-                        decisionSnapshot?.conclusion ||
-                        "目前沒有額外摘要。",
-                      188,
-                    )}
+                <section className="section-card hero-metric-card" style={{ marginTop: "16px" }}>
+                  <h3>目前姿態</h3>
+                  <p className="workbench-metric">
+                    {hasPendingFormalSave ? "待儲存" : hasUnsavedChanges ? "未儲存" : "已同步"}
                   </p>
-                </div>
+                  <p className="muted-text">
+                    {hasPendingFormalSave
+                      ? "正式草稿已整理，尚未落盤"
+                      : hasUnsavedChanges
+                        ? "目前仍有未儲存修改"
+                        : labelForDeliverableStatus(deliverableStatus)}
+                  </p>
+                </section>
               </div>
 
               <aside className="deliverable-hero-rail">
                 <div className="hero-focus-card">
                   <p className="hero-focus-label">{deliverableActionTitle}</p>
                   <h3 className="hero-focus-title">先決定是整理版本，還是正式發布</h3>
-                  <p className="hero-focus-copy">
-                    {deliverableActionSummary}
-                    {flagshipLane?.boundaryNote ? ` ${flagshipLane.boundaryNote}` : ""}
-                  </p>
+                  <p className="hero-focus-copy">{deliverableActionSummary}</p>
                   <div className="button-row" style={{ marginTop: "6px" }}>
-                    {continuationSurface?.primary_action?.action_id === "close_case" &&
-                    workspace?.matter_workspace ? (
-                      <button
-                        className="button-primary"
-                        type="button"
-                        onClick={() => void handleMatterContinuationAction("close")}
-                        disabled={isApplyingContinuation}
-                      >
-                        {isApplyingContinuation ? "結案中..." : continuationSurface.primary_action.label}
-                      </button>
-                    ) : continuationSurface?.primary_action?.action_id === "reopen_case" &&
-                      workspace?.matter_workspace ? (
-                      <button
-                        className="button-primary"
-                        type="button"
-                        onClick={() => void handleMatterContinuationAction("reopen")}
-                        disabled={isApplyingContinuation}
-                      >
-                        {isApplyingContinuation ? "重新開啟中..." : continuationSurface.primary_action.label}
-                      </button>
-                    ) : continuationSurface?.primary_action?.action_id === "record_checkpoint" &&
-                      workspace?.matter_workspace ? (
-                      <Link
-                        className="button-primary"
-                        href={`/matters/${workspace.matter_workspace.id}#continuation-actions`}
-                      >
-                        {continuationSurface.primary_action.label}
-                      </Link>
-                    ) : continuationSurface?.primary_action?.action_id === "record_outcome" &&
-                      workspace?.matter_workspace ? (
-                      <Link
-                        className="button-primary"
-                        href={`/matters/${workspace.matter_workspace.id}#continuation-actions`}
-                      >
-                        {continuationSurface.primary_action.label}
-                      </Link>
-                    ) : requiresSaveBeforeFormalActions ? (
+                    {deliverablePrimaryActionView.kind === "save" ? (
                       <button
                         className="button-primary"
                         type="button"
@@ -1317,89 +1228,70 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                       >
                         {isSaving
                           ? "儲存中..."
-                          : hasPendingFormalSave
-                            ? "先儲存正式草稿"
-                            : "儲存正式內容"}
+                          : deliverablePrimaryActionView.label}
                       </button>
-                    ) : deliverableStatus === "final" ? (
+                    ) : deliverablePrimaryActionView.kind === "close_case" &&
+                      workspace?.matter_workspace ? (
+                      <button
+                        className="button-primary"
+                        type="button"
+                        onClick={() => void handleMatterContinuationAction("close")}
+                        disabled={isApplyingContinuation}
+                      >
+                        {isApplyingContinuation ? "結案中..." : deliverablePrimaryActionView.label}
+                      </button>
+                    ) : deliverablePrimaryActionView.kind === "reopen_case" &&
+                      workspace?.matter_workspace ? (
+                      <button
+                        className="button-primary"
+                        type="button"
+                        onClick={() => void handleMatterContinuationAction("reopen")}
+                        disabled={isApplyingContinuation}
+                      >
+                        {isApplyingContinuation ? "重新開啟中..." : deliverablePrimaryActionView.label}
+                      </button>
+                    ) : deliverablePrimaryActionView.kind === "record_checkpoint" &&
+                      workspace?.matter_workspace ? (
+                      <Link
+                        className="button-primary"
+                        href={`/matters/${workspace.matter_workspace.id}#continuation-actions`}
+                      >
+                        {deliverablePrimaryActionView.label}
+                      </Link>
+                    ) : deliverablePrimaryActionView.kind === "record_outcome" &&
+                      workspace?.matter_workspace ? (
+                      <Link
+                        className="button-primary"
+                        href={`/matters/${workspace.matter_workspace.id}#continuation-actions`}
+                      >
+                        {deliverablePrimaryActionView.label}
+                      </Link>
+                    ) : deliverablePrimaryActionView.kind === "export_docx" ? (
                       <button
                         className="button-primary"
                         type="button"
                         onClick={() => void handleExportEntry("docx")}
                         disabled={activeExportFormat === "docx"}
                       >
-                        {activeExportFormat === "docx" ? "匯出中..." : "匯出 DOCX"}
+                        {activeExportFormat === "docx" ? "匯出中..." : deliverablePrimaryActionView.label}
                       </button>
-                    ) : deliverableStatus !== "archived" ? (
+                    ) : deliverablePrimaryActionView.kind === "publish_release" ? (
                       <button
                         className="button-primary"
                         type="button"
                         onClick={() => void handlePublishRelease()}
                         disabled={isPublishing}
                       >
-                        {isPublishing ? "發布中..." : "正式發布這個版本"}
+                        {isPublishing ? "發布中..." : deliverablePrimaryActionView.label}
                       </button>
-                    ) : null}
-                    <Link className="button-secondary" href="#deliverable-management">
-                      整理版本與摘要
-                    </Link>
-                    {workspace?.matter_workspace ? (
-                      <Link
-                        className="button-secondary"
-                        href={`/matters/${workspace.matter_workspace.id}#continuation-actions`}
-                      >
-                        回案件工作面續推
+                    ) : (
+                      <Link className="button-primary" href="#deliverable-history">
+                        {deliverablePrimaryActionView.label}
                       </Link>
-                    ) : null}
+                    )}
                   </div>
                 </div>
-
-                <div className="section-card deliverable-rail-card">
-                  <h4>可信度與適用範圍</h4>
-                  <p className="content-block">{deliverableConfidenceSurfaceSummary}</p>
-                  <p className="muted-text" style={{ marginTop: "12px" }}>
-                    {workspace.linked_evidence.length} 則證據 / {workspace.linked_source_materials.length} 份來源材料 / {workspace.high_impact_gaps.length} 個高影響缺口
-                  </p>
-                </div>
               </aside>
-            </div>
-            <div className="hero-metrics-grid">
-              <div className="section-card hero-metric-card">
-                <h3>目前版本</h3>
-                <p className="workbench-metric">{versionTag}</p>
-                <p className="muted-text">{labelForDeliverableStatus(deliverableStatus)}</p>
-              </div>
-              <div className="section-card hero-metric-card">
-                <h3>證據與缺口</h3>
-                <p className="workbench-metric">{workspace.linked_evidence.length}</p>
-                <p className="muted-text">{workspace.high_impact_gaps.length} 個高影響缺口</p>
-              </div>
-              <div className="section-card hero-metric-card">
-                <h3>儲存狀態</h3>
-                <p className="workbench-metric">
-                  {hasPendingFormalSave ? "待儲存" : hasUnsavedChanges ? "未儲存" : "已同步"}
-                </p>
-                <p className="muted-text">
-                  {hasPendingFormalSave
-                    ? "系統已整理正式草稿，尚未落盤"
-                    : hasUnsavedChanges
-                      ? "目前仍有未儲存修改"
-                      : "目前沒有未儲存修改"}
-                </p>
-              </div>
-              <div className="section-card hero-metric-card">
-                <h3>案件姿態</h3>
-                <p className="workbench-metric">
-                  {workspace.matter_workspace
-                    ? labelForEngagementContinuityMode(workspace.matter_workspace.engagement_continuity_mode)
-                    : "未連結"}
-                </p>
-                <p className="muted-text">
-                  {workspace.matter_workspace
-                    ? labelForWritebackDepth(workspace.matter_workspace.writeback_depth)
-                    : "目前沒有案件連結"}
-                </p>
-              </div>
             </div>
           </section>
 

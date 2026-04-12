@@ -909,6 +909,8 @@ task hero 右側現在只保留一張動作卡，不再承接第二張 summary r
 
 - 這是什麼版本
 - 現在該先整理版本、發布、匯出，還是回看依據鏈
+- 首屏高權重區只保留版本、目前姿態與主要動作；adoption、writeback、continuity、research 都應往下放，不能在第一眼跟主動作競爭
+- 主要動作仍必須保留 `one_off` / `follow_up` / `continuous` 的 continuity-aware 行為，不可被簡化成單一 publish / export / history 走向
 
 Primary action 應隨 continuity mode / status 分流：
 
@@ -925,7 +927,8 @@ Primary action 應隨 continuity mode / status 分流：
 - `one_off` 應仍偏向發布 / 匯出 / 結案
 - `continuous` 才應保留較完整的 progression / outcome 心智
 - `continuous` 版交付物應清楚表達它承接長期推進，而不是單次 checkpoint 更新
-- 交付物右側 rail 的 continuity 區塊應沿用共通 focus summary，而不是只拼 raw lane summary
+- 第一屏的右側 rail 應只承接版本判斷與主動作，不再塞 continuity / research / writeback 摘要
+- 交付物的 continuity、research、writeback 與 adoption 資訊應放到首屏下方的第二層區塊，並沿用共通 helper 低噪音呈現
 - 第二層 continuity 區塊也應沿用共通 detail helper，把推進健康、結果追蹤、回看節奏與下一步建議讀成同一條 retained-advisory 主線
 
 若這份交付物有 research run history，研究區塊應讀成「最近系統研究交接」，而不是 raw `research runs` 清單，至少回答：

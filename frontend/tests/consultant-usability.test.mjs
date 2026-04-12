@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import {
+  buildDeliverablePrimaryActionView,
   buildOverviewUsabilityView,
   buildMatterUsabilityView,
   buildMatterSectionGuideItems,
@@ -202,7 +203,7 @@ test("deliverable usability view keeps publish, reading, and evidence lanes sepa
   assert.equal(view.guideItems[2]?.href, "#deliverable-evidence");
   assert.equal(
     view.sectionGuideDescription,
-    "先決定這一步，再判斷要回看交付摘要，還是回頭核對依據。",
+    "首屏只留版本、姿態與主要動作；摘要、依據、寫回、連續性與研究都放到第二層。",
   );
 });
 
@@ -217,13 +218,126 @@ test("deliverable usability view keeps writeback detail out of the first-screen 
 
   assert.equal(
     view.sectionGuideDescription,
-    "先決定這一步，再判斷要回看交付摘要，還是回頭核對依據。",
+    "首屏只留版本、姿態與主要動作；摘要、依據、寫回、連續性與研究都放到第二層。",
   );
   assert.equal(view.guideItems[2]?.eyebrow, "需要依據時");
   assert.equal(
     view.guideItems[2]?.copy,
-    "只有當你要核對依據或背景，再往下看來源與脈絡。",
+    "只有當你要核對依據或背景，再往下看來源、脈絡、寫回與連續性。",
   );
+});
+
+test("deliverable primary action view keeps continuity aware actions in the primary slot", () => {
+  assert.deepEqual(
+    buildDeliverablePrimaryActionView({
+      deliverableStatus: "draft",
+      hasPendingFormalSave: false,
+      hasUnsavedChanges: false,
+      continuityActionId: "record_checkpoint",
+      continuityActionLabel: "記錄 checkpoint",
+    }),
+    {
+      kind: "record_checkpoint",
+      label: "記錄 checkpoint",
+    },
+  );
+
+  assert.deepEqual(
+    buildDeliverablePrimaryActionView({
+      deliverableStatus: "draft",
+      hasPendingFormalSave: false,
+      hasUnsavedChanges: false,
+      continuityActionId: "record_outcome",
+      continuityActionLabel: "記錄 outcome",
+    }),
+    {
+      kind: "record_outcome",
+      label: "記錄 outcome",
+    },
+  );
+
+  assert.deepEqual(
+    buildDeliverablePrimaryActionView({
+      deliverableStatus: "draft",
+      hasPendingFormalSave: false,
+      hasUnsavedChanges: false,
+      continuityActionId: "close_case",
+      continuityActionLabel: "正式結案",
+    }),
+    {
+      kind: "close_case",
+      label: "正式結案",
+    },
+  );
+});
+
+test("deliverable primary action view keeps save precedence without collapsing continuity states", () => {
+  assert.deepEqual(
+    buildDeliverablePrimaryActionView({
+      deliverableStatus: "draft",
+      hasPendingFormalSave: true,
+      hasUnsavedChanges: false,
+      continuityActionId: "record_checkpoint",
+      continuityActionLabel: "記錄 checkpoint",
+    }),
+    {
+      kind: "save",
+      label: "先儲存正式草稿",
+    },
+  );
+
+  assert.deepEqual(
+    buildDeliverablePrimaryActionView({
+      deliverableStatus: "draft",
+      hasPendingFormalSave: false,
+      hasUnsavedChanges: true,
+      continuityActionId: "record_outcome",
+      continuityActionLabel: "記錄 outcome",
+    }),
+    {
+      kind: "save",
+      label: "儲存正式內容",
+    },
+  );
+
+  assert.deepEqual(
+    buildDeliverablePrimaryActionView({
+      deliverableStatus: "final",
+      hasPendingFormalSave: false,
+      hasUnsavedChanges: false,
+      continuityActionId: null,
+      continuityActionLabel: null,
+    }),
+    {
+      kind: "export_docx",
+      label: "匯出 DOCX",
+    },
+  );
+});
+
+test("deliverable workspace first screen keeps version context posture and primary action without high-weight counts", () => {
+  const source = readFileSync(
+    new URL("../src/components/deliverable-workspace-panel.tsx", import.meta.url),
+    "utf8",
+  );
+  const heroBlock =
+    source.match(
+      /<section className="hero-card deliverable-hero deliverable-workspace-hero">[\s\S]*?(?=<section className="panel section-anchor" id="deliverable-publish-check">)/,
+    )?.[0] ?? "";
+  const publishCheckBlock =
+    source.match(/<section className="panel section-anchor" id="deliverable-publish-check">[\s\S]*?<\/section>/)?.[0] ?? "";
+  const guideItemsBlock =
+    source.match(/const deliverableSectionGuideItems = workspace[\s\S]*?const deliverableVersionSummary =/)?.[0] ?? "";
+
+  assert.match(heroBlock, /deliverable-hero-main/);
+  assert.match(heroBlock, /deliverable-hero-rail/);
+  assert.match(heroBlock, /目前版本/);
+  assert.match(heroBlock, /目前姿態/);
+  assert.match(heroBlock, /deliverablePrimaryActionView/);
+  assert.match(publishCheckBlock, /發布前快速檢查/);
+  assert.match(guideItemsBlock, /const deliverableSectionGuideItems = workspace/);
+  assert.doesNotMatch(publishCheckBlock, /linked_evidence|high_impact_gaps|source_materials\.length/);
+  assert.doesNotMatch(guideItemsBlock, /linked_evidence|high_impact_gaps|source_materials\.length|objectSetHighlights/);
 });
 
 test("evidence usability view keeps the first screen focused on gap, supplement path, and return destination", () => {

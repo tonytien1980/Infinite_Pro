@@ -186,6 +186,83 @@ export type DeliverableUsabilityView = {
   guideItems: ConsultantGuideItem[];
 };
 
+export type DeliverablePrimaryActionKind =
+  | "save"
+  | "close_case"
+  | "reopen_case"
+  | "record_checkpoint"
+  | "record_outcome"
+  | "export_docx"
+  | "publish_release"
+  | "history";
+
+export type DeliverablePrimaryActionView = {
+  kind: DeliverablePrimaryActionKind;
+  label: string;
+};
+
+export function buildDeliverablePrimaryActionView(input: {
+  deliverableStatus: string;
+  hasPendingFormalSave: boolean;
+  hasUnsavedChanges: boolean;
+  continuityActionId?: string | null;
+  continuityActionLabel?: string | null;
+}): DeliverablePrimaryActionView {
+  if (input.hasPendingFormalSave || input.hasUnsavedChanges) {
+    return {
+      kind: "save",
+      label: input.hasPendingFormalSave ? "先儲存正式草稿" : "儲存正式內容",
+    };
+  }
+
+  if (input.continuityActionId === "close_case") {
+    return {
+      kind: "close_case",
+      label: input.continuityActionLabel || "正式結案",
+    };
+  }
+
+  if (input.continuityActionId === "reopen_case") {
+    return {
+      kind: "reopen_case",
+      label: input.continuityActionLabel || "重新開啟案件",
+    };
+  }
+
+  if (input.continuityActionId === "record_checkpoint") {
+    return {
+      kind: "record_checkpoint",
+      label: input.continuityActionLabel || "記錄 checkpoint",
+    };
+  }
+
+  if (input.continuityActionId === "record_outcome") {
+    return {
+      kind: "record_outcome",
+      label: input.continuityActionLabel || "記錄 outcome",
+    };
+  }
+
+  if (input.deliverableStatus === "final") {
+    return {
+      kind: "export_docx",
+      label: "匯出 DOCX",
+    };
+  }
+
+  if (input.deliverableStatus === "archived") {
+    return {
+      kind: "history",
+      label: "回看版本紀錄",
+    };
+  }
+
+  return {
+    kind: "publish_release",
+    label: "正式發布這個版本",
+  };
+}
+
 export function buildDeliverableUsabilityView(input: {
   deliverableStatus: string;
   hasPendingFormalSave: boolean;
@@ -209,9 +286,10 @@ export function buildDeliverableUsabilityView(input: {
 
   return {
     sectionGuideTitle: "這份交付物怎麼讀最快",
-    sectionGuideDescription: "先決定這一步，再判斷要回看交付摘要，還是回頭核對依據。",
+    sectionGuideDescription:
+      "首屏只留版本、姿態與主要動作；摘要、依據、寫回、連續性與研究都放到第二層。",
     contextDisclosureDescription:
-      "當你要理解這份交付物在整個案件世界中的定位時，再展開這層；平常先讀交付摘要與建議 / 風險 / 行動即可。",
+      "當你要理解這份交付物在整個案件世界中的定位時，再展開這層；平常先看版本、姿態與主動作，摘要 / 建議 / 風險 / 行動都放第二層。",
     writebackDisclosureDescription: input.hasMatterWorkspace
       ? "只有在你要確認這份交付物會怎麼寫回案件世界、研究脈絡怎麼進鏈，以及目前有哪些 decision / outcome records 時，再展開這層。"
       : "只有在你要確認這份交付物的背景脈絡、研究來源與正式紀錄時，再展開這層。",
@@ -233,7 +311,7 @@ export function buildDeliverableUsabilityView(input: {
         href: thirdHref,
         eyebrow: "需要依據時",
         title: thirdTitle,
-        copy: "只有當你要核對依據或背景，再往下看來源與脈絡。",
+        copy: "只有當你要核對依據或背景，再往下看來源、脈絡、寫回與連續性。",
         tone: input.hasHighImpactGaps ? "warm" : "default",
       },
     ],
