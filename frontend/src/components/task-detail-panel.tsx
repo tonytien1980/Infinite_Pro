@@ -1029,6 +1029,14 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                   <p className="hero-focus-copy">
                     {taskDetailUsabilityView?.primaryCopy || taskActionSummary}
                   </p>
+                  {taskDetailUsabilityView?.primaryPostureLabel ? (
+                    <p className="muted-text" style={{ marginTop: "8px" }}>
+                      {taskDetailUsabilityView.primaryPostureLabel}
+                      {taskDetailUsabilityView.primaryPostureCopy
+                        ? `｜${taskDetailUsabilityView.primaryPostureCopy}`
+                        : ""}
+                    </p>
+                  ) : null}
                   <ul className="hero-focus-list">
                     {(taskDetailUsabilityView?.checklist || taskActionChecklist)
                       .slice(0, 3)
@@ -1036,49 +1044,6 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                       <li key={item}>{item}</li>
                     ))}
                   </ul>
-                </div>
-                <div className="hero-focus-card">
-                  <p className="hero-focus-label">
-                    {taskDetailUsabilityView?.railEyebrow ||
-                      (researchGuidance?.shouldShow
-                        ? researchGuidance.label
-                        : continuationFocusSummary.shouldShow
-                          ? continuationFocusSummary.label
-                          : taskHeroLaneTitle)}
-                  </p>
-                  <h3 className="hero-focus-title">
-                    {taskDetailUsabilityView?.railTitle ||
-                      (researchGuidance?.shouldShow
-                        ? `${researchGuidance.depthLabel}｜${researchGuidance.firstQuestion}`
-                        : continuationFocusSummary.shouldShow
-                          ? continuationFocusSummary.title
-                          : taskHeroActionTitle)}
-                  </h3>
-                  {taskDetailUsabilityView ? (
-                    <p className="hero-focus-copy">{taskDetailUsabilityView.railSummary}</p>
-                  ) : researchGuidance?.shouldShow ? (
-                    <p className="hero-focus-copy">
-                      {researchGuidance.executionOwnerLabel}｜
-                      {researchGuidance.sourceQualitySummary || researchGuidance.stopCondition || researchGuidance.handoffSummary}
-                      {researchGuidance.freshnessSummary ? `｜${researchGuidance.freshnessSummary}` : ""}
-                    </p>
-                  ) : continuationFocusSummary.shouldShow ? (
-                    <p className="hero-focus-copy">{continuationFocusSummary.copy}</p>
-                  ) : followUpLane ? (
-                    <p className="hero-focus-copy">
-                      上一個檢查點：
-                      {followUpLane.previous_checkpoint?.summary || "目前沒有更早的檢查點可比較。"}
-                    </p>
-                  ) : progressionLane ? (
-                    <p className="hero-focus-copy">
-                      下一步：
-                      {progressionLane.next_progression_actions[0] || "回案件工作面更新推進狀態。"}
-                    </p>
-                  ) : flagshipLane ? (
-                    <p className="hero-focus-copy">
-                      {flagshipLane.upgradeRequirements[0] || flagshipLane.boundaryNote}
-                    </p>
-                  ) : null}
                 </div>
               </div>
             </div>
@@ -1111,36 +1076,53 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
             </div>
           </section>
 
-          <WorkspaceSectionGuide
-            title={taskDetailUsabilityView?.guideTitle || "這頁怎麼讀最快"}
-            description={
-              taskDetailUsabilityView?.guideDescription ||
-              "不要整頁一路往下刷。先選你現在要做的是對齊判斷、確認能不能跑、還是直接回看結果。"
-            }
-            items={taskDetailUsabilityView?.guideItems || taskSectionGuideItems}
-          />
-
           {taskDetailUsabilityView ? (
-            <section className="panel">
-              <div className="panel-header">
-                <div>
-                  <h2 className="panel-title">{taskDetailUsabilityView.operatingSummaryTitle}</h2>
-                  <p className="panel-copy">{taskDetailUsabilityView.operatingSummaryCopy}</p>
+            <DisclosurePanel
+              title={taskDetailUsabilityView.guideTitle || "第二層導讀"}
+              description={taskDetailUsabilityView.guideDescription}
+            >
+              <div className="detail-list">
+                <div className="detail-item">
+                  <p className="section-guide-eyebrow">
+                    {taskDetailUsabilityView.railEyebrow || "第二層回跳"}
+                  </p>
+                  <h3>{taskDetailUsabilityView.railTitle || "補完後去哪裡"}</h3>
+                  <ExpandableText
+                    text={taskDetailUsabilityView.railSummary}
+                    emptyText="目前沒有可顯示的回跳提示。"
+                    previewChars={200}
+                  />
                 </div>
               </div>
-              <div className="section-guide-grid">
-                {taskDetailUsabilityView.operatingNotes.map((item) => (
-                  <Link
-                    key={`${item.href}-${item.label}`}
-                    className={`section-guide-card section-guide-card-${item.tone ?? "default"}`}
-                    href={item.href}
-                  >
-                    <span className="section-guide-eyebrow">{item.label}</span>
-                    <p className="section-guide-copy">{item.copy}</p>
-                  </Link>
-                ))}
-              </div>
-            </section>
+              <WorkspaceSectionGuide
+                title="頁內導覽"
+                description="這一層只補主線後面的頁內路徑，不再和首屏主線並排。"
+                items={taskDetailUsabilityView.guideItems || taskSectionGuideItems}
+                variant="rail"
+              />
+              <section className="panel" style={{ marginTop: "18px" }}>
+                <div className="panel-header">
+                  <div>
+                    <h2 className="panel-title">
+                      {taskDetailUsabilityView.operatingSummaryTitle}
+                    </h2>
+                    <p className="panel-copy">{taskDetailUsabilityView.operatingSummaryCopy}</p>
+                  </div>
+                </div>
+                <div className="section-guide-grid">
+                  {taskDetailUsabilityView.operatingNotes.map((item) => (
+                    <Link
+                      key={`${item.href}-${item.label}`}
+                      className={`section-guide-card section-guide-card-${item.tone ?? "default"}`}
+                      href={item.href}
+                    >
+                      <span className="section-guide-eyebrow">{item.label}</span>
+                      <p className="section-guide-copy">{item.copy}</p>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            </DisclosurePanel>
           ) : null}
 
           <DisclosurePanel

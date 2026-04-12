@@ -825,18 +825,24 @@ Primary action：
 - 先看能不能跑
 - 若不能跑，最缺什麼
 - 若能跑，跑完去哪裡
+- task first screen 現在只保留一條主線閱讀系統：
+  - hero mainline 先回答這筆工作在判斷什麼
+  - primary action 先回答現在要做什麼
+  - posture line 先低噪音標出這輪是 exploratory、material review，還是 decision convergence
+  - next-hop 先回答跑完去哪裡
+- `hero rail`、`WorkspaceSectionGuide`、`operating summary` 不再以三套並排摘要系統同時佔住首屏
 
-`WorkspaceSectionGuide` 第一波現在只保留三條主線：
+`WorkspaceSectionGuide` 第一波現在只作為第二層導讀，保留三條主線：
 
 - readiness
 - run decision
 - result / evidence destination
 
-task hero 右側 rail 現在也應優先承接：
+task hero 右側現在只保留一張動作卡，不再承接第二張 summary rail：
 
 - 現在先做這件事
-- 跑完去哪裡
 - 若結果已形成，先回哪個正式交付物
+- 若要接回案件工作面，先補什麼
 - 不應再把 `decision brief`、handoff 原因、lane posture 同時塞回首屏同一張摘要卡
 
 首屏也應明示：

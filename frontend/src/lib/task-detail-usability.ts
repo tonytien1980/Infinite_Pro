@@ -16,6 +16,8 @@ export type TaskDetailUsabilityView = {
   primaryCopy: string;
   primaryHref: string;
   primaryActionLabel: string;
+  primaryPostureLabel: string;
+  primaryPostureCopy: string;
   handoffTarget: "task" | "matter" | "deliverable";
   handoffHref: string;
   handoffTitle: string;
@@ -161,6 +163,8 @@ export function buildTaskDetailUsabilityView(input: {
       : input.runDestinationLabel,
     primaryHref,
     primaryActionLabel,
+    primaryPostureLabel: input.laneTitle,
+    primaryPostureCopy: input.laneSummary,
     handoffTarget,
     handoffHref,
     handoffTitle,
@@ -175,10 +179,10 @@ export function buildTaskDetailUsabilityView(input: {
         ? "若結果已形成，先回正式交付結果。"
         : "執行後再回正式交付結果。",
     ],
-    guideTitle: "這頁怎麼讀最快",
-    guideDescription: "先判斷能不能跑，再決定是直接執行、先補依據，還是回看正式結果。",
+    guideTitle: "第二層導讀",
+    guideDescription: "第二層只看主線與現在這一步；導讀只補頁內路徑，不再和首屏並排。",
     guideItems,
-    railEyebrow: "跑完去哪裡",
+    railEyebrow: "第二層回跳",
     railTitle: handoffTitle,
     railSummary:
       handoffTarget === "deliverable" && input.latestDeliverableTitle
@@ -186,10 +190,10 @@ export function buildTaskDetailUsabilityView(input: {
         : handoffTarget === "task"
         ? "這輪還不需要離開 task，先決定要不要直接執行。"
         : "先回案件工作面補脈絡與證據，再決定這輪要不要直接推進。",
-    operatingSummaryTitle: "這頁現在怎麼推最快",
+    operatingSummaryTitle: "第二層操作提示",
     operatingSummaryCopy: input.hasThinTaskEvidence
-      ? `${input.readinessSummary} 先承認目前還有缺口，再決定是先補 evidence、先讓系統跑第一版，還是先回看已形成的結果。`
-      : "這頁現在不需要再重新理解整個背景，直接抓 posture、限制與下一步即可。",
+      ? `${input.readinessSummary} 第二層只保留補來源、先跑第一版，或先回看結果的回跳提示。`
+      : "第二層只保留最小必要的回跳提示，不再重講一次主線。",
     operatingNotes,
   };
 }

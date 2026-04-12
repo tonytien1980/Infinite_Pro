@@ -77,6 +77,26 @@ test("task detail usability view makes the first action explicit when evidence i
   assert.match(view.primaryCopy, /資料仍偏薄/);
 });
 
+test("task detail usability view retains the posture signal on the first screen", () => {
+  const view = buildTaskDetailUsabilityView({
+    hasThinTaskEvidence: false,
+    hasLatestDeliverable: false,
+    latestDeliverableTitle: "",
+    hasMatterWorkspace: true,
+    runButtonLabel: "執行分析",
+    runDestinationLabel: "執行後會先寫回正式交付結果。",
+    laneTitle: "材料審閱姿態",
+    laneSummary: "目前更像 review memo / assessment，不是最終決策版本。",
+    readinessLabel: "可直接推進",
+    readinessSummary: "目前資料已達基本可運作狀態。",
+    evidenceCount: 3,
+    sourceMaterialCount: 2,
+  });
+
+  assert.equal(view.primaryPostureLabel, "材料審閱姿態");
+  assert.match(view.primaryPostureCopy, /review memo/);
+});
+
 test("task detail usability view points to deliverable when a result already exists", () => {
   const view = buildTaskDetailUsabilityView({
     hasThinTaskEvidence: false,
@@ -96,7 +116,7 @@ test("task detail usability view points to deliverable when a result already exi
   assert.equal(view.primaryActionLabel, "打開正式交付物");
   assert.equal(view.primaryHref, "#deliverable-surface");
   assert.equal(view.guideItems[2]?.href, "#deliverable-surface");
-  assert.equal(view.railEyebrow, "跑完去哪裡");
+  assert.equal(view.railEyebrow, "第二層回跳");
   assert.match(view.railSummary, /先回正式交付物閱讀、修訂或發布/);
 });
 
@@ -119,7 +139,8 @@ test("task detail usability view keeps the guide focused on readiness, run decis
   assert.equal(view.guideItems.length, 3);
   assert.equal(view.guideItems[0]?.title, "先看可直接推進");
   assert.equal(view.guideItems[1]?.href, "#run-panel");
-  assert.match(view.guideDescription, /先判斷能不能跑/);
+  assert.equal(view.guideTitle, "第二層導讀");
+  assert.match(view.guideDescription, /第二層/);
 });
 
 test("task detail usability view builds an operating summary when the best next move is to fill evidence gaps", () => {
@@ -142,8 +163,8 @@ test("task detail usability view builds an operating summary when the best next 
     continuationSummary: "",
   });
 
-  assert.equal(view.operatingSummaryTitle, "這頁現在怎麼推最快");
-  assert.match(view.operatingSummaryCopy, /資料仍偏薄/);
+  assert.equal(view.operatingSummaryTitle, "第二層操作提示");
+  assert.match(view.operatingSummaryCopy, /第二層/);
   assert.equal(view.operatingNotes[0]?.href, "#workspace-lane");
   assert.match(view.operatingNotes[0]?.copy, /先補來源與證據/);
   assert.match(view.operatingNotes[1]?.copy, /research question/);
@@ -202,6 +223,32 @@ test("task detail usability view condenses operating notes into three low-noise 
   assert.equal(view.operatingNotes[2]?.href, "#run-panel");
 });
 
+test("task detail usability view demotes secondary guidance into the second layer", () => {
+  const view = buildTaskDetailUsabilityView({
+    hasThinTaskEvidence: false,
+    hasLatestDeliverable: false,
+    latestDeliverableTitle: "",
+    hasMatterWorkspace: true,
+    runButtonLabel: "執行分析",
+    runDestinationLabel: "執行後會先寫回正式交付結果。",
+    laneTitle: "目前交付等級",
+    laneSummary: "這筆工作已具備基本分析條件。",
+    readinessLabel: "可直接推進",
+    readinessSummary: "目前資料已達基本可運作狀態。",
+    evidenceCount: 3,
+    sourceMaterialCount: 2,
+    hasResearchGuidance: false,
+    researchSummary: "",
+    hasContinuationSummary: false,
+    continuationSummary: "",
+  });
+
+  assert.equal(view.guideTitle, "第二層導讀");
+  assert.match(view.guideDescription, /第二層/);
+  assert.equal(view.operatingSummaryTitle, "第二層操作提示");
+  assert.match(view.operatingSummaryCopy, /主線/);
+});
+
 test("task detail usability view aligns the rail with the same handoff contract", () => {
   const view = buildTaskDetailUsabilityView({
     hasThinTaskEvidence: true,
@@ -222,7 +269,7 @@ test("task detail usability view aligns the rail with the same handoff contract"
     continuationSummary: "",
   });
 
-  assert.equal(view.railEyebrow, "跑完去哪裡");
+  assert.equal(view.railEyebrow, "第二層回跳");
   assert.match(view.railTitle, /案件工作面/);
   assert.match(view.railSummary, /先回案件工作面補脈絡與證據/);
   assert.match(view.handoffReasonLabel, /脈絡/);
