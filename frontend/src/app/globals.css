@@ -1390,6 +1390,20 @@ a.detail-item:hover {
   box-shadow: var(--shadow-soft);
 }
 
+.workspace-section-rail {
+  gap: 16px;
+  padding: 20px;
+}
+
+.workspace-section-rail-header {
+  display: grid;
+  gap: 6px;
+}
+
+.workspace-section-rail .panel-copy {
+  margin: 0;
+}
+
 .workspace-local-rail-title {
   margin: 0;
   font-size: 0.95rem;

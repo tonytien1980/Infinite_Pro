@@ -1,20 +1,43 @@
 import Link from "next/link";
 
 import {
+  buildWorkspaceLocalRail,
   compressGuideItemsForShellV2,
   type WorkspaceSectionGuideItem,
 } from "@/lib/workspace-local-rail";
+import { WorkspaceLocalRail } from "@/components/workspace-local-rail";
 
 export function WorkspaceSectionGuide({
   title = "先選閱讀路徑",
   description,
   items,
+  variant = "cards",
 }: {
   title?: string;
   description: string;
   items: WorkspaceSectionGuideItem[];
+  variant?: "cards" | "rail";
 }) {
   const compressedItems = compressGuideItemsForShellV2(items);
+  const localRail = buildWorkspaceLocalRail(
+    compressedItems.map((item) => ({
+      href: item.href,
+      title: item.title,
+      description: item.copy,
+      whenToUse: item.meta || item.eyebrow,
+    })),
+  );
+
+  if (variant === "rail") {
+    return (
+      <div className="workspace-section-rail">
+        <div className="workspace-section-rail-header">
+          <p className="panel-copy">{description}</p>
+        </div>
+        <WorkspaceLocalRail title={title} items={localRail.items} />
+      </div>
+    );
+  }
 
   return (
     <section className="panel section-guide-panel">

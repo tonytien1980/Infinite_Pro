@@ -573,10 +573,7 @@ export function MatterWorkspacePanel({
       })
     : null;
   const matterGuideItems = buildMatterSectionGuideItems({
-    matterId,
-    latestDeliverableId: latestDeliverable?.deliverable_id ?? null,
     matterUsabilityView,
-    matterCommandView,
   });
   const recentDecisionRecords = matter?.decision_records.slice(0, 3) ?? [];
   const recentOutcomeRecords = matter?.outcome_records.slice(0, 3) ?? [];
@@ -957,25 +954,35 @@ export function MatterWorkspacePanel({
 
               <aside className="workspace-hero-rail">
                 <div className="section-card section-anchor workspace-rail-callout" id="continuation-actions">
-                  <h4>{advanceGuide.title}</h4>
-                  <p className="content-block">{advanceGuide.summary}</p>
+                  <h4>控制中心</h4>
+                  <p className="content-block">
+                    這一屏只先回答主線、最大 blocker 與下一步；其他背景留到頁內導覽再看。
+                  </p>
                   <p className="muted-text" style={{ marginTop: "8px" }}>
                     {heroStrategySummary}｜{matter.summary.source_material_count} 份來源 / {evidenceCount} 則證據 / {matter.summary.active_task_count} 筆進行中工作
                   </p>
                   <div className="detail-list" style={{ marginTop: "12px" }}>
                     <div className="detail-item">
-                      <h3>現在最重要的變化</h3>
-                      <p className="content-block">{heroStateSummary}</p>
+                      <h3>主線</h3>
+                      <p className="content-block">
+                        {matterCommandView?.primaryCopy || advanceGuide.summary}
+                      </p>
                     </div>
                     <div className="detail-item">
-                      <h3>下一步最建議做什麼</h3>
-                      <p className="content-block">{heroNextActionSummary}</p>
+                      <h3>{matterCommandView?.blockerTitle ?? "最大 blocker"}</h3>
+                      <p className="content-block">
+                        {matterCommandView?.blockerCopy ||
+                          constraintItems[0] ||
+                          "目前沒有額外 blocker，請直接確認下一步是否已對準主線。"}
+                      </p>
                     </div>
-                  </div>
-                  <div className="section-card" id="matter-command-surface">
-                    <h3>{matterCommandView?.blockerTitle ?? "這案目前最卡的地方"}</h3>
-                    <p className="content-block">{matterCommandView?.blockerCopy}</p>
-                    <p className="muted-text">{matterCommandView?.deliverableCopy}</p>
+                    <div className="detail-item">
+                      <h3>下一步</h3>
+                      <p className="content-block">{heroNextActionSummary}</p>
+                      <p className="muted-text">
+                        {matterCommandView?.deliverableCopy || heroStateSummary}
+                      </p>
+                    </div>
                   </div>
                   {continuationSurface?.primary_action?.action_id === "record_checkpoint" ? (
                     <div className="field" style={{ marginTop: "12px" }}>
@@ -1169,13 +1176,14 @@ export function MatterWorkspacePanel({
                   title={matterUsabilityView.sectionGuideTitle}
                   description={matterUsabilityView.sectionGuideDescription}
                   items={matterGuideItems}
+                  variant="rail"
                 />
               ) : null}
 
               <section className="panel section-anchor" id="matter-mainline">
                 <div className="panel-header">
                   <div>
-                    <h2 className="panel-title">主線補充</h2>
+                    <h2 className="panel-title">控制中心主線</h2>
                     <p className="panel-copy">
                       {matterUsabilityView?.mainlineCopy ||
                         "第一屏已經告訴你這個案件現在要做什麼；這裡只補充真正會影響判斷的背景、限制與工作脈絡。"}
@@ -1184,331 +1192,56 @@ export function MatterWorkspacePanel({
                 </div>
 
                 <div className="detail-list">
-                  {continuationSurface ? (
-                    <div className="detail-item">
-                      <h3>案件後續模式</h3>
-                      <p className="content-block">
-                        {continuationSurface.workflow_layer === "closure" && latestDeliverable
-                          ? "這案已可正式結案。這個單次案件已具備基本脈絡、證據與交付結果，下一步應偏向正式結案、發布或匯出，而不是進入持續追蹤。"
-                          : `${advanceGuide.title}。${advanceGuide.summary}`}
-                      </p>
-                    </div>
-                  ) : null}
-                  {continuationDetailView.shouldShow ? (
-                    <div className="detail-item">
-                      <h3>{continuationDetailView.sectionTitle}</h3>
-                      <div className="summary-grid">
-                        {continuationDetailView.cards.map((card) => (
-                          <div className="section-card" key={`matter-continuity-${card.title}`}>
-                            <h4>{card.title}</h4>
-                            <p className="content-block">{card.summary}</p>
-                          </div>
-                        ))}
-                      </div>
-                      {continuationDetailView.timelineItems.length > 0 ? (
-                        <ul className="list-content" style={{ marginTop: "12px" }}>
-                          {continuationDetailView.timelineItems.map((item) => (
-                            <li key={`${item.kind}-${item.created_at || item.summary}`}>
-                              {item.title}：{item.summary}
-                              {item.created_at ? `｜${formatDisplayDate(item.created_at)}` : ""}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="empty-text">目前還沒有可回看的 continuity 時間線。</p>
-                      )}
-                      {continuationDetailView.listItems.length > 0 ? (
-                        <>
-                          <h4 style={{ marginTop: "16px" }}>{continuationDetailView.listTitle}</h4>
-                          <ul className="list-content" style={{ marginTop: "12px" }}>
-                            {continuationDetailView.listItems.map((item) => (
-                              <li key={item}>{item}</li>
-                            ))}
-                          </ul>
-                        </>
-                      ) : null}
-                    </div>
-                  ) : null}
-                  {followUpLane?.what_changed.length ? (
-                    <div className="detail-item">
-                      <h3>這輪補充變化</h3>
-                        <ul className="list-content" style={{ marginTop: "12px" }}>
-                          {followUpLane.what_changed.map((item) => (
-                            <li key={item}>{item}</li>
-                          ))}
-                        </ul>
-                    </div>
-                  ) : null}
-                  {progressionLane && continuationAdvisoryView.outcomeTrackingLabel ? (
-                    <div className="detail-item">
-                      <h3>最近結果訊號</h3>
-                      <p className="content-block">{continuationAdvisoryView.outcomeTrackingLabel}</p>
-                      <p className="muted-text">{continuationAdvisoryView.outcomeTrackingSummary}</p>
-                      {continuationAdvisoryView.latestSignalSummary ? (
-                        <p className="muted-text">最新結果：{continuationAdvisoryView.latestSignalSummary}</p>
-                      ) : null}
-                    </div>
-                  ) : null}
                   <div className="detail-item">
-                    <h3>分析焦點</h3>
-                    {analysisFocusItems.length > 0 ? (
-                      <ul className="list-content">
-                        {analysisFocusItems.map((item) => (
-                          <li key={item}>{item}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="empty-text">目前尚未整理出分析焦點。</p>
-                    )}
-                  </div>
-                  {researchDetailView?.shouldShow ? (
-                    <div className="detail-item">
-                      <h3>{researchDetailView.sectionTitle}</h3>
-                      <div className="summary-grid">
-                        {researchDetailView.cards.map((card) => (
-                          <div className="section-card" key={`matter-research-${card.title}`}>
-                            <h4>{card.title}</h4>
-                            <p className="content-block">{card.summary}</p>
-                          </div>
-                        ))}
-                      </div>
-                      {researchDetailView.listItems.length > 0 ? (
-                        <>
-                          <h4 style={{ marginTop: "16px" }}>{researchDetailView.listTitle}</h4>
-                          <ul className="list-content" style={{ marginTop: "12px" }}>
-                            {researchDetailView.listItems.map((item) => (
-                              <li key={item}>{item}</li>
-                            ))}
-                          </ul>
-                        </>
-                      ) : null}
-                    </div>
-                  ) : null}
-                  {continuationAdvisoryView.shouldShow ? (
-                    <div className="detail-item">
-                      <h3>案件健康</h3>
-                      <p className="content-block">{continuationAdvisoryView.healthLabel}</p>
-                      <p className="muted-text">{continuationAdvisoryView.healthSummary}</p>
-                      {continuationAdvisoryView.reviewRhythmLabel ? (
-                        <p className="muted-text">
-                          下次回看節奏：{continuationAdvisoryView.nextReviewPrompt || continuationAdvisoryView.reviewRhythmSummary}
-                        </p>
-                      ) : null}
-                    </div>
-                  ) : null}
-                  {flagshipDetailView.shouldShow ? (
-                    <div className="detail-item">
-                      <h3>{flagshipDetailView.sectionTitle}</h3>
-                      <div className="summary-grid">
-                        {flagshipDetailView.cards.map((card) => (
-                          <div className="section-card" key={`matter-flagship-${card.title}`}>
-                            <h4>{card.title}</h4>
-                            <p className="content-block">{card.summary}</p>
-                          </div>
-                        ))}
-                      </div>
-                      {flagshipDetailView.listItems.length > 0 ? (
-                        <>
-                          <h4 style={{ marginTop: "16px" }}>{flagshipDetailView.listTitle}</h4>
-                          <ul className="list-content" style={{ marginTop: "12px" }}>
-                            {flagshipDetailView.listItems.map((item) => (
-                              <li key={item}>{item}</li>
-                            ))}
-                          </ul>
-                        </>
-                      ) : null}
-                    </div>
-                  ) : null}
-                  {researchGuidance?.shouldShow ? (
-                    <div className="detail-item">
-                      <h3>{researchGuidance.label}</h3>
-                      <p className="content-block">
-                        {researchGuidance.depthLabel}｜{researchGuidance.firstQuestion}
-                      </p>
-                      <p className="muted-text">{researchGuidance.executionOwnerLabel}</p>
-                      {researchGuidance.sourceQualitySummary ? (
-                        <p className="muted-text">{researchGuidance.sourceQualitySummary}</p>
-                      ) : null}
-                      {researchGuidance.freshnessSummary ? (
-                        <p className="muted-text">{researchGuidance.freshnessSummary}</p>
-                      ) : null}
-                    </div>
-                  ) : null}
-                  {organizationMemoryView?.shouldShow ? (
-                    <div className="detail-item">
-                      <h3>{organizationMemoryView.sectionTitle}</h3>
-                      <p className="content-block">{organizationMemoryView.summary}</p>
-                      {organizationMemoryView.organizationLabel ? (
-                        <p className="muted-text">{organizationMemoryView.organizationLabel}</p>
-                      ) : null}
-                      {organizationMemoryView.sourceLifecycleSummary ? (
-                        <p className="muted-text">{organizationMemoryView.sourceLifecycleSummary}</p>
-                      ) : null}
-                      {organizationMemoryView.lifecyclePostureLabel ? (
-                        <p className="muted-text">來源姿態：{organizationMemoryView.lifecyclePostureLabel}</p>
-                      ) : null}
-                      {organizationMemoryView.freshnessSummary ? (
-                        <p className="muted-text">{organizationMemoryView.freshnessSummary}</p>
-                      ) : null}
-                      {organizationMemoryView.reactivationSummary ? (
-                        <p className="muted-text">{organizationMemoryView.reactivationSummary}</p>
-                      ) : null}
-                      {organizationMemoryView.stableContextItems.length > 0 ? (
-                        <ul className="list-content" style={{ marginTop: "12px" }}>
-                          {organizationMemoryView.stableContextItems.map((item) => (
-                            <li key={item}>{item}</li>
-                          ))}
-                        </ul>
-                      ) : null}
-                      {organizationMemoryView.crossMatterSummary ? (
-                        <p className="muted-text" style={{ marginTop: "12px" }}>
-                          {organizationMemoryView.crossMatterSummary}
-                        </p>
-                      ) : null}
-                      {organizationMemoryView.crossMatterItems.length > 0 ? (
-                        <div className="summary-grid" style={{ marginTop: "16px" }}>
-                          {organizationMemoryView.crossMatterItems.map((item) => (
-                            <div
-                              className="section-card"
-                              key={`matter-cross-memory-${item.matterWorkspaceId}`}
-                            >
-                              <h4>{item.title}</h4>
-                              <p className="content-block">{item.summary}</p>
-                              <p className="muted-text">{item.meta}</p>
-                              <Link
-                                className="button-secondary"
-                                href={`/matters/${item.matterWorkspaceId}`}
-                                style={{ marginTop: "12px" }}
-                              >
-                                打開相關案件
-                              </Link>
-                            </div>
-                          ))}
-                        </div>
-                      ) : null}
-                      {organizationMemoryView.continuityAnchor ? (
-                        <p className="muted-text" style={{ marginTop: "12px" }}>
-                          {organizationMemoryView.continuityAnchor}
-                        </p>
-                      ) : null}
-                      {organizationMemoryView.phaseSixSignalNote ? (
-                        <p className="muted-text" style={{ marginTop: "12px" }}>
-                          {organizationMemoryView.phaseSixSignalNote}
-                        </p>
-                      ) : null}
-                      <p className="muted-text" style={{ marginTop: "12px" }}>
-                        {organizationMemoryView.boundaryNote}
-                      </p>
-                    </div>
-                  ) : null}
-                  {domainPlaybookView?.shouldShow ? (
-                    <div className="detail-item">
-                      <h3>{domainPlaybookView.sectionTitle}</h3>
-                      <p className="content-block">{domainPlaybookView.summary}</p>
-                      {domainPlaybookView.playbookLabel ? (
-                        <p className="muted-text">{domainPlaybookView.playbookLabel}</p>
-                      ) : null}
-                      {domainPlaybookView.fitSummary ? (
-                        <p className="muted-text">{domainPlaybookView.fitSummary}</p>
-                      ) : null}
-                      {domainPlaybookView.sourceMixSummary ? (
-                        <p className="muted-text">{domainPlaybookView.sourceMixSummary}</p>
-                      ) : null}
-                      {domainPlaybookView.sourceLifecycleSummary ? (
-                        <p className="muted-text">{domainPlaybookView.sourceLifecycleSummary}</p>
-                      ) : null}
-                      {domainPlaybookView.lifecyclePostureLabel ? (
-                        <p className="muted-text">來源姿態：{domainPlaybookView.lifecyclePostureLabel}</p>
-                      ) : null}
-                      {domainPlaybookView.freshnessSummary ? (
-                        <p className="muted-text">{domainPlaybookView.freshnessSummary}</p>
-                      ) : null}
-                      {domainPlaybookView.recoveryBalanceSummary ? (
-                        <p className="muted-text">{domainPlaybookView.recoveryBalanceSummary}</p>
-                      ) : null}
-                      {domainPlaybookView.reactivationSummary ? (
-                        <p className="muted-text">{domainPlaybookView.reactivationSummary}</p>
-                      ) : null}
-                      {domainPlaybookView.decaySummary ? (
-                        <p className="muted-text">{domainPlaybookView.decaySummary}</p>
-                      ) : null}
-                      {domainPlaybookView.currentStageLabel ? (
-                        <p className="muted-text">
-                          目前這輪：{domainPlaybookView.currentStageLabel}
-                        </p>
-                      ) : null}
-                      {domainPlaybookView.nextStageLabel ? (
-                        <p className="muted-text">
-                          下一步通常接：{domainPlaybookView.nextStageLabel}
-                        </p>
-                      ) : null}
-                      {domainPlaybookView.listItems.length > 0 ? (
-                        <ul className="list-content" style={{ marginTop: "12px" }}>
-                          {domainPlaybookView.listItems.map((item) => (
-                            <li key={item}>{item}</li>
-                          ))}
-                        </ul>
-                      ) : null}
-                      {domainPlaybookView.phaseSixSignalNote ? (
-                        <p className="muted-text" style={{ marginTop: "12px" }}>
-                          {domainPlaybookView.phaseSixSignalNote}
-                        </p>
-                      ) : null}
-                      <p className="muted-text" style={{ marginTop: "12px" }}>
-                        {domainPlaybookView.boundaryNote}
-                      </p>
-                    </div>
-                  ) : null}
-                  {precedentCandidateSummaryView?.shouldShow ? (
-                    <div className="detail-item">
-                      <h3>{precedentCandidateSummaryView.title}</h3>
-                      <p className="content-block">{precedentCandidateSummaryView.summary}</p>
-                      <p className="muted-text">{precedentCandidateSummaryView.meta}</p>
-                    </div>
-                  ) : null}
-                  <div className="detail-item">
-                    <h3>限制 / 風險</h3>
-                    {constraintItems.length > 0 ? (
-                      <ul className="list-content">
-                        {constraintItems.map((item) => (
-                          <li key={item}>{item}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="empty-text">目前沒有額外限制或風險。</p>
-                    )}
-                  </div>
-                  <div className="detail-item">
-                    <h3>最近工作脈絡</h3>
+                    <h3>主線</h3>
                     <p className="content-block">
-                      {recentTaskSummary
-                        ? truncateText(recentTaskSummary.workspaceState, 120)
-                        : "目前尚未顯示最近工作脈絡。"}
+                      {matterCommandView?.primaryCopy || advanceGuide.summary}
                     </p>
+                    <p className="muted-text">核心判斷：{coreQuestion}</p>
                   </div>
                   <div className="detail-item">
-                    <h3>下一步建議</h3>
+                    <h3>{matterCommandView?.blockerTitle ?? "最大 blocker"}</h3>
+                    <p className="content-block">
+                      {matterCommandView?.blockerCopy ||
+                        constraintItems[0] ||
+                        "目前沒有額外 blocker。"}
+                    </p>
+                    {constraintItems.length > 0 ? (
+                      <ul className="list-content" style={{ marginTop: "12px" }}>
+                        {constraintItems.slice(0, 3).map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="empty-text" style={{ marginTop: "12px" }}>
+                        目前沒有額外限制或風險。
+                      </p>
+                    )}
+                  </div>
+                  <div className="detail-item">
+                    <h3>下一步</h3>
+                    <p className="content-block">{heroNextActionSummary}</p>
                     {followUpLane?.next_follow_up_actions.length ? (
-                      <ul className="list-content">
-                        {followUpLane.next_follow_up_actions.map((item) => (
+                      <ul className="list-content" style={{ marginTop: "12px" }}>
+                        {followUpLane.next_follow_up_actions.slice(0, 3).map((item) => (
                           <li key={item}>{item}</li>
                         ))}
                       </ul>
                     ) : continuationAdvisoryView.nextStepQueue.length ? (
-                      <ul className="list-content">
-                        {continuationAdvisoryView.nextStepQueue.map((item) => (
+                      <ul className="list-content" style={{ marginTop: "12px" }}>
+                        {continuationAdvisoryView.nextStepQueue.slice(0, 3).map((item) => (
                           <li key={item}>{item}</li>
                         ))}
                       </ul>
                     ) : progressionLane?.next_progression_actions.length ? (
-                      <ul className="list-content">
-                        {progressionLane.next_progression_actions.map((item) => (
+                      <ul className="list-content" style={{ marginTop: "12px" }}>
+                        {progressionLane.next_progression_actions.slice(0, 3).map((item) => (
                           <li key={item}>{item}</li>
                         ))}
                       </ul>
                     ) : nextStepItems.length > 0 ? (
-                      <ul className="list-content">
-                        {nextStepItems.map((item) => (
+                      <ul className="list-content" style={{ marginTop: "12px" }}>
+                        {nextStepItems.slice(0, 3).map((item) => (
                           <li key={item}>{item}</li>
                         ))}
                       </ul>
@@ -1583,16 +1316,315 @@ export function MatterWorkspacePanel({
               </DisclosurePanel>
 
               <DisclosurePanel
-                title={matterBackgroundPanel?.title || "案件背景與連續性"}
-                description="當你需要核對案件路徑、最近更新、關聯代理 / 模組包與工作分布時，再展開這層。"
+                id="matter-background"
+                title={matterBackgroundPanel?.title || "背景補讀"}
+                description="當你需要補讀連續性、研究、旗艦摘要、組織記憶或最近工作脈絡時，再展開這層。"
               >
-                <DeferredMatterBackgroundPanelBody
-                  matter={matter}
-                  fallbackRecord={fallbackRecord}
-                  agentNames={agentNames}
-                  packNames={packNames}
-                  evidenceCount={evidenceCount}
-                />
+                <div className="detail-stack">
+                  <DeferredMatterBackgroundPanelBody
+                    matter={matter}
+                    fallbackRecord={fallbackRecord}
+                    agentNames={agentNames}
+                    packNames={packNames}
+                    evidenceCount={evidenceCount}
+                  />
+                  <div className="detail-list">
+                    {continuationSurface ? (
+                      <div className="detail-item">
+                        <h3>案件後續模式</h3>
+                        <p className="content-block">
+                          {continuationSurface.workflow_layer === "closure" && latestDeliverable
+                            ? "這案已可正式結案。這個單次案件已具備基本脈絡、證據與交付結果，下一步應偏向正式結案、發布或匯出，而不是進入持續追蹤。"
+                            : `${advanceGuide.title}。${advanceGuide.summary}`}
+                        </p>
+                      </div>
+                    ) : null}
+                    {continuationDetailView.shouldShow ? (
+                      <div className="detail-item">
+                        <h3>{continuationDetailView.sectionTitle}</h3>
+                        <div className="summary-grid">
+                          {continuationDetailView.cards.map((card) => (
+                            <div className="section-card" key={`matter-continuity-${card.title}`}>
+                              <h4>{card.title}</h4>
+                              <p className="content-block">{card.summary}</p>
+                            </div>
+                          ))}
+                        </div>
+                        {continuationDetailView.timelineItems.length > 0 ? (
+                          <ul className="list-content" style={{ marginTop: "12px" }}>
+                            {continuationDetailView.timelineItems.map((item) => (
+                              <li key={`${item.kind}-${item.created_at || item.summary}`}>
+                                {item.title}：{item.summary}
+                                {item.created_at ? `｜${formatDisplayDate(item.created_at)}` : ""}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="empty-text">目前還沒有可回看的 continuity 時間線。</p>
+                        )}
+                        {continuationDetailView.listItems.length > 0 ? (
+                          <>
+                            <h4 style={{ marginTop: "16px" }}>{continuationDetailView.listTitle}</h4>
+                            <ul className="list-content" style={{ marginTop: "12px" }}>
+                              {continuationDetailView.listItems.map((item) => (
+                                <li key={item}>{item}</li>
+                              ))}
+                            </ul>
+                          </>
+                        ) : null}
+                      </div>
+                    ) : null}
+                    {followUpLane?.what_changed.length ? (
+                      <div className="detail-item">
+                        <h3>這輪補充變化</h3>
+                        <ul className="list-content" style={{ marginTop: "12px" }}>
+                          {followUpLane.what_changed.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+                    {progressionLane && continuationAdvisoryView.outcomeTrackingLabel ? (
+                      <div className="detail-item">
+                        <h3>最近結果訊號</h3>
+                        <p className="content-block">{continuationAdvisoryView.outcomeTrackingLabel}</p>
+                        <p className="muted-text">{continuationAdvisoryView.outcomeTrackingSummary}</p>
+                        {continuationAdvisoryView.latestSignalSummary ? (
+                          <p className="muted-text">
+                            最新結果：{continuationAdvisoryView.latestSignalSummary}
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null}
+                    <div className="detail-item">
+                      <h3>分析焦點</h3>
+                      {analysisFocusItems.length > 0 ? (
+                        <ul className="list-content">
+                          {analysisFocusItems.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="empty-text">目前尚未整理出分析焦點。</p>
+                      )}
+                    </div>
+                    {researchDetailView?.shouldShow ? (
+                      <div className="detail-item">
+                        <h3>{researchDetailView.sectionTitle}</h3>
+                        <div className="summary-grid">
+                          {researchDetailView.cards.map((card) => (
+                            <div className="section-card" key={`matter-research-${card.title}`}>
+                              <h4>{card.title}</h4>
+                              <p className="content-block">{card.summary}</p>
+                            </div>
+                          ))}
+                        </div>
+                        {researchDetailView.listItems.length > 0 ? (
+                          <>
+                            <h4 style={{ marginTop: "16px" }}>{researchDetailView.listTitle}</h4>
+                            <ul className="list-content" style={{ marginTop: "12px" }}>
+                              {researchDetailView.listItems.map((item) => (
+                                <li key={item}>{item}</li>
+                              ))}
+                            </ul>
+                          </>
+                        ) : null}
+                      </div>
+                    ) : null}
+                    {continuationAdvisoryView.shouldShow ? (
+                      <div className="detail-item">
+                        <h3>案件健康</h3>
+                        <p className="content-block">{continuationAdvisoryView.healthLabel}</p>
+                        <p className="muted-text">{continuationAdvisoryView.healthSummary}</p>
+                        {continuationAdvisoryView.reviewRhythmLabel ? (
+                          <p className="muted-text">
+                            下次回看節奏：
+                            {continuationAdvisoryView.nextReviewPrompt ||
+                              continuationAdvisoryView.reviewRhythmSummary}
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null}
+                    {flagshipDetailView.shouldShow ? (
+                      <div className="detail-item">
+                        <h3>{flagshipDetailView.sectionTitle}</h3>
+                        <div className="summary-grid">
+                          {flagshipDetailView.cards.map((card) => (
+                            <div className="section-card" key={`matter-flagship-${card.title}`}>
+                              <h4>{card.title}</h4>
+                              <p className="content-block">{card.summary}</p>
+                            </div>
+                          ))}
+                        </div>
+                        {flagshipDetailView.listItems.length > 0 ? (
+                          <>
+                            <h4 style={{ marginTop: "16px" }}>{flagshipDetailView.listTitle}</h4>
+                            <ul className="list-content" style={{ marginTop: "12px" }}>
+                              {flagshipDetailView.listItems.map((item) => (
+                                <li key={item}>{item}</li>
+                              ))}
+                            </ul>
+                          </>
+                        ) : null}
+                      </div>
+                    ) : null}
+                    {researchGuidance?.shouldShow ? (
+                      <div className="detail-item">
+                        <h3>{researchGuidance.label}</h3>
+                        <p className="content-block">
+                          {researchGuidance.depthLabel}｜{researchGuidance.firstQuestion}
+                        </p>
+                        <p className="muted-text">{researchGuidance.executionOwnerLabel}</p>
+                        {researchGuidance.sourceQualitySummary ? (
+                          <p className="muted-text">{researchGuidance.sourceQualitySummary}</p>
+                        ) : null}
+                        {researchGuidance.freshnessSummary ? (
+                          <p className="muted-text">{researchGuidance.freshnessSummary}</p>
+                        ) : null}
+                      </div>
+                    ) : null}
+                    {organizationMemoryView?.shouldShow ? (
+                      <div className="detail-item">
+                        <h3>{organizationMemoryView.sectionTitle}</h3>
+                        <p className="content-block">{organizationMemoryView.summary}</p>
+                        {organizationMemoryView.organizationLabel ? (
+                          <p className="muted-text">{organizationMemoryView.organizationLabel}</p>
+                        ) : null}
+                        {organizationMemoryView.sourceLifecycleSummary ? (
+                          <p className="muted-text">{organizationMemoryView.sourceLifecycleSummary}</p>
+                        ) : null}
+                        {organizationMemoryView.lifecyclePostureLabel ? (
+                          <p className="muted-text">來源姿態：{organizationMemoryView.lifecyclePostureLabel}</p>
+                        ) : null}
+                        {organizationMemoryView.freshnessSummary ? (
+                          <p className="muted-text">{organizationMemoryView.freshnessSummary}</p>
+                        ) : null}
+                        {organizationMemoryView.reactivationSummary ? (
+                          <p className="muted-text">{organizationMemoryView.reactivationSummary}</p>
+                        ) : null}
+                        {organizationMemoryView.stableContextItems.length > 0 ? (
+                          <ul className="list-content" style={{ marginTop: "12px" }}>
+                            {organizationMemoryView.stableContextItems.map((item) => (
+                              <li key={item}>{item}</li>
+                            ))}
+                          </ul>
+                        ) : null}
+                        {organizationMemoryView.crossMatterSummary ? (
+                          <p className="muted-text" style={{ marginTop: "12px" }}>
+                            {organizationMemoryView.crossMatterSummary}
+                          </p>
+                        ) : null}
+                        {organizationMemoryView.crossMatterItems.length > 0 ? (
+                          <div className="summary-grid" style={{ marginTop: "16px" }}>
+                            {organizationMemoryView.crossMatterItems.map((item) => (
+                              <div
+                                className="section-card"
+                                key={`matter-cross-memory-${item.matterWorkspaceId}`}
+                              >
+                                <h4>{item.title}</h4>
+                                <p className="content-block">{item.summary}</p>
+                                <p className="muted-text">{item.meta}</p>
+                                <Link
+                                  className="button-secondary"
+                                  href={`/matters/${item.matterWorkspaceId}`}
+                                  style={{ marginTop: "12px" }}
+                                >
+                                  打開相關案件
+                                </Link>
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
+                        {organizationMemoryView.continuityAnchor ? (
+                          <p className="muted-text" style={{ marginTop: "12px" }}>
+                            {organizationMemoryView.continuityAnchor}
+                          </p>
+                        ) : null}
+                        {organizationMemoryView.phaseSixSignalNote ? (
+                          <p className="muted-text" style={{ marginTop: "12px" }}>
+                            {organizationMemoryView.phaseSixSignalNote}
+                          </p>
+                        ) : null}
+                        <p className="muted-text" style={{ marginTop: "12px" }}>
+                          {organizationMemoryView.boundaryNote}
+                        </p>
+                      </div>
+                    ) : null}
+                    {domainPlaybookView?.shouldShow ? (
+                      <div className="detail-item">
+                        <h3>{domainPlaybookView.sectionTitle}</h3>
+                        <p className="content-block">{domainPlaybookView.summary}</p>
+                        {domainPlaybookView.playbookLabel ? (
+                          <p className="muted-text">{domainPlaybookView.playbookLabel}</p>
+                        ) : null}
+                        {domainPlaybookView.fitSummary ? (
+                          <p className="muted-text">{domainPlaybookView.fitSummary}</p>
+                        ) : null}
+                        {domainPlaybookView.sourceMixSummary ? (
+                          <p className="muted-text">{domainPlaybookView.sourceMixSummary}</p>
+                        ) : null}
+                        {domainPlaybookView.sourceLifecycleSummary ? (
+                          <p className="muted-text">{domainPlaybookView.sourceLifecycleSummary}</p>
+                        ) : null}
+                        {domainPlaybookView.lifecyclePostureLabel ? (
+                          <p className="muted-text">來源姿態：{domainPlaybookView.lifecyclePostureLabel}</p>
+                        ) : null}
+                        {domainPlaybookView.freshnessSummary ? (
+                          <p className="muted-text">{domainPlaybookView.freshnessSummary}</p>
+                        ) : null}
+                        {domainPlaybookView.recoveryBalanceSummary ? (
+                          <p className="muted-text">{domainPlaybookView.recoveryBalanceSummary}</p>
+                        ) : null}
+                        {domainPlaybookView.reactivationSummary ? (
+                          <p className="muted-text">{domainPlaybookView.reactivationSummary}</p>
+                        ) : null}
+                        {domainPlaybookView.decaySummary ? (
+                          <p className="muted-text">{domainPlaybookView.decaySummary}</p>
+                        ) : null}
+                        {domainPlaybookView.currentStageLabel ? (
+                          <p className="muted-text">
+                            目前這輪：{domainPlaybookView.currentStageLabel}
+                          </p>
+                        ) : null}
+                        {domainPlaybookView.nextStageLabel ? (
+                          <p className="muted-text">
+                            下一步通常接：{domainPlaybookView.nextStageLabel}
+                          </p>
+                        ) : null}
+                        {domainPlaybookView.listItems.length > 0 ? (
+                          <ul className="list-content" style={{ marginTop: "12px" }}>
+                            {domainPlaybookView.listItems.map((item) => (
+                              <li key={item}>{item}</li>
+                            ))}
+                          </ul>
+                        ) : null}
+                        {domainPlaybookView.phaseSixSignalNote ? (
+                          <p className="muted-text" style={{ marginTop: "12px" }}>
+                            {domainPlaybookView.phaseSixSignalNote}
+                          </p>
+                        ) : null}
+                        <p className="muted-text" style={{ marginTop: "12px" }}>
+                          {domainPlaybookView.boundaryNote}
+                        </p>
+                      </div>
+                    ) : null}
+                    {precedentCandidateSummaryView?.shouldShow ? (
+                      <div className="detail-item">
+                        <h3>{precedentCandidateSummaryView.title}</h3>
+                        <p className="content-block">{precedentCandidateSummaryView.summary}</p>
+                        <p className="muted-text">{precedentCandidateSummaryView.meta}</p>
+                      </div>
+                    ) : null}
+                    <div className="detail-item">
+                      <h3>最近工作脈絡</h3>
+                      <p className="content-block">
+                        {recentTaskSummary
+                          ? truncateText(recentTaskSummary.workspaceState, 120)
+                          : "目前尚未顯示最近工作脈絡。"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </DisclosurePanel>
             </div>
           ) : null}

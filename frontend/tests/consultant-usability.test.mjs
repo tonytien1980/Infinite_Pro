@@ -76,13 +76,13 @@ test("matter usability view keeps the mainline first and pushes world-state to s
     hasRecentDeliverable: true,
   });
 
-  assert.equal(view.sectionGuideTitle, "案件頁怎麼看最快");
+  assert.equal(view.sectionGuideTitle, "頁內導覽");
   assert.equal(view.guideItems[0]?.href, "#matter-mainline");
-  assert.match(view.mainlineCopy, /先抓主線/);
+  assert.match(view.mainlineCopy, /主線|blocker|下一步/);
   assert.match(view.worldStateDisclosureDescription, /只有在你要確認案件世界層/);
 });
 
-test("matter usability view keeps the first guide item focused on command, not structure", () => {
+test("matter usability view turns the guide into a local rail instead of a second summary wall", () => {
   const view = buildMatterUsabilityView({
     evidenceCount: 1,
     deliverableCount: 1,
@@ -93,16 +93,17 @@ test("matter usability view keeps the first guide item focused on command, not s
   });
 
   assert.equal(view.guideItems[0]?.href, "#matter-mainline");
-  assert.match(view.guideItems[0]?.title, /案件主線/);
-  assert.match(view.guideItems[2]?.copy, /交付物|來源與證據/);
-  assert.equal(view.guideItems[0]?.title, "先看案件主線與指揮判斷");
+  assert.equal(view.guideItems[0]?.title, "主線");
+  assert.equal(view.guideItems[1]?.title, "世界層");
+  assert.equal(view.guideItems[2]?.title, "背景");
   assert.equal(
     view.sectionGuideDescription,
-    "先抓這輪主線、最大 blocker 與下一步；研究、組織記憶與 authority 先留第二層。",
+    "這條 rail 只做頁內導覽：先看主線、需要時再核對世界層與背景，不再重講摘要。",
   );
+  assert.match(view.guideItems[2]?.copy, /連續性|研究|旗艦|組織記憶/);
 });
 
-test("matter section guide assembly keeps the command-first title stable", () => {
+test("matter section guide assembly keeps the rail focused on page-local navigation", () => {
   const matterUsabilityView = buildMatterUsabilityView({
     evidenceCount: 1,
     deliverableCount: 1,
@@ -122,11 +123,11 @@ test("matter section guide assembly keeps the command-first title stable", () =>
     },
   });
 
-  assert.equal(items[0]?.title, "先看案件主線與指揮判斷");
-  assert.equal(items[0]?.copy, "目前還卡在證據厚度不夠。");
-  assert.equal(items[0]?.meta, "先回來源與證據，再看是否直接補件。");
+  assert.equal(items[0]?.title, "主線");
+  assert.equal(items[0]?.copy, "先看這輪在判斷什麼、目前卡在哪裡，以及現在該推哪一步。");
+  assert.equal(items[0]?.meta, "一進頁面先看這裡");
   assert.equal(items[1]?.href, "#matter-world-state");
-  assert.equal(items[2]?.href, "/deliverables/deliverable-beta");
+  assert.equal(items[2]?.href, "#matter-background");
 });
 
 test("matter usability view points the first guide item at the mainline and keeps authority work second-layer", () => {
@@ -141,10 +142,11 @@ test("matter usability view points the first guide item at the mainline and keep
 
   assert.equal(view.guideItems[0]?.href, "#matter-mainline");
   assert.equal(view.guideItems[1]?.href, "#matter-world-state");
-  assert.match(view.sectionGuideDescription, /先抓這輪主線/);
+  assert.equal(view.guideItems[2]?.href, "#matter-background");
+  assert.match(view.sectionGuideDescription, /頁內導覽/);
 });
 
-test("matter usability view keeps research and background in the second layer", () => {
+test("matter usability view keeps continuity, research, and flagship-heavy reading out of first-screen competition", () => {
   const view = buildMatterUsabilityView({
     evidenceCount: 2,
     deliverableCount: 1,
@@ -156,7 +158,11 @@ test("matter usability view keeps research and background in the second layer", 
 
   assert.equal(
     view.sectionGuideDescription,
-    "先抓這輪主線、最大 blocker 與下一步；研究、組織記憶與 authority 先留第二層。",
+    "這條 rail 只做頁內導覽：先看主線、需要時再核對世界層與背景，不再重講摘要。",
+  );
+  assert.equal(
+    view.guideItems[2]?.copy,
+    "連續性、研究、旗艦摘要與組織記憶都移到第二層，需要補讀時再回來。",
   );
 });
 

@@ -99,13 +99,7 @@ export type MatterUsabilityView = {
 };
 
 export type MatterSectionGuideAssemblyInput = {
-  matterId: string;
-  latestDeliverableId: string | null;
   matterUsabilityView: MatterUsabilityView | null;
-  matterCommandView: {
-    blockerCopy: string;
-    nextStepCopy: string;
-  } | null;
 };
 
 export function buildMatterUsabilityView(input: {
@@ -116,48 +110,41 @@ export function buildMatterUsabilityView(input: {
   hasOpenEvidenceGaps: boolean;
   hasRecentDeliverable: boolean;
 }): MatterUsabilityView {
-  const nextPathHref =
-    input.hasRecentDeliverable || input.deliverableCount > 0
-      ? "#matter-deliverables-overview"
-      : "#matter-evidence-overview";
-  const nextPathTitle =
-    input.hasRecentDeliverable || input.deliverableCount > 0 ? "直接回交付物" : "先回來源與證據";
-  const nextPathCopy =
-    input.hasRecentDeliverable || input.deliverableCount > 0
-      ? "若這輪已進入輸出整理，直接從案件頁跳回交付物最省。"
-      : "若現在卡在依據偏薄，先去來源與證據工作面比較實際。";
-
   return {
-    sectionGuideTitle: "案件頁怎麼看最快",
+    sectionGuideTitle: "頁內導覽",
     sectionGuideDescription:
-      "先抓這輪主線、最大 blocker 與下一步；研究、組織記憶與 authority 先留第二層。",
+      "這條 rail 只做頁內導覽：先看主線、需要時再核對世界層與背景，不再重講摘要。",
     mainlineCopy:
       input.activeTaskCount > 1
-        ? "先抓主線：這一屏只回答案件目前在處理什麼、下一步做什麼，以及多條工作紀錄中現在最該先看的那一條。"
-        : "先抓主線：這一屏只回答案件目前在處理什麼、下一步做什麼，以及哪些限制最值得先看。",
+        ? "這一段只補主線、最大 blocker 與下一步；若同時有多條工作紀錄，先抓現在最該接手的那一條。"
+        : "這一段只補主線、最大 blocker 與下一步；其他背景先留到第二層再讀。",
     worldStateDisclosureDescription: input.hasCaseWorldState
       ? "只有在你要確認案件世界層的 identity authority、task slices 與寫回深度時，再展開這層。"
       : "只有在你要確認為何目前還沒形成穩定案件世界層時，再展開這層。",
     guideItems: [
       {
         href: "#matter-mainline",
-        eyebrow: "先抓主線",
-        title: "先看案件主線與指揮判斷",
-        copy: "不要先掉進 continuity、research 或 organization memory 的細節。",
+        eyebrow: "一進頁面先看這裡",
+        title: "主線",
+        copy: "先看這輪在判斷什麼、目前卡在哪裡，以及現在該推哪一步。",
         tone: "accent",
       },
       {
         href: "#matter-world-state",
-        eyebrow: "需要確認 authority 時",
-        title: "再看案件世界與寫回策略",
-        copy: "這層只在你要確認 world authority、task slices、writeback 深度時才值得打開。",
+        eyebrow: "要核對結構時",
+        title: "世界層",
+        copy: "只有在你要確認 authority、task slices 與寫回策略時，再看這一層。",
       },
       {
-        href: nextPathHref,
-        eyebrow: "要接續工作面時",
-        title: nextPathTitle,
-        copy: nextPathCopy,
-        tone: input.hasOpenEvidenceGaps || input.evidenceCount < 2 ? "warm" : "default",
+        href: "#matter-background",
+        eyebrow: "主線卡住再回來",
+        title: "背景",
+        copy:
+          "連續性、研究、旗艦摘要與組織記憶都移到第二層，需要補讀時再回來。",
+        tone:
+          input.hasOpenEvidenceGaps || input.evidenceCount < 2 || input.hasRecentDeliverable
+            ? "warm"
+            : "default",
       },
     ],
   };
@@ -179,27 +166,13 @@ export function buildMatterSectionGuideItems(
     {
       ...firstItem,
       href: "#matter-mainline",
-      eyebrow: "先抓案件指揮",
+      eyebrow: "一進頁面先看這裡",
       title: firstItem.title,
-      copy: input.matterCommandView?.blockerCopy ?? firstItem.copy,
-      meta: input.matterCommandView?.nextStepCopy,
+      copy: firstItem.copy,
+      meta: firstItem.eyebrow,
       tone: "accent",
     },
     ...restItems.map((item) => {
-      if (item.href === "#matter-deliverables-overview" && input.latestDeliverableId) {
-        return {
-          ...item,
-          href: `/deliverables/${input.latestDeliverableId}`,
-        };
-      }
-
-      if (item.href === "#matter-evidence-overview") {
-        return {
-          ...item,
-          href: `/matters/${input.matterId}/evidence`,
-        };
-      }
-
       return item;
     }),
   ];

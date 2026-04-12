@@ -672,10 +672,24 @@ Primary action 應隨 continuity mode 分流：
 
 - matter hero rail 應只保留：
   - 目前主線
-  - 現在最重要的變化
+  - 最大 blocker
   - 下一步最建議做什麼
 - `案件健康`、`研究 guidance`、`organization memory`、`domain playbook`、`precedent candidate summary`
   這些都應退到 `主線補充` 或其他第二層區塊，不應再和 hero rail 的主線判斷同層競爭
+- overview 首屏的第一個正文區塊也應只補：
+  - 主線
+  - 最大 blocker
+  - 下一步
+- continuity、research、flagship-heavy reading、organization memory、domain playbook、precedent candidate summary
+  都應退到 second-layer disclosure，不應在 hero 後第一屏繼續競爭注意力
+- matter overview 應提供一條穩定的 page-local rail，並維持 `Shell v2 Control Center` 姿態：
+  - `主線`
+  - `世界層`
+  - `背景`
+- 這條 local rail 只回答：
+  - 這個 section 叫什麼
+  - 什麼情況才要往下讀
+  - 不能再變成第二套摘要牆，也不應把使用者直接導出成另一頁的 shortcut 集合
 
 第二層旗艦區塊應沿用共用 detail helper，而不是每頁重新拼 sparse-start / material-review 的補充文案。
 
@@ -720,12 +734,14 @@ Primary action 應隨 continuity mode 分流：
 
 `7.4 v1` 之後，`matter workspace` 還應正式成立：
 
-- overview tab 先用 section guide 回答：
-  - `先看案件主線與下一步`
-  - `何時才需要確認案件世界與寫回策略`
-  - `何時應直接回來源與證據或交付物工作面`
+- overview tab 先用 page-local rail 回答：
+  - `主線`
+  - `世界層`
+  - `背景`
 - `案件世界狀態與寫回策略` 必須維持 second-layer disclosure：
   - 只有在要確認 world authority / task slices / writeback depth 時才展開
+- `背景補讀` 必須維持 second-layer disclosure：
+  - continuity、research、flagship-heavy reading、organization memory、domain playbook、precedent candidate summary、最近工作脈絡都放在這裡
 - `matter workspace` 不可把 organization memory、domain playbook、continuity 細節一起擠回首屏 hero
 
 ### 7.4 `/matters/[matterId]/evidence`
