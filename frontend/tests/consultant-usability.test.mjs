@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 
 import {
   buildOverviewUsabilityView,
@@ -245,4 +246,23 @@ test("evidence usability view keeps the first screen focused on gap, supplement 
   assert.equal(view.guideItems[2]?.title, "先回焦點工作紀錄");
   assert.equal(view.railEyebrow, "補完後回哪裡");
   assert.match(view.railCopy, /補齊營運與銷售證據/);
+});
+
+test("evidence first screen stays supplement-first instead of stacking a dashboard wall", () => {
+  const source = readFileSync(
+    new URL("../src/components/artifact-evidence-workspace-panel.tsx", import.meta.url),
+    "utf8",
+  );
+  const heroBlock =
+    source.match(/<section className="hero-card evidence-hero">[\s\S]*?<\/section>/)?.[0] ?? "";
+
+  assert.match(heroBlock, /先判斷夠不夠，再決定要不要補/);
+  assert.match(heroBlock, /補完後回哪裡/);
+  assert.doesNotMatch(heroBlock, /meta-row/);
+  assert.doesNotMatch(heroBlock, /hero-metrics-grid/);
+  assert.doesNotMatch(heroBlock, /這頁先做什麼/);
+  assert.doesNotMatch(heroBlock, /hero-focus-card-warm/);
+  assert.doesNotMatch(heroBlock, /button-secondary/);
+  assert.equal((heroBlock.match(/button-primary/g) ?? []).length, 1);
+  assert.equal((heroBlock.match(/hero-focus-card/g) ?? []).length, 2);
 });

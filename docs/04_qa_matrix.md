@@ -6420,3 +6420,36 @@ Environment used:
 - the reason is not that the visible trigger disappeared; it is that protected-route browser automation only confirmed chooser opening, not a stable end-to-end pending-material list update
 - implementation parity and regression tests still confirm that `/new` and `/matters/[matterId]/evidence` share the same explicit upload-trigger structure
 - as in earlier passes, the stable verification order for this repo remains `build -> typecheck`; running them in parallel can still transiently fail on regenerated `.next/types`
+
+---
+
+## Entry: 2026-04-12 shell v2 evidence supplement-first refocus
+
+Scope:
+- evidence workspace first screen
+- consultant-usability copy/model for the evidence surface
+- evidence-first-screen QA matrix honesty
+
+Environment used:
+- local frontend workspace only
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `source ~/.nvm/nvm.sh && cd frontend && node --test tests/consultant-usability.test.mjs tests/low-noise-workbench-repass.test.mjs` | Passed (`21 passed`) |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run build` | Passed |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run typecheck` | Passed |
+
+### Browser verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Evidence workspace | `/matters/[matterId]/evidence` | no browser smoke in this slice | Not run | this pass stayed code-and-build focused; the first-screen hierarchy change is backed by source-level tests and repo build/typecheck verification instead of a browser walkthrough |
+
+### Source-verified outcomes
+
+- evidence first screen now centers the supplement question instead of stacking hero metrics, guide copy, and judgment copy at equal weight
+- the first screen now keeps the return destination visible as a separate return cue instead of merging it into a broader dashboard wall
+- lower-page evidence summaries, research detail, and supplement form remain available below the fold
+- this entry did not include browser smoke, so the hierarchy change is verified at source / build / typecheck level rather than by visual walkthrough

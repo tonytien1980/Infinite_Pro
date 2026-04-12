@@ -296,20 +296,6 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
           : workspace && workspace.high_impact_gaps.length > 0
             ? "這裡最重要的不是把資料看完，而是先補齊高影響缺口，避免案件工作台或交付物在證據不足下失真。"
           : "這個工作面負責釐清來源、工作物件與證據支撐鏈。先確認支撐鏈完整度，再回案件或工作紀錄會更有效率。";
-  const evidenceActionChecklist = [
-    "先看充分性摘要與高影響缺口，確認這個案件現在缺的是什麼。",
-    focusTask
-      ? `如果要回到主線推進，焦點工作紀錄是「${focusTask.title}」。`
-      : "如果要回到主線推進，先回案件工作台確認目前最重要的工作紀錄。",
-    workspace && workspace.source_material_cards.length === 0
-      ? "目前還沒有正式來源材料，建議先補檔案、網址或補充文字。"
-      : "目前已有來源材料，接著可回看證據支撐鏈是否真的支撐得住判斷。",
-    progressionLane?.next_progression_actions[0]
-      ? `補完之後，下一步建議是：${progressionLane.next_progression_actions[0]}`
-      : followUpLane?.next_follow_up_actions[0]
-      ? `補完之後，下一步建議是：${followUpLane.next_follow_up_actions[0]}`
-      : "補完之後再回案件工作面，確認這輪案件主線要怎麼續推。",
-  ];
   const evidenceSectionGuideItems = workspace
     ? buildEvidenceWorkspaceUsabilityView({
         hasHighImpactGaps: workspace.high_impact_gaps.length > 0,
@@ -866,61 +852,19 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                 <span className="eyebrow">來源與證據工作面</span>
                 <h1 className="page-title">{matterCard.title}</h1>
                 <p className="page-subtitle">{matterCard.objectPath}</p>
-                <div className="meta-row" style={{ marginTop: "16px" }}>
-                  <span>{workspace.source_material_cards.length} 份來源材料</span>
-                  <span>{workspace.artifact_cards.length} 份工作物件</span>
-                  <span>{workspace.evidence_chains.length} 則證據支撐鏈</span>
-                  <span>
-                    {labelForEngagementContinuityMode(workspace.matter_summary.engagement_continuity_mode)} /{" "}
-                    {labelForWritebackDepth(workspace.matter_summary.writeback_depth)}
-                  </span>
-                </div>
-                <div className="hero-focus-card">
-                  <p className="hero-focus-label">{flagshipLane?.label || "這次要支撐哪個判斷"}</p>
-                  <h3 className="hero-focus-title">
-                    {workspace.current_decision_context?.judgment_to_make ||
-                      workspace.current_decision_context?.title ||
-                      "目前尚未形成清楚的決策問題。"}
-                  </h3>
-                  <p className="hero-focus-copy">{evidenceSurfaceSummary}</p>
-                </div>
-                <div className="button-row" style={{ marginTop: "4px" }}>
-                  <Link className="button-primary" href={evidencePrimaryActionHref}>
-                    {evidencePrimaryActionLabel}
-                  </Link>
-                  {focusTask ? (
-                    <Link className="button-secondary" href={`/tasks/${focusTask.id}`}>
-                      打開焦點工作紀錄
-                    </Link>
-                  ) : null}
-                  {focusTask?.latest_deliverable_id ? (
-                    <Link
-                      className="button-secondary"
-                      href={`/deliverables/${focusTask.latest_deliverable_id}`}
-                    >
-                      打開最新交付物
-                    </Link>
-                  ) : null}
-                  <Link className="button-secondary" href={`/matters/${matterId}`}>
-                    返回案件工作面
-                  </Link>
-                </div>
-              </div>
-
-              <div className="hero-aside">
                 <div className="hero-focus-card">
                   <p className="hero-focus-label">{evidenceActionTitle}</p>
                   <h3 className="hero-focus-title">先判斷夠不夠，再決定要不要補</h3>
                   <p className="hero-focus-copy">{evidenceActionSummary}</p>
                 </div>
-                <div className="hero-focus-card hero-focus-card-warm">
-                  <p className="hero-focus-label">這頁先做什麼</p>
-                  <ul className="hero-focus-list">
-                    {evidenceActionChecklist.slice(0, 3).map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
+                <div className="button-row" style={{ marginTop: "4px" }}>
+                  <Link className="button-primary" href={evidencePrimaryActionHref}>
+                    {evidencePrimaryActionLabel}
+                  </Link>
                 </div>
+              </div>
+
+              <div className="hero-aside">
                 <div className="hero-focus-card">
                   <p className="hero-focus-label">
                     {evidenceUsabilityView?.railEyebrow || "補完後回哪裡"}
@@ -935,31 +879,6 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                         : "補完後先回案件工作面確認主線是否已站穩。")}
                   </p>
                 </div>
-              </div>
-            </div>
-
-            <div className="hero-metrics-grid">
-              <div className="section-card hero-metric-card">
-                <h3>來源材料</h3>
-                <p className="workbench-metric">{workspace.source_material_cards.length}</p>
-                <p className="muted-text">已掛回案件世界的正式來源材料。</p>
-              </div>
-              <div className="section-card hero-metric-card">
-                <h3>證據支撐鏈</h3>
-                <p className="workbench-metric">{workspace.evidence_chains.length}</p>
-                <p className="muted-text">目前可回看、可支撐判斷的證據鏈。</p>
-              </div>
-              <div className="section-card hero-metric-card">
-                <h3>高影響缺口</h3>
-                <p className="workbench-metric">{workspace.high_impact_gaps.length}</p>
-                <p className="muted-text">先補這些，最能降低判斷失真風險。</p>
-              </div>
-              <div className="section-card hero-metric-card">
-                <h3>案件姿態</h3>
-                <p className="workbench-metric">
-                  {labelForEngagementContinuityMode(workspace.matter_summary.engagement_continuity_mode)}
-                </p>
-                <p className="muted-text">{labelForWritebackDepth(workspace.matter_summary.writeback_depth)}</p>
               </div>
             </div>
           </section>
