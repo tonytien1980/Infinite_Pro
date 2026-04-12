@@ -6453,3 +6453,49 @@ Environment used:
 - the first screen now keeps the return destination visible as a separate return cue instead of merging it into a broader dashboard wall
 - lower-page evidence summaries, research detail, and supplement form remain available below the fold
 - this entry did not include browser smoke, so the hierarchy change is verified at source / build / typecheck level rather than by visual walkthrough
+
+---
+
+## Entry: 2026-04-12 shell v2 hybrid-workbench tranche closure
+
+Scope:
+- shared shell rail primitives
+- overview launcher refocus
+- matter control-center first screen
+- task one-mainline reading system
+- evidence supplement-first refocus
+- deliverable document-first compression
+
+Environment used:
+- local frontend workspace only
+- Playwright CLI wrapper for unauthenticated browser smoke
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `source ~/.nvm/nvm.sh && cd frontend && node --test tests/workspace-local-rail.test.mjs tests/consultant-usability.test.mjs tests/task-detail-usability.test.mjs tests/low-noise-workbench-repass.test.mjs` | Passed (`39 passed`) |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run build` | Passed |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run typecheck` | Passed |
+| `git diff --check` | Passed |
+
+### Browser verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Auth shell | `/ -> /login?next=%2F` | open app with Playwright CLI and inspect first screen | Verified | browser resolved to `/login?next=%2F`; login page rendered `使用 Google 登入` CTA |
+| Authenticated work surfaces | `overview / matter / task / evidence / deliverable` | protected-route browser walkthrough | Not run | this closure pass did not import authenticated cookies or run a full logged-in browser tour |
+
+### Verified outcomes
+
+- Shell v2 shared rail primitives remain in place and source-tested
+- `overview` now behaves as a launcher-first surface instead of a governance-heavy dashboard wall
+- `matter` first screen now reads as `主線 / 最大 blocker / 下一步`, with heavier background content moved behind second-layer reading
+- `task` first screen now keeps one mainline reading system, while secondary guidance is demoted to the second layer without losing posture signaling
+- `evidence` first screen now stays supplement-first, with one primary supplement cue and one return cue instead of a dashboard-like header
+- `deliverable` first screen now keeps version / posture / primary action high-weight, while adoption, writeback, continuity, and research move down the page
+
+### Verification boundary
+
+- The shipped browser evidence for this closure pass is limited to the unauthenticated login redirect / login screen render
+- The Shell v2 workspace hierarchy changes above are therefore verified by source-level regression tests plus repo `build / typecheck`, not by a fresh authenticated browser walkthrough in this specific closure pass
