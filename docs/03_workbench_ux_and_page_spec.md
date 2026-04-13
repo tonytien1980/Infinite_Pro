@@ -832,6 +832,7 @@ Primary action：
   - primary action 先回答現在要做什麼
   - posture line 先低噪音標出這輪是 exploratory、material review，還是 decision convergence
   - next-hop 先回答跑完去哪裡
+- 首屏不再保留獨立 metrics strip；狀態、證據量、交付形成度與代理數量若仍需要，可退到第二層或更低權重區塊
 - `hero rail`、`WorkspaceSectionGuide`、`operating summary` 不再以三套並排摘要系統同時佔住首屏
 
 `WorkspaceSectionGuide` 第一波現在只作為第二層導讀，保留三條主線：

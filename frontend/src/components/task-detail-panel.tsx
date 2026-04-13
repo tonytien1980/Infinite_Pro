@@ -909,12 +909,6 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
     : hasThinTaskEvidence
       ? "資料偏薄，但不用卡住"
       : "這筆工作可以直接推進";
-  const selectedPackCount =
-    task?.pack_resolution
-      ? task.pack_resolution.selected_domain_packs.length +
-        task.pack_resolution.selected_industry_packs.length
-      : 0;
-  const selectedAgentCount = task?.agent_selection.selected_agent_names.length ?? 0;
   const taskDetailUsabilityView = task
     ? buildTaskDetailUsabilityView({
         hasThinTaskEvidence,
@@ -1048,32 +1042,6 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
               </div>
             </div>
 
-            <div className="hero-metrics-grid">
-              <div className="section-card hero-metric-card">
-                <h3>目前狀態</h3>
-                <p className="workbench-metric">{labelForTaskStatus(task.status)}</p>
-                <p className="muted-text">{labelForFlowMode(task.mode)} / {labelForTaskType(task.task_type)}</p>
-              </div>
-              <div className="section-card hero-metric-card">
-                <h3>來源與證據</h3>
-                <p className="workbench-metric">{task.evidence.length}</p>
-                <p className="muted-text">{task.source_materials.length} 份來源材料</p>
-              </div>
-              <div className="section-card hero-metric-card">
-                <h3>交付狀態</h3>
-                <p className="workbench-metric">{latestDeliverable ? "已形成" : "未形成"}</p>
-                <p className="muted-text">
-                  {latestDeliverable ? latestDeliverable.title : "目前尚未形成正式交付物。"}
-                </p>
-              </div>
-              <div className="section-card hero-metric-card">
-                <h3>已選代理</h3>
-                <p className="workbench-metric">{selectedAgentCount}</p>
-                <p className="muted-text">
-                  {selectedPackCount} 個模組包 / {selectedAgentCount > 0 ? "已形成代理路徑" : "目前仍偏向最小路徑"}
-                </p>
-              </div>
-            </div>
           </section>
 
           {taskDetailUsabilityView ? (

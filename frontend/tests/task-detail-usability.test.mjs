@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 
 import { buildTaskDetailUsabilityView } from "../src/lib/task-detail-usability.ts";
 
@@ -247,6 +248,20 @@ test("task detail usability view demotes secondary guidance into the second laye
   assert.match(view.guideDescription, /第二層/);
   assert.equal(view.operatingSummaryTitle, "第二層操作提示");
   assert.match(view.operatingSummaryCopy, /主線/);
+});
+
+test("task first screen no longer keeps a metrics strip under the hero", () => {
+  const source = readFileSync(
+    new URL("../src/components/task-detail-panel.tsx", import.meta.url),
+    "utf8",
+  );
+  const heroBlock =
+    source.match(
+      /<section className="hero-card decision-hero">[\s\S]*?(?=\{taskDetailUsabilityView \? \()/,
+    )?.[0] ?? "";
+
+  assert.match(heroBlock, /hero-focus-card hero-focus-card-warm/);
+  assert.doesNotMatch(heroBlock, /hero-metrics-grid/);
 });
 
 test("task detail usability view aligns the rail with the same handoff contract", () => {

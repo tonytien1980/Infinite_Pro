@@ -6528,7 +6528,7 @@ Environment used:
 | --- | --- | --- | --- | --- |
 | Overview | `/` | verify authenticated overview shell and launcher-first structure | Verified | protected route resolved to overview; global nav, logout control, launcher actions, and second-layer governance disclosure all rendered |
 | Matter workspace | `/matters/[matterId]` | open current matter from overview and inspect first screen | Verified | control-center posture rendered with `主線 / 最大 blocker / 下一步`; page-local rail and second-layer disclosures present |
-| Task workspace | `/tasks/[taskId]` | open current task from matter and inspect first screen | Verified with concern | mainline + second-layer disclosure structure rendered, but a metrics strip is still visible beneath the hero on first screen |
+| Task workspace | `/tasks/[taskId]` | open current task from matter and inspect first screen | Verified | mainline + second-layer disclosure structure rendered; first-screen metrics strip has been removed, leaving hero and second-layer disclosure as the visible reading system |
 | Evidence workspace | `/matters/[matterId]/evidence` | open evidence from task and inspect supplement-first surface | Verified | first screen centered `先判斷夠不夠，再決定要不要補` plus one return cue; supplement form and related second-layer sections rendered |
 | Task run | `/tasks/[taskId]` | trigger `執行分析` and wait for completion | Verified | button entered `分析執行中...`; backend `POST /tasks/.../run` completed `200`; task updated to `已完成` and exposed a formal deliverable link |
 | Deliverable workspace | `/deliverables/[deliverableId]` | open generated deliverable and inspect first screen | Verified | deliverable first screen rendered version / posture / primary action as expected; publish-check and second-layer sections remained available below |
@@ -6542,4 +6542,4 @@ Environment used:
 
 ### Residual observations
 
-- the authenticated `task` page still shows a visible metrics strip directly under the hero; it did not block the flow, but it remains louder than the intended Shell v2 first-screen posture
+- none in this authenticated Shell v2 walkthrough; the previously observed `task` metrics strip noise was removed in the same follow-up pass
