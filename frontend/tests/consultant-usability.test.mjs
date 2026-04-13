@@ -340,6 +340,18 @@ test("deliverable workspace first screen keeps version context posture and prima
   assert.doesNotMatch(guideItemsBlock, /linked_evidence|high_impact_gaps|source_materials\.length|objectSetHighlights/);
 });
 
+test("deliverable workspace load effect ignores stale fetch failures", () => {
+  const source = readFileSync(
+    new URL("../src/components/deliverable-workspace-panel.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /let ignore = false;/);
+  assert.match(source, /if \(!ignore\) \{\s*setWorkspace\(nextWorkspace\);/);
+  assert.match(source, /if \(!ignore\) \{\s*setError\(loadError instanceof Error \? loadError\.message : "載入交付物工作面失敗。"\);/);
+  assert.match(source, /return \(\) => \{\s*ignore = true;\s*\};/);
+});
+
 test("evidence usability view keeps the first screen focused on gap, supplement path, and return destination", () => {
   const view = buildEvidenceWorkspaceUsabilityView({
     hasHighImpactGaps: true,

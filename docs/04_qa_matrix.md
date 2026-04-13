@@ -6499,3 +6499,47 @@ Environment used:
 
 - The shipped browser evidence for this closure pass is limited to the unauthenticated login redirect / login screen render
 - The Shell v2 workspace hierarchy changes above are therefore verified by source-level regression tests plus repo `build / typecheck`, not by a fresh authenticated browser walkthrough in this specific closure pass
+
+---
+
+## Entry: 2026-04-13 authenticated shell-v2 browser QA and deliverable fetch guard
+
+Scope:
+- authenticated browser walkthrough for `overview / matter / task / evidence / deliverable`
+- task run to deliverable formation
+- deliverable stale-fetch alert regression on protected route reload
+
+Environment used:
+- local frontend workspace only
+- Playwright CLI headed browser with real operator login
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `source ~/.nvm/nvm.sh && cd frontend && node --test tests/consultant-usability.test.mjs` | Passed (`17 passed`) |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run build` | Passed |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run typecheck` | Passed |
+| `git diff --check` | Passed |
+
+### Browser verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Overview | `/` | verify authenticated overview shell and launcher-first structure | Verified | protected route resolved to overview; global nav, logout control, launcher actions, and second-layer governance disclosure all rendered |
+| Matter workspace | `/matters/[matterId]` | open current matter from overview and inspect first screen | Verified | control-center posture rendered with `主線 / 最大 blocker / 下一步`; page-local rail and second-layer disclosures present |
+| Task workspace | `/tasks/[taskId]` | open current task from matter and inspect first screen | Verified with concern | mainline + second-layer disclosure structure rendered, but a metrics strip is still visible beneath the hero on first screen |
+| Evidence workspace | `/matters/[matterId]/evidence` | open evidence from task and inspect supplement-first surface | Verified | first screen centered `先判斷夠不夠，再決定要不要補` plus one return cue; supplement form and related second-layer sections rendered |
+| Task run | `/tasks/[taskId]` | trigger `執行分析` and wait for completion | Verified | button entered `分析執行中...`; backend `POST /tasks/.../run` completed `200`; task updated to `已完成` and exposed a formal deliverable link |
+| Deliverable workspace | `/deliverables/[deliverableId]` | open generated deliverable and inspect first screen | Verified | deliverable first screen rendered version / posture / primary action as expected; publish-check and second-layer sections remained available below |
+| Deliverable reload | `/deliverables/[deliverableId]` | reload protected deliverable after stale-fetch guard change | Verified | page reloaded without the earlier `Failed to fetch` alert and without console CORS errors |
+
+### Verified outcomes
+
+- the authenticated Shell v2 path now runs end-to-end from `overview -> matter -> task -> evidence -> task run -> deliverable`
+- the deliverable protected-route reload no longer surfaces the stale `Failed to fetch` alert after adding the load-effect stale-request guard
+- task execution now shows a real browser-observed transition from `執行分析` to `分析執行中...` to a completed task with a deliverable link
+
+### Residual observations
+
+- the authenticated `task` page still shows a visible metrics strip directly under the hero; it did not block the flow, but it remains louder than the intended Shell v2 first-screen posture

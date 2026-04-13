@@ -531,17 +531,32 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   >(null);
 
   useEffect(() => {
+    let ignore = false;
+
     void (async () => {
       try {
-        setLoading(true);
-        setError(null);
-        setWorkspace(await getDeliverableWorkspace(deliverableId));
+        if (!ignore) {
+          setLoading(true);
+          setError(null);
+        }
+        const nextWorkspace = await getDeliverableWorkspace(deliverableId);
+        if (!ignore) {
+          setWorkspace(nextWorkspace);
+        }
       } catch (loadError) {
-        setError(loadError instanceof Error ? loadError.message : "載入交付物工作面失敗。");
+        if (!ignore) {
+          setError(loadError instanceof Error ? loadError.message : "載入交付物工作面失敗。");
+        }
       } finally {
-        setLoading(false);
+        if (!ignore) {
+          setLoading(false);
+        }
       }
     })();
+
+    return () => {
+      ignore = true;
+    };
   }, [deliverableId]);
 
   useEffect(() => {
