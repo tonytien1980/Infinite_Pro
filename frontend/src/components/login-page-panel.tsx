@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { getCurrentSession, startGoogleLogin } from "@/lib/api";
-import { isAuthError } from "@/lib/session";
+import { isAuthError, resolveLoginNextPath } from "@/lib/session";
 
 export function LoginPagePanel() {
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +31,9 @@ export function LoginPagePanel() {
 
   async function handleGoogleLogin() {
     try {
-      const result = await startGoogleLogin();
+      const nextPath =
+        typeof window === "undefined" ? null : resolveLoginNextPath(window.location.search);
+      const result = await startGoogleLogin(nextPath || undefined);
       window.location.href = result.authorizationUrl;
     } catch (loginError) {
       setError(loginError instanceof Error ? loginError.message : "目前無法開始 Google 登入。");
@@ -44,7 +46,7 @@ export function LoginPagePanel() {
         <p className="hero-focus-label">雲端登入</p>
         <h1>登入 Infinite Pro</h1>
         <p className="section-copy">
-          請使用已受邀的 Google 帳號登入。正式案件工作、shared intelligence 與成員權限，都會以目前登入身份為準。
+          請使用已受邀的 Google 帳號登入。正式案件、共享判讀與成員權限，都會以目前登入身份為準。
         </p>
         <div className="form-actions">
           <button className="button-primary" type="button" onClick={handleGoogleLogin}>

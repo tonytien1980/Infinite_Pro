@@ -81,7 +81,7 @@ test("demo showcase summary keeps highlights consultant-readable", () => {
       "deliverable shaping 的收斂讀法",
       "history / shared intelligence 的唯讀展示",
     ]),
-    "你可以先看 matter / case world 的正式工作面、deliverable shaping 的收斂讀法、history / shared intelligence 的唯讀展示。",
+    "你可以先看案件主控台、結果與報告的收斂讀法、歷史紀錄與共享判讀的唯讀展示。",
   );
 });
 

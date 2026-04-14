@@ -14,6 +14,9 @@ from app.core.config import settings
 from app.domain import models
 from app.identity import schemas as identity_schemas
 
+GOOGLE_OAUTH_STATE_KEY = "google_oauth_state"
+POST_LOGIN_NEXT_PATH_KEY = "post_login_next_path"
+
 
 @dataclass
 class GoogleIdentity:
@@ -31,12 +34,35 @@ class AuthLoginResult:
     membership: models.FirmMembership
 
 
-def build_google_authorization_url(request: Request) -> tuple[str, str]:
+def normalize_post_login_next_path(next_path: str | None) -> str | None:
+    if not next_path:
+        return None
+    candidate = next_path.strip()
+    if not candidate.startswith("/") or candidate.startswith("//"):
+        return None
+    if candidate == "/login" or candidate.startswith("/login?"):
+        return None
+    return candidate
+
+
+def build_post_login_redirect_url(frontend_base_url: str, next_path: str | None) -> str:
+    normalized_next_path = normalize_post_login_next_path(next_path)
+    if not normalized_next_path:
+        return frontend_base_url
+    return f"{frontend_base_url.rstrip('/')}{normalized_next_path}"
+
+
+def build_google_authorization_url(
+    request: Request,
+    *,
+    next_path: str | None = None,
+) -> tuple[str, str]:
     if not settings.google_client_id:
         raise HTTPException(status_code=503, detail="目前尚未設定 Google Login。")
 
     state = secrets.token_urlsafe(24)
-    request.session["google_oauth_state"] = state
+    request.session[GOOGLE_OAUTH_STATE_KEY] = state
+    request.session[POST_LOGIN_NEXT_PATH_KEY] = normalize_post_login_next_path(next_path)
     redirect_uri = f"{settings.app_base_url}{settings.google_oauth_redirect_path}"
     params = urlencode(
         {
@@ -205,7 +231,7 @@ def complete_google_login(
     code: str,
     state: str,
 ) -> identity_schemas.SessionStateResponse:
-    expected_state = request.session.get("google_oauth_state")
+    expected_state = request.session.get(GOOGLE_OAUTH_STATE_KEY)
     if not expected_state or state != expected_state:
         raise HTTPException(status_code=400, detail="Google 登入 state 不一致，請重新登入。")
 
@@ -215,9 +241,14 @@ def complete_google_login(
 
     auth_result = upsert_google_identity_and_membership(db, identity=identity)
     issue_user_session(db, request=request, membership=auth_result.membership, user=auth_result.user)
-    request.session.pop("google_oauth_state", None)
+    request.session.pop(GOOGLE_OAUTH_STATE_KEY, None)
     return auth_core.build_session_state_response(
         auth_result.user,
         auth_result.firm,
         auth_result.membership,
     )
+
+
+def consume_post_login_next_path(request: Request) -> str | None:
+    next_path = request.session.pop(POST_LOGIN_NEXT_PATH_KEY, None)
+    return normalize_post_login_next_path(next_path)

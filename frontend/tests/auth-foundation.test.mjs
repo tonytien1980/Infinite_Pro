@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 
 import {
   buildPrimaryNavForMembershipRole,
@@ -7,6 +8,7 @@ import {
   canManageExtensions,
   isPublicAppPath,
 } from "../src/lib/permissions.ts";
+import { getLoginPath, resolveLoginNextPath } from "../src/lib/session.ts";
 import {
   labelForFirmOperatingPosture,
   summarizeFirmOperatingSignals,
@@ -24,6 +26,25 @@ test("owner sees members nav and consultant does not", () => {
 test("public login path stays public but app routes do not", () => {
   assert.equal(isPublicAppPath("/login"), true);
   assert.equal(isPublicAppPath("/matters"), false);
+});
+
+test("login path and next-path helper keep protected return targets safe and stable", () => {
+  assert.equal(getLoginPath("/demo"), "/login?next=%2Fdemo");
+  assert.equal(resolveLoginNextPath("?next=%2Fdemo"), "/demo");
+  assert.equal(resolveLoginNextPath("?next=%2Fmatters%2Fabc"), "/matters/abc");
+  assert.equal(resolveLoginNextPath("?next=https%3A%2F%2Fevil.example"), null);
+  assert.equal(resolveLoginNextPath("?next=%2F%2Fevil.example"), null);
+  assert.equal(resolveLoginNextPath("?next=demo"), null);
+});
+
+test("login page forwards the preserved next path into Google start", () => {
+  const source = readFileSync(
+    new URL("../src/components/login-page-panel.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /resolveLoginNextPath/);
+  assert.match(source, /startGoogleLogin\(nextPath \|\| undefined\)/);
 });
 
 test("consultant can view agents packs but cannot manage extensions", () => {

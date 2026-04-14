@@ -36,14 +36,14 @@ def get_demo_workspace_snapshot(
     policy = _get_or_create_demo_workspace_policy(db, firm_id=firm_id)
 
     return demo_schemas.DemoWorkspaceRead(
-        title="Infinite Pro Demo Workspace",
+        title="Infinite Pro 示範工作台",
         subtitle=f"固定展示資料｜唯讀｜seed {policy.seed_version}",
-        entry_message="你目前正在 demo workspace。這裡只能看，不能新增、修改、分析或治理。",
-        hero_summary="這裡展示的是 Infinite Pro 如何把案件世界、交付物與 shared intelligence 串成同一條顧問工作流。",
+        entry_message="你目前正在示範工作台。這裡只供瀏覽，不能新增、修改、分析或管理。",
+        hero_summary="這裡展示的是 Infinite Pro 如何把案件脈絡、結果與報告、共享判讀串成同一條工作流程。",
         showcase_highlights=[
-            "matter / case world 的正式工作面",
-            "deliverable shaping 的收斂讀法",
-            "history / shared intelligence 的唯讀展示",
+            "案件主控台",
+            "結果與報告的收斂讀法",
+            "歷史紀錄與共享判讀的唯讀展示",
         ],
         read_only_rules=[
             "不能新增案件",
@@ -51,39 +51,39 @@ def get_demo_workspace_snapshot(
             "不能執行分析",
             "不能碰正式資料",
         ],
-        formal_workspace_explainer="正式版 workspace 會讓 consultant 進入自己的辦案路徑；demo 則只展示產品如何工作，不提供操作權限。",
+        formal_workspace_explainer="正式版工作台會讓顧問進入自己的辦案路徑；示範工作台則只展示產品如何工作，不提供操作權限。",
         sections=[
             demo_schemas.DemoWorkspaceSectionRead(
                 section_id="sample_matters",
-                title="Sample Matters",
-                summary="展示案件世界與主要工作面會長成什麼樣子。",
+                title="示範案件",
+                summary="展示案件與主要工作台會長成什麼樣子。",
                 items=[
                     "創業階段成長診斷",
-                    "制度化階段營運 review",
+                    "制度化階段營運檢視",
                 ],
             ),
             demo_schemas.DemoWorkspaceSectionRead(
                 section_id="sample_deliverables",
-                title="Sample Deliverables",
-                summary="展示交付物如何從案件世界與 shared intelligence 收斂出來。",
+                title="示範結果",
+                summary="展示結果與報告如何從案件脈絡與共享判讀收斂出來。",
                 items=[
-                    "旗艦診斷 memo",
-                    "持續顧問 follow-up brief",
+                    "旗艦診斷備忘錄",
+                    "持續顧問後續摘要",
                 ],
             ),
             demo_schemas.DemoWorkspaceSectionRead(
                 section_id="sample_history",
-                title="Sample History",
-                summary="展示 history、precedent、shared intelligence 的唯讀讀法。",
+                title="示範紀錄",
+                summary="展示歷史紀錄、可重用內容與共享判讀的唯讀讀法。",
                 items=[
-                    "precedent review lane",
-                    "phase 4 closure review",
+                    "重用檢視",
+                    "收尾檢查示例",
                 ],
             ),
             demo_schemas.DemoWorkspaceSectionRead(
                 section_id="workspace_rules",
-                title="Demo Rules",
-                summary="說明 demo workspace 的正式邊界。",
+                title="示範規則",
+                summary="說明示範工作台的正式邊界。",
                 items=[
                     "不能新增案件",
                     "不能上傳材料",

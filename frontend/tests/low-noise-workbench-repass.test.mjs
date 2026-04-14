@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
+import { buildPrimaryNavForMembershipRole } from "../src/lib/permissions.ts";
 import { labelForMembershipStatus } from "../src/lib/ui-labels.ts";
 import { SURFACE_LABELS } from "../src/lib/workbench-surface-labels.ts";
 
@@ -462,6 +463,53 @@ test("membership status labels cover invite rows as well as active members", () 
   assert.equal(labelForMembershipStatus("pending"), "待接受");
   assert.equal(labelForMembershipStatus("accepted"), "已接受");
   assert.equal(labelForMembershipStatus("revoked"), "已撤回");
+});
+
+test("task 5 closure keeps nav and overview first-layer labels on approved visible names", () => {
+  const nav = buildPrimaryNavForMembershipRole("consultant");
+  const homeSource = readFileSync(
+    new URL("../src/components/workbench-home.tsx", import.meta.url),
+    "utf8",
+  );
+  const deliverableSectionBlock =
+    homeSource.match(
+      /<section className="panel section-anchor" id="home-deliverables">[\s\S]*?<\/section>/,
+    )?.[0] ?? "";
+  const recentActivityBlock =
+    homeSource.match(
+      /<section className="panel">[\s\S]*?<h2 className="panel-title">最近活動<\/h2>[\s\S]*?<\/section>/,
+    )?.[0] ?? "";
+
+  assert.deepEqual(nav.slice(0, 5), [
+    { href: "/", label: "總覽" },
+    { href: "/matters", label: "案件主控台" },
+    { href: "/deliverables", label: "結果與報告" },
+    { href: "/history", label: "歷史紀錄" },
+    { href: "/settings", label: "系統設定" },
+  ]);
+
+  assert.doesNotMatch(homeSource, /看最近交付物/);
+  assert.doesNotMatch(deliverableSectionBlock, /最近交付物/);
+  assert.doesNotMatch(deliverableSectionBlock, /看全部交付物/);
+  assert.doesNotMatch(homeSource, /工作紀錄/);
+  assert.doesNotMatch(recentActivityBlock, /工作更新/);
+  assert.match(deliverableSectionBlock, /最近結果與報告/);
+  assert.match(deliverableSectionBlock, /看全部結果與報告/);
+  assert.match(recentActivityBlock, /分析更新/);
+});
+
+test("task 5 closure routes demo page rendering through normalized runtime-fed copy", () => {
+  const demoSource = readFileSync(
+    new URL("../src/components/demo-page-panel.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(demoSource, /normalizeDemoWorkspaceSnapshot/);
+  assert.match(demoSource, /normalizedSnapshot/);
+  assert.doesNotMatch(demoSource, /snapshot\?\.title \|\| `Infinite Pro \$\{SURFACE_LABELS\.demoWorkspace\}`/);
+  assert.doesNotMatch(demoSource, /section\.title/);
+  assert.doesNotMatch(demoSource, /section\.summary/);
+  assert.doesNotMatch(demoSource, /key=\{item\}>\{item\}/);
 });
 
 test("second-layer continuity copy avoids raw internal ontology English", () => {

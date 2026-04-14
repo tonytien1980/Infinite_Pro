@@ -142,8 +142,12 @@ export async function getCurrentSession(): Promise<SessionState> {
   };
 }
 
-export async function startGoogleLogin(): Promise<{ authorizationUrl: string }> {
-  const response = await apiFetch(`${getApiBaseUrl()}/auth/google/start`, {
+export async function startGoogleLogin(nextPath?: string): Promise<{ authorizationUrl: string }> {
+  const baseUrl = `${getApiBaseUrl()}/auth/google/start`;
+  const requestUrl = nextPath
+    ? `${baseUrl}?next=${encodeURIComponent(nextPath)}`
+    : baseUrl;
+  const response = await apiFetch(requestUrl, {
     cache: "no-store",
   });
   const payload = await parseResponse<{ state: string; authorization_url: string }>(response);

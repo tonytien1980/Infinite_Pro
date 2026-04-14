@@ -134,7 +134,7 @@ function buildGapNote(task: TaskListItem) {
   }
 
   if (!task.latest_deliverable_id) {
-    notes.push("尚未形成正式交付物");
+    notes.push("尚未形成正式結果與報告");
   }
 
   if (task.external_research_heavy_candidate) {
@@ -146,7 +146,7 @@ function buildGapNote(task: TaskListItem) {
 
 function pickFocusLabel(preference: "matters" | "deliverables" | "evidence") {
   if (preference === "deliverables") {
-    return "先回到最近交付物";
+    return "先回到最近結果與報告";
   }
   if (preference === "evidence") {
     return "先補待補資料";
@@ -576,7 +576,7 @@ export function WorkbenchHome() {
       : null;
   const focusTitle =
     settings.homepageDisplayPreference === "deliverables"
-      ? primaryDeliverable?.latest_deliverable_title || "先建立第一份可回看的交付物"
+      ? primaryDeliverable?.latest_deliverable_title || "先建立第一份可回看的結果與報告"
       : settings.homepageDisplayPreference === "evidence"
         ? primaryEvidenceTask?.title || "目前沒有急需補件的案件"
         : primaryMatterRecord?.title ||
@@ -587,7 +587,7 @@ export function WorkbenchHome() {
       ? truncateText(
           primaryDeliverable?.latest_deliverable_summary ||
             primaryDeliverable?.decision_context_title ||
-            "交付物頁會整理這次結論、版本與可直接採用的內容。",
+            "結果與報告頁會整理這次結論、版本與可直接採用的內容。",
           96,
         )
       : settings.homepageDisplayPreference === "evidence"
@@ -615,7 +615,7 @@ export function WorkbenchHome() {
   const focusActionLabel =
     settings.homepageDisplayPreference === "deliverables" &&
     primaryDeliverable?.latest_deliverable_id
-      ? "回到交付物"
+      ? "回到結果與報告"
       : settings.homepageDisplayPreference === "evidence" && primaryEvidenceTask
         ? "前往補件"
         : primaryMatter
@@ -773,9 +773,9 @@ export function WorkbenchHome() {
                           )}
                         </p>
                         <div className="meta-row">
-                          <span>交付物 {matter.deliverable_count}</span>
+                          <span>結果與報告 {matter.deliverable_count}</span>
                           <span>來源 {matter.source_material_count}</span>
-                          <span>工作紀錄 {matter.total_task_count}</span>
+                          <span>分析項目 {matter.total_task_count}</span>
                         </div>
                       </Link>
                     );
@@ -789,11 +789,11 @@ export function WorkbenchHome() {
             <section className="panel section-anchor" id="home-deliverables">
               <div className="panel-header">
                 <div>
-                  <h2 className="panel-title">最近交付物</h2>
-                  <p className="panel-copy">這裡只放最近最值得回看的交付物，方便你快速回到結果。</p>
+                  <h2 className="panel-title">最近結果與報告</h2>
+                  <p className="panel-copy">這裡只放最近最值得回看的結果與報告，方便你快速回到成果。</p>
                 </div>
                 <Link className="button-secondary" href="/deliverables">
-                  看全部交付物
+                  看全部結果與報告
                 </Link>
               </div>
 
@@ -828,7 +828,7 @@ export function WorkbenchHome() {
                     );
                   })
                 ) : (
-                  <p className="empty-text">目前還沒有最近交付物。</p>
+                  <p className="empty-text">目前還沒有最近結果與報告。</p>
                 )}
               </div>
             </section>
@@ -894,10 +894,10 @@ export function WorkbenchHome() {
                   </div>
 
                   <div className="section-card hero-metric-card">
-                    <h3>最近交付物</h3>
+                    <h3>最近結果與報告</h3>
                     <p className="workbench-metric">{recentDeliverables.length}</p>
                     <p className="muted-text">
-                      {primaryDeliverable?.latest_deliverable_title || "目前還沒有正式交付成果。"}
+                      {primaryDeliverable?.latest_deliverable_title || "目前還沒有正式結果與報告。"}
                     </p>
                   </div>
 
@@ -1471,7 +1471,7 @@ export function WorkbenchHome() {
                       return (
                         <Link className="detail-item" href={`/tasks/${task.id}`} key={`activity-${task.id}`}>
                           <div className="meta-row">
-                            <span className="pill">工作更新</span>
+                            <span className="pill">分析更新</span>
                             <span>{formatDisplayDate(task.updated_at)}</span>
                           </div>
                           <h3>{task.title}</h3>

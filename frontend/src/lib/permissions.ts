@@ -28,8 +28,8 @@ export function resolveProtectedPathForMembershipRole(
 export function buildPrimaryNavForMembershipRole(role: MembershipRole) {
   const common = [
     { href: "/", label: "總覽" },
-    { href: "/matters", label: "案件工作台" },
-    { href: "/deliverables", label: "交付物" },
+    { href: "/matters", label: "案件主控台" },
+    { href: "/deliverables", label: "結果與報告" },
     { href: "/history", label: "歷史紀錄" },
     { href: "/settings", label: "系統設定" },
   ];

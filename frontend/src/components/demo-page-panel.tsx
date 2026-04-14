@@ -6,6 +6,8 @@ import { getDemoWorkspaceSnapshot } from "@/lib/api";
 import {
   buildDemoEntryCopy,
   buildFormalWorkspaceExplainer,
+  normalizeDemoWorkspaceSnapshot,
+  normalizeDemoWorkspaceCopy,
   summarizeDemoShowcaseHighlights,
 } from "@/lib/demo-workspace";
 import type { DemoWorkspaceSnapshot } from "@/lib/types";
@@ -37,16 +39,19 @@ export function DemoPagePanel() {
     };
   }, []);
 
+  const normalizedSnapshot = normalizeDemoWorkspaceSnapshot(snapshot);
   const heroSummary =
-    guardFirstLayerDemoSummary(snapshot?.heroSummary) ||
+    (guardFirstLayerDemoSummary(snapshot?.heroSummary)
+      ? normalizeDemoWorkspaceCopy(snapshot?.heroSummary || "")
+      : null) ||
     "這裡放的是固定展示內容，只能瀏覽，不能修改或送出新的分析。";
 
   return (
     <main className="page-shell">
       <section className="section-card">
         <p className="hero-focus-label">{SURFACE_LABELS.demoWorkspace}</p>
-        <h1>{snapshot?.title || `Infinite Pro ${SURFACE_LABELS.demoWorkspace}`}</h1>
-        <p className="section-copy">{buildDemoEntryCopy(snapshot)}</p>
+        <h1>{normalizedSnapshot?.title || `Infinite Pro ${SURFACE_LABELS.demoWorkspace}`}</h1>
+        <p className="section-copy">{buildDemoEntryCopy(normalizedSnapshot)}</p>
         <p className="section-copy">{heroSummary}</p>
         <div className="hero-actions">
           <a className="button-primary" href="#demo-showcase-section">
@@ -60,7 +65,7 @@ export function DemoPagePanel() {
           <p className="muted-text">你會看到什麼</p>
           <strong>{SURFACE_LABELS.showcaseHighlights}</strong>
           <p className="section-copy">
-            {summarizeDemoShowcaseHighlights(snapshot?.showcaseHighlights || [])}
+            {summarizeDemoShowcaseHighlights(normalizedSnapshot?.showcaseHighlights || [])}
           </p>
         </article>
         <article className="section-card">
@@ -73,7 +78,7 @@ export function DemoPagePanel() {
         <article className="section-card">
           <p className="muted-text">正式版怎麼用</p>
           <strong>{SURFACE_LABELS.formalWorkspace}</strong>
-          <p className="section-copy">{buildFormalWorkspaceExplainer(snapshot)}</p>
+          <p className="section-copy">{buildFormalWorkspaceExplainer(normalizedSnapshot)}</p>
         </article>
       </section>
 
@@ -82,19 +87,19 @@ export function DemoPagePanel() {
       <section className="section-card">
         <h2>{SURFACE_LABELS.demoRules}</h2>
         <ul className="detail-list">
-          {(snapshot?.readOnlyRules || []).map((rule) => (
+          {(normalizedSnapshot?.readOnlyRules || []).map((rule) => (
             <li key={rule}>{rule}</li>
           ))}
         </ul>
       </section>
 
-      {(snapshot?.sections || []).map((section) => (
-        <section key={section.sectionId} className="section-card">
-          <h2>{section.title}</h2>
-          <p className="section-copy">{section.summary}</p>
+      {(normalizedSnapshot?.sections || []).map((normalizedSection) => (
+        <section key={normalizedSection.sectionId} className="section-card">
+          <h2>{normalizedSection.title}</h2>
+          <p className="section-copy">{normalizedSection.summary}</p>
           <ul className="detail-list">
-            {section.items.map((item) => (
-              <li key={item}>{item}</li>
+            {normalizedSection.items.map((normalizedItem) => (
+              <li key={normalizedItem}>{normalizedItem}</li>
             ))}
           </ul>
         </section>

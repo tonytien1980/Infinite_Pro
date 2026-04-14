@@ -16,6 +16,21 @@ export function getLoginPath(nextPath?: string) {
   return `/login?next=${encodeURIComponent(nextPath)}`;
 }
 
+export function resolveLoginNextPath(search: string) {
+  const params = new URLSearchParams(search);
+  const nextPath = params.get("next");
+  if (!nextPath) {
+    return null;
+  }
+  if (!nextPath.startsWith("/") || nextPath.startsWith("//")) {
+    return null;
+  }
+  if (nextPath === "/login" || nextPath.startsWith("/login?")) {
+    return null;
+  }
+  return nextPath;
+}
+
 export function getSessionDisplayName(session: SessionState | null) {
   if (!session) {
     return "";

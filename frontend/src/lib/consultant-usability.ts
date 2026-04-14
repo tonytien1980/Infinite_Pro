@@ -53,8 +53,8 @@ export function buildOverviewUsabilityView(input: {
     guideItems.push({
       href: "/deliverables",
       eyebrow: "若要先回結果",
-      title: "看最近交付物",
-      copy: "當你要先確認最近輸出站不站得住，再進最近交付物最快。",
+      title: "看最近結果與報告",
+      copy: "當你要先確認最近輸出站不站得住，再進最近結果與報告最快。",
     });
   } else if (input.hasPrimaryMatter) {
     guideItems.push({

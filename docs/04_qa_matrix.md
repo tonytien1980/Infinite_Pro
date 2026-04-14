@@ -6543,3 +6543,50 @@ Environment used:
 ### Residual observations
 
 - none in this authenticated Shell v2 walkthrough; the previously observed `task` metrics strip noise was removed in the same follow-up pass
+
+---
+
+## Entry: 2026-04-15 dual-layer language closure and login-next redirect fix
+
+Scope:
+- final first-layer language cleanup on `/login` and `/demo`
+- backend demo seed copy normalization
+- protected-login `?next=...` redirect preservation
+- authenticated `/demo` browser proof via imported local Chrome cookies
+
+Environment used:
+- frontend: `http://127.0.0.1:3000`
+- backend: `http://127.0.0.1:8000/api/v1`
+- local runtime with real Google session available in local Chrome
+- gstack `browse` direct cookie import from local Chrome for authenticated browser proof
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `source ~/.nvm/nvm.sh && cd frontend && node --test tests/auth-foundation.test.mjs tests/product-language.test.mjs tests/demo-workspace-isolation.test.mjs tests/low-noise-workbench-repass.test.mjs` | Passed (`45 passed`) |
+| `.venv312/bin/python -m pytest backend/tests/test_identity_access.py -q` | Passed (`3 passed`) |
+| `python3 -m compileall backend/app` | Passed |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run build` | Passed |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run typecheck` | Passed |
+| `git diff --check` | Passed |
+
+### Browser verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Login page | `/login?next=%2Fdemo` | inspect first-layer visible copy before auth handoff | Verified | page rendered `正式案件、共享判讀與成員權限` and no longer exposed `shared intelligence` |
+| Demo workspace | `/demo` | import local Chrome cookies for `127.0.0.1` into gstack browse, then open authenticated demo page | Verified | imported `2` cookies from local Chrome; authenticated `/demo` rendered `Infinite Pro 示範工作台`, `案件主控台`, `結果與報告`, `共享判讀`, `示範規則`, `示範案件`, `示範結果`, `示範紀錄` |
+| Google OAuth next redirect | `/login?next=%2Fdemo -> Google callback -> /demo` | full live browser OAuth click-through after patch | Not run | semantics are covered by frontend + backend regression tests in this entry, but this exact Google callback round-trip was not re-verified end-to-end in a fresh browser pass |
+
+### Verified outcomes
+
+- `/login` first-layer copy is now consultant-readable Traditional Chinese and no longer leaks `shared intelligence`
+- `/demo` no longer relies on frontend-only masking for the primary showcase strings; backend seed copy now directly emits visible product language
+- authenticated `/demo` browser proof now matches the dual-layer language system: `案件主控台`, `結果與報告`, `歷史紀錄與共享判讀`, `示範規則`, `正式工作台`
+- protected-login `?next=...` handling now has explicit regression coverage on both frontend and backend, including rejection of unsafe external targets
+
+### Verification boundary
+
+- this entry includes real authenticated browser proof for `/demo`, but it was established through imported local Chrome cookies rather than a fresh live OAuth click-through
+- the `?next=...` redirect fix itself is regression-tested in code and backend tests; the exact Google OAuth callback round-trip after the patch remains unverified in this specific browser pass

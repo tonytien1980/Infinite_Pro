@@ -484,6 +484,9 @@ const PACK_NAME_LABELS = Object.fromEntries(
     PACK_PRIMARY_NAMES[packId] ?? name,
   ]),
 );
+Object.assign(PACK_NAME_LABELS, {
+  "Research / Intelligence Pack": PACK_PRIMARY_NAMES.research_intelligence_pack,
+});
 
 const CAPABILITY_LABELS: Record<string, string> = {
   diagnose_assess: "診斷 / 評估",
