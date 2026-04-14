@@ -1,3 +1,5 @@
+import { replaceFirstLayerTerm } from "./product-language.ts";
+
 const TASK_STATUS_LABELS: Record<string, string> = {
   draft: "草稿",
   ready: "就緒",
@@ -713,7 +715,7 @@ export function labelForCaseWorldItemTitle(value: string | null | undefined) {
   if (!value) {
     return "未命名項目";
   }
-  return CASE_WORLD_ITEM_LABELS[value] ?? normalizeCaseWorldDisplayCopy(value);
+  return CASE_WORLD_ITEM_LABELS[value] ?? replaceFirstLayerTerm(normalizeCaseWorldDisplayCopy(value));
 }
 
 export function labelForSourceType(value: string) {
