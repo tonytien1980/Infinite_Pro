@@ -229,13 +229,13 @@ export function AgentManagementPanel() {
   const editingAgent =
     editingAgentId ? managedAgents.find((agent) => agent.agent_id === editingAgentId) ?? null : null;
   const agentActionTitle =
-    editingAgentId ? "現在正處於代理編輯模式" : "先看代理定義是否真的完整";
+    editingAgentId ? "目前編輯中" : "這頁先看什麼";
   const agentActionSummary = editingAgentId
-    ? "這一輪會用最少必要資訊重新生成代理定義，而不是要求你逐欄微調技術規格。"
-    : "先確認現有代理是否已經具備足夠完整的定義，再決定是否新增。這頁的重點不是代理數量，而是定義是否扎實。";
+    ? "這一輪會用最少必要資訊重新整理代理內容，而不是要求你逐欄微調技術規格。"
+    : "先確認現有代理誰適合現在的工作、誰還缺重要內容，再決定要不要新增。這頁的重點不是數量，而是能不能放心使用。";
   const agentActionChecklist = [
     `目前共有 ${managedAgents.length} 個代理，其中 ${activeCount} 個啟用中，${hostCount} 個主控代理。`,
-    `其中 ${completeSpecCount} 個代理已補齊核心定義。`,
+    `其中 ${completeSpecCount} 個代理已補齊主要工作、使用方式與注意事項。`,
     editingAgent
       ? `正在編輯「${getAgentCatalogDisplay(editingAgent).primaryName}」。`
       : "若只是查看現況，先搜尋與篩選縮小列表，不要直接進入新增。",
@@ -359,7 +359,7 @@ export function AgentManagementPanel() {
             <span className="eyebrow">代理管理</span>
             <h1 className="page-title">代理管理</h1>
             <p className="page-subtitle">
-              管理代理的狀態、版本與責任邊界，避免只剩名稱存在，卻沒有可正式使用的定義。
+              這裡用來查看代理是否啟用、各自擅長什麼，以及哪些內容還沒補齊。
             </p>
             <div className="hero-actions">
               <button className="button-primary" type="button" onClick={startCreate}>
@@ -374,7 +374,7 @@ export function AgentManagementPanel() {
           <div className="hero-aside">
             <div className="hero-focus-card">
               <p className="hero-focus-label">{agentActionTitle}</p>
-              <h3 className="hero-focus-title">先補齊可用定義，再決定要不要新增</h3>
+              <h3 className="hero-focus-title">先看哪些代理已經整理好、可以直接用</h3>
               <p className="hero-focus-copy">{agentActionSummary}</p>
             </div>
             <div className="hero-focus-card hero-focus-card-warm">
@@ -407,7 +407,7 @@ export function AgentManagementPanel() {
           <div className="section-card hero-metric-card">
             <h3>核心定義完整</h3>
             <p className="workbench-metric">{completeSpecCount}</p>
-            <p className="muted-text">已補齊責任、邊界、交接與追溯要求的代理。</p>
+            <p className="muted-text">已補齊主要工作、使用方式與注意事項的代理。</p>
           </div>
         </div>
       </section>
@@ -444,7 +444,7 @@ export function AgentManagementPanel() {
                     id="agent-search"
                     value={searchQuery}
                     onChange={(event) => setSearchQuery(event.target.value)}
-                    placeholder="搜尋名稱、責任、handoff 或適用工作類型"
+                    placeholder="搜尋名稱、主要工作或適用工作類型"
                   />
                 </div>
 
@@ -494,7 +494,6 @@ export function AgentManagementPanel() {
                           <span>{agent.source === "local" ? "自訂代理" : "系統代理"}</span>
                         </div>
                         <h3>{display.primaryName}</h3>
-                        <p className="muted-text">系統代號：{agent.agent_id}</p>
                         <p className="content-block">{display.primaryDescription}</p>
                         <p className="muted-text">
                           適用工作類型：
@@ -520,6 +519,14 @@ export function AgentManagementPanel() {
                         <details className="inline-disclosure">
                           <summary className="inline-disclosure-summary">查看代理定義</summary>
                           <div className="detail-list" style={{ marginTop: "12px" }}>
+                            <div className="detail-item">
+                              <h4>系統資料</h4>
+                              <p className="content-block">
+                                顯示代號：{agent.agent_id}
+                                {"\n"}
+                                版本：v{agent.version}
+                              </p>
+                            </div>
                             <AgentListSection
                               title="主要責任"
                               items={agent.primary_responsibilities}
@@ -665,7 +672,7 @@ export function AgentManagementPanel() {
                   <h4>系統會自己推導</h4>
                   <ul className="list-content">
                     <li>這個代理比較像推理代理還是專家代理</li>
-                    <li>適用能力面、責任邊界、輸出契約與追溯要求</li>
+                    <li>適合處理哪些工作、主要分工、輸出形式與注意事項</li>
                     <li>必要時才補 pack hints；若它應該是通用型代理，就不會先綁死在特定 pack</li>
                   </ul>
                 </div>

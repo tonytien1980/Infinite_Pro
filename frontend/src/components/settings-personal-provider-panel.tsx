@@ -366,7 +366,7 @@ export function SettingsPersonalProviderPanel({
                         />
                       </div>
                       <div className="setting-note-card">
-                        <h3>這次會實際使用的 provider</h3>
+                        <h3>目前會用哪個模型來源</h3>
                         <p className="content-block">{getProviderPreset(draft.providerId)?.displayName || draft.providerId}</p>
                         <p className="muted-text">{labelForProviderRuntimeSupport(getProviderPreset(draft.providerId))}</p>
                       </div>

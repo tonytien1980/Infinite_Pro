@@ -111,18 +111,50 @@ export function MembersPagePanel() {
   }
 
   const demoSummary = buildDemoMemberSummary(snapshot);
+  const activeMemberCount = snapshot?.members.length ?? 0;
+  const pendingInviteCount = snapshot?.pendingInvites.length ?? 0;
 
   return (
     <main className="page-shell management-page-shell">
-      <section className="section-card">
-        <p className="hero-focus-label">成員管理</p>
-        <h1>管理事務所成員與邀請</h1>
-        <p className="section-copy">
-          只有負責人可以在這裡管理成員身份別。顧問與示範帳號都由這裡建立與維護。
-        </p>
+      <section className="hero-card">
+        <div className="hero-layout">
+          <div className="hero-main">
+            <p className="hero-focus-label">成員管理</p>
+            <h1>成員與邀請</h1>
+            <p className="section-copy">
+              在這裡邀請新成員、查看目前名單，或調整帳號身份。
+            </p>
+            <div className="hero-actions">
+              <a className="button-primary" href="#member-invite-panel">
+                送出新邀請
+              </a>
+              <a className="button-secondary" href="#member-list-panel">
+                看目前名單
+              </a>
+            </div>
+          </div>
+
+          <div className="hero-aside">
+            <div className="hero-focus-card">
+              <p className="hero-focus-label">這頁先看什麼</p>
+              <h3 className="hero-focus-title">先確認要新增誰，還是整理現有身份</h3>
+              <p className="hero-focus-copy">
+                若是新成員先送邀請；若是已在名單中的成員，再到下方查看目前身份與狀態。
+              </p>
+            </div>
+            <div className="hero-focus-card hero-focus-card-warm">
+              <p className="hero-focus-label">目前概況</p>
+              <ul className="hero-focus-list">
+                <li>目前有 {activeMemberCount} 位成員。</li>
+                <li>目前有 {pendingInviteCount} 筆待接受邀請。</li>
+                <li>示範帳號：{demoSummary.activeCount} 個啟用中，{demoSummary.pendingCount} 個待接受。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
       </section>
 
-      <section className="section-card">
+      <section className="section-card" id="member-invite-panel">
         <h2>送出新邀請</h2>
         <div className="form-row">
           <input
@@ -147,7 +179,7 @@ export function MembersPagePanel() {
         ) : null}
       </section>
 
-      <section className="section-card">
+      <section className="section-card" id="member-list-panel">
         <h2>現有成員</h2>
         <div className="summary-grid" style={{ marginBottom: "16px" }}>
           <div className="section-card">

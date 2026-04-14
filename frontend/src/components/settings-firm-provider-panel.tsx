@@ -285,9 +285,9 @@ export function SettingsFirmProviderPanel() {
       setProviderDraft(buildProviderDraftFromCurrent(snapshot));
       setProviderValidation(null);
       setProviderEditing(false);
-      setProviderFeedback("已回退到 env baseline。");
+      setProviderFeedback("已回到目前系統預設。");
     } catch (error) {
-      setProviderError(normalizeError(error, "回復 env baseline 失敗。"));
+      setProviderError(normalizeError(error, "回到目前系統預設失敗。"));
     } finally {
       setProviderResetting(false);
     }
@@ -365,7 +365,7 @@ export function SettingsFirmProviderPanel() {
         <div>
           <h2 className="panel-title">{SURFACE_LABELS.firmSettings}</h2>
           <p className="panel-copy">
-            這一區只給負責人管理事務所層的預設模型來源與可用模型來源清單。
+            這一區只給負責人安排事務所平常用哪個模型來源，以及顧問可選的模型範圍。
           </p>
         </div>
       </div>
@@ -549,13 +549,13 @@ export function SettingsFirmProviderPanel() {
                         />
                       </div>
                       <div className="setting-note-card">
-                        <h3>目前預設組</h3>
+                        <h3>目前系統預設</h3>
                         <p className="content-block">{getProviderPreset(providerDraft.providerId)?.displayName || "未指定"}</p>
                         <p className="muted-text">
                           {labelForProviderRuntimeSupport(getProviderPreset(providerDraft.providerId))}
                         </p>
                         <p className="muted-text">
-                          env baseline：{envBaseline?.providerDisplayName || "未指定"}
+                          目前系統預設：{envBaseline?.providerDisplayName || "未指定"}
                         </p>
                       </div>
                     </div>
@@ -735,7 +735,7 @@ export function SettingsFirmProviderPanel() {
                       onClick={() => void handleSaveDemoPolicy()}
                       disabled={demoPolicySaving}
                     >
-                      {demoPolicySaving ? "儲存中..." : "儲存 demo policy"}
+                      {demoPolicySaving ? "儲存中..." : "儲存示範工作台規則"}
                     </button>
                   </div>
                 </section>

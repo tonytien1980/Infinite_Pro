@@ -224,6 +224,169 @@ test("task 3 keeps intake lists and return paths on first-layer consultant langu
   assert.doesNotMatch(docsConsultantLanguageBlock, /- 交付物/);
 });
 
+test("task 4 keeps management, settings, members, and demo first-layer copy readable", () => {
+  const settingsPageSource = readFileSync(
+    new URL("../src/components/settings-page-panel.tsx", import.meta.url),
+    "utf8",
+  );
+  const settingsFirmSource = readFileSync(
+    new URL("../src/components/settings-firm-provider-panel.tsx", import.meta.url),
+    "utf8",
+  );
+  const settingsPersonalSource = readFileSync(
+    new URL("../src/components/settings-personal-provider-panel.tsx", import.meta.url),
+    "utf8",
+  );
+  const agentSource = readFileSync(
+    new URL("../src/components/agent-management-panel.tsx", import.meta.url),
+    "utf8",
+  );
+  const packSource = readFileSync(
+    new URL("../src/components/pack-management-panel.tsx", import.meta.url),
+    "utf8",
+  );
+  const membersSource = readFileSync(
+    new URL("../src/components/members-page-panel.tsx", import.meta.url),
+    "utf8",
+  );
+  const demoSource = readFileSync(
+    new URL("../src/components/demo-page-panel.tsx", import.meta.url),
+    "utf8",
+  );
+  const docsSource = readFileSync(
+    new URL("../../docs/03_workbench_ux_and_page_spec.md", import.meta.url),
+    "utf8",
+  );
+  const settingsHeroBlock =
+    settingsPageSource.match(/<section className="hero-card settings-hero">[\s\S]*?<\/section>/)?.[0] ?? "";
+  const agentHeroBlock =
+    agentSource.match(/<section className="hero-card governance-hero agents-hero">[\s\S]*?<\/section>/)?.[0] ?? "";
+  const agentCardPreviewBlock =
+    agentSource.match(
+      /<article className="history-item management-card" key={agent\.agent_id}>[\s\S]*?(?=<details className="inline-disclosure">)/,
+    )?.[0] ?? "";
+  const packCardPreviewBlock =
+    packSource.match(
+      /<article className="history-item management-card" key={pack\.pack_id}>[\s\S]*?(?=<details className="inline-disclosure">)/,
+    )?.[0] ?? "";
+  const membersHeroBlock =
+    membersSource.match(/<section className="hero-card[\s\S]*?<\/section>/)?.[0] ?? "";
+  const demoHeroBlock =
+    demoSource.match(/<section className="section-card">[\s\S]*?<\/section>/)?.[0] ?? "";
+
+  assert.doesNotMatch(settingsHeroBlock, /第五階段之後/);
+  assert.match(settingsHeroBlock, /先決定你要調哪一類設定/);
+  assert.match(settingsHeroBlock, /這裡分成事務所設定、個人模型設定與工作台偏好/);
+
+  assert.doesNotMatch(agentHeroBlock, /責任邊界/);
+  assert.match(agentHeroBlock, /先看哪些代理已經整理好、可以直接用/);
+  assert.doesNotMatch(agentSource, /搜尋名稱、責任、handoff 或適用工作類型/);
+  assert.doesNotMatch(agentCardPreviewBlock, /系統代號：/);
+  assert.doesNotMatch(agentCardPreviewBlock, /寫回要求|handoff|Trace 要求|trace requirements/);
+
+  assert.doesNotMatch(packCardPreviewBlock, /系統代號：/);
+  assert.doesNotMatch(packCardPreviewBlock, /正式合約：/);
+  assert.doesNotMatch(packCardPreviewBlock, /interface|Rule binding|API 名稱/);
+  assert.match(packSource, /先看哪一類模組包比較適合現在的工作/);
+
+  assert.doesNotMatch(settingsFirmSource, /env baseline/);
+  assert.doesNotMatch(settingsFirmSource, /儲存 demo policy/);
+  assert.match(settingsFirmSource, /目前系統預設/);
+  assert.match(settingsFirmSource, /儲存示範工作台規則/);
+
+  assert.doesNotMatch(settingsPersonalSource, /這次會實際使用的 provider/);
+  assert.match(settingsPersonalSource, /目前會用哪個模型來源/);
+
+  assert.doesNotMatch(membersHeroBlock, /管理事務所成員與邀請/);
+  assert.doesNotMatch(membersHeroBlock, /只有負責人可以/);
+  assert.match(membersHeroBlock, /成員與邀請/);
+  assert.match(membersHeroBlock, /邀請新成員、查看目前名單，或調整帳號身份/);
+
+  assert.doesNotMatch(demoHeroBlock, /sample dataset/);
+  assert.doesNotMatch(demoHeroBlock, /唯讀工作流/);
+  assert.match(demoHeroBlock, /heroSummary/);
+  assert.match(demoSource, /guardFirstLayerDemoSummary\(snapshot\?\.heroSummary\)/);
+
+  assert.match(docsSource, /management \/ settings 第一層語言規則/);
+  assert.match(docsSource, /不要把 `系統代號`、`正式合約`、`Rule binding`、`API 名稱` 放在管理卡片第一層/);
+  assert.match(docsSource, /members hero 應先說明成員與邀請能做什麼/);
+  assert.match(docsSource, /demo hero 第一層不要再說 `sample dataset`、`唯讀工作流`/);
+});
+
+test("task 4 underbuild follow-up keeps settings body members hero and demo browse CTA aligned", () => {
+  const settingsPageSource = readFileSync(
+    new URL("../src/components/settings-page-panel.tsx", import.meta.url),
+    "utf8",
+  );
+  const membersSource = readFileSync(
+    new URL("../src/components/members-page-panel.tsx", import.meta.url),
+    "utf8",
+  );
+  const demoSource = readFileSync(
+    new URL("../src/components/demo-page-panel.tsx", import.meta.url),
+    "utf8",
+  );
+  const docsSource = readFileSync(
+    new URL("../../docs/03_workbench_ux_and_page_spec.md", import.meta.url),
+    "utf8",
+  );
+  const settingsGuideBlock =
+    settingsPageSource.match(
+      /<section className="panel" style=\{\{ marginBottom: "24px" }} id="settings-guide-panel">[\s\S]*?<\/section>/,
+    )?.[0] ?? "";
+  const membersHeroBlock =
+    membersSource.match(/<section className="hero-card[\s\S]*?<\/section>/)?.[0] ?? "";
+  const demoHeroBlock =
+    demoSource.match(/<section className="section-card">[\s\S]*?<\/section>/)?.[0] ?? "";
+
+  assert.doesNotMatch(settingsGuideBlock, /settingsActionChecklist\.map/);
+  assert.doesNotMatch(settingsGuideBlock, /\{settingsActionTitle\}/);
+  assert.match(settingsGuideBlock, /這裡不會替你處理什麼/);
+  assert.match(settingsGuideBlock, /不會在這一頁直接送出分析或補件/);
+
+  assert.match(membersHeroBlock, /hero-layout/);
+  assert.match(membersHeroBlock, /href="#member-invite-panel"/);
+  assert.match(membersHeroBlock, /送出新邀請/);
+  assert.match(membersHeroBlock, /hero-focus-card/);
+  assert.match(membersHeroBlock, /這頁先看什麼/);
+
+  assert.match(demoHeroBlock, /href="#demo-showcase-section"/);
+  assert.match(demoHeroBlock, /瀏覽示範內容/);
+
+  assert.match(docsSource, /列表頁與管理頁第一屏正式採下列編排/);
+  assert.match(docsSource, /一個 primary action/);
+  assert.match(docsSource, /右側焦點卡/);
+  assert.match(docsSource, /瀏覽示範內容/);
+});
+
+test("task 4 final polish keeps hero focus labels shorter than their titles", () => {
+  const settingsPageSource = readFileSync(
+    new URL("../src/components/settings-page-panel.tsx", import.meta.url),
+    "utf8",
+  );
+  const agentSource = readFileSync(
+    new URL("../src/components/agent-management-panel.tsx", import.meta.url),
+    "utf8",
+  );
+  const packSource = readFileSync(
+    new URL("../src/components/pack-management-panel.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.doesNotMatch(
+    settingsPageSource,
+    /<p className="hero-focus-label">先決定你要調哪一類設定<\/p>[\s\S]*?<h3 className="hero-focus-title">先決定你要調哪一類設定<\/h3>/,
+  );
+  assert.doesNotMatch(
+    agentSource,
+    /<p className="hero-focus-label">先看哪些代理已經整理好、可以直接用<\/p>[\s\S]*?<h3 className="hero-focus-title">先看哪些代理已經整理好、可以直接用<\/h3>/,
+  );
+  assert.doesNotMatch(
+    packSource,
+    /<p className="hero-focus-label">先看哪一類模組包比較適合現在的工作<\/p>[\s\S]*?<h3 className="hero-focus-title">先看哪一類模組包比較適合現在的工作<\/h3>/,
+  );
+});
+
 test("cross-surface visible copy avoids mixed-language contract and membership labels", () => {
   const settingsPageSource = readFileSync(
     new URL("../src/components/settings-page-panel.tsx", import.meta.url),

@@ -381,8 +381,8 @@ const AGENT_PRIMARY_DESCRIPTIONS: Record<string, string> = {
   marketing_growth_agent: "負責定位、需求生成、成長敘事與獲客分析。",
   sales_business_development: "負責管線、商務動作、夥伴結構與商機推進。",
   sales_business_development_agent: "負責商機管線、商務動作、夥伴結構與機會開發。",
-  research_intelligence: "負責調研規劃、來源品質、證據缺口、新鮮度與不確定性 framing。",
-  research_intelligence_agent: "負責調研規劃、來源品質、證據缺口 closure 與 citation-ready handoff。",
+  research_intelligence: "負責調研規劃、來源品質、證據缺口、新鮮度與不確定性判讀。",
+  research_intelligence_agent: "負責調研規劃、來源品質、證據缺口補強與研究交接。",
   document_communication: "負責受眾導向的文件結構、訊息順序與交付採納率。",
   document_communication_agent: "負責文件整理、敘事編排與溝通型交付物。",
   contract_review_specialist: "專注合約審閱、條款風險盤點與修訂建議輸出。",
@@ -435,13 +435,13 @@ const PACK_CANONICAL_NAMES: Record<string, string> = {
 };
 
 const PACK_PRIMARY_DESCRIPTIONS: Record<string, string> = {
-  operations_pack: "聚焦營運治理、流程瓶頸、交付能力、資源配置與執行節奏。",
+  operations_pack: "聚焦營運流程、流程瓶頸、交付能力、資源配置與執行節奏。",
   finance_fundraising_pack: "聚焦財務結構、現金流、單位經濟、資金規劃與募資判斷。",
   legal_risk_pack: "聚焦法務邊界、契約條款、法遵責任與正式風險挑戰。",
   marketing_sales_pack: "聚焦市場定位、需求生成、漏斗設計、成交流程與市場進入策略收斂。",
   business_development_pack: "聚焦策略合作、通路拓展、夥伴結構與商務機會開發。",
   research_intelligence_pack: "聚焦市場情報、外部訊號、競爭研究與不確定性盤點。",
-  organization_people_pack: "聚焦組織設計、權責分工、人力配置與管理機制治理。",
+  organization_people_pack: "聚焦組織設計、權責分工、人力配置與管理機制。",
   product_service_pack: "聚焦產品 / 服務設計、價值主張、定價與方案架構。",
   online_education_pack: "聚焦數位課程、梯次課程、會員與教育交付系統的經營脈絡。",
   ecommerce_pack: "聚焦品牌官網、平台電商、社群電商與多通路銷售模型。",
@@ -955,7 +955,7 @@ export function getAgentCatalogDisplay(agent: {
 }) {
   const primaryName = AGENT_LABELS[agent.agent_id] ?? labelForAgentName(agent.agent_name);
   const primaryDescription =
-    agent.description || AGENT_PRIMARY_DESCRIPTIONS[agent.agent_id];
+    AGENT_PRIMARY_DESCRIPTIONS[agent.agent_id] || agent.description;
   return {
     primaryName,
     secondaryName: null,
@@ -970,12 +970,25 @@ export function getPackCatalogDisplay(pack: {
 }) {
   const primaryName = PACK_PRIMARY_NAMES[pack.pack_id] ?? labelForPackName(pack.pack_name);
   const primaryDescription =
-    pack.description || PACK_PRIMARY_DESCRIPTIONS[pack.pack_id];
+    PACK_PRIMARY_DESCRIPTIONS[pack.pack_id] || pack.description;
   return {
     primaryName,
     secondaryName: null,
     primaryDescription,
   };
+}
+
+export function guardFirstLayerDemoSummary(value: string | null | undefined) {
+  const summary = value?.trim();
+  if (!summary) {
+    return null;
+  }
+
+  if (/sample dataset|唯讀工作流/.test(summary)) {
+    return null;
+  }
+
+  return summary;
 }
 
 export function translateStructuredValue(label: string, value: unknown) {

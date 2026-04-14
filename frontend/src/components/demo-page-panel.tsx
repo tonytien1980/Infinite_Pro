@@ -9,6 +9,7 @@ import {
   summarizeDemoShowcaseHighlights,
 } from "@/lib/demo-workspace";
 import type { DemoWorkspaceSnapshot } from "@/lib/types";
+import { guardFirstLayerDemoSummary } from "@/lib/ui-labels";
 import { SURFACE_LABELS } from "@/lib/workbench-surface-labels";
 
 export function DemoPagePanel() {
@@ -36,16 +37,25 @@ export function DemoPagePanel() {
     };
   }, []);
 
+  const heroSummary =
+    guardFirstLayerDemoSummary(snapshot?.heroSummary) ||
+    "這裡放的是固定展示內容，只能瀏覽，不能修改或送出新的分析。";
+
   return (
     <main className="page-shell">
       <section className="section-card">
         <p className="hero-focus-label">{SURFACE_LABELS.demoWorkspace}</p>
         <h1>{snapshot?.title || `Infinite Pro ${SURFACE_LABELS.demoWorkspace}`}</h1>
         <p className="section-copy">{buildDemoEntryCopy(snapshot)}</p>
-        <p className="section-copy">{snapshot?.heroSummary || "這裡展示的是固定 sample dataset 的唯讀工作流。"}</p>
+        <p className="section-copy">{heroSummary}</p>
+        <div className="hero-actions">
+          <a className="button-primary" href="#demo-showcase-section">
+            瀏覽示範內容
+          </a>
+        </div>
       </section>
 
-      <section className="summary-grid">
+      <section className="summary-grid" id="demo-showcase-section">
         <article className="section-card">
           <p className="muted-text">你會看到什麼</p>
           <strong>{SURFACE_LABELS.showcaseHighlights}</strong>
@@ -57,7 +67,7 @@ export function DemoPagePanel() {
           <p className="muted-text">為何不能操作</p>
           <strong>{SURFACE_LABELS.readOnlyBoundary}</strong>
           <p className="section-copy">
-            這個 demo 只用來展示產品工作流，不是正式辦案工作台。
+            這裡只提供瀏覽與導覽，不能修改內容，也不會送出新的分析。
           </p>
         </article>
         <article className="section-card">

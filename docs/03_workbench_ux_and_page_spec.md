@@ -1158,7 +1158,7 @@ Primary action：
 
 主任務：
 
-- 讓 owner 管理 firm 成員與邀請
+- 讓負責人邀請新成員、查看目前名單與調整身份
 
 正式規則補充：
 
@@ -1173,17 +1173,17 @@ Primary action：
 
 主任務：
 
-- 展示 Infinite Pro 的固定 sample workspace
+- 展示 Infinite Pro 的固定展示內容
 
 第一屏必答：
 
-- 你現在在 demo workspace
-- 這不是正式辦案 workspace
-- 這裡只能看，不能新增、修改、分析或治理
+- 你現在在示範工作台
+- 這不是正式辦案工作台
+- 這裡只能瀏覽，不能修改或送出新的分析
 
 Primary action：
 
-- 瀏覽 sample matters / deliverables / history
+- 瀏覽示範內容
 
 正式規則：
 
@@ -1781,6 +1781,14 @@ Primary action：
 - 長說明要壓縮
 - 高風險操作與批次操作要明確區隔
 - 不可讓清單、表單、說明、系統狀態同時爭奪第一層注意力
+
+### 11.1 management / settings 第一層語言規則
+
+- hero 先說這裡能做什麼、現在先看哪裡，不再用 `第五階段之後` 這種專案階段語言當第一句說明
+- `代理管理` / `模組包管理` 卡片第一層不要把 `系統代號`、`正式合約`、`Rule binding`、`API 名稱` 放在管理卡片第一層；這些資訊移到 disclosure 或進一步資料
+- `系統設定` 第一層優先用 `模型來源`、`個人模型設定`、`目前系統預設`、`示範工作台規則` 這類產品可讀語言，不直接把 `provider`、`env baseline`、`demo policy` 放在第一層
+- members hero 應先說明成員與邀請能做什麼，再補誰可操作、有哪些身份別
+- demo hero 第一層不要再說 `sample dataset`、`唯讀工作流`；要先說這裡是固定展示內容，只能瀏覽不能修改
 
 ---
 

@@ -363,10 +363,10 @@ export function PackManagementPanel() {
       .includes(query);
   });
   const packActionTitle =
-    editingPackId ? "現在正處於模組包編輯模式" : "先決定是問題面向，還是產業模組包";
+    editingPackId ? "目前編輯中" : "先看哪裡";
   const packActionSummary = editingPackId
-    ? "這一輪會用最少必要資訊重新生成模組包定義，而不是要求你逐欄微調技術規格。"
-    : "先確認你要查看的是哪一類模組包，再檢查它的核心定義是否完整，而不是一開始就落進新增表單。";
+    ? "這一輪會用最少必要資訊重新整理模組包內容，而不是要求你逐欄微調技術規格。"
+    : "先確認你要找的是問題面向還是產業模組包，再檢查它的內容是否夠完整，而不是一開始就落進新增表單。";
   const packActionChecklist = [
     `目前共有 ${domainPacks.length} 個問題面向模組包、${industryPacks.length} 個產業模組包。`,
     `其中 ${completeCoreContractCount} 個模組包已補齊核心定義。`,
@@ -375,7 +375,7 @@ export function PackManagementPanel() {
       : "現在正在看產業模組包；先看它是否把商業模式、指標、常見決策模式講清楚。",
     editingPackId
       ? `正在編輯「${guidedDraft.pack_name || editingPackId}」。`
-      : "若只是查看現況，先搜尋與切換分類，不要直接進入新增。",
+      : "若只是查看現況，先切換分類、看最相關的一組，再決定要不要新增。",
   ];
 
   function startCreate() {
@@ -487,7 +487,7 @@ export function PackManagementPanel() {
             <span className="eyebrow">模組包管理</span>
             <h1 className="page-title">模組包管理</h1>
             <p className="page-subtitle">
-              管理問題面向與產業模組包，讓證據期待、決策模式與交付邏輯都保持一致。
+              這裡用來整理不同工作情境會用到的模組包，先看哪一類最相關，再補齊內容。
             </p>
             <div className="hero-actions">
               <button className="button-primary" type="button" onClick={startCreate}>
@@ -502,7 +502,7 @@ export function PackManagementPanel() {
           <div className="hero-aside">
             <div className="hero-focus-card">
               <p className="hero-focus-label">{packActionTitle}</p>
-              <h3 className="hero-focus-title">先分清是哪一類，再看定義是否完整</h3>
+              <h3 className="hero-focus-title">先看哪一類模組包比較適合現在的工作</h3>
               <p className="hero-focus-copy">{packActionSummary}</p>
             </div>
             <div className="hero-focus-card hero-focus-card-warm">
@@ -651,9 +651,6 @@ export function PackManagementPanel() {
                           <span>{pack.source === "local" ? "自訂模組包" : "系統模組包"}</span>
                         </div>
                         <h3>{display.primaryName}</h3>
-                        {display.secondaryName ? (
-                          <p className="muted-text">系統代號：{pack.pack_id}</p>
-                        ) : null}
                         <p className="content-block">{display.primaryDescription}</p>
                         <p className="muted-text">
                           最近使用：
@@ -669,20 +666,28 @@ export function PackManagementPanel() {
                         </p>
                         {pack.contract_baseline ? (
                           <p className="muted-text">
-                            正式合約：{labelForPackContractStatus(pack.contract_baseline.status)}
+                            進一步整理：
                             {contractSummary
-                              ? `（${contractSummary.ready}/${contractSummary.total} 個 interface 已就緒）`
+                              ? `${contractSummary.ready}/${contractSummary.total} 項已補齊`
                               : null}
                             {contractSummary && contractSummary.missing.length > 0
-                              ? `；仍缺：${contractSummary.missing
+                              ? `；仍待整理：${contractSummary.missing
                                   .map((item) => labelForPackRequiredProperty(item))
                                   .join("、")}`
-                              : ""}
+                              : "；目前可支援更完整的系統判讀"}
                           </p>
                         ) : null}
                         <details className="inline-disclosure">
                           <summary className="inline-disclosure-summary">查看模組包定義</summary>
                           <div className="detail-list" style={{ marginTop: "12px" }}>
+                            <div className="detail-item">
+                              <h4>系統資料</h4>
+                              <p className="content-block">
+                                顯示代號：{pack.pack_id}
+                                {"\n"}
+                                版本：v{pack.version}
+                              </p>
+                            </div>
                             {pack.contract_baseline ? (
                               <div className="detail-item">
                                 <h4>正式合約基線</h4>

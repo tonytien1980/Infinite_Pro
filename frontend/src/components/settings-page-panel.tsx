@@ -115,20 +115,17 @@ export function SettingsPagePanel() {
 
   const role: MembershipRole | null = session?.membership.role || null;
   const providerVisibility = role ? getSettingsProviderVisibility(role) : { showFirmSettings: false, showPersonalSettings: false };
-  const settingsActionTitle =
-    role === "owner"
-      ? "先分清楚：你是在調事務所模型來源，還是在調自己的工作偏好"
-      : "先分清楚：你是在調自己的模型設定，還是在調工作台偏好";
+  const settingsActionTitle = "現在先決定";
   const settingsActionSummary =
     role === "owner"
-      ? `負責人需要同時管理${SURFACE_LABELS.firmSettings}與自己的${SURFACE_LABELS.personalProviderSettings}；這兩者的責任不能混在一起。`
-      : `顧問主要要完成自己的${SURFACE_LABELS.personalProviderSettings}，${SURFACE_LABELS.firmSettings}則只讀不改。`;
+      ? `要調整全體可用的模型與示範工作台規則，就看${SURFACE_LABELS.firmSettings}；要讓你自己能開始分析，就看${SURFACE_LABELS.personalProviderSettings}。`
+      : `先完成自己的${SURFACE_LABELS.personalProviderSettings}，之後再依需要調整工作台偏好；${SURFACE_LABELS.firmSettings}這一區你可以查看，但不需要在這裡操作。`;
   const settingsActionChecklist = [
     providerVisibility.showFirmSettings
-      ? `${SURFACE_LABELS.firmSettings}只影響事務所備援與可用模型來源清單，不代表每位顧問都共用同一把模型金鑰。`
-      : `你這一頁真正要先完成的是自己的${SURFACE_LABELS.personalProviderSettings}。`,
-    `${SURFACE_LABELS.personalProviderSettings}決定你是否能正式執行分析；顧問沒有自己的模型金鑰時，這次分析會直接停止，不會偷偷改走其他來源。`,
-    "介面偏好與本機顧問署名仍是獨立層，不要和模型來源設定混成同一個成功心智。",
+      ? `要調整事務所這邊平常用哪個模型來源，先看${SURFACE_LABELS.firmSettings}。`
+      : `你這一頁最先要完成的是自己的${SURFACE_LABELS.personalProviderSettings}。`,
+    "要改首頁、列表與顯示習慣，再看工作台偏好。",
+    "不確定時，就先從會直接影響你這次工作的那一區開始。",
   ];
 
   return (
@@ -139,7 +136,7 @@ export function SettingsPagePanel() {
             <span className="eyebrow">系統設定</span>
             <h1 className="page-title">系統設定</h1>
             <p className="page-subtitle">
-              第五階段之後，這一頁不再只是一個單人版設定區，而是正式拆成{SURFACE_LABELS.firmSettings}、{SURFACE_LABELS.personalProviderSettings}與工作台偏好。
+              這裡分成事務所設定、個人模型設定與工作台偏好；先決定你現在要調哪一類。
             </p>
             <div className="hero-actions">
               {providerVisibility.showFirmSettings ? (
@@ -160,7 +157,7 @@ export function SettingsPagePanel() {
           <div className="hero-aside">
             <div className="hero-focus-card">
               <p className="hero-focus-label">{settingsActionTitle}</p>
-              <h3 className="hero-focus-title">先分清楚是事務所層，還是個人層</h3>
+              <h3 className="hero-focus-title">先決定你要調哪一類設定</h3>
               <p className="hero-focus-copy">{settingsActionSummary}</p>
             </div>
             <div className="hero-focus-card hero-focus-card-warm">
@@ -178,17 +175,17 @@ export function SettingsPagePanel() {
       <section className="panel" style={{ marginBottom: "24px" }} id="settings-guide-panel">
         <div className="panel-header">
           <div>
-            <h2 className="panel-title">{settingsActionTitle}</h2>
-            <p className="panel-copy">{settingsActionSummary}</p>
+            <h2 className="panel-title">先確認這頁會處理什麼</h2>
+            <p className="panel-copy">這裡只處理模型與工作台設定，不直接改案件內容、資料或分析結果。</p>
           </div>
         </div>
         <div className="summary-grid">
           <div className="section-card">
-            <h4>這一頁的第一層分工</h4>
+            <h4>這裡不會替你處理什麼</h4>
             <ul className="list-content">
-              {settingsActionChecklist.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
+              <li>不會在這一頁直接送出分析或補件。</li>
+              <li>若只是要繼續案件工作，先回案件頁、資料與證據或結果與報告。</li>
+              <li>示範工作台規則只影響示範帳號，不會改動正式案件內容。</li>
             </ul>
           </div>
           <div className="section-card">
