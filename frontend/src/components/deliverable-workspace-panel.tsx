@@ -759,27 +759,27 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
         ? "先把正式草稿落盤，再發布"
         : "先整理版本，再發布"
       : continuationSurface?.workflow_layer === "checkpoint"
-        ? "這份交付物屬於回來更新 / checkpoint 版本"
+        ? "這份結果屬於回來更新的版本"
         : continuationSurface?.workflow_layer === "progression"
-          ? "這份交付物承接持續推進 / outcome 節奏"
+          ? "這份結果承接持續推進節奏"
       : deliverableStatus === "final"
-        ? "這份交付物已可匯出正式版本"
+        ? "這份結果已可匯出正式版本"
         : deliverableStatus === "archived"
-          ? "這是歷史版本，先回看再決定"
-          : "先整理版本，再決定是否正式發布";
+        ? "這是歷史版本，先回看再決定"
+        : "先整理版本，再決定是否正式發布";
   const deliverableActionSummary =
     requiresSaveBeforeFormalActions
       ? hasPendingFormalSave
         ? "系統已先幫你整理出可用的正式草稿，但內容還沒正式落盤。先儲存，後面再匯出或發布會比較穩。"
         : "你目前有尚未儲存的修改。先把版本整理好，再做匯出或發布。"
       : continuationSurface?.workflow_layer === "checkpoint"
-        ? `${continuationSurface.summary} 先回案件工作面把這輪更新收斂成 checkpoint。`
+        ? "這份結果目前更像回來更新的版本。先回案件工作台整理這輪更新，再決定要不要正式發布。"
         : continuationSurface?.workflow_layer === "progression"
-          ? `${continuationSurface.summary} 先確認進度與 outcome，再決定要不要刷新交付物。`
+          ? "這份結果目前承接持續推進節奏。先確認進度與這輪變化，再決定要不要刷新這份結果。"
       : deliverableStatus === "final"
         ? "現在已是定稿版本，先決定要匯出正式版本，還是回看版本紀錄。"
       : deliverableStatus === "archived"
-        ? "這份交付物目前以歷史回看為主，先回看版本與摘要，再決定後續是否重整。"
+        ? "這份結果目前以歷史回看為主，先回看版本與摘要，再決定後續是否重整。"
         : "先把版本標記、摘要與正文整理乾淨，再做正式發布。";
   const deliverableUsabilityView = buildDeliverableUsabilityView({
     deliverableStatus,
@@ -1158,7 +1158,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
 
   return (
     <main className="page-shell deliverable-page-shell">
-      <nav className="workspace-breadcrumb" aria-label="工作面層級">
+      <nav className="workspace-breadcrumb" aria-label="頁面層級">
         <Link className="workspace-breadcrumb-link" href="/">
           總覽
         </Link>
@@ -1179,13 +1179,13 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
         ) : null}
         <span className="workspace-breadcrumb-separator">/</span>
         <span className="workspace-breadcrumb-current">
-          {displayTitle || workspace?.deliverable.title || "交付物工作面"}
+          {displayTitle || workspace?.deliverable.title || "結果與報告"}
         </span>
       </nav>
 
       {loading ? (
         <p className="status-text" role="status" aria-live="polite">
-          正在載入交付物工作面...
+          正在載入結果與報告...
         </p>
       ) : null}
       {error ? (
@@ -1199,7 +1199,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
           <section className="hero-card deliverable-hero deliverable-workspace-hero">
             <div className="deliverable-hero-grid">
               <div className="deliverable-hero-main">
-                <span className="eyebrow">交付物工作面</span>
+                <span className="eyebrow">結果與報告</span>
                 <h1 className="page-title deliverable-title">{displayTitle || workspaceView.title}</h1>
                 <p className="page-subtitle deliverable-subtitle">
                   {workspace.matter_workspace?.object_path ||

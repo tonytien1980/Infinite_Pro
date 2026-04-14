@@ -790,45 +790,45 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
   );
   const taskActionTitle = latestDeliverable
     ? continuationSurface?.workflow_layer === "checkpoint"
-      ? "這筆工作屬於回來更新 / checkpoint 鏈"
+      ? "這筆工作正在回來更新"
       : continuationSurface?.workflow_layer === "progression"
-        ? "這筆工作屬於持續推進 / outcome 鏈"
+        ? "這筆工作正在持續推進"
         : materialReviewPosture.shouldShow
-          ? "這筆工作已有可回看的材料審閱結果"
+          ? "這筆工作已有可回看的初步審閱結果"
           : "這筆工作已有可回看的正式交付物"
     : hasThinTaskEvidence
       ? "先補資料，或直接先跑第一版"
-      : materialReviewPosture.shouldShow
-        ? "這筆工作屬於材料審閱 / review memo 主線"
+    : materialReviewPosture.shouldShow
+        ? "這筆工作目前以初步審閱為主"
       : "這筆工作可以直接執行分析";
   const taskActionSummary = latestDeliverable
     ? continuationSurface?.workflow_layer === "checkpoint"
-      ? `${continuityPosture.primarySummary} 你現在可以回看最新交付物、補件後重跑，或回到案件工作面把這輪結果寫成 checkpoint。`
+      ? "這一輪比較像回來整理新進展。你現在可以回看最新結果、補件後重跑，或回到案件工作台補上這次更新。"
       : continuationSurface?.workflow_layer === "progression"
         ? progressionLane?.what_changed[0]
-          ? `${continuityPosture.primarySummary} ${progressionLane.what_changed[0]} 你現在可以回看最新交付物，或回到案件工作面更新進度與 outcome。`
-          : `${continuityPosture.primarySummary} 你現在可以回看最新交付物，或回到案件工作面更新進度與 outcome。`
+          ? `這一輪正在持續往前推進。${progressionLane.what_changed[0]} 你現在可以回看最新結果，或回到案件工作台更新進度。`
+          : "這一輪正在持續往前推進。你現在可以回看最新結果，或回到案件工作台更新進度。"
         : materialReviewPosture.shouldShow
-          ? `${materialReviewPosture.primarySummary} 你現在可以直接打開交付物工作面，或先回看來源 / 證據，再決定是否補更多背景材料。`
-          : "你現在可以直接打開交付物工作面，也可以先回看來源 / 證據與執行框架，再決定要不要重跑。"
+          ? "這一輪目前更像初步審閱結果。你現在可以直接打開結果與報告，或先回看資料與證據，再決定是否補更多背景資料。"
+          : "你現在可以直接打開結果與報告，也可以先回看資料與證據與執行框架，再決定要不要重跑。"
     : hasThinTaskEvidence
-      ? "目前資料仍偏薄，但不用卡住。你可以先補來源與證據，或直接讓主控代理先產出一版可回看的工作成果。"
-      : materialReviewPosture.shouldShow
-        ? `${materialReviewPosture.primarySummary} 執行分析後，結果會先落到 review memo / assessment 交付。`
-      : "這筆工作已具備基本資料厚度，現在最有效率的做法是直接執行分析，再回到交付物工作面整理版本。";
+      ? "目前資料仍偏薄，但不用卡住。你可以先補資料與證據，或直接讓主控代理先產出一版可回看的工作成果。"
+    : materialReviewPosture.shouldShow
+        ? "目前先把它當成初步審閱結果來看。執行分析後，結果會先形成一版可回看的整理結果。"
+      : "這筆工作已具備基本資料厚度，現在最有效率的做法是直接執行分析，再回到結果與報告整理版本。";
   const taskActionChecklist = [
     "先確認上方的原始問題與決策問題是否對準你現在真正要判斷的事。",
     hasThinTaskEvidence
-      ? "如果你手上有文件、網址或摘要，先補到來源 / 證據工作面；如果沒有，也可以直接先跑第一版。"
+      ? "如果你手上有文件、網址或摘要，先補到資料與證據頁；如果沒有，也可以直接先跑第一版。"
       : "目前資料已達基本可運作狀態，執行分析會比繼續空看頁面更有幫助。",
     latestDeliverable
       ? continuationSurface?.workflow_layer === "checkpoint"
-        ? `最新結果已整理成「${latestDeliverable.title}」，接下來更像是回來更新 / checkpoint，不是完整長期追蹤。`
+        ? `最新結果已整理成「${latestDeliverable.title}」，接下來更像是回來更新這一輪，不是完整長期追蹤。`
         : continuationSurface?.workflow_layer === "progression"
-          ? `最新結果已整理成「${latestDeliverable.title}」，接下來更像是在延續持續推進節奏；${progressionLane?.next_progression_actions[0] || "可回案件工作面補記進度／結果。"}`
+          ? `最新結果已整理成「${latestDeliverable.title}」，接下來更像是在延續持續推進節奏；${progressionLane?.next_progression_actions[0] || "可回案件工作台補記進度／結果。"}`
           : materialReviewPosture.shouldShow
-            ? `最新結果已整理成「${latestDeliverable.title}」，目前更像 review memo / assessment 結果，不是最終決策版本。`
-            : `最新結果已整理成「${latestDeliverable.title}」，可以直接進入正式交付物工作面。`
+            ? `最新結果已整理成「${latestDeliverable.title}」，目前更像初步審閱結果，不是最終決策版本。`
+            : `最新結果已整理成「${latestDeliverable.title}」，可以直接進入結果與報告。`
       : "真正會產出結果的是這頁的執行分析，不是只停在閱讀摘要。",
   ];
   const taskSectionGuideItems = task
@@ -880,12 +880,11 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
     task?.title ||
     "目前尚未形成清楚的判斷主題。";
   const taskHeroFocusCopy =
-    (materialReviewPosture.shouldShow ? materialReviewPosture.primarySummary : "") ||
-    flagshipLane?.summary ||
     taskFraming?.analysisFocus ||
+    flagshipLane?.summary ||
     taskActionSummary;
   const taskHeroLaneTitle = followUpLane
-    ? "最近 checkpoint"
+    ? "最近更新"
     : progressionLane
       ? "最近推進狀態"
       : materialReviewPosture.shouldShow
@@ -894,7 +893,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
         ? `目前交付等級｜${flagshipLane.currentOutputLabel}`
         : "目前狀態";
   const taskHeroLaneSummary = followUpLane
-    ? followUpLane.latest_update?.summary || "尚未形成正式 checkpoint。"
+    ? followUpLane.latest_update?.summary || "尚未留下正式更新紀錄。"
     : progressionLane
       ? progressionLane.latest_progression?.summary || "目前還沒有新的推進更新。"
       : materialReviewPosture.shouldShow
@@ -948,17 +947,17 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
         </Link>
         {task?.matter_workspace ? (
           <Link className="back-link" href={`/matters/${task.matter_workspace.id}`}>
-            ← 返回案件工作面
+            ← 返回案件工作台
           </Link>
         ) : null}
         {task?.matter_workspace ? (
           <Link className="back-link" href={`/matters/${task.matter_workspace.id}/evidence`}>
-            ← 返回來源 / 證據工作面
+            ← 返回資料與證據
           </Link>
         ) : null}
       </div>
 
-      {loading ? <p className="status-text">正在載入任務工作區...</p> : null}
+      {loading ? <p className="status-text">正在載入分析工作台...</p> : null}
       {error ? <p className="error-text">{error}</p> : null}
 
       {task ? (
@@ -966,7 +965,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
           <section className="hero-card decision-hero">
             <div className="hero-layout">
               <div className="hero-main">
-                <span className="eyebrow">決策工作面</span>
+                <span className="eyebrow">分析工作台</span>
                 <h1 className="page-title">{task.title}</h1>
                 <p className="page-subtitle">{task.description || "未提供額外說明。"}</p>
                 <p className="workspace-object-path">{taskHeroContextPath}</p>
@@ -1001,12 +1000,12 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                       className="button-secondary"
                       href={`/matters/${task.matter_workspace.id}/evidence`}
                     >
-                      先補來源與證據
+                      先補資料與證據
                     </Link>
                   ) : null}
                   {task.matter_workspace ? (
                     <Link className="button-secondary" href={`/matters/${task.matter_workspace.id}`}>
-                      回案件工作面
+                      回案件工作台
                     </Link>
                   ) : null}
                 </div>

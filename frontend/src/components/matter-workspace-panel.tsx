@@ -905,16 +905,16 @@ export function MatterWorkspacePanel({
 
   return (
     <main className="page-shell matter-workspace-shell">
-      <nav className="workspace-breadcrumb" aria-label="工作面層級">
+      <nav className="workspace-breadcrumb" aria-label="頁面層級">
         <Link className="workspace-breadcrumb-link" href="/">
           總覽
         </Link>
         <span className="workspace-breadcrumb-separator">/</span>
         <Link className="workspace-breadcrumb-link" href="/matters">
-          案件工作台
+          案件主控台
         </Link>
         <span className="workspace-breadcrumb-separator">/</span>
-        <span className="workspace-breadcrumb-current">{displayTitle || "案件工作面"}</span>
+        <span className="workspace-breadcrumb-current">{displayTitle || "案件主控台"}</span>
       </nav>
 
       {loading ? (
@@ -933,9 +933,9 @@ export function MatterWorkspacePanel({
           <section className="hero-card workspace-hero-card matter-hero">
             <div className="workspace-hero-grid matter-workspace-hero-grid">
               <div className="workspace-hero-main">
-                <span className="eyebrow">案件工作台</span>
+                <span className="eyebrow">案件主控台</span>
                 <h1 className="page-title">{displayTitle}</h1>
-                <p className="page-subtitle">先掌握案件現在狀態、主線與下一步，再決定往哪個工作面深入。</p>
+                <p className="page-subtitle">先掌握案件現在狀態、現在重點與下一步，再決定往哪裡深入。</p>
                 <p className="workspace-object-path">{matter.summary.object_path}</p>
                 <div className="meta-row" style={{ marginTop: "16px" }}>
                   <span className="pill">{labelForMatterStatus(matterStatus)}</span>
@@ -945,7 +945,7 @@ export function MatterWorkspacePanel({
                 </div>
 
                 <div className="deliverable-focus-card workspace-focus-card">
-                  <span className="pill">目前主線</span>
+                  <span className="pill">現在重點</span>
                   <p className="deliverable-focus-lead">
                     {matterCommandView ? matterCommandView.primaryCopy : advanceGuide.summary}
                   </p>
@@ -954,26 +954,26 @@ export function MatterWorkspacePanel({
 
               <aside className="workspace-hero-rail">
                 <div className="section-card section-anchor workspace-rail-callout" id="continuation-actions">
-                  <h4>控制中心</h4>
+                  <h4>案件主控台</h4>
                   <p className="content-block">
-                    這一屏只先回答主線、最大 blocker 與下一步；其他背景留到頁內導覽再看。
+                    這一屏只先回答現在重點、目前卡住原因與下一步；其他背景留到頁內導覽再看。
                   </p>
                   <p className="muted-text" style={{ marginTop: "8px" }}>
                     {heroStrategySummary}｜{matter.summary.source_material_count} 份來源 / {evidenceCount} 則證據 / {matter.summary.active_task_count} 筆進行中工作
                   </p>
                   <div className="detail-list" style={{ marginTop: "12px" }}>
                     <div className="detail-item">
-                      <h3>主線</h3>
+                      <h3>現在重點</h3>
                       <p className="content-block">
                         {matterCommandView?.primaryCopy || advanceGuide.summary}
                       </p>
                     </div>
                     <div className="detail-item">
-                      <h3>{matterCommandView?.blockerTitle ?? "最大 blocker"}</h3>
+                      <h3>目前卡住原因</h3>
                       <p className="content-block">
                         {matterCommandView?.blockerCopy ||
                           constraintItems[0] ||
-                          "目前沒有額外 blocker，請直接確認下一步是否已對準主線。"}
+                          "目前沒有明顯卡住原因，請直接確認下一步是否已對準現在重點。"}
                       </p>
                     </div>
                     <div className="detail-item">
@@ -1183,7 +1183,7 @@ export function MatterWorkspacePanel({
               <section className="panel section-anchor" id="matter-mainline">
                 <div className="panel-header">
                   <div>
-                    <h2 className="panel-title">控制中心主線</h2>
+                    <h2 className="panel-title">案件主控台摘要</h2>
                     <p className="panel-copy">
                       {matterUsabilityView?.mainlineCopy ||
                         "第一屏已經告訴你這個案件現在要做什麼；這裡只補充真正會影響判斷的背景、限制與工作脈絡。"}
@@ -1193,18 +1193,18 @@ export function MatterWorkspacePanel({
 
                 <div className="detail-list">
                   <div className="detail-item">
-                    <h3>主線</h3>
+                    <h3>現在重點</h3>
                     <p className="content-block">
                       {matterCommandView?.primaryCopy || advanceGuide.summary}
                     </p>
                     <p className="muted-text">核心判斷：{coreQuestion}</p>
                   </div>
                   <div className="detail-item">
-                    <h3>{matterCommandView?.blockerTitle ?? "最大 blocker"}</h3>
+                    <h3>目前卡住原因</h3>
                     <p className="content-block">
                       {matterCommandView?.blockerCopy ||
                         constraintItems[0] ||
-                        "目前沒有額外 blocker。"}
+                        "目前沒有明顯卡住原因。"}
                     </p>
                     {constraintItems.length > 0 ? (
                       <ul className="list-content" style={{ marginTop: "12px" }}>

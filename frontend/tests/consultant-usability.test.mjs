@@ -63,9 +63,9 @@ test("overview usability view keeps launcher guidance ahead of governance summar
   assert.equal(view.guideTitle, "先回主工作");
   assert.equal(
     view.guideDescription,
-    "總覽現在只做入口：先把你送回現在最值得接續的一件事；firm operating、phase closure、generalist governance 都留到第二層再看。",
+    "總覽現在只做入口：先把你送回現在最值得接續的一件事；系統狀態、階段摘要和整體使用狀態都留到第二層再看。",
   );
-  assert.equal(view.checklist[2], "治理摘要留在第二層，不在首屏搶主線。");
+  assert.equal(view.checklist[2], "系統摘要留在第二層，不在首屏搶現在要做的事。");
 });
 
 test("matter usability view keeps the mainline first and pushes world-state to second layer", () => {
@@ -80,7 +80,7 @@ test("matter usability view keeps the mainline first and pushes world-state to s
 
   assert.equal(view.sectionGuideTitle, "頁內導覽");
   assert.equal(view.guideItems[0]?.href, "#matter-mainline");
-  assert.match(view.mainlineCopy, /主線|blocker|下一步/);
+  assert.match(view.mainlineCopy, /現在重點|卡住原因|下一步/);
   assert.match(view.worldStateDisclosureDescription, /只有在你要確認案件世界層/);
 });
 
@@ -95,12 +95,12 @@ test("matter usability view turns the guide into a local rail instead of a secon
   });
 
   assert.equal(view.guideItems[0]?.href, "#matter-mainline");
-  assert.equal(view.guideItems[0]?.title, "主線");
+  assert.equal(view.guideItems[0]?.title, "現在重點");
   assert.equal(view.guideItems[1]?.title, "世界層");
   assert.equal(view.guideItems[2]?.title, "背景");
   assert.equal(
     view.sectionGuideDescription,
-    "這條 rail 只做頁內導覽：先看主線、需要時再核對世界層與背景，不再重講摘要。",
+    "這條 rail 只做頁內導覽：先看現在重點、需要時再核對世界層與背景，不再重講摘要。",
   );
   assert.match(view.guideItems[2]?.copy, /連續性|研究|旗艦|組織記憶/);
 });
@@ -125,7 +125,7 @@ test("matter section guide assembly keeps the rail focused on page-local navigat
     },
   });
 
-  assert.equal(items[0]?.title, "主線");
+  assert.equal(items[0]?.title, "現在重點");
   assert.equal(items[0]?.copy, "先看這輪在判斷什麼、目前卡在哪裡，以及現在該推哪一步。");
   assert.equal(items[0]?.meta, "一進頁面先看這裡");
   assert.equal(items[1]?.href, "#matter-world-state");
@@ -160,7 +160,7 @@ test("matter usability view keeps continuity, research, and flagship-heavy readi
 
   assert.equal(
     view.sectionGuideDescription,
-    "這條 rail 只做頁內導覽：先看主線、需要時再核對世界層與背景，不再重講摘要。",
+    "這條 rail 只做頁內導覽：先看現在重點、需要時再核對世界層與背景，不再重講摘要。",
   );
   assert.equal(
     view.guideItems[2]?.copy,
@@ -177,7 +177,7 @@ test("deliverable usability view keeps publish/read/evidence paths separate and 
     hasMatterWorkspace: true,
   });
 
-  assert.equal(view.sectionGuideTitle, "這份交付物怎麼讀最快");
+  assert.equal(view.sectionGuideTitle, "這份結果先看什麼");
   assert.equal(view.guideItems[0]?.href, "#deliverable-publish-check");
   assert.match(
     view.contextDisclosureDescription,
@@ -203,7 +203,7 @@ test("deliverable usability view keeps publish, reading, and evidence lanes sepa
   assert.equal(view.guideItems[2]?.href, "#deliverable-evidence");
   assert.equal(
     view.sectionGuideDescription,
-    "首屏只留版本、姿態與主要動作；摘要、依據、寫回、連續性與研究都放到第二層。",
+    "首屏只留版本、能不能直接用與主要動作；摘要、依據、背景資訊、同步紀錄與後續狀態都放到第二層。",
   );
 });
 
@@ -218,12 +218,12 @@ test("deliverable usability view keeps writeback detail out of the first-screen 
 
   assert.equal(
     view.sectionGuideDescription,
-    "首屏只留版本、姿態與主要動作；摘要、依據、寫回、連續性與研究都放到第二層。",
+    "首屏只留版本、能不能直接用與主要動作；摘要、依據、背景資訊、同步紀錄與後續狀態都放到第二層。",
   );
   assert.equal(view.guideItems[2]?.eyebrow, "需要依據時");
   assert.equal(
     view.guideItems[2]?.copy,
-    "只有當你要核對依據或背景，再往下看來源、脈絡、寫回與連續性。",
+    "只有當你要核對依據或背景，再往下看來源、背景資訊、同步紀錄與後續狀態。",
   );
 });
 
@@ -361,15 +361,15 @@ test("evidence usability view keeps the first screen focused on gap, supplement 
     evidenceCount: 3,
   });
 
-  assert.equal(view.sectionGuideTitle, "這個證據工作面怎麼讀最快");
+  assert.equal(view.sectionGuideTitle, "資料與證據先看什麼");
   assert.equal(
     view.sectionGuideDescription,
-    "先看到底缺什麼，再決定補哪種材料；補完後再回主線續推。",
+    "先看到底缺什麼，再決定補哪種資料；補完後再回案件或分析續推。",
   );
   assert.equal(view.guideItems.length, 3);
   assert.equal(view.guideItems[0]?.title, "充分性摘要與高影響缺口");
-  assert.equal(view.guideItems[1]?.title, "補件與新增來源");
-  assert.equal(view.guideItems[2]?.title, "先回焦點工作紀錄");
+  assert.equal(view.guideItems[1]?.title, "補資料與新增來源");
+  assert.equal(view.guideItems[2]?.title, "先回這次分析");
   assert.equal(view.railEyebrow, "補完後回哪裡");
   assert.match(view.railCopy, /補齊營運與銷售證據/);
 });

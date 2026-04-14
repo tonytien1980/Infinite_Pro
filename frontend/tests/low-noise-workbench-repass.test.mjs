@@ -32,11 +32,107 @@ test("overview source keeps firm operating and governance summaries behind a sec
       /<details className="panel disclosure-panel home-governance-disclosure">[\s\S]*?<\/details>/,
     )?.[0] ?? "";
 
-  assert.match(governanceBlock, /查看低噪音營運與治理摘要/);
+  assert.match(governanceBlock, /查看低噪音系統摘要/);
   assert.match(governanceBlock, /hero-metrics-grid/);
   assert.match(governanceBlock, /error-text/);
   assert.doesNotMatch(heroBlock, /hero-metrics-grid/);
   assert.doesNotMatch(heroBlock, /error-text/);
+  assert.doesNotMatch(heroBlock, /firm operating|phase closure|generalist governance|治理摘要/);
+});
+
+test("high-traffic first-layer surfaces use the approved readable workspace names", () => {
+  const taskSource = readFileSync(
+    new URL("../src/components/task-detail-panel.tsx", import.meta.url),
+    "utf8",
+  );
+  const evidenceSource = readFileSync(
+    new URL("../src/components/artifact-evidence-workspace-panel.tsx", import.meta.url),
+    "utf8",
+  );
+  const deliverableSource = readFileSync(
+    new URL("../src/components/deliverable-workspace-panel.tsx", import.meta.url),
+    "utf8",
+  );
+  const matterSource = readFileSync(
+    new URL("../src/components/matter-workspace-panel.tsx", import.meta.url),
+    "utf8",
+  );
+  const taskHeroBlock =
+    taskSource.match(
+      /<section className="hero-card decision-hero">[\s\S]*?(?=\{taskDetailUsabilityView \? \()/,
+    )?.[0] ?? "";
+  const evidenceHeroBlock =
+    evidenceSource.match(/<section className="hero-card evidence-hero">[\s\S]*?<\/section>/)?.[0] ?? "";
+  const deliverableHeroBlock =
+    deliverableSource.match(
+      /<section className="hero-card deliverable-hero deliverable-workspace-hero">[\s\S]*?(?=<WorkspaceSectionGuide)/,
+    )?.[0] ?? "";
+  const matterHeroBlock =
+    matterSource.match(
+      /<section className="hero-card workspace-hero-card matter-hero">[\s\S]*?(?=<WorkspaceSectionGuide)/,
+    )?.[0] ?? "";
+  const taskHeroCopySource =
+    taskSource.match(/const taskActionTitle[\s\S]*?const taskActionChecklist = \[/)?.[0] ?? "";
+  const deliverableHeroCopySource =
+    deliverableSource.match(/const deliverableActionTitle[\s\S]*?const deliverableUsabilityView = /)?.[0] ?? "";
+
+  assert.match(taskHeroBlock, /分析工作台/);
+  assert.doesNotMatch(taskHeroBlock, /決策工作面/);
+  assert.match(evidenceHeroBlock, /資料與證據/);
+  assert.doesNotMatch(evidenceHeroBlock, /來源與證據工作面|證據工作面/);
+  assert.match(deliverableHeroBlock, /結果與報告/);
+  assert.doesNotMatch(deliverableHeroBlock, /交付物工作面/);
+  assert.match(matterHeroBlock, /案件主控台|現在重點|目前卡住原因/);
+  assert.doesNotMatch(matterHeroBlock, /最大 blocker/);
+  assert.doesNotMatch(taskHeroCopySource, /回來更新 \/ checkpoint|outcome 鏈|review memo|正式 checkpoint/);
+  assert.doesNotMatch(deliverableHeroCopySource, /checkpoint 版本|outcome 節奏|收斂成 checkpoint/);
+});
+
+test("first-screen chrome uses the same readable labels on matter task evidence and deliverable surfaces", () => {
+  const taskSource = readFileSync(
+    new URL("../src/components/task-detail-panel.tsx", import.meta.url),
+    "utf8",
+  );
+  const evidenceSource = readFileSync(
+    new URL("../src/components/artifact-evidence-workspace-panel.tsx", import.meta.url),
+    "utf8",
+  );
+  const deliverableSource = readFileSync(
+    new URL("../src/components/deliverable-workspace-panel.tsx", import.meta.url),
+    "utf8",
+  );
+  const matterSource = readFileSync(
+    new URL("../src/components/matter-workspace-panel.tsx", import.meta.url),
+    "utf8",
+  );
+  const deliverableChromeBlock =
+    deliverableSource.match(
+      /<nav className="workspace-breadcrumb"[\s\S]*?正在載入結果與報告[\s\S]*?\) : null}/,
+    )?.[0] ?? "";
+  const matterChromeBlock =
+    matterSource.match(
+      /<nav className="workspace-breadcrumb"[\s\S]*?\{loading \? \(/,
+    )?.[0] ?? "";
+  const matterMainlineBlock =
+    matterSource.match(
+      /<section className="panel section-anchor" id="matter-mainline">[\s\S]*?(?=<DisclosurePanel)/,
+    )?.[0] ?? "";
+
+  assert.match(taskSource, /← 返回案件工作台/);
+  assert.match(taskSource, /← 返回資料與證據/);
+  assert.doesNotMatch(taskSource, /← 返回案件工作面/);
+  assert.doesNotMatch(taskSource, /← 返回來源 \/ 證據工作面/);
+  assert.match(evidenceSource, /← 返回案件工作台/);
+  assert.doesNotMatch(evidenceSource, /← 返回案件工作面/);
+  assert.match(deliverableChromeBlock, /結果與報告/);
+  assert.match(deliverableChromeBlock, /aria-label="頁面層級"/);
+  assert.match(deliverableChromeBlock, /正在載入結果與報告/);
+  assert.doesNotMatch(deliverableChromeBlock, /交付物工作面/);
+  assert.match(matterChromeBlock, /案件主控台/);
+  assert.match(matterChromeBlock, /aria-label="頁面層級"/);
+  assert.doesNotMatch(matterChromeBlock, /案件工作面/);
+  assert.match(matterMainlineBlock, /案件主控台摘要|現在重點|目前卡住原因/);
+  assert.doesNotMatch(matterMainlineBlock, /<h3>最大 blocker<\/h3>/);
 });
 
 test("new matter intake first screen avoids leaking internal workflow jargon", () => {
@@ -149,6 +245,20 @@ test("second-layer continuity copy avoids raw internal ontology English", () => 
   assert.doesNotMatch(matterSecondarySource, /目前沒有額外 assumptions/);
   assert.doesNotMatch(taskDetailSource, /DecisionContext 與工作鏈/);
   assert.doesNotMatch(taskDetailSource, /當前主要 DecisionContext/);
+});
+
+test("docs clarify visible first-layer labels versus formal contract names", () => {
+  const docsSource = readFileSync(
+    new URL("../../docs/03_workbench_ux_and_page_spec.md", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(docsSource, /可見第一層名稱/);
+  assert.match(docsSource, /formal\/internal contract names|formal contract name|formal contract|internal contract/);
+  assert.match(docsSource, /案件主控台/);
+  assert.match(docsSource, /資料與證據/);
+  assert.match(docsSource, /分析工作台/);
+  assert.match(docsSource, /結果與報告/);
 });
 
 test("qa matrix keeps evidence upload claims aligned with actual verification depth", () => {

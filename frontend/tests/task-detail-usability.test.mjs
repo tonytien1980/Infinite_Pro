@@ -26,7 +26,7 @@ test("task detail usability view prefers matter handoff when evidence is thin", 
 
   assert.equal(view.handoffTarget, "matter");
   assert.equal(view.handoffHref, "#workspace-lane");
-  assert.match(view.handoffSummary, /先回案件工作面補脈絡與證據/);
+  assert.match(view.handoffSummary, /先回案件工作台補背景資訊與證據/);
 });
 
 test("task detail usability view prefers deliverable handoff when a formal result exists", () => {
@@ -285,9 +285,9 @@ test("task detail usability view aligns the rail with the same handoff contract"
   });
 
   assert.equal(view.railEyebrow, "第二層回跳");
-  assert.match(view.railTitle, /案件工作面/);
-  assert.match(view.railSummary, /先回案件工作面補脈絡與證據/);
-  assert.match(view.handoffReasonLabel, /脈絡/);
+  assert.match(view.railTitle, /案件工作台/);
+  assert.match(view.railSummary, /先回案件工作台補背景資訊與證據/);
+  assert.match(view.handoffReasonLabel, /背景資訊/);
 });
 
 test("task detail operating notes keep the labels direct and consultant-facing", () => {
@@ -313,4 +313,20 @@ test("task detail operating notes keep the labels direct and consultant-facing",
   assert.equal(view.operatingNotes[0]?.label, "最有槓桿的下一步");
   assert.equal(view.operatingNotes[1]?.label, "目前最大限制");
   assert.equal(view.operatingNotes[2]?.label, "不直接跑時");
+});
+
+test("task first-layer copy uses the approved analysis-workspace language", () => {
+  const source = readFileSync(
+    new URL("../src/components/task-detail-panel.tsx", import.meta.url),
+    "utf8",
+  );
+  const heroBlock =
+    source.match(
+      /<section className="hero-card decision-hero">[\s\S]*?(?=\{taskDetailUsabilityView \? \()/,
+    )?.[0] ?? "";
+
+  assert.match(heroBlock, /分析工作台/);
+  assert.doesNotMatch(heroBlock, /決策工作面/);
+  assert.doesNotMatch(heroBlock, /交付物工作面/);
+  assert.doesNotMatch(heroBlock, /來源 \/ 證據工作面/);
 });

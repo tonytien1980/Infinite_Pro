@@ -36,7 +36,7 @@ export function buildOverviewUsabilityView(input: {
       href: input.focusHref,
       eyebrow: "先接回主工作",
       title: input.focusTitle,
-      copy: "先回到現在最值得接續的一件事，首頁只做入口，不先停在治理摘要。",
+      copy: "先回到現在最值得接續的一件事，首頁只做入口，不先停在系統摘要。",
       tone: "accent",
     },
   ];
@@ -59,9 +59,9 @@ export function buildOverviewUsabilityView(input: {
   } else if (input.hasPrimaryMatter) {
     guideItems.push({
       href: "/matters",
-      eyebrow: "若要先回主線",
+      eyebrow: "若要先回案件",
       title: "看案件列表",
-      copy: "如果不是首頁預設那一條主線，先回案件列表重新選工作面。",
+      copy: "如果不是首頁預設的那一件事，先回案件列表重新選現在要做的工作。",
     });
   }
 
@@ -79,13 +79,13 @@ export function buildOverviewUsabilityView(input: {
     primaryHref: input.focusHref,
     primaryActionLabel: input.focusActionLabel,
     checklist: [
-      "先回到目前最值得接續的工作面。",
+      "先回到目前最值得接續的工作。",
       "若卡在依據偏薄，再改走補件路徑。",
-      "治理摘要留在第二層，不在首屏搶主線。",
+      "系統摘要留在第二層，不在首屏搶現在要做的事。",
     ],
     guideTitle: "先回主工作",
     guideDescription:
-      "總覽現在只做入口：先把你送回現在最值得接續的一件事；firm operating、phase closure、generalist governance 都留到第二層再看。",
+      "總覽現在只做入口：先把你送回現在最值得接續的一件事；系統狀態、階段摘要和整體使用狀態都留到第二層再看。",
     guideItems: guideItems.slice(0, 3),
   };
 }
@@ -113,11 +113,11 @@ export function buildMatterUsabilityView(input: {
   return {
     sectionGuideTitle: "頁內導覽",
     sectionGuideDescription:
-      "這條 rail 只做頁內導覽：先看主線、需要時再核對世界層與背景，不再重講摘要。",
+      "這條 rail 只做頁內導覽：先看現在重點、需要時再核對世界層與背景，不再重講摘要。",
     mainlineCopy:
       input.activeTaskCount > 1
-        ? "這一段只補主線、最大 blocker 與下一步；若同時有多條工作紀錄，先抓現在最該接手的那一條。"
-        : "這一段只補主線、最大 blocker 與下一步；其他背景先留到第二層再讀。",
+        ? "這一段只補現在重點、目前卡住原因與下一步；若同時有多條工作紀錄，先抓現在最該接手的那一條。"
+        : "這一段只補現在重點、目前卡住原因與下一步；其他背景先留到第二層再讀。",
     worldStateDisclosureDescription: input.hasCaseWorldState
       ? "只有在你要確認案件世界層的 identity authority、task slices 與寫回深度時，再展開這層。"
       : "只有在你要確認為何目前還沒形成穩定案件世界層時，再展開這層。",
@@ -125,7 +125,7 @@ export function buildMatterUsabilityView(input: {
       {
         href: "#matter-mainline",
         eyebrow: "一進頁面先看這裡",
-        title: "主線",
+        title: "現在重點",
         copy: "先看這輪在判斷什麼、目前卡在哪裡，以及現在該推哪一步。",
         tone: "accent",
       },
@@ -137,7 +137,7 @@ export function buildMatterUsabilityView(input: {
       },
       {
         href: "#matter-background",
-        eyebrow: "主線卡住再回來",
+        eyebrow: "現在卡住再回來",
         title: "背景",
         copy:
           "連續性、研究、旗艦摘要與組織記憶都移到第二層，需要補讀時再回來。",
@@ -285,9 +285,9 @@ export function buildDeliverableUsabilityView(input: {
   const thirdTitle = input.hasLinkedEvidence ? "回看依據來源" : "再看交付脈絡";
 
   return {
-    sectionGuideTitle: "這份交付物怎麼讀最快",
+    sectionGuideTitle: "這份結果先看什麼",
     sectionGuideDescription:
-      "首屏只留版本、姿態與主要動作；摘要、依據、寫回、連續性與研究都放到第二層。",
+      "首屏只留版本、能不能直接用與主要動作；摘要、依據、背景資訊、同步紀錄與後續狀態都放到第二層。",
     contextDisclosureDescription:
       "當你要理解這份交付物在整個案件世界中的定位時，再展開這層；平常先看版本、姿態與主動作，摘要 / 建議 / 風險 / 行動都放第二層。",
     writebackDisclosureDescription: input.hasMatterWorkspace
@@ -311,7 +311,7 @@ export function buildDeliverableUsabilityView(input: {
         href: thirdHref,
         eyebrow: "需要依據時",
         title: thirdTitle,
-        copy: "只有當你要核對依據或背景，再往下看來源、脈絡、寫回與連續性。",
+        copy: "只有當你要核對依據或背景，再往下看來源、背景資訊、同步紀錄與後續狀態。",
         tone: input.hasHighImpactGaps ? "warm" : "default",
       },
     ],
@@ -334,14 +334,14 @@ export function buildEvidenceWorkspaceUsabilityView(input: {
   sourceMaterialCount: number;
   evidenceCount: number;
 }): EvidenceUsabilityView {
-  const returnTitle = input.hasFocusTask ? "先回焦點工作紀錄" : "先回案件工作面";
+  const returnTitle = input.hasFocusTask ? "先回這次分析" : "先回案件工作台";
   const returnCopy = input.hasFocusTask
-    ? `補完後先回「${input.focusTaskTitle}」確認這輪判斷是否已能續推，不必先在來源頁停太久。`
-    : "補完後先回案件工作面確認主線是否已站穩，再決定要不要往 task 或交付物續推。";
+    ? `補完後先回「${input.focusTaskTitle}」確認這次分析是否已能續推，不必先在資料頁停太久。`
+    : "補完後先回案件工作台確認現在重點是否已站穩，再決定要不要往分析或結果續推。";
 
   return {
-    sectionGuideTitle: "這個證據工作面怎麼讀最快",
-    sectionGuideDescription: "先看到底缺什麼，再決定補哪種材料；補完後再回主線續推。",
+    sectionGuideTitle: "資料與證據先看什麼",
+    sectionGuideDescription: "先看到底缺什麼，再決定補哪種資料；補完後再回案件或分析續推。",
     railEyebrow: "補完後回哪裡",
     railTitle: returnTitle,
     railCopy: returnCopy,
@@ -359,7 +359,7 @@ export function buildEvidenceWorkspaceUsabilityView(input: {
       {
         href: "#evidence-supplement",
         eyebrow: "真的要補時",
-        title: "補件與新增來源",
+        title: "補資料與新增來源",
         copy: "補檔案、網址或補充文字時，直接走正式補件主鏈，不要另開新的孤立工作。",
         meta:
           input.sourceMaterialCount === 0

@@ -654,7 +654,7 @@ export function WorkbenchHome() {
             <span className="eyebrow">總覽</span>
             <h1 className="page-title">總覽</h1>
             <p className="page-subtitle">
-              先找到現在最值得處理的一件事，再回到對應工作面繼續往前推。
+              先找到現在最值得處理的一件事，再回到對應頁面繼續往前推。
             </p>
             <div className="hero-actions">
               <Link className="button-primary" href={focusHref}>
@@ -718,7 +718,7 @@ export function WorkbenchHome() {
           <div className="detail-item">
             <h3>{overviewUsabilityView.primaryTitle}</h3>
             <p className="content-block">
-              先把這件事接回來，通常比先停在首頁來回看 metrics 或 governance 摘要更有效。
+              先把這件事接回來，通常比先停在首頁來回看數字或系統摘要更有效。
             </p>
             <div className="button-row" style={{ marginTop: "12px" }}>
               <Link className="button-primary" href={overviewUsabilityView.primaryHref}>
@@ -870,7 +870,7 @@ export function WorkbenchHome() {
 
           <div className="detail-stack">
             <details className="panel disclosure-panel home-governance-disclosure">
-              <summary className="disclosure-summary">查看低噪音營運與治理摘要</summary>
+              <summary className="disclosure-summary">查看低噪音系統摘要</summary>
               <div className="disclosure-body">
                 {governanceErrorItems.length > 0 ? (
                   <div className="section-card" style={{ marginBottom: "16px" }}>

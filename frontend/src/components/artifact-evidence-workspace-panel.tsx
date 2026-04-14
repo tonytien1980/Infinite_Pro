@@ -284,18 +284,18 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
   const evidenceActionSummary =
     workspace?.matter_summary.engagement_continuity_mode === "one_off" &&
     workspace.matter_summary.status === "closed"
-      ? "這個單次案件目前已正式結案；如果後續又有新資料，請先回案件工作面重新開啟，再把材料掛回同一個案件世界。"
+      ? "這個單次案件目前已正式結案；如果後續又有新資料，請先回案件工作台重新開啟，再把材料掛回同一個案件世界。"
       : workspace?.matter_summary.engagement_continuity_mode === "follow_up"
         ? followUpLane?.evidence_update_goal
-          ? `這個工作面現在更偏向後續補件與檢查點更新。${followUpLane.evidence_update_goal}`
-          : "這個工作面現在更偏向後續補件與檢查點更新，不需要把所有後續都做成完整的持續追蹤。"
+          ? `這一頁現在更偏向後續補件與檢查點更新。${followUpLane.evidence_update_goal}`
+          : "這一頁現在更偏向後續補件與檢查點更新，不需要把所有後續都做成完整的持續追蹤。"
         : workspace?.matter_summary.engagement_continuity_mode === "continuous"
           ? progressionLane?.evidence_update_goal
-            ? `這個工作面現在更偏向持續推進補件。${progressionLane.evidence_update_goal}`
-            : "這個工作面現在更偏向持續推進案件：先補來源與證據，再回案件工作面記錄推進狀態 / 結果。"
+            ? `這一頁現在更偏向持續推進補件。${progressionLane.evidence_update_goal}`
+            : "這一頁現在更偏向持續推進案件：先補資料與證據，再回案件工作台記錄推進狀態 / 結果。"
           : workspace && workspace.high_impact_gaps.length > 0
             ? "這裡最重要的不是把資料看完，而是先補齊高影響缺口，避免案件工作台或交付物在證據不足下失真。"
-          : "這個工作面負責釐清來源、工作物件與證據支撐鏈。先確認支撐鏈完整度，再回案件或工作紀錄會更有效率。";
+          : "這一頁負責釐清來源、工作物件與證據支撐鏈。先確認支撐鏈完整度，再回案件或分析會更有效率。";
   const evidenceSectionGuideItems = workspace
     ? buildEvidenceWorkspaceUsabilityView({
         hasHighImpactGaps: workspace.high_impact_gaps.length > 0,
@@ -837,11 +837,11 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
           ← 返回工作台
         </Link>
         <Link className="back-link" href={`/matters/${matterId}`}>
-          ← 返回案件工作面
+          ← 返回案件工作台
         </Link>
       </div>
 
-      {loading ? <p className="status-text">正在載入來源 / 證據工作面...</p> : null}
+      {loading ? <p className="status-text">正在載入資料與證據...</p> : null}
       {error ? <p className="error-text">{error}</p> : null}
 
       {workspace && matterCard && workspaceView ? (
@@ -849,7 +849,7 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
           <section className="hero-card evidence-hero">
             <div className="hero-layout">
               <div className="hero-main">
-                <span className="eyebrow">來源與證據工作面</span>
+                <span className="eyebrow">資料與證據</span>
                 <h1 className="page-title">{matterCard.title}</h1>
                 <p className="page-subtitle">{matterCard.objectPath}</p>
                 <div className="hero-focus-card">
@@ -870,13 +870,13 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                     {evidenceUsabilityView?.railEyebrow || "補完後回哪裡"}
                   </p>
                   <h3 className="hero-focus-title">
-                    {evidenceUsabilityView?.railTitle || (focusTask ? "先回焦點工作紀錄" : "先回案件工作面")}
+                    {evidenceUsabilityView?.railTitle || (focusTask ? "先回這次分析" : "先回案件工作台")}
                   </h3>
                   <p className="hero-focus-copy">
                     {evidenceUsabilityView?.railCopy ||
                       (focusTask
-                        ? `補完後先回「${focusTask.title}」確認這輪判斷是否已能續推。`
-                        : "補完後先回案件工作面確認主線是否已站穩。")}
+                        ? `補完後先回「${focusTask.title}」確認這次分析是否已能續推。`
+                        : "補完後先回案件工作台確認現在重點是否已站穩。")}
                   </p>
                 </div>
               </div>
@@ -884,10 +884,10 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
           </section>
 
           <WorkspaceSectionGuide
-            title={evidenceUsabilityView?.sectionGuideTitle || "這個證據工作面怎麼讀最快"}
+            title={evidenceUsabilityView?.sectionGuideTitle || "資料與證據先看什麼"}
             description={
               evidenceUsabilityView?.sectionGuideDescription ||
-              "先看到底缺什麼，再決定補哪種材料；補完後再回主線續推。"
+              "先看到底缺什麼，再決定補哪種資料；補完後再回案件或分析續推。"
             }
             items={evidenceSectionGuideItems}
           />
