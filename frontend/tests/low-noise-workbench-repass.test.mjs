@@ -152,6 +152,78 @@ test("new matter intake first screen avoids leaking internal workflow jargon", (
   assert.doesNotMatch(source, /metadata \/ reference/);
 });
 
+test("task 3 keeps intake lists and return paths on first-layer consultant language", () => {
+  const taskCreateFormSource = readFileSync(
+    new URL("../src/components/task-create-form.tsx", import.meta.url),
+    "utf8",
+  );
+  const taskCreateWorkspaceSource = readFileSync(
+    new URL("../src/components/task-create-workspace.tsx", import.meta.url),
+    "utf8",
+  );
+  const mattersSource = readFileSync(
+    new URL("../src/components/matters-page-panel.tsx", import.meta.url),
+    "utf8",
+  );
+  const deliverablesSource = readFileSync(
+    new URL("../src/components/deliverables-page-panel.tsx", import.meta.url),
+    "utf8",
+  );
+  const historySource = readFileSync(
+    new URL("../src/components/history-page-panel.tsx", import.meta.url),
+    "utf8",
+  );
+  const docsSource = readFileSync(
+    new URL("../../docs/03_workbench_ux_and_page_spec.md", import.meta.url),
+    "utf8",
+  );
+  const docsConsultantLanguageBlock =
+    docsSource.match(
+      /### 3\.4 Consultant language, not platform jargon[\s\S]*?(?=\n### 3\.5 Progressive disclosure)/,
+    )?.[0] ?? "";
+
+  assert.match(taskCreateFormSource, /不用先選模式，先說明問題就能開始/);
+  assert.doesNotMatch(taskCreateFormSource, /正式進件主線/);
+  assert.doesNotMatch(taskCreateFormSource, /來源與證據工作面/);
+
+  assert.match(taskCreateWorkspaceSource, /不用先選模式，先說明問題就能開始/);
+  assert.match(taskCreateWorkspaceSource, /資料與證據/);
+  assert.match(taskCreateWorkspaceSource, /結果與報告/);
+  assert.doesNotMatch(taskCreateWorkspaceSource, /正式工作鏈上掛好骨架/);
+  assert.doesNotMatch(taskCreateWorkspaceSource, /正式進件主線/);
+  assert.doesNotMatch(taskCreateWorkspaceSource, /主工作面/);
+  assert.doesNotMatch(taskCreateWorkspaceSource, /來源與證據工作面/);
+  assert.doesNotMatch(taskCreateWorkspaceSource, /正式交付物工作面/);
+
+  assert.match(mattersSource, /案件主控台/);
+  assert.match(mattersSource, /分析項目/);
+  assert.doesNotMatch(mattersSource, /看重點、資料和交付物/);
+  assert.doesNotMatch(mattersSource, /案件工作台/);
+  assert.doesNotMatch(mattersSource, /工作紀錄/);
+
+  assert.match(deliverablesSource, /結果與報告/);
+  assert.doesNotMatch(deliverablesSource, /<span className="eyebrow">交付物<\/span>/);
+  assert.doesNotMatch(deliverablesSource, /<h1 className="page-title">交付物<\/h1>/);
+
+  assert.match(historySource, /分析項目/);
+  assert.match(historySource, /回案件頁/);
+  assert.match(historySource, /回結果與報告/);
+  assert.doesNotMatch(historySource, /工作紀錄/);
+  assert.doesNotMatch(historySource, /案件工作面/);
+  assert.doesNotMatch(historySource, /交付物工作面/);
+
+  assert.match(docsSource, /intake\/list\/return-path 的第一層命名規則/);
+  assert.match(docsSource, /不用先選模式，先說明問題就能開始/);
+  assert.match(docsSource, /分析項目/);
+  assert.match(docsSource, /結果與報告/);
+  assert.match(docsSource, /案件頁|案件主控台/);
+  assert.doesNotMatch(docsSource, /正式進件主線說明/);
+  assert.doesNotMatch(docsSource, /打開工作紀錄/);
+  assert.doesNotMatch(docsConsultantLanguageBlock, /- 案件工作台/);
+  assert.doesNotMatch(docsConsultantLanguageBlock, /- 來源與證據/);
+  assert.doesNotMatch(docsConsultantLanguageBlock, /- 交付物/);
+});
+
 test("cross-surface visible copy avoids mixed-language contract and membership labels", () => {
   const settingsPageSource = readFileSync(
     new URL("../src/components/settings-page-panel.tsx", import.meta.url),

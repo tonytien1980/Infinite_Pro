@@ -77,7 +77,7 @@ export function DeliverablesPagePanel() {
       setError(null);
       setTasks(await listTasks());
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "載入交付物列表失敗。");
+      setError(loadError instanceof Error ? loadError.message : "載入結果與報告列表失敗。");
     } finally {
       setLoading(false);
     }
@@ -146,24 +146,24 @@ export function DeliverablesPagePanel() {
       <section className="hero-card deliverables-hero">
         <div className="hero-layout">
           <div className="hero-main">
-            <span className="eyebrow">交付物</span>
-            <h1 className="page-title">交付物</h1>
+            <span className="eyebrow">結果與報告</span>
+            <h1 className="page-title">結果與報告</h1>
             <p className="page-subtitle">
-              從這裡找到要回看、修改或準備交付的內容。
+              從這裡找到要回看、修改或準備交付的結果。
             </p>
             <div className="hero-actions">
               {focusDeliverable ? (
                 <Link className="button-primary" href={`/deliverables/${focusDeliverable.id}`}>
-                  打開最新交付物
+                  打開最新結果與報告
                 </Link>
               ) : (
                 <Link className="button-primary" href="/matters">
-                  先回案件工作台
+                  先回案件主控台
                 </Link>
               )}
               {focusDeliverable ? (
                 <Link className="button-secondary" href="/matters">
-                  看案件工作台
+                  看案件主控台
                 </Link>
               ) : (
                 <Link className="button-secondary" href="/new">
@@ -182,11 +182,11 @@ export function DeliverablesPagePanel() {
             <div className="hero-focus-card">
               <p className="hero-focus-label">現在最值得先看</p>
               <h3 className="hero-focus-title">
-                {focusDeliverable?.title || "先完成第一份交付物"}
+                {focusDeliverable?.title || "先完成第一份結果與報告"}
               </h3>
               <p className="hero-focus-copy">
                 {truncateText(
-                  focusDeliverable?.summary || "交付物建立後，這裡會集中整理版本、重點與所屬案件。",
+                  focusDeliverable?.summary || "結果與報告建立後，這裡會集中整理版本、重點與所屬案件。",
                   108,
                 )}
               </p>
@@ -194,7 +194,7 @@ export function DeliverablesPagePanel() {
             <div className="hero-focus-card hero-focus-card-warm">
               <p className="hero-focus-label">這頁先做什麼</p>
               <ul className="hero-focus-list">
-                <li>先找到最近更新或待確認的交付物。</li>
+                <li>先找到最近更新或待確認的結果與報告。</li>
                 <li>需要補前情脈絡時，再回到它所屬的案件頁。</li>
               </ul>
             </div>
@@ -203,14 +203,14 @@ export function DeliverablesPagePanel() {
 
         <div className="hero-metrics-grid">
           <div className="section-card hero-metric-card">
-            <h3>全部交付物</h3>
+            <h3>全部結果與報告</h3>
             <p className="workbench-metric">{allDeliverables.length}</p>
-            <p className="muted-text">目前可直接回看的交付物。</p>
+            <p className="muted-text">目前可直接回看的結果與報告。</p>
           </div>
           <div className="section-card hero-metric-card">
             <h3>待確認</h3>
             <p className="workbench-metric">{draftCount + pendingCount}</p>
-            <p className="muted-text">還在整理，還沒正式定稿的交付物。</p>
+            <p className="muted-text">還在整理，還沒正式定稿的結果與報告。</p>
           </div>
           <div className="section-card hero-metric-card">
             <h3>定稿</h3>
@@ -222,7 +222,7 @@ export function DeliverablesPagePanel() {
 
       {loading ? (
         <p className="status-text" role="status" aria-live="polite">
-          正在載入交付物頁...
+          正在載入結果與報告...
         </p>
       ) : null}
       {error ? (
@@ -235,14 +235,14 @@ export function DeliverablesPagePanel() {
         <section className="panel">
           <div className="panel-header">
             <div>
-              <h2 className="panel-title">交付物列表</h2>
-              <p className="panel-copy">先找到要處理的交付物，再進交付物頁整理內容與版本。</p>
+              <h2 className="panel-title">結果與報告列表</h2>
+              <p className="panel-copy">先找到要處理的結果與報告，再進結果與報告頁整理內容與版本。</p>
             </div>
           </div>
 
           <div className="toolbar-grid">
             <div className="field">
-              <label htmlFor="deliverable-search">搜尋交付物</label>
+              <label htmlFor="deliverable-search">搜尋結果與報告</label>
               <input
                 id="deliverable-search"
                 value={searchQuery}
@@ -302,7 +302,7 @@ export function DeliverablesPagePanel() {
                   <p className="content-block">{truncateText(item.summary, 92)}</p>
                   <div className="button-row" style={{ marginTop: "12px" }}>
                     <Link className="button-secondary" href={`/deliverables/${item.id}`}>
-                      前往交付物
+                      前往結果與報告
                     </Link>
                     {item.matterId ? (
                       <Link className="button-secondary" href={`/matters/${item.matterId}`}>
@@ -313,7 +313,7 @@ export function DeliverablesPagePanel() {
                 </article>
               ))
             ) : (
-              <p className="empty-text">目前沒有符合條件的交付物。</p>
+              <p className="empty-text">目前沒有符合條件的結果與報告。</p>
             )}
           </div>
         </section>

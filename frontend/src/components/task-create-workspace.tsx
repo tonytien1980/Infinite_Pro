@@ -45,7 +45,7 @@ export function TaskCreateWorkspace() {
               <p className="hero-focus-label">建立後會怎麼走</p>
               <ul className="hero-focus-list">
                 <li>先回到同一個案件世界，看主線、狀態和下一步。</li>
-                <li>需要補資料時，再從案件頁或來源頁分批補進來。</li>
+                <li>需要補資料時，再從案件頁或資料與證據分批補進來。</li>
               </ul>
             </div>
           </div>
@@ -55,7 +55,7 @@ export function TaskCreateWorkspace() {
           <div className="section-card hero-metric-card">
             <h3>單一入口</h3>
             <p className="workbench-metric">1</p>
-            <p className="muted-text">不拆成不同模式，全部都走同一條正式進件主線。</p>
+            <p className="muted-text">不用先選模式，先說明問題就能開始。</p>
           </div>
           <div className="section-card hero-metric-card">
             <h3>單次材料上限</h3>
@@ -65,7 +65,7 @@ export function TaskCreateWorkspace() {
           <div className="section-card hero-metric-card">
             <h3>建立後主頁</h3>
             <p className="workbench-metric">案件頁</p>
-            <p className="muted-text">建立完成後不會卡在進件頁，而是直接回主工作面繼續推進。</p>
+            <p className="muted-text">建立完成後不會卡在進件頁，而是直接回案件頁繼續推進。</p>
           </div>
         </div>
       </section>
@@ -75,7 +75,7 @@ export function TaskCreateWorkspace() {
           <div>
             <h2 className="panel-title">建立後會怎麼產出結果</h2>
             <p className="panel-copy">
-              建立案件只是在正式工作鏈上掛好骨架。接下來的主流程會固定回到案件工作台，讓你知道現在該補資料、跑分析，還是直接打開交付物。
+              建立案件只是先把這次要處理的事情開好。接下來的主流程會固定回到案件頁，讓你知道現在該補資料、跑分析，還是直接打開結果與報告。
             </p>
           </div>
         </div>
@@ -94,9 +94,9 @@ export function TaskCreateWorkspace() {
             </p>
           </div>
           <div className="section-card">
-            <h4>3. 形成正式交付物</h4>
+            <h4>3. 形成結果與報告</h4>
             <p className="content-block">
-              案件工作台會提供清楚的「執行分析」入口；完成後會直接打開正式交付物工作面。
+              案件頁會提供清楚的「執行分析」入口；完成後會直接打開結果與報告。
             </p>
           </div>
         </div>

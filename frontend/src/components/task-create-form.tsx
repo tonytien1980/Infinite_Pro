@@ -753,7 +753,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
     const progress = await processPreviewItem(createdTask.id, item);
     if (progress.phase === "done" || progress.phase === "parsing") {
       dropResolvedPreviewItems([item.id]);
-      setSuccess("這份材料已重新處理完成；你可以繼續補件，或直接打開案件工作台。");
+      setSuccess("這份材料已重新處理完成；你可以繼續補件，或直接打開案件頁。");
     } else {
       setError("這份材料重試後仍未成功；建議改用替換、移除或 fallback 材料。");
     }
@@ -928,12 +928,12 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
 
       if (failedCount > 0) {
         setSuccess(
-          `案件世界已建立，但目前仍有 ${failedCount} 份材料待補救。你可以先逐項重試 / 替換，或直接打開案件工作台續處理。`,
+          `案件世界已建立，但目前仍有 ${failedCount} 份材料待補救。你可以先逐項重試 / 替換，或直接打開案件頁續處理。`,
         );
         return;
       }
 
-      setSuccess("案件世界已先建立，所有材料也已逐項處理完成；接下來會直接回到案件工作台。");
+      setSuccess("案件世界已先建立，所有材料也已逐項處理完成；接下來會直接回到案件頁。");
       onCreated(task);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "建立任務失敗。");
@@ -948,7 +948,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
         <div>
           <h2 className="panel-title">統一進件入口</h2>
           <p className="panel-copy">
-            先說明你要釐清的問題，再視需要補材料。系統會自動判讀這次是少資訊起手、單材料起手，還是多來源案件，全部都走同一條正式進件主線。
+            先說明你要釐清的問題，再視需要補材料。系統會自動判讀這次是少資訊起手、單材料起手，還是多來源案件；不用先選模式，先說明問題就能開始。
           </p>
         </div>
       </div>
@@ -1176,7 +1176,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
             </div>
             <div className="section-card">
               <h4>建立後可做什麼</h4>
-              <p className="content-block">完成後會直接進入案件工作台，後續可在來源與證據工作面補檔、補網址、補文字，不會中斷同一案件脈絡。</p>
+              <p className="content-block">完成後會直接進入案件頁，後續可在資料與證據補檔、補網址、補文字，不會中斷同一案件脈絡。</p>
             </div>
             <div className="section-card">
               <h4>原始檔保留</h4>
@@ -1271,7 +1271,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
               type="button"
               onClick={() => onCreated(createdTask)}
             >
-              打開已建立的案件工作台
+              打開已建立的案件頁
             </button>
           </div>
         ) : null}

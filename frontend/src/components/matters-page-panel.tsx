@@ -96,7 +96,7 @@ export function MattersPagePanel() {
       setMatters(matterResponse);
       setTasks(taskResponse);
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "載入案件工作台失敗。");
+      setError(loadError instanceof Error ? loadError.message : "載入案件主控台失敗。");
     } finally {
       setLoading(false);
     }
@@ -197,8 +197,8 @@ export function MattersPagePanel() {
       <section className="hero-card matters-hero">
         <div className="hero-layout">
           <div className="hero-main">
-            <span className="eyebrow">案件工作台</span>
-            <h1 className="page-title">案件工作台</h1>
+            <span className="eyebrow">案件主控台</span>
+            <h1 className="page-title">案件主控台</h1>
             <p className="page-subtitle">
               從這裡找到要繼續處理的案件，直接回到案件頁接著推進。
             </p>
@@ -216,7 +216,7 @@ export function MattersPagePanel() {
                   className="button-secondary"
                   href={`/deliverables/${focusDeliverable.latest_deliverable_id}`}
                 >
-                  看最近交付物
+                  看最近結果與報告
                 </Link>
               ) : null}
             </div>
@@ -239,7 +239,7 @@ export function MattersPagePanel() {
               <p className="hero-focus-label">這頁先做什麼</p>
               <ul className="hero-focus-list">
                 <li>先用搜尋或狀態篩選，縮小到你要處理的案件。</li>
-                <li>進入案件頁後，再看重點、證據和交付物脈絡。</li>
+                <li>進入案件頁後，再看重點、證據和結果與報告脈絡。</li>
               </ul>
             </div>
           </div>
@@ -266,7 +266,7 @@ export function MattersPagePanel() {
 
       {loading ? (
         <p className="status-text" role="status" aria-live="polite">
-          正在載入案件工作台...
+          正在載入案件主控台...
         </p>
       ) : null}
       {error ? (
@@ -282,7 +282,7 @@ export function MattersPagePanel() {
               <div className="panel-header">
                 <div>
                   <h2 className="panel-title">案件列表</h2>
-                  <p className="panel-copy">先找到要接手的案件，再進案件頁看重點、資料和交付物。</p>
+                  <p className="panel-copy">先找到要接手的案件，再進案件頁看重點、資料和結果與報告。</p>
                 </div>
                 <Link className="button-primary" href="/new">
                   建立新案件
@@ -332,13 +332,13 @@ export function MattersPagePanel() {
                       <p className="muted-text">
                         決策問題：{truncateText(matter.decisionContext, 72)}
                       </p>
-                      <p className="muted-text">代理：{truncateText(matter.agentSummary, 56)}</p>
+                  <p className="muted-text">代理：{truncateText(matter.agentSummary, 56)}</p>
                       <p className="muted-text">模組包：{truncateText(matter.packSummary, 56)}</p>
                       <div className="meta-row">
                         <span>來源 {matter.sourceCount}</span>
                         <span>證據 {matter.evidenceCount}</span>
-                        <span>交付物 {matter.deliverableCount}</span>
-                        <span>工作紀錄 {matter.totalTaskCount}</span>
+                        <span>結果與報告 {matter.deliverableCount}</span>
+                        <span>分析項目 {matter.totalTaskCount}</span>
                       </div>
                       <div className="button-row" style={{ marginTop: "12px" }}>
                         <Link className="button-secondary" href={`/matters/${matter.id}`}>
@@ -358,11 +358,11 @@ export function MattersPagePanel() {
             <section className="panel">
               <div className="panel-header">
                 <div>
-                  <h2 className="panel-title">最近交付物</h2>
-                  <p className="panel-copy">如果你是要回看結果，可以直接從這裡進交付物。</p>
+                  <h2 className="panel-title">最近結果與報告</h2>
+                  <p className="panel-copy">如果你是要回看結果，可以直接從這裡進結果與報告。</p>
                 </div>
                 <Link className="button-secondary" href="/deliverables">
-                  看全部交付物
+                  看全部結果與報告
                 </Link>
               </div>
 
@@ -392,7 +392,7 @@ export function MattersPagePanel() {
                     );
                   })
                 ) : (
-                  <p className="empty-text">目前還沒有正式交付物。</p>
+                  <p className="empty-text">目前還沒有正式結果與報告。</p>
                 )}
               </div>
             </section>
@@ -400,7 +400,7 @@ export function MattersPagePanel() {
             <section className="panel">
               <div className="panel-header">
                 <div>
-                  <h2 className="panel-title">最近工作紀錄</h2>
+                  <h2 className="panel-title">最近分析項目</h2>
                   <p className="panel-copy">如果你要找最近做過什麼，先從這裡看最快。</p>
                 </div>
                 <Link className="button-secondary" href="/history">
@@ -416,7 +416,7 @@ export function MattersPagePanel() {
                     return (
                       <Link className="detail-item" href={`/tasks/${task.id}`} key={task.id}>
                         <div className="meta-row">
-                          <span className="pill">工作紀錄</span>
+                          <span className="pill">分析項目</span>
                           <span>{formatDisplayDate(task.updated_at)}</span>
                         </div>
                         <h3>{task.title}</h3>
@@ -426,7 +426,7 @@ export function MattersPagePanel() {
                     );
                   })
                 ) : (
-                  <p className="empty-text">目前還沒有可回看的工作紀錄。</p>
+                  <p className="empty-text">目前還沒有可回看的分析項目。</p>
                 )}
               </div>
             </section>

@@ -187,13 +187,13 @@ export function HistoryPagePanel() {
   const totalPages = Math.max(1, Math.ceil(filteredTasks.length / pageSize));
   const pagedTasks = filteredTasks.slice((page - 1) * pageSize, page * pageSize);
   const historyActionTitle =
-    selectedIds.length > 0 ? "你已選取歷史紀錄，可以直接整理" : "先縮小範圍，再決定是否整理";
+    selectedIds.length > 0 ? "你已選取分析項目，可以直接整理" : "先縮小範圍，再決定是否整理";
   const historyActionSummary =
     selectedIds.length > 0
       ? "這一頁的主操作是整理與收納歷史入口，而不是推進案件主線。你已經選了紀錄，可以直接做批次清理。"
-      : "先用搜尋與篩選把範圍縮小，再決定要打開原始工作紀錄，或把不需要的入口收起來。";
+      : "先用搜尋與篩選把範圍縮小，再決定要打開原始分析項目，或把不需要的入口收起來。";
   const historyActionChecklist = [
-    "先確認你現在是在回看歷史，還是在試圖推進主線；若要推進主線，應回案件或交付物工作面。",
+    "先確認你現在是在回看歷史，還是在試圖推進主線；若要推進主線，請回案件頁或回結果與報告。",
     selectedIds.length > 0
       ? `目前已選取 ${selectedIds.length} 筆紀錄，可直接做批次隱藏。`
       : "目前尚未選取任何紀錄；若你只是要找資料，先搜尋與篩選會比直接逐頁翻更快。",
@@ -241,7 +241,7 @@ export function HistoryPagePanel() {
   async function handleClearAll() {
     if (typeof window !== "undefined") {
       const confirmed = window.confirm(
-        "這只會把目前所有歷史入口標記為隱藏，不會刪除正式工作紀錄，確定要繼續嗎？",
+        "這只會把目前所有歷史入口標記為隱藏，不會刪除原本的分析項目，確定要繼續嗎？",
       );
 
       if (!confirmed) {
@@ -374,13 +374,13 @@ export function HistoryPagePanel() {
           <div className="hero-main">
             <span className="eyebrow">歷史紀錄</span>
             <h1 className="page-title">歷史紀錄</h1>
-            <p className="page-subtitle">用來找回過去做過的工作，快速回到你要接續的脈絡。</p>
+            <p className="page-subtitle">用來找回過去做過的分析項目，快速回到你要接續的脈絡。</p>
             <div className="hero-actions">
               <a className="button-primary" href="#history-tools-panel">
                 整理這一頁
               </a>
               <Link className="button-secondary" href="/matters">
-                回案件工作台
+                回案件頁
               </Link>
             </div>
           </div>
@@ -404,9 +404,9 @@ export function HistoryPagePanel() {
 
         <div className="hero-metrics-grid">
           <div className="section-card hero-metric-card">
-            <h3>可回看紀錄</h3>
+            <h3>可回看分析項目</h3>
             <p className="workbench-metric">{visibleTasks.length}</p>
-            <p className="muted-text">目前仍會顯示在系統裡的工作紀錄。</p>
+            <p className="muted-text">目前仍會顯示在系統裡的分析項目。</p>
           </div>
           <div className="section-card hero-metric-card">
             <h3>已隱藏</h3>
@@ -437,7 +437,7 @@ export function HistoryPagePanel() {
           <div className="panel-header">
             <div>
               <h2 className="panel-title">歷史整理工具</h2>
-              <p className="panel-copy">先用搜尋和篩選找出你要的紀錄，再決定是打開、隱藏，還是整理這一頁。</p>
+              <p className="panel-copy">先用搜尋和篩選找出你要的分析項目，再決定是打開、隱藏，還是整理這一頁。</p>
             </div>
           </div>
 
@@ -728,16 +728,16 @@ export function HistoryPagePanel() {
                         ) : null}
                         {item.deliverable_id ? (
                           <Link className="button-secondary" href={`/deliverables/${item.deliverable_id}`}>
-                            打開交付物
+                            回結果與報告
                           </Link>
                         ) : (
                           <Link className="button-secondary" href={`/tasks/${item.task_id}`}>
-                            打開工作紀錄
+                            打開分析項目
                           </Link>
                         )}
                         {item.matter_workspace_id ? (
                           <Link className="button-secondary" href={`/matters/${item.matter_workspace_id}`}>
-                            回案件工作面
+                            回案件頁
                           </Link>
                         ) : null}
                         {actionView.actions.map((action) => (
@@ -768,7 +768,7 @@ export function HistoryPagePanel() {
                 id="history-search"
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="搜尋任務、案件、交付物或描述"
+                placeholder="搜尋分析項目、案件、交付物或描述"
               />
             </div>
 
@@ -884,7 +884,7 @@ export function HistoryPagePanel() {
                         checked={selectedIds.includes(task.id)}
                         onChange={() => toggleSelection(task.id)}
                       />
-                      <span>選取這筆紀錄</span>
+                      <span>選取這筆分析項目</span>
                     </label>
                     <div className="meta-row">
                       <span className="pill">{labelForTaskType(task.task_type)}</span>
@@ -900,14 +900,14 @@ export function HistoryPagePanel() {
                     <p className="content-block">{truncateText(task.description, 90)}</p>
                     <div className="button-row" style={{ marginTop: "12px" }}>
                       <Link className="button-secondary" href={`/tasks/${task.id}`}>
-                        打開工作紀錄
+                        打開分析項目
                       </Link>
                       {task.matter_workspace?.id ? (
                         <Link
                           className="button-secondary"
                           href={`/matters/${task.matter_workspace.id}`}
                         >
-                          打開案件工作面
+                          打開案件頁
                         </Link>
                       ) : null}
                       <button
@@ -922,7 +922,7 @@ export function HistoryPagePanel() {
                 );
               })
             ) : (
-              <p className="empty-text">目前沒有符合條件的歷史紀錄。</p>
+              <p className="empty-text">目前沒有符合條件的歷史分析項目。</p>
             )}
           </div>
 
