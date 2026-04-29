@@ -120,9 +120,9 @@ type MatterTab = "overview" | "decision" | "evidence" | "deliverables" | "histor
 const MATTER_TABS: Array<{ key: MatterTab; label: string }> = [
   { key: "overview", label: "案件概覽" },
   { key: "decision", label: "決策問題" },
-  { key: "evidence", label: "來源與證據" },
-  { key: "deliverables", label: "交付物" },
-  { key: "history", label: "工作紀錄" },
+  { key: "evidence", label: "資料與證據" },
+  { key: "deliverables", label: "結果與報告" },
+  { key: "history", label: "分析項目" },
 ];
 
 const MATTER_TAB_PANEL_IDS: Record<MatterTab, string> = {
@@ -236,11 +236,11 @@ function buildNextStepNotes(matter: MatterWorkspace, evidenceCount: number) {
   }
 
   if (matter.related_deliverables[0]) {
-    nextSteps.push(`回看最近交付物「${matter.related_deliverables[0].title}」，確認是否需要改版。`);
+    nextSteps.push(`回看最近結果與報告「${matter.related_deliverables[0].title}」，確認是否需要改版。`);
   }
 
   if (matter.related_tasks[0]) {
-    nextSteps.push(`打開最近工作紀錄「${matter.related_tasks[0].title}」，確認主線是否已改變。`);
+    nextSteps.push(`打開最近分析項目「${matter.related_tasks[0].title}」，確認主線是否已改變。`);
   }
 
   if (matter.summary.active_task_count > 1) {
@@ -626,9 +626,9 @@ export function MatterWorkspacePanel({
         ? materialReviewPosture.primarySummary
       : flagshipLane?.summary
         || (latestDeliverable
-          ? `最近交付物：${latestDeliverable.title}`
+          ? `最近結果與報告：${latestDeliverable.title}`
           : focusTask
-            ? `焦點工作紀錄：${focusTask.title}`
+            ? `焦點分析項目：${focusTask.title}`
             : continuityPosture.primarySummary);
   const heroNextActionSummary = followUpLane?.next_follow_up_actions[0]
     || continuationAdvisoryView.nextStepQueue[0]
@@ -673,7 +673,7 @@ export function MatterWorkspacePanel({
 
     if (!focusTask) {
       setAdvanceTone("warning");
-      setAdvanceMessage("目前找不到可直接推進的工作紀錄，請先打開工作紀錄確認這輪主線。");
+      setAdvanceMessage("目前找不到可直接推進的分析項目，請先打開分析項目確認這輪主線。");
       return;
     }
 
@@ -682,8 +682,8 @@ export function MatterWorkspacePanel({
       setAdvanceTone(null);
       setAdvanceMessage(
         evidenceCount < 2
-          ? "正在先產出一版可回看的交付物骨架..."
-          : "正在執行分析並產出正式交付物...",
+          ? "正在先產出一版可回看的結果草稿..."
+          : "正在執行分析並產出正式結果...",
       );
       const result = await runTask(focusTask.id);
       await loadMatterWorkspace();
@@ -940,8 +940,8 @@ export function MatterWorkspacePanel({
                 <div className="meta-row" style={{ marginTop: "16px" }}>
                   <span className="pill">{labelForMatterStatus(matterStatus)}</span>
                   <span>更新於 {formatDisplayDate(fallbackRecord?.updatedAt || matter.summary.latest_updated_at)}</span>
-                  <span>{matter.summary.deliverable_count} 份交付物</span>
-                  <span>{matter.summary.total_task_count} 筆工作紀錄</span>
+                  <span>{matter.summary.deliverable_count} 份結果與報告</span>
+                  <span>{matter.summary.total_task_count} 筆分析項目</span>
                 </div>
 
                 <div className="deliverable-focus-card workspace-focus-card">
@@ -1065,7 +1065,7 @@ export function MatterWorkspacePanel({
                         disabled={isApplyingContinuation}
                       >
                         {isApplyingContinuation
-                          ? "寫回中..."
+                          ? "處理中..."
                           : continuationSurface.primary_action.label}
                       </button>
                     ) : latestDeliverable ? (
@@ -1073,7 +1073,7 @@ export function MatterWorkspacePanel({
                         className="button-primary"
                         href={`/deliverables/${latestDeliverable.deliverable_id}`}
                       >
-                        打開最近交付物
+                        打開最近結果與報告
                       </Link>
                     ) : advanceGuide.primaryActionLabel ? (
                       <button
@@ -1090,7 +1090,7 @@ export function MatterWorkspacePanel({
                     </Link>
                     {focusTask ? (
                       <Link className="button-secondary" href={`/tasks/${focusTask.id}`}>
-                        打開工作紀錄
+                        打開分析項目
                       </Link>
                     ) : null}
                   </div>
@@ -1124,14 +1124,14 @@ export function MatterWorkspacePanel({
                 </p>
               </div>
               <div className="section-card hero-metric-card">
-                <h3>來源與證據</h3>
+                <h3>資料與證據</h3>
                 <p className="workbench-metric">{evidenceCount}</p>
                 <p className="muted-text">{matter.summary.source_material_count} 份來源材料</p>
               </div>
               <div className="section-card hero-metric-card">
-                <h3>交付物</h3>
+                <h3>結果與報告</h3>
                 <p className="workbench-metric">{matter.summary.deliverable_count}</p>
-                <p className="muted-text">{matter.summary.total_task_count} 筆工作紀錄</p>
+                <p className="muted-text">{matter.summary.total_task_count} 筆分析項目</p>
               </div>
               <div className="section-card hero-metric-card">
                 <h3>已選擴充</h3>
@@ -1139,13 +1139,13 @@ export function MatterWorkspacePanel({
                   {matter.summary.selected_agent_names.length + matter.summary.selected_pack_names.length}
                 </p>
                 <p className="muted-text">
-                  {matter.summary.selected_agent_names.length} 個代理 / {matter.summary.selected_pack_names.length} 個模組包
+                  {matter.summary.selected_agent_names.length} 個代理工具 / {matter.summary.selected_pack_names.length} 個知識包
                 </p>
               </div>
             </div>
           </section>
 
-          <div className="page-tabs" role="tablist" aria-label="案件工作面頁籤">
+          <div className="page-tabs" role="tablist" aria-label="案件頁籤">
             {MATTER_TABS.map((tab) => (
               <button
                 key={tab.key}

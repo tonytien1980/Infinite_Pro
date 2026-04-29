@@ -85,6 +85,11 @@ test("high-traffic first-layer surfaces use the approved readable workspace name
   assert.doesNotMatch(deliverableHeroBlock, /交付物工作面/);
   assert.match(matterHeroBlock, /案件主控台|現在重點|目前卡住原因/);
   assert.doesNotMatch(matterHeroBlock, /最大 blocker/);
+  assert.match(matterHeroBlock, /結果與報告/);
+  assert.match(matterHeroBlock, /分析項目/);
+  assert.doesNotMatch(matterHeroBlock, /<h3>交付物<\/h3>/);
+  assert.doesNotMatch(matterHeroBlock, /工作紀錄/);
+  assert.doesNotMatch(matterHeroBlock, /代理 \/ 模組包/);
   assert.doesNotMatch(taskHeroCopySource, /回來更新 \/ checkpoint|outcome 鏈|review memo|正式 checkpoint/);
   assert.doesNotMatch(deliverableHeroCopySource, /checkpoint 版本|outcome 節奏|收斂成 checkpoint/);
 });
@@ -128,6 +133,7 @@ test("first-screen chrome uses the same readable labels on matter task evidence 
   assert.match(deliverableChromeBlock, /結果與報告/);
   assert.match(deliverableChromeBlock, /aria-label="頁面層級"/);
   assert.match(deliverableChromeBlock, /正在載入結果與報告/);
+  assert.doesNotMatch(deliverableChromeBlock, />\s*交付物\s*</);
   assert.doesNotMatch(deliverableChromeBlock, /交付物工作面/);
   assert.match(matterChromeBlock, /案件主控台/);
   assert.match(matterChromeBlock, /aria-label="頁面層級"/);

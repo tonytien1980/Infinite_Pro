@@ -1164,7 +1164,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
         </Link>
         <span className="workspace-breadcrumb-separator">/</span>
         <Link className="workspace-breadcrumb-link" href="/deliverables">
-          交付物
+          結果與報告
         </Link>
         {workspace?.matter_workspace ? (
           <>

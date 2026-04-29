@@ -61,6 +61,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
+    let redirectingToLogin = false;
 
     if (publicPath) {
       setAuthResolved(true);
@@ -77,11 +78,12 @@ export function AppShell({ children }: { children: ReactNode }) {
         }
       } catch (error) {
         if (!cancelled && isAuthError(error)) {
+          redirectingToLogin = true;
           window.location.href = getLoginPath(pathname);
           return;
         }
       } finally {
-        if (!cancelled) {
+        if (!cancelled && !redirectingToLogin) {
           setAuthResolved(true);
         }
       }

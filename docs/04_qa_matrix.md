@@ -6590,3 +6590,46 @@ Environment used:
 
 - this entry includes real authenticated browser proof for `/demo`, but it was established through imported local Chrome cookies rather than a fresh live OAuth click-through
 - the `?next=...` redirect fix itself is regression-tested in code and backend tests; the exact Google OAuth callback round-trip after the patch remains unverified in this specific browser pass
+
+---
+
+## Entry: 2026-04-30 Shell v2 merge-readiness review finding closure
+
+Scope:
+- close final review findings before merging `codex/shell-v2-hybrid-workbench`
+- prevent unauthenticated protected-route redirect from briefly rendering protected children
+- finish first-layer label cleanup on matter and deliverable high-visibility chrome
+
+Environment used:
+- frontend: `http://127.0.0.1:3000`
+- backend: `http://127.0.0.1:8000/api/v1`
+- Playwright CLI wrapper for unauthenticated browser smoke
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `source ~/.nvm/nvm.sh && cd frontend && node --test tests/auth-shell-controls.test.mjs` | Passed (`5 passed`) |
+| `source ~/.nvm/nvm.sh && cd frontend && node --test tests/low-noise-workbench-repass.test.mjs` | Passed (`17 passed`) |
+| `source ~/.nvm/nvm.sh && cd frontend && node --test tests/*.test.mjs` | Passed (`154 passed`) |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run build` | Passed |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run typecheck` | Passed |
+| `git diff --check` | Passed |
+
+### Browser verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Auth shell | `/ -> /login?next=%2F` | open app with Playwright CLI and inspect console/network evidence | Verified | page resolved to `/login?next=%2F`; only `/api/v1/auth/me` 401s were observed; no protected `tasks`, `matters`, `extensions`, `workbench`, `deliverables`, or `history` API calls appeared in the console log |
+| Authenticated work surfaces | `overview / matter / task / evidence / deliverable` | protected-route browser walkthrough | Not run | this finding-closure pass did not import authenticated cookies or rerun the full logged-in workspace tour |
+
+### Verified outcomes
+
+- unauthenticated protected-route redirects now keep the app shell gated while redirecting to login, preventing protected children from firing first-screen API requests before navigation finishes
+- matter first-screen chrome now uses first-layer labels such as `資料與證據`, `結果與報告`, and `分析項目`
+- deliverable breadcrumb now uses `結果與報告` instead of the older `交付物` label
+
+### Verification boundary
+
+- this pass verifies the unauthenticated redirect behavior with a real browser smoke, but does not replace the earlier authenticated Shell v2 browser walkthrough
+- the matter / deliverable language changes are verified by source-level regression tests, build, and typecheck rather than a fresh authenticated visual walkthrough in this specific pass

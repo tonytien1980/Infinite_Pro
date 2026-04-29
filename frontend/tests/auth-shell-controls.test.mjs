@@ -23,6 +23,14 @@ test("authenticated app shell exposes a logout control", () => {
   assert.match(source, /logoutCurrentSession/);
 });
 
+test("unauthenticated protected routes stay gated while redirecting to login", () => {
+  const source = readSource("../src/components/app-shell.tsx");
+
+  assert.match(source, /redirectingToLogin/);
+  assert.match(source, /redirectingToLogin = true/);
+  assert.match(source, /if \(!cancelled && !redirectingToLogin\) \{/);
+});
+
 test("new matter intake uses an explicit upload trigger instead of a bare visible file input", () => {
   const source = readSource("../src/components/task-create-form.tsx");
 
