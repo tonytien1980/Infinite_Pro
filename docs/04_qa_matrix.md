@@ -6633,3 +6633,50 @@ Environment used:
 
 - this pass verifies the unauthenticated redirect behavior with a real browser smoke, but does not replace the earlier authenticated Shell v2 browser walkthrough
 - the matter / deliverable language changes are verified by source-level regression tests, build, and typecheck rather than a fresh authenticated visual walkthrough in this specific pass
+
+---
+
+## Entry: 2026-04-30 Shell v2 final authenticated QA and merge readiness
+
+Scope:
+- final authenticated QA for `codex/shell-v2-hybrid-workbench` before landing to `main`
+- verify Shell v2 navigation, first-layer UI / UX language, and protected-route performance guardrails
+- close the last high-visibility `交付物` wording remnants observed during authenticated task / evidence / deliverable walkthroughs
+
+Environment used:
+- frontend: `http://127.0.0.1:3000`
+- backend: `http://127.0.0.1:8000/api/v1`
+- Docker Compose local runtime with backend, frontend, and database healthy
+- gstack `browse` authenticated through a temporary local QA session cookie created against the local backend session table
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `source ~/.nvm/nvm.sh && cd frontend && node --test tests/task-detail-usability.test.mjs tests/consultant-usability.test.mjs tests/low-noise-workbench-repass.test.mjs` | Passed (`48 passed`) |
+| `source ~/.nvm/nvm.sh && cd frontend && node --test tests/*.test.mjs` | Passed |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run build` | Passed |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run typecheck` | Passed |
+| `git diff --check` | Passed |
+
+### Authenticated browser verification
+
+| Area | Page / Flow | Action | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Overview shell | `/` | open authenticated overview with injected session cookie | Verified | shell rendered `tony tien｜Infinite Pro`, global nav, `登出`, and `建立新案件`; no login redirect |
+| Matter workspace | `/matters/[matterId]` | open current matter from overview | Verified | first screen rendered `案件主控台`, `資料與證據`, `結果與報告`, `分析項目`, and first-layer summary counts without the old `交付物 / 工作紀錄 / 代理 / 模組包` cluster |
+| Evidence workspace | `/matters/[matterId]/evidence` | open protected evidence workspace | Verified | first screen rendered `資料與證據`; copy now says `案件主控台或結果與報告`; backend calls returned `200`; no console errors |
+| Task workspace | `/tasks/[taskId]` | open protected task workspace | Verified | primary result action now renders `打開結果與報告`; backend task and extension calls returned `200`; no console errors |
+| Deliverable workspace | `/deliverables/[deliverableId]` | open protected result workspace | Verified | breadcrumb and hero use `結果與報告`; publish-check copy now says `這份結果`; backend deliverable calls returned `200`; no console errors |
+
+### Verified outcomes
+
+- authenticated Shell v2 workspace navigation is stable across overview, matter, evidence, task, and deliverable surfaces
+- protected workspace routes did not show the earlier unauthenticated API storm pattern; authenticated checks returned `200` and console errors stayed empty
+- high-visibility first-layer language now consistently presents `案件主控台`, `資料與證據`, `分析項目`, and `結果與報告`
+- task / evidence / deliverable first screens no longer expose the specific old wording remnants found during the final authenticated walkthrough
+
+### Verification boundary
+
+- this QA used a temporary local session cookie rather than a fresh Google OAuth login round-trip
+- historical persisted task / deliverable body text may still contain older domain wording from previously generated records; this pass only changed hardcoded first-layer UI guidance and navigation copy

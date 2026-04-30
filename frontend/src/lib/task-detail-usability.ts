@@ -53,7 +53,7 @@ export function buildTaskDetailUsabilityView(input: {
   hasContinuationSummary: boolean;
   continuationSummary: string;
 }): TaskDetailUsabilityView {
-  const primaryActionLabel = input.hasLatestDeliverable ? "打開正式交付物" : input.runButtonLabel;
+  const primaryActionLabel = input.hasLatestDeliverable ? "打開結果與報告" : input.runButtonLabel;
   const primaryHref = input.hasLatestDeliverable ? "#deliverable-surface" : "#run-panel";
   const handoffTarget =
     input.hasThinTaskEvidence && input.hasMatterWorkspace
@@ -71,7 +71,7 @@ export function buildTaskDetailUsabilityView(input: {
     handoffTarget === "matter"
       ? "先回案件工作台"
       : handoffTarget === "deliverable"
-        ? "先回正式交付物"
+        ? "先回結果與報告"
         : "先留在這次分析";
   const handoffReasonLabel =
     handoffTarget === "matter"
@@ -83,7 +83,7 @@ export function buildTaskDetailUsabilityView(input: {
     handoffTarget === "matter"
       ? "先回案件工作台補背景資訊與證據，再決定這輪要不要直接推進。"
       : handoffTarget === "deliverable"
-        ? "先回正式交付物閱讀、修訂或發布，不要只停在 task 摘要。"
+        ? "先回結果與報告閱讀、修訂或發布，不要只停在 task 摘要。"
         : "現在先留在這次分析，先判斷是否直接執行或先補局部缺口。";
   const guideItems: ConsultantGuideItem[] = [
     {
@@ -119,8 +119,8 @@ export function buildTaskDetailUsabilityView(input: {
       ? "現在最有槓桿的回退路徑是先補來源與證據，並回案件工作台補背景資訊，不要只停在分析摘要。"
       : handoffTarget === "deliverable"
         ? input.hasLatestDeliverable
-          ? `最新結果「${input.latestDeliverableTitle}」已形成，先回正式交付物通常最快。`
-          : "若這輪已接近正式結果閱讀，先回正式交付物比繼續停在分析摘要更有效。"
+          ? `最新結果「${input.latestDeliverableTitle}」已形成，先回結果與報告通常最快。`
+          : "若這輪已接近正式結果閱讀，先回結果與報告比繼續停在分析摘要更有效。"
         : "現在最有槓桿的是先留在這次分析，先決定要不要直接執行。";
   const operatingNotes: TaskOperatingNote[] = [
     {
@@ -186,7 +186,7 @@ export function buildTaskDetailUsabilityView(input: {
     railTitle: handoffTitle,
     railSummary:
       handoffTarget === "deliverable" && input.latestDeliverableTitle
-        ? `最新結果「${input.latestDeliverableTitle}」已形成，先回正式交付物閱讀、修訂或發布。`
+        ? `最新結果「${input.latestDeliverableTitle}」已形成，先回結果與報告閱讀、修訂或發布。`
         : handoffTarget === "task"
         ? "這輪還不需要離開這次分析，先決定要不要直接執行。"
         : "先回案件工作台補背景資訊與證據，再決定這輪要不要直接推進。",

@@ -289,10 +289,10 @@ export function buildDeliverableUsabilityView(input: {
     sectionGuideDescription:
       "首屏只留版本、能不能直接用與主要動作；摘要、依據、背景資訊、同步紀錄與後續狀態都放到第二層。",
     contextDisclosureDescription:
-      "當你要理解這份交付物在整個案件世界中的定位時，再展開這層；平常先看版本、姿態與主動作，摘要 / 建議 / 風險 / 行動都放第二層。",
+      "當你要理解這份結果在整個案件世界中的定位時，再展開這層；平常先看版本、姿態與主動作，摘要 / 建議 / 風險 / 行動都放第二層。",
     writebackDisclosureDescription: input.hasMatterWorkspace
-      ? "只有在你要確認這份交付物會怎麼寫回案件世界、研究脈絡怎麼進鏈，以及目前有哪些 decision / outcome records 時，再展開這層。"
-      : "只有在你要確認這份交付物的背景脈絡、研究來源與正式紀錄時，再展開這層。",
+      ? "只有在你要確認這份結果會怎麼寫回案件世界、研究脈絡怎麼進鏈，以及目前有哪些 decision / outcome records 時，再展開這層。"
+      : "只有在你要確認這份結果的背景脈絡、研究來源與正式紀錄時，再展開這層。",
     guideItems: [
       {
         href: "#deliverable-publish-check",

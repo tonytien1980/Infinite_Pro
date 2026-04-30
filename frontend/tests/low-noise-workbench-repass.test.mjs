@@ -76,6 +76,8 @@ test("high-traffic first-layer surfaces use the approved readable workspace name
     taskSource.match(/const taskActionTitle[\s\S]*?const taskActionChecklist = \[/)?.[0] ?? "";
   const deliverableHeroCopySource =
     deliverableSource.match(/const deliverableActionTitle[\s\S]*?const deliverableUsabilityView = /)?.[0] ?? "";
+  const evidenceHeroCopySource =
+    evidenceSource.match(/const evidenceActionTitle[\s\S]*?const evidenceSectionGuideItems = /)?.[0] ?? "";
 
   assert.match(taskHeroBlock, /分析工作台/);
   assert.doesNotMatch(taskHeroBlock, /決策工作面/);
@@ -91,7 +93,12 @@ test("high-traffic first-layer surfaces use the approved readable workspace name
   assert.doesNotMatch(matterHeroBlock, /工作紀錄/);
   assert.doesNotMatch(matterHeroBlock, /代理 \/ 模組包/);
   assert.doesNotMatch(taskHeroCopySource, /回來更新 \/ checkpoint|outcome 鏈|review memo|正式 checkpoint/);
+  assert.doesNotMatch(taskHeroBlock, /打開正式交付物/);
+  assert.doesNotMatch(evidenceHeroCopySource, /案件工作台或交付物|工作紀錄或交付物/);
+  assert.match(evidenceHeroCopySource, /案件主控台或結果與報告|分析項目或結果與報告/);
   assert.doesNotMatch(deliverableHeroCopySource, /checkpoint 版本|outcome 節奏|收斂成 checkpoint/);
+  assert.doesNotMatch(deliverableHeroCopySource, /這份交付物/);
+  assert.match(deliverableHeroCopySource, /這份結果/);
 });
 
 test("first-screen chrome uses the same readable labels on matter task evidence and deliverable surfaces", () => {

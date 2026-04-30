@@ -789,7 +789,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
     hasMatterWorkspace: Boolean(workspace?.matter_workspace),
   });
   const deliverableActionChecklist = [
-    "先確認這份交付物的標題、版本標記與狀態，避免在未整理版本時就直接發布。",
+    "先確認這份結果的標題、版本標記與狀態，避免在未整理版本時就直接發布。",
     hasPendingFormalSave
       ? "系統已先幫你整理出正式草稿；先儲存，再考慮匯出或發布。"
       : hasUnsavedChanges
@@ -820,10 +820,10 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
           href: "#deliverable-confidence",
           eyebrow: "核對適用範圍",
           title: "可信度、限制與缺口",
-          copy: "發布前先檢查這份交付物目前能支撐到什麼程度，以及還有哪些高影響缺口。",
+          copy: "發布前先檢查這份結果目前能支撐到什麼程度，以及還有哪些高影響缺口。",
           meta:
             workspaceView?.confidenceSummary ||
-            "先確認這份交付物目前憑什麼成立，以及還有哪些限制與缺口。",
+            "先確認這份結果目前憑什麼成立，以及還有哪些限制與缺口。",
           tone:
             deliverableUsabilityView.guideItems[2]?.tone === "warm"
               ? ("warm" as const)
@@ -844,7 +844,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
     : "目前尚未建立正式發布紀錄。";
   const deliverableConfidenceSurfaceSummary =
     workspaceView?.confidenceSummary ||
-    "先確認這份交付物目前憑什麼成立，以及還有哪些限制與缺口。";
+    "先確認這份結果目前憑什麼成立，以及還有哪些限制與缺口。";
 
   async function handleSaveWorkspace(nextStatus?: DeliverableLifecycleStatus) {
     if (!deliverable) {
@@ -1315,7 +1315,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
               <div>
                 <h2 className="panel-title">發布前快速檢查</h2>
                 <p className="panel-copy">
-                  第一屏已經告訴你這份交付物現在怎麼處理；這裡只保留發布前最需要再看一眼的提醒。
+                  第一屏已經告訴你這份結果現在怎麼處理；這裡只保留發布前最需要再看一眼的提醒。
                 </p>
               </div>
             </div>
@@ -1355,7 +1355,7 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                 <DeferredAdoptionFeedbackControls
                   surface="deliverable"
                   feedback={deliverable?.adoption_feedback}
-                  description="先用很輕的方式標記這份交付物是否可直接採用；若願意再補半拍，系統會更知道這次為什麼可用。"
+                  description="先用很輕的方式標記這份結果是否可直接採用；若願意再補半拍，系統會更知道這次為什麼可用。"
                   instanceId={`deliverable-${deliverable?.id ?? deliverableId}`}
                   isSubmitting={isApplyingDeliverableFeedback}
                   message={deliverableFeedbackMessage}

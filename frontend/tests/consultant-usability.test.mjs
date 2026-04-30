@@ -181,11 +181,11 @@ test("deliverable usability view keeps publish/read/evidence paths separate and 
   assert.equal(view.guideItems[0]?.href, "#deliverable-publish-check");
   assert.match(
     view.contextDisclosureDescription,
-    /當你要理解這份交付物在整個案件世界中的定位時/,
+    /當你要理解這份結果在整個案件世界中的定位時/,
   );
   assert.match(
     view.writebackDisclosureDescription,
-    /只有在你要確認這份交付物會怎麼寫回案件世界/,
+    /只有在你要確認這份結果會怎麼寫回案件世界/,
   );
 });
 

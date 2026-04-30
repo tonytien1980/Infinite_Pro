@@ -36,7 +36,7 @@ test("task detail usability view prefers deliverable handoff when a formal resul
     latestDeliverableTitle: "季度風險掃描 memo",
     hasMatterWorkspace: true,
     runButtonLabel: "執行分析",
-    runDestinationLabel: "最新結果已經形成，可直接回看正式交付物。",
+    runDestinationLabel: "最新結果已經形成，可直接回看結果與報告。",
     laneTitle: "目前交付等級",
     laneSummary: "已形成正式交付結果。",
     readinessLabel: "可直接推進",
@@ -51,7 +51,7 @@ test("task detail usability view prefers deliverable handoff when a formal resul
 
   assert.equal(view.handoffTarget, "deliverable");
   assert.equal(view.handoffHref, "#deliverable-surface");
-  assert.match(view.handoffSummary, /先回正式交付物閱讀、修訂或發布/);
+  assert.match(view.handoffSummary, /先回結果與報告閱讀、修訂或發布/);
 });
 
 test("task detail usability view makes the first action explicit when evidence is thin", () => {
@@ -105,7 +105,7 @@ test("task detail usability view points to deliverable when a result already exi
     latestDeliverableTitle: "市場風險評估 memo",
     hasMatterWorkspace: true,
     runButtonLabel: "執行分析",
-    runDestinationLabel: "最新結果已經形成，可直接回看正式交付物。",
+    runDestinationLabel: "最新結果已經形成，可直接回看結果與報告。",
     laneTitle: "目前交付等級",
     laneSummary: "已形成正式交付結果。",
     readinessLabel: "可直接推進",
@@ -114,11 +114,11 @@ test("task detail usability view points to deliverable when a result already exi
     sourceMaterialCount: 3,
   });
 
-  assert.equal(view.primaryActionLabel, "打開正式交付物");
+  assert.equal(view.primaryActionLabel, "打開結果與報告");
   assert.equal(view.primaryHref, "#deliverable-surface");
   assert.equal(view.guideItems[2]?.href, "#deliverable-surface");
   assert.equal(view.railEyebrow, "第二層回跳");
-  assert.match(view.railSummary, /先回正式交付物閱讀、修訂或發布/);
+  assert.match(view.railSummary, /先回結果與報告閱讀、修訂或發布/);
 });
 
 test("task detail usability view keeps the guide focused on readiness, run decision, and result destination", () => {
@@ -178,7 +178,7 @@ test("task detail usability view builds a result-first operating summary when a 
     latestDeliverableTitle: "季度風險掃描 memo",
     hasMatterWorkspace: true,
     runButtonLabel: "執行分析",
-    runDestinationLabel: "最新結果已經形成，可直接回看正式交付物。",
+    runDestinationLabel: "最新結果已經形成，可直接回看結果與報告。",
     laneTitle: "目前交付等級",
     laneSummary: "已形成正式交付結果。",
     readinessLabel: "可直接推進",

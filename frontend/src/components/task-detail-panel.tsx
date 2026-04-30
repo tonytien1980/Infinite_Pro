@@ -795,7 +795,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
         ? "這筆工作正在持續推進"
         : materialReviewPosture.shouldShow
           ? "這筆工作已有可回看的初步審閱結果"
-          : "這筆工作已有可回看的正式交付物"
+          : "這筆工作已有可回看的正式結果"
     : hasThinTaskEvidence
       ? "先補資料，或直接先跑第一版"
     : materialReviewPosture.shouldShow
@@ -857,9 +857,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
           eyebrow: "先看結果",
           title: latestDeliverable ? "正式交付結果" : "結果會寫到哪裡",
           copy: latestDeliverable
-            ? "這裡是最接近正式顧問交付物的閱讀主線，先看結論、建議與風險。"
-            : "執行分析後，結果會先寫回這個交付結果區，再往正式交付物工作面延伸。",
-          meta: latestDeliverable ? latestDeliverable.title : "目前尚未形成正式交付物。",
+            ? "這裡是最接近正式顧問結果的閱讀主線，先看結論、建議與風險。"
+            : "執行分析後，結果會先寫回這個區塊，再進入結果與報告整理版本。",
+          meta: latestDeliverable ? latestDeliverable.title : "目前尚未形成正式結果。",
           tone: "accent" as const,
         },
         {
@@ -899,7 +899,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
       : materialReviewPosture.shouldShow
         ? materialReviewPosture.nextStepHint
       : flagshipLane?.nextStepSummary || (latestDeliverable
-        ? `已形成交付物「${latestDeliverable.title}」`
+        ? `已形成結果「${latestDeliverable.title}」`
         : hasThinTaskEvidence
           ? "資料仍偏薄，建議補件或先跑第一版。"
           : "這筆工作已具備基本分析條件。");
@@ -983,7 +983,7 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                 <div className="button-row" style={{ marginTop: "4px" }}>
                   {latestDeliverable ? (
                     <Link className="button-primary" href={`/deliverables/${latestDeliverable.id}`}>
-                      打開正式交付物
+                      打開結果與報告
                     </Link>
                   ) : (
                     <button

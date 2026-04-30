@@ -294,7 +294,7 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
             ? `這一頁現在更偏向持續推進補件。${progressionLane.evidence_update_goal}`
             : "這一頁現在更偏向持續推進案件：先補資料與證據，再回案件工作台記錄推進狀態 / 結果。"
           : workspace && workspace.high_impact_gaps.length > 0
-            ? "這裡最重要的不是把資料看完，而是先補齊高影響缺口，避免案件工作台或交付物在證據不足下失真。"
+            ? "這裡最重要的不是把資料看完，而是先補齊高影響缺口，避免案件主控台或結果與報告在證據不足下失真。"
           : "這一頁負責釐清來源、工作物件與證據支撐鏈。先確認支撐鏈完整度，再回案件或分析會更有效率。";
   const evidenceSectionGuideItems = workspace
     ? buildEvidenceWorkspaceUsabilityView({
@@ -372,7 +372,7 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
     ? `${workspace.source_material_cards.length} 份來源材料、${workspace.artifact_cards.length} 份工作物件與 ${workspace.evidence_chains.length} 則證據已掛回同一個案件世界。${
         workspace.high_impact_gaps.length > 0
           ? ` 目前還有 ${workspace.high_impact_gaps.length} 個高影響缺口需要先補。`
-          : " 目前已具備基本支撐鏈，可回到工作紀錄或交付物續推。"
+          : " 目前已具備基本支撐鏈，可回到分析項目或結果與報告續推。"
       }`
     : "";
   const flagshipLane = workspace ? buildFlagshipLaneView(workspace.matter_summary.flagship_lane) : null;
