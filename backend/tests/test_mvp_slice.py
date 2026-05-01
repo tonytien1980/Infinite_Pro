@@ -1642,19 +1642,74 @@ def test_consultant_personal_provider_settings_reject_provider_outside_allowlist
     assert "目前 firm 尚未允許這組 provider / model" in response.json()["detail"]
 
 
-def test_consultant_run_fails_closed_without_personal_provider_settings(
+def test_consultant_run_uses_firm_default_when_no_personal_provider_settings(
     anonymous_client: TestClient,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     consultant_client = login_as_consultant_with_owner_invite(anonymous_client, monkeypatch)
 
-    created = consultant_client.post("/api/v1/tasks", json=create_task_payload("Provider gate"))
+    created = consultant_client.post("/api/v1/tasks", json=create_task_payload("Provider fallback"))
+    assert created.status_code == 201
+
+    run = consultant_client.post(f"/api/v1/tasks/{created.json()['id']}/run")
+
+    assert run.status_code == 200
+    assert run.json()["run"]["status"] in {"completed", "succeeded"}
+
+
+def test_consultant_run_with_disallowed_personal_provider_still_fails_closed(
+    anonymous_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.core.config import settings
+    from app.services.provider_secret_crypto import encrypt_provider_secret
+
+    monkeypatch.setattr(settings, "provider_secret_encryption_key", "phase5-fernet-test-key")
+    consultant_client = login_as_consultant_with_owner_invite(anonymous_client, monkeypatch)
+
+    with SessionLocal() as db:
+        consultant = db.scalar(select(models.User).where(models.User.email == "consultant@example.com"))
+        firm = db.scalar(select(models.Firm).where(models.Firm.slug == "infinite-pro-studio"))
+        assert consultant is not None
+        assert firm is not None
+
+        db.add(
+            models.ProviderAllowlistEntry(
+                firm_id=firm.id,
+                provider_id="openai",
+                model_level="balanced",
+                allowed_model_ids=["gpt-5.4-mini"],
+                allow_custom_model=False,
+                status="active",
+            )
+        )
+        db.add(
+            models.PersonalProviderCredential(
+                user_id=consultant.id,
+                provider_id="openai",
+                model_level="balanced",
+                model_id="gpt-5.4-pro",
+                custom_model_id=None,
+                base_url="https://api.openai.com/v1",
+                timeout_seconds=60,
+                api_key_ciphertext=encrypt_provider_secret("sk-consultant-disallowed"),
+                api_key_masked="••••owed",
+                last_validation_status="success",
+                last_validation_message="validated",
+            )
+        )
+        db.commit()
+
+    created = consultant_client.post(
+        "/api/v1/tasks",
+        json=create_task_payload("Disallowed personal provider"),
+    )
     assert created.status_code == 201
 
     run = consultant_client.post(f"/api/v1/tasks/{created.json()['id']}/run")
 
     assert run.status_code == 403
-    assert "先完成個人模型設定" in run.json()["detail"]
+    assert "firm 尚未允許" in run.json()["detail"]
 
 
 def test_owner_run_can_use_personal_provider_credential_when_global_provider_is_unavailable(

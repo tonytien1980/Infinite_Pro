@@ -308,7 +308,7 @@ def resolve_effective_provider_config_for_member(
 
     if role == "consultant":
         if credential is None or not credential.api_key_ciphertext:
-            raise ModelProviderAccessError("請先完成個人模型設定，才能執行分析。")
+            return resolve_effective_provider_config(db)
         allowlist = get_allowlist_entry(
             db,
             firm_id=firm_id,
