@@ -6,6 +6,7 @@ from uuid import uuid4
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
+from app.core.auth import CurrentMember
 from app.domain import models, schemas
 from app.ingestion.preprocess import normalize_text
 from app.ingestion.remote import RemoteSourceContent, fetch_remote_source
@@ -399,8 +400,9 @@ def ingest_remote_urls_for_task(
     *,
     origin: str = "manual",
     research_run_id: str | None = None,
+    current_member: CurrentMember | None = None,
 ) -> list[tuple[str, str, str | None, str | None]]:
-    task = get_loaded_task(db, task_id)
+    task = get_loaded_task(db, task_id, current_member=current_member)
     existing_storage_paths = {item.storage_path for item in task.uploads}
     ingested_refs: list[tuple[str, str, str | None, str | None]] = []
 
@@ -469,6 +471,8 @@ def ingest_sources_for_task(
     db: Session,
     task_id: str,
     payload: schemas.SourceIngestRequest,
+    *,
+    current_member: CurrentMember | None = None,
 ) -> schemas.SourceIngestBatchResponse:
     urls = [url.strip() for url in payload.urls if url.strip()]
     pasted_text = normalize_text(payload.pasted_text)
@@ -481,7 +485,7 @@ def ingest_sources_for_task(
             detail=f"單次最多只能補入 {MAX_INTAKE_MATERIAL_UNITS} 份材料；請分批補件。",
         )
 
-    task = get_loaded_task(db, task_id)
+    task = get_loaded_task(db, task_id, current_member=current_member)
     world_update_summary_parts: list[str] = []
     if pasted_text:
         world_update_summary_parts.append(
@@ -516,10 +520,16 @@ def ingest_sources_for_task(
         db.commit()
 
     ingested_refs.extend(
-        ingest_remote_urls_for_task(db=db, task_id=task_id, urls=urls, origin="manual")
+        ingest_remote_urls_for_task(
+            db=db,
+            task_id=task_id,
+            urls=urls,
+            origin="manual",
+            current_member=current_member,
+        )
     )
 
-    refreshed_task = get_loaded_task(db, task.id)
+    refreshed_task = get_loaded_task(db, task.id, current_member=current_member)
     aggregate = serialize_task(refreshed_task)
     ingested = [
         build_upload_result_item_from_aggregate(

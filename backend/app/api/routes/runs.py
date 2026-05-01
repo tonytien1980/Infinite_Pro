@@ -23,7 +23,8 @@ def run_task(
     db: Session = Depends(get_db),
 ) -> schemas.ResearchRunResponse:
     logger.info("Received run request for task %s", task_id)
-    ensure_task_allows_continuation_activity(get_loaded_task(db, task_id))
+    task = get_loaded_task(db, task_id, current_member=current_member)
+    ensure_task_allows_continuation_activity(task)
     try:
         orchestrator = HostOrchestrator(db, current_member=current_member)
         return orchestrator.orchestrate_task(task_id)
@@ -47,7 +48,8 @@ def run_research_synthesis(
     current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.ResearchRunResponse:
-    ensure_task_allows_continuation_activity(get_loaded_task(db, task_id))
+    task = get_loaded_task(db, task_id, current_member=current_member)
+    ensure_task_allows_continuation_activity(task)
     try:
         orchestrator = HostOrchestrator(db, current_member=current_member)
         return orchestrator.orchestrate_task(task_id)

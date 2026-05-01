@@ -11,6 +11,7 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session, object_session, selectinload
 
+from app.core.auth import CurrentMember
 from app.domain import models, schemas
 from app.domain.enums import (
     ActionType,
@@ -52,6 +53,16 @@ from app.services.adoption_feedback_intelligence import (
     summarize_adoption_feedback_reason,
 )
 from app.services.canonicalization import build_matter_canonicalization_contract
+from app.services.case_access import (
+    assert_deliverable_access,
+    assert_matter_access,
+    assert_task_access,
+    matter_access_statement,
+    scope_matter_identity,
+    stamp_matter_ownership,
+    stamp_task_ownership,
+    task_access_statement,
+)
 from app.services.case_command_loop import (
     build_decision_brief,
     build_matter_command,
@@ -4263,6 +4274,7 @@ def ensure_matter_workspace_for_seed(
     seed: CompiledCaseWorldSeed,
     continuity_mode: EngagementContinuityMode,
     writeback_depth: WritebackDepth,
+    current_member: CurrentMember | None = None,
 ) -> tuple[models.MatterWorkspace, bool]:
     matter_workspace = db.scalars(
         select(models.MatterWorkspace).where(
@@ -4276,6 +4288,8 @@ def ensure_matter_workspace_for_seed(
             engagement_continuity_mode=continuity_mode.value,
             writeback_depth=writeback_depth.value,
         )
+        if current_member is not None:
+            stamp_matter_ownership(matter_workspace, current_member)
         db.add(matter_workspace)
         db.flush()
         return matter_workspace, True
@@ -4308,6 +4322,7 @@ def ensure_matter_workspace_for_task(
     domain_lenses: list[str],
     continuity_mode: EngagementContinuityMode | None = None,
     writeback_depth: WritebackDepth | None = None,
+    current_member: CurrentMember | None = None,
 ) -> tuple[models.MatterWorkspace, bool]:
     identity = _derive_matter_workspace_identity(
         task,
@@ -4317,11 +4332,24 @@ def ensure_matter_workspace_for_task(
         decision_context,
         domain_lenses,
     )
-    matter_workspace = db.scalars(
-        select(models.MatterWorkspace).where(
-            models.MatterWorkspace.matter_key == str(identity["matter_key"])
-        )
-    ).one_or_none()
+    if current_member is not None:
+        identity = scope_matter_identity(identity, current_member)
+    linked_workspace = _get_linked_matter_workspace(task)
+    if linked_workspace is not None and current_member is None:
+        matter_workspace = linked_workspace
+    elif linked_workspace is not None and current_member is not None:
+        try:
+            matter_workspace = assert_matter_access(linked_workspace, current_member)
+        except HTTPException:
+            matter_workspace = None
+    else:
+        matter_workspace = None
+    if matter_workspace is None:
+        matter_workspace = db.scalars(
+            select(models.MatterWorkspace).where(
+                models.MatterWorkspace.matter_key == str(identity["matter_key"])
+            )
+        ).one_or_none()
     changed = False
     try:
         fallback_entry_preset = InputEntryMode(task.entry_preset)
@@ -4342,6 +4370,8 @@ def ensure_matter_workspace_for_task(
             engagement_continuity_mode=resolved_continuity_mode.value,
             writeback_depth=resolved_writeback_depth.value,
         )
+        if current_member is not None:
+            stamp_matter_ownership(matter_workspace, current_member)
         db.add(matter_workspace)
         db.flush()
         changed = True
@@ -6674,11 +6704,15 @@ def _load_tasks_for_matter_workspaces(
 def get_primary_task_for_matter(
     db: Session,
     matter_id: str,
+    *,
+    current_member: CurrentMember | None = None,
 ) -> models.Task:
     matter_workspace = db.scalars(
         select(models.MatterWorkspace).where(models.MatterWorkspace.id == matter_id)
     ).one_or_none()
-    if matter_workspace is None:
+    if current_member is not None:
+        matter_workspace = assert_matter_access(matter_workspace, current_member)
+    elif matter_workspace is None:
         raise HTTPException(status_code=404, detail="找不到指定案件。")
 
     related_tasks = _load_tasks_for_matter_workspaces(db, [matter_id]).get(matter_id, [])
@@ -6689,7 +6723,10 @@ def get_primary_task_for_matter(
         (item for item in related_tasks if item.status in {TaskStatus.READY.value, TaskStatus.RUNNING.value}),
         None,
     )
-    return active_task or related_tasks[0]
+    task = active_task or related_tasks[0]
+    if current_member is not None:
+        return assert_task_access(task, current_member)
+    return task
 
 
 def _latest_deliverable_for_tasks(related_tasks: list[models.Task]) -> tuple[models.Task | None, models.Deliverable | None]:
@@ -6734,20 +6771,24 @@ def apply_matter_continuation_action(
     db: Session,
     matter_id: str,
     payload: schemas.MatterContinuationActionRequest,
+    *,
+    current_member: CurrentMember | None = None,
 ) -> schemas.MatterWorkspaceResponse:
     matter_workspace = db.scalars(
         select(models.MatterWorkspace)
         .options(selectinload(models.MatterWorkspace.case_world_state))
         .where(models.MatterWorkspace.id == matter_id)
     ).one_or_none()
-    if matter_workspace is None:
+    if current_member is not None:
+        matter_workspace = assert_matter_access(matter_workspace, current_member)
+    elif matter_workspace is None:
         raise HTTPException(status_code=404, detail="找不到指定案件工作面。")
 
     related_tasks = _load_tasks_for_matter_workspaces(db, [matter_id]).get(matter_id, [])
     if not related_tasks:
         raise HTTPException(status_code=404, detail="這個案件目前還沒有可續推的工作。")
 
-    primary_task = get_primary_task_for_matter(db, matter_id)
+    primary_task = get_primary_task_for_matter(db, matter_id, current_member=current_member)
     continuity_mode, writeback_depth = resolve_continuity_policy_for_task(primary_task, matter_workspace)
     _, latest_deliverable = _latest_deliverable_for_tasks(related_tasks)
     summary = _normalize_whitespace(payload.summary)
@@ -6779,7 +6820,7 @@ def apply_matter_continuation_action(
             )
         )
         db.commit()
-        return get_matter_workspace(db, matter_id)
+        return get_matter_workspace(db, matter_id, current_member=current_member)
 
     if payload.action == "reopen":
         if continuity_mode != EngagementContinuityMode.ONE_OFF:
@@ -6802,7 +6843,7 @@ def apply_matter_continuation_action(
             )
         )
         db.commit()
-        return get_matter_workspace(db, matter_id)
+        return get_matter_workspace(db, matter_id, current_member=current_member)
 
     if _is_closed_one_off_workspace(matter_workspace):
         raise HTTPException(
@@ -6866,7 +6907,7 @@ def apply_matter_continuation_action(
             )
         )
         db.commit()
-        return get_matter_workspace(db, matter_id)
+        return get_matter_workspace(db, matter_id, current_member=current_member)
 
     if payload.action == "record_outcome":
         if continuity_mode != EngagementContinuityMode.CONTINUOUS or writeback_depth != WritebackDepth.FULL:
@@ -6999,7 +7040,7 @@ def apply_matter_continuation_action(
             )
         )
         db.commit()
-        return get_matter_workspace(db, matter_id)
+        return get_matter_workspace(db, matter_id, current_member=current_member)
 
     raise HTTPException(status_code=400, detail="不支援的 continuation action。")
 
@@ -7727,9 +7768,16 @@ def _build_precedent_reference_guidance_read(
     )
 
 
-def get_loaded_task(db: Session, task_id: str) -> models.Task:
+def get_loaded_task(
+    db: Session,
+    task_id: str,
+    *,
+    current_member: CurrentMember | None = None,
+) -> models.Task:
     statement = select(models.Task).options(*task_load_options()).where(models.Task.id == task_id)
     task = db.scalars(statement).unique().one_or_none()
+    if current_member is not None:
+        return assert_task_access(task, current_member)
     if task is None:
         raise HTTPException(status_code=404, detail="找不到指定任務。")
     return task
@@ -7739,8 +7787,10 @@ def update_task_extension_overrides(
     db: Session,
     task_id: str,
     payload: schemas.TaskExtensionOverrideRequest,
+    *,
+    current_member: CurrentMember | None = None,
 ) -> models.Task:
-    task = get_loaded_task(db, task_id)
+    task = get_loaded_task(db, task_id, current_member=current_member)
     pack_override_ids = _validate_pack_override_ids(
         _normalize_override_ids(payload.pack_override_ids)
     )
@@ -7773,15 +7823,17 @@ def update_task_extension_overrides(
         )
 
     db.commit()
-    return get_loaded_task(db, task.id)
+    return get_loaded_task(db, task.id, current_member=current_member)
 
 
 def approve_task_writeback_record(
     db: Session,
     task_id: str,
     payload: schemas.TaskWritebackApprovalRequest,
+    *,
+    current_member: CurrentMember | None = None,
 ) -> schemas.TaskAggregateResponse:
-    task = get_loaded_task(db, task_id)
+    task = get_loaded_task(db, task_id, current_member=current_member)
     matter_workspace = _get_linked_matter_workspace(task)
 
     if payload.target_type == "decision_record":
@@ -7846,10 +7898,15 @@ def approve_task_writeback_record(
         )
 
     db.commit()
-    return serialize_task(get_loaded_task(db, task.id))
+    return serialize_task(get_loaded_task(db, task.id, current_member=current_member))
 
 
-def create_task(db: Session, payload: schemas.TaskCreateRequest) -> models.Task:
+def create_task(
+    db: Session,
+    payload: schemas.TaskCreateRequest,
+    *,
+    current_member: CurrentMember,
+) -> models.Task:
     logger.info(
         "Creating task title=%s task_type=%s mode=%s",
         payload.title,
@@ -7858,12 +7915,15 @@ def create_task(db: Session, payload: schemas.TaskCreateRequest) -> models.Task:
     )
     _validate_material_unit_limit(_build_initial_material_snapshot(payload).total_count)
     compiled_seed = compile_case_world_seed_from_payload(payload)
+    compiled_seed.identity = scope_matter_identity(compiled_seed.identity, current_member)
     matter_workspace, _ = ensure_matter_workspace_for_seed(
         db,
         seed=compiled_seed,
         continuity_mode=payload.engagement_continuity_mode,
         writeback_depth=payload.writeback_depth,
+        current_member=current_member,
     )
+    stamp_matter_ownership(matter_workspace, current_member)
     world_state, _ = ensure_case_world_state_from_seed(
         db,
         matter_workspace=matter_workspace,
@@ -7878,6 +7938,7 @@ def create_task(db: Session, payload: schemas.TaskCreateRequest) -> models.Task:
         entry_preset=payload.entry_preset.value,
         status=TaskStatus.READY.value,
     )
+    stamp_task_ownership(task, current_member)
     db.add(task)
     db.flush()
 
@@ -8024,6 +8085,7 @@ def create_task(db: Session, payload: schemas.TaskCreateRequest) -> models.Task:
         compiled_seed.domain_lenses,
         payload.engagement_continuity_mode,
         payload.writeback_depth,
+        current_member=current_member,
     )
     world_state, _ = ensure_world_context_spine_for_task(
         db,
@@ -8042,7 +8104,7 @@ def create_task(db: Session, payload: schemas.TaskCreateRequest) -> models.Task:
     db.add(world_state)
 
     db.commit()
-    return get_loaded_task(db, task.id)
+    return get_loaded_task(db, task.id, current_member=current_member)
 
 
 def _build_task_list_item_response(
@@ -8170,8 +8232,16 @@ def _build_task_list_item_response(
     )
 
 
-def list_tasks(db: Session) -> list[schemas.TaskListItemResponse]:
-    statement = select(models.Task).options(*task_load_options()).order_by(models.Task.updated_at.desc())
+def list_tasks(
+    db: Session,
+    *,
+    current_member: CurrentMember,
+) -> list[schemas.TaskListItemResponse]:
+    statement = (
+        task_access_statement(current_member)
+        .options(*task_load_options())
+        .order_by(models.Task.updated_at.desc())
+    )
     tasks = db.scalars(statement).unique().all()
     matter_workspaces: dict[str, models.MatterWorkspace] = {}
     workspace_id_by_task_id: dict[str, str] = {}
@@ -8187,6 +8257,7 @@ def list_tasks(db: Session) -> list[schemas.TaskListItemResponse]:
             workstream,
             decision_context,
             domain_lenses,
+            current_member=current_member,
         )
         matter_workspaces[matter_workspace.id] = matter_workspace
         workspace_id_by_task_id[task.id] = matter_workspace.id
@@ -8206,9 +8277,15 @@ def list_tasks(db: Session) -> list[schemas.TaskListItemResponse]:
     ]
 
 
-def list_matter_workspaces(db: Session) -> list[schemas.MatterWorkspaceSummaryRead]:
+def list_matter_workspaces(
+    db: Session,
+    *,
+    current_member: CurrentMember,
+) -> list[schemas.MatterWorkspaceSummaryRead]:
     tasks = db.scalars(
-        select(models.Task).options(*task_load_options()).order_by(models.Task.updated_at.desc())
+        task_access_statement(current_member)
+        .options(*task_load_options())
+        .order_by(models.Task.updated_at.desc())
     ).unique().all()
     changed = False
 
@@ -8222,6 +8299,7 @@ def list_matter_workspaces(db: Session) -> list[schemas.MatterWorkspaceSummaryRe
             workstream,
             decision_context,
             domain_lenses,
+            current_member=current_member,
         )
         changed = changed or workspace_changed
 
@@ -8229,7 +8307,7 @@ def list_matter_workspaces(db: Session) -> list[schemas.MatterWorkspaceSummaryRe
         db.commit()
 
     matter_workspaces = db.scalars(
-        select(models.MatterWorkspace).order_by(models.MatterWorkspace.updated_at.desc())
+        matter_access_statement(current_member).order_by(models.MatterWorkspace.updated_at.desc())
     ).all()
     summary_by_id = _build_matter_workspace_summary_map(db, matter_workspaces)
     return sorted(
@@ -8239,13 +8317,20 @@ def list_matter_workspaces(db: Session) -> list[schemas.MatterWorkspaceSummaryRe
     )
 
 
-def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspaceResponse:
+def get_matter_workspace(
+    db: Session,
+    matter_id: str,
+    *,
+    current_member: CurrentMember | None = None,
+) -> schemas.MatterWorkspaceResponse:
     matter_workspace = db.scalars(
         select(models.MatterWorkspace)
         .options(selectinload(models.MatterWorkspace.case_world_state))
         .where(models.MatterWorkspace.id == matter_id)
     ).one_or_none()
-    if matter_workspace is None:
+    if current_member is not None:
+        matter_workspace = assert_matter_access(matter_workspace, current_member)
+    elif matter_workspace is None:
         raise HTTPException(status_code=404, detail="找不到指定案件工作面。")
     content_revisions = ensure_matter_content_revisions(db, matter_workspace)
 
@@ -8310,7 +8395,7 @@ def get_matter_workspace(db: Session, matter_id: str) -> schemas.MatterWorkspace
     for task in related_tasks:
         if not task.case_world_drafts:
             serialize_task(task)
-            task = get_loaded_task(db, task.id)
+            task = get_loaded_task(db, task.id, current_member=current_member)
         _, _, _, decision_context, _, source_materials, artifacts = _build_world_preferred_ontology_spine_for_task(task)
         input_entry_mode = _infer_input_entry_mode(task, source_materials, artifacts)
         external_research_heavy_candidate = _is_external_research_heavy_candidate(
@@ -8763,11 +8848,15 @@ def update_matter_workspace(
     db: Session,
     matter_id: str,
     payload: schemas.MatterWorkspaceUpdateRequest,
+    *,
+    current_member: CurrentMember | None = None,
 ) -> schemas.MatterWorkspaceResponse:
     matter_workspace = db.scalars(
         select(models.MatterWorkspace).where(models.MatterWorkspace.id == matter_id)
     ).one_or_none()
-    if matter_workspace is None:
+    if current_member is not None:
+        matter_workspace = assert_matter_access(matter_workspace, current_member)
+    elif matter_workspace is None:
         raise HTTPException(status_code=404, detail="找不到指定案件工作面。")
 
     previous_content_sections = _normalize_matter_content_sections(matter_workspace.content_sections)
@@ -8797,18 +8886,22 @@ def update_matter_workspace(
         )
     db.commit()
 
-    return get_matter_workspace(db, matter_id)
+    return get_matter_workspace(db, matter_id, current_member=current_member)
 
 
 def update_matter_workspace_metadata(
     db: Session,
     matter_id: str,
     payload: schemas.MatterWorkspaceMetadataUpdateRequest,
+    *,
+    current_member: CurrentMember | None = None,
 ) -> schemas.MatterWorkspaceResponse:
     matter_workspace = db.scalars(
         select(models.MatterWorkspace).where(models.MatterWorkspace.id == matter_id)
     ).one_or_none()
-    if matter_workspace is None:
+    if current_member is not None:
+        matter_workspace = assert_matter_access(matter_workspace, current_member)
+    elif matter_workspace is None:
         raise HTTPException(status_code=404, detail="找不到指定案件工作面。")
 
     return update_matter_workspace(
@@ -8833,6 +8926,7 @@ def update_matter_workspace_metadata(
                 ).next_steps,
             ),
         ),
+        current_member=current_member,
     )
 
 
@@ -8840,11 +8934,15 @@ def rollback_matter_content_revision(
     db: Session,
     matter_id: str,
     revision_id: str,
+    *,
+    current_member: CurrentMember | None = None,
 ) -> schemas.MatterWorkspaceResponse:
     matter_workspace = db.scalars(
         select(models.MatterWorkspace).where(models.MatterWorkspace.id == matter_id)
     ).one_or_none()
-    if matter_workspace is None:
+    if current_member is not None:
+        matter_workspace = assert_matter_access(matter_workspace, current_member)
+    elif matter_workspace is None:
         raise HTTPException(status_code=404, detail="找不到指定案件工作面。")
 
     target_revision = db.scalars(
@@ -8887,7 +8985,7 @@ def rollback_matter_content_revision(
         rollback_target_revision_id=target_revision.id,
     )
     db.commit()
-    return get_matter_workspace(db, matter_id)
+    return get_matter_workspace(db, matter_id, current_member=current_member)
 
 
 def _material_role_label(
@@ -8972,13 +9070,17 @@ def _build_evidence_support_note(
 def get_artifact_evidence_workspace(
     db: Session,
     matter_id: str,
+    *,
+    current_member: CurrentMember | None = None,
 ) -> schemas.ArtifactEvidenceWorkspaceResponse:
     matter_workspace = db.scalars(
         select(models.MatterWorkspace)
         .options(selectinload(models.MatterWorkspace.case_world_state))
         .where(models.MatterWorkspace.id == matter_id)
     ).one_or_none()
-    if matter_workspace is None:
+    if current_member is not None:
+        matter_workspace = assert_matter_access(matter_workspace, current_member)
+    elif matter_workspace is None:
         raise HTTPException(status_code=404, detail="找不到指定來源 / 證據工作面。")
 
     related_tasks = _load_tasks_for_matter_workspaces(db, [matter_workspace.id]).get(
@@ -9049,7 +9151,7 @@ def get_artifact_evidence_workspace(
     for task in related_tasks:
         if not task.case_world_drafts:
             serialize_task(task)
-            task = get_loaded_task(db, task.id)
+            task = get_loaded_task(db, task.id, current_member=current_member)
         task_title = task.title
         task_spine = _build_world_preferred_ontology_spine_for_task(task)
         decision_context = task_spine[3]
@@ -9685,14 +9787,19 @@ def _build_deliverable_confidence_summary(
 def get_deliverable_workspace(
     db: Session,
     deliverable_id: str,
+    *,
+    current_member: CurrentMember | None = None,
 ) -> schemas.DeliverableWorkspaceResponse:
-    deliverable_row = db.scalars(
-        select(models.Deliverable).where(models.Deliverable.id == deliverable_id)
-    ).one_or_none()
+    if current_member is not None:
+        deliverable_row = assert_deliverable_access(db, deliverable_id, current_member)
+    else:
+        deliverable_row = db.scalars(
+            select(models.Deliverable).where(models.Deliverable.id == deliverable_id)
+        ).one_or_none()
     if deliverable_row is None:
         raise HTTPException(status_code=404, detail="找不到指定交付物工作面。")
 
-    task = get_loaded_task(db, deliverable_row.task_id)
+    task = get_loaded_task(db, deliverable_row.task_id, current_member=current_member)
     task_aggregate = serialize_task(task)
     deliverable = next(
         (item for item in task_aggregate.deliverables if item.id == deliverable_id),
@@ -9812,7 +9919,11 @@ def get_deliverable_workspace(
     related_deliverables: list[schemas.MatterDeliverableSummaryRead] = []
     continuity_notes: list[str] = []
     if task_aggregate.matter_workspace:
-        matter_workspace = get_matter_workspace(db, task_aggregate.matter_workspace.id)
+        matter_workspace = get_matter_workspace(
+            db,
+            task_aggregate.matter_workspace.id,
+            current_member=current_member,
+        )
         related_deliverables = [
             item
             for item in matter_workspace.related_deliverables
@@ -9932,14 +10043,19 @@ def get_deliverable_workspace(
 def _load_deliverable_and_task(
     db: Session,
     deliverable_id: str,
+    *,
+    current_member: CurrentMember | None = None,
 ) -> tuple[models.Deliverable, models.Task]:
-    deliverable = db.scalars(
-        select(models.Deliverable).where(models.Deliverable.id == deliverable_id)
-    ).one_or_none()
+    if current_member is not None:
+        deliverable = assert_deliverable_access(db, deliverable_id, current_member)
+    else:
+        deliverable = db.scalars(
+            select(models.Deliverable).where(models.Deliverable.id == deliverable_id)
+        ).one_or_none()
     if deliverable is None:
         raise HTTPException(status_code=404, detail="找不到指定交付物工作面。")
 
-    task = db.scalars(select(models.Task).where(models.Task.id == deliverable.task_id)).one_or_none()
+    task = get_loaded_task(db, deliverable.task_id, current_member=current_member)
     if task is None:
         raise HTTPException(status_code=404, detail="找不到交付物對應的任務。")
 
@@ -10127,8 +10243,14 @@ def update_deliverable_workspace(
     db: Session,
     deliverable_id: str,
     payload: schemas.DeliverableWorkspaceUpdateRequest,
+    *,
+    current_member: CurrentMember | None = None,
 ) -> schemas.DeliverableWorkspaceResponse:
-    deliverable, task = _load_deliverable_and_task(db, deliverable_id)
+    deliverable, task = _load_deliverable_and_task(
+        db,
+        deliverable_id,
+        current_member=current_member,
+    )
     _apply_deliverable_workspace_update(
         db,
         deliverable,
@@ -10141,15 +10263,21 @@ def update_deliverable_workspace(
         event_note=payload.event_note,
     )
     db.commit()
-    return get_deliverable_workspace(db, deliverable_id)
+    return get_deliverable_workspace(db, deliverable_id, current_member=current_member)
 
 
 def update_deliverable_metadata(
     db: Session,
     deliverable_id: str,
     payload: schemas.DeliverableMetadataUpdateRequest,
+    *,
+    current_member: CurrentMember | None = None,
 ) -> schemas.DeliverableWorkspaceResponse:
-    deliverable, _ = _load_deliverable_and_task(db, deliverable_id)
+    deliverable, _ = _load_deliverable_and_task(
+        db,
+        deliverable_id,
+        current_member=current_member,
+    )
     current_sections = _normalize_deliverable_content_sections(deliverable.content_sections)
     return update_deliverable_workspace(
         db,
@@ -10168,6 +10296,7 @@ def update_deliverable_metadata(
                 evidence_basis=current_sections.evidence_basis,
             ),
         ),
+        current_member=current_member,
     )
 
 
@@ -10175,8 +10304,14 @@ def rollback_deliverable_content_revision(
     db: Session,
     deliverable_id: str,
     revision_id: str,
+    *,
+    current_member: CurrentMember | None = None,
 ) -> schemas.DeliverableWorkspaceResponse:
-    deliverable, task = _load_deliverable_and_task(db, deliverable_id)
+    deliverable, task = _load_deliverable_and_task(
+        db,
+        deliverable_id,
+        current_member=current_member,
+    )
     target_revision = db.scalars(
         select(models.DeliverableContentRevision).where(
             models.DeliverableContentRevision.id == revision_id,
@@ -10226,7 +10361,7 @@ def rollback_deliverable_content_revision(
         db.add(content_revision)
 
     db.commit()
-    return get_deliverable_workspace(db, deliverable_id)
+    return get_deliverable_workspace(db, deliverable_id, current_member=current_member)
 
 
 def _build_deliverable_export_filename(
@@ -10334,8 +10469,14 @@ def publish_deliverable_release(
     db: Session,
     deliverable_id: str,
     payload: schemas.DeliverablePublishRequest,
+    *,
+    current_member: CurrentMember | None = None,
 ) -> schemas.DeliverableWorkspaceResponse:
-    deliverable, task = _load_deliverable_and_task(db, deliverable_id)
+    deliverable, task = _load_deliverable_and_task(
+        db,
+        deliverable_id,
+        current_member=current_member,
+    )
     update_result = _apply_deliverable_workspace_update(
         db,
         deliverable,
@@ -10348,7 +10489,7 @@ def publish_deliverable_release(
         event_note="",
     )
 
-    workspace = get_deliverable_workspace(db, deliverable_id)
+    workspace = get_deliverable_workspace(db, deliverable_id, current_member=current_member)
     version_tag = str(update_result["version_tag"])
     publish_note = payload.publish_note.strip()
     artifact_formats = _unique_preserve_order(
@@ -10430,7 +10571,7 @@ def publish_deliverable_release(
     db.add(publish_event)
     db.commit()
 
-    return get_deliverable_workspace(db, deliverable_id)
+    return get_deliverable_workspace(db, deliverable_id, current_member=current_member)
 
 
 def _render_deliverable_markdown_artifact(
@@ -10500,9 +10641,15 @@ def _render_deliverable_markdown_artifact(
 def build_deliverable_markdown_export(
     db: Session,
     deliverable_id: str,
+    *,
+    current_member: CurrentMember | None = None,
 ) -> tuple[str, str, str]:
-    workspace = get_deliverable_workspace(db, deliverable_id)
-    deliverable_row, _ = _load_deliverable_and_task(db, deliverable_id)
+    workspace = get_deliverable_workspace(db, deliverable_id, current_member=current_member)
+    deliverable_row, _ = _load_deliverable_and_task(
+        db,
+        deliverable_id,
+        current_member=current_member,
+    )
     filename, content, version_tag = _render_deliverable_markdown_artifact(workspace)
     export_event = record_deliverable_version_event(
         db,
@@ -10609,9 +10756,15 @@ def _render_deliverable_docx_artifact(
 def build_deliverable_docx_export(
     db: Session,
     deliverable_id: str,
+    *,
+    current_member: CurrentMember | None = None,
 ) -> tuple[str, bytes, str]:
-    workspace = get_deliverable_workspace(db, deliverable_id)
-    deliverable_row, _ = _load_deliverable_and_task(db, deliverable_id)
+    workspace = get_deliverable_workspace(db, deliverable_id, current_member=current_member)
+    deliverable_row, _ = _load_deliverable_and_task(
+        db,
+        deliverable_id,
+        current_member=current_member,
+    )
     filename, content, version_tag = _render_deliverable_docx_artifact(workspace)
     export_event = record_deliverable_version_event(
         db,
@@ -10659,7 +10812,11 @@ def download_deliverable_artifact(
     db: Session,
     deliverable_id: str,
     artifact_id: str,
+    *,
+    current_member: CurrentMember | None = None,
 ) -> tuple[str, bytes, str, str, str]:
+    if current_member is not None:
+        assert_deliverable_access(db, deliverable_id, current_member)
     artifact_record = db.scalars(
         select(models.DeliverableArtifactRecord).where(
             models.DeliverableArtifactRecord.id == artifact_id,
@@ -12241,8 +12398,13 @@ def update_deliverable_precedent_candidate_status(
     db: Session,
     deliverable_id: str,
     payload: schemas.PrecedentCandidateStatusUpdateRequest,
+    *,
+    current_member: CurrentMember | None = None,
 ) -> schemas.DeliverableWorkspaceResponse:
-    deliverable = db.scalars(select(models.Deliverable).where(models.Deliverable.id == deliverable_id)).one_or_none()
+    if current_member is not None:
+        deliverable = assert_deliverable_access(db, deliverable_id, current_member)
+    else:
+        deliverable = db.scalars(select(models.Deliverable).where(models.Deliverable.id == deliverable_id)).one_or_none()
     if deliverable is None:
         raise HTTPException(status_code=404, detail="找不到指定交付物。")
 
@@ -12258,7 +12420,7 @@ def update_deliverable_precedent_candidate_status(
         operator_label=_normalize_operator_label(payload.operator_label),
     )
     db.commit()
-    return get_deliverable_workspace(db, deliverable_id)
+    return get_deliverable_workspace(db, deliverable_id, current_member=current_member)
 
 
 def update_recommendation_precedent_candidate_status(
@@ -12266,8 +12428,10 @@ def update_recommendation_precedent_candidate_status(
     task_id: str,
     recommendation_id: str,
     payload: schemas.PrecedentCandidateStatusUpdateRequest,
+    *,
+    current_member: CurrentMember | None = None,
 ) -> schemas.TaskAggregateResponse:
-    task = get_loaded_task(db, task_id)
+    task = get_loaded_task(db, task_id, current_member=current_member)
     recommendation = next((item for item in task.recommendations if item.id == recommendation_id), None)
     if recommendation is None:
         raise HTTPException(status_code=404, detail="找不到指定建議。")
@@ -12284,7 +12448,7 @@ def update_recommendation_precedent_candidate_status(
         operator_label=_normalize_operator_label(payload.operator_label),
     )
     db.commit()
-    refreshed_task = get_loaded_task(db, task_id)
+    refreshed_task = get_loaded_task(db, task_id, current_member=current_member)
     return serialize_task(refreshed_task)
 
 
@@ -12292,12 +12456,17 @@ def apply_deliverable_adoption_feedback(
     db: Session,
     deliverable_id: str,
     payload: schemas.AdoptionFeedbackRequest,
+    *,
+    current_member: CurrentMember | None = None,
 ) -> schemas.DeliverableWorkspaceResponse:
-    deliverable = db.scalars(select(models.Deliverable).where(models.Deliverable.id == deliverable_id)).one_or_none()
+    if current_member is not None:
+        deliverable = assert_deliverable_access(db, deliverable_id, current_member)
+    else:
+        deliverable = db.scalars(select(models.Deliverable).where(models.Deliverable.id == deliverable_id)).one_or_none()
     if deliverable is None:
         raise HTTPException(status_code=404, detail="找不到指定交付物。")
 
-    task = get_loaded_task(db, deliverable.task_id)
+    task = get_loaded_task(db, deliverable.task_id, current_member=current_member)
     matter_workspace = _get_linked_matter_workspace(task)
     feedback = db.scalars(
         select(models.AdoptionFeedback).where(models.AdoptionFeedback.deliverable_id == deliverable_id)
@@ -12346,7 +12515,7 @@ def apply_deliverable_adoption_feedback(
         deliverable=deliverable,
     )
     db.commit()
-    return get_deliverable_workspace(db, deliverable_id)
+    return get_deliverable_workspace(db, deliverable_id, current_member=current_member)
 
 
 def apply_recommendation_adoption_feedback(
@@ -12354,8 +12523,10 @@ def apply_recommendation_adoption_feedback(
     task_id: str,
     recommendation_id: str,
     payload: schemas.AdoptionFeedbackRequest,
+    *,
+    current_member: CurrentMember | None = None,
 ) -> schemas.TaskAggregateResponse:
-    task = get_loaded_task(db, task_id)
+    task = get_loaded_task(db, task_id, current_member=current_member)
     recommendation = next((item for item in task.recommendations if item.id == recommendation_id), None)
     if recommendation is None:
         raise HTTPException(status_code=404, detail="找不到指定建議。")
@@ -12408,12 +12579,17 @@ def apply_recommendation_adoption_feedback(
         recommendation=recommendation,
     )
     db.commit()
-    refreshed_task = get_loaded_task(db, task_id)
+    refreshed_task = get_loaded_task(db, task_id, current_member=current_member)
     return serialize_task(refreshed_task)
 
 
-def get_task_history(db: Session, task_id: str) -> schemas.TaskHistoryResponse:
-    task = get_loaded_task(db, task_id)
+def get_task_history(
+    db: Session,
+    task_id: str,
+    *,
+    current_member: CurrentMember | None = None,
+) -> schemas.TaskHistoryResponse:
+    task = get_loaded_task(db, task_id, current_member=current_member)
     client, engagement, workstream, decision_context, _, source_materials, artifacts = _build_world_preferred_ontology_spine_for_task(
         task
     )

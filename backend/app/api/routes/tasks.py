@@ -27,7 +27,7 @@ def create_task_route(
     current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.TaskAggregateResponse:
-    task = create_task(db, payload)
+    task = create_task(db, payload, current_member=current_member)
     return serialize_task(task)
 
 
@@ -36,7 +36,7 @@ def list_tasks_route(
     current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> list[schemas.TaskListItemResponse]:
-    return list_tasks(db)
+    return list_tasks(db, current_member=current_member)
 
 
 @router.get("/{task_id}", response_model=schemas.TaskAggregateResponse)
@@ -45,7 +45,7 @@ def get_task_route(
     current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.TaskAggregateResponse:
-    task = get_loaded_task(db, task_id)
+    task = get_loaded_task(db, task_id, current_member=current_member)
     return serialize_task(task)
 
 
@@ -56,7 +56,12 @@ def update_task_extensions_route(
     current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.TaskAggregateResponse:
-    task = update_task_extension_overrides(db, task_id, payload)
+    task = update_task_extension_overrides(
+        db,
+        task_id,
+        payload,
+        current_member=current_member,
+    )
     return serialize_task(task)
 
 
@@ -67,7 +72,7 @@ def approve_task_writeback_route(
     current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.TaskAggregateResponse:
-    return approve_task_writeback_record(db, task_id, payload)
+    return approve_task_writeback_record(db, task_id, payload, current_member=current_member)
 
 
 @router.post(
@@ -81,7 +86,13 @@ def apply_recommendation_adoption_feedback_route(
     current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.TaskAggregateResponse:
-    return apply_recommendation_adoption_feedback(db, task_id, recommendation_id, payload)
+    return apply_recommendation_adoption_feedback(
+        db,
+        task_id,
+        recommendation_id,
+        payload,
+        current_member=current_member,
+    )
 
 
 @router.post(
@@ -100,6 +111,7 @@ def update_recommendation_precedent_candidate_status_route(
         task_id,
         recommendation_id,
         payload,
+        current_member=current_member,
     )
 
 
@@ -109,4 +121,4 @@ def get_task_history_route(
     current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.TaskHistoryResponse:
-    return get_task_history(db, task_id)
+    return get_task_history(db, task_id, current_member=current_member)

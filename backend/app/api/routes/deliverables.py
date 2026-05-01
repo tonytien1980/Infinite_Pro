@@ -29,7 +29,7 @@ def get_deliverable_workspace_route(
     current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.DeliverableWorkspaceResponse:
-    return get_deliverable_workspace(db, deliverable_id)
+    return get_deliverable_workspace(db, deliverable_id, current_member=current_member)
 
 
 @router.put("/{deliverable_id}/metadata", response_model=schemas.DeliverableWorkspaceResponse)
@@ -39,7 +39,7 @@ def update_deliverable_metadata_route(
     current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.DeliverableWorkspaceResponse:
-    return update_deliverable_metadata(db, deliverable_id, payload)
+    return update_deliverable_metadata(db, deliverable_id, payload, current_member=current_member)
 
 
 @router.put("/{deliverable_id}/workspace", response_model=schemas.DeliverableWorkspaceResponse)
@@ -49,7 +49,7 @@ def update_deliverable_workspace_route(
     current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.DeliverableWorkspaceResponse:
-    return update_deliverable_workspace(db, deliverable_id, payload)
+    return update_deliverable_workspace(db, deliverable_id, payload, current_member=current_member)
 
 
 @router.post("/{deliverable_id}/publish", response_model=schemas.DeliverableWorkspaceResponse)
@@ -59,7 +59,7 @@ def publish_deliverable_release_route(
     current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.DeliverableWorkspaceResponse:
-    return publish_deliverable_release(db, deliverable_id, payload)
+    return publish_deliverable_release(db, deliverable_id, payload, current_member=current_member)
 
 
 @router.post("/{deliverable_id}/feedback", response_model=schemas.DeliverableWorkspaceResponse)
@@ -69,7 +69,12 @@ def apply_deliverable_adoption_feedback_route(
     current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.DeliverableWorkspaceResponse:
-    return apply_deliverable_adoption_feedback(db, deliverable_id, payload)
+    return apply_deliverable_adoption_feedback(
+        db,
+        deliverable_id,
+        payload,
+        current_member=current_member,
+    )
 
 
 @router.post(
@@ -82,7 +87,12 @@ def update_deliverable_precedent_candidate_status_route(
     current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.DeliverableWorkspaceResponse:
-    return update_deliverable_precedent_candidate_status(db, deliverable_id, payload)
+    return update_deliverable_precedent_candidate_status(
+        db,
+        deliverable_id,
+        payload,
+        current_member=current_member,
+    )
 
 
 @router.post(
@@ -95,7 +105,12 @@ def rollback_deliverable_content_revision_route(
     current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.DeliverableWorkspaceResponse:
-    return rollback_deliverable_content_revision(db, deliverable_id, revision_id)
+    return rollback_deliverable_content_revision(
+        db,
+        deliverable_id,
+        revision_id,
+        current_member=current_member,
+    )
 
 
 @router.get("/{deliverable_id}/export")
@@ -104,7 +119,11 @@ def export_deliverable_markdown_route(
     current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> Response:
-    filename, content, version_tag = build_deliverable_markdown_export(db, deliverable_id)
+    filename, content, version_tag = build_deliverable_markdown_export(
+        db,
+        deliverable_id,
+        current_member=current_member,
+    )
     return Response(
         content=content,
         media_type="text/markdown; charset=utf-8",
@@ -122,7 +141,11 @@ def export_deliverable_docx_route(
     current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> Response:
-    filename, content, version_tag = build_deliverable_docx_export(db, deliverable_id)
+    filename, content, version_tag = build_deliverable_docx_export(
+        db,
+        deliverable_id,
+        current_member=current_member,
+    )
     return Response(
         content=content,
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -145,6 +168,7 @@ def download_deliverable_artifact_route(
         db,
         deliverable_id,
         artifact_id,
+        current_member=current_member,
     )
     return Response(
         content=content,

@@ -20,8 +20,14 @@ def upload_task_files(
     current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.UploadBatchResponse:
-    ensure_task_allows_continuation_activity(get_loaded_task(db, task_id))
-    return save_uploads_for_task(db=db, task_id=task_id, files=files)
+    task = get_loaded_task(db, task_id, current_member=current_member)
+    ensure_task_allows_continuation_activity(task)
+    return save_uploads_for_task(
+        db=db,
+        task_id=task_id,
+        files=files,
+        current_member=current_member,
+    )
 
 
 @router.post("/{task_id}/sources", response_model=schemas.SourceIngestBatchResponse)
@@ -31,5 +37,11 @@ def ingest_task_sources(
     current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.SourceIngestBatchResponse:
-    ensure_task_allows_continuation_activity(get_loaded_task(db, task_id))
-    return ingest_sources_for_task(db=db, task_id=task_id, payload=payload)
+    task = get_loaded_task(db, task_id, current_member=current_member)
+    ensure_task_allows_continuation_activity(task)
+    return ingest_sources_for_task(
+        db=db,
+        task_id=task_id,
+        payload=payload,
+        current_member=current_member,
+    )

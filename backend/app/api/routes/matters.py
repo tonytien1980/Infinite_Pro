@@ -29,7 +29,7 @@ def list_matter_workspaces_route(
     current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> list[schemas.MatterWorkspaceSummaryRead]:
-    return list_matter_workspaces(db)
+    return list_matter_workspaces(db, current_member=current_member)
 
 
 @router.get("/{matter_id}", response_model=schemas.MatterWorkspaceResponse)
@@ -38,7 +38,7 @@ def get_matter_workspace_route(
     current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.MatterWorkspaceResponse:
-    return get_matter_workspace(db, matter_id)
+    return get_matter_workspace(db, matter_id, current_member=current_member)
 
 
 @router.put("/{matter_id}/metadata", response_model=schemas.MatterWorkspaceResponse)
@@ -48,7 +48,7 @@ def update_matter_workspace_metadata_route(
     current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.MatterWorkspaceResponse:
-    return update_matter_workspace_metadata(db, matter_id, payload)
+    return update_matter_workspace_metadata(db, matter_id, payload, current_member=current_member)
 
 
 @router.put("/{matter_id}/workspace", response_model=schemas.MatterWorkspaceResponse)
@@ -58,7 +58,7 @@ def update_matter_workspace_route(
     current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.MatterWorkspaceResponse:
-    return update_matter_workspace(db, matter_id, payload)
+    return update_matter_workspace(db, matter_id, payload, current_member=current_member)
 
 
 @router.post("/{matter_id}/continuation", response_model=schemas.MatterWorkspaceResponse)
@@ -68,7 +68,7 @@ def apply_matter_continuation_action_route(
     current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.MatterWorkspaceResponse:
-    return apply_matter_continuation_action(db, matter_id, payload)
+    return apply_matter_continuation_action(db, matter_id, payload, current_member=current_member)
 
 
 @router.post("/{matter_id}/revisions/{revision_id}/rollback", response_model=schemas.MatterWorkspaceResponse)
@@ -78,7 +78,12 @@ def rollback_matter_content_revision_route(
     current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.MatterWorkspaceResponse:
-    return rollback_matter_content_revision(db, matter_id, revision_id)
+    return rollback_matter_content_revision(
+        db,
+        matter_id,
+        revision_id,
+        current_member=current_member,
+    )
 
 
 @router.get(
@@ -90,7 +95,7 @@ def get_artifact_evidence_workspace_route(
     current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.ArtifactEvidenceWorkspaceResponse:
-    return get_artifact_evidence_workspace(db, matter_id)
+    return get_artifact_evidence_workspace(db, matter_id, current_member=current_member)
 
 
 @router.post(
@@ -103,12 +108,13 @@ def apply_matter_canonicalization_review_route(
     current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.ArtifactEvidenceWorkspaceResponse:
+    get_matter_workspace(db, matter_id, current_member=current_member)
     apply_matter_canonicalization_review(
         db,
         matter_workspace_id=matter_id,
         payload=payload,
     )
-    return get_artifact_evidence_workspace(db, matter_id)
+    return get_artifact_evidence_workspace(db, matter_id, current_member=current_member)
 
 
 @router.post("/{matter_id}/uploads", response_model=schemas.UploadBatchResponse)
@@ -118,9 +124,14 @@ def upload_matter_files_route(
     current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.UploadBatchResponse:
-    task = get_primary_task_for_matter(db, matter_id)
+    task = get_primary_task_for_matter(db, matter_id, current_member=current_member)
     ensure_task_allows_continuation_activity(task)
-    return save_uploads_for_task(db=db, task_id=task.id, files=files)
+    return save_uploads_for_task(
+        db=db,
+        task_id=task.id,
+        files=files,
+        current_member=current_member,
+    )
 
 
 @router.post("/{matter_id}/sources", response_model=schemas.SourceIngestBatchResponse)
@@ -130,6 +141,11 @@ def ingest_matter_sources_route(
     current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.SourceIngestBatchResponse:
-    task = get_primary_task_for_matter(db, matter_id)
+    task = get_primary_task_for_matter(db, matter_id, current_member=current_member)
     ensure_task_allows_continuation_activity(task)
-    return ingest_sources_for_task(db=db, task_id=task.id, payload=payload)
+    return ingest_sources_for_task(
+        db=db,
+        task_id=task.id,
+        payload=payload,
+        current_member=current_member,
+    )

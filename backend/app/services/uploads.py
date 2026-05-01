@@ -6,6 +6,7 @@ from uuid import uuid4
 from fastapi import HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
+from app.core.auth import CurrentMember
 from app.domain import models, schemas
 from app.domain.enums import TaskStatus
 from app.ingestion.files import analyze_upload_content
@@ -63,6 +64,8 @@ def save_uploads_for_task(
     db: Session,
     task_id: str,
     files: list[UploadFile],
+    *,
+    current_member: CurrentMember | None = None,
 ) -> schemas.UploadBatchResponse:
     if not files:
         raise HTTPException(status_code=400, detail="至少需要上傳一個檔案。")
@@ -72,7 +75,7 @@ def save_uploads_for_task(
             detail=f"單次最多只能上傳 {MAX_INTAKE_MATERIAL_UNITS} 份檔案；請分批補件。",
         )
 
-    task = get_loaded_task(db, task_id)
+    task = get_loaded_task(db, task_id, current_member=current_member)
     matter_workspace_id = _linked_matter_workspace_id(task)
     continuity_scope = "world_shared" if matter_workspace_id else SLICE_PARTICIPATION_CONTINUITY_SCOPE
     follow_up_summary = (
@@ -359,7 +362,7 @@ def save_uploads_for_task(
         raise HTTPException(status_code=400, detail="沒有任何檔案成功上傳。")
 
     db.commit()
-    refreshed_task = get_loaded_task(db, task.id)
+    refreshed_task = get_loaded_task(db, task.id, current_member=current_member)
     aggregate = serialize_task(refreshed_task)
     uploaded = [
         build_upload_result_item_from_aggregate(
