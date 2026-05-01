@@ -267,6 +267,26 @@ test("precedent candidate view explains shared intelligence status without inter
 
   assert.equal(view.shareStatusLabel, "需檢查");
   assert.match(view.shareStatusSummary, /先不自動進入強參考/);
-  assert.doesNotMatch(view.shareStatusSummary, /candidate_status|share_status|surveillance/);
+  assert.doesNotMatch(view.shareStatusSummary, /candidate_status|share_status|surveillance|治理視圖/);
   assert.doesNotMatch(view.summary, /candidate_status|share_status|surveillance/);
+});
+
+test("precedent candidate fallback share-status copy avoids internal governance wording", () => {
+  const view = buildPrecedentCandidateView({
+    candidate_type: "deliverable_pattern",
+    candidate_status: "candidate",
+    share_status: "needs_review",
+    risk_flags: [],
+    risk_summary: "",
+    positive_signal_count: 0,
+    negative_signal_count: 1,
+    summary: "可重用交付骨架",
+    reusable_reason: "適合一般營運診斷。",
+    source_feedback_operator_label: "顧問 A",
+    created_by_label: "顧問 A",
+    last_status_changed_by_label: "",
+  });
+
+  assert.equal(view.shareStatusSummary, "這筆內容先保留待確認，不會直接成為強參考。");
+  assert.doesNotMatch(view.shareStatusSummary, /治理視圖|candidate_status|share_status/);
 });

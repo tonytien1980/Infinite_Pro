@@ -71,7 +71,7 @@ function summarizeShareStatus(candidate: {
     return "這個模式已被多次正向使用，可以作為較強參考。";
   }
   if (candidate.share_status === "needs_review") {
-    return "這筆內容先留在治理視圖，不會直接成為強參考。";
+    return "這筆內容先保留待確認，不會直接成為強參考。";
   }
   return "這筆內容已進入共享判讀，但目前只作為弱訊號參考。";
 }

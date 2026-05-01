@@ -112,4 +112,8 @@ test("provider fallback explanation keeps personal key priority and firm fallbac
     providerSettings.buildProviderFallbackExplanation?.("owner"),
     "事務所預設模型會作為沒有個人金鑰時的備援。",
   );
+  assert.equal(
+    providerSettings.buildProviderFallbackExplanation?.("demo"),
+    "示範帳號不能執行正式分析。",
+  );
 });
