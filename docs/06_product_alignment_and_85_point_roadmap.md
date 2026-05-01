@@ -892,7 +892,38 @@ phase close review 的結論只能落在以下四種：
 
 ---
 
-## 12. How Future Sessions Must Use This Doc
+## 12. Multi-Consultant Ontology Intelligence Readiness
+
+這一輪正式補上的是 single-firm private beta readiness，而不是 public multi-tenant SaaS。
+
+正式目標：
+
+- 單一 firm 內 3 到 5 位 trusted consultants 可各自辦案
+- raw matter / task / material / deliverable / history 預設依顧問與 owner 邊界隔離
+- shared intelligence 只共享抽象後的判斷模式、模板線索、風險提醒與可重用經驗
+- trusted consultant feedback 可自動進入 shared intelligence，但必須先經 risk gates
+- `needs_review` 不得進入 Host reference；`provisional` 只能作為弱訊號；`validated` 才可成為較強 reusable guidance
+- Host 引用 shared intelligence 時只能放 prompt-safe guidance，不得把跨顧問 raw case content 放回模型上下文
+- provider precedence 改為 personal key first；沒有個人 key 時使用 firm default fallback
+- 本階段不做 billing system、顧問排名、績效監控、產能監控或 owner surveillance dashboard
+
+這一階段主要推進：
+
+- `A ontology-first 顧問分析工具`
+- `D 自我優化與回饋能力`
+- `F 可產品化成熟度`
+- `G consultant usability`
+
+正式規則：
+
+- 不可把這階段誤寫成 public launch readiness
+- 不可把 shared intelligence 誤寫成 raw cross-consultant case search
+- 不可為了 owner visibility 把工作台改成監控後台
+- 若後續要進 public multi-firm SaaS，必須另開更高層級的 tenancy、support、ops、security 與 commercial readiness 規格
+
+---
+
+## 13. How Future Sessions Must Use This Doc
 
 下一個新對話或未來 session 若要繼續推 Infinite Pro，正式讀取順序應至少是：
 
@@ -920,7 +951,7 @@ phase close review 的結論只能落在以下四種：
 
 ---
 
-## 13. Relationship To Other Active Docs
+## 14. Relationship To Other Active Docs
 
 - `docs/00_product_definition_and_current_state.md`
   承接產品正式身份、能力邊界、目前 phase 與 active product truth

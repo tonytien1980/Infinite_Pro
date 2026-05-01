@@ -61,6 +61,11 @@ Host 正式負責：
 - domain playbooks 在 v2 可開始吸收 cross-matter organization memory，但只能由 Host 轉成為何適用 / 收斂依據 / stage hints；不可把 related matters 自動展開成 playbook library 或 CRM shell
 - 若 precedent 已開始帶 shared-intelligence evolution signal，Host 只可把它當成 safe weighting hint 與 explainability 來源，不可把它變成顧問排名、資歷分級或黑箱 correctness score
 - 若 precedent 已開始帶 shared-intelligence weighting，Host 只可把它用在 reusable assets 的 source ordering；不可把它擴寫成全域 orchestration 自動化或 manual weighting console
+- 若 precedent 已開始帶 `share_status` risk gate，Host 必須先看 `share_status` 再決定是否可進 prompt-safe reference：
+  - `needs_review` 一律排除，不得進模型上下文
+  - `provisional` 只能作為弱訊號或背景提醒
+  - `validated` 才可成為較強 reusable guidance
+- Host reference 不得把跨顧問 raw case content、客戶原文、附件正文或可識別敏感細節放進模型上下文
 - reusable review lenses、common risk libraries、deliverable shape hints、deliverable templates、domain playbooks 之間的角色必須保持分離：
   - review lenses = 先看角度
   - common risks = 漏看提醒
@@ -142,6 +147,8 @@ Infinite Pro 裡的 AI 不是整套系統本身，而是推理與生成引擎。
 - 不可把 model provider 升格成產品主腦，也不可把 Host / Agent / Pack 邊界混成同一層
 - phase 5 第二個 slice 之後，provider resolution 也必須誠實理解為 current-member-aware：
   - task run 由 Host 進場時，先按 `owner / consultant / demo` 決定 provider precedence
+  - consultant 明確設定個人 provider / model 時仍受 firm allowlist 約束，不合規就 fail closed
+  - consultant 沒有個人 key 時可使用 firm default fallback，不需要為了 private beta 被迫先完成個人金鑰設定
   - extension contract draft synthesis 仍留在 provider boundary 內，不得繞過身份與 allowlist 邏輯
 
 ### 3.4 Execution modes

@@ -51,6 +51,23 @@ Infinite Pro 的正式商業定位也應一起理解為：
   - 每位顧問各自辦自己的案件
   - 系統再把不同案件留下的 precedent / memory / feedback / writeback 累積成共享 intelligence
 
+### 2.2 Single-Firm Private Beta Readiness
+
+在本 private-beta readiness slice 之後，Infinite Pro 的 multi-consultant 方向應先被理解為：
+
+- 單一 firm、3 到 5 位受信任顧問的 private beta
+- 每位顧問各自建立與推進自己的案件
+- raw matter / task / material / deliverable / history 預設只對建立者與 owner 可見
+- 顧問之間共享的是抽象後的判斷模式、模板線索、風險提醒與可重用經驗，不是彼此原始案件內容
+- owner 負責品質、provider、安全邊界與 shared intelligence governance
+- owner governance 不等於顧問排名、績效監控、產能監控或監控後台
+
+正式規則：
+
+- 這不是 public multi-tenant SaaS readiness
+- 這不是把產品改成 enterprise admin console
+- 這是讓同一間顧問公司內的 trusted consultants 各自辦案，同時讓系統安全累積共享判讀能力
+
 ---
 
 ## 3. What Infinite Pro Is and Is Not
@@ -632,10 +649,19 @@ Infinite Pro 目前最強的，不是「任何事情都能做」，而是以下�
 
 ### 9.2 System-layer gaps
 
-- multi-user / RBAC / multi-tenant governance
+- enterprise RBAC / multi-tenant governance
 - enterprise-grade dynamic security / ABAC / marking
 - production-grade object storage serving / purge jobs / conflict merge
 - OCR-heavy ingestion、`.pptx`、壓縮包
+
+已不應再被列為完整空白的部分：
+
+- single-firm owner / consultant / demo foundation 已成立
+- single-firm private beta 的 raw case privacy 已開始落地：
+  - 顧問只讀自己的 matter / task / material / deliverable / history
+  - owner 可治理同 firm records 與 legacy unowned records
+  - demo 不讀正式 firm workspace
+- 仍未完成的是 enterprise-grade RBAC、public multi-tenant tenancy、跨公司隔離與 production support / ops readiness
 - external secret manager 等級的 secret posture
 
 ### 9.3 Bridge / compatibility notes
@@ -775,7 +801,8 @@ Infinite Pro 目前沒有也不應硬對齊於：
   - firm-scoped `ProviderAllowlistEntry`
   - owner / consultant 已有 personal-provider / provider-allowlist backend route
   - task run / extension draft synthesis 已開始吃 current-member-aware provider resolution
-  - consultant 缺少個人 key 時，run path 已 fail-closed
+  - consultant 若明確設定個人 provider / model，仍受 firm allowlist 約束，不合規時 run path 會 fail-closed
+  - consultant 若尚未設定個人 key，run path 會使用 firm default provider 作為事務所預設備援
   - `/settings` 已正式拆成 `Firm Settings` 與 `Personal Provider Settings`
   - owner 現在可在 UI 內管理 provider allowlist
 - 因此 phase 5 目前最明確的下一個 slice 應理解為：

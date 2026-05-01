@@ -6680,3 +6680,49 @@ Environment used:
 
 - this QA used a temporary local session cookie rather than a fresh Google OAuth login round-trip
 - historical persisted task / deliverable body text may still contain older domain wording from previously generated records; this pass only changed hardcoded first-layer UI guidance and navigation copy
+
+---
+
+## Entry: 2026-05-01 multi-consultant ontology intelligence readiness slice verification
+
+Scope:
+- prepare Infinite Pro for a single-firm private beta with 3 to 5 trusted consultants
+- enforce raw matter / task privacy while preserving shared intelligence as abstracted guidance
+- add shared-intelligence risk gates before Host-safe precedent reference
+- allow consultant personal provider keys first, with firm default fallback when no personal key exists
+- update high-visibility frontend copy for shared intelligence and provider fallback
+
+Environment used:
+- backend local test environment with `.venv312`
+- frontend node test environment
+- no authenticated browser QA in this slice entry
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -k "consultants_only_list_their_own_tasks_and_matters or consultant_cannot_mutate_or_run_another_consultants_task" -q` | Passed (`2 passed`) |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -k "consultant_organization_memory_guidance_excludes_other_consultant_matter" -q` | Passed (`1 passed`) |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -k "shared_intelligence or reference_eligible or precedent" -q` | Passed (`34 passed`) |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -k "provider" -q` | Passed (`14 passed`) |
+| `source ~/.nvm/nvm.sh && cd frontend && node --test tests/consultant-usability.test.mjs tests/product-language.test.mjs tests/provider-settings-foundation.test.mjs` | Passed (`37 passed`) |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run typecheck` | Passed |
+
+### Verified outcomes
+
+- consultant task and matter listing now respects creator ownership inside the same firm
+- cross-consultant read / mutate / run paths fail closed instead of relying on frontend filtering
+- cross-matter organization memory guidance is scoped to the current member and no longer leaks another consultant's matter summary
+- `needs_review`, missing, and unknown share-status candidates are excluded from Host-safe precedent reference
+- `provisional` candidates require share-gate evidence before they can become weak reference guidance
+- consultant runs can use firm default provider fallback when no personal key exists
+- explicit consultant personal provider settings still fail closed when outside firm allowlist
+- frontend copy now explains `共享判讀`, `暫時可用`, `已驗證`, `需檢查`, and provider fallback in consultant-readable Traditional Chinese
+
+### Verification boundary
+
+- this entry records targeted backend and frontend regression tests from the implementation slices
+- no full frontend build was run for this slice entry
+- no authenticated browser QA was run for this slice entry
+- final branch-close verification should rerun broader backend/frontend gates before push or merge

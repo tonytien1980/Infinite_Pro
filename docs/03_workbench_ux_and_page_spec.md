@@ -228,6 +228,30 @@ Task 3 起，`/new`、高流量列表頁與回跳入口的第一層文案，正�
 - over-explained
 - mixed English / Chinese when the English is not needed for user action
 
+### 2.3.2 Private-beta shared intelligence language
+
+single-firm private beta 之後，多顧問與 shared intelligence 的 visible copy 必須維持低噪音、可理解，避免把系統做成監控後台。
+
+第一層正式用字：
+
+- `shared intelligence` -> `共享判讀`
+- `provisional` -> `暫時可用`
+- `validated` -> `已驗證`
+- `needs_review` -> `需檢查`
+- `personal key first, firm default fallback` -> `你可以使用自己的模型金鑰；沒有設定時，系統會使用事務所預設模型`
+
+正式規則：
+
+- 顧問不需要先理解 `share_status`、`risk_flags`、`provider precedence` 才能操作
+- owner-facing governance copy 應說明品質、安全與共享判讀狀態，不可寫成顧問排名或績效觀測
+- 第一層 copy 不可使用：
+  - `顧問排名`
+  - `績效排名`
+  - `監控後台`
+  - `產能監控`
+  - `surveillance`
+- 若需要解釋 `需檢查`，第一層應用「這筆內容先保留待確認，不會直接成為強參考」這類說法，不要說成系統判定顧問做錯
+
 ---
 
 ## 3. Global Workbench Rules
@@ -1357,6 +1381,11 @@ Primary action：
   - `權重趨勢：...`
   - `共享穩定度：...`
   - 不可把這層做成 consultant ranking、專家分級或手動調權後台
+- 若 precedent review lane 已開始帶 share-status risk gate，第一層狀態應優先用：
+  - `暫時可用`
+  - `已驗證`
+  - `需檢查`
+  而不是直接露出 `provisional / validated / needs_review`
 
 ### 9.2.2 Precedent reference reading
 
@@ -1393,6 +1422,7 @@ Primary action：
   - `權重趨勢：...`
   - `共享穩定度：...`
   - 不可把這層做成 consultant ranking、資歷分級或共享權重控制器
+- 若 precedent 已開始帶 share-status risk gate，UI 應把 `需檢查` 解釋成「先保留待確認，不會直接成為強參考」，不可寫成顧問做錯或系統扣分
 - 若 reusable assets 已開始吃 shared-intelligence weighting，前台也不應新增新的 weighting page 或控制列；最多只允許在既有 source label 上低噪音暗示：
   - `共享模式優先`
 - boundary copy 應明講：

@@ -285,8 +285,10 @@ Ontology 在 Infinite Pro 中是：
 
 - `MatterWorkspaceResponse.matter_command`
   - tells the workbench what the current case command posture is
+  - in single-firm private beta, carries ownership metadata such as `firm_id` and `created_by_user_id` when surfaced through backend contracts
 - `TaskAggregateResponse.decision_brief`
   - tells task and deliverable surfaces what the current formal decision posture is
+  - reads must already be filtered by current-member access before this response is assembled
 - `TaskAggregateResponse.writeback_approval`
   - tells task and deliverable surfaces whether this round is mainly about formal approval, candidate review, or minimal writeback
 
@@ -520,6 +522,32 @@ matter workspace 採：
   - `syncing`
   - `sync_failed`
   - `needs_review`
+
+### 6.6A Consultant ownership boundary
+
+single-firm private beta 之後，raw case data 必須先依身份與建立者收斂，不可把多位顧問的案件資料做成共用搜尋池。
+
+第一版 ownership contract：
+
+- `Task`
+  - `firm_id`
+  - `created_by_user_id`
+- `MatterWorkspace`
+  - `firm_id`
+  - `created_by_user_id`
+
+正式讀取規則：
+
+- `owner` 可讀同 firm records，也可讀 legacy unowned records
+- `consultant` 只可讀同 firm 且由自己建立的 records
+- `demo` 不可讀正式 firm workspace records
+- 被 access boundary 擋下的 raw task / matter / material / deliverable / history read 應回 `404`，避免暴露其他顧問案件是否存在
+
+正式規則：
+
+- 這是 raw case privacy boundary，不是 shared intelligence boundary
+- shared intelligence 只可共享抽象後的 prompt-safe guidance
+- blocked raw reads 不可用 frontend filtering 假裝完成；backend query / load path 必須同時受 current member 約束
 
 ### 6.7 Deliverable release integrity boundary
 
@@ -820,6 +848,43 @@ deliverable workspace 採：
   - 讓 decay 先走一步，而不是直接硬刪
 - 若 feedback 更新實際造成 candidate status 改變，且 request 帶有 `operator_label`，第一波可把這次 feedback operator 寫回 `last_status_changed_by_label`
 - 這層仍屬 feedback-driven lifecycle handling，不等於整體 shared-intelligence lifecycle 已完成成熟化
+
+### 6.9D Shared intelligence share-status risk gate v1
+
+single-firm private beta 之後，trusted consultant feedback 可自動產生 reusable intelligence，但每筆 candidate 必須先帶一層 share-status risk gate。
+
+`PrecedentCandidate` 第一版新增 contract：
+
+- `share_status`
+  - `provisional`
+  - `validated`
+  - `needs_review`
+- `risk_flags`
+- `risk_summary`
+- `positive_signal_count`
+- `negative_signal_count`
+
+第一版風險旗標至少包括：
+
+- `sensitive_detail`
+- `high_risk_domain`
+- `low_reuse_confidence`
+- `needs_revision`
+- `not_adopted`
+
+Host-safe reference 規則：
+
+- `needs_review` 不得進入 Host reference，直到被重新整理、修正或升格
+- 缺少 share-status evidence、未知狀態或舊資料預設 fail closed，不可當作安全 precedent 直接引用
+- `provisional` 只能作為弱訊號、提醒或背景參考
+- `validated` 可作為較強 reusable guidance，但仍必須經 Host 壓縮成 prompt-safe guidance
+- prompt context 不得包含跨顧問 raw case content、客戶原文、附件正文或可識別的敏感細節
+
+正式規則：
+
+- share-status risk gate 不等於 consultant ranking
+- share-status risk gate 不等於 correctness score
+- 這層是在決定「這筆 shared intelligence 目前可被 Host 安全參考到什麼程度」
 
 ### 6.10 Precedent candidate pool
 
@@ -1725,14 +1790,21 @@ Object storage 負責：
   - `demo` 只能走 `access_demo_workspace`
   - demo data source 與正式 firm workspace data source 分離
   - demo route 不得回讀正式 matter / deliverable / history objects
+- single-firm private beta 之後，raw case access 還必須遵守 creator boundary：
+  - `owner` 可讀同 firm records 與 legacy unowned records
+  - `consultant` 只可讀同 firm 且由自己建立的 records
+  - `demo` 不可讀正式 firm records
+  - 被擋下的 raw read / upload / source ingest / run path 應回 `404` 或 fail closed，不可只靠前端隱藏
 
 因此這一層目前應被理解為：
 
 - cloud-ready identity / access foundation
+- single-firm private beta raw case privacy foundation
 
 不是：
 
 - completed multi-user operating layer
+- public multi-tenant tenancy layer
 - finished tenant isolation shell
 - enterprise RBAC matrix
 
@@ -2741,7 +2813,8 @@ phase 5 auth foundation 之後，這裡也必須補一條正式邊界：
 - owner / consultant 已能透過 backend contract 讀 personal provider state
 - owner 已能管理 provider allowlist backend route
 - Host / runs / extension draft synthesis 已開始吃 current-member-aware provider resolution
-- consultant 缺少 personal provider credential 時，run path 會 fail-closed
+- consultant 若明確設定 personal provider credential，該 provider / model 仍必須通過 firm allowlist，不合規時 run path 會 fail-closed
+- consultant 若沒有 personal provider credential 或沒有可用 key，run path 會回到 DB persisted runtime config / `.env` baseline 形成 firm default fallback
 - `/settings` 內的 `Firm Settings` / `Personal Provider Settings` UI 已正式 shipped
 - consultant 現在已能在正式 UI 內完成 personal provider workflow，但仍受 allowlist 約束
 
@@ -2767,7 +2840,9 @@ phase 5 auth foundation 之後，這裡也必須補一條正式邊界：
 
 1. personal provider credential
 2. allowlist check
-3. 若缺 key 或不在 allowlist，run fail-closed
+3. 若沒有 personal key / credential，使用 DB persisted runtime config 作為 firm default fallback
+4. 若 DB config 不可用，再依既有 provider boundary 回到 `.env` baseline
+5. 若明確個人 provider / model 不在 allowlist，run fail-closed
 
 `demo`
 
