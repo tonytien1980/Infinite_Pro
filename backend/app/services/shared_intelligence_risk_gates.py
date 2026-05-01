@@ -40,12 +40,6 @@ POSITIVE_FEEDBACK_STATUSES = {
     AdoptionFeedbackStatus.TEMPLATE_CANDIDATE.value,
 }
 
-NEGATIVE_FEEDBACK_STATUSES = {
-    AdoptionFeedbackStatus.NEEDS_REVISION.value,
-    AdoptionFeedbackStatus.NOT_ADOPTED.value,
-}
-
-
 @dataclass(frozen=True)
 class ShareGateDecision:
     share_status: PrecedentShareStatus

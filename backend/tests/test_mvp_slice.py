@@ -6491,6 +6491,19 @@ def test_task_aggregate_exposes_host_safe_precedent_reference_guidance(
         json={"candidate_status": "dismissed"},
     )
 
+    needs_review_payload = create_task_payload("Needs review research precedent")
+    needs_review_task = client.post("/api/v1/tasks", json=needs_review_payload).json()
+    client.post(
+        f"/api/v1/tasks/{needs_review_task['id']}/uploads",
+        files=[("files", ("sensitive.txt", b"Reusable review structure should be checked.", "text/plain"))],
+    )
+    needs_review_run = client.post(f"/api/v1/tasks/{needs_review_task['id']}/run")
+    needs_review_deliverable_id = needs_review_run.json()["deliverable"]["id"]
+    client.post(
+        f"/api/v1/deliverables/{needs_review_deliverable_id}/feedback",
+        json={"feedback_status": "adopted", "note": "含有客戶名稱與報價，先不要進入強參考。"},
+    )
+
     current_payload = create_task_payload("Current research synthesis")
     current_task = client.post("/api/v1/tasks", json=current_payload).json()
     client.post(
@@ -6515,6 +6528,7 @@ def test_task_aggregate_exposes_host_safe_precedent_reference_guidance(
     assert guidance["matched_items"][0]["shared_intelligence_signal"]["weight_action"] == "downweight"
     assert any("交付骨架" in item for item in guidance["recommended_uses"])
     assert all(item["source_deliverable_id"] != dismissed_deliverable_id for item in guidance["matched_items"])
+    assert all(item["source_deliverable_id"] != needs_review_deliverable_id for item in guidance["matched_items"])
     assert all(item["source_task_id"] != current_task["id"] for item in guidance["matched_items"])
     assert "不會直接複製舊案正文" in guidance["boundary_note"]
 
@@ -7020,6 +7034,32 @@ def test_needs_review_precedent_is_not_host_reference_eligible() -> None:
         candidate_status=PrecedentCandidateStatus.CANDIDATE.value,
         source_feedback_status=AdoptionFeedbackStatus.TEMPLATE_CANDIDATE.value,
         share_status="provisional",
+    )
+    assert not is_precedent_candidate_reference_eligible(
+        candidate_status=PrecedentCandidateStatus.CANDIDATE.value,
+        source_feedback_status=AdoptionFeedbackStatus.TEMPLATE_CANDIDATE.value,
+        share_status=None,
+    )
+    assert not is_precedent_candidate_reference_eligible(
+        candidate_status=PrecedentCandidateStatus.CANDIDATE.value,
+        source_feedback_status=AdoptionFeedbackStatus.TEMPLATE_CANDIDATE.value,
+        share_status="unknown",
+    )
+    assert not is_precedent_candidate_reference_eligible(
+        candidate_status=PrecedentCandidateStatus.CANDIDATE.value,
+        source_feedback_status=AdoptionFeedbackStatus.TEMPLATE_CANDIDATE.value,
+        share_status="provisional",
+        risk_summary="",
+        positive_signal_count=0,
+        negative_signal_count=0,
+    )
+    assert is_precedent_candidate_reference_eligible(
+        candidate_status=PrecedentCandidateStatus.CANDIDATE.value,
+        source_feedback_status=AdoptionFeedbackStatus.TEMPLATE_CANDIDATE.value,
+        share_status="provisional",
+        risk_summary="已自動進入共享判讀，但目前只作為弱訊號參考。",
+        positive_signal_count=1,
+        negative_signal_count=0,
     )
 
 

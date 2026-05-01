@@ -61,6 +61,12 @@ GOVERNANCE_ACTION_RANK = {
 }
 
 
+REFERENCE_SAFE_SHARE_STATUSES = {
+    PrecedentShareStatus.PROVISIONAL.value,
+    PrecedentShareStatus.VALIDATED.value,
+}
+
+
 @dataclass(frozen=True)
 class PrecedentReferenceMatch:
     candidate: "models.PrecedentCandidate"
@@ -126,9 +132,26 @@ def is_precedent_candidate_reference_eligible(
     *,
     candidate_status: str,
     source_feedback_status: str,
-    share_status: str = PrecedentShareStatus.PROVISIONAL.value,
+    share_status: str | None = None,
+    risk_summary: str | None = None,
+    positive_signal_count: int | None = None,
+    negative_signal_count: int | None = None,
 ) -> bool:
-    if share_status == PrecedentShareStatus.NEEDS_REVIEW.value:
+    normalized_share_status = (share_status or "").strip()
+    if normalized_share_status not in REFERENCE_SAFE_SHARE_STATUSES:
+        return False
+    if (
+        normalized_share_status == PrecedentShareStatus.PROVISIONAL.value
+        and any(
+            value is not None
+            for value in (risk_summary, positive_signal_count, negative_signal_count)
+        )
+        and not (
+            (risk_summary or "").strip()
+            or int(positive_signal_count or 0) > 0
+            or int(negative_signal_count or 0) > 0
+        )
+    ):
         return False
     if candidate_status == PrecedentCandidateStatus.DISMISSED.value:
         return False
@@ -138,6 +161,21 @@ def is_precedent_candidate_reference_eligible(
         AdoptionFeedbackStatus.ADOPTED.value,
         AdoptionFeedbackStatus.TEMPLATE_CANDIDATE.value,
     }
+
+
+def _candidate_has_share_gate_evidence(candidate: "models.PrecedentCandidate") -> bool:
+    return bool((getattr(candidate, "risk_summary", "") or "").strip()) or int(
+        getattr(candidate, "positive_signal_count", 0) or 0
+    ) > 0 or int(getattr(candidate, "negative_signal_count", 0) or 0) > 0
+
+
+def _candidate_is_share_signal_eligible(candidate: "models.PrecedentCandidate") -> bool:
+    share_status = (getattr(candidate, "share_status", "") or "").strip()
+    if share_status not in REFERENCE_SAFE_SHARE_STATUSES:
+        return False
+    if share_status == PrecedentShareStatus.VALIDATED.value:
+        return True
+    return _candidate_has_share_gate_evidence(candidate)
 
 
 def _surface_kind_for_candidate_type(candidate_type: str) -> str:
@@ -531,6 +569,9 @@ def select_precedent_reference_matches(
     limit: int = 2,
 ) -> list[PrecedentReferenceMatch]:
     candidate_rows = list(candidates)
+    share_signal_candidate_rows = [
+        candidate for candidate in candidate_rows if _candidate_is_share_signal_eligible(candidate)
+    ]
     normalized_domain_lenses = {item.strip() for item in domain_lenses if item.strip()}
     normalized_pack_ids = {item.strip() for item in selected_pack_ids if item.strip()}
     matches: list[PrecedentReferenceMatch] = []
@@ -541,7 +582,10 @@ def select_precedent_reference_matches(
         if not is_precedent_candidate_reference_eligible(
             candidate_status=candidate.candidate_status,
             source_feedback_status=candidate.source_feedback_status,
-            share_status=getattr(candidate, "share_status", PrecedentShareStatus.PROVISIONAL.value),
+            share_status=getattr(candidate, "share_status", None),
+            risk_summary=getattr(candidate, "risk_summary", None),
+            positive_signal_count=getattr(candidate, "positive_signal_count", None),
+            negative_signal_count=getattr(candidate, "negative_signal_count", None),
         ):
             continue
 
@@ -617,7 +661,7 @@ def select_precedent_reference_matches(
         )
         shared_intelligence_signal = build_shared_intelligence_signal(
             candidate=candidate,
-            candidates=candidate_rows,
+            candidates=share_signal_candidate_rows,
         )
 
         matches.append(
