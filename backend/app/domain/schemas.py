@@ -27,6 +27,7 @@ from app.domain.enums import (
     ObjectSetType,
     PrecedentCandidateStatus,
     PrecedentCandidateType,
+    PrecedentShareStatus,
     PresenceState,
     RunStatus,
     TaskStatus,
@@ -771,6 +772,11 @@ class PrecedentCandidateRead(ORMModel):
     source_feedback_status: AdoptionFeedbackStatus
     source_feedback_reason_codes: list[str] = Field(default_factory=list)
     source_feedback_operator_label: str = ""
+    share_status: PrecedentShareStatus = PrecedentShareStatus.PROVISIONAL
+    risk_flags: list[str] = Field(default_factory=list)
+    risk_summary: str = ""
+    positive_signal_count: int = 0
+    negative_signal_count: int = 0
     created_by_label: str = ""
     last_status_changed_by_label: str = ""
     source_task_id: str
@@ -843,6 +849,11 @@ class PrecedentReferenceItemRead(BaseModel):
     candidate_type: PrecedentCandidateType
     candidate_status: PrecedentCandidateStatus
     source_feedback_status: AdoptionFeedbackStatus
+    share_status: PrecedentShareStatus = PrecedentShareStatus.PROVISIONAL
+    risk_flags: list[str] = Field(default_factory=list)
+    risk_summary: str = ""
+    positive_signal_count: int = 0
+    negative_signal_count: int = 0
     review_priority: Literal["high", "medium", "low"] = "medium"
     primary_reason_label: str = ""
     source_feedback_reason_labels: list[str] = Field(default_factory=list)

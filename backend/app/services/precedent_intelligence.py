@@ -8,6 +8,7 @@ from app.domain.enums import (
     AdoptionFeedbackStatus,
     PrecedentCandidateStatus,
     PrecedentCandidateType,
+    PrecedentShareStatus,
 )
 from app.services.adoption_feedback_intelligence import (
     label_for_adoption_feedback_reason,
@@ -125,7 +126,10 @@ def is_precedent_candidate_reference_eligible(
     *,
     candidate_status: str,
     source_feedback_status: str,
+    share_status: str = PrecedentShareStatus.PROVISIONAL.value,
 ) -> bool:
+    if share_status == PrecedentShareStatus.NEEDS_REVIEW.value:
+        return False
     if candidate_status == PrecedentCandidateStatus.DISMISSED.value:
         return False
     if candidate_status == PrecedentCandidateStatus.PROMOTED.value:
@@ -537,6 +541,7 @@ def select_precedent_reference_matches(
         if not is_precedent_candidate_reference_eligible(
             candidate_status=candidate.candidate_status,
             source_feedback_status=candidate.source_feedback_status,
+            share_status=getattr(candidate, "share_status", PrecedentShareStatus.PROVISIONAL.value),
         ):
             continue
 

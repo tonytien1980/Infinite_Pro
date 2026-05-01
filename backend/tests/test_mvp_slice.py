@@ -4958,6 +4958,66 @@ def test_deliverable_feedback_creates_precedent_candidate_and_updates_matter_sum
     assert "可重用候選" in summary["summary"]
 
 
+def test_adopted_low_risk_feedback_creates_provisional_shared_intelligence(
+    client: TestClient,
+) -> None:
+    payload = create_task_payload("Low risk shared intelligence gate")
+    task = client.post("/api/v1/tasks", json=payload).json()
+
+    client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("notes.txt", b"Proposal summary should separate findings from next actions.", "text/plain"))],
+    )
+    run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
+    assert run_response.status_code == 200
+    aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
+    recommendation_id = aggregate["recommendations"][0]["id"]
+
+    feedback_response = client.post(
+        f"/api/v1/tasks/{task['id']}/recommendations/{recommendation_id}/feedback",
+        json={"feedback_status": "adopted", "note": "這條建議可以作為一般整理模式。"},
+    )
+
+    assert feedback_response.status_code == 200
+    recommendation = next(
+        item for item in feedback_response.json()["recommendations"] if item["id"] == recommendation_id
+    )
+    candidate = recommendation["precedent_candidate"]
+    assert candidate["share_status"] == "provisional"
+    assert candidate["risk_flags"] == []
+    assert candidate["risk_summary"] == ""
+    assert candidate["positive_signal_count"] == 1
+    assert candidate["negative_signal_count"] == 0
+
+
+def test_sensitive_feedback_creates_needs_review_shared_intelligence(
+    client: TestClient,
+) -> None:
+    payload = create_contract_review_payload("Sensitive shared intelligence gate")
+    task = client.post("/api/v1/tasks", json=payload).json()
+
+    client.post(
+        f"/api/v1/tasks/{task['id']}/uploads",
+        files=[("files", ("agreement.txt", b"Termination clauses need a standard first-pass review.", "text/plain"))],
+    )
+    run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
+    assert run_response.status_code == 200
+    deliverable_id = run_response.json()["deliverable"]["id"]
+
+    feedback_response = client.post(
+        f"/api/v1/deliverables/{deliverable_id}/feedback",
+        json={"feedback_status": "adopted", "note": "客戶名稱、報價與 NDA 條款都需要保密。"},
+    )
+
+    assert feedback_response.status_code == 200
+    candidate = feedback_response.json()["deliverable"]["precedent_candidate"]
+    assert candidate["share_status"] == "needs_review"
+    assert "sensitive_text" in candidate["risk_flags"]
+    assert candidate["risk_summary"]
+    assert candidate["positive_signal_count"] == 1
+    assert candidate["negative_signal_count"] == 0
+
+
 def test_recommendation_feedback_creates_precedent_candidate_on_task_aggregate(
     client: TestClient,
 ) -> None:
@@ -6363,7 +6423,7 @@ def test_workbench_precedent_review_lists_candidate_states_and_sources(
 def test_task_aggregate_exposes_host_safe_precedent_reference_guidance(
     client: TestClient,
 ) -> None:
-    precedent_payload = create_contract_review_payload("Reusable contract precedent")
+    precedent_payload = create_task_payload("Reusable research precedent")
     precedent_task = client.post("/api/v1/tasks", json=precedent_payload).json()
     client.post(
         f"/api/v1/tasks/{precedent_task['id']}/uploads",
@@ -6384,7 +6444,7 @@ def test_task_aggregate_exposes_host_safe_precedent_reference_guidance(
         json={"candidate_status": "promoted"},
     )
 
-    dismissed_payload = create_contract_review_payload("Dismissed contract precedent")
+    dismissed_payload = create_task_payload("Dismissed research precedent")
     dismissed_task = client.post("/api/v1/tasks", json=dismissed_payload).json()
     client.post(
         f"/api/v1/tasks/{dismissed_task['id']}/uploads",
@@ -6401,7 +6461,7 @@ def test_task_aggregate_exposes_host_safe_precedent_reference_guidance(
         json={"candidate_status": "dismissed"},
     )
 
-    current_payload = create_contract_review_payload("Current contract review")
+    current_payload = create_task_payload("Current research synthesis")
     current_task = client.post("/api/v1/tasks", json=current_payload).json()
     client.post(
         f"/api/v1/tasks/{current_task['id']}/uploads",
@@ -6505,79 +6565,72 @@ def test_build_payload_precedent_context_includes_optimization_signal_lines() ->
 def test_precedent_review_and_reference_expose_shared_intelligence_signal(
     client: TestClient,
 ) -> None:
-    base_payload = create_contract_review_payload("Shared intelligence precedent A")
-    task_a = client.post("/api/v1/tasks", json=base_payload).json()
-    client.post(
-        f"/api/v1/tasks/{task_a['id']}/uploads",
-        files=[("files", ("agreement-a.txt", b"Termination and liability clauses need review.", "text/plain"))],
-    )
-    deliverable_a = client.post(f"/api/v1/tasks/{task_a['id']}/run").json()["deliverable"]["id"]
-    client.post(
-        f"/api/v1/deliverables/{deliverable_a}/feedback",
-        json={
-            "feedback_status": "template_candidate",
-            "reason_codes": ["reusable_structure"],
-            "operator_label": "王顧問",
-        },
-    )
-    client.post(
-        f"/api/v1/deliverables/{deliverable_a}/precedent-candidate",
-        json={"candidate_status": "promoted", "operator_label": "王顧問"},
-    )
+    def create_recommendation_candidate(
+        title: str,
+        *,
+        feedback_status: str,
+        operator_label: str,
+        candidate_status: str | None = None,
+    ) -> tuple[dict, str]:
+        task = client.post("/api/v1/tasks", json=create_task_payload(title)).json()
+        client.post(
+            f"/api/v1/tasks/{task['id']}/uploads",
+            files=[("files", ("notes.txt", b"Proposal summary should separate findings from next actions.", "text/plain"))],
+        )
+        run_response = client.post(f"/api/v1/tasks/{task['id']}/run")
+        assert run_response.status_code == 200
+        aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
+        recommendation_id = aggregate["recommendations"][0]["id"]
+        feedback_payload = {
+            "feedback_status": feedback_status,
+            "operator_label": operator_label,
+        }
+        if feedback_status == "template_candidate":
+            feedback_payload["reason_codes"] = ["reusable_action_pattern"]
+        client.post(
+            f"/api/v1/tasks/{task['id']}/recommendations/{recommendation_id}/feedback",
+            json=feedback_payload,
+        )
+        if candidate_status:
+            client.post(
+                f"/api/v1/tasks/{task['id']}/recommendations/{recommendation_id}/precedent-candidate",
+                json={"candidate_status": candidate_status, "operator_label": operator_label},
+            )
+        return task, recommendation_id
 
-    task_b = client.post(
-        "/api/v1/tasks",
-        json=create_contract_review_payload("Shared intelligence precedent B"),
-    ).json()
-    client.post(
-        f"/api/v1/tasks/{task_b['id']}/uploads",
-        files=[("files", ("agreement-b.txt", b"Indemnity and termination still need review.", "text/plain"))],
+    _, recommendation_a = create_recommendation_candidate(
+        "Shared intelligence precedent A",
+        feedback_status="template_candidate",
+        operator_label="王顧問",
+        candidate_status="promoted",
     )
-    deliverable_b = client.post(f"/api/v1/tasks/{task_b['id']}/run").json()["deliverable"]["id"]
-    client.post(
-        f"/api/v1/deliverables/{deliverable_b}/feedback",
-        json={
-            "feedback_status": "adopted",
-            "reason_codes": ["reusable_structure"],
-            "operator_label": "林顧問",
-        },
+    create_recommendation_candidate(
+        "Shared intelligence precedent B",
+        feedback_status="template_candidate",
+        operator_label="林顧問",
     )
-
-    task_c = client.post(
-        "/api/v1/tasks",
-        json=create_contract_review_payload("Shared intelligence precedent C"),
-    ).json()
-    client.post(
-        f"/api/v1/tasks/{task_c['id']}/uploads",
-        files=[("files", ("agreement-c.txt", b"Legacy liability wording still needs review.", "text/plain"))],
-    )
-    deliverable_c = client.post(f"/api/v1/tasks/{task_c['id']}/run").json()["deliverable"]["id"]
-    client.post(
-        f"/api/v1/deliverables/{deliverable_c}/feedback",
-        json={
-            "feedback_status": "needs_revision",
-            "reason_codes": ["reusable_structure"],
-            "operator_label": "陳顧問",
-        },
-    )
-    client.post(
-        f"/api/v1/deliverables/{deliverable_c}/precedent-candidate",
-        json={"candidate_status": "dismissed", "operator_label": "陳顧問"},
+    create_recommendation_candidate(
+        "Shared intelligence precedent C",
+        feedback_status="template_candidate",
+        operator_label="陳顧問",
+        candidate_status="dismissed",
     )
 
     current_task = client.post(
         "/api/v1/tasks",
-        json=create_contract_review_payload("Current shared intelligence contract review"),
+        json=create_task_payload("Current shared intelligence research synthesis"),
     ).json()
     client.post(
         f"/api/v1/tasks/{current_task['id']}/uploads",
-        files=[("files", ("agreement-current.txt", b"Current agreement still needs a first-pass review.", "text/plain"))],
+        files=[("files", ("notes-current.txt", b"Current proposal summary should separate findings from actions.", "text/plain"))],
     )
+    current_run = client.post(f"/api/v1/tasks/{current_task['id']}/run")
+    assert current_run.status_code == 200
 
     review_response = client.get("/api/v1/workbench/precedent-candidates")
     assert review_response.status_code == 200
     review_item = next(
-        item for item in review_response.json()["items"] if item["deliverable_id"] == deliverable_a
+        item for item in review_response.json()["items"] if item["recommendation_id"] == recommendation_a
     )
     assert review_item["shared_intelligence_signal"]["maturity"] == "emerging"
     assert review_item["shared_intelligence_signal"]["weight_action"] == "hold"
@@ -6593,7 +6646,7 @@ def test_precedent_review_and_reference_expose_shared_intelligence_signal(
     matched_item = next(
         item
         for item in aggregate.json()["precedent_reference_guidance"]["matched_items"]
-        if item["source_deliverable_id"] == deliverable_a
+        if item["source_recommendation_id"] == recommendation_a
     )
     assert matched_item["shared_intelligence_signal"]["maturity"] == "emerging"
     assert matched_item["shared_intelligence_signal"]["weight_action"] == "hold"
@@ -6923,6 +6976,21 @@ def test_shared_intelligence_signal_marks_promoted_shared_candidate_as_stable() 
     assert signal.weight_action == "upweight"
     assert signal.stability == "stable"
     assert signal.stability_label == "已站穩共享模式"
+
+
+def test_needs_review_precedent_is_not_host_reference_eligible() -> None:
+    from app.services.precedent_intelligence import is_precedent_candidate_reference_eligible
+
+    assert not is_precedent_candidate_reference_eligible(
+        candidate_status=PrecedentCandidateStatus.PROMOTED.value,
+        source_feedback_status=AdoptionFeedbackStatus.ADOPTED.value,
+        share_status="needs_review",
+    )
+    assert is_precedent_candidate_reference_eligible(
+        candidate_status=PrecedentCandidateStatus.CANDIDATE.value,
+        source_feedback_status=AdoptionFeedbackStatus.TEMPLATE_CANDIDATE.value,
+        share_status="provisional",
+    )
 
 
 def test_governance_recommendation_promotes_shared_upweighted_candidate() -> None:
@@ -8220,7 +8288,7 @@ def test_deliverable_shape_guidance_normalizes_internal_sections_to_consultant_o
 def test_reasoning_precedent_routes_to_review_lenses_not_deliverable_shape(
     client: TestClient,
 ) -> None:
-    precedent_payload = create_contract_review_payload("Reasoning precedent")
+    precedent_payload = create_task_payload("Reasoning precedent")
     precedent_task = client.post("/api/v1/tasks", json=precedent_payload).json()
     client.post(
         f"/api/v1/tasks/{precedent_task['id']}/uploads",
@@ -8243,7 +8311,7 @@ def test_reasoning_precedent_routes_to_review_lenses_not_deliverable_shape(
 
     current_task = client.post(
         "/api/v1/tasks",
-        json=create_contract_review_payload("Current reasoning-routed task"),
+        json=create_task_payload("Current reasoning-routed task"),
     ).json()
     client.post(
         f"/api/v1/tasks/{current_task['id']}/uploads",
@@ -8266,7 +8334,7 @@ def test_reasoning_precedent_routes_to_review_lenses_not_deliverable_shape(
 def test_risk_reasoned_precedent_routes_to_common_risk_not_deliverable_shape(
     client: TestClient,
 ) -> None:
-    precedent_payload = create_contract_review_payload("Risk precedent")
+    precedent_payload = create_task_payload("Risk precedent")
     precedent_task = client.post("/api/v1/tasks", json=precedent_payload).json()
     client.post(
         f"/api/v1/tasks/{precedent_task['id']}/uploads",
@@ -8289,7 +8357,7 @@ def test_risk_reasoned_precedent_routes_to_common_risk_not_deliverable_shape(
 
     current_task = client.post(
         "/api/v1/tasks",
-        json=create_contract_review_payload("Current risk-routed task"),
+        json=create_task_payload("Current risk-routed task"),
     ).json()
     client.post(
         f"/api/v1/tasks/{current_task['id']}/uploads",
@@ -8312,7 +8380,7 @@ def test_risk_reasoned_precedent_routes_to_common_risk_not_deliverable_shape(
 def test_shape_reasoned_precedent_routes_to_deliverable_shape_not_review_lenses(
     client: TestClient,
 ) -> None:
-    precedent_payload = create_contract_review_payload("Shape precedent")
+    precedent_payload = create_task_payload("Shape precedent")
     precedent_task = client.post("/api/v1/tasks", json=precedent_payload).json()
     client.post(
         f"/api/v1/tasks/{precedent_task['id']}/uploads",
@@ -8335,7 +8403,7 @@ def test_shape_reasoned_precedent_routes_to_deliverable_shape_not_review_lenses(
 
     current_task = client.post(
         "/api/v1/tasks",
-        json=create_contract_review_payload("Current shape-routed task"),
+        json=create_task_payload("Current shape-routed task"),
     ).json()
     client.post(
         f"/api/v1/tasks/{current_task['id']}/uploads",
@@ -8470,7 +8538,7 @@ def test_precedent_review_surface_lists_duplicate_groups_and_allows_resolution(
 def test_host_precedent_reference_collapses_unreviewed_duplicates_until_keep_separate(
     client: TestClient,
 ) -> None:
-    payload = create_contract_review_payload("Host duplicate precedent one")
+    payload = create_task_payload("Host duplicate precedent one")
     task_one = client.post("/api/v1/tasks", json=payload).json()
     client.post(
         f"/api/v1/tasks/{task_one['id']}/uploads",
@@ -8487,7 +8555,7 @@ def test_host_precedent_reference_collapses_unreviewed_duplicates_until_keep_sep
         json={"candidate_status": "promoted"},
     )
 
-    payload_two = create_contract_review_payload("Host duplicate precedent two")
+    payload_two = create_task_payload("Host duplicate precedent two")
     task_two = client.post("/api/v1/tasks", json=payload_two).json()
     client.post(
         f"/api/v1/tasks/{task_two['id']}/uploads",
@@ -8525,7 +8593,7 @@ def test_host_precedent_reference_collapses_unreviewed_duplicates_until_keep_sep
         db.commit()
         matter_workspace_id = first.matter_workspace_id
 
-    current_task = client.post("/api/v1/tasks", json=create_contract_review_payload("Current duplicate-aware review")).json()
+    current_task = client.post("/api/v1/tasks", json=create_task_payload("Current duplicate-aware review")).json()
     client.post(
         f"/api/v1/tasks/{current_task['id']}/uploads",
         files=[("files", ("current.txt", b"Current agreement still needs a first-pass review.", "text/plain"))],

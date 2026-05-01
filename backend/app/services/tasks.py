@@ -27,6 +27,7 @@ from app.domain.enums import (
     FunctionType,
     PrecedentCandidateStatus,
     PrecedentCandidateType,
+    PrecedentShareStatus,
     PresenceState,
     TaskStatus,
     WritebackDepth,
@@ -128,6 +129,7 @@ from app.services.precedent_intelligence import (
     select_precedent_reference_matches,
 )
 from app.services.review_lens_intelligence import build_review_lens_guidance
+from app.services.shared_intelligence_risk_gates import evaluate_precedent_share_gate
 from app.services.source_materials import (
     build_source_material_summary,
     ensure_source_chain_participation_links,
@@ -7635,6 +7637,11 @@ def _serialize_precedent_candidate(item: models.PrecedentCandidate) -> schemas.P
         source_feedback_status=AdoptionFeedbackStatus(item.source_feedback_status),
         source_feedback_reason_codes=list(item.source_feedback_reason_codes or []),
         source_feedback_operator_label=item.source_feedback_operator_label or "",
+        share_status=PrecedentShareStatus(getattr(item, "share_status", PrecedentShareStatus.PROVISIONAL.value)),
+        risk_flags=list(getattr(item, "risk_flags", []) or []),
+        risk_summary=getattr(item, "risk_summary", "") or "",
+        positive_signal_count=int(getattr(item, "positive_signal_count", 0) or 0),
+        negative_signal_count=int(getattr(item, "negative_signal_count", 0) or 0),
         created_by_label=item.created_by_label or "",
         last_status_changed_by_label=item.last_status_changed_by_label or "",
         source_task_id=item.task_id,
@@ -7757,6 +7764,13 @@ def _build_precedent_reference_guidance_read(
             candidate_type=PrecedentCandidateType(item.candidate.candidate_type),
             candidate_status=PrecedentCandidateStatus(item.candidate.candidate_status),
             source_feedback_status=AdoptionFeedbackStatus(item.candidate.source_feedback_status),
+            share_status=PrecedentShareStatus(
+                getattr(item.candidate, "share_status", PrecedentShareStatus.PROVISIONAL.value)
+            ),
+            risk_flags=list(getattr(item.candidate, "risk_flags", []) or []),
+            risk_summary=getattr(item.candidate, "risk_summary", "") or "",
+            positive_signal_count=int(getattr(item.candidate, "positive_signal_count", 0) or 0),
+            negative_signal_count=int(getattr(item.candidate, "negative_signal_count", 0) or 0),
             review_priority=item.review_priority,  # type: ignore[arg-type]
             primary_reason_label=item.primary_reason_label,
             source_feedback_reason_labels=item.source_feedback_reason_labels,
@@ -12428,6 +12442,15 @@ def _sync_precedent_candidate_for_feedback(
         deliverable=deliverable,
         recommendation=recommendation,
     )
+    share_gate_decision = evaluate_precedent_share_gate(
+        feedback_status=feedback_status,
+        feedback_note=feedback.note or "",
+        feedback_reason_codes=list(feedback.reason_codes or []),
+        title=seed["title"],
+        summary=seed["summary"],
+        reusable_reason=seed["reusable_reason"],
+        domain_lenses=seed["domain_lenses"],
+    )
     candidate = existing or models.PrecedentCandidate(
         task_id=task.id,
         matter_workspace_id=matter_workspace.id if matter_workspace else None,
@@ -12440,6 +12463,11 @@ def _sync_precedent_candidate_for_feedback(
     candidate.source_feedback_status = feedback_status.value
     candidate.source_feedback_reason_codes = list(feedback.reason_codes or [])
     candidate.source_feedback_operator_label = feedback.operator_label or ""
+    candidate.share_status = share_gate_decision.share_status.value
+    candidate.risk_flags = list(share_gate_decision.risk_flags)
+    candidate.risk_summary = share_gate_decision.risk_summary
+    candidate.positive_signal_count = share_gate_decision.positive_signal_count
+    candidate.negative_signal_count = share_gate_decision.negative_signal_count
     candidate.candidate_status = next_status.value
     if existing is None:
         candidate.created_by_label = feedback.operator_label or ""

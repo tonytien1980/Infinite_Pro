@@ -90,6 +90,12 @@ class PrecedentCandidateStatus(str, Enum):
     DISMISSED = "dismissed"
 
 
+class PrecedentShareStatus(str, Enum):
+    PROVISIONAL = "provisional"
+    VALIDATED = "validated"
+    NEEDS_REVIEW = "needs_review"
+
+
 class AuditEventType(str, Enum):
     WRITEBACK_GENERATED = "writeback_generated"
     APPROVAL_RECORDED = "approval_recorded"

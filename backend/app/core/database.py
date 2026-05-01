@@ -197,6 +197,11 @@ def _ensure_incremental_schema_updates() -> None:
         "precedent_candidates": {
             "source_feedback_reason_codes": "JSON NOT NULL DEFAULT '[]'",
             "source_feedback_operator_label": "VARCHAR(120) NOT NULL DEFAULT ''",
+            "share_status": "VARCHAR(50) NOT NULL DEFAULT 'provisional'",
+            "risk_flags": "JSON NOT NULL DEFAULT '[]'",
+            "risk_summary": "TEXT NOT NULL DEFAULT ''",
+            "positive_signal_count": "INTEGER NOT NULL DEFAULT 0",
+            "negative_signal_count": "INTEGER NOT NULL DEFAULT 0",
             "created_by_label": "VARCHAR(120) NOT NULL DEFAULT ''",
             "last_status_changed_by_label": "VARCHAR(120) NOT NULL DEFAULT ''",
         },
