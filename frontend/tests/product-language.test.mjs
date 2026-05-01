@@ -290,3 +290,15 @@ test("precedent candidate fallback share-status copy avoids internal governance 
   assert.equal(view.shareStatusSummary, "這筆內容先保留待確認，不會直接成為強參考。");
   assert.doesNotMatch(view.shareStatusSummary, /治理視圖|candidate_status|share_status/);
 });
+
+test("personal provider panel explains firm fallback instead of old fail-closed copy", () => {
+  const settingsPersonalProviderSource = readFileSync(
+    new URL("../src/components/settings-personal-provider-panel.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(settingsPersonalProviderSource, /沒有設定時，系統會使用事務所預設模型/);
+  assert.match(settingsPersonalProviderSource, /正式分析會使用事務所預設模型/);
+  assert.doesNotMatch(settingsPersonalProviderSource, /直接停止這次分析/);
+  assert.doesNotMatch(settingsPersonalProviderSource, /偷偷改走其他來源/);
+});

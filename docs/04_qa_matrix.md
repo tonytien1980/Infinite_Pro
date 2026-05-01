@@ -6763,3 +6763,38 @@ Environment used:
 - the first pre-build typecheck attempt failed because `.next/types/app/...` generated route files were missing locally; `npm run build` regenerated them and the rerun typecheck passed
 - this pass did not run authenticated browser QA
 - this pass did not run a fresh Google OAuth round-trip
+
+---
+
+## Entry: 2026-05-01 multi-consultant final review privacy fix
+
+Scope:
+- close final review finding that consultants could read the full precedent review feed
+- keep consultant history page usable when shared-intelligence governance is owner-only
+- align personal provider panel copy with firm default fallback
+
+Environment used:
+- backend local test environment with `.venv312`
+- frontend node test environment
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -k "consultant_cannot_read_firm_precedent_review_feed" -q` | Red first: failed before route fix because consultant received `200`; passed after route fix |
+| `python3 -m compileall backend/app` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`263 passed`) |
+| `source ~/.nvm/nvm.sh && cd frontend && node --test tests/*.test.mjs` | Passed (`159 passed`) |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run build` | Passed |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run typecheck` | Passed |
+
+### Verified outcomes
+
+- consultant access to `/workbench/precedent-candidates` is now blocked by `govern_shared_intelligence`
+- history page keeps task history available when the precedent review feed returns `403`
+- personal provider settings copy now states firm fallback instead of the earlier fail-closed wording
+
+### Verification boundary
+
+- this pass did not run authenticated browser QA
+- this pass did not run a fresh Google OAuth round-trip

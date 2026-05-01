@@ -1098,6 +1098,8 @@ Primary action：
 
 正式規則：
 
+- full precedent review lane 屬於 `govern_shared_intelligence` 權限；consultant 可回看自己的歷史紀錄，但不應讀到全 firm 的候選標題、摘要或來源欄位
+- consultant 若沒有權限讀共享判讀治理 feed，history page 應低噪音保留 task history，不應整頁失敗
 - precedent review 應留在 `history / management` family 內，不新增 precedent page family
 - 這條 lane 不可搶走 history hero 的主定位
 - task history list 與 precedent review list 應清楚分隔，但留在同一頁

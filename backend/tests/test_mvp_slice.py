@@ -388,6 +388,22 @@ def test_consultant_cannot_mutate_or_run_another_consultants_task(
     assert run_attempt.status_code == 404
 
 
+def test_consultant_cannot_read_firm_precedent_review_feed(
+    anonymous_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    consultant = login_as_named_consultant_with_owner_invite(
+        anonymous_client,
+        monkeypatch,
+        email="consultant@example.com",
+        full_name="Consultant User",
+    )
+
+    response = consultant.get("/api/v1/workbench/precedent-candidates")
+
+    assert response.status_code == 403
+
+
 def test_consultant_organization_memory_guidance_excludes_other_consultant_matter(
     anonymous_client: TestClient,
     monkeypatch: pytest.MonkeyPatch,

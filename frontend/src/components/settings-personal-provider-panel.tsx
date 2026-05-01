@@ -202,7 +202,7 @@ export function SettingsPersonalProviderPanel({
           <p className="panel-copy">
             {membershipRole === "owner"
               ? "負責人也可以用自己的個人模型金鑰工作；若未設定，才回退到事務所預設模型來源。"
-              : "顧問需要先完成自己的個人模型設定，才能正式執行分析。"}
+              : "顧問可以使用自己的模型金鑰；沒有設定時，系統會使用事務所預設模型。"}
           </p>
         </div>
       </div>
@@ -235,7 +235,7 @@ export function SettingsPersonalProviderPanel({
                   : "未設定"}
               </strong>
               <p className="muted-text">
-                顧問沒有個人模型金鑰時，系統會直接停止這次分析，不會偷偷改走其他來源。
+                沒有個人模型金鑰時，正式分析會使用事務所預設模型；若你明確設定個人模型，仍會受事務所允許範圍約束。
               </p>
             </div>
             <div className="section-card">

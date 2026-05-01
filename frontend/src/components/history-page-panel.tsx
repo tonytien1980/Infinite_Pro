@@ -54,6 +54,15 @@ import {
 
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 50];
 
+function isForbiddenError(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "status" in error &&
+    (error as { status?: number }).status === 403
+  );
+}
+
 export function HistoryPagePanel() {
   const [tasks, setTasks] = useState<TaskListItem[]>([]);
   const [precedentItems, setPrecedentItems] = useState<PrecedentReviewItem[]>([]);
@@ -93,18 +102,30 @@ export function HistoryPagePanel() {
     try {
       setLoading(true);
       setError(null);
-      const [taskResponse, visibilityResponse, precedentResponse] = await Promise.all([
+      setPrecedentMessage(null);
+      const [taskResponse, visibilityResponse] = await Promise.all([
         listTasks(),
         hydrateHistoryVisibility(),
-        getPrecedentReviewState(),
       ]);
       setTasks(taskResponse);
-      setPrecedentItems(precedentResponse.items);
-      setClosureReview(precedentResponse.closure_review);
-      setPrecedentDuplicateSummary(precedentResponse.duplicate_summary);
-      setPrecedentDuplicateCandidates(precedentResponse.duplicate_candidates);
       if (visibilityResponse.source === "remote") {
         setHistoryState((current) => syncHistoryStateFromRemote(current, visibilityResponse.state));
+      }
+      try {
+        const precedentResponse = await getPrecedentReviewState();
+        setPrecedentItems(precedentResponse.items);
+        setClosureReview(precedentResponse.closure_review);
+        setPrecedentDuplicateSummary(precedentResponse.duplicate_summary);
+        setPrecedentDuplicateCandidates(precedentResponse.duplicate_candidates);
+      } catch (precedentError) {
+        if (!isForbiddenError(precedentError)) {
+          throw precedentError;
+        }
+        setPrecedentItems([]);
+        setClosureReview(null);
+        setPrecedentDuplicateSummary(null);
+        setPrecedentDuplicateCandidates([]);
+        setPrecedentMessage("共享判讀治理目前只開放負責人查看；你的歷史紀錄仍可正常回看。");
       }
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "載入歷史紀錄失敗。");

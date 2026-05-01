@@ -378,7 +378,7 @@ def update_history_visibility_route(
 
 @router.get("/precedent-candidates", response_model=schemas.PrecedentReviewResponse)
 def get_precedent_review_route(
-    current_member=Depends(require_permission("access_firm_workspace")),
+    current_member=Depends(require_permission("govern_shared_intelligence")),
     db: Session = Depends(get_db),
 ) -> schemas.PrecedentReviewResponse:
     return get_precedent_review_state(db)

@@ -1782,6 +1782,7 @@ Object storage 負責：
   - `manage_firm_settings`
   - `govern_shared_intelligence`
   - `sign_off_phase`
+- `govern_shared_intelligence` 控制 full precedent review feed 與共享判讀治理 read / action paths；consultant 不可直接讀全 firm precedent candidates，避免從候選標題、摘要或來源欄位看見其他顧問的 raw-ish case metadata
 
 正式邊界：
 
