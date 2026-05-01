@@ -4985,7 +4985,7 @@ def test_adopted_low_risk_feedback_creates_provisional_shared_intelligence(
     candidate = recommendation["precedent_candidate"]
     assert candidate["share_status"] == "provisional"
     assert candidate["risk_flags"] == []
-    assert candidate["risk_summary"] == ""
+    assert candidate["risk_summary"] == "已自動進入共享判讀，但目前只作為弱訊號參考。"
     assert candidate["positive_signal_count"] == 1
     assert candidate["negative_signal_count"] == 0
 
@@ -5012,10 +5012,40 @@ def test_sensitive_feedback_creates_needs_review_shared_intelligence(
     assert feedback_response.status_code == 200
     candidate = feedback_response.json()["deliverable"]["precedent_candidate"]
     assert candidate["share_status"] == "needs_review"
-    assert "sensitive_text" in candidate["risk_flags"]
-    assert candidate["risk_summary"]
+    assert "sensitive_detail" in candidate["risk_flags"]
+    assert candidate["risk_summary"] == "這筆可重用內容含有敏感、特殊或高風險訊號，先不自動進入強參考。"
     assert candidate["positive_signal_count"] == 1
     assert candidate["negative_signal_count"] == 0
+
+
+def test_precedent_share_gate_uses_approved_risk_flag_contract() -> None:
+    from app.domain.enums import PrecedentShareStatus
+    from app.services.shared_intelligence_risk_gates import evaluate_precedent_share_gate
+
+    needs_revision = evaluate_precedent_share_gate(
+        feedback_status=AdoptionFeedbackStatus.NEEDS_REVISION,
+        feedback_reason_codes=["too_specific"],
+        domain_lenses=["法務"],
+        summary="這段含有合約第 3 條與客戶名稱。",
+    )
+
+    assert needs_revision.share_status == PrecedentShareStatus.NEEDS_REVIEW
+    assert needs_revision.risk_flags == [
+        "sensitive_detail",
+        "high_risk_domain",
+        "low_reuse_confidence",
+        "needs_revision",
+    ]
+    assert needs_revision.positive_signal_count == 0
+    assert needs_revision.negative_signal_count == 2
+
+    not_adopted = evaluate_precedent_share_gate(
+        feedback_status=AdoptionFeedbackStatus.NOT_ADOPTED,
+    )
+
+    assert not_adopted.share_status == PrecedentShareStatus.NEEDS_REVIEW
+    assert not_adopted.risk_flags == ["not_adopted"]
+    assert not_adopted.negative_signal_count == 1
 
 
 def test_recommendation_feedback_creates_precedent_candidate_on_task_aggregate(

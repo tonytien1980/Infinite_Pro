@@ -70,15 +70,9 @@ def _append_unique(values: list[str], value: str) -> None:
 
 
 def _risk_summary_for_flags(risk_flags: list[str]) -> str:
-    if not risk_flags:
-        return ""
-    labels = {
-        "sensitive_text": "包含可能敏感文字",
-        "high_risk_domain_lens": "涉及高風險顧問領域",
-        "low_confidence_reason": "來源回饋帶低信心原因",
-        "negative_feedback": "來源回饋不是正向採納",
-    }
-    return "需要人工審查：" + "；".join(labels[flag] for flag in risk_flags if flag in labels) + "。"
+    if risk_flags:
+        return "這筆可重用內容含有敏感、特殊或高風險訊號，先不自動進入強參考。"
+    return "已自動進入共享判讀，但目前只作為弱訊號參考。"
 
 
 def evaluate_precedent_share_gate(
@@ -98,18 +92,24 @@ def evaluate_precedent_share_gate(
     risk_flags: list[str] = []
 
     if _contains_any_term(text, SENSITIVE_TEXT_TERMS):
-        _append_unique(risk_flags, "sensitive_text")
+        _append_unique(risk_flags, "sensitive_detail")
 
     if any(lens.lower() in {item.lower() for item in HIGH_RISK_DOMAIN_LENSES} for lens in lenses):
-        _append_unique(risk_flags, "high_risk_domain_lens")
+        _append_unique(risk_flags, "high_risk_domain")
 
     if reason_codes.intersection(LOW_CONFIDENCE_REASON_CODES):
-        _append_unique(risk_flags, "low_confidence_reason")
+        _append_unique(risk_flags, "low_reuse_confidence")
 
     positive_signal_count = 1 if status_value in POSITIVE_FEEDBACK_STATUSES else 0
-    negative_signal_count = 1 if status_value in NEGATIVE_FEEDBACK_STATUSES else 0
-    if negative_signal_count:
-        _append_unique(risk_flags, "negative_feedback")
+    negative_signal_count = 0
+    if status_value == AdoptionFeedbackStatus.NEEDS_REVISION.value:
+        negative_signal_count += 1
+        _append_unique(risk_flags, "needs_revision")
+    if status_value == AdoptionFeedbackStatus.NOT_ADOPTED.value:
+        negative_signal_count += 1
+        _append_unique(risk_flags, "not_adopted")
+    if reason_codes.intersection(LOW_CONFIDENCE_REASON_CODES):
+        negative_signal_count += 1
 
     share_status = (
         PrecedentShareStatus.NEEDS_REVIEW
