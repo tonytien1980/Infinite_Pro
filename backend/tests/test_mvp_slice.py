@@ -388,6 +388,57 @@ def test_consultant_cannot_mutate_or_run_another_consultants_task(
     assert run_attempt.status_code == 404
 
 
+def test_consultant_organization_memory_guidance_excludes_other_consultant_matter(
+    anonymous_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    consultant_a = login_as_named_consultant_with_owner_invite(
+        anonymous_client,
+        monkeypatch,
+        email="consultant-a@example.com",
+        full_name="Consultant A",
+    )
+    payload_a = create_contract_review_payload("Consultant A Acme matter")
+    payload_a["client_name"] = "Acme Corp"
+    payload_a["engagement_name"] = "年度法務盤點"
+    payload_a["workstream_name"] = "合約風險整理"
+    created_a = consultant_a.post("/api/v1/tasks", json=payload_a)
+    assert created_a.status_code == 201
+    matter_a_id = created_a.json()["matter_workspace"]["id"]
+    assert consultant_a.post("/api/v1/auth/logout").status_code == 200
+
+    consultant_b = login_as_named_consultant_with_owner_invite(
+        anonymous_client,
+        monkeypatch,
+        email="consultant-b@example.com",
+        full_name="Consultant B",
+    )
+    payload_b = create_contract_review_payload("Consultant B Acme matter")
+    payload_b["client_name"] = "Acme Corp"
+    payload_b["engagement_name"] = "續約商務盤點"
+    payload_b["workstream_name"] = "續約條件整理"
+    created_b = consultant_b.post("/api/v1/tasks", json=payload_b)
+    assert created_b.status_code == 201
+    task_b_id = created_b.json()["id"]
+    matter_b_id = created_b.json()["matter_workspace"]["id"]
+
+    aggregate = consultant_b.get(f"/api/v1/tasks/{task_b_id}")
+    assert aggregate.status_code == 200
+    cross_matter_ids = {
+        item["matter_workspace_id"]
+        for item in aggregate.json()["organization_memory_guidance"]["cross_matter_items"]
+    }
+    assert matter_a_id not in cross_matter_ids
+
+    matter_workspace = consultant_b.get(f"/api/v1/matters/{matter_b_id}")
+    assert matter_workspace.status_code == 200
+    matter_cross_matter_ids = {
+        item["matter_workspace_id"]
+        for item in matter_workspace.json()["organization_memory_guidance"]["cross_matter_items"]
+    }
+    assert matter_a_id not in matter_cross_matter_ids
+
+
 def test_demo_role_permissions_include_demo_workspace_access() -> None:
     from app.core.auth import ROLE_PERMISSIONS
 

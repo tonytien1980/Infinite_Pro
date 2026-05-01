@@ -6663,6 +6663,8 @@ def _build_deliverable_content_revision_read(
 def _load_tasks_for_matter_workspaces(
     db: Session,
     matter_workspace_ids: list[str],
+    *,
+    current_member: CurrentMember | None = None,
 ) -> dict[str, list[models.Task]]:
     if not matter_workspace_ids:
         return {}
@@ -6676,8 +6678,9 @@ def _load_tasks_for_matter_workspaces(
     if not task_ids:
         return {matter_workspace_id: [] for matter_workspace_id in matter_workspace_ids}
 
+    statement = task_access_statement(current_member) if current_member is not None else select(models.Task)
     tasks = db.scalars(
-        select(models.Task)
+        statement
         .options(*task_load_options())
         .where(models.Task.id.in_(task_ids))
     ).unique().all()
@@ -6715,7 +6718,11 @@ def get_primary_task_for_matter(
     elif matter_workspace is None:
         raise HTTPException(status_code=404, detail="找不到指定案件。")
 
-    related_tasks = _load_tasks_for_matter_workspaces(db, [matter_id]).get(matter_id, [])
+    related_tasks = _load_tasks_for_matter_workspaces(
+        db,
+        [matter_id],
+        current_member=current_member,
+    ).get(matter_id, [])
     if not related_tasks:
         raise HTTPException(status_code=404, detail="這個案件目前還沒有可補件的任務。")
 
@@ -6784,7 +6791,11 @@ def apply_matter_continuation_action(
     elif matter_workspace is None:
         raise HTTPException(status_code=404, detail="找不到指定案件工作面。")
 
-    related_tasks = _load_tasks_for_matter_workspaces(db, [matter_id]).get(matter_id, [])
+    related_tasks = _load_tasks_for_matter_workspaces(
+        db,
+        [matter_id],
+        current_member=current_member,
+    ).get(matter_id, [])
     if not related_tasks:
         raise HTTPException(status_code=404, detail="這個案件目前還沒有可續推的工作。")
 
@@ -7226,10 +7237,13 @@ def _build_matter_workspace_summary_from_tasks(
 def _build_matter_workspace_summary_map(
     db: Session,
     matter_workspaces: list[models.MatterWorkspace],
+    *,
+    current_member: CurrentMember | None = None,
 ) -> dict[str, schemas.MatterWorkspaceSummaryRead]:
     tasks_by_workspace = _load_tasks_for_matter_workspaces(
         db,
         [item.id for item in matter_workspaces],
+        current_member=current_member,
     )
     return {
         matter_workspace.id: _build_matter_workspace_summary_from_tasks(
@@ -7244,16 +7258,28 @@ def _build_other_matter_workspace_summaries(
     db: Session,
     *,
     current_matter_workspace_id: str | None,
+    current_member: CurrentMember | None = None,
 ) -> list[schemas.MatterWorkspaceSummaryRead]:
+    statement = (
+        matter_access_statement(current_member)
+        if current_member is not None
+        else select(models.MatterWorkspace)
+    )
     matter_workspaces = db.scalars(
-        select(models.MatterWorkspace).order_by(models.MatterWorkspace.updated_at.desc())
+        statement.order_by(models.MatterWorkspace.updated_at.desc())
     ).all()
     filtered = [
         item for item in matter_workspaces if not current_matter_workspace_id or item.id != current_matter_workspace_id
     ]
     if not filtered:
         return []
-    return list(_build_matter_workspace_summary_map(db, filtered).values())
+    return list(
+        _build_matter_workspace_summary_map(
+            db,
+            filtered,
+            current_member=current_member,
+        ).values()
+    )
 
 
 def _build_evidence_object_mappings(
@@ -7774,10 +7800,13 @@ def get_loaded_task(
     *,
     current_member: CurrentMember | None = None,
 ) -> models.Task:
-    statement = select(models.Task).options(*task_load_options()).where(models.Task.id == task_id)
+    statement = task_access_statement(current_member) if current_member is not None else select(models.Task)
+    statement = statement.options(*task_load_options()).where(models.Task.id == task_id)
     task = db.scalars(statement).unique().one_or_none()
     if current_member is not None:
-        return assert_task_access(task, current_member)
+        task = assert_task_access(task, current_member)
+        setattr(task, "_current_member", current_member)
+        return task
     if task is None:
         raise HTTPException(status_code=404, detail="找不到指定任務。")
     return task
@@ -7898,7 +7927,10 @@ def approve_task_writeback_record(
         )
 
     db.commit()
-    return serialize_task(get_loaded_task(db, task.id, current_member=current_member))
+    return serialize_task(
+        get_loaded_task(db, task.id, current_member=current_member),
+        current_member=current_member,
+    )
 
 
 def create_task(
@@ -8266,7 +8298,11 @@ def list_tasks(
     if changed:
         db.commit()
 
-    matter_summary_by_id = _build_matter_workspace_summary_map(db, list(matter_workspaces.values()))
+    matter_summary_by_id = _build_matter_workspace_summary_map(
+        db,
+        list(matter_workspaces.values()),
+        current_member=current_member,
+    )
 
     return [
         _build_task_list_item_response(
@@ -8309,7 +8345,11 @@ def list_matter_workspaces(
     matter_workspaces = db.scalars(
         matter_access_statement(current_member).order_by(models.MatterWorkspace.updated_at.desc())
     ).all()
-    summary_by_id = _build_matter_workspace_summary_map(db, matter_workspaces)
+    summary_by_id = _build_matter_workspace_summary_map(
+        db,
+        matter_workspaces,
+        current_member=current_member,
+    )
     return sorted(
         summary_by_id.values(),
         key=lambda item: item.latest_updated_at,
@@ -8334,7 +8374,11 @@ def get_matter_workspace(
         raise HTTPException(status_code=404, detail="找不到指定案件工作面。")
     content_revisions = ensure_matter_content_revisions(db, matter_workspace)
 
-    related_tasks = _load_tasks_for_matter_workspaces(db, [matter_workspace.id]).get(
+    related_tasks = _load_tasks_for_matter_workspaces(
+        db,
+        [matter_workspace.id],
+        current_member=current_member,
+    ).get(
         matter_workspace.id,
         [],
     )
@@ -8359,7 +8403,11 @@ def get_matter_workspace(
             .options(selectinload(models.MatterWorkspace.case_world_state))
             .where(models.MatterWorkspace.id == matter_id)
         ).one()
-        related_tasks = _load_tasks_for_matter_workspaces(db, [matter_workspace.id]).get(
+        related_tasks = _load_tasks_for_matter_workspaces(
+            db,
+            [matter_workspace.id],
+            current_member=current_member,
+        ).get(
             matter_workspace.id,
             [],
         )
@@ -8394,7 +8442,7 @@ def get_matter_workspace(
 
     for task in related_tasks:
         if not task.case_world_drafts:
-            serialize_task(task)
+            serialize_task(task, current_member=current_member)
             task = get_loaded_task(db, task.id, current_member=current_member)
         _, _, _, decision_context, _, source_materials, artifacts = _build_world_preferred_ontology_spine_for_task(task)
         input_entry_mode = _infer_input_entry_mode(task, source_materials, artifacts)
@@ -8667,6 +8715,7 @@ def get_matter_workspace(
         cross_matter_summaries=_build_other_matter_workspace_summaries(
             db,
             current_matter_workspace_id=matter_workspace.id,
+            current_member=current_member,
         ),
     )
     matter_input_entry_mode = _infer_input_entry_mode(
@@ -9083,7 +9132,11 @@ def get_artifact_evidence_workspace(
     elif matter_workspace is None:
         raise HTTPException(status_code=404, detail="找不到指定來源 / 證據工作面。")
 
-    related_tasks = _load_tasks_for_matter_workspaces(db, [matter_workspace.id]).get(
+    related_tasks = _load_tasks_for_matter_workspaces(
+        db,
+        [matter_workspace.id],
+        current_member=current_member,
+    ).get(
         matter_workspace.id,
         [],
     )
@@ -9108,7 +9161,11 @@ def get_artifact_evidence_workspace(
             .options(selectinload(models.MatterWorkspace.case_world_state))
             .where(models.MatterWorkspace.id == matter_id)
         ).one()
-        related_tasks = _load_tasks_for_matter_workspaces(db, [matter_workspace.id]).get(
+        related_tasks = _load_tasks_for_matter_workspaces(
+            db,
+            [matter_workspace.id],
+            current_member=current_member,
+        ).get(
             matter_workspace.id,
             [],
         )
@@ -9150,7 +9207,7 @@ def get_artifact_evidence_workspace(
 
     for task in related_tasks:
         if not task.case_world_drafts:
-            serialize_task(task)
+            serialize_task(task, current_member=current_member)
             task = get_loaded_task(db, task.id, current_member=current_member)
         task_title = task.title
         task_spine = _build_world_preferred_ontology_spine_for_task(task)
@@ -9800,7 +9857,7 @@ def get_deliverable_workspace(
         raise HTTPException(status_code=404, detail="找不到指定交付物工作面。")
 
     task = get_loaded_task(db, deliverable_row.task_id, current_member=current_member)
-    task_aggregate = serialize_task(task)
+    task_aggregate = serialize_task(task, current_member=current_member)
     deliverable = next(
         (item for item in task_aggregate.deliverables if item.id == deliverable_id),
         None,
@@ -9943,7 +10000,11 @@ def get_deliverable_workspace(
         continuity_notes.append("這份交付物目前尚未形成厚實 evidence basis，應先回看來源 / 證據工作面再採行。")
     follow_up_lane = (
         _build_follow_up_lane(
-            ordered_tasks=_load_tasks_for_matter_workspaces(db, [task_aggregate.matter_workspace.id]).get(
+            ordered_tasks=_load_tasks_for_matter_workspaces(
+                db,
+                [task_aggregate.matter_workspace.id],
+                current_member=current_member,
+            ).get(
                 task_aggregate.matter_workspace.id,
                 [task],
             )
@@ -9963,7 +10024,11 @@ def get_deliverable_workspace(
     )
     progression_lane = (
         _build_progression_lane(
-            ordered_tasks=_load_tasks_for_matter_workspaces(db, [task_aggregate.matter_workspace.id]).get(
+            ordered_tasks=_load_tasks_for_matter_workspaces(
+                db,
+                [task_aggregate.matter_workspace.id],
+                current_member=current_member,
+            ).get(
                 task_aggregate.matter_workspace.id,
                 [task],
             )
@@ -11388,10 +11453,15 @@ def ensure_case_world_draft_for_task(
     return existing, evidence_gap_rows, changed or evidence_gap_changed
 
 
-def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
+def serialize_task(
+    task: models.Task,
+    *,
+    current_member: CurrentMember | None = None,
+) -> schemas.TaskAggregateResponse:
     db = object_session(task)
     if db is None:
         raise RuntimeError("Task must be attached to an active session before serialization.")
+    current_member = current_member or getattr(task, "_current_member", None)
 
     task_client_row = _primary_item(task.clients)
     task_engagement_row = _primary_item(task.engagements)
@@ -11408,6 +11478,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         workstream=workstream,
         decision_context=decision_context,
         domain_lenses=domain_lenses,
+        current_member=current_member,
     )
     if workspace_changed:
         db.commit()
@@ -11448,7 +11519,11 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         overlay=decision_context,
         world=preferred_decision_context,
     )
-    matter_workspace_summary = _build_matter_workspace_summary_map(db, [matter_workspace]).get(
+    matter_workspace_summary = _build_matter_workspace_summary_map(
+        db,
+        [matter_workspace],
+        current_member=current_member,
+    ).get(
         matter_workspace.id
     )
     evidence = _serialize_evidence_items(task, source_materials, artifacts)
@@ -11558,12 +11633,16 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
     object_sets_changed = ensure_object_sets_for_task(db, task)
     if world_spine_changed or case_world_changed or case_world_state_changed or object_sets_changed:
         db.commit()
-        task = get_loaded_task(db, task.id)
+        task = get_loaded_task(db, task.id, current_member=current_member)
         client, engagement, workstream, decision_context, domain_lenses, source_materials, artifacts = (
             _build_ontology_spine_for_task(task)
         )
         matter_workspace = _get_linked_matter_workspace(task) or matter_workspace
-        matter_workspace_summary = _build_matter_workspace_summary_map(db, [matter_workspace]).get(
+        matter_workspace_summary = _build_matter_workspace_summary_map(
+            db,
+            [matter_workspace],
+            current_member=current_member,
+        ).get(
             matter_workspace.id
         )
         evidence = _serialize_evidence_items(task, source_materials, artifacts)
@@ -11639,7 +11718,11 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
     serialized_object_sets = serialize_object_sets(task.object_sets)
     related_tasks_for_lane: list[models.Task] = [task]
     if matter_workspace is not None:
-        related_tasks_for_lane = _load_tasks_for_matter_workspaces(db, [matter_workspace.id]).get(
+        related_tasks_for_lane = _load_tasks_for_matter_workspaces(
+            db,
+            [matter_workspace.id],
+            current_member=current_member,
+        ).get(
             matter_workspace.id,
             [task],
         )
@@ -11784,6 +11867,7 @@ def serialize_task(task: models.Task) -> schemas.TaskAggregateResponse:
         cross_matter_summaries=_build_other_matter_workspace_summaries(
             db,
             current_matter_workspace_id=matter_workspace.id if matter_workspace else None,
+            current_member=current_member,
         ),
     )
     precedent_reference_guidance = _build_precedent_reference_guidance_read(
@@ -12449,7 +12533,7 @@ def update_recommendation_precedent_candidate_status(
     )
     db.commit()
     refreshed_task = get_loaded_task(db, task_id, current_member=current_member)
-    return serialize_task(refreshed_task)
+    return serialize_task(refreshed_task, current_member=current_member)
 
 
 def apply_deliverable_adoption_feedback(
@@ -12580,7 +12664,7 @@ def apply_recommendation_adoption_feedback(
     )
     db.commit()
     refreshed_task = get_loaded_task(db, task_id, current_member=current_member)
-    return serialize_task(refreshed_task)
+    return serialize_task(refreshed_task, current_member=current_member)
 
 
 def get_task_history(
