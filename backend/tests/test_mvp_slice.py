@@ -245,6 +245,35 @@ def login_as_consultant_with_owner_invite(
     return anonymous_client
 
 
+def login_as_named_consultant_with_owner_invite(
+    anonymous_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    email: str,
+    full_name: str,
+) -> TestClient:
+    configure_auth_settings(monkeypatch, bootstrap_owner_emails="owner@example.com")
+    login_google_user(
+        anonymous_client,
+        monkeypatch,
+        email="owner@example.com",
+        full_name="Owner User",
+    )
+    invite = anonymous_client.post(
+        "/api/v1/members/invites",
+        json={"email": email, "role": "consultant"},
+    )
+    assert invite.status_code in {200, 409}
+    assert anonymous_client.post("/api/v1/auth/logout").status_code == 200
+    login_google_user(
+        anonymous_client,
+        monkeypatch,
+        email=email,
+        full_name=full_name,
+    )
+    return anonymous_client
+
+
 def login_as_demo_with_owner_invite(
     anonymous_client: TestClient,
     monkeypatch: pytest.MonkeyPatch,
@@ -269,6 +298,94 @@ def login_as_demo_with_owner_invite(
         full_name="Demo User",
     )
     return anonymous_client
+
+
+def test_consultants_only_list_their_own_tasks_and_matters(
+    anonymous_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    consultant_a = login_as_named_consultant_with_owner_invite(
+        anonymous_client,
+        monkeypatch,
+        email="consultant-a@example.com",
+        full_name="Consultant A",
+    )
+
+    created_a = consultant_a.post(
+        "/api/v1/tasks",
+        json=create_task_payload("Consultant A private matter"),
+    )
+    assert created_a.status_code == 201
+    task_a_id = created_a.json()["id"]
+    matter_a_id = created_a.json()["matter_workspace"]["id"]
+
+    assert consultant_a.post("/api/v1/auth/logout").status_code == 200
+
+    consultant_b = login_as_named_consultant_with_owner_invite(
+        anonymous_client,
+        monkeypatch,
+        email="consultant-b@example.com",
+        full_name="Consultant B",
+    )
+    created_b = consultant_b.post(
+        "/api/v1/tasks",
+        json=create_task_payload("Consultant B private matter"),
+    )
+    assert created_b.status_code == 201
+    task_b_id = created_b.json()["id"]
+
+    task_listing = consultant_b.get("/api/v1/tasks")
+    assert task_listing.status_code == 200
+    visible_task_ids = {item["id"] for item in task_listing.json()}
+    assert task_b_id in visible_task_ids
+    assert task_a_id not in visible_task_ids
+
+    matter_listing = consultant_b.get("/api/v1/matters")
+    assert matter_listing.status_code == 200
+    visible_matter_ids = {item["id"] for item in matter_listing.json()}
+    assert created_b.json()["matter_workspace"]["id"] in visible_matter_ids
+    assert matter_a_id not in visible_matter_ids
+
+    blocked_task = consultant_b.get(f"/api/v1/tasks/{task_a_id}")
+    assert blocked_task.status_code == 404
+
+    blocked_matter = consultant_b.get(f"/api/v1/matters/{matter_a_id}")
+    assert blocked_matter.status_code == 404
+
+
+def test_consultant_cannot_mutate_or_run_another_consultants_task(
+    anonymous_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    consultant_a = login_as_named_consultant_with_owner_invite(
+        anonymous_client,
+        monkeypatch,
+        email="consultant-a@example.com",
+        full_name="Consultant A",
+    )
+    created_a = consultant_a.post(
+        "/api/v1/tasks",
+        json=create_task_payload("Consultant A run boundary"),
+    )
+    assert created_a.status_code == 201
+    task_a_id = created_a.json()["id"]
+    assert consultant_a.post("/api/v1/auth/logout").status_code == 200
+
+    consultant_b = login_as_named_consultant_with_owner_invite(
+        anonymous_client,
+        monkeypatch,
+        email="consultant-b@example.com",
+        full_name="Consultant B",
+    )
+
+    extension_attempt = consultant_b.put(
+        f"/api/v1/tasks/{task_a_id}/extensions",
+        json={"pack_override_ids": [], "agent_override_ids": []},
+    )
+    assert extension_attempt.status_code == 404
+
+    run_attempt = consultant_b.post(f"/api/v1/tasks/{task_a_id}/run")
+    assert run_attempt.status_code == 404
 
 
 def test_demo_role_permissions_include_demo_workspace_access() -> None:
