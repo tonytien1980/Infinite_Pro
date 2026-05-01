@@ -6798,3 +6798,44 @@ Environment used:
 
 - this pass did not run authenticated browser QA
 - this pass did not run a fresh Google OAuth round-trip
+
+---
+
+## Entry: 2026-05-01 multi-consultant final review member-scope closure
+
+Scope:
+- close final review finding that Host run payload assembly could reload task aggregate without current-member scope
+- close final review finding that `/workbench/history-visibility` still used a global profile and could expose or mutate another consultant's hidden task ids
+- sync active runtime / Host / workbench docs after the privacy-boundary fix
+
+Environment used:
+- backend local test environment with `.venv312`
+- frontend local Next.js build environment
+- no authenticated browser QA in this closure pass
+
+### Build / Typecheck / Compile
+
+| Check | Result |
+| --- | --- |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -k "consultant_history_visibility_is_member_scoped" -q` | Red first: failed before service fix because consultant B saw consultant A's hidden task id; failed again when a stale inaccessible row was inserted into B's profile; passed after member-scoped profile, read filtering, and write access validation |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -k "host_payload_scopes_organization_memory_for_consultant" -q` | Red first: failed before Host fix because consultant B's Host payload included consultant A's cross-matter memory; passed after current-member-scoped reload / serialization |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -k "consultant_history_visibility_is_member_scoped or host_payload_scopes_organization_memory_for_consultant or consultant_cannot_read_firm_precedent_review_feed" -q` | Passed (`3 passed`) |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -q` | Passed (`265 passed`) |
+| `python3 -m compileall backend/app` | Passed |
+| `source ~/.nvm/nvm.sh && cd frontend && node --test tests/*.test.mjs` | Passed (`159 passed`) with existing `MODULE_TYPELESS_PACKAGE_JSON` warnings |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run build` | Passed |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run typecheck` | Passed |
+
+### Verified outcomes
+
+- Host run path now reloads and serializes task aggregate with `current_member` before building prompt payload and post-run deliverable aggregate
+- consultant Host payload organization memory excludes other consultants' same-client raw matter summaries
+- history visibility state now uses a current-member-scoped workspace profile when authenticated
+- history visibility reads filter stale hidden rows through the current-member access boundary before returning task ids
+- history visibility updates validate task ids through the current-member access boundary and return `404` for inaccessible task ids
+- consultant history cleanup / hide actions remain personal visible-entry organization, not deletion and not a firm-global visibility change
+
+### Verification boundary
+
+- this pass did not run authenticated browser QA
+- this pass did not run a fresh Google OAuth round-trip

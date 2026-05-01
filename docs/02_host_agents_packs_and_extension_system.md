@@ -66,6 +66,8 @@ Host 正式負責：
   - `provisional` 只能作為弱訊號或背景提醒
   - `validated` 才可成為較強 reusable guidance
 - Host reference 不得把跨顧問 raw case content、客戶原文、附件正文或可識別敏感細節放進模型上下文
+- Host run path 不得只依賴 route-level access gate；reload task、serialize aggregate、build prompt payload、run 後整理 deliverable aggregate 都必須帶入 current-member scope
+- organization memory / cross-matter guidance 若要進 Host payload，必須先經 current-member-scoped aggregate 收斂，避免 consultant 的 prompt context 讀到其他顧問 raw matter summary
 - reusable review lenses、common risk libraries、deliverable shape hints、deliverable templates、domain playbooks 之間的角色必須保持分離：
   - review lenses = 先看角度
   - common risks = 漏看提醒

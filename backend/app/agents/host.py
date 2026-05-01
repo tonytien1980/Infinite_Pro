@@ -248,7 +248,7 @@ class HostOrchestrator:
         task: models.Task,
         workflow_mode: FlowMode | None = None,
     ) -> AgentInputPayload:
-        aggregate = serialize_task(task)
+        aggregate = serialize_task(task, current_member=self.current_member)
         latest_context = task.contexts[-1].summary if task.contexts else ""
         preferred_decision_context = aggregate.decision_context or aggregate.world_decision_context
         return AgentInputPayload(
@@ -800,7 +800,7 @@ class HostOrchestrator:
                 error_message=str(exc),
             )
 
-        refreshed_task = get_loaded_task(self.db, task.id)
+        refreshed_task = get_loaded_task(self.db, task.id, current_member=self.current_member)
         refreshed_external_sources = [
             item
             for item in refreshed_task.uploads
@@ -2846,7 +2846,7 @@ class HostOrchestrator:
         )
 
     def orchestrate_task(self, task_id: str) -> schemas.ResearchRunResponse:
-        task = get_loaded_task(self.db, task_id)
+        task = get_loaded_task(self.db, task_id, current_member=self.current_member)
         payload, capability_frame, _, workflow_mode = self._prepare_host_context(task)
         logger.info(
             "Host orchestrating task %s with task_type=%s capability=%s flow_mode=%s decision=%s",
@@ -2879,7 +2879,7 @@ class HostOrchestrator:
         self.db.add(run)
         self.db.commit()
         self.db.refresh(run)
-        task = get_loaded_task(self.db, task.id)
+        task = get_loaded_task(self.db, task.id, current_member=self.current_member)
 
         try:
             payload, capability_frame, readiness, workflow_mode = self._prepare_host_context(task, workflow_mode)
@@ -2948,8 +2948,8 @@ class HostOrchestrator:
             self.db.commit()
             raise
 
-        refreshed_task = get_loaded_task(self.db, task.id)
-        aggregate = serialize_task(refreshed_task)
+        refreshed_task = get_loaded_task(self.db, task.id, current_member=self.current_member)
+        aggregate = serialize_task(refreshed_task, current_member=self.current_member)
         new_insight_ids = {item.id for item in self._tail(refreshed_task.insights, len(converged.insights))}
         new_risk_ids = {item.id for item in self._tail(refreshed_task.risks, len(converged.risks))}
         new_recommendation_ids = {
@@ -3115,7 +3115,7 @@ class HostOrchestrator:
         self.db.add(run)
         self.db.commit()
         self.db.refresh(run)
-        task = get_loaded_task(self.db, task.id)
+        task = get_loaded_task(self.db, task.id, current_member=self.current_member)
 
         try:
             payload, capability_frame, readiness, workflow_mode = self._prepare_host_context(task, workflow_mode)
@@ -3169,8 +3169,8 @@ class HostOrchestrator:
             self.db.commit()
             raise
 
-        refreshed_task = get_loaded_task(self.db, task.id)
-        aggregate = serialize_task(refreshed_task)
+        refreshed_task = get_loaded_task(self.db, task.id, current_member=self.current_member)
+        aggregate = serialize_task(refreshed_task, current_member=self.current_member)
         new_insight_ids = {item.id for item in self._tail(refreshed_task.insights, len(result.insights))}
         new_risk_ids = {item.id for item in self._tail(refreshed_task.risks, len(result.risks))}
         new_recommendation_ids = {

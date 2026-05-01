@@ -1796,6 +1796,14 @@ Object storage 負責：
   - `consultant` 只可讀同 firm 且由自己建立的 records
   - `demo` 不可讀正式 firm records
   - 被擋下的 raw read / upload / source ingest / run path 應回 `404` 或 fail closed，不可只靠前端隱藏
+- Host run path 也屬於 raw case privacy boundary：
+  - Host 在 reload task、serialize aggregate、建立 prompt payload、run 後整理 deliverable aggregate 時，都必須沿用 `current_member`
+  - organization memory / cross-matter guidance 只可由 current-member-scoped task aggregate 收斂，不可因 route 已通過就重新讀回全 firm raw context
+- history visibility state 屬於 current-member-scoped workspace preference：
+  - 顧問隱藏自己的歷史入口，不應影響其他顧問的歷史頁
+  - 讀取 hidden task ids 時，也必須再以 current-member access boundary 過濾 profile 內可能殘留的 stale rows
+  - 更新 hidden / visible task ids 前，backend 必須先以 current-member access boundary 驗證 task 可讀
+  - 不可讀的 task id 應回 `404`，避免洩漏其他顧問案件是否存在
 
 因此這一層目前應被理解為：
 

@@ -19,6 +19,7 @@ from app.agents.base import (
     build_payload_organization_memory_context,
     build_payload_precedent_context,
 )
+from app.core.auth import CurrentMember, ROLE_PERMISSIONS
 from app.core.database import SessionLocal
 from app.domain import models, schemas
 from app.domain.enums import (
@@ -300,6 +301,23 @@ def login_as_demo_with_owner_invite(
     return anonymous_client
 
 
+def current_member_for_email(db, email: str) -> CurrentMember:
+    user = db.scalar(select(models.User).where(models.User.email == email))
+    assert user is not None
+    membership = db.scalar(
+        select(models.FirmMembership).where(models.FirmMembership.user_id == user.id)
+    )
+    assert membership is not None
+    firm = db.get(models.Firm, membership.firm_id)
+    assert firm is not None
+    return CurrentMember(
+        user=user,
+        firm=firm,
+        membership=membership,
+        permissions=ROLE_PERMISSIONS.get(membership.role, set()),
+    )
+
+
 def test_consultants_only_list_their_own_tasks_and_matters(
     anonymous_client: TestClient,
     monkeypatch: pytest.MonkeyPatch,
@@ -402,6 +420,109 @@ def test_consultant_cannot_read_firm_precedent_review_feed(
     response = consultant.get("/api/v1/workbench/precedent-candidates")
 
     assert response.status_code == 403
+
+
+def test_consultant_history_visibility_is_member_scoped(
+    anonymous_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    consultant_a = login_as_named_consultant_with_owner_invite(
+        anonymous_client,
+        monkeypatch,
+        email="consultant-a@example.com",
+        full_name="Consultant A",
+    )
+    created_a = consultant_a.post(
+        "/api/v1/tasks",
+        json=create_task_payload("Consultant A hidden history"),
+    )
+    assert created_a.status_code == 201
+    task_a_id = created_a.json()["id"]
+    hide_a = consultant_a.put(
+        "/api/v1/workbench/history-visibility",
+        json={"task_ids": [task_a_id], "visibility_state": "hidden"},
+    )
+    assert hide_a.status_code == 200
+    assert task_a_id in hide_a.json()["hidden_task_ids"]
+    assert consultant_a.post("/api/v1/auth/logout").status_code == 200
+
+    consultant_b = login_as_named_consultant_with_owner_invite(
+        anonymous_client,
+        monkeypatch,
+        email="consultant-b@example.com",
+        full_name="Consultant B",
+    )
+
+    visibility_b = consultant_b.get("/api/v1/workbench/history-visibility")
+    assert visibility_b.status_code == 200
+    assert task_a_id not in visibility_b.json()["hidden_task_ids"]
+
+    mutate_a = consultant_b.put(
+        "/api/v1/workbench/history-visibility",
+        json={"task_ids": [task_a_id], "visibility_state": "visible"},
+    )
+    assert mutate_a.status_code == 404
+
+    with SessionLocal() as db:
+        current_member = current_member_for_email(db, "consultant-b@example.com")
+        db.add(
+            models.TaskVisibilityState(
+                profile_key=f"firm:{current_member.firm.id}:user:{current_member.user.id}:history",
+                task_id=task_a_id,
+                visibility_state="hidden",
+                hidden_at=models.utc_now(),
+            )
+        )
+        db.commit()
+
+    stale_visibility_b = consultant_b.get("/api/v1/workbench/history-visibility")
+    assert stale_visibility_b.status_code == 200
+    assert task_a_id not in stale_visibility_b.json()["hidden_task_ids"]
+
+
+def test_host_payload_scopes_organization_memory_for_consultant(
+    anonymous_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    consultant_a = login_as_named_consultant_with_owner_invite(
+        anonymous_client,
+        monkeypatch,
+        email="consultant-a@example.com",
+        full_name="Consultant A",
+    )
+    payload_a = create_contract_review_payload("Consultant A host memory boundary")
+    payload_a["client_name"] = "Acme Corp"
+    payload_a["engagement_name"] = "年度法務盤點"
+    payload_a["workstream_name"] = "合約風險整理"
+    created_a = consultant_a.post("/api/v1/tasks", json=payload_a)
+    assert created_a.status_code == 201
+    matter_a_id = created_a.json()["matter_workspace"]["id"]
+    assert consultant_a.post("/api/v1/auth/logout").status_code == 200
+
+    consultant_b = login_as_named_consultant_with_owner_invite(
+        anonymous_client,
+        monkeypatch,
+        email="consultant-b@example.com",
+        full_name="Consultant B",
+    )
+    payload_b = create_contract_review_payload("Consultant B host memory boundary")
+    payload_b["client_name"] = "Acme Corp"
+    payload_b["engagement_name"] = "續約商務盤點"
+    payload_b["workstream_name"] = "續約條件整理"
+    created_b = consultant_b.post("/api/v1/tasks", json=payload_b)
+    assert created_b.status_code == 201
+    task_b_id = created_b.json()["id"]
+
+    with SessionLocal() as db:
+        current_member = current_member_for_email(db, "consultant-b@example.com")
+        task_b = get_loaded_task(db, task_b_id)
+        payload = HostOrchestrator(db, current_member=current_member).build_payload(task_b)
+
+    cross_matter_ids = {
+        item.matter_workspace_id
+        for item in payload.organization_memory_guidance.cross_matter_items
+    }
+    assert matter_a_id not in cross_matter_ids
 
 
 def test_consultant_organization_memory_guidance_excludes_other_consultant_matter(

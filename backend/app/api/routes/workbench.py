@@ -364,7 +364,7 @@ def get_history_visibility_route(
     current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.HistoryVisibilityStateResponse:
-    return get_history_visibility_state(db)
+    return get_history_visibility_state(db, current_member)
 
 
 @router.put("/history-visibility", response_model=schemas.HistoryVisibilityStateResponse)
@@ -373,7 +373,7 @@ def update_history_visibility_route(
     current_member=Depends(require_permission("access_firm_workspace")),
     db: Session = Depends(get_db),
 ) -> schemas.HistoryVisibilityStateResponse:
-    return update_history_visibility_state(db, payload)
+    return update_history_visibility_state(db, payload, current_member)
 
 
 @router.get("/precedent-candidates", response_model=schemas.PrecedentReviewResponse)

@@ -6,8 +6,10 @@ from fastapi import HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
+from app.core.auth import CurrentMember
 from app.domain import models
 from app.domain import schemas as domain_schemas
+from app.services.case_access import task_access_statement
 from app.services.precedent_duplicate_governance import (
     apply_matter_precedent_duplicate_review,
     build_precedent_duplicate_contract,
@@ -57,6 +59,12 @@ PHASE_REVIEW_EXTENSION_KIND = "phase_review"
 PHASE_4_SHARED_INTELLIGENCE_ID = "phase_4_shared_intelligence"
 PHASE_5_SINGLE_FIRM_CLOUD_ID = "phase_5_single_firm_cloud_foundation"
 PHASE_6_GENERALIST_GOVERNANCE_ID = "phase_6_generalist_consulting_intelligence_governance"
+
+
+def _history_visibility_profile_key(current_member: CurrentMember | None) -> str:
+    if current_member is None:
+        return DEFAULT_WORKBENCH_PROFILE
+    return f"firm:{current_member.firm.id}:user:{current_member.user.id}:history"
 
 
 def _normalize_operator_label(value: str | None) -> str:
@@ -291,26 +299,45 @@ def update_workbench_preferences(
     return _serialize_preferences(row)
 
 
-def get_history_visibility_state(db: Session) -> schemas.HistoryVisibilityStateResponse:
-    hidden_task_ids = db.scalars(
+def get_history_visibility_state(
+    db: Session,
+    current_member: CurrentMember | None = None,
+) -> schemas.HistoryVisibilityStateResponse:
+    profile_key = _history_visibility_profile_key(current_member)
+    hidden_statement = (
         select(models.TaskVisibilityState.task_id)
-        .where(models.TaskVisibilityState.profile_key == DEFAULT_WORKBENCH_PROFILE)
+        .where(models.TaskVisibilityState.profile_key == profile_key)
         .where(models.TaskVisibilityState.visibility_state == "hidden")
         .order_by(models.TaskVisibilityState.updated_at.desc())
-    ).all()
+    )
+    if current_member is not None:
+        accessible_task_ids = (
+            task_access_statement(current_member)
+            .with_only_columns(models.Task.id)
+            .subquery()
+        )
+        hidden_statement = hidden_statement.where(
+            models.TaskVisibilityState.task_id.in_(select(accessible_task_ids.c.id))
+        )
+    hidden_task_ids = db.scalars(hidden_statement).all()
     return schemas.HistoryVisibilityStateResponse(hidden_task_ids=hidden_task_ids)
 
 
 def update_history_visibility_state(
     db: Session,
     payload: schemas.HistoryVisibilityUpdateRequest,
+    current_member: CurrentMember | None = None,
 ) -> schemas.HistoryVisibilityStateResponse:
+    profile_key = _history_visibility_profile_key(current_member)
     if not payload.task_ids:
-        return get_history_visibility_state(db)
+        return get_history_visibility_state(db, current_member)
 
-    existing_task_ids = set(
-        db.scalars(select(models.Task.id).where(models.Task.id.in_(payload.task_ids))).all()
-    )
+    task_statement = select(models.Task).where(models.Task.id.in_(payload.task_ids))
+    if current_member is not None:
+        task_statement = task_access_statement(current_member).where(
+            models.Task.id.in_(payload.task_ids)
+        )
+    existing_task_ids = {task.id for task in db.scalars(task_statement).all()}
     missing_task_ids = [task_id for task_id in payload.task_ids if task_id not in existing_task_ids]
     if missing_task_ids:
         raise HTTPException(
@@ -322,7 +349,7 @@ def update_history_visibility_state(
         row.task_id: row
         for row in db.scalars(
             select(models.TaskVisibilityState)
-            .where(models.TaskVisibilityState.profile_key == DEFAULT_WORKBENCH_PROFILE)
+            .where(models.TaskVisibilityState.profile_key == profile_key)
             .where(models.TaskVisibilityState.task_id.in_(payload.task_ids))
         ).all()
     }
@@ -333,7 +360,7 @@ def update_history_visibility_state(
         row = existing_rows.get(task_id)
         if row is None:
             row = models.TaskVisibilityState(
-                profile_key=DEFAULT_WORKBENCH_PROFILE,
+                profile_key=profile_key,
                 task_id=task_id,
             )
         row.visibility_state = payload.visibility_state
@@ -341,7 +368,7 @@ def update_history_visibility_state(
         db.add(row)
 
     db.commit()
-    return get_history_visibility_state(db)
+    return get_history_visibility_state(db, current_member)
 
 
 def get_precedent_review_state(db: Session) -> schemas.PrecedentReviewResponse:

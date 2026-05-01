@@ -1104,6 +1104,7 @@ Primary action：
 - 這條 lane 不可搶走 history hero 的主定位
 - task history list 與 precedent review list 應清楚分隔，但留在同一頁
 - `清理本頁` 與 `隱藏全部歷史入口` 這類操作都只是在整理可見入口，不是刪除正式工作資料
+- history visibility state 是每位 current member 的個人整理狀態；顧問隱藏自己的歷史入口，不會替其他顧問隱藏，也不能讀到或修改其他顧問看不到的 task id
 - 若要做不可逆的本機資料清除，必須走明確的 runtime / operator 操作，不可把它偽裝成一般 history UI 按鈕
 - precedence review 的排序語言應保持可理解：
   - `建議先看`
