@@ -27,6 +27,16 @@ export function getSettingsProviderVisibility(role: MembershipRole) {
   };
 }
 
+export function buildProviderFallbackExplanation(role: MembershipRole) {
+  if (role === "owner") {
+    return "事務所預設模型會作為沒有個人金鑰時的備援。";
+  }
+  if (role === "demo") {
+    return "示範工作台會使用事務所允許的模型設定，不需要另外提供個人金鑰。";
+  }
+  return "你可以使用自己的模型金鑰；沒有設定時，系統會使用事務所預設模型。";
+}
+
 export function labelForProviderValidationStatus(status: ProviderValidationResult["validationStatus"]) {
   switch (status) {
     case "success":

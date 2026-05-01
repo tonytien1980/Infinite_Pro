@@ -20,6 +20,7 @@ import {
   normalizeDemoWorkspaceCopy,
   summarizeDemoShowcaseHighlights,
 } from "../src/lib/demo-workspace.ts";
+import { buildPrecedentCandidateView } from "../src/lib/precedent-candidates.ts";
 
 test("first-layer avoid list includes internal system language", () => {
   assert.equal(shouldAvoidInFirstLayer("寫回"), true);
@@ -248,4 +249,24 @@ test("demo runtime normalization keeps mixed English and Chinese spacing natural
     }),
     "你可以先看案件主控台、結果與報告的收斂讀法、歷史紀錄與共享判讀的唯讀展示。",
   );
+});
+
+test("precedent candidate view explains shared intelligence status without internal jargon", () => {
+  const view = buildPrecedentCandidateView({
+    candidate_type: "recommendation_pattern",
+    candidate_status: "candidate",
+    share_status: "needs_review",
+    risk_flags: ["sensitive_detail"],
+    risk_summary: "這筆內容涉及敏感細節，先不自動進入強參考。",
+    summary: "這是可重用建議模式。",
+    reusable_reason: "已在相似案件中被採用。",
+    source_feedback_operator_label: "顧問 A",
+    created_by_label: "顧問 A",
+    last_status_changed_by_label: "合夥人 B",
+  });
+
+  assert.equal(view.shareStatusLabel, "需檢查");
+  assert.match(view.shareStatusSummary, /先不自動進入強參考/);
+  assert.doesNotMatch(view.shareStatusSummary, /candidate_status|share_status|surveillance/);
+  assert.doesNotMatch(view.summary, /candidate_status|share_status|surveillance/);
 });

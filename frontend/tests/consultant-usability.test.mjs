@@ -392,3 +392,19 @@ test("evidence first screen stays supplement-first instead of stacking a dashboa
   assert.equal((heroBlock.match(/button-primary/g) ?? []).length, 1);
   assert.equal((heroBlock.match(/hero-focus-card/g) ?? []).length, 2);
 });
+
+test("owner governance copy avoids surveillance and ranking wording", () => {
+  const workbenchSource = readFileSync(
+    new URL("../src/components/workbench-home.tsx", import.meta.url),
+    "utf8",
+  );
+  const matterSource = readFileSync(
+    new URL("../src/components/matter-workspace-panel.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.doesNotMatch(
+    `${workbenchSource}\n${matterSource}`,
+    /顧問排名|績效排名|監控後台|產能監控/,
+  );
+});

@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react";
 
 import { getCurrentSession } from "@/lib/api";
-import { getSettingsProviderVisibility } from "@/lib/provider-settings";
+import {
+  buildProviderFallbackExplanation,
+  getSettingsProviderVisibility,
+} from "@/lib/provider-settings";
 import { normalizeOperatorDisplayName } from "@/lib/operator-identity";
 import { buildWorkbenchPreferenceFeedback, persistWorkbenchPreferences } from "@/lib/workbench-persistence";
 import { labelForMembershipRole } from "@/lib/ui-labels";
@@ -115,6 +118,7 @@ export function SettingsPagePanel() {
 
   const role: MembershipRole | null = session?.membership.role || null;
   const providerVisibility = role ? getSettingsProviderVisibility(role) : { showFirmSettings: false, showPersonalSettings: false };
+  const providerFallbackExplanation = buildProviderFallbackExplanation(role || "consultant");
   const settingsActionTitle = "現在先決定";
   const settingsActionSummary =
     role === "owner"
@@ -199,6 +203,9 @@ export function SettingsPagePanel() {
                     : "目前還在確認登入身份。"
                 : "正在確認目前身份..."}
               </p>
+              {providerVisibility.showPersonalSettings ? (
+                <p className="content-block">{providerFallbackExplanation}</p>
+              ) : null}
           </div>
         </div>
       </section>

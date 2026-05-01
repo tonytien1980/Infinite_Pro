@@ -4,6 +4,7 @@ import type {
   PrecedentCandidateSummary,
   PrecedentCandidateStatus,
   PrecedentCandidateType,
+  PrecedentShareStatus,
 } from "@/lib/types";
 
 function buildOperatorAttributionSummary(input: {
@@ -29,13 +30,50 @@ type PrecedentCandidateLike = Pick<
   | "source_feedback_operator_label"
   | "created_by_label"
   | "last_status_changed_by_label"
->;
+> &
+  Partial<
+    Pick<
+      PrecedentCandidate,
+      | "share_status"
+      | "risk_flags"
+      | "risk_summary"
+      | "positive_signal_count"
+      | "negative_signal_count"
+    >
+  >;
 
 function labelForCandidateType(candidateType: PrecedentCandidateType) {
   if (candidateType === "deliverable_pattern") {
     return "交付物模式候選";
   }
   return "建議模式候選";
+}
+
+function labelForShareStatus(shareStatus: PrecedentShareStatus | null | undefined) {
+  if (shareStatus === "validated") {
+    return "已驗證";
+  }
+  if (shareStatus === "needs_review") {
+    return "需檢查";
+  }
+  return "暫時可用";
+}
+
+function summarizeShareStatus(candidate: {
+  share_status?: PrecedentShareStatus | null;
+  risk_summary?: string | null;
+}) {
+  const riskSummary = candidate.risk_summary?.trim();
+  if (riskSummary) {
+    return riskSummary;
+  }
+  if (candidate.share_status === "validated") {
+    return "這個模式已被多次正向使用，可以作為較強參考。";
+  }
+  if (candidate.share_status === "needs_review") {
+    return "這筆內容先留在治理視圖，不會直接成為強參考。";
+  }
+  return "這筆內容已進入共享判讀，但目前只作為弱訊號參考。";
 }
 
 export function buildPrecedentCandidateView(
@@ -45,6 +83,8 @@ export function buildPrecedentCandidateView(
   badgeLabel: string;
   summary: string;
   statusLabel: string;
+  shareStatusLabel: string;
+  shareStatusSummary: string;
   attributionSummary: string;
 } {
   if (!candidate) {
@@ -53,6 +93,8 @@ export function buildPrecedentCandidateView(
       badgeLabel: "",
       summary: "",
       statusLabel: "",
+      shareStatusLabel: "",
+      shareStatusSummary: "",
       attributionSummary: "",
     };
   }
@@ -76,6 +118,8 @@ export function buildPrecedentCandidateView(
             : labelForCandidateType(candidate.candidate_type),
     summary: [candidate.summary, candidate.reusable_reason].filter(Boolean).join("｜"),
     statusLabel,
+    shareStatusLabel: labelForShareStatus(candidate.share_status),
+    shareStatusSummary: summarizeShareStatus(candidate),
     attributionSummary: buildOperatorAttributionSummary({
       sourceFeedbackOperatorLabel:
         candidate.source_feedback_operator_label || candidate.created_by_label,

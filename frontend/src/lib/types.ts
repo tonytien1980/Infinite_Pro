@@ -1722,11 +1722,17 @@ export interface AdoptionFeedback {
 
 export type PrecedentCandidateType = "deliverable_pattern" | "recommendation_pattern";
 export type PrecedentCandidateStatus = "candidate" | "promoted" | "dismissed";
+export type PrecedentShareStatus = "provisional" | "validated" | "needs_review";
 
 export interface PrecedentCandidate {
   id: string;
   candidate_type: PrecedentCandidateType;
   candidate_status: PrecedentCandidateStatus;
+  share_status?: PrecedentShareStatus | null;
+  risk_flags?: string[];
+  risk_summary?: string | null;
+  positive_signal_count?: number | null;
+  negative_signal_count?: number | null;
   source_feedback_status: AdoptionFeedbackStatus;
   source_feedback_reason_codes: string[];
   source_feedback_operator_label: string;

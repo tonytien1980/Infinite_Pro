@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
+import * as providerSettings from "../src/lib/provider-settings.ts";
 import {
   buildProviderDraftFromCurrent,
   getSettingsProviderVisibility,
@@ -99,5 +100,16 @@ test("allowlist summary explains explicit model scope", () => {
       status: "active",
     }),
     "gpt-5.4-mini",
+  );
+});
+
+test("provider fallback explanation keeps personal key priority and firm fallback readable", () => {
+  assert.equal(
+    providerSettings.buildProviderFallbackExplanation?.("consultant"),
+    "你可以使用自己的模型金鑰；沒有設定時，系統會使用事務所預設模型。",
+  );
+  assert.equal(
+    providerSettings.buildProviderFallbackExplanation?.("owner"),
+    "事務所預設模型會作為沒有個人金鑰時的備援。",
   );
 });
