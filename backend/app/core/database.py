@@ -63,9 +63,13 @@ def _ensure_incremental_schema_updates() -> None:
             "title_override_active": "BOOLEAN NOT NULL DEFAULT FALSE",
             "engagement_continuity_mode": "VARCHAR(30) NOT NULL DEFAULT 'one_off'",
             "writeback_depth": "VARCHAR(30) NOT NULL DEFAULT 'minimal'",
+            "firm_id": "VARCHAR(36)",
+            "created_by_user_id": "VARCHAR(36)",
         },
         "tasks": {
             "entry_preset": "VARCHAR(50) NOT NULL DEFAULT 'one_line_inquiry'",
+            "firm_id": "VARCHAR(36)",
+            "created_by_user_id": "VARCHAR(36)",
         },
         "case_world_states": {
             "client_id": "VARCHAR(36)",
