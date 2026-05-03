@@ -128,7 +128,205 @@ Infinite Pro 最終要能支援：
 | G. 初階到高階顧問都能輕易使用 | 74 | 85+ | 最大可用性缺口 |
 | H. 接收回饋與自我優化 | 80 | 85+ | 未達標 |
 
-### 3.2 最危險的缺口
+### 3.2 每一項達到 85 分的具體標準
+
+以下標準不是最終評分器，而是下一階段拆實作計劃時的驗收基準。
+
+每一項若要被視為達到 85 分，至少要同時滿足三種標準：
+
+- 產品能力標準：功能與 runtime 不只存在，而是真的支撐該產品想像
+- 顧問使用標準：老田作為顧問使用時，能感覺它有助於真實工作
+- 驗證證據標準：不能只靠文件宣稱，要有測試、QA、實際流程或代表案例支撐
+
+#### A. Ontology-first 顧問分析工具達到 85 的標準
+
+85 分代表：
+
+- 顧問不是在填一堆表單，也不是在跟聊天機器人對話，而是在操作一個可持續累積的案件世界
+- intake、資料、證據、判斷、決策、交付、歷史、回饋與 writeback 都能回到同一個 ontology chain
+- Host 是唯一 orchestration center，不由前端自行拼 workflow 或繞過 provider boundary
+- `CaseWorldState` 是 matter/world 的 authority center，即使仍有 legacy `task_id` references，也必須被誠實標示為 bridge
+- 顧問能從一個交付物往回追到使用了哪些 evidence、source material、判斷與歷史脈絡
+- 新增 agent / pack / reusable intelligence 時，不會破壞六層架構或把 capability、agent、pack 混成同一套 taxonomy
+
+85 分不代表：
+
+- 要做成 Palantir enterprise platform
+- 要有 object graph explorer、OSDK、enterprise ABAC 或大型 admin shell
+
+低於 85 的徵兆：
+
+- workbench 只是把資料展示出來，但顧問感覺不到自己在同一個案件世界中工作
+- 某些流程只靠 UI 狀態串接，沒有回到 Host / ontology / evidence chain
+- 交付物無法被追溯，或 traceability 只存在於文件描述
+
+#### B. 支援創業 / 制度化 / 規模化達到 85 的標準
+
+85 分代表：
+
+- 創業階段、制度化階段、規模化階段各自都有足夠代表案例與 runtime proof
+- 系統能辨識不同階段的典型問題，不會把所有公司都當成同一種成熟企業
+- 創業階段能處理模糊問題、少資料、快速判斷、商業模式與資源限制
+- 制度化階段能處理流程、角色、責任、風險、制度與文件化
+- 規模化階段能處理跨部門複雜度、治理、協作、成本、成長瓶頸與策略取捨
+- 每個階段都能走完 intake -> evidence -> analysis -> deliverable -> feedback / history
+
+85 分不代表：
+
+- 規模化階段必須等同 enterprise SaaS
+- 必須支援大型企業內部多人共編、ABAC 或完整集團治理平台
+
+低於 85 的徵兆：
+
+- 規模化只有名義覆蓋，實際仍像中小企業問題
+- 創業階段少資料時只能產生泛泛建議
+- 制度化與規模化的 deliverable shape 沒有明顯差異
+
+#### C. 適用中小企業 / 大企業 / 個人品牌 / 自媒體達到 85 的標準
+
+85 分代表：
+
+- 四種 client type 都有可信的代表案例、語言、風險、資料期待與交付形態
+- 中小企業不只停在營運改善，也能支援財務、銷售、行銷、制度與策略判斷
+- 大型公司或集團可作為單一顧問工作台使用，能處理複雜文件、利害關係人、部門語境與高風險決策
+- 個人品牌或服務能處理定位、產品化、內容、轉換、商業模式與交付標準
+- 自媒體能處理內容策略、受眾、變現、通路、品牌與營運節奏
+- 系統能避免把個人品牌 / 自媒體硬套成傳統公司模板
+
+85 分不代表：
+
+- 大型公司或集團已可把 Infinite Pro 當成全公司 enterprise platform
+- 要先完成 public multi-tenant tenancy 才能算 client-type 85
+
+低於 85 的徵兆：
+
+- personal brand / self-media 只是在文件裡被列名，實際交付仍像一般 SMB
+- large-company case 只能處理單一文件，不能支撐複雜判斷
+- 系統對不同 client type 的 evidence expectation 與 deliverable shape 沒有差異
+
+#### D. 覆蓋營運 / 財務 / 商務 / 法務 / 行銷 / 銷售 / 策略達到 85 的標準
+
+85 分代表：
+
+- 每個主要 domain 都至少有可用的代表案例、domain lens、常見風險、證據期待與交付骨架
+- 系統不只會分類 domain，還能在不同 domain 下提出不同的判斷主線
+- 營運能看流程、瓶頸、責任、控制點與改善順序
+- 財務能看資金、成本、單位經濟、募資、預算與財務風險
+- 商務能看合作、通路、定價、商業模式與談判取捨
+- 法務能看合約、義務、風險、責任、限制與補救
+- 行銷能看定位、受眾、訊息、內容、渠道與轉換
+- 銷售能看 pipeline、客戶分層、成交阻力、銷售流程與商務跟進
+- 綜合策略能整合多 domain 的取捨，而不是把各 domain 建議並排貼上
+- cross-domain cases 能說清楚哪個 domain 是主線、哪個 domain 是支撐、哪個 domain 是風險
+
+85 分不代表：
+
+- 每個 domain 都要達到專業顧問公司最深專家級
+- 每個 domain 都要做成獨立 specialist product
+
+低於 85 的徵兆：
+
+- 行銷、銷售、商務、策略仍只有 generic business advice
+- cross-domain 輸出只是多段建議並排，沒有真正收斂取捨
+- deliverable shape 不會因 domain 改變
+
+#### E. 支援一次性報告與持續深化案件達到 85 的標準
+
+85 分代表：
+
+- 一次性報告可以從材料、證據、分析到正式交付穩定完成
+- 持續深化案件可以在 follow-up / continuous 模式下記住前情、補件、更新判斷、追蹤下一步
+- 系統能清楚區分本輪是 assessment、decision、action 還是 continuous advisory
+- 顧問能知道這一輪最多能交到哪裡，以及若要升級到下一種交付，需要補什麼
+- history、feedback、writeback 與 deliverable lineage 能支持顧問回看與延續
+- one-off 不會被錯罰為缺少長期 outcome；continuous 也不會被當成一次性報告草草收口
+
+85 分不代表：
+
+- 要立即完成完整 CRM
+- 要自動管理所有客戶後續行動
+
+低於 85 的徵兆：
+
+- follow-up 案件仍像新案重跑
+- 顧問看不出本輪與上一輪的差異
+- 報告交完後，系統不知道哪些判斷被採納、哪些要延續
+
+#### F. 成熟產品度達到 85 的標準
+
+85 分代表：
+
+- 核心工作流能穩定跑完：登入、建立案件、上傳 / 輸入資料、跑分析、看證據、產出結果、回饋、歷史回看
+- owner-consultant 實際使用時，不會因 loading、錯誤、權限、provider、上傳、空狀態而失去信任
+- 重要行為有 regression tests、build、typecheck 與 QA evidence
+- 最新 readiness 狀態要有 authenticated browser walkthrough 或等價真實流程證據
+- 錯誤訊息能讓顧問知道怎麼修正，而不是看到內部錯誤
+- 性能與載入策略足以支撐日常使用，不讓第一屏被不必要資料拖慢
+- docs、code、QA matrix、GitHub state 保持同步
+
+85 分不代表：
+
+- 已經有完整 production ops、SLA、support desk、billing 或 multi-tenant commercial readiness
+
+低於 85 的徵兆：
+
+- 測試通過，但真人流程常卡
+- 某些最新功能沒有 authenticated workflow proof
+- 顧問遇到錯誤不知道該怎麼處理
+- 本機與 GitHub 或 docs 與程式碼經常不同步
+
+#### G. 初階到高階顧問都能輕易使用達到 85 的標準
+
+85 分代表：
+
+- 第一屏能回答：我在哪裡、現在最重要的是什麼、下一步做什麼
+- 顧問不需要先理解 workflow 代號、agent / pack contract、internal runtime vocabulary 才能工作
+- 初階顧問能順著畫面完成基本工作，不會被資訊密度壓垮
+- 高階顧問能快速取得判斷、證據、風險、取捨與交付，不會覺得系統拖慢自己
+- 進階治理與 technical detail 留在 second-layer disclosure，不搶第一層注意力
+- 每一頁同一時間只有一個主要動作，不把所有事情同時推給顧問
+- 系統用語穩定、繁中、顧問可讀，不混用大量內部英文
+- 老田在真實或高擬真案件中願意繼續使用，而不是只願意測試
+
+85 分不代表：
+
+- 把所有複雜度拿掉
+- 把系統做成玩具化或只剩簡單聊天框
+
+低於 85 的徵兆：
+
+- 顧問知道系統很強，但不知道下一步怎麼做
+- 頁面整齊但眼花撩亂
+- 很多文字看似完整，但使用者不想讀
+- 顧問需要先被教一遍產品邏輯才敢使用
+
+#### H. 接收回饋與自我優化達到 85 的標準
+
+85 分代表：
+
+- 顧問能低負擔地標記採納、需修正、不採納或可作為模板候選
+- 系統不只知道有沒有 feedback，也知道為什麼被採納或修正
+- feedback 能形成 precedent candidates，並進一步影響 review lenses、common risks、domain playbooks、deliverable shapes 或 templates
+- shared intelligence 必須經 risk gates，不能把 raw case content 跨顧問回灌模型
+- Host 引用 reusable intelligence 時能說清楚相關性、信任程度與安全使用方式
+- 系統能分辨某個 reusable pattern 是個別經驗、可觀察模式、穩定共享模式，或應該降權
+- 系統能避免因高頻案型、單一顧問風格、近期成功案例而越學越偏
+- 至少能以保守方式判讀 reusable intelligence 是否真的改善 deliverable、outcome 或後續工作
+
+85 分不代表：
+
+- 模型權重會自動學會顧問方法
+- 系統可以自動套用舊案結論
+- 系統可以做未經治理的 raw precedent search
+
+低於 85 的徵兆：
+
+- feedback 只是留紀錄，沒有影響後續工作
+- precedent 被拿來像模板複製，而不是被 Host 安全壓縮成 guidance
+- 系統越用越偏向最近常見案型
+- effectiveness 只能靠感覺，沒有 evidence-linked reading
+
+### 3.3 最危險的缺口
 
 目前最危險的缺口不是「多人使用」。
 
