@@ -64,6 +64,7 @@ import { buildDeliverableShapeHintView } from "@/lib/deliverable-shape-hints";
 import { buildPrecedentReferenceView } from "@/lib/precedent-reference";
 import { buildReviewLensView } from "@/lib/review-lenses";
 import { normalizeOperatorDisplayName } from "@/lib/operator-identity";
+import { buildSparseDiagnosticCockpitView } from "@/lib/owner-consultant-cockpit";
 import type {
   AdoptionFeedbackPayload,
   ExtensionManagerSnapshot,
@@ -652,6 +653,15 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
   const flagshipLane = task ? buildFlagshipLaneView(task.flagship_lane) : null;
   const flagshipDetailView = buildFlagshipDetailView(flagshipLane);
   const materialReviewPosture = buildMaterialReviewPostureView(flagshipLane);
+  const sparseDiagnosticCockpit = task
+    ? buildSparseDiagnosticCockpitView({
+        laneId: task.flagship_lane?.lane_id,
+        surface: "task",
+        evidenceCount: task.evidence.length,
+        hasDeliverable: Boolean(latestDeliverable),
+        canRun: true,
+      })
+    : null;
   const researchGuidance = task ? buildResearchGuidanceView(task.research_guidance) : null;
   const organizationMemoryView = task
     ? buildOrganizationMemoryView(
@@ -983,7 +993,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                 <div className="button-row" style={{ marginTop: "4px" }}>
                   {latestDeliverable ? (
                     <Link className="button-primary" href={`/deliverables/${latestDeliverable.id}`}>
-                      打開結果與報告
+                      {sparseDiagnosticCockpit?.active
+                        ? sparseDiagnosticCockpit.primaryActionLabel
+                        : "打開結果與報告"}
                     </Link>
                   ) : (
                     <button
@@ -992,7 +1004,11 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                       onClick={handleRun}
                       disabled={running}
                     >
-                      {running ? runMeta?.buttonRunning ?? "執行中..." : runMeta?.buttonIdle}
+                      {running
+                        ? runMeta?.buttonRunning ?? "執行中..."
+                        : sparseDiagnosticCockpit?.active
+                          ? sparseDiagnosticCockpit.primaryActionLabel
+                          : runMeta?.buttonIdle}
                     </button>
                   )}
                   {task.matter_workspace ? (
@@ -1000,7 +1016,9 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
                       className="button-secondary"
                       href={`/matters/${task.matter_workspace.id}/evidence`}
                     >
-                      先補資料與證據
+                      {sparseDiagnosticCockpit?.active
+                        ? sparseDiagnosticCockpit.secondaryActionLabel
+                        : "先補資料與證據"}
                     </Link>
                   ) : null}
                   {task.matter_workspace ? (
@@ -1014,14 +1032,25 @@ export function TaskDetailPanel({ taskId }: { taskId: string }) {
               <div className="hero-aside">
                 <div className="hero-focus-card hero-focus-card-warm">
                   <p className="hero-focus-label">
-                    {taskDetailUsabilityView?.primaryLabel || "現在先做這件事"}
+                    {sparseDiagnosticCockpit?.active
+                      ? sparseDiagnosticCockpit.statusLabel
+                      : taskDetailUsabilityView?.primaryLabel || "現在先做這件事"}
                   </p>
                   <h3 className="hero-focus-title">
-                    {taskDetailUsabilityView?.primaryTitle || taskHeroActionTitle}
+                    {sparseDiagnosticCockpit?.active
+                      ? sparseDiagnosticCockpit.primaryActionLabel
+                      : taskDetailUsabilityView?.primaryTitle || taskHeroActionTitle}
                   </h3>
                   <p className="hero-focus-copy">
-                    {taskDetailUsabilityView?.primaryCopy || taskActionSummary}
+                    {sparseDiagnosticCockpit?.active
+                      ? sparseDiagnosticCockpit.mainlineSummary
+                      : taskDetailUsabilityView?.primaryCopy || taskActionSummary}
                   </p>
+                  {sparseDiagnosticCockpit?.active ? (
+                    <p className="muted-text" style={{ marginTop: "8px" }}>
+                      {sparseDiagnosticCockpit.boundaryNote}
+                    </p>
+                  ) : null}
                   {taskDetailUsabilityView?.primaryPostureLabel ? (
                     <p className="muted-text" style={{ marginTop: "8px" }}>
                       {taskDetailUsabilityView.primaryPostureLabel}

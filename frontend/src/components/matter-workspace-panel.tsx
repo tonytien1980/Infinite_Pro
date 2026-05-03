@@ -66,6 +66,7 @@ import {
   buildMatterUsabilityView,
 } from "@/lib/consultant-usability";
 import { buildMatterAdvanceGuide } from "@/lib/matter-advance-guide";
+import { buildSparseDiagnosticCockpitView } from "@/lib/owner-consultant-cockpit";
 import {
   buildMatterDeferredTabPlan,
   buildMatterOnDemandPanelPlan,
@@ -530,6 +531,15 @@ export function MatterWorkspacePanel({
     ? buildResearchDetailView(researchGuidance, matter.research_runs[0] ?? null)
     : null;
   const matterCommandView = matter ? buildMatterCommandView(matter.matter_command) : null;
+  const sparseDiagnosticCockpit = matter
+    ? buildSparseDiagnosticCockpitView({
+        laneId: matter.summary.flagship_lane?.lane_id,
+        surface: "matter",
+        evidenceCount,
+        hasDeliverable: Boolean(latestDeliverable),
+        canRun: true,
+      })
+    : null;
   const resolvedContentSections = matter
     ? buildResolvedMatterContentSections(matter, fallbackRecord)
     : draftContentSections;
@@ -945,10 +955,23 @@ export function MatterWorkspacePanel({
                 </div>
 
                 <div className="deliverable-focus-card workspace-focus-card">
-                  <span className="pill">現在重點</span>
+                  <span className="pill">
+                    {sparseDiagnosticCockpit?.active
+                      ? sparseDiagnosticCockpit.statusLabel
+                      : "現在重點"}
+                  </span>
                   <p className="deliverable-focus-lead">
-                    {matterCommandView ? matterCommandView.primaryCopy : advanceGuide.summary}
+                    {sparseDiagnosticCockpit?.active
+                      ? sparseDiagnosticCockpit.mainlineSummary
+                      : matterCommandView
+                        ? matterCommandView.primaryCopy
+                        : advanceGuide.summary}
                   </p>
+                  {sparseDiagnosticCockpit?.active ? (
+                    <p className="muted-text" style={{ marginTop: "8px" }}>
+                      {sparseDiagnosticCockpit.boundaryNote}
+                    </p>
+                  ) : null}
                 </div>
               </div>
 
@@ -965,22 +988,32 @@ export function MatterWorkspacePanel({
                     <div className="detail-item">
                       <h3>現在重點</h3>
                       <p className="content-block">
-                        {matterCommandView?.primaryCopy || advanceGuide.summary}
+                        {sparseDiagnosticCockpit?.active
+                          ? sparseDiagnosticCockpit.mainlineSummary
+                          : matterCommandView?.primaryCopy || advanceGuide.summary}
                       </p>
                     </div>
                     <div className="detail-item">
                       <h3>目前卡住原因</h3>
                       <p className="content-block">
-                        {matterCommandView?.blockerCopy ||
+                        {sparseDiagnosticCockpit?.active
+                          ? sparseDiagnosticCockpit.blockerSummary
+                          : matterCommandView?.blockerCopy ||
                           constraintItems[0] ||
                           "目前沒有明顯卡住原因，請直接確認下一步是否已對準現在重點。"}
                       </p>
                     </div>
                     <div className="detail-item">
                       <h3>下一步</h3>
-                      <p className="content-block">{heroNextActionSummary}</p>
+                      <p className="content-block">
+                        {sparseDiagnosticCockpit?.active
+                          ? sparseDiagnosticCockpit.primaryActionLabel
+                          : heroNextActionSummary}
+                      </p>
                       <p className="muted-text">
-                        {matterCommandView?.deliverableCopy || heroStateSummary}
+                        {sparseDiagnosticCockpit?.active
+                          ? sparseDiagnosticCockpit.boundaryNote
+                          : matterCommandView?.deliverableCopy || heroStateSummary}
                       </p>
                     </div>
                   </div>
@@ -1052,7 +1085,24 @@ export function MatterWorkspacePanel({
                     </div>
                   ) : null}
                   <div className="button-row" style={{ marginTop: "12px" }}>
-                    {continuationSurface?.primary_action &&
+                    {sparseDiagnosticCockpit?.active ? (
+                      latestDeliverable ? (
+                        <Link
+                          className="button-primary"
+                          href={`/deliverables/${latestDeliverable.deliverable_id}`}
+                        >
+                          {sparseDiagnosticCockpit.primaryActionLabel}
+                        </Link>
+                      ) : focusTask ? (
+                        <Link className="button-primary" href={`/tasks/${focusTask.id}`}>
+                          {sparseDiagnosticCockpit.primaryActionLabel}
+                        </Link>
+                      ) : (
+                        <Link className="button-primary" href={`/matters/${matterId}/evidence`}>
+                          先補關鍵資料
+                        </Link>
+                      )
+                    ) : continuationSurface?.primary_action &&
                     continuationSurface.primary_action.action_id !== "run_analysis" ? (
                       <button
                         className="button-primary"
@@ -1085,9 +1135,17 @@ export function MatterWorkspacePanel({
                         {runningFocusTask ? "正在產出中..." : advanceGuide.primaryActionLabel}
                       </button>
                     ) : null}
-                    <Link className="button-secondary" href={`/matters/${matterId}/evidence`}>
-                      先補資料
-                    </Link>
+                    {sparseDiagnosticCockpit?.active && latestDeliverable ? (
+                      <a className="button-secondary" href="#matter-mainline">
+                        {sparseDiagnosticCockpit.secondaryActionLabel}
+                      </a>
+                    ) : (
+                      <Link className="button-secondary" href={`/matters/${matterId}/evidence`}>
+                        {sparseDiagnosticCockpit?.active
+                          ? sparseDiagnosticCockpit.secondaryActionLabel
+                          : "先補資料"}
+                      </Link>
+                    )}
                     {focusTask ? (
                       <Link className="button-secondary" href={`/tasks/${focusTask.id}`}>
                         打開分析項目

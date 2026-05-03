@@ -168,6 +168,31 @@ test("matter usability view keeps continuity, research, and flagship-heavy readi
   );
 });
 
+test("owner-consultant sparse diagnostic cockpit copy stays action-first", () => {
+  const helperSource = readFileSync(
+    new URL("../src/lib/owner-consultant-cockpit.ts", import.meta.url),
+    "utf8",
+  );
+  const matterSource = readFileSync(
+    new URL("../src/components/matter-workspace-panel.tsx", import.meta.url),
+    "utf8",
+  );
+  const taskSource = readFileSync(
+    new URL("../src/components/task-detail-panel.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(helperSource, /少資料快速診斷/);
+  assert.match(helperSource, /先用少量資訊看清問題主線/);
+  assert.match(helperSource, /探索型判斷/);
+  assert.match(helperSource, /先補關鍵資料|先跑一輪探索分析/);
+  assert.match(matterSource, /buildSparseDiagnosticCockpitView/);
+  assert.match(matterSource, /sparseDiagnosticCockpit/);
+  assert.match(taskSource, /buildSparseDiagnosticCockpitView/);
+  assert.match(taskSource, /sparseDiagnosticCockpit/);
+  assert.doesNotMatch(`${helperSource}\n${matterSource}\n${taskSource}`, /sparse inquiry/);
+});
+
 test("deliverable usability view keeps publish/read/evidence paths separate and low-noise", () => {
   const view = buildDeliverableUsabilityView({
     deliverableStatus: "draft",
