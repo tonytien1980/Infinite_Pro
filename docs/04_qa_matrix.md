@@ -6839,3 +6839,39 @@ Environment used:
 
 - this pass did not run authenticated browser QA
 - this pass did not run a fresh Google OAuth round-trip
+
+---
+
+## Entry: 2026-05-03 owner-consultant sparse diagnostic cockpit
+
+Scope:
+- first owner-consultant 85-point readiness slice
+- sparse diagnostic cockpit loop
+- frontend first-action tightening across matter / task / deliverable
+
+Environment used:
+- frontend local Next.js build environment
+- backend local test environment with `.venv312`
+- no authenticated browser QA in this closure pass
+
+### Build / Typecheck / Smoke
+
+| Check | Result |
+| --- | --- |
+| `source ~/.nvm/nvm.sh && cd frontend && node --test tests/*.test.mjs` | Passed (`165 passed`) with existing `MODULE_TYPELESS_PACKAGE_JSON` warnings |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run build` | Passed |
+| `source ~/.nvm/nvm.sh && cd frontend && npm run typecheck` | Passed |
+| `PYTHONPATH=backend .venv312/bin/python -m pytest backend/tests/test_mvp_slice.py -k "sparse_input or consulting_scaffold or diagnostic_start" -q` | Passed (`1 passed, 264 deselected`) |
+
+### Verified outcomes
+
+- sparse diagnostic owner-consultant loop now has a shared frontend view helper
+- matter / task / deliverable first-action copy is aligned to one loop
+- sparse diagnostic result reading keeps exploratory boundary visible near the existing adoption feedback loop
+- the slice preserves the backend contract and does not add a new workflow layer
+
+### Verification boundary
+
+- this entry does not claim `G consultant usability` or `F product maturity` reached 85
+- authenticated browser walkthrough remains a separate owner-confirmed gate
+- this pass did not run a fresh Google OAuth round-trip

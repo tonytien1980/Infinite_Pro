@@ -885,6 +885,27 @@ phase close review 的結論只能落在以下四種：
 - browser smoke 現在已正式分出 unauthenticated 與 authenticated 兩層 evidence
 - authenticated smoke 的正式進場方式為真實 session reuse 或 cookie import，而不是 auth bypass
 
+### 11.5 Owner-consultant sparse diagnostic cockpit slice
+
+第一個已核准的 owner-consultant cockpit slice 是 `sparse diagnostic cockpit`。
+
+它主要推進：
+
+- `G consultant usability`
+- `F product maturity`
+
+已落地範圍：
+
+- `diagnostic_start` 現在有共用 frontend cockpit helper，統一描述少資料快速診斷的主線、限制、下一步與 feedback loop
+- matter / task / deliverable 第一層文案開始對齊同一條 `/new -> matter -> task -> evidence -> deliverable -> feedback` loop
+- 結果頁會在採納與寫回附近明示探索型判斷邊界，不新增第二套回饋流程
+
+正式邊界：
+
+- 這一刀不宣稱所有 `G / F` 缺口已關閉
+- 這一刀只證明第一個 owner-consultant real-work loop 可以用較低噪音方式串起來
+- authenticated browser walkthrough 仍是下一個 owner-confirmed gate，不可用 source-level tests 取代真實使用感驗收
+
 正式規則：
 
 - 第二 tranche 的提案若無法明顯推進 `T2-A` 到 `T2-D` 其中一條，應先降優先級

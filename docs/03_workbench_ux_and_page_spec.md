@@ -361,6 +361,24 @@ deepen 後，首屏還應能回答：
 - `task / deliverable` 可把同一套閱讀放在較低噪音的 detail / disclosure surface
 - 不可每一頁各自重寫 lane detail copy，導致同一案件在不同工作面講成不同意思
 
+### 3.2.3.1 Owner-consultant sparse diagnostic cockpit
+
+對 `diagnostic_start`，第一個 owner-consultant readiness slice 正式把 `/new -> matter -> task -> evidence -> deliverable -> feedback` 視為同一條低噪音工作 loop。
+
+第一層必須回答：
+
+- 這輪是 `少資料快速診斷`，不是正式決策定案
+- 目前問題主線、最大限制與下一步是什麼
+- 現在應先補一份關鍵資料，還是先跑一輪探索分析
+- 這份結果目前能安全用到哪裡
+- 使用者如何用低負擔回饋讓系統知道這次判斷是否有用
+
+正式規則：
+
+- cockpit copy 必須由共用 view helper 生成，不可讓 matter / task / deliverable 各自長出不同語氣
+- 第一層只講顧問現在怎麼推，不先展示 `diagnostic_start`、`sparse inquiry` 或內部 runtime 名稱
+- 若結果仍屬探索型判斷，結果頁必須把使用邊界與採納回饋放在既有回饋 loop 附近，不新增第二套回饋表單
+
 ### 3.2.4 Case command readouts
 
 在現有 detail workspace 與 writeback/context layer 內，以下讀法應正式成為低噪音的首屏或次屏 readout：
