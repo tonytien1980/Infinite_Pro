@@ -128,7 +128,26 @@ Infinite Pro 最終要能支援：
 | G. 初階到高階顧問都能輕易使用 | 74 | 85+ | 最大可用性缺口 |
 | H. 接收回饋與自我優化 | 80 | 85+ | 未達標 |
 
-### 3.2 每一項達到 85 分的具體標準
+### 3.2 85 分差距與改進總表
+
+這張表是後續實作計劃的主要索引。
+
+目前更完整的資訊確實散在 `docs/00_product_definition_and_current_state.md`、`docs/06_product_alignment_and_85_point_roadmap.md`、runtime docs、UX docs 與 QA matrix 裡。
+
+本文件先把它們整併成一張可討論的工作表；老田確認後，才應把正式口徑同步回 active docs。
+
+| 維度 | 目前分數 | 現階段已做到什麼 | 距離 85 的主要差距 | 要怎麼改進到 85 |
+| --- | ---: | --- | --- | --- |
+| A. ontology-first 顧問分析工具 | 86 | 六層架構、Host orchestration、`CaseWorldState`、Task / Evidence / Deliverable / History / Feedback / Writeback 主鏈已成立，產品仍是 workbench-first 而不是 chat-first。 | 已達 85，但仍有 `CaseWorldState` 與 legacy `task_id` 共存、部分流程未完全 world-native、部分 legacy deliverable summary contract 未補齊。 | 不需要大改主架構；下一步是防退化、補 traceability proof、補 world-native bridge 誠實標示，確保後續任何 UI / shared intelligence / multi-consultant 工作都不繞過 Host 與 ontology chain。 |
+| B. 支援創業 / 制度化 / 規模化 | 80 | stage / type coverage proof 已成立，創業與制度化較成熟，規模化已納入能力邊界。 | 規模化深度不足；少資料創業案、制度化流程案、規模化跨部門案的 runtime 差異還不夠明顯。 | 補三階段代表案例與測試；讓 intake、evidence expectation、deliverable shape、next-step guidance 依創業 / 制度化 / 規模化產生明顯差異；特別補規模化的 governance、成本、跨部門與策略取捨案例。 |
+| C. 適用中小企業 / 大企業 / 個人品牌 / 自媒體 | 79 | SMB、個人品牌、自媒體與 founder-led services 已有較多 proof；personal-brand 與 self-media 不再只是文件名義。 | 大型公司 / 集團仍偏薄；不同 client type 的語言、資料期待、風險與交付形態差異還不夠成熟。 | 補大型公司 / 集團單一顧問工作台代表案例；補個人品牌與自媒體的定位、內容、變現、產品化、轉換案例；讓系統避免把 personal brand / self-media 硬套成傳統 SMB 模板。 |
+| D. 覆蓋營運 / 財務 / 商務 / 法務 / 行銷 / 銷售 / 策略 | 77 | 營運、法務 / 風險、財務 / 募資、研究綜整、決策收斂、文件重整較成熟；cross-domain proof 已開始補強。 | 行銷、銷售、商務、綜合策略仍偏薄；cross-domain 有時仍像多段建議並排，而不是真正取捨收斂。 | 建立 domain-depth tranche：針對行銷、銷售、商務、策略各補代表案例、domain lens、常見風險、證據期待與交付骨架；cross-domain 要明確標出主線、支撐面、風險面與取捨理由。 |
+| E. 支援一次性報告與持續深化案件 | 87 | one-off report、follow-up、continuous advisory、continuity mode、checkpoint、timeline、health、next step、deliverable closeout、publish、history、feedback 已有 baseline。 | 已達 85，但仍需要 owner-consultant 真實流程驗收；長期 client memory、outcome tracking、business-result interpretation 還不夠成熟。 | 不優先大改；用真實 / 高擬真案件驗證 one-off 與 continuous 是否真的順；補 client memory、decision / commitment tracking、outcome / writeback interpretation，避免 continuous advisory 只是舊任務集合。 |
+| F. 成熟產品度 | 79 | regression tests、frontend tests、build、typecheck、QA matrix、Shell v2 authenticated QA baseline、single-firm privacy tests 都已存在。 | 真人流程信心不足；部分最新狀態仍缺 authenticated browser walkthrough；loading、錯誤、provider、上傳、空狀態與 recovery 還未被 85 分標準驗證。 | 建立 real-use reliability gate：固定 owner-consultant walkthrough，覆蓋登入、建案、上傳、分析、證據、結果、feedback、history；補效能與 loading guard；錯誤訊息要可行動；QA evidence 只記錄真跑過的事。 |
+| G. 初階到高階顧問都能輕易使用 | 74 | Shell v2、低噪音第一屏、雙層語言、繁中 visible copy、overview / matter / task / evidence / deliverable usability pass 已明顯改善。 | 最大缺口。資訊仍可能偏多；顧問可能仍覺得需要先理解系統才能工作；task / evidence / deliverable 某些流程仍不像顧問 cockpit。 | 第一優先做 owner-consultant real-work cockpit：用老田真實工作 loop 找卡點；每頁只保留一個主動作；第一屏固定回答「在哪裡 / 最重要 / 下一步」；第二層才放治理細節；補 first-run guidance、empty state、blocked state、handoff copy。 |
+| H. 接收回饋與自我優化 | 80 | adoption feedback、reason-coded feedback、precedent candidate、Host-safe reference、shared intelligence risk gates、review lenses、common risks、deliverable shape hints、templates、domain playbooks 初版都已成立。 | 還不是 fully context-aware adaptive engine；feedback 對未來工作變好的證明不足；KPI / business outcome attribution 未成熟；防偏機制仍需補強。 | 做 case-aware shared intelligence：讓 reusable guidance 能依 client stage、client type、domain、evidence thickness、continuity 改變；補 trust / observe / ignore logic；補 effectiveness evidence；保守處理 outcome attribution；防止高頻案型、單一顧問風格或近期成功案例造成偏科。 |
+
+### 3.3 每一項達到 85 分的具體標準
 
 以下標準不是最終評分器，而是下一階段拆實作計劃時的驗收基準。
 
@@ -326,7 +345,7 @@ Infinite Pro 最終要能支援：
 - 系統越用越偏向最近常見案型
 - effectiveness 只能靠感覺，沒有 evidence-linked reading
 
-### 3.3 最危險的缺口
+### 3.4 最危險的缺口
 
 目前最危險的缺口不是「多人使用」。
 
