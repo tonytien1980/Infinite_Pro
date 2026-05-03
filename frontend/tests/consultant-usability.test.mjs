@@ -193,6 +193,23 @@ test("owner-consultant sparse diagnostic cockpit copy stays action-first", () =>
   assert.doesNotMatch(`${helperSource}\n${matterSource}\n${taskSource}`, /sparse inquiry/);
 });
 
+test("sparse diagnostic result copy keeps result boundary and feedback close to reading", () => {
+  const helperSource = readFileSync(
+    new URL("../src/lib/owner-consultant-cockpit.ts", import.meta.url),
+    "utf8",
+  );
+  const deliverableSource = readFileSync(
+    new URL("../src/components/deliverable-workspace-panel.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(helperSource, /這份結果能不能用|這份結果對你有幫助嗎/);
+  assert.match(helperSource, /探索型判斷/);
+  assert.match(deliverableSource, /buildSparseDiagnosticCockpitView/);
+  assert.match(deliverableSource, /sparseDiagnosticCockpit/);
+  assert.doesNotMatch(`${helperSource}\n${deliverableSource}`, /sparse inquiry/);
+});
+
 test("deliverable usability view keeps publish/read/evidence paths separate and low-noise", () => {
   const view = buildDeliverableUsabilityView({
     deliverableStatus: "draft",

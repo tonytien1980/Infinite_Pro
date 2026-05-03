@@ -48,6 +48,7 @@ import { buildPrecedentReferenceView } from "@/lib/precedent-reference";
 import { buildResearchDetailView } from "@/lib/research-lane";
 import { buildReviewLensView } from "@/lib/review-lenses";
 import { normalizeOperatorDisplayName } from "@/lib/operator-identity";
+import { buildSparseDiagnosticCockpitView } from "@/lib/owner-consultant-cockpit";
 import { truncateText } from "@/lib/text-format";
 import type {
   AdoptionFeedbackPayload,
@@ -644,6 +645,15 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
   const workspaceView = workspace ? buildDeliverableWorkspaceView(workspace) : null;
   const flagshipLane = task ? buildFlagshipLaneView(task.flagship_lane) : null;
   const flagshipDetailView = buildFlagshipDetailView(flagshipLane);
+  const sparseDiagnosticCockpit = task
+    ? buildSparseDiagnosticCockpitView({
+        laneId: task.flagship_lane?.lane_id,
+        surface: "deliverable",
+        evidenceCount: task.evidence.length,
+        hasDeliverable: true,
+        canRun: true,
+      })
+    : null;
   const readiness = task ? assessTaskReadiness(task) : null;
   const readinessGovernance =
     task && deliverable && readiness ? buildReadinessGovernance(task, deliverable, readiness) : null;
@@ -1349,6 +1359,14 @@ export function DeliverableWorkspacePanel({ deliverableId }: { deliverableId: st
                 </p>
               </div>
             </div>
+            {sparseDiagnosticCockpit?.active ? (
+              <div className="section-card" style={{ marginBottom: "16px" }}>
+                <span className="eyebrow">{sparseDiagnosticCockpit.statusLabel}</span>
+                <h3>先判斷這份結果能不能用</h3>
+                <p className="content-block">{sparseDiagnosticCockpit.boundaryNote}</p>
+                <p className="muted-text">{sparseDiagnosticCockpit.feedbackPrompt}</p>
+              </div>
+            ) : null}
             <div className="summary-grid">
               <div className="section-card">
                 <h4>採納回饋</h4>
