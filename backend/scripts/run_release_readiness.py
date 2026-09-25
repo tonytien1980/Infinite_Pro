@@ -41,6 +41,9 @@ def build_static_checks(
     python_executable: Path,
 ) -> list[ReleaseCheck]:
     _ = backend_root
+    frontend_tests = sorted((frontend_root / "tests").glob("*.test.mjs"))
+    if not frontend_tests:
+        raise ValueError("No frontend tests found; refusing an empty readiness gate")
     return [
         ReleaseCheck(
             label="backend_compile",
@@ -52,7 +55,7 @@ def build_static_checks(
         ReleaseCheck(
             label="backend_pytest",
             cwd=repo_root,
-            command=[str(python_executable), "-m", "pytest", "backend/tests/test_mvp_slice.py", "-q"],
+            command=[str(python_executable), "-m", "pytest", "backend/tests", "-q"],
             tier="static",
             kind="command",
         ),
@@ -62,12 +65,7 @@ def build_static_checks(
             command=[
                 "node",
                 "--test",
-                "tests/auth-foundation.test.mjs",
-                "tests/provider-settings-foundation.test.mjs",
-                "tests/demo-workspace-isolation.test.mjs",
-                "tests/intake-progress.test.mjs",
-                "tests/phase-six-governance.test.mjs",
-                "tests/consultant-usability.test.mjs",
+                *(str(path.relative_to(frontend_root)) for path in frontend_tests),
             ],
             tier="static",
             kind="command",

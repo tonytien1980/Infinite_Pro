@@ -37,6 +37,8 @@ Ontology、六層架構、Host、CaseWorldState 全部保留——但全部退�
 
 ### 目前位置：沿用 2026-09-23 診斷，不冒充本日重測
 
+本段保留開工前基準；最新工程進度與驗證請看第 9 節，不把舊基準當成最新測試結果。
+
 - 有案件世界、Host、材料／證據、報告版本、補件、匯出、回饋、成員權限及模型邊界；不是空殼，也不必推倒重來。
 - 原有共享經驗已能按規則匹配並注入分析，不是「完全沒有 retrieval」；缺的是安全抽象化、匹配深度與效果證據。不能用 prompt 數量判定智能深度。
 - 前端 165 項測試、build、typecheck 通過。後端首次全套 325 通過、2 失敗；其中一項 sandbox 網路綁定限制在單項重跑通過，另一項治理建議斷言不一致仍未解決。不是全套全綠。
@@ -223,6 +225,7 @@ Ontology、六層架構、Host、CaseWorldState 全部保留——但全部退�
 - [x] 2026-09-24 老田確認八維度、材料範圍、七類案例、85 分方法及第 8 節調整，進入實作計畫階段。
 - [x] 2026-09-24 已形成 `IMPLEMENTATION_PLAN.md`，對應四包交付與十個工程任務，包含 owner、容量提議、測試、遷移及回滾。
 - [x] 2026-09-25 老田核准實作計畫並要求直接開始；真實模型配置／費用、舊資料變更及發布另依授權處理。
+- [x] 2026-09-25 Task 1 安全測試入口、七類合成案例及完整 static gate 已在隔離分支完成本機驗證；第一包其餘工作仍未完成。
 - [ ] 可信材料、引用與共享通過驗收。
 - [ ] 顧問判斷、成果與經驗重用通過驗收。
 - [ ] 簡單工作面與可靠運作通過驗收。
@@ -230,3 +233,22 @@ Ontology、六層架構、Host、CaseWorldState 全部保留——但全部退�
 - [ ] 4 週真實使用與長期改善證據完成；未完成前不宣稱已證明越用越好。
 
 2026-09-25 進入隔離開發與測試，既有 `.gitignore`／`AGENTS.md` 修改保留，不夾帶進實作提交。核定文件先保存為本機 commit，再建立施工 worktree；GitHub／部署狀態須在每次驗證摘要另行回報，不因本機 commit 就視為已同步。
+
+### 最新工程驗證：2026-09-25，Task 1
+
+開發分支：`codex/consultant-ready-delivery`，worktree：`.worktrees/consultant-ready-delivery`。此記錄僅覆蓋 Task 1，不替 A~H 填分。
+
+| 項目 | 結果與限制 |
+| --- | --- |
+| Red-to-green | 隔離設定、缺少案例及舊 gate 白名單的 13 個新測試先失敗；其後補上既存 DB、connect_ex、空前端 suite 的 3 個失敗重現，再修正通過 |
+| 完整 gate | `python backend/scripts/run_release_readiness.py --tier static`：compile、349 項 backend、165 項 frontend、build、typecheck 全部通過；未跳過原 localhost smoke |
+| 測試資料安全 | app import 前拒絕非隔離 DB、既存 SQLite、外部 storage、symlink 與非 mock provider；`.env` provider keys 不進測試配置，Python socket connect／connect_ex 阻止非 loopback 外連 |
+| PostgreSQL 16 | 一次性容器，以低權限角色及專用 DB marker 跑 3 項 identity 測試及 3 項建案／跨顧問限制／上傳測試；管理員角色與缺 marker 都被拒絕；public 合成保護資料未改，隨機 schema 全部清理；容器已停止並移除 |
+| 案例資料 | 七類案件各有正常、補件、反例，共 21 種情境；數字可重算、合約明標虛構；尚未用真實模型評核，也不是格式解析完整性的證據 |
+| 舊斷言 | 空資料本來就應顯示缺回饋深度；修正過時測試並補四種深度分支，不改治理 runtime、不刪除測試換取全綠 |
+| 前端重現性 | 新增 npm test／lockfile，Next 15.5.14、React 19.2.4 與原本 types／TypeScript 版本鎖定；`npm ci --ignore-scripts` 後重新跑 gate；既有 MODULE_TYPELESS_PACKAGE_JSON 警告仍在 |
+| CI／發布 | GitHub Actions YAML 已建立並檢查，同一 gate 在本機通過；尚未 push 或在 GitHub runner 執行，未 merge、未部署、未啟用產品服務 |
+
+核定文件起點為本機 `972f5dd`，worktree 忽略規則為 `4597a0b`。原工作目錄仍保留兩個使用者修改；隔離分支的程式提交另見 Git log，尚未與 GitHub 同步。原始完整 static 輸出在本次執行產物 `/private/tmp/infinite-pro-static-final-20260925.json`；永久可重跑證據是 repo tests 與同一 gate，不依賴暫存檔存活。
+
+下一步直接執行 Task 2：長材料、Word 表格、Excel 後段、混合掃描及來源位置。引用、共享隱私、真實模型、登入後 UX／效能、完整 PostgreSQL 回歸與 A~H 品質仍未驗收；不得宣稱第一包或 85 分完成。

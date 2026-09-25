@@ -2,11 +2,9 @@
 
 Infinite Pro is an ontology-first consulting workbench for a single consultant's full working scope.
 
-Formal product posture:
+Approved delivery scope: one firm with 3-5 consultants, separate case work and safe shared intelligence. The existing foundation below is not a claim that the new acceptance criteria have passed.
 
-> **Single-Consultant Full-Scope Edition**
-
-This repo has been documentation-reset around the current shipped product baseline. The `docs/` folder now contains only the current should-read documents.
+Current direction: [REBOOT_DIRECTION.md](REBOOT_DIRECTION.md). Approved implementation sequence: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). The older `docs/` set is historical architecture and verification context, not the current delivery checklist.
 
 ---
 
@@ -48,7 +46,12 @@ Wave 0 through Wave 5 deepen baseline is complete.
 
 ## Active Docs
 
-Read these first:
+After the global and repository AGENTS instructions, read:
+
+1. [REBOOT_DIRECTION.md](REBOOT_DIRECTION.md): approved scope, acceptance criteria and latest evidence.
+2. [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md): execution order, owners, tests and approval boundaries.
+
+Earlier architecture references:
 
 1. [docs/00_product_definition_and_current_state.md](docs/00_product_definition_and_current_state.md)
    Product identity, capability boundary, current product state, fit, non-goals, and next-phase decision.
@@ -74,7 +77,7 @@ Research references:
 
 - [research/docs/](research/docs/)
 
-The `docs/` folder is intentionally flat: it now contains only the current should-read files.
+The `docs/` folder retains the earlier baseline. Its old scores and verification entries are not fresh delivery evidence.
 
 Important extension rule:
 
@@ -162,6 +165,18 @@ npm run typecheck
 ```
 
 ## Release Readiness Baseline
+
+The static gate runs **all** `backend/tests`, every `frontend/tests/*.test.mjs`, then frontend build and typecheck. CI uses the same entrypoint with no provider credentials. `npm test` runs the frontend suite; `npm ci --ignore-scripts` installs its checked-in lockfile.
+
+Backend tests create a fresh `infinite-pro-test.*` directory under the system temporary directory. The database and raw/derived/release storage must all belong to that run. Inherited non-test `DATABASE_URL` or storage paths are rejected before the app loads, rather than silently reused or cleared. Tests require `MODEL_PROVIDER=mock`, suppress provider credentials from `.env`, and block outbound non-loopback socket connections.
+
+```bash
+python -m pytest backend/tests -q
+```
+
+Use a clean shell for that command. To explicitly supply SQLite paths, use the bounded temporary-directory example in `IMPLEMENTATION_PLAN.md`; do not point tests at `local.db`. A PostgreSQL test run additionally requires `IP_TEST_ALLOW_DISPOSABLE_POSTGRES=1`, an unprivileged role and database comment `infinite-pro-disposable-test`. Each run creates and removes only its own random schema. This is for disposable test databases, not a way to authorize tests against product data.
+
+The synthetic seven-case fixture is `backend/tests/fixtures/consulting_cases.json`: each case has base, supplement and counterexample materials, review expectations and recomputable financial checks. Passing the fixture tests verifies its integrity, not model quality or an 85-point product score.
 
 Repo-native static gate:
 
@@ -252,7 +267,7 @@ Formal rule:
 
 ## Quality and Verification
 
-Use the quality docs rather than scattered notes:
+Current delivery verification belongs in `REBOOT_DIRECTION.md`. Earlier quality references:
 
 - [docs/04_qa_matrix.md](docs/04_qa_matrix.md) for build / typecheck / smoke / shipped evidence
 - [docs/05_benchmark_and_regression.md](docs/05_benchmark_and_regression.md) for benchmark manifests, suite structure, and gate modes
@@ -271,9 +286,9 @@ Current verification posture includes:
 
 When behavior changes:
 
-- update the owning doc under `docs/`
-- update `docs/04_qa_matrix.md` only when real verification evidence exists
-- update `docs/05_benchmark_and_regression.md` only when benchmark behavior truly changes
+- update the owning current specification and implementation checklist
+- record real verification and remaining limits in `REBOOT_DIRECTION.md`
+- keep code, test fixtures and benchmark contracts aligned in the same change
 
 Do not:
 
@@ -286,4 +301,4 @@ Do not:
 
 Infinite Pro should continue to be planned and implemented as:
 
-> **full-scope by capability, phased by implementation order, single-user first, multi-user later**
+> **Full-scope consulting capability, simple case work, single-firm consultant isolation, and evidence-backed shared intelligence.**

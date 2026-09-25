@@ -88,13 +88,17 @@ Schema 變更集中既有 `backend/app/core/database.py` 的 incremental schema 
 
 ## 4. Task 1：安全測試入口與代表案例
 
-**Files:** 修改 `backend/tests/conftest.py`、`backend/scripts/run_release_readiness.py`、`frontend/package.json`；新增 `backend/tests/test_test_environment_guard.py`、`backend/tests/fixtures/consulting_cases.json`、`backend/tests/test_consulting_case_manifest.py`。`.github/workflows/ci.yml` 隨 gate 接入；不改產品權限來方便測試。
+**Files:** 修改 `backend/tests/conftest.py`、`backend/scripts/run_release_readiness.py`、`frontend/package.json` 與 `README.md`；新增 `backend/tests/test_test_environment_guard.py`、`backend/tests/fixtures/consulting_cases.json`、`backend/tests/test_consulting_case_manifest.py`、`frontend/package-lock.json`。`.github/workflows/ci.yml` 隨 gate 接入；不改產品權限來方便測試。
 
-- [ ] 寫 guard 的正反測試，驗證 inherited PostgreSQL／非隔離 SQLite URL 被拒絕、合法臨時 SQLite 可執行，阻擋發生在 import app 與 drop_all 前。
-- [ ] 修正 fixture 的 runtime/storage path 與清理範圍，使用 `IP_TEST_RUN_ROOT` 的受限臨時目錄；未設定時 fixture 自行建立新的測試根目錄，不從產品 `.env` 接受 DB。所有清理限定該次測試根目錄；PostgreSQL 另驗證測試角色與明確 allow flag，不能只靠 DB 名稱含 test。
-- [ ] 將七案材料、正常／補件／反例與預期關鍵事實寫成同一份機器可讀 fixture；財務案附人工可重算數字，法務案附虛構條款而非假冒真實法規。每案需有 stage、client type、domains、must_include、must_not_claim、expected_decision_conditions。
-- [ ] 重現已知治理斷言失敗，判斷是保留行為的測試過時還是實作漂移；只在與核定規格對照後同步修正，不 skip、不只改為包含任意字串。
-- [ ] 改全套入口並接 CI，確認所有新增測試會被收集；保留原有測試，除非其行為已明確被核定替換。
+- [x] 寫 guard 的正反測試，驗證 inherited PostgreSQL／非隔離 SQLite URL 被拒絕、合法臨時 SQLite 可執行，阻擋發生在 import app 與 drop_all 前。
+- [x] 修正 fixture 的 runtime/storage path 與清理範圍，使用 `IP_TEST_RUN_ROOT` 的受限臨時目錄；未設定時 fixture 自行建立新的測試根目錄，不從產品 `.env` 接受 DB。所有清理限定該次測試根目錄；PostgreSQL 另驗證測試角色與明確 allow flag，不能只靠 DB 名稱含 test。
+- [x] 將七案材料、正常／補件／反例與預期關鍵事實寫成同一份機器可讀 fixture；財務案附人工可重算數字，法務案附虛構條款而非假冒真實法規。每案需有 stage、client type、domains、must_include、must_not_claim、expected_decision_conditions。
+- [x] 重現已知治理斷言失敗，判斷是保留行為的測試過時還是實作漂移；只在與核定規格對照後同步修正，不 skip、不只改為包含任意字串。
+- [x] 改全套入口並接 CI 定義，確認所有新增測試會被收集；本機完整 gate 通過，GitHub Actions 尚未推送或執行。
+
+2026-09-25 Task 1 工程工作已驗證：SQLite 全套 349 passed、前端 165 passed、build／typecheck 通過；PostgreSQL 16 以臨時容器驗證 6 項選定測試及兩個拒絕案例，public 保護標記保留、run schema 數量回到 0，容器已移除。完整證據與限制見方向書第 9 節。不是第一包或產品驗收完成；Task 2~10 尚未完成。
+
+實作說明：guard 直接在既有 conftest 的 app import 前執行，未新增 runtime 安全設定或測試平台。除了範例的路徑限制，亦拒絕既存 SQLite 檔案，防止破壞既有資料。前端套件鎖在原工作目錄已使用版本，並以 `npm ci` 重建驗證，沒有夾帶 Next／React 升級。
 
 Guard 的 SQLite 判定核心寫在 `conftest.py`，並由專用測試以子程序驗證 import 是否會拒絕，不能在測試主程序先連到被檢查的 DB：
 

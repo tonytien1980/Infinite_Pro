@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import importlib.util
+import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from threading import Thread
+import pytest
 
 SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "run_release_readiness.py"
 SCRIPT_SPEC = importlib.util.spec_from_file_location(
@@ -20,6 +22,8 @@ def test_static_check_plan_keeps_frontend_build_before_typecheck(tmp_path: Path)
     frontend_root = repo_root / "frontend"
     backend_root = repo_root / "backend"
     frontend_root.mkdir(parents=True)
+    (frontend_root / "tests").mkdir()
+    (frontend_root / "tests" / "smoke.test.mjs").touch()
     backend_root.mkdir(parents=True)
 
     checks = release_readiness.build_static_checks(
@@ -45,6 +49,34 @@ def test_missing_next_types_error_triggers_typegen_repair() -> None:
 
     assert release_readiness.needs_typegen_repair(stderr) is True
     assert release_readiness.needs_typegen_repair("random compile error") is False
+
+
+def test_static_checks_run_complete_backend_and_frontend_suites(tmp_path: Path) -> None:
+    frontend = tmp_path / "frontend"
+    (frontend / "tests").mkdir(parents=True)
+    (frontend / "tests" / "a.test.mjs").touch()
+    (frontend / "tests" / "new-regression.test.mjs").touch()
+    checks = release_readiness.build_static_checks(
+        repo_root=tmp_path,
+        frontend_root=frontend,
+        backend_root=tmp_path / "backend",
+        python_executable=Path(sys.executable),
+    )
+    by_label = {check.label: check for check in checks}
+    assert by_label["backend_pytest"].command[-2:] == ["backend/tests", "-q"]
+    assert by_label["frontend_node_tests"].command == [
+        "node", "--test", "tests/a.test.mjs", "tests/new-regression.test.mjs",
+    ]
+
+
+def test_static_gate_rejects_an_empty_frontend_test_suite(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="No frontend tests found"):
+        release_readiness.build_static_checks(
+            repo_root=tmp_path,
+            frontend_root=tmp_path / "frontend",
+            backend_root=tmp_path / "backend",
+            python_executable=Path(sys.executable),
+        )
 
 
 def test_runtime_smoke_targets_cover_backend_health_and_frontend_workbench_routes() -> None:
