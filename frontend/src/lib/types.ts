@@ -1408,7 +1408,25 @@ export interface Constraint {
   severity: string;
 }
 
+export interface ExtractionManifest {
+  version: number;
+  coverage: "complete" | "partial" | "unavailable";
+  scope: string;
+  offset_unit: string;
+  text_length: number;
+  warnings: string[];
+  blocks: Array<{
+    id: number;
+    start_offset: number;
+    end_offset: number;
+    locator: Record<string, unknown>;
+    locator_label: string;
+  }>;
+}
+
 export interface SourceDocument {
+  extraction_manifest: ExtractionManifest | null;
+  extraction_coverage: string;
   id: string;
   task_id: string;
   matter_workspace_id: string | null;
@@ -1503,6 +1521,7 @@ export interface CanonicalizationCandidate {
 }
 
 export interface SourceMaterial {
+  extraction_coverage: string;
   id: string;
   task_id: string;
   matter_workspace_id: string | null;
@@ -1552,6 +1571,8 @@ export interface Artifact {
 }
 
 export interface ChunkObject {
+  extraction_version: number | null;
+  locator: Record<string, unknown> | null;
   id: string;
   task_id: string;
   matter_workspace_id: string | null;

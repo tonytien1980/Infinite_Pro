@@ -3,6 +3,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -44,6 +45,15 @@ class Settings(BaseSettings):
     derived_retention_days: int = 180
     release_retention_days: int = 365
     failed_upload_retention_days: int = 7
+    material_max_file_bytes: int = Field(default=20 * 1024 * 1024, gt=0)
+    material_max_zip_entry_bytes: int = Field(default=20 * 1024 * 1024, gt=0)
+    material_max_zip_bytes: int = Field(default=100 * 1024 * 1024, gt=0)
+    material_max_zip_entries: int = Field(default=2000, gt=0)
+    material_max_source_chars: int = Field(default=100_000, gt=0)
+    material_max_pdf_pages: int = Field(default=100, gt=0)
+    material_max_sheets: int = Field(default=10, gt=0)
+    material_max_cells: int = Field(default=20_000, gt=0)
+    material_parse_timeout_seconds: float = Field(default=30, gt=0)
 
     model_config = SettingsConfigDict(
         env_file=".env",

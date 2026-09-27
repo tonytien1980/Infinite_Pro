@@ -89,6 +89,9 @@ def _ensure_derived_extract(source_document: models.SourceDocument) -> None:
         return
     if source_document.derived_storage_key and file_exists(source_document.derived_storage_key):
         return
+    if source_document.extraction_manifest is not None:
+        # The database field is only a preview. Recovery must retain the original extraction version.
+        return
     derived_key = build_derived_storage_key(
         source_document_id=source_document.id,
         file_name=source_document.file_name or source_document.canonical_display_name or "source",

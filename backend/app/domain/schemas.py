@@ -483,6 +483,8 @@ class SourceDocumentRead(ORMModel):
     fallback_mode: str | None = None
     derived_storage_key: str | None
     extracted_text: str | None
+    extraction_manifest: dict[str, Any] | None = None
+    extraction_coverage: str = "unverified"
     ingestion_error: str | None
     participation: ObjectParticipationRead | None = None
     created_at: datetime
@@ -537,6 +539,7 @@ class CanonicalizationCandidateRead(BaseModel):
 
 
 class SourceMaterialRead(ORMModel):
+    extraction_coverage: str = "unverified"
     id: str
     task_id: str
     matter_workspace_id: str | None = None
@@ -586,6 +589,8 @@ class ArtifactRead(ORMModel):
 
 
 class ChunkObjectRead(ORMModel):
+    extraction_version: int | None = None
+    locator: dict[str, Any] | None = None
     id: str
     task_id: str
     matter_workspace_id: str | None = None

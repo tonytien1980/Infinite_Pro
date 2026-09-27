@@ -902,8 +902,10 @@ def _build_legacy_source_material_read(source_document: models.SourceDocument) -
         ingest_strategy=source_document.ingest_strategy,
         metadata_only=source_document.metadata_only,
         ingestion_error=source_document.ingestion_error,
+        extraction_coverage=source_document.extraction_coverage,
     )
     return schemas.SourceMaterialRead(
+        extraction_coverage=source_document.extraction_coverage,
         id=source_document.id,
         task_id=source_document.task_id,
         matter_workspace_id=source_document.matter_workspace_id,
@@ -1030,6 +1032,7 @@ def _build_source_document_read(
         ingest_strategy=source_document.ingest_strategy,
         metadata_only=source_document.metadata_only,
         ingestion_error=source_document.ingestion_error,
+        extraction_coverage=source_document.extraction_coverage,
     )
     return schemas.SourceDocumentRead(
         **(
@@ -1060,6 +1063,7 @@ def _build_ingestion_contract_field_dump(
     ingest_strategy: str | None,
     metadata_only: bool,
     ingestion_error: str | None = None,
+    extraction_coverage: str | None = None,
 ) -> dict[str, str | None]:
     contract = build_ingestion_contract_summary(
         ingest_status=ingest_status,
@@ -1067,6 +1071,7 @@ def _build_ingestion_contract_field_dump(
         ingest_strategy=ingest_strategy,
         metadata_only=metadata_only,
         ingestion_error=ingestion_error,
+        extraction_coverage=extraction_coverage,
     )
     return {
         "diagnostic_category": contract.diagnostic_category,
@@ -1369,6 +1374,7 @@ def _build_source_materials(task: models.Task) -> list[schemas.SourceMaterialRea
                     )
                 }
                 | _build_ingestion_contract_field_dump(
+                    extraction_coverage=item.extraction_coverage,
                     ingest_status=item.ingest_status,
                     support_level=item.support_level,
                     ingest_strategy=item.ingest_strategy,
@@ -1415,6 +1421,7 @@ def _build_source_materials(task: models.Task) -> list[schemas.SourceMaterialRea
                             )
                         }
                         | _build_ingestion_contract_field_dump(
+                            extraction_coverage=item.extraction_coverage,
                             ingest_status=item.ingest_status,
                             support_level=item.support_level,
                             ingest_strategy=item.ingest_strategy,
@@ -8583,6 +8590,7 @@ def get_matter_workspace(
                     availability_state=source_material.availability_state,
                     metadata_only=source_material.metadata_only,
                     **_build_ingestion_contract_field_dump(
+                        extraction_coverage=source_material.extraction_coverage,
                         ingest_status=source_material.ingest_status,
                         support_level=source_material.support_level,
                         ingest_strategy=source_material.ingest_strategy,
@@ -9436,6 +9444,7 @@ def get_artifact_evidence_workspace(
                     availability_state=source_material.availability_state,
                     metadata_only=source_material.metadata_only,
                     **_build_ingestion_contract_field_dump(
+                        extraction_coverage=source_material.extraction_coverage,
                         ingest_status=source_material.ingest_status,
                         support_level=source_material.support_level,
                         ingest_strategy=source_material.ingest_strategy,

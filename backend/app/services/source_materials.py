@@ -356,7 +356,23 @@ def build_processed_evidence_items(
         reliability_level=reliability_level,
     )
 
-    chunk_specs = build_text_chunk_specs(text)
+    manifest = source_document.extraction_manifest
+    chunk_specs = build_text_chunk_specs(text, normalize=not bool(manifest))
+
+    def locate_chunk(chunk) -> dict | None:
+        if not manifest:
+            return None
+        return {
+            "offset_unit": "unicode_character_in_block_text",
+            "blocks": [
+                {"block_id": block["id"], "locator": block["locator"],
+                 "locator_label": block["locator_label"],
+                 "start_offset": max(chunk.start_offset, block["start_offset"]) - block["start_offset"],
+                 "end_offset": min(chunk.end_offset, block["end_offset"]) - block["start_offset"]}
+                for block in manifest["blocks"]
+                if chunk.start_offset < block["end_offset"] and chunk.end_offset > block["start_offset"]
+            ],
+        }
     chunk_objects = [
         models.ChunkObject(
             task_id=task.id,
@@ -370,6 +386,8 @@ def build_processed_evidence_items(
             start_offset=chunk.start_offset,
             end_offset=chunk.end_offset,
             locator_label=f"片段 {chunk.sequence_index + 1}｜字元 {chunk.start_offset + 1}-{chunk.end_offset}",
+            extraction_version=manifest["version"] if manifest else None,
+            locator=locate_chunk(chunk),
             excerpt_text=chunk.text,
             excerpt_digest=compute_digest(chunk.text.encode("utf-8")),
             support_level=source_document.support_level,

@@ -1,16 +1,17 @@
 from __future__ import annotations
 
 import logging
+from io import SEEK_END
 from uuid import uuid4
 
 from fastapi import HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from app.core.auth import CurrentMember
+from app.core.config import settings
 from app.domain import models, schemas
 from app.domain.enums import TaskStatus
 from app.ingestion.files import analyze_upload_content
-from app.ingestion.preprocess import normalize_text
 from app.ingestion.sources import ManualUploadConnector
 from app.services.ingestion_contracts import resolve_source_availability_state
 from app.services.material_storage import preview_extracted_text
@@ -76,6 +77,12 @@ def save_uploads_for_task(
         )
 
     task = get_loaded_task(db, task_id, current_member=current_member)
+    for file in files:
+        file.file.seek(0, SEEK_END)
+        size = file.file.tell()
+        file.file.seek(0)
+        if size > settings.material_max_file_bytes:
+            raise HTTPException(status_code=413, detail=f"檔案超過 {settings.material_max_file_bytes} bytes 上限，請拆分後重試。")
     matter_workspace_id = _linked_matter_workspace_id(task)
     continuity_scope = "world_shared" if matter_workspace_id else SLICE_PARTICIPATION_CONTINUITY_SCOPE
     follow_up_summary = (
@@ -91,7 +98,9 @@ def save_uploads_for_task(
     uploaded_refs: list[tuple[str, str, str | None, str | None]] = []
 
     for file in files:
-        content = file.file.read()
+        content = file.file.read(settings.material_max_file_bytes + 1)
+        if len(content) > settings.material_max_file_bytes:
+            raise HTTPException(status_code=413, detail=f"檔案超過 {settings.material_max_file_bytes} bytes 上限，請拆分後重試。")
         extension = normalize_extension(file.filename or "", "")
         stored_name = file.filename or f"{uuid4()}{extension}"
         extracted_text = ""
@@ -100,6 +109,7 @@ def save_uploads_for_task(
         support_level = "full"
         ingest_strategy = "text_extract"
         metadata_only = False
+        extraction_manifest = None
 
         if not content:
             ingest_status = "failed"
@@ -110,7 +120,8 @@ def save_uploads_for_task(
         else:
             try:
                 analyzed = analyze_upload_content(file.filename or stored_name, content)
-                extracted_text = normalize_text(analyzed.text)
+                extracted_text = analyzed.text
+                extraction_manifest = analyzed.to_manifest()
                 support_level = analyzed.support_level
                 ingest_strategy = analyzed.ingest_strategy
                 metadata_only = analyzed.metadata_only
@@ -210,6 +221,7 @@ def save_uploads_for_task(
             ),
             metadata_only=metadata_only,
             extracted_text=preview_extracted_text(extracted_text) or None,
+            extraction_manifest=extraction_manifest,
             ingestion_error=ingestion_error,
         )
         db.add(source_document)

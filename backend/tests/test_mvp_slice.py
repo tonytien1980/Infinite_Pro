@@ -4196,7 +4196,7 @@ def test_limited_support_image_upload_returns_reference_level_status(client: Tes
     assert linked_issue["evidence"]["retrieval_provenance"]["support_kind"] == "media_reference"
 
 
-def test_table_heavy_csv_upload_returns_limited_extract_contract(client: TestClient) -> None:
+def test_csv_upload_returns_complete_structured_extract_contract(client: TestClient) -> None:
     task = client.post("/api/v1/tasks", json=create_task_payload("CSV upload")).json()
     matter_id = task["matter_workspace"]["id"]
 
@@ -4208,10 +4208,12 @@ def test_table_heavy_csv_upload_returns_limited_extract_contract(client: TestCli
     assert response.status_code == 200
     uploaded = response.json()["uploaded"][0]
     assert uploaded["source_document"]["ingest_status"] == "processed"
-    assert uploaded["source_document"]["support_level"] == "limited"
-    assert uploaded["source_document"]["ingest_strategy"] == "table_snapshot"
-    assert uploaded["source_document"]["extract_availability"] == "partial_extract_ready"
-    assert uploaded["source_document"]["current_usable_scope"] == "limited_extract"
+    assert uploaded["source_document"]["support_level"] == "full"
+    assert uploaded["source_document"]["ingest_strategy"] == "csv_structured_extract"
+    assert uploaded["source_document"]["extraction_coverage"] == "complete"
+    assert uploaded["source_document"]["extraction_manifest"]["blocks"][-1]["locator"]["row"] == 3
+    assert uploaded["source_document"]["extract_availability"] == "full_text_ready"
+    assert uploaded["source_document"]["current_usable_scope"] == "chunk_ready"
     assert uploaded["evidence"]["evidence_type"] == "uploaded_file_excerpt"
 
     matter_workspace = client.get(f"/api/v1/matters/{matter_id}").json()
@@ -4226,13 +4228,13 @@ def test_table_heavy_csv_upload_returns_limited_extract_contract(client: TestCli
         for item in evidence_workspace["source_material_cards"]
         if item["title"] == "metrics.csv"
     )
-    assert recent_material["support_level"] == "limited"
-    assert recent_material["extract_availability"] == "partial_extract_ready"
-    assert recent_material["current_usable_scope"] == "limited_extract"
-    assert source_card["support_level"] == "limited"
-    assert source_card["diagnostic_category"] == "accepted_limited_table_extract"
-    assert source_card["extract_availability"] == "partial_extract_ready"
-    assert source_card["current_usable_scope"] == "limited_extract"
+    assert recent_material["support_level"] == "full"
+    assert recent_material["extract_availability"] == "full_text_ready"
+    assert recent_material["current_usable_scope"] == "chunk_ready"
+    assert source_card["support_level"] == "full"
+    assert source_card["diagnostic_category"] == "accepted_full_text"
+    assert source_card["extract_availability"] == "full_text_ready"
+    assert source_card["current_usable_scope"] == "chunk_ready"
 
 
 def test_scanned_pdf_upload_returns_reference_only_contract(client: TestClient) -> None:
@@ -4443,10 +4445,11 @@ def test_fetch_remote_source_normalizes_non_ascii_request_urls(
             return None
 
         @staticmethod
-        def read() -> bytes:
+        def read(size: int = -1) -> bytes:
+            requested["read_limit"] = size
             return "<html><head><title>中文頁面標題</title></head><body><p>這是一段足夠長的中文內容，讓抽取器可以保留它作為有效文字材料。</p></body></html>".encode(
                 "utf-8"
-            )
+            )[:size]
 
         def geturl(self) -> str:
             return requested["full_url"]  # type: ignore[return-value]
@@ -4465,6 +4468,7 @@ def test_fetch_remote_source_normalizes_non_ascii_request_urls(
 
     assert requested["full_url"] == "https://xn--fsqu00a.xn--g6w251d/%E8%B7%AF%E5%BE%91?q=%E6%B8%AC%E8%A9%A6%20%E5%80%BC"
     assert requested["timeout"] == 12
+    assert requested["read_limit"] == remote_ingestion.settings.material_max_file_bytes + 1
     assert source.source_url == "https://例子.測試/路徑?q=測試 值"
     assert source.title == "中文頁面標題"
     assert "這是一段足夠長的中文內容" in source.normalized_text

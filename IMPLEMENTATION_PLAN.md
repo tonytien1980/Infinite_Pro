@@ -124,14 +124,27 @@ def require_isolated_sqlite(database_url: str, runtime_root: Path) -> None:
 
 ## 5. Task 2：材料抽取與可定位證據
 
+**2026-09-27 進度：進行中，不是 Task 2 結案。** 已落地完整切片、DOCX 正文／表格、XLSX 各工作表與公式／快取資訊、CSV 結構化讀取、PDF 逐頁部分覆蓋辨識、manifest／chunk 位置、舊來源未驗證狀態，以及單檔解析限制。OCR、單案 20 來源／300,000 字元合併限制、支援限制的前端讀取，以及重處理的新版本追加仍待完成。保留本節同一 checklist，不另開文件或改變驗收門檻。
+
+目前實作契約：
+
+- `ExtractedBlock` 使用 `text`、`locator`、`locator_label`；格式相關位置放在同一個 locator，包含 PDF 頁碼、DOCX 表格與合併儲存格、CSV 列／原檔行數、XLSX 工作表／座標／合併範圍／公式／快取值。不是下方示意 dataclass 的逐欄複製。
+- `SourceDocument.extraction_manifest` 是抽取覆蓋 owner，記錄第 1 版、新文字長度、blocks 及警告，不另存整份原文。SourceMaterial 的 coverage 從它派生。完整文字仍在 derived storage，DB `extracted_text` 是既有 4,000 字預覽，不得拿預覽重建新版全文。
+- manifest 的 offsets 對應 derived 全文的 Unicode 字元；ChunkObject 的 start/end 也對應該全文，locator 內的 start/end 則是各 block 內字元範圍，皆為 0 起算、end 不包含。不是 PDF byte offset，也不是模型已讀取的保證。
+- 新欄位皆可空；舊 source／chunk 保持 null，API 顯示未驗證。尚未提供重處理操作，也沒有回填、覆寫舊引用或刪除舊成果。
+- 現已由 Settings 執行 20 MiB 單檔、100 MiB 解壓總量、20 MiB 單壓縮項、2,000 項、100 PDF 頁、10 張工作表、20,000 有內容儲存格、100,000 抽取字元及 30 秒解析上限。巨大合併區域亦受可安全展開範圍限制；超限報錯、不靜默截斷。上傳整批先檢查檔案大小，再修改案件與寫入檔案。
+- 解析由既有 ingestion owner 啟動受期限限制的本機子程序；超時終止並回收，不是新增 queue、Host 或 AI subagent。未讀掃描頁仍為 partial／unavailable，OCR 執行器尚未接上。
+- 原單次 10 份材料限制未被改成單案 20 份限制；兩者不能混稱。網頁 HTML 的舊抽取器未在本段重寫，缺少覆蓋 manifest 的遠端文字仍顯示未驗證。
+- 實際狀態傳遞還包含 `ingestion/remote.py`、`services/tasks.py`、前端 `intake.ts`／`ui-labels.ts`；查證後沿用這些 owner，不在無關的 `material-review-ux.ts` 重做另一套狀態。
+
 **Files:** 修改 `backend/app/ingestion/files.py`、`preprocess.py`、`backend/app/services/uploads.py`、`sources.py`、`source_materials.py`、`ingestion_contracts.py`、`material_storage.py`、`backend/app/core/config.py`、`database.py`、`backend/app/domain/models.py`、`schemas.py`、`backend/requirements.txt`、`backend/Dockerfile`。新增 `backend/app/ingestion/ocr.py`、`backend/tests/test_material_fidelity.py`；前端同步 `frontend/src/lib/types.ts`、`material-review-ux.ts`。
 
 - [ ] 將 6,322 字尾段、DOCX 表格、XLSX 第 8 列／第 5 張表及混合文字／掃描 PDF 做成 red tests；另測 UTF-8 非法字元、損毀／加密／超限檔、zip bomb、缺少公式快取及 OCR timeout。
-- [ ] `FileExtractResult` 保留既有介面，增加有位置的 blocks、coverage 與 warnings；每個來源只有一份抽取狀態，`SourceMaterial` 從 `SourceDocument` 派生，不各維護一套覆蓋率。
-- [ ] DOCX 依 body 順序讀 paragraph／table，保留表格行列與合併資訊；XLSX 同時讀 formula 與 cached value，CSV 用正式 parser 保留欄位。PDF 逐頁讀取，不能因部分頁面有文字就將整份混合掃描檔標為完整。
+- [x] `FileExtractResult` 保留既有介面，增加有位置的 blocks、coverage 與 warnings；每個來源只有一份抽取狀態，`SourceMaterial` 從 `SourceDocument` 派生，不各維護一套覆蓋率。
+- [x] DOCX 依 body 順序讀 paragraph／table，保留表格行列與合併資訊；XLSX 同時讀 formula 與 cached value，CSV 用正式 parser 保留欄位。PDF 逐頁讀取，不能因部分頁面有文字就將整份混合掃描檔標為完整。
 - [ ] OCR 在 container 內執行且受第 2 節限制；回傳頁碼／區域與辨識資訊，低品質標 limited，讓顧問核對關鍵數字。不用一個信心分數保證內容無誤。
-- [ ] `SourceDocument.extraction_manifest`（新增 JSON）記錄版本、範圍、blocks 位置與警告；完整文字仍在原 extracted_text／derived storage owner。`ChunkObject.extraction_version` 與 `locator`（新增）對應來源版本，不另存一份同義原文。
-- [ ] 切片涵蓋全部支援範圍，取消預設四片靜默截斷；保持 `0 <= overlap < chunk_size`，明確 cap 溢出就回報，不回傳假完整前綴。offset 說明以 block 內文字為準，不冒充原 PDF byte offset。
+- [x] `SourceDocument.extraction_manifest`（新增 JSON）記錄版本、範圍、blocks 位置與警告；完整文字仍在原 extracted_text／derived storage owner。`ChunkObject.extraction_version` 與 `locator`（新增）對應來源版本，不另存一份同義原文。
+- [x] 切片涵蓋全部支援範圍，取消預設四片靜默截斷；保持 `0 <= overlap < chunk_size`，明確 cap 溢出就回報，不回傳假完整前綴。offset 說明以 block 內文字為準，不冒充原 PDF byte offset。
 - [ ] 原始檔／舊成果不刪除；舊來源沒 manifest 時標為未重新驗證。重處理附新的 extraction version，舊引用仍能定位舊 chunks，不覆寫已交付報告依據。
 
 計畫新增的抽取 block 契約：

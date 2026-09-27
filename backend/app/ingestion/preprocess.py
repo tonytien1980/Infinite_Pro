@@ -27,9 +27,14 @@ def build_text_chunk_specs(
     *,
     chunk_size: int = 900,
     overlap: int = 120,
-    max_chunks: int = 4,
+    max_chunks: int | None = None,
+    normalize: bool = True,
 ) -> list[TextChunkSpec]:
-    normalized = normalize_text(text)
+    if chunk_size <= 0 or not 0 <= overlap < chunk_size:
+        raise ValueError("Expected chunk_size > 0 and 0 <= overlap < chunk_size")
+    if max_chunks is not None and max_chunks <= 0:
+        raise ValueError("max_chunks must be positive")
+    normalized = normalize_text(text) if normalize else text
     if not normalized:
         return []
 
@@ -38,9 +43,11 @@ def build_text_chunk_specs(
     text_length = len(normalized)
     sequence_index = 0
 
-    while start < text_length and len(chunks) < max_chunks:
+    while start < text_length:
+        if max_chunks is not None and len(chunks) >= max_chunks:
+            raise ValueError("max_chunks would discard source content")
         end = min(text_length, start + chunk_size)
-        chunk_text = normalized[start:end].strip()
+        chunk_text = normalized[start:end]
         if chunk_text:
             chunks.append(
                 TextChunkSpec(
@@ -63,7 +70,7 @@ def build_text_chunks(
     *,
     chunk_size: int = 900,
     overlap: int = 120,
-    max_chunks: int = 4,
+    max_chunks: int | None = None,
 ) -> list[str]:
     return [
         chunk.text

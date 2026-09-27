@@ -37,6 +37,7 @@ def build_ingestion_contract_summary(
     ingest_strategy: str | None,
     metadata_only: bool,
     ingestion_error: str | None = None,
+    extraction_coverage: str | None = None,
 ) -> IngestionContractSummary:
     normalized_status = (ingest_status or "").strip().lower()
     normalized_support = (support_level or "").strip().lower()
@@ -91,6 +92,22 @@ def build_ingestion_contract_summary(
             extract_availability="reference_only",
             current_usable_scope="reference_only",
             fallback_mode="supplement_text_or_replace",
+        )
+
+    if extraction_coverage == "unverified":
+        return IngestionContractSummary(
+            diagnostic_category="extraction_unverified",
+            extract_availability="unverified",
+            current_usable_scope="limited_extract",
+            fallback_mode="verify_source_coverage",
+        )
+
+    if normalized_support == "limited" or extraction_coverage in {"partial", "unavailable"}:
+        return IngestionContractSummary(
+            diagnostic_category="accepted_partial_extract",
+            extract_availability="partial_extract_ready",
+            current_usable_scope="limited_extract",
+            fallback_mode="supplement_text_for_precision",
         )
 
     return IngestionContractSummary(

@@ -45,7 +45,7 @@ Ontology、六層架構、Host、CaseWorldState 全部保留——但全部退�
 - 尚未驗證本輪真實模型產出、登入後端到端流程、真案品質、正式效能、多人負載或備份還原。mock、SQLite 與 source-level tests 不代表以上已通過。
 - 2026-09-24 本機 HEAD 仍為 `ff4e71c`，在 `codex/owner-consultant-cockpit-a`，相對 main `59c2783` 多 5 個提交。9 月 23 日曾查證這兩個提交各與 GitHub 對應分支相同；不能外推為日後自動同步。
 
-已重現、尚未修正的主要問題：
+開工前已重現、當時尚未修正的主要問題（後續施工結果見第 9 節）：
 
 | 問題 | 診斷證據與現有 owner | 本輪必須證明的修正結果 |
 | --- | --- | --- |
@@ -234,7 +234,7 @@ Ontology、六層架構、Host、CaseWorldState 全部保留——但全部退�
 
 2026-09-25 進入隔離開發與測試，既有 `.gitignore`／`AGENTS.md` 修改保留，不夾帶進實作提交。核定文件先保存為本機 commit，再建立施工 worktree；GitHub／部署狀態須在每次驗證摘要另行回報，不因本機 commit 就視為已同步。
 
-### 最新工程驗證：2026-09-25，Task 1
+### 工程驗證：2026-09-25，Task 1
 
 開發分支：`codex/consultant-ready-delivery`，worktree：`.worktrees/consultant-ready-delivery`。此記錄僅覆蓋 Task 1，不替 A~H 填分。
 
@@ -251,4 +251,25 @@ Ontology、六層架構、Host、CaseWorldState 全部保留——但全部退�
 
 核定文件起點為本機 `972f5dd`，worktree 忽略規則為 `4597a0b`。原工作目錄仍保留兩個使用者修改；隔離分支的程式提交另見 Git log，尚未與 GitHub 同步。原始完整 static 輸出在本次執行產物 `/private/tmp/infinite-pro-static-final-20260925.json`；永久可重跑證據是 repo tests 與同一 gate，不依賴暫存檔存活。
 
-下一步直接執行 Task 2：長材料、Word 表格、Excel 後段、混合掃描及來源位置。引用、共享隱私、真實模型、登入後 UX／效能、完整 PostgreSQL 回歸與 A~H 品質仍未驗收；不得宣稱第一包或 85 分完成。
+Task 1 完成後進入 Task 2；最新進度如下。引用、共享隱私、真實模型、登入後 UX／效能、完整 PostgreSQL 回歸與 A~H 品質仍未驗收；不得宣稱第一包或 85 分完成。
+
+### 最新工程進度：2026-09-27，Task 2 進行中
+
+本次收斂材料抽取與來源位置，**不是 Task 2 或產品結案**。沿用同一隔離分支；未啟動產品服務、未呼叫付費模型、未更動真實案件資料。
+
+| 項目 | 本次實作與證據 |
+| --- | --- |
+| 長文與表格 | 取消四片靜默截斷；DOCX 按正文順序讀段落／表格及合併格；XLSX 不再只讀前四張表／六列，保留座標、合併區域、公式與快取資訊；CSV 正確處理引號、空欄和跨行欄位 |
+| 覆蓋與定位 | SourceDocument 的 manifest 是單一 owner；ChunkObject 帶 extraction version 與 block 位置。完整文字在 derived storage，預覽不冒充原文；來源定位以字元為單位，不假稱原檔 byte offset |
+| 不完整與舊資料 | PDF 逐頁辨識未讀內容，不因第一頁有文字就標整份完整。缺少 manifest 的舊材料維持未驗證；UI 用「部分內容待確認」「讀取範圍待確認」，不將部分 PDF 錯叫表格快照 |
+| 失敗邊界 | 非法 UTF-8、損毀／加密文件、ZIP／頁數／儲存格／字元超限明確拒絕；空白 CSV 不算成功。非 OCR 解析 30 秒超時會終止子程序；批次過大在檔案落地前檢查，避免孤立檔案 |
+| 定向驗證 | `test_material_fidelity.py` 的 39 個案例在 SQLite 及 PostgreSQL 16 均通過；包括 API、來源位置、遠端文件、公式快取、超限、schema 升級／重複升級、舊文字與引用保留。新庫由既有 fixture 建立，舊 schema 在一次性測試資料中重現 |
+| PostgreSQL 清理 | 臨時容器 `infinite-pro-task2-pg-20260927` 使用 tmpfs、專用低權限角色及 disposable marker；測後隨機 schema 數為 0，容器停止且已移除，不是完整 PostgreSQL 產品驗收 |
+| 全套 gate | 最終 `run_release_readiness.py --tier static` 通過：compile、SQLite backend 388 passed（166.45 秒）、frontend 168 passed、build、typecheck。前一輪舊 fake download response 未接受 read size 的失敗已修正；沒有 skip 測試。既有 MODULE_TYPELESS_PACKAGE_JSON 警告仍在 |
+| Review | Ponytail report-only preflight 移除自製 Excel 快照方向，改用核定函式庫；diff review 沒有新增平行原文 owner、queue 或 provider。一般 review 追查 API／UI 狀態、schema、失敗寫檔及預覽重建，發現項目已加入回歸修正 |
+
+Task 2 尚待：容器內中英文 OCR 與圖像限制、單案 20 來源／本輪 300,000 字元合併限制及前端讀取、重處理追加版本且保留舊引用、實際掃描與 OCR timeout／容量上限案例。完成這些後才進入 Task 3 的「有預算的全材料閱讀與逐項引用」；本次沒有宣稱模型已閱讀全部 chunks。登入後瀏覽器 QA、真實模型品質與正式效能仍未驗證。
+
+完整 static 輸出為本次執行產物 `/private/tmp/infinite-pro-task2-final-gate-20260927.json`；可持續重跑的證據在 backend／frontend tests，暫存檔不是唯一依據。測試使用 worktree 專用 `.venv312`，既有套件對齊 Task 1 的已驗證版本，只新增 openpyxl 3.1.5／defusedxml 0.7.1，python-docx 固定既有 1.2.0；未修改 Mac 全域 Python 或主目錄虛擬環境。
+
+本次 GitHub 唯讀回查：遠端 main 仍為 `59c2783`，原 owner 分支仍為 `ff4e71c`，施工分支尚未建立 upstream；未 push、merge 或部署。原工作目錄仍保留 `.gitignore` 與 `AGENTS.md` 的使用者修改。程式、測試與本文件在隔離分支一起提交，提交 ID 以 Git log 回讀為準。

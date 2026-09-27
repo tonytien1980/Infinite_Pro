@@ -7,7 +7,9 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.auth import CurrentMember
+from app.core.config import settings
 from app.domain import models, schemas
+from app.ingestion.files import analyze_upload_content
 from app.ingestion.preprocess import normalize_text
 from app.ingestion.remote import RemoteSourceContent, fetch_remote_source
 from app.ingestion.sources import (
@@ -114,7 +116,13 @@ def _persist_processed_source(
     message: str | None = None,
     reliability_level: str = "user_provided",
     research_run_id: str | None = None,
+    extraction_manifest: dict | None = None,
 ) -> tuple[models.SourceDocument, models.SourceMaterial, models.Artifact, models.Evidence]:
+    if len(extracted_text) > settings.material_max_source_chars:
+        raise HTTPException(status_code=413, detail=f"材料超過 {settings.material_max_source_chars} 字元上限，請拆分後重試。")
+    if connector_source_type == "manual_input" and extracted_text:
+        analyzed = analyze_upload_content("pasted.txt", extracted_text.encode("utf-8"))
+        extraction_manifest = analyzed.to_manifest()
     retention_policy = RETENTION_POLICY_DERIVED
     extension = normalize_extension(title, "")
     current_content_digest = (
@@ -175,6 +183,7 @@ def _persist_processed_source(
         ),
         metadata_only=metadata_only,
         extracted_text=preview_extracted_text(extracted_text) or None,
+        extraction_manifest=extraction_manifest,
         ingestion_error=message,
     )
     db.add(source_document)
@@ -436,6 +445,7 @@ def ingest_remote_urls_for_task(
                 ingest_strategy=remote_source.ingest_strategy,
                 metadata_only=remote_source.metadata_only,
                 message=remote_source.message,
+                extraction_manifest=remote_source.extraction_manifest,
                 reliability_level="externally_retrieved" if origin == "external_search" else "user_provided",
                 research_run_id=research_run_id,
             )

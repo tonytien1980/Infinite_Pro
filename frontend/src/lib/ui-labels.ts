@@ -118,6 +118,8 @@ const SOURCE_INGEST_STRATEGY_LABELS: Record<string, string> = {
   document_text_extract: "文件文字擷取",
   worksheet_snapshot: "工作表快照",
   table_snapshot: "表格快照",
+  csv_structured_extract: "CSV 表格讀取",
+  worksheet_structured_extract: "Excel 表格讀取",
   text_first_pdf: "PDF 文字優先擷取",
   pdf_metadata_only: "PDF 僅保留中繼資料",
   scanned_pdf_reference: "掃描 PDF 僅供參考",

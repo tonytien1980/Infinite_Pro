@@ -1045,6 +1045,7 @@ class SourceDocument(Base):
     metadata_only: Mapped[bool] = mapped_column(Boolean, default=False)
     derived_storage_key: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     extracted_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    extraction_manifest: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     ingestion_error: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
@@ -1056,6 +1057,10 @@ class SourceDocument(Base):
     chunk_objects: Mapped[list["ChunkObject"]] = relationship(back_populates="source_document")
     media_references: Mapped[list["MediaReference"]] = relationship(back_populates="source_document")
     evidence_items: Mapped[list["Evidence"]] = relationship(back_populates="source_document")
+
+    @property
+    def extraction_coverage(self) -> str:
+        return (self.extraction_manifest or {}).get("coverage", "unverified")
 
 
 class SourceMaterial(Base):
@@ -1096,6 +1101,10 @@ class SourceMaterial(Base):
     artifacts: Mapped[list["Artifact"]] = relationship(back_populates="source_material")
     chunk_objects: Mapped[list["ChunkObject"]] = relationship(back_populates="source_material")
     media_references: Mapped[list["MediaReference"]] = relationship(back_populates="source_material")
+
+    @property
+    def extraction_coverage(self) -> str:
+        return self.source_document.extraction_coverage if self.source_document else "unverified"
 
 
 class Artifact(Base):
@@ -1140,6 +1149,8 @@ class ChunkObject(Base):
     start_offset: Mapped[int] = mapped_column(Integer, default=0)
     end_offset: Mapped[int] = mapped_column(Integer, default=0)
     locator_label: Mapped[str] = mapped_column(String(255), default="")
+    extraction_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    locator: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     excerpt_text: Mapped[str] = mapped_column(Text, default="")
     excerpt_digest: Mapped[str] = mapped_column(String(128), default="")
     support_level: Mapped[str] = mapped_column(String(30), default="full")

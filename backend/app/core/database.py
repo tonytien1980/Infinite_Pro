@@ -119,7 +119,12 @@ def _ensure_incremental_schema_updates() -> None:
             "availability_state": "VARCHAR(30) NOT NULL DEFAULT 'available'",
             "metadata_only": "BOOLEAN NOT NULL DEFAULT FALSE",
             "derived_storage_key": "VARCHAR(1024)",
+            "extraction_manifest": "JSON",
             "updated_at": f"{datetime_column_type} NOT NULL DEFAULT CURRENT_TIMESTAMP",
+        },
+        "chunk_objects": {
+            "extraction_version": "INTEGER",
+            "locator": "JSON",
         },
         "research_runs": {
             "research_depth": "VARCHAR(50) NOT NULL DEFAULT 'light_completion'",

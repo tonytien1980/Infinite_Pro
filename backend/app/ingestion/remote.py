@@ -7,6 +7,7 @@ from pathlib import Path
 from urllib import error, parse, request
 
 from app.ingestion.files import analyze_upload_content
+from app.core.config import settings
 from app.ingestion.preprocess import normalize_text
 
 GOOGLE_DOCS_RE = re.compile(r"https?://docs\.google\.com/document/d/([a-zA-Z0-9_-]+)")
@@ -23,6 +24,7 @@ class RemoteSourceContent:
     ingest_strategy: str = "remote_text_extract"
     metadata_only: bool = False
     message: str | None = None
+    extraction_manifest: dict | None = None
 
 
 def _extract_html_title(raw_html: str, fallback: str) -> str:
@@ -122,7 +124,9 @@ def fetch_remote_source(url: str, timeout_seconds: int = 20) -> RemoteSourceCont
 
     try:
         with request.urlopen(http_request, timeout=timeout_seconds) as response:
-            content = response.read()
+            content = response.read(settings.material_max_file_bytes + 1)
+            if len(content) > settings.material_max_file_bytes:
+                raise ValueError(f"遠端檔案超過 {settings.material_max_file_bytes} bytes 上限。")
             final_url = response.geturl()
             content_type = response.headers.get_content_type()
     except error.HTTPError as exc:
@@ -163,7 +167,7 @@ def fetch_remote_source(url: str, timeout_seconds: int = 20) -> RemoteSourceCont
         title = file_name or "文字來源"
         analyzed = None
 
-    normalized_text = normalize_text(extracted_text)
+    normalized_text = analyzed.text if analyzed is not None else normalize_text(extracted_text)
     support_level = "full"
     ingest_strategy = "remote_text_extract"
     metadata_only = False
@@ -191,4 +195,5 @@ def fetch_remote_source(url: str, timeout_seconds: int = 20) -> RemoteSourceCont
         ingest_strategy=ingest_strategy,
         metadata_only=metadata_only,
         message=message,
+        extraction_manifest=analyzed.to_manifest() if analyzed is not None else None,
     )

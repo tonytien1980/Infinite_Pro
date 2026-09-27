@@ -1026,6 +1026,29 @@ export function describeRuntimeMaterialHandling({
     };
   }
 
+  if (diagnosticCategory === "extraction_unverified" || diagnosticCategory === "accepted_partial_extract") {
+    const unverified = diagnosticCategory === "extraction_unverified";
+    const detail = unverified
+      ? "這份材料尚未確認完整讀取範圍；原有內容和成果仍保留。"
+      : ingestionError || "已讀取部分內容，但仍有未讀取或需要核對的部分。";
+    return {
+      status: "limited",
+      statusLabel: unverified ? "讀取範圍待確認" : "部分內容待確認",
+      diagnosticCategory: "accepted_limited_extraction",
+      diagnosticLabel: unverified ? "尚未確認是否完整讀取" : "有內容尚待核對",
+      likelyCauseDetail: detail,
+      usableScopeLabel: "已讀內容可參考",
+      usableScopeDetail: "可參考已讀取的內容，但不能把未讀部分當成已確認的依據。",
+      retryabilityLabel: "請先核對原始材料",
+      retryabilityDetail: "補上缺漏內容或提供可讀文字版後，再更新案件分析。",
+      statusDetail: detail,
+      impactDetail: "若缺漏涉及重要數字或條件，請先補齊再定稿。",
+      recommendedNextStep: "核對讀取範圍，並補上缺漏的文字、頁面或數字說明。",
+      fallbackStrategy: "保留原始材料，另補可讀文字版。",
+      retryable: false,
+    };
+  }
+
   if (
     diagnosticCategory === "accepted_limited_table_extract" ||
     currentUsableScope === "limited_extract" ||
