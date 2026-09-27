@@ -2,10 +2,15 @@ from __future__ import annotations
 
 import csv
 import multiprocessing
+import os
+import signal
+import sys
+import tempfile
 import time
 from dataclasses import dataclass
 from io import BytesIO, StringIO
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from zipfile import BadZipFile, ZipFile
 
 from defusedxml import ElementTree
@@ -65,7 +70,7 @@ class FileExtractResult:
         }
 
 
-def _result(blocks: list[ExtractedBlock], strategy: str, warnings: list[str]) -> FileExtractResult:
+def _result(blocks: list[ExtractedBlock], strategy: str, warnings: list[str], *, coverage: str | None = None) -> FileExtractResult:
     text = "\n".join(block.text for block in blocks)
     if len(text) > settings.material_max_source_chars:
         raise ValueError(f"抽取文字超過單份材料 {settings.material_max_source_chars} 字元上限；未截斷當作完整內容。")
@@ -81,7 +86,7 @@ def _result(blocks: list[ExtractedBlock], strategy: str, warnings: list[str]) ->
         metadata_only=not bool(text),
         message="；".join(dict.fromkeys(warnings)) or None,
         blocks=tuple(blocks),
-        coverage=("partial" if warnings else "complete") if text else "unavailable",
+        coverage=(coverage or ("partial" if warnings else "complete")) if text else "unavailable",
         warnings=tuple(dict.fromkeys(warnings)),
     )
 
@@ -165,7 +170,7 @@ def _xlsx_blocks(content: bytes, warnings: list[str]) -> list[ExtractedBlock]:
         blocks = []
         cell_count = 0
         for sheet in workbook.worksheets:
-            merges = list(sheet.merged_cells.ranges)
+            merges = {(item.min_row, item.min_col): str(item) for item in sheet.merged_cells.ranges}
             # The pinned openpyxl sparse cell map avoids iterating a million empty rows.
             for cell in sorted(sheet._cells.values(), key=lambda item: (item.row, item.column)):
                 if cell.value is None:
@@ -173,8 +178,9 @@ def _xlsx_blocks(content: bytes, warnings: list[str]) -> list[ExtractedBlock]:
                 cell_count += 1
                 if cell_count > settings.material_max_cells:
                     raise ValueError(f"文件超過 {settings.material_max_cells} 個有內容儲存格上限。")
+                merged_range = merges.get((cell.row, cell.column))
                 locator = {"kind": "xlsx_cell", "sheet": sheet.title, "cell": cell.coordinate,
-                           "merged_ranges": [str(merge) for merge in merges if cell.coordinate in merge],
+                           "merged_ranges": [merged_range] if merged_range else [],
                            "sheet_state": sheet.sheet_state, "data_type": cell.data_type,
                            "number_format": cell.number_format}
                 value = str(cell.value)
@@ -195,7 +201,7 @@ def _xlsx_blocks(content: bytes, warnings: list[str]) -> list[ExtractedBlock]:
             cached.close()
 
 
-def _analyze_upload_content(file_name: str, content: bytes) -> FileExtractResult:
+def _analyze_upload_content(file_name: str, content: bytes, *, on_ocr=None) -> FileExtractResult:
     if len(content) > settings.material_max_file_bytes:
         raise ValueError(f"檔案超過 {settings.material_max_file_bytes} bytes 上限。")
     suffix = Path(file_name).suffix.lower()
@@ -235,28 +241,81 @@ def _analyze_upload_content(file_name: str, content: bytes) -> FileExtractResult
             raise ValueError("不接受加密 PDF，請提供未加密版本。")
         if len(reader.pages) > settings.material_max_pdf_pages:
             raise ValueError(f"PDF 超過 {settings.material_max_pdf_pages} 頁上限。")
-        blocks = []
+        blocks_by_page = {}
+        scan_pages = []
         warnings = []
         for page_number, page in enumerate(reader.pages, start=1):
             text = page.extract_text() or ""
+            blocks_by_page[page_number] = []
             if text.strip():
-                blocks.append(ExtractedBlock(text, {"kind": "pdf_page", "page": page_number}, f"第 {page_number} 頁"))
+                blocks_by_page[page_number].append(ExtractedBlock(text, {"kind": "pdf_page", "page": page_number}, f"第 {page_number} 頁"))
             resources = page.get("/Resources")
             if not text.strip() or (resources is not None and resources.get_object().get("/XObject")):
-                warnings.append(f"第 {page_number} 頁可能含掃描或圖像內容，尚未完成 OCR 核對。")
-        return _result(blocks, "text_first_pdf" if blocks else "scanned_pdf_reference", warnings)
+                scan_pages.append(page_number)
+        incomplete = bool(scan_pages) and not settings.material_ocr_enabled
+        if scan_pages and settings.material_ocr_enabled:
+            from app.ingestion import ocr
+
+            if on_ocr:
+                on_ocr()
+            file_deadline = time.monotonic() + settings.material_ocr_file_timeout_seconds
+            with TemporaryDirectory(prefix="infinite-pro-pdf-") as temporary:
+                pdf_path = Path(temporary) / "source.pdf"
+                pdf_path.write_bytes(content)
+                for index, page_number in enumerate(scan_pages):
+                    if index >= settings.material_max_ocr_pages:
+                        incomplete = True
+                        warnings.append(f"第 {page_number} 頁未讀取：已達 {settings.material_max_ocr_pages} 頁 OCR 上限。")
+                        continue
+                    try:
+                        regions, notes = ocr.extract_pdf_page(pdf_path, page=page_number, deadline=min(
+                            file_deadline, time.monotonic() + settings.material_ocr_page_timeout_seconds))
+                        if not regions or any(region["locator"]["min_confidence"] < settings.material_ocr_min_confidence for region in regions):
+                            incomplete = True
+                        native_text = " ".join(block.text for block in blocks_by_page[page_number])
+                        for region in regions:
+                            if " ".join(region["text"].split()) not in " ".join(native_text.split()):
+                                blocks_by_page[page_number].append(ExtractedBlock(**region))
+                        warnings.extend(notes)
+                    except ValueError as exc:
+                        incomplete = True
+                        warnings.append(f"第 {page_number} 頁未完成：{exc}")
+        else:
+            warnings.extend(f"第 {page} 頁可能含掃描或圖像內容，尚未完成 OCR 核對。" for page in scan_pages)
+        blocks = [block for page_blocks in blocks_by_page.values() for block in page_blocks]
+        return _result(blocks, "text_first_pdf" if blocks else "scanned_pdf_reference", warnings,
+                       coverage="partial" if incomplete else "complete")
     if suffix in LIMITED_SUPPORTED_EXTENSIONS:
+        if settings.material_ocr_enabled:
+            from app.ingestion import ocr
+
+            if on_ocr:
+                on_ocr()
+            try:
+                regions, notes = ocr.extract_image(content, deadline=time.monotonic() + settings.material_ocr_page_timeout_seconds)
+                complete = bool(regions) and all(region["locator"]["min_confidence"] >= settings.material_ocr_min_confidence for region in regions)
+                return _result([ExtractedBlock(**region) for region in regions], "image_ocr", notes,
+                               coverage="complete" if complete else "partial")
+            except ocr.OcrUnavailable as exc:
+                return _result([], "image_ocr", [str(exc)])
         return _result([], "image_reference", ["影像已保存，但尚未完成 OCR，請補充文字。"])
     return FileExtractResult("", "unsupported", "unsupported", True, "目前尚未正式支援這種格式的 ingestion。")
 
 
-def _extract_worker(connection, file_name: str, content: bytes, limits: dict) -> None:
+def _extract_worker(connection, file_name: str, content: bytes, limits: dict, temporary_root: str) -> None:
     try:
+        if os.name == "posix":
+            os.setsid()
+        tempfile.tempdir = temporary_root
         for name, value in limits.items():
             setattr(settings, name, value)
-        connection.send((True, _analyze_upload_content(file_name, content)))
+        if sys.platform == "linux":
+            import resource
+            resource.setrlimit(resource.RLIMIT_AS, (settings.material_parse_memory_bytes,) * 2)
+        result = _analyze_upload_content(file_name, content, on_ocr=lambda: connection.send(("ocr", None)))
+        connection.send(("result", result))
     except Exception as exc:
-        connection.send((False, f"{type(exc).__name__}: {exc}"))
+        connection.send(("error", f"{type(exc).__name__}: {exc}"))
     finally:
         connection.close()
 
@@ -267,19 +326,24 @@ def analyze_upload_content(file_name: str, content: bytes) -> FileExtractResult:
     # A process deadline can stop a stuck native/XML parser; a timed-out thread cannot.
     context = multiprocessing.get_context("spawn")
     receiving, sending = context.Pipe(duplex=False)
+    temporary = TemporaryDirectory(prefix="infinite-pro-extract-")
     limits = {name: value for name, value in settings.model_dump().items() if name.startswith("material_")}
-    worker = context.Process(target=_extract_worker, args=(sending, file_name, content, limits))
+    worker = context.Process(target=_extract_worker, args=(sending, file_name, content, limits, temporary.name))
     started = time.monotonic()
     try:
         worker.start()
         sending.close()
-        remaining = max(0, settings.material_parse_timeout_seconds - (time.monotonic() - started))
-        if not receiving.poll(remaining):
-            raise ValueError(f"文件解析超過 {settings.material_parse_timeout_seconds:g} 秒時間上限；未將部分內容標成完整。")
-        success, result = receiving.recv()
-        if not success:
-            raise ValueError(result)
-        return result
+        deadline = started + settings.material_parse_timeout_seconds
+        while True:
+            if not receiving.poll(max(0, deadline - time.monotonic())):
+                raise ValueError("文件解析超過時間上限；未將部分內容標成完整。")
+            state, result = receiving.recv()
+            if state == "ocr":
+                deadline = started + settings.material_ocr_file_timeout_seconds
+            elif state == "error":
+                raise ValueError(result)
+            else:
+                return result
     except EOFError as exc:
         raise ValueError("文件解析程序中斷，請確認檔案後重試。") from exc
     finally:
@@ -287,6 +351,11 @@ def analyze_upload_content(file_name: str, content: bytes) -> FileExtractResult:
         sending.close()
         if worker.pid is not None:
             worker.join(timeout=0.1)
+            if os.name == "posix":
+                try:
+                    os.killpg(worker.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
             if worker.is_alive():
                 worker.terminate()
                 worker.join(timeout=1)
@@ -294,6 +363,7 @@ def analyze_upload_content(file_name: str, content: bytes) -> FileExtractResult:
                 worker.kill()
                 worker.join()
             worker.close()
+        temporary.cleanup()
 
 
 def extract_text_from_upload(file_name: str, content: bytes) -> str:

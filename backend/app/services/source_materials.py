@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from sqlalchemy import select
+from fastapi import HTTPException
+from sqlalchemy import select, text as sql_text
 from sqlalchemy.orm import Session
 
 from app.domain import models
+from app.core.config import settings
 from app.ingestion.preprocess import (
     build_text_chunk_specs,
     infer_relevance_label,
@@ -20,6 +22,46 @@ OBJECT_TYPE_ARTIFACT = "artifact"
 OBJECT_TYPE_EVIDENCE = "evidence"
 PARTICIPATION_TYPE_DIRECT_INGEST = "direct_ingest"
 PARTICIPATION_TYPE_SHARED_REUSE = "shared_reuse"
+
+
+def lock_material_case(db: Session, task: models.Task) -> None:
+    matter_id = next((link.matter_workspace_id for link in task.matter_workspace_links if link.matter_workspace_id), None)
+    model, identity = (models.MatterWorkspace, matter_id) if matter_id else (models.Task, task.id)
+    if db.bind.dialect.name == "sqlite":
+        # SQLite has no row-level FOR UPDATE; obtain its existing transaction's write lock.
+        db.execute(sql_text(f"UPDATE {model.__tablename__} SET id = id WHERE id = :id"), {"id": identity})
+    else:
+        db.execute(select(model.id).where(model.id == identity).with_for_update())
+
+
+def source_character_count(source: models.SourceDocument) -> int:
+    if source.extraction_manifest is not None:
+        return int(source.extraction_manifest.get("text_length", 0))
+    if source.metadata_only or source.ingest_status in {"failed", "unsupported"}:
+        return 0
+    return settings.material_max_source_chars
+
+
+def get_material_capacity(db: Session, task: models.Task) -> dict:
+    matter_id = next((link.matter_workspace_id for link in task.matter_workspace_links if link.matter_workspace_id), None)
+    sources = db.scalars(select(models.SourceDocument).where(
+        models.SourceDocument.matter_workspace_id == matter_id if matter_id else models.SourceDocument.task_id == task.id
+    ).execution_options(populate_existing=True)).all()
+    return {
+        "source_count": len(sources),
+        "extracted_chars": sum(source_character_count(source) for source in sources),
+        "unverified_source_count": sum(source.extraction_manifest is None and not source.metadata_only for source in sources),
+        "max_case_sources": settings.material_max_case_sources,
+        "max_case_chars": settings.material_max_case_chars,
+    }
+
+
+def ensure_material_capacity(db: Session, task: models.Task, *, new_sources: int, added_chars: int) -> None:
+    capacity = get_material_capacity(db, task)
+    if new_sources > 0 and capacity["source_count"] + new_sources > settings.material_max_case_sources:
+        raise HTTPException(status_code=413, detail=f"同一案件最多 {settings.material_max_case_sources} 份來源；本次新增材料未加入。")
+    if added_chars > 0 and capacity["extracted_chars"] + added_chars > settings.material_max_case_chars:
+        raise HTTPException(status_code=413, detail=f"同一案件本輪材料超過 {settings.material_max_case_chars} 字元上限；未截斷當作完整內容。未驗證舊材料請先重新讀取。")
 
 
 def _task_query_parts(task: models.Task) -> list[str]:
@@ -88,14 +130,15 @@ def load_existing_world_shared_bundle(
         .where(models.Artifact.continuity_scope == WORLD_SHARED_CONTINUITY_SCOPE)
         .order_by(models.Artifact.created_at)
     ).first()
-    evidence = db.scalars(
+    evidence_candidates = db.scalars(
         select(models.Evidence)
         .where(models.Evidence.source_document_id == source_document.id)
         .where(models.Evidence.matter_workspace_id == matter_workspace_id)
         .where(models.Evidence.continuity_scope == WORLD_SHARED_CONTINUITY_SCOPE)
         .where(models.Evidence.evidence_type != "source_chunk")
         .order_by(models.Evidence.created_at)
-    ).first()
+    ).all()
+    evidence = next((item for item in evidence_candidates if item.is_current_extraction), None)
 
     if source_material is None or artifact is None or evidence is None:
         return None
@@ -346,6 +389,7 @@ def build_processed_evidence_items(
         artifact_id=artifact_id,
         continuity_scope=continuity_scope,
         evidence_type=primary_evidence_type,
+        extraction_version=(source_document.extraction_manifest or {}).get("version"),
         source_type=source_document.source_type,
         source_ref=source_ref,
         title=title,
@@ -395,6 +439,11 @@ def build_processed_evidence_items(
         )
         for chunk in chunk_specs
     ]
+    for chunk in chunk_objects:
+        labels = list(dict.fromkeys(block["locator_label"] for block in (chunk.locator or {}).get("blocks", [])))
+        if labels:
+            locations = "、".join(labels[:3]) + (f" 等 {len(labels)} 處" if len(labels) > 3 else "")
+            chunk.locator_label = f"片段 {chunk.sequence_index + 1}｜{locations}｜字元 {chunk.start_offset + 1}-{chunk.end_offset}"[:255]
     chunk_items = [
         models.Evidence(
             task_id=task.id,
@@ -405,6 +454,7 @@ def build_processed_evidence_items(
             chunk_object=chunk_object,
             continuity_scope=continuity_scope,
             evidence_type="source_chunk",
+            extraction_version=chunk_object.extraction_version,
             source_type=source_document.source_type,
             source_ref=source_ref,
             title=f"{title} - 片段 {chunk_object.sequence_index + 1}",

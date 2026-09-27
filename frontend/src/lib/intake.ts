@@ -1026,19 +1026,20 @@ export function describeRuntimeMaterialHandling({
     };
   }
 
-  if (diagnosticCategory === "extraction_unverified" || diagnosticCategory === "accepted_partial_extract") {
+  if (["extraction_unverified", "accepted_partial_extract", "accepted_extract_needs_check"].includes(diagnosticCategory || "")) {
     const unverified = diagnosticCategory === "extraction_unverified";
+    const needsCheck = diagnosticCategory === "accepted_extract_needs_check";
     const detail = unverified
       ? "這份材料尚未確認完整讀取範圍；原有內容和成果仍保留。"
       : ingestionError || "已讀取部分內容，但仍有未讀取或需要核對的部分。";
     return {
       status: "limited",
-      statusLabel: unverified ? "讀取範圍待確認" : "部分內容待確認",
+      statusLabel: unverified ? "讀取範圍待確認" : needsCheck ? "已讀取，請核對" : "部分內容待確認",
       diagnosticCategory: "accepted_limited_extraction",
       diagnosticLabel: unverified ? "尚未確認是否完整讀取" : "有內容尚待核對",
       likelyCauseDetail: detail,
       usableScopeLabel: "已讀內容可參考",
-      usableScopeDetail: "可參考已讀取的內容，但不能把未讀部分當成已確認的依據。",
+      usableScopeDetail: needsCheck ? "已讀取支援範圍內的文字；重要數字與條件仍需對照原檔核對。" : "可參考已讀取的內容，但不能把未讀部分當成已確認的依據。",
       retryabilityLabel: "請先核對原始材料",
       retryabilityDetail: "補上缺漏內容或提供可讀文字版後，再更新案件分析。",
       statusDetail: detail,

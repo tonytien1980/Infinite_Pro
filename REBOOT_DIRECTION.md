@@ -253,23 +253,25 @@ Ontology、六層架構、Host、CaseWorldState 全部保留——但全部退�
 
 Task 1 完成後進入 Task 2；最新進度如下。引用、共享隱私、真實模型、登入後 UX／效能、完整 PostgreSQL 回歸與 A~H 品質仍未驗收；不得宣稱第一包或 85 分完成。
 
-### 最新工程進度：2026-09-27，Task 2 進行中
+### 最新工程進度：2026-09-27，Task 2 工程完成
 
-本次收斂材料抽取與來源位置，**不是 Task 2 或產品結案**。沿用同一隔離分支；未啟動產品服務、未呼叫付費模型、未更動真實案件資料。
+Task 1、Task 2 的工程與本機自動驗證已完成；**不是第一包、85 分品質或產品發布完成**。沿用同一隔離分支；未啟動產品服務、未呼叫付費模型、未更動真實案件資料。後續依已核准計畫連續推進，不逐項重新請示。
 
 | 項目 | 本次實作與證據 |
 | --- | --- |
 | 長文與表格 | 取消四片靜默截斷；DOCX 按正文順序讀段落／表格及合併格；XLSX 不再只讀前四張表／六列，保留座標、合併區域、公式與快取資訊；CSV 正確處理引號、空欄和跨行欄位 |
-| 覆蓋與定位 | SourceDocument 的 manifest 是單一 owner；ChunkObject 帶 extraction version 與 block 位置。完整文字在 derived storage，預覽不冒充原文；來源定位以字元為單位，不假稱原檔 byte offset |
-| 不完整與舊資料 | PDF 逐頁辨識未讀內容，不因第一頁有文字就標整份完整。缺少 manifest 的舊材料維持未驗證；UI 用「部分內容待確認」「讀取範圍待確認」，不將部分 PDF 錯叫表格快照 |
-| 失敗邊界 | 非法 UTF-8、損毀／加密文件、ZIP／頁數／儲存格／字元超限明確拒絕；空白 CSV 不算成功。非 OCR 解析 30 秒超時會終止子程序；批次過大在檔案落地前檢查，避免孤立檔案 |
-| 定向驗證 | `test_material_fidelity.py` 的 39 個案例在 SQLite 及 PostgreSQL 16 均通過；包括 API、來源位置、遠端文件、公式快取、超限、schema 升級／重複升級、舊文字與引用保留。新庫由既有 fixture 建立，舊 schema 在一次性測試資料中重現 |
-| PostgreSQL 清理 | 臨時容器 `infinite-pro-task2-pg-20260927` 使用 tmpfs、專用低權限角色及 disposable marker；測後隨機 schema 數為 0，容器停止且已移除，不是完整 PostgreSQL 產品驗收 |
-| 全套 gate | 最終 `run_release_readiness.py --tier static` 通過：compile、SQLite backend 388 passed（166.45 秒）、frontend 168 passed、build、typecheck。前一輪舊 fake download response 未接受 read size 的失敗已修正；沒有 skip 測試。既有 MODULE_TYPELESS_PACKAGE_JSON 警告仍在 |
-| Review | Ponytail report-only preflight 移除自製 Excel 快照方向，改用核定函式庫；diff review 沒有新增平行原文 owner、queue 或 provider。一般 review 追查 API／UI 狀態、schema、失敗寫檔及預覽重建，發現項目已加入回歸修正 |
+| 覆蓋與定位 | SourceDocument 的 manifest 是單一 owner；ChunkObject 帶版本與 block 位置，畫面標籤可見頁碼／表格／儲存格。完整文字在 derived storage，預覽不冒充原文；offset 是字元，不是原檔 byte offset |
+| 本機 OCR | Poppler／Tesseract chi_tra+eng 在容器辨識 PNG／JPEG／WebP 及混合 PDF；保留頁碼、像素區域與信心資訊。透明與索引透明圖先白底化。高信心也提醒核對；未辨識、低信心、超頁數或逾時不假稱完整 |
+| 容量與恢復 | 單案 20 來源／300,000 字元共用後端設定與案件鎖，涵蓋檔案、貼文及網址；不把重疊 chunks／舊版本重複計入。同時補件不超收，批次超限在寫入前拒絕。實際邊界涵蓋 20 MiB、100／101 PDF 頁、20／21 OCR 頁、10／11 張表、20,000／20,001 儲存格、100,000／100,001 字元、ZIP 2,000／2,001 項及展開大小上限。各限制取最先達到者，不宣稱可同時用滿所有容量 |
+| 重讀與舊引用 | 「重新讀取原檔」追加版本、保留原檔和舊 chunks／報告引用；失敗不替換上一版。同時重讀產生不同版本；重複上傳重用目前版摘要，其他工作發起重讀也不改來源歸屬。Host 新分析只接目前版；舊版依據仍可查核，不自動回填舊庫 |
+| UI 與程序邊界 | 支援說明展開才讀伺服器設定與本案容量，不新增首屏請求。非 OCR 30 秒、OCR 每頁 15 秒／整檔 300 秒，Linux 工作程序 1 GiB 位址空間限制；逾時終止程序群組並清理自有暫存。原生工具只接最小環境，不繼承 provider／DB／session 憑證 |
+| 定向驗證 | 四個 material 測試檔共 84 項，在 SQLite 全套及 PostgreSQL 16 隔離環境通過；包含新庫、舊 schema／重複升級、匿名拒絕、跨案拒絕、來源定位、重讀失敗／超限、併發、重用及舊報告不變 |
+| OCR 成品驗證 | 固定依賴的 Linux arm64 映像建置成功；使用映像內 app 程式、唯讀檔案系統、無網路與合成材料，PNG／JPEG／WebP 繁中英文指定文字與數字、混合 PDF、每頁與整檔逾時共 6 項檢查通過。不是任意掃描件或所有平台的辨識保證 |
+| 全套 gate | 最終 `run_release_readiness.py --tier static`：compile、SQLite backend 433 passed（199.30 秒）、frontend 171 passed、build、typecheck 全通過，沒有 skip。前端包含函式與 source-level tests，不冒充真人瀏覽器驗收；既有 MODULE_TYPELESS_PACKAGE_JSON 警告仍在 |
+| 清理與 review | 最終 PostgreSQL 隨機 schema 數 0，`infinite-pro-materials-pg` 與 OCR 臨時容器均已移除，QA 映像保留供後續重用。Ponytail 前後均為 report-only；沿用原 owner，沒有平行原文、queue 或 provider。一般 review 與回歸修掉版本重用／歸屬、批次半套寫入、逾時清理、透明圖與 native 環境問題 |
 
-Task 2 尚待：容器內中英文 OCR 與圖像限制、單案 20 來源／本輪 300,000 字元合併限制及前端讀取、重處理追加版本且保留舊引用、實際掃描與 OCR timeout／容量上限案例。完成這些後才進入 Task 3 的「有預算的全材料閱讀與逐項引用」；本次沒有宣稱模型已閱讀全部 chunks。登入後瀏覽器 QA、真實模型品質與正式效能仍未驗證。
+下一個既定工作是 Task 3「有預算的全材料閱讀與逐項引用」，仍在已核准範圍內。Task 2 證明材料可被完整或如實有限地抽取，不代表模型已閱讀全部 chunks。登入後瀏覽器 QA、真實模型品質、完整 PostgreSQL 產品回歸、多顧問負載及正式效能仍留在原計畫，A~H 尚未評分。原檔已遺失的資料、任意網站內容、手寫或嚴重模糊的影像不冒充已解決。
 
-完整 static 輸出為本次執行產物 `/private/tmp/infinite-pro-task2-final-gate-20260927.json`；可持續重跑的證據在 backend／frontend tests，暫存檔不是唯一依據。測試使用 worktree 專用 `.venv312`，既有套件對齊 Task 1 的已驗證版本，只新增 openpyxl 3.1.5／defusedxml 0.7.1，python-docx 固定既有 1.2.0；未修改 Mac 全域 Python 或主目錄虛擬環境。
+完整 static 與 OCR 成品輸出分別為 `/private/tmp/infinite-pro-task2-final-verified-20260927.json`、`/private/tmp/infinite-pro-ocr-final-image-20260927.json`；可持續重跑的證據在 repo tests、`verify_material_ocr.py` 及合成 PNG，暫存檔不是唯一依據。測試使用 worktree 專用 `.venv312`，Python 與容器依賴固定於 requirements／constraints／Dockerfile；未修改 Mac 全域工具或主目錄虛擬環境。
 
 本次 GitHub 唯讀回查：遠端 main 仍為 `59c2783`，原 owner 分支仍為 `ff4e71c`，施工分支尚未建立 upstream；未 push、merge 或部署。原工作目錄仍保留 `.gitignore` 與 `AGENTS.md` 的使用者修改。程式、測試與本文件在隔離分支一起提交，提交 ID 以 Git log 回讀為準。

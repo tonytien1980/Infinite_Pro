@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import { IntakeMaterialPreviewList } from "@/components/intake-material-preview-list";
+import { MaterialSupportNotice } from "@/components/material-support-notice";
 import { createTask, ingestTaskSources, uploadTaskFiles } from "@/lib/api";
 import {
   CONSULTANT_START_OPTIONS,
@@ -1104,6 +1105,7 @@ export function TaskCreateForm({ onCreated }: TaskCreateFormProps) {
               onChange={handleReplaceFileSelection}
             />
             <small>檔案與 URL / 補充文字一起共用同一個 10 份上限；若超過，請先建立案件後再分批補件。</small>
+            <MaterialSupportNotice />
           </div>
 
           <div className="field">

@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.core.auth import CurrentMember
 from app.core.config import settings
 from app.domain import models, schemas
-from app.ingestion.files import analyze_upload_content
+from app.ingestion.files import ExtractedBlock, FileExtractResult, analyze_upload_content
 from app.ingestion.preprocess import normalize_text
 from app.ingestion.remote import RemoteSourceContent, fetch_remote_source
 from app.ingestion.sources import (
@@ -28,6 +28,8 @@ from app.services.source_materials import (
     build_unparsed_evidence_item,
     ensure_source_chain_participation_links,
     load_existing_world_shared_bundle,
+    ensure_material_capacity,
+    lock_material_case,
     PARTICIPATION_TYPE_DIRECT_INGEST,
     PARTICIPATION_TYPE_SHARED_REUSE,
     SLICE_PARTICIPATION_CONTINUITY_SCOPE,
@@ -123,6 +125,12 @@ def _persist_processed_source(
     if connector_source_type == "manual_input" and extracted_text:
         analyzed = analyze_upload_content("pasted.txt", extracted_text.encode("utf-8"))
         extraction_manifest = analyzed.to_manifest()
+    elif extraction_manifest is None and extracted_text:
+        extraction_manifest = FileExtractResult(
+            extracted_text, "limited", ingest_strategy, False,
+            blocks=(ExtractedBlock(extracted_text, {"kind": "remote_text"}, "已抽取網頁文字"),),
+            coverage="partial", warnings=("網頁僅抽取文字，圖片與頁面完整性仍需核對。",),
+        ).to_manifest()
     retention_policy = RETENTION_POLICY_DERIVED
     extension = normalize_extension(title, "")
     current_content_digest = (
@@ -152,6 +160,7 @@ def _persist_processed_source(
             participation_type=PARTICIPATION_TYPE_SHARED_REUSE,
         )
         return existing_bundle
+    ensure_material_capacity(db, task, new_sources=1, added_chars=len(extracted_text))
     source_document = models.SourceDocument(
         task_id=task.id,
         matter_workspace_id=matter_workspace_id,
@@ -309,6 +318,7 @@ def _persist_failed_source(
             participation_type=PARTICIPATION_TYPE_SHARED_REUSE,
         )
         return existing_bundle
+    ensure_material_capacity(db, task, new_sources=1, added_chars=0)
     source_document = models.SourceDocument(
         task_id=task.id,
         matter_workspace_id=matter_workspace_id,
@@ -402,6 +412,36 @@ def _select_connector_for_remote_source(
     return ManualUrlConnector()
 
 
+def _prepare_remote_batch(db: Session, task: models.Task, urls: list[str], *, origin: str):
+    prepared: dict[str, RemoteSourceContent | Exception] = {}
+    source_count = 0
+    character_count = 0
+    for url in dict.fromkeys(value.strip() for value in urls if value.strip()):
+        if _should_skip_duplicate_remote_source(task, normalized_url=url):
+            continue
+        connector = ManualUrlConnector() if origin == "manual" else ExternalSearchConnector()
+        try:
+            remote = fetch_remote_source(url)
+            connector = _select_connector_for_remote_source(remote, origin=origin)
+            if len(remote.normalized_text) > settings.material_max_source_chars:
+                raise HTTPException(status_code=413, detail=f"材料超過 {settings.material_max_source_chars} 字元上限。")
+            prepared[url] = remote
+            digest = compute_digest(remote.normalized_text.encode("utf-8")) if remote.normalized_text else None
+            existing = load_existing_world_shared_bundle(db, matter_workspace_id=_linked_matter_workspace_id(task),
+                source_type=connector.source_type, storage_path=url, content_digest=digest)
+            if existing is None or not _should_reuse_existing_processed_source(existing[0], current_content_digest=digest):
+                source_count += 1
+                character_count += len(remote.normalized_text)
+        except HTTPException:
+            raise
+        except Exception as exc:
+            prepared[url] = exc
+            existing = load_existing_world_shared_bundle(db, matter_workspace_id=_linked_matter_workspace_id(task),
+                source_type=connector.source_type, storage_path=url)
+            source_count += int(existing is None)
+    return prepared, source_count, character_count
+
+
 def ingest_remote_urls_for_task(
     db: Session,
     task_id: str,
@@ -410,8 +450,14 @@ def ingest_remote_urls_for_task(
     origin: str = "manual",
     research_run_id: str | None = None,
     current_member: CurrentMember | None = None,
+    prepared_sources: dict[str, RemoteSourceContent | Exception] | None = None,
+    commit: bool = True,
 ) -> list[tuple[str, str, str | None, str | None]]:
     task = get_loaded_task(db, task_id, current_member=current_member)
+    lock_material_case(db, task)
+    if prepared_sources is None:
+        prepared_sources, source_count, character_count = _prepare_remote_batch(db, task, urls, origin=origin)
+        ensure_material_capacity(db, task, new_sources=source_count, added_chars=character_count)
     existing_storage_paths = {item.storage_path for item in task.uploads}
     ingested_refs: list[tuple[str, str, str | None, str | None]] = []
 
@@ -429,7 +475,11 @@ def ingest_remote_urls_for_task(
         title = normalized_url
 
         try:
-            remote_source = fetch_remote_source(normalized_url)
+            remote_source = prepared_sources.get(normalized_url)
+            if remote_source is None:
+                continue
+            if isinstance(remote_source, Exception):
+                raise remote_source
             connector = _select_connector_for_remote_source(remote_source, origin=origin)
             title = remote_source.title
             source_document, source_material, artifact, evidence = _persist_processed_source(
@@ -449,6 +499,8 @@ def ingest_remote_urls_for_task(
                 reliability_level="externally_retrieved" if origin == "external_search" else "user_provided",
                 research_run_id=research_run_id,
             )
+        except HTTPException:
+            raise
         except Exception as exc:  # noqa: BLE001
             logger.warning(
                 "Remote source ingestion degraded for task %s origin=%s url=%s error=%s",
@@ -471,7 +523,7 @@ def ingest_remote_urls_for_task(
         existing_storage_paths.add(normalized_url)
         ingested_refs.append((source_document.id, evidence.id, source_material.id, artifact.id))
 
-    if ingested_refs:
+    if ingested_refs and commit:
         db.commit()
 
     return ingested_refs
@@ -496,6 +548,15 @@ def ingest_sources_for_task(
         )
 
     task = get_loaded_task(db, task_id, current_member=current_member)
+    lock_material_case(db, task)
+    prepared_sources, source_count, character_count = _prepare_remote_batch(db, task, urls, origin="manual")
+    if len(pasted_text) > settings.material_max_source_chars:
+        raise HTTPException(status_code=413, detail=f"材料超過 {settings.material_max_source_chars} 字元上限。")
+    if pasted_text and load_existing_world_shared_bundle(db, matter_workspace_id=_linked_matter_workspace_id(task),
+        source_type="manual_input", content_digest=compute_digest(pasted_text.encode("utf-8"))) is None:
+        source_count += 1
+        character_count += len(pasted_text)
+    ensure_material_capacity(db, task, new_sources=source_count, added_chars=character_count)
     world_update_summary_parts: list[str] = []
     if pasted_text:
         world_update_summary_parts.append(
@@ -527,7 +588,6 @@ def ingest_sources_for_task(
             ingest_strategy="inline_text_extract",
         )
         ingested_refs.append((source_document.id, evidence.id, source_material.id, artifact.id))
-        db.commit()
 
     ingested_refs.extend(
         ingest_remote_urls_for_task(
@@ -536,9 +596,12 @@ def ingest_sources_for_task(
             urls=urls,
             origin="manual",
             current_member=current_member,
+            prepared_sources=prepared_sources,
+            commit=False,
         )
     )
 
+    db.commit()
     refreshed_task = get_loaded_task(db, task.id, current_member=current_member)
     aggregate = serialize_task(refreshed_task)
     ingested = [

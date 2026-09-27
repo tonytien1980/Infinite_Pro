@@ -157,6 +157,7 @@ def _ensure_incremental_schema_updates() -> None:
             "continuity_scope": "VARCHAR(30) NOT NULL DEFAULT 'slice_participation'",
         },
         "evidence": {
+            "extraction_version": "INTEGER",
             "matter_workspace_id": "VARCHAR(36)",
             "source_material_id": "VARCHAR(36)",
             "artifact_id": "VARCHAR(36)",

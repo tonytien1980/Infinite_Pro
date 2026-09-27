@@ -15,6 +15,7 @@ import {
   ingestMatterSources,
   resolveMatterCanonicalizationReview,
   uploadMatterFiles,
+  reprocessMaterial,
 } from "@/lib/api";
 import { buildContinuationDetailView } from "@/lib/continuation-advisory";
 import {
@@ -43,6 +44,7 @@ import {
   labelForWritebackDepth,
 } from "@/lib/ui-labels";
 import { WorkspaceSectionGuide } from "@/components/workspace-section-guide";
+import { MaterialSupportNotice } from "@/components/material-support-notice";
 import {
   noteDisclosureOpened,
   shouldRenderDisclosureBody,
@@ -198,16 +200,20 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
   const [resolvingCanonicalizationKey, setResolvingCanonicalizationKey] = useState<string | null>(null);
   const [canonicalizationMessage, setCanonicalizationMessage] = useState<string | null>(null);
   const [canonicalizationError, setCanonicalizationError] = useState<string | null>(null);
+  const [reprocessingSourceId, setReprocessingSourceId] = useState<string | null>(null);
+  const [materialRevision, setMaterialRevision] = useState(0);
   const fileReplaceInputRef = useRef<HTMLInputElement | null>(null);
   const urlFieldRef = useRef<HTMLTextAreaElement | null>(null);
   const pastedTextFieldRef = useRef<HTMLTextAreaElement | null>(null);
 
-  async function loadWorkspace() {
+  async function loadWorkspace({ quiet = false }: { quiet?: boolean } = {}) {
     try {
-      setLoading(true);
+      if (!quiet) setLoading(true);
       setError(null);
       setWorkspace(await getArtifactEvidenceWorkspace(matterId));
+      setMaterialRevision((value) => value + 1);
     } catch (loadError) {
+      if (quiet) throw loadError;
       setError(
         loadError instanceof Error ? loadError.message : "載入來源 / 證據工作面失敗。",
       );
@@ -219,6 +225,25 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
   useEffect(() => {
     void loadWorkspace();
   }, [matterId]);
+
+  async function handleReprocess(taskId: string, sourceId: string) {
+    setReprocessingSourceId(sourceId);
+    setSupplementError(null);
+    setSupplementMessage(null);
+    try {
+      await reprocessMaterial(taskId, sourceId);
+      setSupplementMessage("已重新讀取，舊版依據與已完成的成果仍保留；新分析會使用這次讀取的內容。");
+      try {
+        await loadWorkspace({ quiet: true });
+      } catch {
+        setSupplementError("重新讀取已完成，但畫面更新失敗；請重新整理頁面，不需要再送一次。");
+      }
+    } catch (reason) {
+      setSupplementError(reason instanceof Error ? reason.message : "重新讀取失敗，舊版內容仍保留。");
+    } finally {
+      setReprocessingSourceId(null);
+    }
+  }
 
   async function handleResolveCanonicalization(
     reviewKey: string,
@@ -1022,6 +1047,7 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
             </div>
 
             <form className="detail-stack" onSubmit={handleSupplementSubmit}>
+              <MaterialSupportNotice taskId={workspace.related_tasks[0]?.id} revision={materialRevision} />
               <div className="summary-grid">
                 <div className="section-card">
                   <h4>這裡適合補什麼</h4>
@@ -1316,6 +1342,8 @@ export function ArtifactEvidenceWorkspacePanel({ matterId }: { matterId: string 
                 <DeferredEvidenceMaterialsPanelBody
                   sourceMaterialCards={workspace.source_material_cards}
                   remediationContext={remediationContext}
+                  onReprocess={handleReprocess}
+                  reprocessingSourceId={reprocessingSourceId}
                 />
               </DisclosurePanel>
 

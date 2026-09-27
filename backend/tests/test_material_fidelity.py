@@ -4,7 +4,7 @@ from zipfile import ZIP_DEFLATED, ZipFile
 import pytest
 from docx import Document
 from openpyxl import Workbook
-from pypdf import PdfWriter
+from pypdf import PdfReader, PdfWriter
 from pypdf.generic import DecodedStreamObject, DictionaryObject, NameObject
 
 from app.core.config import settings
@@ -174,7 +174,7 @@ def mixed_pdf_bytes():
     page[NameObject("/Resources")] = DictionaryObject({NameObject("/Font"): DictionaryObject({NameObject("/F1"): font})})
     stream = DecodedStreamObject()
     stream.set_data(b"BT /F1 12 Tf 10 100 Td (READABLE_PAGE) Tj ET")
-    page[NameObject("/Contents")] = stream
+    page[NameObject("/Contents")] = writer._add_object(stream)
     writer.add_blank_page(width=300, height=300)
     output = BytesIO()
     writer.write(output)
@@ -265,10 +265,12 @@ def test_additive_schema_upgrade_preserves_old_values_and_is_repeatable(client):
         connection.execute(text("ALTER TABLE source_documents DROP COLUMN extraction_manifest"))
         connection.execute(text("ALTER TABLE chunk_objects DROP COLUMN extraction_version"))
         connection.execute(text("ALTER TABLE chunk_objects DROP COLUMN locator"))
+        connection.execute(text("ALTER TABLE evidence DROP COLUMN extraction_version"))
     _ensure_incremental_schema_updates()
     _ensure_incremental_schema_updates()
     assert "extraction_manifest" in {item["name"] for item in inspect(engine).get_columns("source_documents")}
     assert {"extraction_version", "locator"} <= {item["name"] for item in inspect(engine).get_columns("chunk_objects")}
+    assert "extraction_version" in {item["name"] for item in inspect(engine).get_columns("evidence")}
     with engine.connect() as connection:
         row = connection.execute(text("SELECT extracted_text, extraction_manifest FROM source_documents WHERE id = :id"), {"id": source_id}).one()
         assert row == ("LEGACY_SEED", None)
@@ -402,3 +404,123 @@ def test_archive_aggregate_limits_are_enforced(monkeypatch, setting, value):
     monkeypatch.setattr(settings, setting, value)
     with pytest.raises(ValueError, match="上限"):
         analyze_upload_content("limited.docx", stream.getvalue())
+
+
+def test_chunk_label_shows_document_location_not_only_character_offset(client):
+    from test_mvp_slice import create_task_payload
+    task = client.post("/api/v1/tasks", json=create_task_payload("Visible document locator")).json()
+    document = Document()
+    document.add_table(rows=1, cols=1).cell(0, 0).text = "PAYMENT 123456"
+    stream = BytesIO()
+    document.save(stream)
+    client.post(f"/api/v1/tasks/{task['id']}/uploads", files=[("files", ("table.docx", stream.getvalue(), "application/octet-stream"))])
+    aggregate = client.get(f"/api/v1/tasks/{task['id']}").json()
+    chunk = next(item for item in aggregate["evidence"] if item["evidence_type"] == "source_chunk")
+    assert "表格 1 R1C1" in chunk["retrieval_provenance"]["locator_label"]
+
+
+def test_default_file_byte_and_source_character_boundaries():
+    assert analyze_upload_content("boundary.bin", b"x" * (20 * 1024 * 1024)).support_level == "unsupported"
+    with pytest.raises(ValueError, match="bytes"):
+        analyze_upload_content("over.bin", b"x" * (20 * 1024 * 1024 + 1))
+    assert analyze_upload_content("boundary.txt", b"x" * 100_000).coverage == "complete"
+    with pytest.raises(ValueError, match="100000"):
+        analyze_upload_content("over.txt", b"x" * 100_001)
+
+
+def test_default_pdf_page_boundary():
+    native = PdfReader(BytesIO(mixed_pdf_bytes())).pages[0]
+    writer = PdfWriter()
+    for _ in range(100):
+        writer.add_page(native)
+    output = BytesIO()
+    writer.write(output)
+    assert len(analyze_upload_content("boundary.pdf", output.getvalue()).blocks) == 100
+    writer.add_page(native)
+    output = BytesIO()
+    writer.write(output)
+    with pytest.raises(ValueError, match="100 頁"):
+        analyze_upload_content("over.pdf", output.getvalue())
+
+
+def test_default_worksheet_boundary():
+    workbook = Workbook()
+    for number in range(9):
+        workbook.create_sheet(f"Sheet{number}")
+    for sheet in workbook:
+        sheet["A1"] = "read"
+    assert len(analyze_upload_content("boundary.xlsx", workbook_bytes(workbook)).blocks) == 10
+    workbook.create_sheet("Eleventh")
+    with pytest.raises(ValueError, match="10 張"):
+        analyze_upload_content("over.xlsx", workbook_bytes(workbook))
+
+
+def test_default_cell_boundary_independent_of_text_budget(monkeypatch):
+    # Isolate the cell budget; the default text budget may be reached first in actual files.
+    monkeypatch.setattr(settings, "material_max_source_chars", 1_000_000)
+    workbook = Workbook()
+    for index in range(1, 20_001):
+        workbook.active.cell(index, 1, "x")
+    assert len(analyze_upload_content("boundary.xlsx", workbook_bytes(workbook)).blocks) == 20_000
+    workbook.active.cell(20_001, 1, "x")
+    with pytest.raises(ValueError, match="20000"):
+        analyze_upload_content("over.xlsx", workbook_bytes(workbook))
+
+
+def test_default_zip_entry_count_boundary():
+    document = Document()
+    document.add_paragraph("ZIP_ENTRY_BOUNDARY")
+    original = BytesIO()
+    document.save(original)
+
+    def archive_with_count(count):
+        output = BytesIO()
+        with ZipFile(original) as source, ZipFile(output, "w", ZIP_DEFLATED) as target:
+            for item in source.infolist():
+                target.writestr(item.filename, source.read(item))
+            for index in range(count - len(source.infolist())):
+                target.writestr(f"padding/{index}.bin", b"")
+        return output.getvalue()
+
+    assert analyze_upload_content("boundary.docx", archive_with_count(2000)).coverage == "complete"
+    with pytest.raises(ValueError, match="2000"):
+        analyze_upload_content("over.docx", archive_with_count(2001))
+
+
+def test_default_zip_expanded_byte_boundary():
+    document = Document()
+    document.add_paragraph("ZIP_BYTE_BOUNDARY")
+    original = BytesIO()
+    document.save(original)
+
+    def archive_with_size(size):
+        output = BytesIO()
+        with ZipFile(original) as source, ZipFile(output, "w", ZIP_DEFLATED) as target:
+            for item in source.infolist():
+                target.writestr(item.filename, source.read(item))
+            remaining = size - sum(item.file_size for item in source.infolist())
+            index = 0
+            while remaining:
+                amount = min(remaining, 20 * 1024 * 1024)
+                target.writestr(f"padding/{index}.bin", b"x" * amount)
+                remaining -= amount
+                index += 1
+        return output.getvalue()
+
+    assert analyze_upload_content("boundary.docx", archive_with_size(100 * 1024 * 1024)).coverage == "complete"
+    with pytest.raises(ValueError, match="解壓大小"):
+        analyze_upload_content("over.docx", archive_with_size(100 * 1024 * 1024 + 1))
+
+
+def test_merged_cell_lookup_does_not_scan_every_range_for_each_value(monkeypatch):
+    from openpyxl.worksheet.cell_range import CellRange
+    from app.ingestion.files import _analyze_upload_content
+    workbook = Workbook()
+    for row in range(1, 101):
+        workbook.active.merge_cells(start_row=row, end_row=row, start_column=1, end_column=2)
+        workbook.active.cell(row, 1, f"value-{row}")
+    content = workbook_bytes(workbook)
+    monkeypatch.setattr(CellRange, "__contains__", lambda *args: pytest.fail("Avoid a cell-by-range Cartesian scan"))
+    result = _analyze_upload_content("merged.xlsx", content)
+    assert len(result.blocks) == 100
+    assert result.blocks[-1].locator["merged_ranges"] == ["A100:B100"]

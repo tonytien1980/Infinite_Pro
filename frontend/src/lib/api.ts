@@ -1774,6 +1774,44 @@ export async function createTask(payload: TaskCreatePayload): Promise<TaskAggreg
   return parseResponse<TaskAggregate>(response);
 }
 
+export interface MaterialSupportContract {
+  max_case_sources: number;
+  max_case_chars: number;
+  max_file_bytes: number;
+  max_source_chars: number;
+  max_pdf_pages: number;
+  max_ocr_pages: number;
+  max_image_pixels: number;
+  max_sheets: number;
+  max_cells: number;
+  ocr_enabled: boolean;
+  max_zip_bytes: number;
+  max_zip_entries: number;
+  parse_timeout_seconds: number;
+  ocr_page_timeout_seconds: number;
+  ocr_file_timeout_seconds: number;
+}
+
+export interface MaterialCapacity {
+  source_count: number;
+  extracted_chars: number;
+  unverified_source_count: number;
+  max_case_sources: number;
+  max_case_chars: number;
+}
+
+export async function getMaterialSupport(): Promise<MaterialSupportContract> {
+  return parseResponse<MaterialSupportContract>(await apiFetch(`${getApiBaseUrl()}/tasks/support/materials`));
+}
+
+export async function getMaterialCapacity(taskId: string): Promise<MaterialCapacity> {
+  return parseResponse<MaterialCapacity>(await apiFetch(`${getApiBaseUrl()}/tasks/${taskId}/material-capacity`));
+}
+
+export async function reprocessMaterial(taskId: string, sourceId: string): Promise<void> {
+  await parseResponse(await apiFetch(`${getApiBaseUrl()}/tasks/${taskId}/sources/${sourceId}/reprocess`, { method: "POST" }));
+}
+
 export async function uploadTaskFiles(
   taskId: string,
   files: File[],

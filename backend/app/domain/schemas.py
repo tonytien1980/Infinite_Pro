@@ -647,6 +647,8 @@ class RetrievalProvenanceRead(BaseModel):
 
 
 class EvidenceRead(ORMModel):
+    extraction_version: int | None = None
+    is_current_extraction: bool = True
     id: str
     task_id: str
     matter_workspace_id: str | None = None
@@ -1863,6 +1865,7 @@ class MatterWorkspaceResponse(BaseModel):
 
 
 class ArtifactEvidenceMaterialRead(BaseModel):
+    source_document_id: str | None = None
     object_id: str
     task_id: str
     task_title: str

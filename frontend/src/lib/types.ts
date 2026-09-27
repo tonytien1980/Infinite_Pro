@@ -1409,6 +1409,7 @@ export interface Constraint {
 }
 
 export interface ExtractionManifest {
+  history?: Array<Record<string, unknown>>;
   version: number;
   coverage: "complete" | "partial" | "unavailable";
   scope: string;
@@ -1629,6 +1630,8 @@ export interface RetrievalProvenance {
 }
 
 export interface Evidence {
+  extraction_version: number | null;
+  is_current_extraction: boolean;
   id: string;
   task_id: string;
   matter_workspace_id: string | null;
@@ -2519,6 +2522,7 @@ export interface MatterWorkspace {
 }
 
 export interface ArtifactEvidenceMaterial {
+  source_document_id: string | null;
   object_id: string;
   task_id: string;
   task_title: string;

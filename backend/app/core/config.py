@@ -50,10 +50,20 @@ class Settings(BaseSettings):
     material_max_zip_bytes: int = Field(default=100 * 1024 * 1024, gt=0)
     material_max_zip_entries: int = Field(default=2000, gt=0)
     material_max_source_chars: int = Field(default=100_000, gt=0)
+    material_max_case_sources: int = Field(default=20, gt=0)
+    material_max_case_chars: int = Field(default=300_000, gt=0)
     material_max_pdf_pages: int = Field(default=100, gt=0)
     material_max_sheets: int = Field(default=10, gt=0)
     material_max_cells: int = Field(default=20_000, gt=0)
     material_parse_timeout_seconds: float = Field(default=30, gt=0)
+    material_ocr_enabled: bool = False
+    material_max_ocr_pages: int = Field(default=20, gt=0)
+    material_max_image_pixels: int = Field(default=20_000_000, gt=0)
+    material_ocr_page_timeout_seconds: float = Field(default=15, gt=0)
+    material_ocr_file_timeout_seconds: float = Field(default=300, gt=0)
+    material_ocr_min_confidence: float = Field(default=80, ge=0, le=100)
+    material_parse_memory_bytes: int = Field(default=1024 * 1024 * 1024, gt=0)
+    material_ocr_output_bytes: int = Field(default=4 * 1024 * 1024, gt=0)
 
     model_config = SettingsConfigDict(
         env_file=".env",

@@ -293,7 +293,7 @@ class HostOrchestrator:
                 for item in aggregate.constraints
                 if item.constraint_type != EXTERNAL_DATA_STRATEGY_CONSTRAINT_TYPE
             ],
-            evidence=aggregate.evidence,
+            evidence=[item for item in aggregate.evidence if item.is_current_extraction],
         )
 
     def _build_search_query(self, payload: AgentInputPayload) -> str:

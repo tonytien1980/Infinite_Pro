@@ -30,3 +30,14 @@ test("structured spreadsheet strategies use consultant-facing labels", () => {
   assert.equal(labelForSourceIngestStrategy("csv_structured_extract"), "CSV 表格讀取");
   assert.equal(labelForSourceIngestStrategy("worksheet_structured_extract"), "Excel 表格讀取");
 });
+
+test("completed OCR still asks to verify important facts without claiming unread pages", () => {
+  const result = describeRuntimeMaterialHandling({
+    supportLevel: "limited", ingestStatus: "processed", ingestStrategy: "image_ocr",
+    metadataOnly: false, diagnosticCategory: "accepted_extract_needs_check",
+    extractAvailability: "full_text_ready", currentUsableScope: "limited_extract",
+    ingestionError: "OCR 辨識文字可能有誤，重要數字請核對。",
+  });
+  assert.equal(result.statusLabel, "已讀取，請核對");
+  assert.doesNotMatch(result.statusDetail, /未讀|表格快照/);
+});

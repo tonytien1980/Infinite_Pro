@@ -3,12 +3,13 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: 使用 `superpowers:executing-plans` 在主對話依序執行。全域規則禁止未核准的實體子代理；此計畫不授權 subagent-driven-development。
 > 日期：2026-09-24。2026-09-25 老田核准直接開工，狀態：**已核准，實作中。**
 > 產品依據：`REBOOT_DIRECTION.md` 已由老田確認。本計畫不重新定義八維度或降低 85 分標準。
+> 2026-09-27 老田要求在已核准範圍內連續推進，不逐項重新請示。實作、測試、修正、文件與本機提交可連續進行；新增產品／架構範圍、付費呼叫、真實資料異動、實體子代理、merge／push／部署仍需各自授權。
 
 **Goal:** 讓顧問以案件為中心，讀入完整且可追溯的材料、取得有取捨的專業成果，並安全地重用經驗。
 
 **Architecture:** 保留六層與 Host。材料、證據、判斷、成果與回饋沿既有 owner 改善；不新增第二套案件資料、ACL、工作佇列或治理看板。
 
-**Tech Stack:** 既有 FastAPI、SQLAlchemy、Pydantic、PostgreSQL、Next.js／React 與 provider adapters。新增依賴的用途與界線列於第 2 節，尚未安裝。
+**Tech Stack:** 既有 FastAPI、SQLAlchemy、Pydantic、PostgreSQL、Next.js／React 與 provider adapters。Task 2 已在隔離環境與 Docker 加入下列解析／OCR 依賴；不代表產品服務已啟用新版本。
 
 ## 1. 執行邊界與順序
 
@@ -54,6 +55,7 @@ Task 1~4 是第一包「可信材料、引用與共享」；5~6 是第二包；7
 
 - DOCX 沿用 python-docx，PDF 文字沿用 pypdf，CSV 用 Python `csv`；XLSX 改用 openpyxl，搭配 defusedxml，不繼續擴充自製 OOXML parser。
 - OCR 提議用容器內 Poppler 渲染及 Tesseract `chi_tra+eng`，不默認把圖片交給外部 AI。以 `subprocess.run` 的參數陣列、`shell=False`、`timeout=15`、每頁資源上限與私人暫存目錄執行；移除暫存影像但保留抽取結果、位置與辨識警告。
+- 實作固定 Poppler `22.12.0-2+deb12u3`、Tesseract `5.3.0-2`、繁中／英文語言資料 `1:4.1.0-2`；Python 的 Pillow `12.3.0` 負責影像尺寸、損毀、EXIF 方向和透明背景正規化。Python 版本約束在 `backend/constraints.txt`，Docker 基底固定 digest，沒有順帶升級既有框架。
 - 依賴只加到專案 requirements／Dockerfile；不修改這台 Mac 的全域工具。實作時鎖定實際驗證版本與語言資料，不使用浮動 latest。官方依據：[Tesseract](https://tesseract-ocr.github.io/tessdoc/)、[OCR TSV](https://tesseract-ocr.github.io/tessdoc/FAQ.html)、[openpyxl 公式說明](https://openpyxl.readthedocs.io/en/stable/simple_formulae.html)。openpyxl 不等於 Excel 公式計算引擎。
 - 沿用現有 provider 選擇與憑證 owner；不因開發模型進步就更換產品模型。需要比較其他模型時，在相同案例與預算下另行取得模型／資料授權。
 - **目前付費模型授權為 0。** mock 與本機解析可做工程驗證；真實模型評核前由 Codex 提出指定 provider／model、單價來源、輸入輸出預算與總費用上限，取得確認才執行。未知單價不填零，也不假稱已估完成本。
@@ -71,7 +73,7 @@ Task 1~4 是第一包「可信材料、引用與共享」；5~6 是第二包；7
 
 ## 3. 測試、資料與 Git 的共同規則
 
-目前 `backend/tests/conftest.py` 的 fixture 會 `drop_all`，而 `DATABASE_URL` 使用 `setdefault`；所有測試必須先隔離環境，不能直接沿用 `.env` 跑。先在 Task 1 加拒絕非測試資料庫的檢查，再執行涉及 DB 的新測試。
+Task 1 已修正測試的 DB／storage 隔離。fixture 仍會 `drop_all`，因此必須通過 conftest 的一次性 DB guard，不可繞過 guard 或直接沿用產品 `.env` 跑測試。
 
 本機 SQLite 測試的執行範本，從 repo 根目錄使用；`RUN_ROOT` 必須保留在該次 shell session，不能下一個命令遺失後落回 `.env`：
 
@@ -124,30 +126,35 @@ def require_isolated_sqlite(database_url: str, runtime_root: Path) -> None:
 
 ## 5. Task 2：材料抽取與可定位證據
 
-**2026-09-27 進度：進行中，不是 Task 2 結案。** 已落地完整切片、DOCX 正文／表格、XLSX 各工作表與公式／快取資訊、CSV 結構化讀取、PDF 逐頁部分覆蓋辨識、manifest／chunk 位置、舊來源未驗證狀態，以及單檔解析限制。OCR、單案 20 來源／300,000 字元合併限制、支援限制的前端讀取，以及重處理的新版本追加仍待完成。保留本節同一 checklist，不另開文件或改變驗收門檻。
+**2026-09-27 進度：工程實作與本機自動驗證完成。** 已落地完整抽取、來源位置、中英文 OCR、單案容量、重讀版本與材料入口。完整 gate 為 backend 433／frontend 171 passed、build／typecheck 通過；PostgreSQL 84 項定向測試及封裝 OCR 映像 6 項離線檢查通過。不代表第一包、真實模型品質、真人 UI 驗收或整體產品完成。驗證結果收斂在方向書第 9 節，不另開文件。
 
 目前實作契約：
 
-- `ExtractedBlock` 使用 `text`、`locator`、`locator_label`；格式相關位置放在同一個 locator，包含 PDF 頁碼、DOCX 表格與合併儲存格、CSV 列／原檔行數、XLSX 工作表／座標／合併範圍／公式／快取值。不是下方示意 dataclass 的逐欄複製。
-- `SourceDocument.extraction_manifest` 是抽取覆蓋 owner，記錄第 1 版、新文字長度、blocks 及警告，不另存整份原文。SourceMaterial 的 coverage 從它派生。完整文字仍在 derived storage，DB `extracted_text` 是既有 4,000 字預覽，不得拿預覽重建新版全文。
+- `ExtractedBlock` 使用 `text`、`locator`、`locator_label`；格式相關位置放在同一個 locator，包含 PDF 頁碼、DOCX 表格與合併儲存格、CSV 列／原檔行數、XLSX 工作表／座標／合併範圍／公式／快取值。
+- `SourceDocument.extraction_manifest` 是抽取覆蓋 owner，記錄目前版本、文字長度、blocks、警告及 `history` 中的舊 manifest／derived key，不另存整份原文。SourceMaterial 的 coverage 從它派生。完整文字仍在 derived storage，DB `extracted_text` 是既有 4,000 字預覽，不得拿預覽重建新版全文。
 - manifest 的 offsets 對應 derived 全文的 Unicode 字元；ChunkObject 的 start/end 也對應該全文，locator 內的 start/end 則是各 block 內字元範圍，皆為 0 起算、end 不包含。不是 PDF byte offset，也不是模型已讀取的保證。
-- 新欄位皆可空；舊 source／chunk 保持 null，API 顯示未驗證。尚未提供重處理操作，也沒有回填、覆寫舊引用或刪除舊成果。
+- 新欄位皆可空；舊 source／chunk 保持 null，API 顯示未驗證。重讀可取得的上傳原檔會追加 `.vN.txt`、新 chunks 和 evidence；舊檔案、ID、原文與報告不動。Evidence 也記錄 extraction version，確保沒有 chunk 的來源摘要仍能辨識新舊；Host 只接目前版 evidence，舊引用仍可查核。
+- 重讀沿用原來源的相容 Task 歸屬，發起操作的其他工作紀錄使用既有 participation links 參與；重複上傳也只重用目前版摘要，不回頭選最早的舊摘要。原始檔仍依既有保留規則保存，缺檔明示而不從預覽猜回原文。
 - 現已由 Settings 執行 20 MiB 單檔、100 MiB 解壓總量、20 MiB 單壓縮項、2,000 項、100 PDF 頁、10 張工作表、20,000 有內容儲存格、100,000 抽取字元及 30 秒解析上限。巨大合併區域亦受可安全展開範圍限制；超限報錯、不靜默截斷。上傳整批先檢查檔案大小，再修改案件與寫入檔案。
-- 解析由既有 ingestion owner 啟動受期限限制的本機子程序；超時終止並回收，不是新增 queue、Host 或 AI subagent。未讀掃描頁仍為 partial／unavailable，OCR 執行器尚未接上。
-- 原單次 10 份材料限制未被改成單案 20 份限制；兩者不能混稱。網頁 HTML 的舊抽取器未在本段重寫，缺少覆蓋 manifest 的遠端文字仍顯示未驗證。
+- 解析由既有 ingestion owner 啟動本機子程序，Linux 限制 1 GiB 位址空間；非 OCR 最長 30 秒、OCR 每頁 15 秒／整檔 300 秒。外層終止整個工作程序群組並清理自有暫存目錄，不留 Tesseract／Poppler 背景程序。不是新增 queue、Host 或 AI subagent。
+- Docker 啟用 OCR，非容器環境預設不啟用。OCR 保留頁碼、影像像素區域、語言與信心資訊；無文字、低信心、超頁數、超時皆明示缺口。高信心且處理範圍完整也維持 limited 支援並提醒核對，不用信心分數保證正確，更不表示 AI 已讀懂。
+- 單次 10 份和單案 20 份是兩個不同限制。單案 300,000 字元計算來源目前版，而非加總重疊 chunks 或舊版本；缺 manifest 的舊材料先按單份上限保守計入。上傳、貼文與網址共用案件資料列鎖／容量 owner，批次超限在寫入前拒絕，不保留半套新增資料。
+- `GET /tasks/support/materials`／`GET /tasks/{id}/material-capacity` 經既有登入與案件權限邊界回傳支援範圍和用量。前端收合說明展開才讀取，沒有另設一組上限或首屏次要請求。
+- `POST /tasks/{id}/sources/{source_id}/reprocess` 先驗案件權限和可補件狀態，再鎖定原案件；原檔不存在、超限、損毀、無可用文字時保留原版。此入口不偷偷重新抓取網站，也不把既存摘要當原始檔；沒有保存原檔的來源要重新提供材料。沒有對真實舊庫做回填。
+- 新網址文字有 partial manifest，僅表示已保存的文字範圍；網頁 HTML 抽取器並未在本 Task 重寫，不宣稱已完整擷取圖片／短段落等網頁內容。手寫、嚴重模糊影像及複雜圖表語意不在 OCR 保證範圍。
 - 實際狀態傳遞還包含 `ingestion/remote.py`、`services/tasks.py`、前端 `intake.ts`／`ui-labels.ts`；查證後沿用這些 owner，不在無關的 `material-review-ux.ts` 重做另一套狀態。
 
-**Files:** 修改 `backend/app/ingestion/files.py`、`preprocess.py`、`backend/app/services/uploads.py`、`sources.py`、`source_materials.py`、`ingestion_contracts.py`、`material_storage.py`、`backend/app/core/config.py`、`database.py`、`backend/app/domain/models.py`、`schemas.py`、`backend/requirements.txt`、`backend/Dockerfile`。新增 `backend/app/ingestion/ocr.py`、`backend/tests/test_material_fidelity.py`；前端同步 `frontend/src/lib/types.ts`、`material-review-ux.ts`。
+**實作 owner:** `backend/app/ingestion/`、既有 uploads／sources／source_materials／storage services、`api/routes/uploads.py`、config／database／models／schemas，以及 Host 的目前版 evidence 選取。前端沿用 intake／api／types／ui-labels、新增收合的 `material-support-notice.tsx`，在既有材料卡接重讀。依賴記於 requirements／constraints／Dockerfile；驗證使用四個 `test_material_*.py`、前端 material tests、`verify_material_ocr.py` 與合成影像。
 
-- [ ] 將 6,322 字尾段、DOCX 表格、XLSX 第 8 列／第 5 張表及混合文字／掃描 PDF 做成 red tests；另測 UTF-8 非法字元、損毀／加密／超限檔、zip bomb、缺少公式快取及 OCR timeout。
+- [x] 將長文尾段、DOCX 表格、XLSX 第 8 列／第 5 張表及混合文字／掃描 PDF 做成 red tests；另測 UTF-8 非法字元、損毀／加密／超限檔、zip bomb、缺少公式快取及 OCR timeout。
 - [x] `FileExtractResult` 保留既有介面，增加有位置的 blocks、coverage 與 warnings；每個來源只有一份抽取狀態，`SourceMaterial` 從 `SourceDocument` 派生，不各維護一套覆蓋率。
 - [x] DOCX 依 body 順序讀 paragraph／table，保留表格行列與合併資訊；XLSX 同時讀 formula 與 cached value，CSV 用正式 parser 保留欄位。PDF 逐頁讀取，不能因部分頁面有文字就將整份混合掃描檔標為完整。
-- [ ] OCR 在 container 內執行且受第 2 節限制；回傳頁碼／區域與辨識資訊，低品質標 limited，讓顧問核對關鍵數字。不用一個信心分數保證內容無誤。
+- [x] OCR 在 container 內執行且受第 2 節限制；回傳頁碼／區域與辨識資訊，低品質標 limited，讓顧問核對關鍵數字。不用一個信心分數保證內容無誤。
 - [x] `SourceDocument.extraction_manifest`（新增 JSON）記錄版本、範圍、blocks 位置與警告；完整文字仍在原 extracted_text／derived storage owner。`ChunkObject.extraction_version` 與 `locator`（新增）對應來源版本，不另存一份同義原文。
 - [x] 切片涵蓋全部支援範圍，取消預設四片靜默截斷；保持 `0 <= overlap < chunk_size`，明確 cap 溢出就回報，不回傳假完整前綴。offset 說明以 block 內文字為準，不冒充原 PDF byte offset。
-- [ ] 原始檔／舊成果不刪除；舊來源沒 manifest 時標為未重新驗證。重處理附新的 extraction version，舊引用仍能定位舊 chunks，不覆寫已交付報告依據。
+- [x] 原始檔／舊成果不刪除；舊來源沒 manifest 時標為未重新驗證。重處理附新的 extraction version，舊引用仍能定位舊 chunks，不覆寫已交付報告依據。
 
-計畫新增的抽取 block 契約：
+目前抽取 block 契約：
 
 ```python
 from dataclasses import dataclass
@@ -155,12 +162,8 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class ExtractedBlock:
     text: str
-    locator_kind: str
+    locator: dict
     locator_label: str
-    page_number: int | None = None
-    sheet_name: str | None = None
-    cell_range: str | None = None
-    confidence: float | None = None
 ```
 
 `FileExtractResult.blocks` 使用 `tuple[ExtractedBlock, ...]`；coverage 為 `complete / partial / unavailable`，表示抽取覆蓋，不表示 AI 已理解所有內容。以下可直接作為前兩個 red tests，後續其他格式使用相同真實 parser 路徑：

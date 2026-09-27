@@ -1214,6 +1214,7 @@ class Evidence(Base):
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     excerpt_or_summary: Mapped[str] = mapped_column(Text, default="")
     reliability_level: Mapped[str] = mapped_column(String(50), default="user_provided")
+    extraction_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
     task: Mapped["Task"] = relationship(back_populates="evidence")
@@ -1229,6 +1230,18 @@ class Evidence(Base):
     action_item_links: Mapped[list["ActionItemEvidenceLink"]] = relationship(
         back_populates="evidence", cascade="all, delete-orphan"
     )
+
+    @property
+    def is_current_extraction(self) -> bool:
+        manifest = self.source_document.extraction_manifest if self.source_document else None
+        if not manifest:
+            return True
+        version = self.extraction_version
+        if version is None and self.chunk_object is not None:
+            version = self.chunk_object.extraction_version
+        if version is None:
+            return not bool(manifest.get("history"))
+        return version == manifest.get("version")
 
 
 class Insight(Base):

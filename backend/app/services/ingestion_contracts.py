@@ -102,6 +102,14 @@ def build_ingestion_contract_summary(
             fallback_mode="verify_source_coverage",
         )
 
+    if extraction_coverage == "complete" and normalized_support == "limited":
+        return IngestionContractSummary(
+            diagnostic_category="accepted_extract_needs_check",
+            extract_availability="full_text_ready",
+            current_usable_scope="limited_extract",
+            fallback_mode="verify_important_values",
+        )
+
     if normalized_support == "limited" or extraction_coverage in {"partial", "unavailable"}:
         return IngestionContractSummary(
             diagnostic_category="accepted_partial_extract",

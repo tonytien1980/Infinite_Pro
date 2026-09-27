@@ -86,11 +86,15 @@ def write_text(storage_key: str, text: str) -> StoredObject:
     return write_bytes(storage_key, text.encode("utf-8"))
 
 
-def read_bytes(storage_key: str) -> bytes | None:
+def read_bytes(storage_key: str, *, max_bytes: int | None = None) -> bytes | None:
     target_path = settings.storage_root_path / storage_key
     if not target_path.exists():
         return None
-    return target_path.read_bytes()
+    with target_path.open("rb") as stream:
+        content = stream.read() if max_bytes is None else stream.read(max_bytes + 1)
+    if max_bytes is not None and len(content) > max_bytes:
+        raise ValueError(f"原始檔案超過 {max_bytes} bytes 上限。")
+    return content
 
 
 def file_exists(storage_key: str | None) -> bool:
@@ -143,4 +147,3 @@ def retention_state_for(purge_at: datetime | None, *, now: datetime | None = Non
     if purge_at <= current + timedelta(days=3):
         return RETENTION_STATE_EXPIRING_SOON
     return RETENTION_STATE_SCHEDULED
-

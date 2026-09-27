@@ -284,9 +284,13 @@ export function EvidenceDuplicateReviewPanelBody({
 export function EvidenceMaterialsPanelBody({
   sourceMaterialCards,
   remediationContext,
+  onReprocess,
+  reprocessingSourceId,
 }: {
   sourceMaterialCards: ArtifactEvidenceMaterial[];
   remediationContext: EvidenceRemediationContext;
+  onReprocess?: (taskId: string, sourceId: string) => Promise<void>;
+  reprocessingSourceId?: string | null;
 }) {
   return (
     <>
@@ -370,6 +374,15 @@ export function EvidenceMaterialsPanelBody({
                 <Link className="back-link" href="#evidence-supplement">
                   回補件入口處理這份材料
                 </Link>
+                {item.source_document_id && item.source_type === "manual_upload" && onReprocess ? (
+                  <div className="button-row">
+                    <button type="button" className="button-secondary" disabled={Boolean(reprocessingSourceId)}
+                      onClick={() => void onReprocess(item.task_id, item.source_document_id!)}>
+                      {reprocessingSourceId === item.source_document_id ? "正在重新讀取..." : "重新讀取原檔"}
+                    </button>
+                    <span className="muted-text">舊版依據仍保留，不會改寫已完成的成果。</span>
+                  </div>
+                ) : null}
                 <div className="meta-row">
                   <span>{item.linked_evidence_count} 則已連結證據</span>
                   <span>{item.linked_output_count} 項已連結輸出</span>
@@ -467,6 +480,7 @@ export function EvidenceChainsPanelBody({
             <div className="detail-item" key={item.evidence.id}>
               <div className="meta-row">
                 <span className="pill">{labelForEvidenceType(item.evidence.evidence_type)}</span>
+                {item.evidence.is_current_extraction === false ? <span className="pill">舊版依據，保留供既有成果查核</span> : null}
                 <span>{labelForEvidenceStrength(item.strength_label)}</span>
                 <span>{item.evidence.reliability_level}</span>
                 <span>{formatDisplayDate(item.evidence.created_at)}</span>

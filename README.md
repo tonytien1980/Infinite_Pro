@@ -6,7 +6,9 @@ Approved delivery scope: one firm with 3-5 consultants, separate case work and s
 
 Current direction: [REBOOT_DIRECTION.md](REBOOT_DIRECTION.md). Approved implementation sequence: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). The older `docs/` set is historical architecture and verification context, not the current delivery checklist.
 
-Current development (2026-09-27): Task 2 is in progress on the isolated delivery branch. Material extraction now preserves full text chunks, DOCX body tables, XLSX cells/formulas, CSV rows and page/block locators. Coverage is explicitly complete, partial or unavailable; legacy extracts remain unverified. OCR, case-wide capacity enforcement and append-only reprocessing are not finished. See the plan's Task 2 section for current contracts and the direction document for verified results; these changes are not deployed.
+Current development (2026-09-27): Task 2 now includes complete text chunks, DOCX body tables, XLSX cells/formulas, CSV rows, source locations, container-local bilingual OCR, case capacity checks and append-only reprocessing of saved upload originals. Legacy extracts remain unverified until explicitly reprocessed; existing reports and evidence are retained. Material extraction is not model comprehension. See the plan's Task 2 section for contracts and the direction document for verified results; these changes are not deployed.
+
+The OCR-enabled Docker image pins Poppler, Tesseract, Chinese/English language data and Python dependency constraints. Non-container development leaves OCR disabled by default. The offline OCR check is `python backend/scripts/verify_material_ocr.py` inside the project image with the backend mounted read-only and a writable temporary directory; it uses only the committed synthetic bilingual fixture, not customer data or external model APIs.
 
 ---
 

@@ -1569,6 +1569,7 @@ def _usable_evidence(task: models.Task) -> list[models.Evidence]:
         item
         for item in task.evidence
         if not item.evidence_type.endswith("ingestion_issue")
+        and item.is_current_extraction
         and not item.evidence_type.endswith("unparsed")
         and _normalize_whitespace(item.excerpt_or_summary)
     ]
@@ -7420,6 +7421,8 @@ def _serialize_evidence_items(
             artifact_id=item.artifact_id
             or (artifact_by_document.get(item.source_document_id) if item.source_document_id else None),
             chunk_object_id=item.chunk_object_id,
+            extraction_version=item.extraction_version,
+            is_current_extraction=item.is_current_extraction,
             media_reference_id=item.media_reference_id,
             continuity_scope=item.continuity_scope,
             evidence_type=item.evidence_type,
@@ -9415,6 +9418,7 @@ def get_artifact_evidence_workspace(
             source_material_cards.append(
                 schemas.ArtifactEvidenceMaterialRead(
                     object_id=source_material.id,
+                    source_document_id=source_material.source_document_id,
                     task_id=task.id,
                     task_title=task_title,
                     object_type="source_material",

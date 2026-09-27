@@ -125,6 +125,7 @@ const SOURCE_INGEST_STRATEGY_LABELS: Record<string, string> = {
   scanned_pdf_reference: "掃描 PDF 僅供參考",
   reference_image: "影像僅供參考",
   image_reference: "影像僅供參考",
+  image_ocr: "圖片文字辨識",
   inline_text_extract: "手動文字擷取",
   remote_text_extract: "遠端文字擷取",
   unsupported: "尚未正式支援",

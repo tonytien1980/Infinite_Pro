@@ -4146,7 +4146,9 @@ def test_file_ingestion_failure_creates_explicit_uncertainty_evidence(client: Te
     assert source_card["ingestion_error"] == "上傳檔案為空白內容。"
 
 
-def test_limited_support_image_upload_returns_reference_level_status(client: TestClient) -> None:
+def test_limited_support_image_upload_returns_reference_level_status(client: TestClient, monkeypatch) -> None:
+    from app.core.config import settings
+    monkeypatch.setattr(settings, "material_ocr_enabled", False)
     task = client.post("/api/v1/tasks", json=create_task_payload("Limited image upload")).json()
     matter_id = task["matter_workspace"]["id"]
 
