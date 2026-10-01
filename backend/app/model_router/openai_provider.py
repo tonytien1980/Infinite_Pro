@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import socket
-from typing import Any
+from typing import Any, Literal
 from urllib import error, request
 
 from app.model_router.base import (
@@ -14,12 +14,17 @@ from app.model_router.base import (
     DocumentRestructuringRequest,
     ModelProvider,
     ModelProviderError,
+    EvidenceReadingRequest,
+    begin_provider_attempt,
+    check_analysis_deadline,
+    analysis_output_token_limit,
     PackContractSynthesisOutput,
     PackContractSynthesisRequest,
     ResearchSynthesisRequest,
 )
 from app.model_router.structured_tasks import (
     StructuredTaskSpec,
+    build_evidence_reading_spec,
     build_agent_contract_synthesis_spec,
     build_contract_review_spec,
     build_core_analysis_spec,
@@ -47,6 +52,8 @@ def _extract_message_content(response_payload: dict[str, Any]) -> str:
     choices = response_payload.get("choices")
     if not isinstance(choices, list) or not choices:
         raise ModelProviderError("OpenAI provider 未回傳可用結果。")
+    if choices[0].get("finish_reason") not in {None, "stop"}:
+        raise ModelProviderError("模型未完整產出結果；請檢查輸出上限或拒絕原因後重試。")
 
     message = choices[0].get("message", {})
     refusal = message.get("refusal")
@@ -99,11 +106,13 @@ class OpenAIModelProvider(ModelProvider):
         model: str,
         base_url: str,
         timeout_seconds: int,
+        output_token_parameter: Literal["max_completion_tokens", "max_tokens"] = "max_completion_tokens",
     ):
         self.api_key = api_key
         self.model = model
         self.base_url = base_url.rstrip("/")
         self.timeout_seconds = timeout_seconds
+        self.output_token_parameter = output_token_parameter
 
     def _request_structured_output(
         self,
@@ -127,6 +136,8 @@ class OpenAIModelProvider(ModelProvider):
             },
         }
 
+        if output_limit := analysis_output_token_limit():
+            payload[self.output_token_parameter] = output_limit
         request_body = _build_request_body(payload)
 
         timeout_attempts = [self.timeout_seconds]
@@ -146,8 +157,10 @@ class OpenAIModelProvider(ModelProvider):
                 method="POST",
             )
             try:
-                with request.urlopen(http_request, timeout=timeout_seconds) as response:
+                bounded_timeout = begin_provider_attempt(self.model, payload, timeout_seconds)
+                with request.urlopen(http_request, timeout=bounded_timeout) as response:
                     raw_payload = json.loads(response.read().decode("utf-8"))
+                check_analysis_deadline()
                 break
             except error.HTTPError as exc:
                 try:
@@ -205,6 +218,9 @@ class OpenAIModelProvider(ModelProvider):
 
         logger.info("OpenAI model provider returned structured output for schema=%s", spec.schema_name)
         return spec.output_model.model_validate(parsed)
+
+    def read_evidence(self, request_payload: EvidenceReadingRequest) -> Any:
+        return self._request_structured_output(spec=build_evidence_reading_spec(request_payload))
 
     def generate_research_synthesis(
         self,

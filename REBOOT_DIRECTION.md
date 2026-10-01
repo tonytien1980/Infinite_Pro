@@ -253,7 +253,24 @@ Ontology、六層架構、Host、CaseWorldState 全部保留——但全部退�
 
 Task 1 完成後進入 Task 2；最新進度如下。引用、共享隱私、真實模型、登入後 UX／效能、完整 PostgreSQL 回歸與 A~H 品質仍未驗收；不得宣稱第一包或 85 分完成。
 
-### 最新工程進度：2026-09-27，Task 2 工程完成
+### 最新工程進度：2026-10-01，Task 3 本機工程完成
+
+本次接續已核准 Task 3，沒有重新定義產品，也沒有另開治理功能。沿同一隔離分支實作；未啟動產品服務、未呼叫付費模型、未更動真實案件。
+
+| 項目 | 本批變更 |
+| --- | --- |
+| 閱讀材料 | Host 送入目前版 chunks，逐批核對覆蓋與引文；同 run 的專業模組共用閱讀結果。移除 prompt 的 1,600 字靜默截斷；過大摘要分層整理，保留已識別數字、條件、衝突及缺口 |
+| 逐項引用 | findings／risks／recommendations 改為有型別的事實／推論／假設與逐項引文，驗證本案 ID、原文 quote 與事實數字。取消前幾筆來源一律套用；精確 ID 不再誤配到其他證據標題 |
+| 成果與失敗 | 報告 JSON 保留閱讀摘要與引文；可見文字標示推論／假設，部分抽取限制同時進模型與成果。引用最多修復一次；失敗、預算耗盡及明示截斷不冒充完整 |
+| 預算邊界 | 三個原 adapter 在送出位置計 attempts，重試包含在 32 次之內。模型容量需明確設定，完整 request 檢查使用保守估計；不是實際計費。900 秒合作式 deadline、90 秒 transport timeout，詳見計畫 Task 3 |
+
+本批 42 項定向測試通過，包含三 adapter 合成 HTTP 回覆、長文尾段、分層摘要、錯案／虛構引文、數字、一次修復、截斷回覆、多模組共讀與並行 run 預算隔離。完整 static gate：backend 475 passed（201.13 秒）、frontend 171 passed／0 skipped、compile、production build、typecheck 全通過。首次因沙盒禁止 smoke 綁定 loopback 臨時埠而失敗；重跑同一套完整測試取得上述結果，不 skip、不改斷言避過。沒有 schema migration、新 queue、向量資料庫、跨案 cache 或 mock fallback。
+
+可重跑證據在上述三個新增測試檔與既有全套；本次完整輸出是 `/private/tmp/infinite-pro-task3-static-verified-20261001.json`。本對話完成一般 diff review 與 Ponytail report-only 前後檢查，沒有派出實體子代理或宣稱獨立審查。引用 schema 直接由型別產生，避免重複契約。GitHub 唯讀回查 main 仍為 `59c2783`、原 owner 分支 `ff4e71c`，實作分支尚無遠端／upstream；本批只本機提交，未 push、merge、部署，原目錄兩項使用者修改保留。
+
+Task 3 的工程驗證不等於語意／專業驗收：測試明確保留「原文存在但不支持推論」的反例。真人登入、付費模型、案例評閱、逐項引用的完整案件室操作、PostgreSQL 全套／多人負載、正式效能仍未在本次驗證；A~H 仍未評分。下一個已核准工作是 Task 4「安全的共享經驗」，不是發布。
+
+### 前次工程進度：2026-09-27，Task 2 工程完成
 
 Task 1、Task 2 的工程與本機自動驗證已完成；**不是第一包、85 分品質或產品發布完成**。沿用同一隔離分支；未啟動產品服務、未呼叫付費模型、未更動真實案件資料。後續依已核准計畫連續推進，不逐項重新請示。
 
@@ -270,7 +287,7 @@ Task 1、Task 2 的工程與本機自動驗證已完成；**不是第一包、85
 | 全套 gate | 最終 `run_release_readiness.py --tier static`：compile、SQLite backend 433 passed（199.30 秒）、frontend 171 passed、build、typecheck 全通過，沒有 skip。前端包含函式與 source-level tests，不冒充真人瀏覽器驗收；既有 MODULE_TYPELESS_PACKAGE_JSON 警告仍在 |
 | 清理與 review | 最終 PostgreSQL 隨機 schema 數 0，`infinite-pro-materials-pg` 與 OCR 臨時容器均已移除，QA 映像保留供後續重用。Ponytail 前後均為 report-only；沿用原 owner，沒有平行原文、queue 或 provider。一般 review 與回歸修掉版本重用／歸屬、批次半套寫入、逾時清理、透明圖與 native 環境問題 |
 
-下一個既定工作是 Task 3「有預算的全材料閱讀與逐項引用」，仍在已核准範圍內。Task 2 證明材料可被完整或如實有限地抽取，不代表模型已閱讀全部 chunks。登入後瀏覽器 QA、真實模型品質、完整 PostgreSQL 產品回歸、多顧問負載及正式效能仍留在原計畫，A~H 尚未評分。原檔已遺失的資料、任意網站內容、手寫或嚴重模糊的影像不冒充已解決。
+當時下一個既定工作是 Task 3「有預算的全材料閱讀與逐項引用」，仍在已核准範圍內。Task 2 證明材料可被完整或如實有限地抽取，不代表模型已閱讀全部 chunks。登入後瀏覽器 QA、真實模型品質、完整 PostgreSQL 產品回歸、多顧問負載及正式效能仍留在原計畫，A~H 尚未評分。原檔已遺失的資料、任意網站內容、手寫或嚴重模糊的影像不冒充已解決。
 
 完整 static 與 OCR 成品輸出分別為 `/private/tmp/infinite-pro-task2-final-verified-20260927.json`、`/private/tmp/infinite-pro-ocr-final-image-20260927.json`；可持續重跑的證據在 repo tests、`verify_material_ocr.py` 及合成 PNG，暫存檔不是唯一依據。測試使用 worktree 專用 `.venv312`，Python 與容器依賴固定於 requirements／constraints／Dockerfile；未修改 Mac 全域工具或主目錄虛擬環境。
 

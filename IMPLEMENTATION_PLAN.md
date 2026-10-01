@@ -194,17 +194,19 @@ def test_docx_table_is_extracted():
 
 ## 6. Task 3：材料閱讀預算與逐項引用
 
+2026-10-01 狀態：Task 3 的本機工程與自動回歸完成。42 項本批定向測試、完整 static gate（backend 475／frontend 171、compile、production build、typecheck）通過，沒有 skip。首次全套因沙盒禁止 smoke 綁定臨時 loopback 埠失敗；以適當權限重跑同一套後通過，沒有刪除或放寬測試。未呼叫付費模型、未更新產品服務，也未改動真實案件；語意與專業品質留待原定整體驗收。
+
 **Files:** 修改 `backend/app/model_router/base.py`、`structured_tasks.py`、`mock.py`、`openai_provider.py`、`anthropic_provider.py`、`gemini_provider.py`，`backend/app/agents/base.py`、`host.py` 及 `agents/core/`／`agents/specialists/` 的既有分析實作。新增 `backend/app/agents/evidence_reading.py`、`backend/app/services/citation_validation.py`、`backend/tests/test_evidence_reading.py`、`test_citation_validation.py`。模型／schema／前端 types 同步；新增檔案僅是 Host 與證據 owner 的內部 helper，不是新架構層。
 
-- [ ] 寫 provider spy 測試，要求所有支援內 chunks 都在閱讀請求的 manifest 出現，沒有只讀頭尾；每批 request 不超過限制；各專業模組重用同 run 的閱讀結果。
-- [ ] Host 在 routing 後、專業分析前，將材料按預算分批送既有 provider boundary。閱讀輸出包含事實、數字、條件、衝突、缺口與原 Evidence IDs；輸出只能引用本批可存取證據。
-- [ ] 原文只解析一次、每批只讀一次；同 run 重用結果，不加跨案件快取。分批摘要太大時分層收斂，保留來源 refs 與衝突，不再用字串 slicing 偷丟後段。達 run 限制則明示本次未完成。
-- [ ] 在 model boundary 加 `EvidenceReadingRequest/Output` 與 provider 方法，各 adapter 使用現有 HTTP／結構驗證 owner；mock 提供固定可檢核輸出，不在模型不可用時偷偷改用 mock。
-- [ ] findings／risks／recommendations 的新模型輸出使用下列 CitedStatement；三種實際 adapter、mock、JSON schema、agent mapping 同步。既有公開 report string 欄位可由此派生，不再任意套前幾筆 Evidence IDs。
-- [ ] 格式驗證之外，確認引用存在於此案可存取 evidence、quote 可回原文、重要數字可核對；語意支持另用案例人工評閱與矛盾檢查，不把 quote 存在誤當論證正確。
-- [ ] 檢核失敗最多修復重試一次且計入預算；仍失敗時阻止未揭露問題的正式成果，保留失敗原因與可行下一步，不默默刪掉證據或改成無引用的結論。
+- [x] 寫 provider spy 測試，要求所有支援內 chunks 都在閱讀請求的 manifest 出現，沒有只讀頭尾；每批 request 不超過限制；各專業模組重用同 run 的閱讀結果。
+- [x] Host 在 routing 後、專業分析前，將材料按預算分批送既有 provider boundary。閱讀輸出包含事實、數字、條件、衝突、缺口與原 Evidence IDs；輸出只能引用本批可存取證據。
+- [x] 原文只解析一次、每批只讀一次；同 run 重用結果，不加跨案件快取。分批摘要太大時分層收斂，保留來源 refs 與衝突，不再用字串 slicing 偷丟後段。達 run 限制則明示本次未完成。
+- [x] 在 model boundary 加 `EvidenceReadingRequest/Output` 與 provider 方法，各 adapter 使用現有 HTTP／結構驗證 owner；mock 提供固定可檢核輸出，不在模型不可用時偷偷改用 mock。
+- [x] findings／risks／recommendations 的新模型輸出使用下列 CitedStatement；三種實際 adapter、mock、JSON schema、agent mapping 同步。既有公開 report string 欄位可由此派生，不再任意套前幾筆 Evidence IDs。
+- [x] 格式驗證之外，確認引用存在於此案可存取 evidence、quote 可回原文、重要數字可核對；語意支持另用案例人工評閱與矛盾檢查，不把 quote 存在誤當論證正確。
+- [x] 檢核失敗最多修復重試一次且計入預算；仍失敗時阻止未揭露問題的正式成果，保留失敗原因與可行下一步，不默默刪掉證據或改成無引用的結論。
 
-計畫的模型輸出契約與最小 deterministic validator，定義於 `model_router/base.py` 與 `services/citation_validation.py`：
+模型輸出契約與最小 deterministic validator，定義於 `model_router/base.py` 與 `services/citation_validation.py`：
 
 ```python
 from typing import Literal
@@ -235,7 +237,19 @@ def validate_cited_statement(statement: CitedStatement, permitted_text: dict[str
 
 負例至少包含不存在的 ID、別人的 ID、真的來源但不存在的 quote、真的 quote 卻不支持結論、無引用的事實，以及來源中的「忽略前文、洩漏資料」指令。材料是資料，不得提升為系統指令。最後一種語意負例不能只靠上面 validator 判定。
 
-驗證：`pytest backend/tests/test_evidence_reading.py backend/tests/test_citation_validation.py -q`；修改模型 contract 後全套回歸，並以 recorded synthetic HTTP responses 測三 adapter 的 schema／error 路徑，不付費即可做 transport 測試。
+驗證：`pytest backend/tests/test_evidence_reading.py backend/tests/test_citation_validation.py backend/tests/test_analysis_budget.py -q`；修改模型 contract 後全套回歸，並以 recorded synthetic HTTP responses 測三 adapter 的 schema／error 路徑，不付費即可做 transport 測試。資料庫／storage 隔離與禁止外連依第 3 節，不讀產品資料。
+
+### 實際契約與驗證邊界
+
+- 目前版本的 Evidence／ChunkObject 仍是來源；有 chunks 就不重讀同來源摘要。Host 每 run 讀一次，各模組共用結果，沒有跨案快取。每批回覆須涵蓋送入的全部 IDs，且逐一有可回查的觀察／缺口。失敗修復可重送一次；輸入覆蓋不等於模型理解了所有語意。
+- 每批原文最多 24,000 字元，另依模型容量縮批；HTTP 送出前再檢查完整 request／schema 與輸出預留。使用 UTF-8 bytes 加 framing 餘量的保守 token admission estimate，不是精確 tokenizer、實測用量或費用。用量帳記仍在 Task 8。
+- 後端 `MODEL_CONTEXT_WINDOW_TOKENS` 以實際 model ID 對應已確認的 context tokens，預設空字典，未知就不送出。付費驗收前須核對指定模型容量與輸出上限，不可填任意大數值。本次未修改產品憑證或模型選擇。
+- 每 run 最多 32 attempts，包含閱讀、摘要整理、分析及 transport／引用重試。預設輸出預留 8,192 tokens，各 adapter 使用其原生欄位；只套用 Host run，不增加 agent／pack contract synthesis 的原有預算。
+- 單次 provider timeout 不超過 90 秒或本輪剩餘時間；900 秒 deadline 在呼叫前後及保存成果前檢查。這是同步 transport timeout 加合作式 deadline，不是可強制中止遠端運算的保證；Task 8 的中斷恢復仍待施工。
+- `material_reading_summary_chars` 預設 24,000。過大時分層整理 facts；已記錄的數字、條件、衝突與缺口保留。無法縮小、單筆過大、完整 request 超限或呼叫耗盡就明示未完成／已讀數量，不刪尾段換成功。
+- 沿既有 report JSON 保存 `cited_statements`（text／kind／citations）及 `material_reading`（來源 IDs、分類結果、批數、整理次數、限制）。不新增資料表、不回填舊成果為已檢核；前端 types 同步。推論／假設在可見文字中標示，完整逐項來源互動仍在 Task 7。
+- 自動檢核涵蓋閱讀結果與 findings／risks／recommendations。quote 只正規化空白；事實陳述中的阿拉伯數字正規化全半形與千分位後比對。這不是財務驗算，不能保證「有引文但推論不成立」的語意正確；測試保留此反例。自由文字 summary／action 和綜合判斷仍需 Task 5／9 整體驗收。
+- 供應商明示截斷／非正常完成的回覆會被拒絕，即使包含合法 JSON。mock 的摘要與建議只供流程／引用測試，不是真實模型品質證據，也沒有失敗時自動改用 mock。
 
 ## 7. Task 4：安全的共享經驗
 

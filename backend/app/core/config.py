@@ -64,6 +64,14 @@ class Settings(BaseSettings):
     material_ocr_min_confidence: float = Field(default=80, ge=0, le=100)
     material_parse_memory_bytes: int = Field(default=1024 * 1024 * 1024, gt=0)
     material_ocr_output_bytes: int = Field(default=4 * 1024 * 1024, gt=0)
+    material_reading_batch_chars: int = Field(default=24_000, gt=0, le=24_000)
+    material_reading_summary_chars: int = Field(default=24_000, gt=0, le=24_000)
+    analysis_max_attempts: int = Field(default=32, gt=0, le=32)
+    analysis_timeout_seconds: float = Field(default=900, gt=0, le=900)
+    analysis_attempt_timeout_seconds: float = Field(default=90, gt=0, le=90)
+    analysis_output_tokens: int = Field(default=8192, gt=0)
+    # Explicit limits for configured model IDs; unknown live model capacity fails closed.
+    model_context_window_tokens: dict[str, int] = Field(default_factory=dict)
 
     model_config = SettingsConfigDict(
         env_file=".env",

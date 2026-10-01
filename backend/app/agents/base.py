@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from pydantic import BaseModel, Field
+from app.model_router.base import EvidenceReadingOutput
 from typing import Literal
 
 from app.domain.enums import (
@@ -107,6 +108,43 @@ class AgentInputPayload(BaseModel):
     goals: list[GoalRead] = Field(default_factory=list)
     constraints: list[ConstraintRead] = Field(default_factory=list)
     evidence: list[EvidenceRead] = Field(default_factory=list)
+    material_reading: EvidenceReadingOutput | None = None
+
+
+def permitted_evidence_text(payload: AgentInputPayload) -> dict[str, str]:
+    texts = {}
+    chunk_sources = {item.source_document_id for item in payload.evidence if item.chunk_object_id and item.is_current_extraction}
+    for item in payload.evidence:
+        if not item.is_current_extraction or item.evidence_type.endswith(("unparsed", "ingestion_issue")):
+            continue
+        if item.source_document_id in chunk_sources and not item.chunk_object_id:
+            continue
+        provenance = item.retrieval_provenance
+        text = provenance.chunk_object.excerpt_text if provenance and provenance.chunk_object else item.excerpt_or_summary
+        if text.strip():
+            texts[item.id] = text
+    return texts
+
+
+def build_payload_evidence_context(payload: AgentInputPayload) -> list[dict[str, Any]]:
+    texts = permitted_evidence_text(payload)
+    titles = {item.id: item.title for item in payload.evidence}
+    chunks = {item.id: item.chunk_object_id for item in payload.evidence}
+    if payload.material_reading is None:
+        return [{"id": key, "title": titles[key], "content": value, "chunk_object_id": chunks[key]} for key, value in texts.items()]
+    result = {key: {"id": key, "title": titles[key], "content": "", "chunk_object_id": chunks[key], "statements": []} for key in texts}
+    quotes: dict[str, list[str]] = {key: [] for key in texts}
+    for name in ("facts", "numbers", "conditions", "conflicts", "gaps"):
+        for statement in getattr(payload.material_reading, name):
+            if not statement.citations and result:
+                next(iter(result.values()))["statements"].append({"category": name, **statement.model_dump(mode="json")})
+            for citation in statement.citations:
+                quotes[citation.evidence_id].append(citation.quote)
+                result[citation.evidence_id]["statements"].append({"category": name, **statement.model_dump(mode="json")})
+    for key, item in result.items():
+        item["source_quotes"] = list(dict.fromkeys(quotes[key]))
+        item["content"] = "\n".join(item["source_quotes"])
+    return list(result.values())
 
 
 def build_payload_precedent_context(payload: AgentInputPayload) -> list[str]:
@@ -398,6 +436,7 @@ class AgentResult(BaseModel):
 
 
 class CoreAgentResult(BaseModel):
+    cited_statements: dict[str, list[dict[str, Any]]] = Field(default_factory=dict)
     findings: list[str] = Field(default_factory=list)
     insights: list[InsightDraft] = Field(default_factory=list)
     risks: list[RiskDraft] = Field(default_factory=list)

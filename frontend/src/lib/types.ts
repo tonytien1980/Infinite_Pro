@@ -1713,6 +1713,32 @@ export interface DeliverableObjectLink {
   created_at: string;
 }
 
+export interface EvidenceCitation {
+  evidence_id: string;
+  quote: string;
+}
+
+export interface CitedStatement {
+  text: string;
+  kind: "fact" | "inference" | "assumption";
+  citations: EvidenceCitation[];
+}
+
+export interface DeliverableAnalysisContent extends Record<string, unknown> {
+  cited_statements?: Record<"findings" | "risks" | "recommendations", CitedStatement[]>;
+  material_reading?: {
+    covered_evidence_ids: string[];
+    facts: CitedStatement[];
+    numbers: CitedStatement[];
+    conditions: CitedStatement[];
+    conflicts: CitedStatement[];
+    gaps: CitedStatement[];
+    batch_count: number;
+    consolidation_count: number;
+    warnings: string[];
+  };
+}
+
 export interface Deliverable {
   id: string;
   task_id: string;
@@ -1722,7 +1748,7 @@ export interface Deliverable {
   summary: string;
   status: string;
   version_tag: string;
-  content_structure: Record<string, unknown>;
+  content_structure: DeliverableAnalysisContent;
   version: number;
   linked_objects: DeliverableObjectLink[];
   adoption_feedback: AdoptionFeedback | null;

@@ -12,6 +12,14 @@ The OCR-enabled Docker image pins Poppler, Tesseract, Chinese/English language d
 
 ---
 
+## Material Reading And Citations
+
+Task 3 development (2026-10-01): Host reads current material chunks in bounded batches before analysis and reuses the result across specialists. Per-statement evidence IDs, quotes and literal factual numbers are validated; inferences and assumptions are labeled in report text. Oversized summaries are consolidated without discarding recorded numbers, conditions, conflicts or gaps. An incomplete reading fails rather than publishing a falsely complete result.
+
+Before any approved live analysis, configure `MODEL_CONTEXT_WINDOW_TOKENS` in the backend with verified capacities keyed by exact model ID. The default `{}` blocks unknown live model capacity. The complete request uses a conservative UTF-8 admission estimate plus reserved output, not measured token usage or a cost quote. Host runs allow at most 32 attempts including retries, a 900-second cooperative deadline and 90-second per-request timeout. Usage accounting and interrupted-run recovery remain Task 8. Do not enable live calls or change credentials to run tests.
+
+Output-limit references: [OpenAI token accounting](https://developers.openai.com/api/docs/guides/token-counting), [Anthropic Messages](https://platform.claude.com/docs/en/api/messages/create), [Gemini generation config](https://ai.google.dev/api/generate-content). No model upgrade or pricing change is included. Engineering checks do not establish semantic correctness or 85-point professional quality.
+
 ## Product Snapshot
 
 Infinite Pro is not:

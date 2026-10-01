@@ -39,6 +39,10 @@ from app.extensions.registry import ExtensionRegistry
 from app.extensions.resolver import AgentResolver, resolve_runtime_agent_binding
 from app.extensions.schemas import AgentResolverInput
 from app.model_router.factory import get_model_provider
+from app.model_router.base import AnalysisBudgetError, analysis_budget, check_analysis_deadline
+from app.services.citation_validation import CitationValidationError
+from app.agents.evidence_reading import read_evidence
+from app.agents.base import build_payload_evidence_context
 from app.services.deliverable_records import (
     DELIVERABLE_EVENT_DRAFT_CREATED,
     DELIVERABLE_EVENT_PUBLISHED,
@@ -190,9 +194,8 @@ class HostOrchestrator:
     def __init__(self, db: Session, *, current_member: CurrentMember | None = None):
         self.db = db
         self.current_member = current_member
-        self.registry = AgentRegistry(
-            model_provider=get_model_provider(db=db, current_member=current_member)
-        )
+        self.model_provider = get_model_provider(db=db, current_member=current_member)
+        self.registry = AgentRegistry(model_provider=self.model_provider)
         self.extension_registry = ExtensionRegistry()
         self.agent_resolver = AgentResolver(self.extension_registry)
 
@@ -535,6 +538,8 @@ class HostOrchestrator:
                 report.dependency_note + " "
                 + "Host 已先委派調研 / 情報代理整理 research handoff，再交由後續 path 收斂。"
             ).strip()
+        except (AnalysisBudgetError, CitationValidationError):
+            raise
         except Exception as exc:  # noqa: BLE001
             logger.warning("Research delegation degraded for task %s: %s", payload.task_id, exc)
             report.delegation_status = "failed"
@@ -2816,7 +2821,12 @@ class HostOrchestrator:
         refs: list[str],
     ) -> list[str]:
         resolved: list[str] = []
+        exact_ids = {item.id for item in payload.evidence}
         for ref in refs:
+            if ref in exact_ids:
+                if ref not in resolved:
+                    resolved.append(ref)
+                continue
             for evidence in payload.evidence:
                 if not self._matches_evidence_ref(evidence, ref):
                     continue
@@ -2856,10 +2866,25 @@ class HostOrchestrator:
             workflow_mode.value,
             payload.decision_context.judgment_to_make if payload.decision_context else task.description,
         )
-        if workflow_mode == FlowMode.MULTI_AGENT:
-            return self._run_multi_agent_flow(task, workflow_mode)
+        with analysis_budget():
+            if workflow_mode == FlowMode.MULTI_AGENT:
+                return self._run_multi_agent_flow(task, workflow_mode)
 
-        return self._run_specialist_flow(task, workflow_mode)
+            return self._run_specialist_flow(task, workflow_mode)
+
+    def _read_materials(self, payload: AgentInputPayload) -> None:
+        payload.material_reading = read_evidence(
+            self.model_provider, build_payload_evidence_context(payload),
+            response_language=payload.response_language,
+        )
+        warnings = [
+            f"材料尚未完整讀取：{item.title}；目前只分析已取得的文字，未讀部分可能改變判斷。"
+            for item in payload.source_materials
+            if item.extraction_coverage != "complete"
+        ]
+        payload.material_reading.warnings.extend(warnings)
+        if warnings:
+            payload.background_text += "\n材料讀取限制：\n" + "\n".join(warnings)
 
     def run_research_synthesis(self, task_id: str) -> schemas.ResearchRunResponse:
         return self.orchestrate_task(task_id)
@@ -2891,6 +2916,7 @@ class HostOrchestrator:
             )
             payload, capability_frame, readiness, workflow_mode = self._prepare_host_context(task, workflow_mode)
             payload = self._apply_research_plan_to_payload(payload, external_data_report)
+            self._read_materials(payload)
             external_data_report = self._delegate_research_investigation(
                 payload,
                 capability_frame,
@@ -2913,6 +2939,8 @@ class HostOrchestrator:
                 agent = self.registry.get_core_agent(agent_id)
                 try:
                     fragments.append((agent_id, agent.run(payload)))
+                except (AnalysisBudgetError, CitationValidationError):
+                    raise
                 except Exception as exc:
                     logger.warning(
                         "Core agent %s degraded for task %s: %s",
@@ -3055,6 +3083,10 @@ class HostOrchestrator:
                         else payload.background_text or "目前尚無可用的背景摘要。"
                     ),
                     "findings": findings,
+                    "cited_statements": {
+                        name: [item for _, fragment in fragments for item in fragment.cited_statements.get(name, [])]
+                        for name in ("findings", "risks", "recommendations")
+                    },
                     "insights": findings,
                     "risks": [item.description for item in risks],
                     "recommendations": [item.summary for item in recommendations],
@@ -3138,6 +3170,7 @@ class HostOrchestrator:
             )
             payload, capability_frame, readiness, workflow_mode = self._prepare_host_context(task, workflow_mode)
             payload = self._apply_research_plan_to_payload(payload, external_data_report)
+            self._read_materials(payload)
             external_data_report = self._delegate_research_investigation(
                 payload,
                 capability_frame,
@@ -3401,6 +3434,11 @@ class HostOrchestrator:
         payload: AgentInputPayload,
         result: AgentResult,
     ) -> models.Deliverable:
+        check_analysis_deadline()
+        if payload.material_reading is not None:
+            result.deliverable.content_structure["material_reading"] = payload.material_reading.model_dump(mode="json")
+            gaps = result.deliverable.content_structure.setdefault("missing_information", [])
+            gaps.extend(note for note in payload.material_reading.warnings if note not in gaps)
         logger.info(
             "Persisting result for task %s from agent=%s deliverable_type=%s",
             task.id,

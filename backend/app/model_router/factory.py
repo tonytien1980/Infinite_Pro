@@ -56,6 +56,7 @@ def get_model_provider(
             model=config.actual_model_id,
             base_url=config.base_url,
             timeout_seconds=config.timeout_seconds,
+            output_token_parameter="max_completion_tokens" if preset.adapter_kind == "openai_native" else "max_tokens",
         )
 
     if preset.adapter_kind == "anthropic_native":

@@ -10,6 +10,8 @@ from app.agents.base import (
     RiskDraft,
     SpecialistAgent,
     build_payload_common_risk_context,
+    build_payload_evidence_context,
+    permitted_evidence_text,
     build_payload_deliverable_shape_context,
     build_payload_deliverable_template_context,
     build_payload_domain_playbook_context,
@@ -17,6 +19,7 @@ from app.agents.base import (
     build_payload_precedent_context,
     build_payload_review_lens_context,
 )
+from app.services.citation_validation import run_cited_analysis, cited_output
 from app.domain.enums import AgentCategory, AgentStatus, FlowMode
 from app.model_router.base import DocumentRestructuringRequest, ModelProvider
 
@@ -119,7 +122,8 @@ class DocumentRestructuringAgent(SpecialistAgent):
                 usable_evidence_count=0,
             )
 
-        restructuring = self.model_provider.generate_document_restructuring(
+        restructuring = run_cited_analysis(
+            self.model_provider.generate_document_restructuring,
             DocumentRestructuringRequest(
                 task_title=payload.title,
                 task_description=payload.description,
@@ -127,14 +131,7 @@ class DocumentRestructuringAgent(SpecialistAgent):
                 background_text=payload.background_text,
                 goals=[goal.description for goal in payload.goals],
                 constraints=[constraint.description for constraint in payload.constraints],
-                evidence=[
-                    {
-                        "id": evidence.id,
-                        "title": evidence.title,
-                        "content": evidence.excerpt_or_summary,
-                    }
-                    for evidence in usable_evidence
-                ],
+                evidence=build_payload_evidence_context(payload),
                 organization_memory_context=build_payload_organization_memory_context(payload),
                 domain_playbook_context=build_payload_domain_playbook_context(payload),
                 precedent_context=build_payload_precedent_context(payload),
@@ -142,26 +139,26 @@ class DocumentRestructuringAgent(SpecialistAgent):
                 common_risk_context=build_payload_common_risk_context(payload),
                 deliverable_shape_context=build_payload_deliverable_shape_context(payload),
                 deliverable_template_context=build_payload_deliverable_template_context(payload),
-            )
+            ),
+            permitted_evidence_text(payload),
         )
 
-        evidence_refs = [item.id for item in usable_evidence][:4]
         risks = [
             RiskDraft(
                 title=f"Document restructuring risk {index + 1}",
-                description=risk,
+                description=risk.display_text(payload.response_language),
                 risk_type="draft_quality",
                 impact_level="medium",
                 likelihood_level="medium",
-                evidence_refs=evidence_refs[:2],
+                evidence_refs=risk.evidence_refs,
             )
             for index, risk in enumerate(restructuring.risks)
         ]
         recommendations = [
             RecommendationDraft(
-                summary=recommendation,
+                summary=recommendation.display_text(payload.response_language),
                 rationale="根據目前草稿脈絡與上傳證據整理而成。",
-                based_on_refs=evidence_refs,
+                based_on_refs=recommendation.evidence_refs,
                 priority="high" if index == 0 else "medium",
                 owner_suggestion="任務負責人",
             )
@@ -179,11 +176,12 @@ class DocumentRestructuringAgent(SpecialistAgent):
             deliverable_type="document_restructuring",
             title=f"{payload.title} - 文件重構",
             content_structure={
+                "cited_statements": cited_output(restructuring),
                 "problem_definition": restructuring.problem_definition,
                 "background_summary": restructuring.background_summary,
-                "findings": restructuring.findings,
-                "risks": restructuring.risks,
-                "recommendations": restructuring.recommendations,
+                "findings": [item.display_text(payload.response_language) for item in restructuring.findings],
+                "risks": [item.display_text(payload.response_language) for item in restructuring.risks],
+                "recommendations": [item.display_text(payload.response_language) for item in restructuring.recommendations],
                 "action_items": restructuring.action_items,
                 "missing_information": restructuring.missing_information,
                 "proposed_outline": restructuring.proposed_outline,

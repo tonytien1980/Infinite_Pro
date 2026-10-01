@@ -10,6 +10,8 @@ from app.agents.base import (
     RiskDraft,
     SpecialistAgent,
     build_payload_common_risk_context,
+    build_payload_evidence_context,
+    permitted_evidence_text,
     build_payload_deliverable_shape_context,
     build_payload_deliverable_template_context,
     build_payload_domain_playbook_context,
@@ -17,6 +19,7 @@ from app.agents.base import (
     build_payload_precedent_context,
     build_payload_review_lens_context,
 )
+from app.services.citation_validation import run_cited_analysis, cited_output
 from app.domain.enums import AgentCategory, AgentStatus, FlowMode
 from app.model_router.base import ContractReviewRequest, ModelProvider
 
@@ -119,7 +122,8 @@ class ContractReviewAgent(SpecialistAgent):
                 usable_evidence_count=0,
             )
 
-        review = self.model_provider.generate_contract_review(
+        review = run_cited_analysis(
+            self.model_provider.generate_contract_review,
             ContractReviewRequest(
                 task_title=payload.title,
                 task_description=payload.description,
@@ -127,14 +131,7 @@ class ContractReviewAgent(SpecialistAgent):
                 background_text=payload.background_text,
                 goals=[goal.description for goal in payload.goals],
                 constraints=[constraint.description for constraint in payload.constraints],
-                evidence=[
-                    {
-                        "id": evidence.id,
-                        "title": evidence.title,
-                        "content": evidence.excerpt_or_summary,
-                    }
-                    for evidence in usable_evidence
-                ],
+                evidence=build_payload_evidence_context(payload),
                 organization_memory_context=build_payload_organization_memory_context(payload),
                 domain_playbook_context=build_payload_domain_playbook_context(payload),
                 precedent_context=build_payload_precedent_context(payload),
@@ -142,26 +139,26 @@ class ContractReviewAgent(SpecialistAgent):
                 common_risk_context=build_payload_common_risk_context(payload),
                 deliverable_shape_context=build_payload_deliverable_shape_context(payload),
                 deliverable_template_context=build_payload_deliverable_template_context(payload),
-            )
+            ),
+            permitted_evidence_text(payload),
         )
 
-        evidence_refs = [item.id for item in usable_evidence][:4]
         risks = [
             RiskDraft(
                 title=f"Contract review risk {index + 1}",
-                description=risk,
+                description=risk.display_text(payload.response_language),
                 risk_type="contractual",
                 impact_level="high" if index == 0 else "medium",
                 likelihood_level="medium",
-                evidence_refs=evidence_refs[:2],
+                evidence_refs=risk.evidence_refs,
             )
             for index, risk in enumerate(review.risks)
         ]
         recommendations = [
             RecommendationDraft(
-                summary=recommendation,
+                summary=recommendation.display_text(payload.response_language),
                 rationale="根據目前合約脈絡與上傳來源整理而成。",
-                based_on_refs=evidence_refs,
+                based_on_refs=recommendation.evidence_refs,
                 priority="high" if index == 0 else "medium",
                 owner_suggestion="任務負責人",
             )
@@ -179,11 +176,12 @@ class ContractReviewAgent(SpecialistAgent):
             deliverable_type="contract_review",
             title=f"{payload.title} - 合約審閱",
             content_structure={
+                "cited_statements": cited_output(review),
                 "problem_definition": review.problem_definition,
                 "background_summary": review.background_summary,
-                "findings": review.findings,
-                "risks": review.risks,
-                "recommendations": review.recommendations,
+                "findings": [item.display_text(payload.response_language) for item in review.findings],
+                "risks": [item.display_text(payload.response_language) for item in review.risks],
+                "recommendations": [item.display_text(payload.response_language) for item in review.recommendations],
                 "action_items": review.action_items,
                 "missing_information": review.missing_information,
                 "clauses_reviewed": review.clauses_reviewed,

@@ -12,6 +12,10 @@ from app.model_router.base import (
     CoreAnalysisRequest,
     DocumentRestructuringOutput,
     DocumentRestructuringRequest,
+    CitedStatement,
+    begin_provider_attempt,
+    EvidenceReadingOutput,
+    EvidenceReadingRequest,
     ModelProvider,
     ModelProviderError,
     PackContractSynthesisOutput,
@@ -19,6 +23,30 @@ from app.model_router.base import (
     ResearchSynthesisOutput,
     ResearchSynthesisRequest,
 )
+
+
+def _cite_mock(values: list[str], evidence: list[dict]) -> list[CitedStatement]:
+    statements = []
+    for value in values:
+        citation = next(({"evidence_id": item["id"], "quote": value}
+                        for item in evidence
+                        for quote in item.get("source_quotes", [str(item.get("content", ""))])
+                        if _clean_text(value) in _clean_text(quote)), None)
+        statements.append(CitedStatement(text=value, kind="fact" if citation else "assumption",
+                                         citations=[citation] if citation else []))
+    return statements
+
+
+def _mock_source_check(evidence: list[dict]) -> list[CitedStatement]:
+    for item in sorted(evidence, key=lambda item: not item.get("chunk_object_id")):
+        quotes = item.get("source_quotes", [str(item.get("content", ""))])
+        quote = next((part.strip()[:120] for part in quotes if part.strip()), "")
+        if quote:
+            return [CitedStatement(
+                text=f"請核對「{quote}」是否仍適用，再決定下一步。",
+                kind="inference", citations=[{"evidence_id": item["id"], "quote": quote}],
+            )]
+    return []
 
 
 def _clean_text(text: str) -> str:
@@ -64,10 +92,29 @@ CAPABILITY_OBJECTS: dict[str, list[str]] = {
 class MockModelProvider(ModelProvider):
     """Deterministic local provider so the first MVP slice runs without external LLM credentials."""
 
+    def read_evidence(self, request: EvidenceReadingRequest) -> EvidenceReadingOutput:
+        begin_provider_attempt(None, {}, 90)
+        if getenv("MODEL_PROVIDER_FAILURE_MODE", "").lower() == "always_fail":
+            raise ModelProviderError("Mock 模型供應器的失敗模式目前已啟用。")
+        facts = []
+        for item in request.evidence:
+            quote = str(item.get("content", ""))
+            if quote.strip():
+                if request.mode == "consolidate":
+                    # Synthetic transport fixture only, not a semantic-quality oracle.
+                    quotes = [quote[:24], quote[-24:]]
+                    facts.append(CitedStatement(text="；".join(quotes), kind="fact",
+                        citations=[{"evidence_id": item["id"], "quote": part} for part in dict.fromkeys(quotes)]))
+                else:
+                    facts.append(CitedStatement(text=quote, kind="fact", citations=[{"evidence_id": item["id"], "quote": quote}]))
+        return EvidenceReadingOutput(covered_evidence_ids=[item["id"] for item in request.evidence],
+                                     facts=facts, numbers=[], conditions=[], conflicts=[], gaps=[])
+
     def generate_research_synthesis(
         self,
         request: ResearchSynthesisRequest,
     ) -> ResearchSynthesisOutput:
+        begin_provider_attempt(None, {}, 90)
         if getenv("MODEL_PROVIDER_FAILURE_MODE", "").lower() == "always_fail":
             raise ModelProviderError("Mock 模型供應器的失敗模式目前已啟用。")
 
@@ -123,9 +170,9 @@ class MockModelProvider(ModelProvider):
         return ResearchSynthesisOutput(
             problem_definition=problem_definition,
             background_summary=background_summary,
-            findings=findings,
-            risks=risks,
-            recommendations=recommendations,
+            findings=_cite_mock(findings, request.evidence),
+            risks=_cite_mock(risks, request.evidence),
+            recommendations=[*_mock_source_check(request.evidence), *_cite_mock(recommendations, request.evidence)],
             action_items=action_items,
             missing_information=missing_information,
         )
@@ -134,6 +181,7 @@ class MockModelProvider(ModelProvider):
         self,
         request: CoreAnalysisRequest,
     ) -> CoreAnalysisOutput:
+        begin_provider_attempt(None, {}, 90)
         if getenv("MODEL_PROVIDER_FAILURE_MODE", "").lower() == "always_fail":
             raise ModelProviderError(f"Mock 模型供應器在核心代理 '{request.agent_id}' 執行時失敗。")
 
@@ -320,9 +368,9 @@ class MockModelProvider(ModelProvider):
             ]
 
         return CoreAnalysisOutput(
-            findings=findings,
-            risks=risks,
-            recommendations=recommendations,
+            findings=_cite_mock(findings, request.evidence),
+            risks=_cite_mock(risks, request.evidence),
+            recommendations=[*_mock_source_check(request.evidence), *_cite_mock(recommendations, request.evidence)],
             action_items=action_items,
             missing_information=missing_information,
             research_sub_questions=research_sub_questions,
@@ -336,6 +384,7 @@ class MockModelProvider(ModelProvider):
         self,
         request: DocumentRestructuringRequest,
     ) -> DocumentRestructuringOutput:
+        begin_provider_attempt(None, {}, 90)
         if getenv("MODEL_PROVIDER_FAILURE_MODE", "").lower() == "always_fail":
             raise ModelProviderError("Mock 模型供應器的失敗模式目前已啟用。")
 
@@ -395,9 +444,9 @@ class MockModelProvider(ModelProvider):
         return DocumentRestructuringOutput(
             problem_definition=request.task_description or request.task_title,
             background_summary=background_summary,
-            findings=findings,
-            risks=risks,
-            recommendations=recommendations,
+            findings=_cite_mock(findings, request.evidence),
+            risks=_cite_mock(risks, request.evidence),
+            recommendations=[*_mock_source_check(request.evidence), *_cite_mock(recommendations, request.evidence)],
             action_items=action_items,
             missing_information=missing_information,
             proposed_outline=proposed_outline,
@@ -408,6 +457,7 @@ class MockModelProvider(ModelProvider):
         self,
         request: ContractReviewRequest,
     ) -> ContractReviewOutput:
+        begin_provider_attempt(None, {}, 90)
         if getenv("MODEL_PROVIDER_FAILURE_MODE", "").lower() == "always_fail":
             raise ModelProviderError("Mock 模型供應器的失敗模式目前已啟用。")
 
@@ -460,12 +510,20 @@ class MockModelProvider(ModelProvider):
             recommendations.append("請上傳最新可執行版本，讓下一輪能直接檢查實際條文內容。")
             action_items.append("在依賴這次審閱前，請補上目前合約草稿或關鍵條文摘錄。")
 
+        clause_risks = []
+        for item in request.evidence:
+            for clause in _split_sentences(str(item.get("content", ""))):
+                if any(word in clause.lower() for word in ("terminat", "liability", "acceptance", "終止", "責任", "驗收")):
+                    clause_risks.append(CitedStatement(
+                        text=f"需核對條款的適用範圍：{clause}", kind="inference",
+                        citations=[{"evidence_id": item["id"], "quote": clause}],
+                    ))
         return ContractReviewOutput(
             problem_definition=request.task_description or request.task_title,
             background_summary=background_summary,
-            findings=findings,
-            risks=risks,
-            recommendations=recommendations,
+            findings=_cite_mock(findings, request.evidence),
+            risks=[*clause_risks, *_cite_mock(risks, request.evidence)],
+            recommendations=[*_mock_source_check(request.evidence), *_cite_mock(recommendations, request.evidence)],
             action_items=action_items,
             missing_information=missing_information,
             clauses_reviewed=clauses_reviewed,
@@ -476,6 +534,7 @@ class MockModelProvider(ModelProvider):
         self,
         request: AgentContractSynthesisRequest,
     ) -> AgentContractSynthesisOutput:
+        begin_provider_attempt(None, {}, 90)
         if getenv("MODEL_PROVIDER_FAILURE_MODE", "").lower() == "always_fail":
             raise ModelProviderError("Mock 模型供應器的失敗模式目前已啟用。")
 
@@ -605,6 +664,7 @@ class MockModelProvider(ModelProvider):
         self,
         request: PackContractSynthesisRequest,
     ) -> PackContractSynthesisOutput:
+        begin_provider_attempt(None, {}, 90)
         if getenv("MODEL_PROVIDER_FAILURE_MODE", "").lower() == "always_fail":
             raise ModelProviderError("Mock 模型供應器的失敗模式目前已啟用。")
 

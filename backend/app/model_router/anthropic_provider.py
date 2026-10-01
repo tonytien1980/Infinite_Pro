@@ -16,6 +16,10 @@ from app.model_router.base import (
     DocumentRestructuringRequest,
     ModelProvider,
     ModelProviderError,
+    EvidenceReadingRequest,
+    begin_provider_attempt,
+    check_analysis_deadline,
+    analysis_output_token_limit,
     PackContractSynthesisOutput,
     PackContractSynthesisRequest,
     ResearchSynthesisOutput,
@@ -23,6 +27,7 @@ from app.model_router.base import (
 )
 from app.model_router.structured_tasks import (
     StructuredTaskSpec,
+    build_evidence_reading_spec,
     build_agent_contract_synthesis_spec,
     build_contract_review_spec,
     build_core_analysis_spec,
@@ -46,6 +51,8 @@ def _messages_endpoint(base_url: str) -> str:
 
 
 def _extract_text_content(response_payload: dict[str, Any]) -> str:
+    if response_payload.get("stop_reason") not in {None, "end_turn"}:
+        raise ModelProviderError("模型未完整產出結果；請檢查輸出上限或拒絕原因後重試。")
     content = response_payload.get("content")
     if not isinstance(content, list) or not content:
         raise ModelProviderError("Anthropic provider 未回傳可用內容。")
@@ -83,7 +90,7 @@ class AnthropicModelProvider(ModelProvider):
     ) -> Any:
         payload = {
             "model": self.model,
-            "max_tokens": 1800,
+            "max_tokens": analysis_output_token_limit() or 1800,
             "system": spec.system_prompt,
             "messages": [
                 {
@@ -107,8 +114,10 @@ class AnthropicModelProvider(ModelProvider):
         )
 
         try:
-            with request.urlopen(http_request, timeout=self.timeout_seconds) as response:
+            bounded_timeout = begin_provider_attempt(self.model, payload, self.timeout_seconds)
+            with request.urlopen(http_request, timeout=bounded_timeout) as response:
                 raw_payload = json.loads(response.read().decode("utf-8"))
+            check_analysis_deadline()
         except error.HTTPError as exc:
             try:
                 error_body = exc.read().decode("utf-8")
@@ -119,12 +128,17 @@ class AnthropicModelProvider(ModelProvider):
             ) from exc
         except error.URLError as exc:
             raise ModelProviderError(f"Anthropic provider 連線失敗：{exc.reason}") from exc
+        except TimeoutError as exc:
+            raise ModelProviderError("Anthropic provider 請求逾時。") from exc
         except json.JSONDecodeError as exc:
             raise ModelProviderError("Anthropic provider 回傳了無效 JSON。") from exc
 
         parsed = extract_json_payload(_extract_text_content(raw_payload))
         logger.info("Anthropic model provider returned structured output for schema=%s", spec.schema_name)
         return spec.output_model.model_validate(parsed)
+
+    def read_evidence(self, request_payload: EvidenceReadingRequest) -> Any:
+        return self._request_structured_output(spec=build_evidence_reading_spec(request_payload))
 
     def generate_research_synthesis(
         self,

@@ -11,6 +11,8 @@ from app.agents.base import (
     RiskDraft,
     SpecialistAgent,
     build_payload_common_risk_context,
+    build_payload_evidence_context,
+    permitted_evidence_text,
     build_payload_deliverable_shape_context,
     build_payload_deliverable_template_context,
     build_payload_domain_playbook_context,
@@ -18,6 +20,7 @@ from app.agents.base import (
     build_payload_precedent_context,
     build_payload_review_lens_context,
 )
+from app.services.citation_validation import run_cited_analysis, cited_output
 from app.domain.enums import AgentCategory, AgentStatus, FlowMode
 from app.model_router.base import ModelProvider, ResearchSynthesisRequest
 
@@ -119,7 +122,8 @@ class ResearchSynthesisAgent(SpecialistAgent):
                 usable_evidence_count=0,
             )
 
-        synthesis = self.model_provider.generate_research_synthesis(
+        synthesis = run_cited_analysis(
+            self.model_provider.generate_research_synthesis,
             ResearchSynthesisRequest(
                 task_title=payload.title,
                 task_description=payload.description,
@@ -127,14 +131,7 @@ class ResearchSynthesisAgent(SpecialistAgent):
                 background_text=payload.background_text,
                 goals=[goal.description for goal in payload.goals],
                 constraints=[constraint.description for constraint in payload.constraints],
-                evidence=[
-                    {
-                        "id": evidence.id,
-                        "title": evidence.title,
-                        "content": evidence.excerpt_or_summary,
-                    }
-                    for evidence in usable_evidence
-                ],
+                evidence=build_payload_evidence_context(payload),
                 organization_memory_context=build_payload_organization_memory_context(payload),
                 domain_playbook_context=build_payload_domain_playbook_context(payload),
                 precedent_context=build_payload_precedent_context(payload),
@@ -142,30 +139,30 @@ class ResearchSynthesisAgent(SpecialistAgent):
                 common_risk_context=build_payload_common_risk_context(payload),
                 deliverable_shape_context=build_payload_deliverable_shape_context(payload),
                 deliverable_template_context=build_payload_deliverable_template_context(payload),
-            )
+            ),
+            permitted_evidence_text(payload),
         )
 
-        evidence_refs = [item.id for item in usable_evidence][:4]
         insights = [
-            InsightDraft(summary=finding, evidence_refs=evidence_refs[:2], confidence_level="medium")
+            InsightDraft(summary=finding.display_text(payload.response_language), evidence_refs=finding.evidence_refs, confidence_level="medium")
             for finding in synthesis.findings
         ]
         risks = [
             RiskDraft(
                 title=f"Research synthesis risk {index + 1}",
-                description=risk,
+                description=risk.display_text(payload.response_language),
                 risk_type="evidence_gap",
                 impact_level="medium",
                 likelihood_level="medium",
-                evidence_refs=evidence_refs[:2],
+                evidence_refs=risk.evidence_refs,
             )
             for index, risk in enumerate(synthesis.risks)
         ]
         recommendations = [
             RecommendationDraft(
-                summary=recommendation,
+                summary=recommendation.display_text(payload.response_language),
                 rationale="根據目前背景脈絡與上傳證據整理而成。",
-                based_on_refs=evidence_refs,
+                based_on_refs=recommendation.evidence_refs,
                 priority="high" if index == 0 else "medium",
                 owner_suggestion="任務負責人",
             )
@@ -183,11 +180,12 @@ class ResearchSynthesisAgent(SpecialistAgent):
             deliverable_type="research_synthesis",
             title=f"{payload.title} - 研究綜整",
             content_structure={
+                "cited_statements": cited_output(synthesis),
                 "problem_definition": synthesis.problem_definition,
                 "background_summary": synthesis.background_summary,
-                "findings": synthesis.findings,
-                "risks": synthesis.risks,
-                "recommendations": synthesis.recommendations,
+                "findings": [item.display_text(payload.response_language) for item in synthesis.findings],
+                "risks": [item.display_text(payload.response_language) for item in synthesis.risks],
+                "recommendations": [item.display_text(payload.response_language) for item in synthesis.recommendations],
                 "action_items": synthesis.action_items,
                 "missing_information": synthesis.missing_information,
                 "sources_used": [

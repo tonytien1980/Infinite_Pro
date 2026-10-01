@@ -1,9 +1,14 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from contextlib import contextmanager
+from contextvars import ContextVar
+from dataclasses import dataclass
+import json
+import time
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Literal
 
 
@@ -18,11 +23,112 @@ class ModelProviderAccessError(ModelProviderError):
     """Raised when the current member is not allowed to use a provider path."""
 
 
+class AnalysisBudgetError(ModelProviderError):
+    """A run cannot continue without silently exceeding its approved limits."""
+
+
+@dataclass
+class AnalysisBudget:
+    deadline: float
+    max_attempts: int
+    attempts: int = 0
+
+    def check_time(self) -> float:
+        remaining = self.deadline - time.monotonic()
+        if remaining <= 0:
+            raise AnalysisBudgetError("本輪分析已達時間上限，尚未完成；請縮小本輪問題後再試。")
+        return remaining
+
+
+_analysis_budget: ContextVar[AnalysisBudget | None] = ContextVar("analysis_budget", default=None)
+
+
+@contextmanager
+def analysis_budget():
+    from app.core.config import settings
+    budget = AnalysisBudget(time.monotonic() + settings.analysis_timeout_seconds, settings.analysis_max_attempts)
+    token = _analysis_budget.set(budget)
+    try:
+        yield budget
+    finally:
+        _analysis_budget.reset(token)
+
+
+def check_analysis_deadline() -> None:
+    if budget := _analysis_budget.get():
+        budget.check_time()
+
+
+def analysis_output_token_limit() -> int | None:
+    from app.core.config import settings
+    return settings.analysis_output_tokens if _analysis_budget.get() is not None else None
+
+
+def begin_provider_attempt(model: str | None, payload: dict, timeout: float) -> float:
+    from app.core.config import settings
+    budget = _analysis_budget.get()
+    if budget is None:
+        return timeout
+    remaining = budget.check_time()
+    if budget.attempts >= budget.max_attempts:
+        raise AnalysisBudgetError("本輪分析已達模型呼叫上限，尚未完成；請縮小本輪問題後再試。")
+    if model is not None:
+        capacity = settings.model_context_window_tokens.get(model)
+        # UTF-8 bytes are a conservative admission bound, not measured token usage.
+        # Include the complete wire payload/schema plus framing and reserved output.
+        estimate = len(json.dumps(payload, ensure_ascii=False).encode("utf-8")) + 1024
+        if capacity is None or capacity <= 0 or estimate + settings.analysis_output_tokens > capacity:
+            raise AnalysisBudgetError("模型 context 容量未知或請求超限；請確認設定或縮小本輪材料，未送出請求。")
+    budget.attempts += 1
+    return min(timeout, settings.analysis_attempt_timeout_seconds, remaining)
+
+
+class EvidenceCitation(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    evidence_id: str = Field(min_length=1)
+    quote: str = Field(min_length=1)
+
+
+class CitedStatement(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    text: str = Field(min_length=1)
+    kind: Literal["fact", "inference", "assumption"]
+    citations: list[EvidenceCitation]
+
+    @property
+    def evidence_refs(self) -> list[str]:
+        return list(dict.fromkeys(item.evidence_id for item in self.citations))
+
+    def display_text(self, language: str = "zh-Hant") -> str:
+        if self.kind == "fact":
+            return self.text
+        labels = {"inference": "Inference: ", "assumption": "Assumption: "} if language == "en" else {"inference": "推論：", "assumption": "假設："}
+        return labels[self.kind] + self.text
+
+
+class EvidenceReadingRequest(BaseModel):
+    evidence: list[dict[str, Any]]
+    response_language: ResponseLanguage = "zh-Hant"
+    mode: Literal["read", "consolidate"] = "read"
+    repair_reason: str = ""
+
+
+class EvidenceReadingOutput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    covered_evidence_ids: list[str]
+    facts: list[CitedStatement]
+    numbers: list[CitedStatement]
+    conditions: list[CitedStatement]
+    conflicts: list[CitedStatement]
+    gaps: list[CitedStatement]
+
+
 class ResearchSynthesisRequest(BaseModel):
     task_title: str
     task_description: str
     response_language: ResponseLanguage = "zh-Hant"
     background_text: str = ""
+    repair_reason: str = ""
     goals: list[str] = Field(default_factory=list)
     constraints: list[str] = Field(default_factory=list)
     evidence: list[dict[str, Any]] = Field(default_factory=list)
@@ -41,6 +147,7 @@ class CoreAnalysisRequest(BaseModel):
     task_description: str
     response_language: ResponseLanguage = "zh-Hant"
     background_text: str = ""
+    repair_reason: str = ""
     goals: list[str] = Field(default_factory=list)
     constraints: list[str] = Field(default_factory=list)
     evidence: list[dict[str, Any]] = Field(default_factory=list)
@@ -61,6 +168,7 @@ class DocumentRestructuringRequest(BaseModel):
     task_description: str
     response_language: ResponseLanguage = "zh-Hant"
     background_text: str = ""
+    repair_reason: str = ""
     goals: list[str] = Field(default_factory=list)
     constraints: list[str] = Field(default_factory=list)
     evidence: list[dict[str, Any]] = Field(default_factory=list)
@@ -78,6 +186,7 @@ class ContractReviewRequest(BaseModel):
     task_description: str
     response_language: ResponseLanguage = "zh-Hant"
     background_text: str = ""
+    repair_reason: str = ""
     goals: list[str] = Field(default_factory=list)
     constraints: list[str] = Field(default_factory=list)
     evidence: list[dict[str, Any]] = Field(default_factory=list)
@@ -133,19 +242,21 @@ class PackContractSynthesisRequest(BaseModel):
 
 
 class ResearchSynthesisOutput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     problem_definition: str
     background_summary: str
-    findings: list[str]
-    risks: list[str]
-    recommendations: list[str]
+    findings: list[CitedStatement]
+    risks: list[CitedStatement]
+    recommendations: list[CitedStatement]
     action_items: list[str]
     missing_information: list[str]
 
 
 class CoreAnalysisOutput(BaseModel):
-    findings: list[str]
-    risks: list[str]
-    recommendations: list[str]
+    model_config = ConfigDict(extra="forbid")
+    findings: list[CitedStatement]
+    risks: list[CitedStatement]
+    recommendations: list[CitedStatement]
     action_items: list[str]
     missing_information: list[str]
     research_sub_questions: list[str] = Field(default_factory=list)
@@ -156,11 +267,12 @@ class CoreAnalysisOutput(BaseModel):
 
 
 class DocumentRestructuringOutput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     problem_definition: str
     background_summary: str
-    findings: list[str]
-    risks: list[str]
-    recommendations: list[str]
+    findings: list[CitedStatement]
+    risks: list[CitedStatement]
+    recommendations: list[CitedStatement]
     action_items: list[str]
     missing_information: list[str]
     proposed_outline: list[str]
@@ -168,11 +280,12 @@ class DocumentRestructuringOutput(BaseModel):
 
 
 class ContractReviewOutput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     problem_definition: str
     background_summary: str
-    findings: list[str]
-    risks: list[str]
-    recommendations: list[str]
+    findings: list[CitedStatement]
+    risks: list[CitedStatement]
+    recommendations: list[CitedStatement]
     action_items: list[str]
     missing_information: list[str]
     clauses_reviewed: list[str]
@@ -234,6 +347,10 @@ class PackContractSynthesisOutput(BaseModel):
 
 
 class ModelProvider(ABC):
+    @abstractmethod
+    def read_evidence(self, request: EvidenceReadingRequest) -> EvidenceReadingOutput:
+        raise NotImplementedError
+
     @abstractmethod
     def generate_research_synthesis(
         self,

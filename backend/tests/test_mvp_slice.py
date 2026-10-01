@@ -10409,9 +10409,9 @@ def test_openai_provider_parses_structured_response(
                                 {
                                     "problem_definition": "Test problem",
                                     "background_summary": "Short summary",
-                                    "findings": ["Finding one"],
-                                    "risks": ["Risk one"],
-                                    "recommendations": ["Recommendation one"],
+                                    "findings": [{"text": "Finding one", "kind": "assumption", "citations": []}],
+                                    "risks": [{"text": "Risk one", "kind": "assumption", "citations": []}],
+                                    "recommendations": [{"text": "Recommendation one", "kind": "assumption", "citations": []}],
                                     "action_items": ["Action one"],
                                     "missing_information": ["Missing item"],
                                 }
@@ -10441,8 +10441,8 @@ def test_openai_provider_parses_structured_response(
         )
     )
 
-    assert result.findings == ["Finding one"]
-    assert result.recommendations == ["Recommendation one"]
+    assert [item.text for item in result.findings] == ["Finding one"]
+    assert [item.text for item in result.recommendations] == ["Recommendation one"]
 
 
 def test_research_intelligence_structured_schema_requires_every_property() -> None:
@@ -10725,9 +10725,9 @@ def test_openai_provider_retries_once_after_timeout(
                                 {
                                     "problem_definition": "Retry test",
                                     "background_summary": "Retried successfully",
-                                    "findings": ["Recovered finding"],
-                                    "risks": ["Recovered risk"],
-                                    "recommendations": ["Recovered recommendation"],
+                                    "findings": [{"text": "Recovered finding", "kind": "assumption", "citations": []}],
+                                    "risks": [{"text": "Recovered risk", "kind": "assumption", "citations": []}],
+                                    "recommendations": [{"text": "Recovered recommendation", "kind": "assumption", "citations": []}],
                                     "action_items": ["Recovered action"],
                                     "missing_information": [],
                                 }
@@ -10758,7 +10758,7 @@ def test_openai_provider_retries_once_after_timeout(
     )
 
     assert attempts == [60, 120]
-    assert result.findings == ["Recovered finding"]
+    assert [item.text for item in result.findings] == ["Recovered finding"]
 
 
 def test_openai_provider_retries_once_after_parse_body_400_when_local_body_is_valid(
@@ -10827,9 +10827,9 @@ def test_openai_provider_retries_once_after_parse_body_400_when_local_body_is_va
                         "message": {
                             "content": json.dumps(
                                 {
-                                    "findings": ["Finance finding"],
-                                    "risks": ["Finance risk"],
-                                    "recommendations": ["Finance recommendation"],
+                                    "findings": [{"text": "Finance finding", "kind": "assumption", "citations": []}],
+                                    "risks": [{"text": "Finance risk", "kind": "assumption", "citations": []}],
+                                    "recommendations": [{"text": "Finance recommendation", "kind": "assumption", "citations": []}],
                                     "action_items": ["Finance action"],
                                     "missing_information": [],
                                 }
@@ -10861,7 +10861,7 @@ def test_openai_provider_retries_once_after_parse_body_400_when_local_body_is_va
     )
 
     assert attempts == [60, 120]
-    assert result.findings == ["Finance finding"]
+    assert [item.text for item in result.findings] == ["Finance finding"]
 
 
 def test_specialist_run_fails_closed_when_model_provider_errors(
