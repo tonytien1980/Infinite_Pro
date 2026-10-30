@@ -186,7 +186,7 @@ def build_deliverable_template_guidance(
     ]
     snapshots = _candidate_rows(
         db,
-        [item.candidate_id for item in weighted_matches],
+        [item.candidate_id for item in weighted_matches if item.visibility == "own_case"],
     )
     if weighted_matches:
         for matched in weighted_matches:

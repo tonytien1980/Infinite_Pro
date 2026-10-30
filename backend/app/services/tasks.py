@@ -50,6 +50,7 @@ from app.extensions.schemas import (
 )
 from app.services.artifact_storage import load_artifact_content
 from app.services.adoption_feedback_intelligence import (
+    ADOPTION_FEEDBACK_REASON_CATALOG,
     normalize_adoption_feedback_reason_codes,
     summarize_adoption_feedback_reason,
 )
@@ -129,7 +130,11 @@ from app.services.precedent_intelligence import (
     select_precedent_reference_matches,
 )
 from app.services.review_lens_intelligence import build_review_lens_guidance
-from app.services.shared_intelligence_risk_gates import evaluate_precedent_share_gate
+from app.services.shared_intelligence_risk_gates import (
+    build_shared_pattern,
+    evaluate_precedent_share_gate,
+    read_shared_pattern,
+)
 from app.services.source_materials import (
     build_source_material_summary,
     ensure_source_chain_participation_links,
@@ -332,6 +337,17 @@ DOMAIN_LENS_KEYWORDS = {
     "募資": ("募資", "投資人", "term sheet", "融資", "fundraising", "cap table"),
     "組織人力": ("組織", "人力", "團隊", "招募", "人才", "管理", "ownership", "org"),
     "產品服務": ("產品", "服務", "方案", "定價", "sku", "offer", "package", "value proposition"),
+}
+SHARED_PATTERN_ALLOWED_VALUES = {
+    "client_stage": set(CLIENT_STAGE_KEYWORDS),
+    "client_type": set(CLIENT_TYPE_KEYWORDS),
+    "domain_lenses": set(DOMAIN_LENS_KEYWORDS) | {"綜合"},
+    "reason_codes": {
+        option["code"]
+        for statuses in ADOPTION_FEEDBACK_REASON_CATALOG.values()
+        for options in statuses.values()
+        for option in options
+    },
 }
 TASK_TYPE_DOMAIN_HINTS = {
     "contract_review": ["法務"],
@@ -7745,9 +7761,27 @@ def _build_precedent_reference_guidance_read(
     client_stage: str | None,
     client_type: str | None,
 ) -> schemas.PrecedentReferenceGuidanceRead:
-    raw_candidate_rows = db.scalars(
-        select(models.PrecedentCandidate).order_by(models.PrecedentCandidate.updated_at.desc())
+    # Scope to the case's firm before collapse or ranking; other consultants' candidates
+    # only take part through their validated shared pattern.
+    firm_clause = (
+        models.Task.firm_id.is_(None) if task.firm_id is None else models.Task.firm_id == task.firm_id
+    )
+    firm_rows = db.scalars(
+        select(models.PrecedentCandidate)
+        .join(models.Task, models.PrecedentCandidate.task_id == models.Task.id)
+        .where(firm_clause)
+        .options(selectinload(models.PrecedentCandidate.task))
+        .order_by(models.PrecedentCandidate.updated_at.desc())
     ).all()
+    own_case_ids = {
+        row.id for row in firm_rows if row.task.created_by_user_id == task.created_by_user_id
+    }
+    raw_candidate_rows = [
+        row
+        for row in firm_rows
+        if row.id in own_case_ids
+        or read_shared_pattern(row.pattern_snapshot, SHARED_PATTERN_ALLOWED_VALUES) is not None
+    ]
     candidate_rows = collapse_precedent_candidates_for_reference(db, raw_candidate_rows)
     matches = select_precedent_reference_matches(
         candidates=candidate_rows,
@@ -7769,39 +7803,7 @@ def _build_precedent_reference_guidance_read(
         )
 
     matched_items = [
-        schemas.PrecedentReferenceItemRead(
-            candidate_id=item.candidate.id,
-            candidate_type=PrecedentCandidateType(item.candidate.candidate_type),
-            candidate_status=PrecedentCandidateStatus(item.candidate.candidate_status),
-            source_feedback_status=AdoptionFeedbackStatus(item.candidate.source_feedback_status),
-            share_status=PrecedentShareStatus(
-                getattr(item.candidate, "share_status", PrecedentShareStatus.PROVISIONAL.value)
-            ),
-            risk_flags=list(getattr(item.candidate, "risk_flags", []) or []),
-            risk_summary=getattr(item.candidate, "risk_summary", "") or "",
-            positive_signal_count=int(getattr(item.candidate, "positive_signal_count", 0) or 0),
-            negative_signal_count=int(getattr(item.candidate, "negative_signal_count", 0) or 0),
-            review_priority=item.review_priority,  # type: ignore[arg-type]
-            primary_reason_label=item.primary_reason_label,
-            source_feedback_reason_labels=item.source_feedback_reason_labels,
-            source_feedback_reason_codes=list(item.candidate.source_feedback_reason_codes or []),
-            source_feedback_operator_label=item.candidate.source_feedback_operator_label or "",
-            created_by_label=item.candidate.created_by_label or "",
-            last_status_changed_by_label=item.candidate.last_status_changed_by_label or "",
-            optimization_signal=item.optimization_signal,
-            shared_intelligence_signal=item.shared_intelligence_signal,
-            title=item.candidate.title or "",
-            summary=item.candidate.summary or "",
-            reusable_reason=item.candidate.reusable_reason or "",
-            match_reason=item.match_reason,
-            safe_use_note=item.safe_use_note,
-            client_stage_alignment=item.client_stage_alignment,  # type: ignore[arg-type]
-            client_type_alignment=item.client_type_alignment,  # type: ignore[arg-type]
-            domain_lens_alignment=item.domain_lens_alignment,  # type: ignore[arg-type]
-            source_task_id=item.candidate.task_id,
-            source_deliverable_id=item.candidate.source_deliverable_id,
-            source_recommendation_id=item.candidate.source_recommendation_id,
-        )
+        _build_precedent_reference_item_read(item, own_case=item.candidate.id in own_case_ids)
         for item in matches
     ]
 
@@ -7815,6 +7817,55 @@ def _build_precedent_reference_guidance_read(
         recommended_uses=build_reason_aware_precedent_recommended_uses(matches),
         boundary_note="這些模式只可拿來參考判斷順序與骨架，不會直接複製舊案正文。",
         matched_items=matched_items,
+    )
+
+
+def _build_precedent_reference_item_read(item, *, own_case: bool) -> schemas.PrecedentReferenceItemRead:
+    candidate = item.candidate
+    if own_case:
+        private_fields = {
+            "visibility": "own_case",
+            "source_feedback_operator_label": candidate.source_feedback_operator_label or "",
+            "created_by_label": candidate.created_by_label or "",
+            "last_status_changed_by_label": candidate.last_status_changed_by_label or "",
+            "title": candidate.title or "",
+            "summary": candidate.summary or "",
+            "reusable_reason": candidate.reusable_reason or "",
+            "source_task_id": candidate.task_id,
+            "source_deliverable_id": candidate.source_deliverable_id,
+            "source_recommendation_id": candidate.source_recommendation_id,
+        }
+    else:
+        # Another consultant's case: only labels derived from closed codes leave it.
+        private_fields = {
+            "visibility": "shared_pattern",
+            "title": f"其他案件的可重用模式：{item.primary_reason_label or '已採用的做法'}",
+            "reusable_reason": "；".join(item.source_feedback_reason_labels),
+        }
+    return schemas.PrecedentReferenceItemRead(
+        candidate_id=candidate.id,
+        candidate_type=PrecedentCandidateType(candidate.candidate_type),
+        candidate_status=PrecedentCandidateStatus(candidate.candidate_status),
+        source_feedback_status=AdoptionFeedbackStatus(candidate.source_feedback_status),
+        share_status=PrecedentShareStatus(
+            getattr(candidate, "share_status", PrecedentShareStatus.PROVISIONAL.value)
+        ),
+        risk_flags=list(getattr(candidate, "risk_flags", []) or []),
+        risk_summary=getattr(candidate, "risk_summary", "") or "",
+        positive_signal_count=int(getattr(candidate, "positive_signal_count", 0) or 0),
+        negative_signal_count=int(getattr(candidate, "negative_signal_count", 0) or 0),
+        review_priority=item.review_priority,  # type: ignore[arg-type]
+        primary_reason_label=item.primary_reason_label,
+        source_feedback_reason_labels=item.source_feedback_reason_labels,
+        source_feedback_reason_codes=list(candidate.source_feedback_reason_codes or []),
+        optimization_signal=item.optimization_signal,
+        shared_intelligence_signal=item.shared_intelligence_signal,
+        match_reason=item.match_reason,
+        safe_use_note=item.safe_use_note,
+        client_stage_alignment=item.client_stage_alignment,  # type: ignore[arg-type]
+        client_type_alignment=item.client_type_alignment,  # type: ignore[arg-type]
+        domain_lens_alignment=item.domain_lens_alignment,  # type: ignore[arg-type]
+        **private_fields,
     )
 
 
@@ -12320,6 +12371,17 @@ def _build_precedent_candidate_seed(
     )
     top_risks = _build_precedent_top_risk_list(task)
     shape_sections = _build_precedent_shape_sections(deliverable)
+    shared_pattern = build_shared_pattern(
+        lane_id=flagship_lane.lane_id,
+        deliverable_type=deliverable.deliverable_type if deliverable is not None else deliverable_class_hint.value,
+        continuity_mode=continuity_mode.value,
+        client_stage=normalized_client_stage,
+        client_type=normalized_client_type,
+        domain_lenses=list(domain_lenses or []),
+        selected_pack_ids=selected_pack_ids,
+        reason_codes=list(feedback_reason_codes or []),
+        allowed=SHARED_PATTERN_ALLOWED_VALUES,
+    )
 
     if deliverable is not None:
         summary = _resolve_deliverable_summary_text(deliverable)
@@ -12357,6 +12419,7 @@ def _build_precedent_candidate_seed(
                 "boundary_note": flagship_lane.boundary_note,
                 "top_risks": top_risks,
                 "shape_sections": shape_sections,
+                "shared_pattern": shared_pattern,
             },
         }
 
@@ -12396,6 +12459,7 @@ def _build_precedent_candidate_seed(
             "lane_label": flagship_lane.label,
             "top_risks": top_risks,
             "shape_sections": [],
+            "shared_pattern": shared_pattern,
         },
     }
 

@@ -1833,7 +1833,8 @@ export interface PrecedentReferenceItem {
   reusable_reason: string;
   match_reason: string;
   safe_use_note: string;
-  source_task_id: string;
+  visibility: "own_case" | "shared_pattern";
+  source_task_id: string | null;
   source_deliverable_id: string | null;
   source_recommendation_id: string | null;
 }

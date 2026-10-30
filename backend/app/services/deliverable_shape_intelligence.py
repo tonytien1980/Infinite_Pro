@@ -158,7 +158,11 @@ def build_deliverable_shape_guidance(
 
     snapshots = _candidate_shape_rows(
         db,
-        [item.candidate_id for item in precedent_reference_guidance.matched_items[:2]],
+        [
+            item.candidate_id
+            for item in precedent_reference_guidance.matched_items[:2]
+            if item.visibility == "own_case"
+        ],
     )
     if precedent_reference_guidance.status == "available":
         for matched in precedent_reference_guidance.matched_items[:2]:

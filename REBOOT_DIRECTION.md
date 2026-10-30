@@ -253,7 +253,15 @@ Ontology、六層架構、Host、CaseWorldState 全部保留——但全部退�
 
 Task 1 完成後進入 Task 2；最新進度如下。引用、共享隱私、真實模型、登入後 UX／效能、完整 PostgreSQL 回歸與 A~H 品質仍未驗收；不得宣稱第一包或 85 分完成。
 
-### 最新工程進度：2026-10-01，Task 3 本機工程完成
+### 最新工程進度：2026-10-31，Task 4 第一批（Claude Code）
+
+跨顧問共享經驗洩漏已修正：候選先依 firm 過濾，其他顧問的案件只透過經檢核的封閉代碼共享，不再把原案標題、摘要、操作者或來源 ID 送進案件讀取與 Host 模型輸入；自己的舊案照常引用。細節與未完成項目見 `IMPLEMENTATION_PLAN.md` Task 4。
+
+- 驗證（本機、mock provider）：新增 `test_shared_intelligence_privacy.py` 7 項，先重現失敗再轉綠；完整 static gate backend 482 passed、frontend 171 passed、build、typecheck 通過。3 個既有測試補上 `visibility="own_case"`，明示它們模擬的是同一位顧問自己的舊案，斷言沒有放寬。
+- 影響：既有候選缺少新格式，暫停跨顧問共享，直到經核准的 dry-run 重建。
+- 未完成：方法／風險／反例的封閉代碼目錄、顧問停用與匯出負例、owner 治理清單的 firm 過濾。Task 4 尚未通過驗收；A~H 仍未評分。
+
+### 前次工程進度：2026-10-01，Task 3 本機工程完成
 
 本次接續已核准 Task 3，沒有重新定義產品，也沒有另開治理功能。沿同一隔離分支實作；未啟動產品服務、未呼叫付費模型、未更動真實案件。
 

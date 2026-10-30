@@ -255,13 +255,13 @@ def validate_cited_statement(statement: CitedStatement, permitted_text: dict[str
 
 **Files:** 修改 `backend/app/services/tasks.py` 的 `_build_precedent_candidate_seed`、`_sync_precedent_candidate_for_feedback`、`_build_precedent_reference_guidance_read`，以及 `shared_intelligence_risk_gates.py`、`precedent_intelligence.py`、`precedent_duplicate_governance.py`、引用候選的 `review_lens_intelligence.py`／`common_risk_intelligence.py`／`deliverable_shape_intelligence.py`／`deliverable_template_intelligence.py`／`domain_playbook_intelligence.py`／`organization_memory_intelligence.py`。同步 `backend/app/domain/schemas.py`、`agents/base.py`、`frontend/src/lib/types.ts`／`precedent-reference.ts`；新增 `backend/tests/test_shared_intelligence_privacy.py`。
 
-- [ ] 先把 A 原案 404、B 卻拿到原標題的重現做成 API + Host payload regression。加測不同 firm、顧問停用、撤回 feedback、直接查 candidate／匯出／衍生提示的負例。
-- [ ] 查詢先用候選所屬 Task 的 firm 與既有 case access 過濾，再做 collapse、ranking、aggregate；不得先全庫匹配後才遮住畫面。
-- [ ] 原始 title、summary、note、operator、來源 task IDs 保留私有用途；跨顧問只從 `PrecedentCandidate.pattern_snapshot.shared_pattern` 取得經檢核的內容。缺少新格式或未通過檢核即不共享，不回退讀 raw title／summary。
-- [ ] 共享檢核不只字詞黑名單：型別／欄位 allowlist、原案已知實體與聯絡資訊、可重識別的數字／條款、來源權限及撤回狀態都要檢查；模型不得自行把內容標 safe 當成唯一放行條件。
-- [ ] **預設自動共享使用封閉代碼與核准通用文字組合**：依既有回饋 reason codes、主題、階段與 reusable assets catalog 選適用方法、風險、反例。原案自由文字不得進入共享 DTO。新生成、無法以允許內容表示的經驗留在私有候選，必要時由 owner 個別確認；不要求顧問逐案審核，也不聲稱任意自然語言已能可靠匿名化。
-- [ ] `PrecedentReferenceItemRead.source_task_id` 改可空；跨顧問原案不可存取時，不回傳來源 ID、原標題或操作者。來源只在有原案權限的管理／案件路徑可見；前端不可憑缺少 link 以外的欄位拼出來源。
-- [ ] 所有衍生 reference builders 只能消費 safe projection，不可重新從 pattern_snapshot 的原始 summary／top_risks 繞回去。撤回或狀態改變後，下一個請求就停止引用；歷史成果記錄不被重寫。
+- [ ] 先把 A 原案 404、B 卻拿到原標題的重現做成 API + Host payload regression。加測不同 firm、顧問停用、撤回 feedback、直接查 candidate／匯出／衍生提示的負例。（2026-10-31 部分完成：重現、不同 firm、舊格式、竄改內容、撤回 feedback 與衍生提示已有測試；顧問停用、匯出尚未個別測試）
+- [x] 查詢先用候選所屬 Task 的 firm 與既有 case access 過濾，再做 collapse、ranking、aggregate；不得先全庫匹配後才遮住畫面。
+- [x] 原始 title、summary、note、operator、來源 task IDs 保留私有用途；跨顧問只從 `PrecedentCandidate.pattern_snapshot.shared_pattern` 取得經檢核的內容。缺少新格式或未通過檢核即不共享，不回退讀 raw title／summary。
+- [x] 共享檢核不只字詞黑名單：型別／欄位 allowlist、原案已知實體與聯絡資訊、可重識別的數字／條款、來源權限及撤回狀態都要檢查；模型不得自行把內容標 safe 當成唯一放行條件。
+- [ ] **預設自動共享使用封閉代碼與核准通用文字組合**（2026-10-31 部分完成：已用回饋理由代碼、主線、交付型態、階段、型態、領域與模組包代碼；方法／風險／反例代碼尚無核准目錄，見下方進度）：依既有回饋 reason codes、主題、階段與 reusable assets catalog 選適用方法、風險、反例。原案自由文字不得進入共享 DTO。新生成、無法以允許內容表示的經驗留在私有候選，必要時由 owner 個別確認；不要求顧問逐案審核，也不聲稱任意自然語言已能可靠匿名化。
+- [x] `PrecedentReferenceItemRead.source_task_id` 改可空；跨顧問原案不可存取時，不回傳來源 ID、原標題或操作者。來源只在有原案權限的管理／案件路徑可見；前端不可憑缺少 link 以外的欄位拼出來源。
+- [x] 所有衍生 reference builders 只能消費 safe projection，不可重新從 pattern_snapshot 的原始 summary／top_risks 繞回去。撤回或狀態改變後，下一個請求就停止引用；歷史成果記錄不被重寫。
 
 共享投影的最小新契約放在既有 risk-gates owner，代碼表取自現有資產契約；沒有穩定代碼的通用方法／條件／反例就在原資產 owner 補上明確定義，不另造一份平行 catalog。只有明確核准的通用內容可加入允許清單，不能把原案標題、自由文字或自訂 pack 名稱當代碼而自動放行：
 
@@ -283,6 +283,14 @@ def validate_pattern_codes(pattern: SharedPattern, allowed: dict[str, set[str]])
         if not set(getattr(pattern, field)).issubset(allowed[field]):
             raise ValueError(f"Unapproved values in {field}")
 ```
+
+**2026-10-31 進度（Claude Code 接手後第一批，本機與 GitHub 分支，未 merge）：**
+
+- 根因：`_build_precedent_reference_guidance_read` 原本先撈全庫候選，直接回傳原案 title／summary／操作者與來源 ID，並送進 Host payload 與衍生參考。已重現 B 顧問的案件讀取與 Host 輸入含 A 的原標題。
+- 修正：候選先依案件 firm 過濾；同一位顧問自己的案件標為 `visibility="own_case"`，保留原文與來源；其他顧問的候選只有 `pattern_snapshot.shared_pattern` 通過 `read_shared_pattern` 檢核才參與比對，輸出僅含代碼衍生的標籤（`visibility="shared_pattern"`，來源 ID 為空）。共享模式由 `shared_intelligence_risk_gates.build_shared_pattern` 產生，允許值由 `tasks.SHARED_PATTERN_ALLOWED_VALUES` 持有。共同風險、交付骨架、模板三個會回讀原始快照的 builder 只讀 own_case。
+- 結果：既有候選沒有 `shared_pattern`，因此暫停跨顧問共享，自己的案件仍可引用；舊資料重建尚未執行，須先 dry-run 並經核准。
+- 未完成：方法／風險／反例的封閉代碼目錄（需老田決定可共享的內容型態）；顧問停用與匯出的個別負例；owner 治理清單（`workbench.get_precedent_review_state` 及套用治理建議）尚未依 firm 過濾——單一 firm 範圍內不外洩，但不能宣稱已支援多 firm。
+- 驗證：`backend/tests/test_shared_intelligence_privacy.py` 7 項；完整 static gate 見方向書第 9 節。
 
 不把只剩模板選擇當 H 達標：Task 6／9 的對照仍須證明經驗帶來改善。若封閉表示法不足以達標，回報具體缺少的方法，再由老田決定是否擴大可分享的內容型態；不可擅自解除邊界換取高分。
 

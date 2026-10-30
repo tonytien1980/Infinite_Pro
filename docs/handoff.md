@@ -33,8 +33,8 @@ Codex 在本 repo 最後一次活動是 2026-10-02，之後沒有進行中的 Co
 
 | 分支 | 位置 | 相對 GitHub |
 | --- | --- | --- |
-| `codex/consultant-ready-delivery` | `.worktrees/consultant-ready-delivery`（施工主線） | 尚無 upstream，未推送 |
-| `codex/owner-consultant-cockpit-a` | 主 checkout | 領先 origin 3 個 commit，未推送 |
+| `codex/consultant-ready-delivery` | `.worktrees/consultant-ready-delivery`（施工主線） | 2026-10-31 已推送；之後的提交是否已推送，以 `git status -sb` 為準 |
+| `codex/owner-consultant-cockpit-a` | 主 checkout | 2026-10-31 已推送，與 origin 相同 |
 | `main` | — | 與 origin/main 相同（2026-05-03 `59c2783`），未含 9 月後任何工作 |
 
 推送、merge、部署仍需老闆逐次核准。
@@ -44,10 +44,16 @@ Codex 在本 repo 最後一次活動是 2026-10-02，之後沒有進行中的 Co
 - Codex 2026-09-25 ~ 10-02 的施工對話原始檔已不存在；那段過程只能從 Git 提交與方向書第 9 節重建。
 - 曾有 API key、OAuth 密鑰與帳密以明文出現在 Codex 對話紀錄（未進 Git 歷史）。建議老闆自行輪換；agent 不代為處理。
 - `~/.codex/memory_layers/projects/infinite-pro/` 停在 2026-04-15，已過時；是否更新需老闆授權。
-- 已知未修缺陷：共享經驗洩漏原案標題（Task 4）、Host 未收斂相反建議（Task 5）、首屏載入次要資料（Task 7~8）。
+- 已知未修缺陷：Host 未收斂相反建議（Task 5）、首屏載入次要資料（Task 7~8）。共享經驗洩漏已於 2026-10-31 修正（Task 4 第一批）。
+
+### 2026-10-31 · Task 4 第一批
+
+- 兩條分支已推上 GitHub（老闆核准）。
+- 修正跨顧問共享經驗洩漏，詳見 `IMPLEMENTATION_PLAN.md` Task 4 進度與方向書第 9 節。完整 static gate 通過（backend 482、frontend 171）。
+- Task 4 剩餘：方法／風險／反例代碼目錄（需老闆決定可共享內容型態）、顧問停用與匯出負例、owner 治理清單 firm 過濾、舊資料 dry-run 重建（需核准）。
 
 ### 下一步
 
-1. 老闆核准後推送上述兩條分支。
-2. 依 `IMPLEMENTATION_PLAN.md` 接續 Task 4「安全的共享經驗」：先把跨顧問洩漏重現寫成會失敗的測試，再改既有 owner。
+1. 完成 Task 4 剩餘項目；代碼目錄的內容型態先請老闆決定。
+2. 舊候選的 dry-run 重建清單交老闆核准後才執行。
 3. 提早安排真實模型預算核定與真人 5 分鐘短案驗收。

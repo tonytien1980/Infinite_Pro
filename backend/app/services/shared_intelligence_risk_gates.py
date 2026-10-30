@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Iterable
 
@@ -117,3 +118,59 @@ def evaluate_precedent_share_gate(
         positive_signal_count=positive_signal_count,
         negative_signal_count=negative_signal_count,
     )
+
+
+SHARED_PATTERN_SCHEMA_VERSION = 1
+_SYSTEM_CODE_PATTERN = re.compile(r"^[a-z0-9_-]{1,64}$")
+_SYSTEM_CODE_FIELDS = ("lane_id", "deliverable_type", "continuity_mode")
+
+
+def build_shared_pattern(
+    *,
+    lane_id: str | None,
+    deliverable_type: str | None,
+    continuity_mode: str | None,
+    client_stage: str | None,
+    client_type: str | None,
+    domain_lenses: Iterable[str],
+    selected_pack_ids: Iterable[str],
+    reason_codes: Iterable[str],
+    allowed: dict[str, set[str]],
+) -> dict:
+    """Cross-consultant projection: closed codes only, never free text from the source case."""
+    pattern = {
+        "schema_version": SHARED_PATTERN_SCHEMA_VERSION,
+        "lane_id": lane_id or "",
+        "deliverable_type": deliverable_type or "",
+        "continuity_mode": continuity_mode or "",
+        "client_stage": client_stage if client_stage in allowed["client_stage"] else "",
+        "client_type": client_type if client_type in allowed["client_type"] else "",
+        "domain_lenses": [item for item in domain_lenses if item in allowed["domain_lenses"]],
+        "selected_pack_ids": [item for item in selected_pack_ids if _SYSTEM_CODE_PATTERN.match(item or "")],
+        "reason_codes": [item for item in reason_codes if item in allowed["reason_codes"]],
+    }
+    return pattern if read_shared_pattern({"shared_pattern": pattern}, allowed) else {}
+
+
+def read_shared_pattern(snapshot: dict | None, allowed: dict[str, set[str]]) -> dict | None:
+    """Return the validated shared pattern, or None when it is missing or fails any check."""
+    pattern = (snapshot or {}).get("shared_pattern")
+    if not isinstance(pattern, dict) or pattern.get("schema_version") != SHARED_PATTERN_SCHEMA_VERSION:
+        return None
+    for field in _SYSTEM_CODE_FIELDS:
+        value = pattern.get(field)
+        if not isinstance(value, str) or (value and not _SYSTEM_CODE_PATTERN.match(value)):
+            return None
+    for field in ("client_stage", "client_type"):
+        value = pattern.get(field)
+        if not isinstance(value, str) or (value and value not in allowed[field]):
+            return None
+    for field, check in (
+        ("domain_lenses", lambda item: item in allowed["domain_lenses"]),
+        ("selected_pack_ids", lambda item: isinstance(item, str) and bool(_SYSTEM_CODE_PATTERN.match(item))),
+        ("reason_codes", lambda item: item in allowed["reason_codes"]),
+    ):
+        values = pattern.get(field)
+        if not isinstance(values, list) or not all(check(item) for item in values):
+            return None
+    return pattern

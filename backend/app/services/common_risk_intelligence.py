@@ -146,7 +146,7 @@ def build_common_risk_guidance(
     )
     precedent_top_risks = _candidate_top_risks(
         db,
-        [item.candidate_id for item in weighted_matches],
+        [item.candidate_id for item in weighted_matches if item.visibility == "own_case"],
     )
     if weighted_matches:
         for matched in weighted_matches:

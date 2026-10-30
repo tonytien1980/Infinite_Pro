@@ -882,7 +882,8 @@ class PrecedentReferenceItemRead(BaseModel):
     client_stage_alignment: Literal["matched", "mismatch", "unknown"] = "unknown"
     client_type_alignment: Literal["matched", "mismatch", "unknown"] = "unknown"
     domain_lens_alignment: Literal["matched", "mismatch", "unknown"] = "unknown"
-    source_task_id: str
+    visibility: Literal["own_case", "shared_pattern"] = "shared_pattern"
+    source_task_id: str | None = None
     source_deliverable_id: str | None = None
     source_recommendation_id: str | None = None
 

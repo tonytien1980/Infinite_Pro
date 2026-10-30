@@ -6980,6 +6980,7 @@ def _test_precedent_reference_item(
         client_stage_alignment=client_stage_alignment,
         client_type_alignment=client_type_alignment,
         domain_lens_alignment=domain_lens_alignment,
+        visibility="own_case",
         source_task_id="task-precedent",
         source_deliverable_id=source_deliverable_id,
     )
@@ -8535,6 +8536,7 @@ def test_deliverable_shape_guidance_normalizes_internal_sections_to_consultant_o
                         reusable_reason=candidate.reusable_reason,
                         match_reason="目前案件和既有審閱 precedent 高度相似。",
                         safe_use_note="只能當骨架提示，不能直接複製正文。",
+                        visibility="own_case",
                         source_task_id=candidate.task_id,
                         source_deliverable_id=candidate.source_deliverable_id,
                     )
