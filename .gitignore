@@ -29,3 +29,4 @@ storage/releases/*
 backend/.ruff_cache/
 backend/.pytest_cache/
 backend/.pytest_runtime/
+.gstack/
