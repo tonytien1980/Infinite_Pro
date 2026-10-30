@@ -1,5 +1,20 @@
 # AGENTS.md
 
+> **2026-07 REBOOT NOTICE — READ THIS FIRST**
+>
+> 本 repo 已於 2026-07-07 正式重啟。最高優先讀取順序改為：
+>
+> 1. `REBOOT_DIRECTION.md`（產品方向與執行順序）
+> 2. `HEALTH_CHECK_REPORT_2026-07-07.md`（診斷與重構路線）
+>
+> 上述兩份文件與本文件其餘內容衝突時，**一律以上述兩份為準**。特別注意：
+>
+> - 本文件第 2 節的 reading order、第 7 節的 phase rule、第 8 節的 doc 更新義務全部暫停。
+> - `docs/` 目錄視為歷史參考，不是開工前的必讀項。
+> - 禁止新增任何治理 read model、「第 N 刀」式 slice、governance note、posture 標籤。
+> - 產品原則：**操作最簡單、內核可以複雜、產出直接可用。** 顧問介面上不得出現 ontology 詞彙。
+> - 第 3 節（六層架構）與第 5 節的 provider boundary 規則仍然有效——它們屬於引擎室，繼續遵守。
+
 This file is the repository-level operating guide for Codex and other coding agents working on Infinite Pro.
 
 The current product and repo baseline must be understood through the flat docs set introduced in the 2026-04 documentation reset.
